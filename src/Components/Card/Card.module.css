@@ -24,11 +24,10 @@
 
 .cardImage {
   width: 100%;
-  height: auto;
+  height: 70%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  object-fit: cover;
+  align-items: flex-start;
+  overflow: hidden;
   transition: transform 300ms ease;
 }
 

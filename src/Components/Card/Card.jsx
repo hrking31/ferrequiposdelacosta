@@ -5,14 +5,15 @@ export default function Card(props) {
   return (
     <div>
       <div className={style.card}>
-        <h2> {props.name}</h2>
-        <h2>{props.types.join(", ")}</h2>
-        <Link to={`/detail/${props.id}`}>
+        <Link to={`/detail/${props.name}`}>
+          <h2> {props.name}</h2>
+          <h2>{props.price}</h2>
           <img
-            src={props.image}
+            src={props.url}
             className={style.cardImage}
             alt="img not found"
           />
+          {/* <p>{props.description}</p> */}
         </Link>
       </div>
     </div>

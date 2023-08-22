@@ -1,6 +1,6 @@
 import Landing from "./Landing/Landing";
 import Home from "./Home/Home";
-import Admin from "./Admin/Admin";
+import AdminForms from "./AdminForms/AdminForms";
 import Detail from "./Detail/Detail";
 
-export { Home, Landing, Detail, Admin };
+export { Home, Landing, Detail, AdminForms };

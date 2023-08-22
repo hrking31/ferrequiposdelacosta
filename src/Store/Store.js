@@ -1,0 +1,18 @@
+import { configureStore } from "@reduxjs/toolkit";
+import darkModeReducer from "./Slices/darkModeSlice";
+import equiposReducer from "./Slices/equiposSlice";
+import equipoDetailReducer from "./Slices/detailSlice";
+import passwordReducer from "./Slices/passwordSlice";
+import formReducer from "./Slices/formSlice";
+import nameImagenReducer from "./Slices/nameImagenSlice";
+
+export default configureStore({
+  reducer: {
+    darkMode: darkModeReducer,
+    equipos: equiposReducer,
+    equipoDetail: equipoDetailReducer,
+    password: passwordReducer,
+    form: formReducer,
+    nameImagen: nameImagenReducer,
+  },
+});

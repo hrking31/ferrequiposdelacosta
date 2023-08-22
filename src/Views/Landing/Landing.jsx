@@ -1,9 +1,14 @@
-import React from "react";
+import style from "./Landing.module.css";
+import DarkMode from "../../Components/DarkMode/DarkMode";
+import Ferrequipos from "../../assets/Ferrequipos.jpeg";
+import { Link } from "react-router-dom";
 
 export default function Landing() {
   return (
     <div>
-      <h1>Ferequipós de la Costa</h1>
+      <DarkMode />
+      <img src={Ferrequipos} alt="ferrequipos" className={style.icon} />
+      <h1>Ferrequipós de la Costa</h1>
 
       <p className="read-the-docs">
         "¡Bienvenido/a a nuestra página web! Nos complace que nos estés
@@ -21,6 +26,9 @@ export default function Landing() {
         comprensión y por ser parte de nuestra comunidad en crecimiento. Equipo
         de Ferrequipos de la Costa"
       </p>
+      <Link to="/home">
+        <button>Ingresar</button>
+      </Link>
     </div>
   );
 }
