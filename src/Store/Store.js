@@ -5,6 +5,7 @@ import equipoDetailReducer from "./Slices/detailSlice";
 import passwordReducer from "./Slices/passwordSlice";
 import formReducer from "./Slices/formSlice";
 import nameImagenReducer from "./Slices/nameImagenSlice";
+import cotizacionReducer from "./Slices/cotizacionSlice";
 
 export default configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export default configureStore({
     password: passwordReducer,
     form: formReducer,
     nameImagen: nameImagenReducer,
+    cotizacion: cotizacionReducer,
   },
 });

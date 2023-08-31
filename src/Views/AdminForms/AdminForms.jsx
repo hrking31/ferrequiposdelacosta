@@ -1,4 +1,5 @@
 import style from "./AdminForms.module.css";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { storage } from "../../Components/Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -197,6 +198,10 @@ export default function AdminForms() {
       <button>Subir Archivos</button>
 
       <button onClick={handlerLogout}>Cerrar Sesión</button>
+
+      <Link to="/vistacotizacion">
+        <button>Cotización</button>
+      </Link>
     </form>
   );
 }

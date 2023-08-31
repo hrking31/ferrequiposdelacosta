@@ -111,3 +111,153 @@ function animatableLoaded() {
 if (customElements) {
   customElements.whenDefined("animatable-component").then(animatableLoaded);
 } else animatableLoaded();
+
+// import { useSelector, useDispatch } from "react-redux";
+// import {
+//   setFormCotizacion,
+//   setItems,
+//   setTotal,
+// } from "../../Store/Slices/cotizacionSlice";
+// import html2canvas from "html2canvas";
+// import jsPDF from "jspdf";
+
+// const Cotizacion = () => {
+//   const dispatch = useDispatch();
+//   const formValues = useSelector((state) => state.cotizacion.value);
+//   const items = useSelector((state) => state.cotizacion.value.items);
+//   const total = useSelector((state) => state.cotizacion.value.total);
+
+//   const generatePDF = async () => {
+//     const input = document.getElementById("cotizacion-container");
+//     const pdf = new jsPDF("p", "mm", "a4");
+
+//     const canvas = await html2canvas(input);
+//     const imgData = canvas.toDataURL("image/png");
+
+//     pdf.addImage(imgData, "PNG", 10, 10, 190, 280);
+//     pdf.save("cotizacion.pdf");
+//   };
+
+//   // const updateItem = (index, field, value) => {
+//   //   const updatedItems = [...items];
+//   //   updatedItems[index][field] = value;
+//   //   setItems(updatedItems);
+//   // };
+
+//   const updateItem = (index, field, value) => {
+//     const updatedItems = [...items]; // Copia del arreglo de items
+//     const updatedItem = { ...updatedItems[index], [field]: value }; // Actualiza el campo específico del ítem
+//     updatedItems[index] = updatedItem; // Reemplaza el ítem actualizado en la copia del arreglo
+//     dispatch(setItems(updatedItems)); // Actualiza el estado con la copia modificada
+//   };
+
+//   const calculateTotal = () => {
+//     const totalAmount = items.reduce(
+//       (total, item) => total + item.quantity * item.price,
+//       0
+//     );
+//     dispatch(setTotal(totalAmount));
+//   };
+
+//   const addNewItem = () => {
+//     const newItem = { description: "", quantity: 0, price: 0 };
+//     dispatch(setItems([...items, newItem]));
+//   };
+
+//   const handlerInputChange = (event) => {
+//     const { name, value } = event.target;
+//     const updatedFormValues = { ...formValues, [name]: value };
+//     dispatch(setFormCotizacion(updatedFormValues));
+//   };
+
+//   return (
+//     <div>
+//       <div>
+//         <label>Fecha:</label>
+//         <input
+//           type="date"
+//           name="fecha"
+//           onChange={handlerInputChange}
+//           placeholder="  Fecha..."
+//         />
+//       </div>
+//       <div>
+//         <label>Empresa:</label>
+//         <input
+//           type="text"
+//           name="empresa"
+//           onChange={handlerInputChange}
+//           placeholder="  Empresa..."
+//         />
+//       </div>
+//       <div>
+//         <label>Nit:</label>
+//         <input
+//           type="number"
+//           name="nit"
+//           onChange={handlerInputChange}
+//           placeholder="  Nit..."
+//         />
+//       </div>
+//       <div>
+//         <label>Dirección:</label>
+//         <input
+//           type="text"
+//           name="direccion"
+//           onChange={handlerInputChange}
+//           placeholder="  direccion..."
+//         />
+//       </div>
+
+//       <div id="cotizacion-container">
+//         <div style={{ textAlign: "center", color: "blue" }}>
+//           <h1 style={{ fontSize: "24px" }}>FERREQUIPOS DE LA COSTA</h1>
+//         </div>
+//         <div style={{ textAlign: "center", color: "red" }}>
+//           <h2>Alquiler de equipos para la construccion</h2>
+//           <h2>Nit: 22.736.950 - 1 </h2>
+//         </div>
+//         <p>Barranquilla, {formValues.fecha}</p>
+//         <p>Señores: {formValues.empresa}</p>
+//         <p>Nit: {formValues.nit}</p>
+//         <p>Obra: {formValues.direccion}</p>
+//         <h2>Cotización</h2>
+
+//         <button onClick={addNewItem}>Agregar Ítem</button>
+//         {items.map((item, index) => (
+//           <div key={index}>
+//             <input
+//               type="text"
+//               placeholder="Descripción"
+//               value={item.description}
+//               onChange={(e) => updateItem(index, "description", e.target.value)}
+//             />
+//             <input
+//               type="number"
+//               placeholder="Cantidad"
+//               value={item.quantity}
+//               onChange={(e) =>
+//                 updateItem(index, "quantity", parseInt(e.target.value))
+//               }
+//             />
+//             <input
+//               type="number"
+//               placeholder="Precio"
+//               value={item.price}
+//               onChange={(e) =>
+//                 updateItem(index, "price", parseFloat(e.target.value))
+//               }
+//             />
+//           </div>
+//         ))}
+//       </div>
+
+//       <button onClick={calculateTotal}>Calcular Total</button>
+//       <p>Total: {total}</p>
+
+//       <button onClick={generatePDF}>Generar PDF</button>
+//     </div>
+//   );
+// };
+
+// export default Cotizacion;

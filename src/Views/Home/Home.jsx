@@ -13,7 +13,6 @@ export default function Home() {
 
   return (
     <div>
-      {/* <Cards equipos={equipos} /> */}
       <Cards />
     </div>
   );
