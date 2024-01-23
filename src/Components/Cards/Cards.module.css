@@ -1,4 +1,4 @@
-.cards_container {
+/*.cards_container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-gap: 18px;
@@ -6,4 +6,4 @@
   margin-top: 60px;
   margin-bottom: 60px;
   margin: 60px 120px;
-}
+}*/

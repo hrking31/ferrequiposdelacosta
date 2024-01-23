@@ -1,13 +1,18 @@
 import style from "./Landing.module.css";
 import DarkMode from "../../Components/DarkMode/DarkMode";
-import Ferrequipos from "../../assets/Ferrequipos.jpeg";
 import { Link } from "react-router-dom";
 
 export default function Landing() {
   return (
     <div>
       <DarkMode />
-      <img src={Ferrequipos} alt="ferrequipos" className={style.icon} />
+      <img
+        src={
+          "https://firebasestorage.googleapis.com/v0/b/ferrequiposdelacosta-e2457.appspot.com/o/LogoFerrequipos.png?alt=media&token=7eddb4c4-2dbb-43b4-9701-7eb3db9763f6"
+        }
+        alt="ferrequipos"
+        className={style.icon}
+      />
       <h1>Ferrequipós de la Costa</h1>
 
       <p className="read-the-docs">
