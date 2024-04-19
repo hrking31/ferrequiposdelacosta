@@ -18,6 +18,7 @@ export default function NavBar(props) {
 }*/
 
 import React, { useState, useEffect } from "react";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import { NavLink } from "react-router-dom";
 import { styled } from "@mui/material/styles";
 import {
@@ -74,7 +75,7 @@ const NavBar = () => {
           <NavLinkStyled to="/home">
             <div style={{ display: "flex", alignItems: "center" }}>
               <Logo
-                src="https://firebasestorage.googleapis.com/v0/b/ferrequiposdelacosta-e2457.appspot.com/o/LogoFerrequipos.png?alt=media&token=7eddb4c4-2dbb-43b4-9701-7eb3db9763f6"
+                src={LogoFerrequipos} 
                 alt="logo"
               />
             </div>

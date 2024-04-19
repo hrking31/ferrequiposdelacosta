@@ -1,4 +1,6 @@
 import React from "react";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+
 import {
   Page,
   Text,
@@ -88,9 +90,9 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 120,
-    marginLeft: 10,
-    marginTop: "10px",
+    width: "75px",
+    marginLeft: 30,
+    marginTop: "1px",
   },
 
   contentContainer: {
@@ -143,7 +145,6 @@ const styles = StyleSheet.create({
 });
 
 const VistaPdf = ({ values }) => {
-  const logoFerrequipos = "src/assets/LogoFerrequipos.png";
   return (
     <Document>
       <Page size="letter" style={styles.page}>
@@ -159,7 +160,7 @@ const VistaPdf = ({ values }) => {
         </View> */}
         <View style={styles.header}>
           <View style={styles.logo}>
-            <Image style={styles.logo} src={logoFerrequipos} />
+            <Image style={styles.logo} src={LogoFerrequipos} />
           </View>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>FERREQUIPOS DE LA COSTA</Text>

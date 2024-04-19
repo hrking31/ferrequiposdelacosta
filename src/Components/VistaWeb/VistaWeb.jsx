@@ -1,4 +1,5 @@
 import { useSelector } from "react-redux";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 
 const styles = {
   container: {
@@ -82,7 +83,7 @@ export default function VistaWeb() {
     <div style={styles.container}>
       <div style={styles.header}>
         <img
-          src="https://firebasestorage.googleapis.com/v0/b/ferrequiposdelacosta-e2457.appspot.com/o/LogoFerrequipos.png?alt=media&token=7eddb4c4-2dbb-43b4-9701-7eb3db9763f6"
+          src={LogoFerrequipos} 
           alt="Logo"
           style={styles.logo}
         />

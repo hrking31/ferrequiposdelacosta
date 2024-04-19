@@ -61,7 +61,6 @@
 //   );
 // }
 
-import React, { useState } from "react"; // Asegúrate de importar React y useState
 import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCotizacion,
@@ -74,6 +73,7 @@ export default function Cotizacion() {
   const formValues = useSelector((state) => state.cotizacion.value);
   const items = useSelector((state) => state.cotizacion.value.items);
   const total = useSelector((state) => state.cotizacion.value.total);
+  const Nit = useSelector((state) => state.cotizacion.value.nit);
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -102,6 +102,15 @@ export default function Cotizacion() {
     dispatch(setItems([...items, newItem]));
   };
 
+const formatNit = (nit) => {
+  //const cleanNit = nit.replace(/\D/g, '');
+  const cleanNit = nit.replace(/[^\d-]/g, '');
+  //const formattedNit = cleanNit.replace(/^(\d{1,9})(\d{3})(\d{3})(\d{1})$/, '$1.$2.$3 - $4');
+  const soloDiez = cleanNit.substring(0, 11);
+  const formattedNit = soloDiez.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return formattedNit;
+};
+
   return (
     <form>
       <div>
@@ -127,9 +136,10 @@ export default function Cotizacion() {
       <div>
         <label>Nit:</label>
         <input
-          type="number"
+          type="text"
           name="nit"
-          value={formValues.nit}
+         // value={formValues.nit}
+         value={formatNit(formValues.nit)}
           onChange={handlerInputChange}
           placeholder="  Nit..."
         />
