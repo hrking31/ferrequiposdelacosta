@@ -6,7 +6,6 @@ const styles = {
     fontFamily: "Arial, sans-serif",
     padding: "20px",
     maxWidth: "600px",
-    //margin: "0 auto",
   },
 
   header: {
@@ -77,10 +76,10 @@ const styles = {
   },
 };
 
-export default function VistaWeb() {
-  const formValues = useSelector((state) => state.cotizacion);
-  const items = useSelector((state) => state.cotizacion.value.items);
-  const total = useSelector((state) => state.cotizacion.value.total);
+export default function VistaCcWeb() {
+  const formValues = useSelector((state) => state.cuentacobro);
+  const items = useSelector((state) => state.cuentacobro.value.items);
+  const total = useSelector((state) => state.cuentacobro.value.total);
 
   return (
     <div style={styles.container}>
@@ -98,12 +97,16 @@ export default function VistaWeb() {
           </div>
         </div>
       </div>
+      
       <p style={styles.info}>Barranquilla, {formValues.value.fecha}</p>
-      <p style={styles.info}>Señores: {formValues.value.empresa}</p>
+      <h1 style={styles.cotizacion}>CUENTA DE COBRO</h1>
+      <p style={styles.info}> {formValues.value.empresa}</p>
       <p style={styles.info}>Nit: {formValues.value.nit}</p>
-      <p style={styles.info}>Obra: {formValues.value.direccion}</p>
-
-      <h1 style={styles.cotizacion}>Cotización</h1>
+      <p style={styles.info}>Obra: {formValues.value.obra}</p>
+      <h1 style={styles.cotizacion}>DEBE A</h1>
+      <h1 style={styles.cotizacion}>FERREQUIPOS DE LA COSTA</h1>
+      <p style={styles.info}>LA SUMA DE: ${formValues.value.total}</p>
+      <p style={styles.info}>POR CONCEPTO DE: {formValues.value.concepto}</p>
 
       {items.map((item, index) => (
         <div key={index} style={styles.item}>
@@ -111,7 +114,7 @@ export default function VistaWeb() {
           <p style={styles.itemSubtotal}>{item.subtotal}</p>
         </div>
       ))}
-      <p style={styles.total}>Total: {total}</p>
+      <p style={styles.total}>Total a Cancelar: {total}</p>
 
       <div style={styles.piePagina}>
         <h2>Kra 38 # 108 – 23 Tel 2511118 - 3116576633</h2>

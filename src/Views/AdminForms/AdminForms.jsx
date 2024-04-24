@@ -202,6 +202,9 @@ export default function AdminForms() {
       <Link to="/vistacotizacion">
         <button>Cotización</button>
       </Link>
+      <Link to="/vistacuentadecobro">
+        <button>Cuenta de Cobro</button>
+      </Link>
     </form>
   );
 }

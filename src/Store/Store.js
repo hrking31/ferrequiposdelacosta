@@ -6,6 +6,7 @@ import passwordReducer from "./Slices/passwordSlice";
 import formReducer from "./Slices/formSlice";
 import nameImagenReducer from "./Slices/nameImagenSlice";
 import cotizacionReducer from "./Slices/cotizacionSlice";
+import cuentacobroReducer from "./Slices/cuentacobroSlice";
 import loadingSlice from "./slices/LodingSlice";
 
 export default configureStore({
@@ -17,6 +18,7 @@ export default configureStore({
     form: formReducer,
     nameImagen: nameImagenReducer,
     cotizacion: cotizacionReducer,
+    cuentacobro: cuentacobroReducer,
     loading: loadingSlice,
   },
 });
