@@ -105,7 +105,7 @@ export default function VistaCcWeb() {
       <p style={styles.info}>Obra: {formValues.value.obra}</p>
       <h1 style={styles.cotizacion}>DEBE A</h1>
       <h1 style={styles.cotizacion}>FERREQUIPOS DE LA COSTA</h1>
-      <p style={styles.info}>LA SUMA DE: ${formValues.value.total}</p>
+      <p style={styles.info}>LA SUMA DE: {formValues.value.total}</p>
       <p style={styles.info}>POR CONCEPTO DE: {formValues.value.concepto}</p>
 
       {items.map((item, index) => (

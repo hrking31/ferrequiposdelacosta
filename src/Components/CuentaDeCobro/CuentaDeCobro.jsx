@@ -21,6 +21,7 @@ export default function CuentaCobro() {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
     updatedItem.subtotal = updatedItem.quantity * updatedItem.price;
+    updatedItem.subtotal = updatedItem.subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
     updatedItems[index] = updatedItem;
     dispatch(setItemsCc(updatedItems));
   };
@@ -30,7 +31,8 @@ export default function CuentaCobro() {
       (total, item) => total + item.quantity * item.price,
       0
     );
-    dispatch(setTotalCc(totalAmount));
+    const totalAmountFormatted = totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    dispatch(setTotalCc(totalAmountFormatted));
   };
 
   const addNewItem = () => {
@@ -79,7 +81,7 @@ const formatNit = (nit) => {
         />
       </div>
       <div>
-        <label>Obra: </label>
+        <label>Obra:</label>
         <input
           type="text"
           name="obra"
@@ -89,7 +91,7 @@ const formatNit = (nit) => {
         />
       </div>
       <div>
-        <label>Por Concepto De: :</label>
+        <label>Por Concepto De:</label>
         <input
           type="text"
           name="concepto"
@@ -120,9 +122,11 @@ const formatNit = (nit) => {
               type="number"
               placeholder="Precio"
               value={item.price !== 0 ? item.price : ""}
+             // value={formatPrice(formValues.price)}
               onChange={(e) => updateItem(index, "price", e.target.value)}
             />
-            <p>{item.subtotal}</p>
+            <p>Subtotal: {item.subtotal}</p>
+          
           </div>
         ))}
         <button type="button" onClick={calculateTotal}>

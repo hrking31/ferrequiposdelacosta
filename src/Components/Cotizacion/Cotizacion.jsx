@@ -85,6 +85,7 @@ export default function Cotizacion() {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
     updatedItem.subtotal = updatedItem.quantity * updatedItem.price;
+    updatedItem.subtotal = updatedItem.subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
     updatedItems[index] = updatedItem;
     dispatch(setItems(updatedItems));
   };
@@ -94,7 +95,8 @@ export default function Cotizacion() {
       (total, item) => total + item.quantity * item.price,
       0
     );
-    dispatch(setTotal(totalAmount));
+    const totalAmountFormatted = totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    dispatch(setTotal(totalAmountFormatted));
   };
 
   const addNewItem = () => {
@@ -179,7 +181,7 @@ const formatNit = (nit) => {
               value={item.price !== 0 ? item.price : ""}
               onChange={(e) => updateItem(index, "price", e.target.value)}
             />
-            <p>{item.subtotal}</p>
+            <p>Subtotal: {item.subtotal}</p>
           </div>
         ))}
         <button type="button" onClick={calculateTotal}>

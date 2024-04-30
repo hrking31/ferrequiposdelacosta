@@ -157,7 +157,7 @@ const VistaCcPdf = ({ values }) => {
           </View>
           <Text style={styles.cotizacion}>DEBE A</Text>
           <Text style={styles.cotizacion}>FERREQUIPOS DE LA COSTA</Text>
-          <Text> LA SUMA: ${values.value.total}</Text>
+          <Text> LA SUMA: {values.value.total}</Text>
           <Text> POR CONCEPTO DE: {values.value.concepto}</Text>
 
           {values.value.items.map((item, index) => (

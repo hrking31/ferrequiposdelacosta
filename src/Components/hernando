@@ -261,3 +261,10 @@ if (customElements) {
 // };
 
 // export default Cotizacion;
+
+
+
+
+const formatPrice = (price) => {
+  return price.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+  };
