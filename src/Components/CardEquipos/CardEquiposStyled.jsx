@@ -26,7 +26,7 @@ export const StyleFacilitiesTypography = styled(Typography)`
 
 export const StyleNameTypography = styled(Typography)`
   color: rgb(134, 134, 136);
-  fontweight: "bold";
+  font-weight: "bold";
 `;
 
 export const StyledRoomPriceTypography = styled(Typography)`

@@ -22,20 +22,16 @@ export default function Card(props) {
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { linkStyle } from "./CardEquiposStyled";
 import { Card, CardActionArea, CardMedia, Grid, Rating } from "@mui/material";
 import {
   StyleNameTypography,
   StyledCardContent,
-  StyledDivider,
-  StyleTypography,
-  StyledRoomPriceTypography,
-  StyledUSD,
   StyledStarIcon,
   StyledStarBorderIcon,
 } from "./CardEquiposStyled";
+import { Textfit } from "react-textfit";
 
-export default function CardEquipos({ name, url, price }) {
+export default function CardEquipos({ name, url }) {
   return (
     <Grid
       container
@@ -50,11 +46,11 @@ export default function CardEquipos({ name, url, price }) {
       }}
     >
       <Grid item xs={12}>
-        <Link to={`/detail/${name}`} style={linkStyle}>
+        <Link to={`/detail/${name}`} style={{ textDecoration: "none" }}>
           <Card
             sx={{
               backgroundColor: "#ededed",
-              height: "500px",
+              height: "auto",
               transition: "0.2s",
               "&:hover": {
                 transform: "scale(1.05)",
@@ -62,41 +58,28 @@ export default function CardEquipos({ name, url, price }) {
             }}
           >
             <CardActionArea>
-              <Grid item xs>
-                <CardMedia
-                  component="img"
-                  height="215"
-                  src={url[0]}
-                  alt="img not found"
-                />
-              </Grid>
-
+              <CardMedia
+                component="img"
+                height="400"
+                src={url[0]}
+                alt="img not found"
+              />
               <StyledCardContent>
-                <Grid item xs={12} sm container>
-                  <Grid item xs={12} container direction="column" spacing={2}>
-                    <Grid item sx={{ width: 100, marginBottom: "-15px" }}>
-                      <StyleNameTypography variant="h5">
-                        {name}
-                      </StyleNameTypography>
-                      <Rating
-                        name="rating"
-                        readOnly
-                        emptyIcon={<StyledStarBorderIcon />}
-                        icon={<StyledStarIcon />}
-                        size="large"
-                        sx={{ fontSize: 15 }}
-                      />
-                    </Grid>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <StyledRoomPriceTypography sx={{ mt: 2 }}>
-                      {`$${price}`}
-                      <StyledUSD>$</StyledUSD>
-                    </StyledRoomPriceTypography>
+                <Grid container direction="column" spacing={2}>
+                  <Grid item xs={12} sx={{ marginBottom: "-15px" }}>
+                    <Textfit mode="multi" max={30}>
+                      <StyleNameTypography>{name}</StyleNameTypography>
+                    </Textfit>
+                    <Rating
+                      name="rating"
+                      readOnly
+                      emptyIcon={<StyledStarBorderIcon />}
+                      icon={<StyledStarIcon />}
+                      size="large"
+                      sx={{ fontSize: 15 }}
+                    />
                   </Grid>
                 </Grid>
-                <StyledDivider />
-                <StyleTypography sx={{ mt: 1.5 }}>Facilities</StyleTypography>
               </StyledCardContent>
             </CardActionArea>
           </Card>
@@ -105,3 +88,6 @@ export default function CardEquipos({ name, url, price }) {
     </Grid>
   );
 }
+
+
+
