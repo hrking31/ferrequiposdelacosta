@@ -22,12 +22,10 @@ export default function Card(props) {
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardActionArea, CardMedia, Grid, Rating } from "@mui/material";
+import { Card, CardActionArea, CardMedia, Grid} from "@mui/material";
 import {
   StyleNameTypography,
   StyledCardContent,
-  StyledStarIcon,
-  StyledStarBorderIcon,
 } from "./CardEquiposStyled";
 import { Textfit } from "react-textfit";
 
@@ -70,14 +68,6 @@ export default function CardEquipos({ name, url }) {
                     <Textfit mode="multi" max={30}>
                       <StyleNameTypography>{name}</StyleNameTypography>
                     </Textfit>
-                    <Rating
-                      name="rating"
-                      readOnly
-                      emptyIcon={<StyledStarBorderIcon />}
-                      icon={<StyledStarIcon />}
-                      size="large"
-                      sx={{ fontSize: 15 }}
-                    />
                   </Grid>
                 </Grid>
               </StyledCardContent>

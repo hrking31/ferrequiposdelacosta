@@ -1,4 +1,4 @@
-.container {
+/* .container {
   margin: 20px;
 }
 
@@ -12,14 +12,14 @@
   object-fit: cover;
 }
 
-.arrowButton {
+ .arrowButton { 
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
+  border: transparent;
+  font-size: 36px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.966);
 }
 
 .prevButton {
@@ -28,4 +28,47 @@
 
 .nextButton {
   right: 0;
+} */
+
+
+.container {
+  position: relative;
 }
+
+.imageWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 500px; /* Tamaño fijo para el contenedor de la imagen principal */
+  height: 500px; /* Tamaño fijo para el contenedor de la imagen principal */
+}
+
+.selectedImage {
+  width: 100%; /* Asegura que la imagen principal ocupe todo el contenedor */
+  height: 100%; /* Asegura que la imagen principal ocupe todo el contenedor */
+  object-fit: cover; /* Mantiene la proporción de la imagen */
+}
+
+.thumbnails {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+.thumbnail {
+  width: 50px; /* Tamaño fijo para las miniaturas */
+  height: 50px; /* Tamaño fijo para las miniaturas */
+  cursor: pointer;
+  object-fit: cover; /* Mantiene la proporción de las miniaturas */
+  border: 2px solid transparent;
+  transition: border 0.3s ease;
+}
+
+.thumbnail:hover,
+.activeThumbnail {
+  border: 2px solid white;
+}
+
