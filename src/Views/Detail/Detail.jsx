@@ -10,6 +10,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import EmailIcon from '@mui/icons-material/Email';
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import { StyleTypography, StyleNameTypography } from "./DetailEquiposStyled";
 
 export default function Detail() {
   const { name } = useParams();
@@ -43,12 +44,12 @@ export default function Detail() {
       <Grid item xs={12} md={4}>
         <Box sx={{ padding: 2, display: 'flex', flexDirection: 'column', height: '80%' }}>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
+            <StyleNameTypography variant="h4" component="h1" gutterBottom>
               {equipo.name}
-            </Typography>
-            <Typography variant="body1" component="p">
+            </StyleNameTypography>
+            <StyleTypography variant="body1" component="p">
               {equipo.description}
-            </Typography>
+            </StyleTypography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 2 }}>
             <Button

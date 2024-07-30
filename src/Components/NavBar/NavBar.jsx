@@ -156,6 +156,7 @@
 
 import React, { useState, useEffect } from "react";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import BackgroundImage from "../../assets/brick-wall-dark.png";
 import { NavLink } from "react-router-dom";
 import { styled } from "@mui/material/styles";
 import {
@@ -181,7 +182,7 @@ const NavLinkStyled = styled(NavLink)(({ theme }) => ({
 }));
 
 const Logo = styled("img")({
-  height: "75px",
+  height: "90px",
 });
 
 const Title = styled(Typography)({
@@ -214,7 +215,11 @@ const NavBar = () => {
 
   return (
     <div style={{ marginBottom: "20px" }}>
-      <AppBar position="fixed" sx={{ backgroundColor: "#9A98FE" }}>
+      <AppBar position="fixed"       
+        sx={{ 
+          backgroundImage: `url(${BackgroundImage})`,
+          backgroundColor: "#F0F0F0",       
+        }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <NavLinkStyled to="/home" style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <Logo src={LogoFerrequipos} alt="logo" />
@@ -222,12 +227,12 @@ const NavBar = () => {
               variant="h3" 
               component="p" 
               sx={{ 
-                color: 'red', 
+                color: '#00008B', 
                 textAlign: 'center',
-                fontFamily: 'Tangerine, serif',
+                fontFamily: "Oswald, serif",
                 fontWeight: 'bold',
                 fontweight: 400,
-                textShadow: '4px 4px 4px #191970',
+                textShadow: '4px 4px 4px #DC143C',
                 fontSize: {
                   xs: '1.5rem',  
                   sm: '2rem',    
@@ -235,18 +240,19 @@ const NavBar = () => {
                   lg: '3rem',    
                   xl: '3.5rem'   
                 },
-                marginLeft: '10px',
                 flex: 1
               }}
             >
-              Alquiler de Equipos para La Construcción
+              Ferrequipos De La Costa
             </Typography>
           </NavLinkStyled>
           <IconButton
             edge="start"
-            color="inherit"
             aria-label="menu"
             onClick={handleDrawerOpen}
+            sx={{
+              color: '#DC143C' 
+            }}
           >
             <MenuIcon />
           </IconButton>
@@ -265,12 +271,14 @@ const NavBar = () => {
           zIndex: 999,
           ".MuiDrawer-paper": {
             width: "300px",
-            height: "200px",
-            top: "80px",
+            height: "220px", 
+            top: "100px", 
             borderTopRightRadius: "0",
             borderTopLeftRadius: "10px",
             borderBottomRightRadius: "0",
             borderBottomLeftRadius: "10px",
+            // backgroundColor: "#1E90FF", 
+            border: "2px solid #DC143C", 
           },
         }}
       >
@@ -293,7 +301,7 @@ const NavBar = () => {
               variant="h6"
               sx={{
                 marginBottom: "1px",
-                color: "#9A98FE",
+                color: "#00008B",
               }}
             >
               ¿Eres Administrador?
@@ -314,19 +322,18 @@ const NavBar = () => {
                 width: "80%",
                 borderRadius: "30px",
                 height: "45px",
-                color: "#868688",
-                backgroundColor: "#9A98FE",
+                color: "#00008B",
+                backgroundColor: "#1E90FF",
                 "&:hover": {
-                  backgroundColor: "#c2c1fe",
+                  backgroundColor: "#DC143C",
                 },
               }}
             >
-              INICIAR SESION
+              INICIA SESION
             </Button>
           </ListItem>
         </List>
       </Drawer>
-
       <Toolbar />
     </div>
   );
