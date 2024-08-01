@@ -292,10 +292,9 @@ export default function AdminForms() {
       dispatch(updateImageUrl(imageUrl));
       dispatch(updateNameImage(nameImage));
       alert(`${nameImage} Creado Exitosamente!!!!`);
-      // Restablecer el estado después de la carga exitosa
       setFile(null);
       setNameImage("");
-      document.getElementById("file-upload").value = ""; // Restablecer el input de archivo
+      document.getElementById("file-upload").value = ""; 
     } catch (error) {
       alert(`Error al Subir el Archivo ${nameImage}. Intenta de Nuevo!`);
     }

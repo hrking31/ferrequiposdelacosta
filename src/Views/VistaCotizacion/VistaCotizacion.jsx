@@ -3,6 +3,7 @@ import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaWeb from "../../Components/VistaWeb/VistaWeb";
 import VistaPdf from "../../Components/VistaPdf/VistaPdf";
 import { PDFViewer, PDFDownloadLink } from "@react-pdf/renderer";
+import { useAuth } from "../../Context/AuthContext";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import Button from '@mui/material/Button';
@@ -11,6 +12,7 @@ import { Box, Grid } from '@mui/material';
 export default function VistaCotizacion() {
   const [verPdf, setVerPdf] = useState(false);
   const values = useSelector((state) => state.cotizacion);
+  const { logout } = useAuth();
   
   const handlerLogout = async () => {
     await logout();

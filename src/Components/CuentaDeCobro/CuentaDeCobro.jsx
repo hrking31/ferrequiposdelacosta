@@ -75,6 +75,25 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
               }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -85,6 +104,33 @@ export default function CuentaCobro() {
               label="Empresa"
               value={formValues.empresa}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -95,6 +141,33 @@ export default function CuentaCobro() {
               label="NIT"
               value={formatNit(formValues.nit)}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -105,6 +178,33 @@ export default function CuentaCobro() {
               label="Obra"
               value={formValues.obra}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12}>
@@ -115,6 +215,33 @@ export default function CuentaCobro() {
               label="Por Concepto De"
               value={formValues.concepto}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12}>
@@ -134,7 +261,33 @@ export default function CuentaCobro() {
                   label="Descripción"
                   value={item.description}
                   onChange={(e) => updateItem(index, "description", e.target.value)}
-                  sx={{ mb: 1 }}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                  margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -144,6 +297,33 @@ export default function CuentaCobro() {
                   label="Cantidad"
                   value={item.quantity !== 0 ? item.quantity : ""}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                  margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -153,6 +333,33 @@ export default function CuentaCobro() {
                   label="Precio"
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                  margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
                 />
               </Grid>
               <Grid item xs={12}>

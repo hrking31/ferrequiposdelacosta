@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
 import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
+import { useAuth } from "../../Context/AuthContext";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useSelector } from "react-redux";
 import Button from '@mui/material/Button';
@@ -9,6 +10,7 @@ import { Box, Grid } from '@mui/material';
 
 export default function VistaCuentaDeCobro() {
   const values = useSelector((state) => state.cuentacobro);
+  const { logout } = useAuth();
 
   const handlerLogout = async () => {
     await logout();

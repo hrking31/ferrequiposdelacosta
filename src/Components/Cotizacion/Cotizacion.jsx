@@ -267,6 +267,24 @@ export default function Cotizacion() {
               InputLabelProps={{
                 shrink: true,
               }}
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -277,6 +295,33 @@ export default function Cotizacion() {
               label="Empresa"
               value={formValues.empresa}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -287,6 +332,33 @@ export default function Cotizacion() {
               label="NIT"
               value={formatNit(formValues.nit)}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -297,6 +369,32 @@ export default function Cotizacion() {
               label="Dirección"
               value={formValues.direccion}
               onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%',
+                },
+              }}
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
             />
           </Grid>
           <Grid item xs={12}>
@@ -316,7 +414,33 @@ export default function Cotizacion() {
                   label="Descripción"
                   value={item.description}
                   onChange={(e) => updateItem(index, "description", e.target.value)}
-                  sx={{ mb: 1 }}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                   margin="normal"
+                  sx={{ 
+                    mt: 1, 
+                    fontSize: '0.75rem', 
+                    '& .MuiInputBase-input': {
+                      padding: '6px 12px', 
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: "#00008B",
+                      },
+                      '&:hover fieldset': {
+                        borderColor: "#4682B4",
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: "#1E90FF",
+                      },
+                    },
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -326,6 +450,33 @@ export default function Cotizacion() {
                   label="Cantidad"
                   value={item.quantity !== 0 ? item.quantity : ""}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                  margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -335,6 +486,33 @@ export default function Cotizacion() {
                   label="Precio"
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
+                  InputLabelProps={{
+                    shrink: true,
+                    sx: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      height: '100%',
+                    },
+                  }}
+                  margin="normal"
+              sx={{ 
+                mt: 1, 
+                fontSize: '0.75rem', 
+                '& .MuiInputBase-input': {
+                  padding: '6px 12px', 
+                },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: "#00008B",
+                  },
+                  '&:hover fieldset': {
+                    borderColor: "#4682B4",
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: "#1E90FF",
+                  },
+                },
+              }}
                 />
               </Grid>
               <Grid item xs={12}>
