@@ -5,7 +5,6 @@ const formSlice = createSlice({
   initialState: {
     values: {
       name: "",
-      price: "",
       description: "",
       url: [],
     },

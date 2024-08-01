@@ -1,0 +1,24 @@
+.fileInput {
+  color: transparent;
+}
+
+.previewImageContainer {
+  border: 1px solid #ccc;
+  padding: 10px;
+  max-width: 100px;
+  max-height: 100px;
+}
+
+.placeholderMessage {
+  text-align: center;
+  margin: 0;
+}
+
+.previewImage {
+  max-width: 100px;  /* Ancho máximo fijo */
+  max-height: 200px; /* Altura máxima fija */
+  width: 100%; /* Ajusta al ancho máximo */
+  height: auto; /* Mantiene la relación de aspecto */
+  object-fit: cover; /* Asegura que la imagen cubra el área sin distorsión */
+  border-radius: 8px; /* Opcional: agrega bordes redondeados */
+}

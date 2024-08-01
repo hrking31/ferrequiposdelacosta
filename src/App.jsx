@@ -1,4 +1,4 @@
-import { Home, Landing, Detail, AdminForms, VistaCotizacion, VistaCuentaDeCobro } from "./Views";
+import { Home, Landing, Detail, AdminForms, VistaCotizacion, VistaCuentaDeCobro, VistaDb } from "./Views";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import Login from "./Components/Login/Login";
@@ -33,6 +33,14 @@ function App() {
           element={
             <ProtectedRoutes>
               <VistaCuentaDeCobro />
+            </ProtectedRoutes>
+          }
+        />
+         <Route
+          path="/vistabasedatos"
+          element={
+            <ProtectedRoutes>
+              <VistaDb />
             </ProtectedRoutes>
           }
         />

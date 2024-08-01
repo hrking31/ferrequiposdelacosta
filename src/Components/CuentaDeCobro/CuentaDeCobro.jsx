@@ -4,13 +4,23 @@ import {
   setItemsCc,
   setTotalCc,
 } from "../../Store/Slices/cuentacobroSlice";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  IconButton,
+  Container,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 
 export default function CuentaCobro() {
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
   const items = useSelector((state) => state.cuentacobro.value.items);
   const total = useSelector((state) => state.cuentacobro.value.total);
-  
+
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
     const updatedFormValues = { ...formValues, [name]: value };
@@ -40,100 +50,139 @@ export default function CuentaCobro() {
     dispatch(setItemsCc([...items, newItem]));
   };
 
-const formatNit = (nit) => {
-  const cleanNit = nit.replace(/[^\d-]/g, '');
-  const soloDiez = cleanNit.substring(0, 11);
-  const formattedNit = soloDiez.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return formattedNit;
-};
+  const formatNit = (nit) => {
+    const cleanNit = nit.replace(/[^\d-]/g, '');
+    const soloDiez = cleanNit.substring(0, 11);
+    const formattedNit = soloDiez.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return formattedNit;
+  };
 
   return (
-    <form>
-      <h1 style={{ color: "red" }}>Formulario Cuenta de Cobro</h1>
-      <div>
-        <label>Fecha:</label>
-        <input
-          type="date"
-          name="fecha"
-          value={formValues.fecha}
-          onChange={handlerInputChange}
-          placeholder="  Fecha..."
-        />
-      </div>
-      <div>
-        <label>Empresa:</label>
-        <input
-          type="text"
-          name="empresa"
-          value={formValues.empresa}
-          onChange={handlerInputChange}
-          placeholder="  Empresa..."
-        />
-      </div>
-      <div>
-        <label>Nit:</label>
-        <input
-          type="text"
-          name="nit"
-         value={formatNit(formValues.nit)}
-          onChange={handlerInputChange}
-          placeholder="  Nit..."
-        />
-      </div>
-      <div>
-        <label>Obra:</label>
-        <input
-          type="text"
-          name="obra"
-          value={formValues.obra}
-          onChange={handlerInputChange}
-          placeholder="  Obra..."
-        />
-      </div>
-      <div>
-        <label>Por Concepto De:</label>
-        <input
-          type="text"
-          name="concepto"
-          value={formValues.concepto}
-          onChange={handlerInputChange}
-          placeholder="  Concepto..."
-        />
-      </div>
-      <div>
-        <button type="button" onClick={addNewItem}>
-          Agregar Ítem
-        </button>
-        {items.map((item, index) => (
-          <div key={index}>
-            <input
+    <Container>
+      <Box component="form" sx={{ mt: 3 }}>
+        <Typography variant="h4" gutterBottom color="red">
+          Formulario Cuenta de Cobro
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              name="fecha"
+              label="Fecha"
+              value={formValues.fecha}
+              onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
               type="text"
-              placeholder="Descripción"
-              value={item.description}
-              onChange={(e) => updateItem(index, "description", e.target.value)}
+              name="empresa"
+              label="Empresa"
+              value={formValues.empresa}
+              onChange={handlerInputChange}
             />
-            <input
-              type="number"
-              placeholder="Cantidad"
-              value={item.quantity !== 0 ? item.quantity : ""}
-              onChange={(e) => updateItem(index, "quantity", e.target.value)}
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="nit"
+              label="NIT"
+              value={formatNit(formValues.nit)}
+              onChange={handlerInputChange}
             />
-            <input
-              type="number"
-              placeholder="Precio"
-              value={item.price !== 0 ? item.price : ""}
-             // value={formatPrice(formValues.price)}
-              onChange={(e) => updateItem(index, "price", e.target.value)}
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="obra"
+              label="Obra"
+              value={formValues.obra}
+              onChange={handlerInputChange}
             />
-            <p>Subtotal: {item.subtotal}</p>
-          
-          </div>
-        ))}
-        <button type="button" onClick={calculateTotal}>
-          Calcular Total
-        </button>
-        <p>Total: {total}</p>
-      </div>
-    </form>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              type="text"
+              name="concepto"
+              label="Por Concepto De"
+              value={formValues.concepto}
+              onChange={handlerInputChange}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <IconButton onClick={addNewItem} color="primary" aria-label="add item">
+              <AddIcon />
+            </IconButton>
+            <Typography variant="h6" component="span" sx={{ ml: 1 }}>
+              Agregar Ítem
+            </Typography>
+          </Grid>
+          {items.map((item, index) => (
+            <Grid container spacing={2} key={index} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  type="text"
+                  label="Descripción"
+                  value={item.description}
+                  onChange={(e) => updateItem(index, "description", e.target.value)}
+                  sx={{ mb: 1 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Cantidad"
+                  value={item.quantity !== 0 ? item.quantity : ""}
+                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Precio"
+                  value={item.price !== 0 ? item.price : ""}
+                  onChange={(e) => updateItem(index, "price", e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography>Subtotal: {item.subtotal}</Typography>
+              </Grid>
+            </Grid>
+          ))}
+          <Grid item xs={12} sm={6} md={4}>
+            <Button
+             variant="contained" 
+             color="primary" 
+             onClick={calculateTotal}
+            sx={{
+              height: "45px",
+              color: "#ffffff",
+              backgroundColor: "#1E90FF",
+              "&:hover": {
+                backgroundColor: "#4682B4",
+              },
+            }}
+            >
+              Calcular Total
+            </Button>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h6">Total: {total}</Typography>
+          </Grid>
+        </Grid>
+      </Box>
+    </Container>
   );
 }
+
