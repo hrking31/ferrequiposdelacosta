@@ -272,8 +272,6 @@ const styles = StyleSheet.create({
     flex: 2,
     fontSize: "12px",
     wordBreak: "break-all",
-    borderBottom: "1px solid #ccc",
-    paddingBottom: "5px",
     marginBottom: "5px",
   },
   empresa: {
@@ -308,8 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid #ccc",
-    paddingBottom: "5px",
+    borderBottom: "1px dotted #ccc",
     marginBottom: "5px",
   },
   itemSubtotal: {

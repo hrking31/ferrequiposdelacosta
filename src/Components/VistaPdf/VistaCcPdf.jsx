@@ -242,18 +242,16 @@ const styles = StyleSheet.create({
   itemDescription: {
     fontSize: "12px",
     wordBreak: "break-all",
-    borderBottom: "1px solid #ccc",
-    paddingBottom: "10px",
     marginBottom: "10px",
     flex: 2,
+    width: "100%",
   },
   item: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid #ccc",
-    paddingBottom: "10px",
     marginBottom: "10px",
+    borderBottom: "1px dotted #ccc",
   },
   itemSubtotal: {
     fontSize: "12px",
