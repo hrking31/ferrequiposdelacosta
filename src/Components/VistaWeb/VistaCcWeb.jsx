@@ -61,7 +61,7 @@ export default function VistaCcWeb() {
         </Box>
       </Box>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         Barranquilla, {formValues.value.fecha}
       </Typography>
 
@@ -69,13 +69,13 @@ export default function VistaCcWeb() {
         CUENTA DE COBRO
       </Typography>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         {formValues.value.empresa}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         Nit: {formValues.value.nit}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         Obra: {formValues.value.obra}
       </Typography>
 
@@ -87,16 +87,24 @@ export default function VistaCcWeb() {
         FERREQUIPOS DE LA COSTA
       </Typography>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         LA SUMA DE: {formValues.value.total}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
         POR CONCEPTO DE: {formValues.value.concepto}
       </Typography>
 
       {items.map((item, index) => (
         <Box key={index} sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #ccc", padding: "5px 0" }}>
-          <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", flex: 2 }}>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              fontSize: isSmallScreen ? "12px" : "14px", 
+              flex: 2,
+              wordBreak: "break-word",
+              whiteSpace: "normal"
+            }}
+          >
             {item.description}
           </Typography>
           <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", flex: 1, textAlign: "right" }}>
@@ -110,11 +118,11 @@ export default function VistaCcWeb() {
       </Typography>
 
       <Typography variant="body2" sx={{ fontSize: isSmallScreen ? "10px" : "12px", color: "blue", textAlign: "center", marginTop: "20px" }}>
-        Kra 38 # 108 – 23 Tel 2511118 - 3116576633
+        Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465
         <br />
         Ferrequipos07@hotmail.com
         <br />
-        Ferrequiposdelacosta.co
+        Ferrequiposdelacosta.com
         <br />
         BARRANQUILLA - COLOMBIA
       </Typography>

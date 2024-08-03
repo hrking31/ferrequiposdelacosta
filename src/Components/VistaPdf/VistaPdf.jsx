@@ -358,7 +358,7 @@ const VistaPdf = ({ values }) => {
         </View>
 
         <View style={styles.piePagina}>
-          <Text>Ferrequiposdelacosta.co</Text>
+          <Text>Ferrequiposdelacosta.com</Text>
           <Text>Ferrequipos07@hotmail.com</Text>
           <Text>Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465</Text>
           <Text>BARRANQUILLA - COLOMBIA</Text>

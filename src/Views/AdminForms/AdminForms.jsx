@@ -98,18 +98,19 @@ export default function AdminForms() {
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
             <Button
-              onClick={handlerLogout}
-              variant="contained"
-              fullWidth
-              sx={{
-                height: "45px",
-                color: "#ffffff",
-                backgroundColor: "#1E90FF",
-                "&:hover": {
-                  backgroundColor: "#4682B4",
-                },
-              }}
-            >
+           component={Link}
+           to="/vistaeliminarequipo"
+           variant="contained"
+           fullWidth
+           sx={{
+             height: "45px",
+             color: "#ffffff",
+             backgroundColor: "#1E90FF",
+             "&:hover": {
+               backgroundColor: "#4682B4",
+             },
+           }}
+            > 
               ELIMINAR EQUIPO
             </Button>
           </Grid>

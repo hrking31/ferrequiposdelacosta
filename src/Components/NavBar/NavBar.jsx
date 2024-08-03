@@ -232,7 +232,7 @@ const NavBar = () => {
                 fontFamily: "Oswald, serif",
                 fontWeight: 'bold',
                 fontweight: 400,
-                textShadow: '4px 4px 4px #DC143C',
+                // textShadow: '4px 4px 4px #DC143C',
                 fontSize: {
                   xs: '1.5rem',  
                   sm: '2rem',    
@@ -251,7 +251,7 @@ const NavBar = () => {
             aria-label="menu"
             onClick={handleDrawerOpen}
             sx={{
-              color: '#DC143C' 
+              color: '#00008B' 
             }}
           >
             <MenuIcon />
@@ -260,80 +260,91 @@ const NavBar = () => {
       </AppBar>
 
       <Drawer
-        anchor="right"
-        open={openDrawer}
-        onClose={handleDrawerClose}
-        ModalProps={{
-          disableScrollLock: true,
-          hideBackdrop: true,
-        }}
+  anchor="right"
+  open={openDrawer}
+  onClose={handleDrawerClose}
+  ModalProps={{
+    disableScrollLock: true,
+    hideBackdrop: true,
+  }}
+  sx={{
+    zIndex: 999,
+    ".MuiDrawer-paper": {
+      width: {
+        xs: "50%",    
+        sm: "300px",  
+      },
+      height: "220px",
+      top: "100px",
+      borderTopRightRadius: "0",
+      borderTopLeftRadius: "10px",
+      borderBottomRightRadius: "0",
+      borderBottomLeftRadius: "10px",
+      background: `url("./src/assets/white-leather.png") no-repeat center center,
+      #F0F0F0`,
+      boxSizing: 'border-box',
+    },
+  }}
+>
+  <List
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100%",
+      px: { xs: 2, sm: 0 },  
+    }}
+  >
+    <ListItem
+      sx={{
+        justifyContent: "center",
+        marginBottom: "1px",
+        px: { xs: 0, sm: 2 },  
+      }}
+    >
+      <Typography
+        variant="h6"
         sx={{
-          zIndex: 999,
-          ".MuiDrawer-paper": {
-            width: "300px",
-            height: "220px", 
-            top: "100px", 
-            borderTopRightRadius: "0",
-            borderTopLeftRadius: "10px",
-            borderBottomRightRadius: "0",
-            borderBottomLeftRadius: "10px",
-            // backgroundColor: "#1E90FF", 
-            border: "2px solid #DC143C", 
+          marginBottom: "1px",
+          color: '#00008B',
+          textAlign: 'center',  
+        }}
+      >
+        Eres Administrador?
+      </Typography>
+    </ListItem>
+    <ListItem
+      sx={{
+        justifyContent: "center",
+        marginBottom: "1px",
+        px: { xs: 0, sm: 2 },  
+      }}
+    >
+      <Button
+        component={NavLink}
+        to="/login"
+        onClick={handleDrawerClose}
+        variant="contained"
+        sx={{
+          width: {
+            xs: "90%",   
+            sm: "80%",   
+          },
+          borderRadius: "30px",
+          height: "45px",
+          color: '#00008B',
+          backgroundColor: "transparent",
+          "&:hover": {
+            backgroundColor: "transparent",
           },
         }}
       >
-        <List
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-          }}
-        >
-          <ListItem
-            sx={{
-              justifyContent: "center",
-              marginBottom: "1px",
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                marginBottom: "1px",
-                color: "#00008B",
-              }}
-            >
-              ¿Eres Administrador?
-            </Typography>
-          </ListItem>
-          <ListItem
-            sx={{
-              justifyContent: "center",
-              marginBottom: "1px",
-            }}
-          >
-            <Button
-              component={NavLink}
-              to="/login"
-              onClick={handleDrawerClose}
-              variant="contained"
-              sx={{
-                width: "80%",
-                borderRadius: "30px",
-                height: "45px",
-                color: "#00008B",
-                backgroundColor: "#1E90FF",
-                "&:hover": {
-                  backgroundColor: "#DC143C",
-                },
-              }}
-            >
-              INICIA SESION
-            </Button>
-          </ListItem>
-        </List>
-      </Drawer>
+        INICIA SESION
+      </Button>
+    </ListItem>
+  </List>
+</Drawer>
       <Toolbar />
     </div>
   );

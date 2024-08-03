@@ -5,5 +5,6 @@ import Detail from "./Detail/Detail";
 import VistaDb from "../Views/VistaDb/VistaDb";
 import VistaCotizacion from "../Views/VistaCotizacion/VistaCotizacion";
 import VistaCuentaDeCobro from "../Views/VistaCuentaDeCobro/VistaCuentaDeCobro";
+import VistaEliminarEquipo from "../Views/VistaEliminarEquipo/VistaEliminarEquipo"
 
-export { Home, Landing, Detail, AdminForms, VistaDb, VistaCotizacion, VistaCuentaDeCobro };
+export { Home, Landing, Detail, AdminForms, VistaDb, VistaCotizacion, VistaCuentaDeCobro, VistaEliminarEquipo };

@@ -202,7 +202,6 @@ import {
   TextField,
   Typography,
   Grid,
-  IconButton,
   Container,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -252,7 +251,7 @@ export default function Cotizacion() {
   return (
     <Container sx={{ mt: 4 }}>
       <Box component="form" sx={{ mt: 3 }}>
-        <Typography variant="h4" gutterBottom color="red">
+        <Typography variant="h4" gutterBottom color="#8B3A3A">
           Formulario Cotización
         </Typography>
         <Grid container spacing={2}>
@@ -266,7 +265,16 @@ export default function Cotizacion() {
               onChange={handlerInputChange}
               InputLabelProps={{
                 shrink: true,
+                sx: {
+                  color: "#8B3A3A", 
+                },
               }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
+                },
+              }}
+              
               sx={{ 
                 mt: 1, 
                 fontSize: '0.75rem', 
@@ -301,6 +309,12 @@ export default function Cotizacion() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -338,6 +352,12 @@ export default function Cotizacion() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -375,6 +395,12 @@ export default function Cotizacion() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               sx={{ 
@@ -397,20 +423,13 @@ export default function Cotizacion() {
               }}
             />
           </Grid>
-          <Grid item xs={12}>
-            <IconButton onClick={addNewItem} color="primary" aria-label="add item">
-              <AddIcon />
-            </IconButton>
-            <Typography variant="h6" component="span" sx={{ ml: 1 }}>
-              Agregar Ítem
-            </Typography>
-          </Grid>
           {items.map((item, index) => (
             <Grid container spacing={2} key={index} sx={{ mt: 1 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  type="text"
+                  multiline
+                  rows={2}
                   label="Descripción"
                   value={item.description}
                   onChange={(e) => updateItem(index, "description", e.target.value)}
@@ -418,8 +437,13 @@ export default function Cotizacion() {
                     shrink: true,
                     sx: {
                       display: 'flex',
-                      alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                    margin="normal"
@@ -456,6 +480,12 @@ export default function Cotizacion() {
                       display: 'flex',
                       alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                   margin="normal"
@@ -492,6 +522,12 @@ export default function Cotizacion() {
                       display: 'flex',
                       alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                   margin="normal"
@@ -520,6 +556,26 @@ export default function Cotizacion() {
               </Grid>
             </Grid>
           ))}
+            <Grid item xs={12}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={addNewItem}
+              sx={{
+                mt: 2,
+                height: "45px",
+                width: "200px",
+                color: "#ffffff",
+                backgroundColor: "#1E90FF",
+                "&:hover": {
+                  backgroundColor: "#4682B4",
+                },
+              }}
+              startIcon={<AddIcon />}
+            >
+              Agregar Ítem
+            </Button>
+          </Grid>
           <Grid item xs={12} sm={6} md={4}>
             <Button
               variant="contained"
@@ -528,6 +584,7 @@ export default function Cotizacion() {
               sx={{
                 height: "45px",
                 color: "#ffffff",
+                width: "200px",
                 backgroundColor: "#1E90FF",
                 "&:hover": {
                   backgroundColor: "#4682B4",

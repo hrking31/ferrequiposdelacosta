@@ -219,7 +219,7 @@ export default function VistaWeb() {
           </Typography>
         </Grid>
       </Grid>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", textAlign: "center", marginBottom: "10px" }}>
+      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", textAlign: "left", marginBottom: "10px" }}>
         Barranquilla, {formValues.value.fecha}
         <br />
         Señores: {formValues.value.empresa}
@@ -236,7 +236,14 @@ export default function VistaWeb() {
       {items.map((item, index) => (
         <Grid container key={index} sx={{ borderBottom: "1px solid #ccc", padding: "10px 0" }}>
           <Grid item xs={6}>
-            <Typography variant="body2" sx={{ fontSize: isSmallScreen ? "12px" : "14px" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontSize: isSmallScreen ? "12px" : "14px",
+                wordBreak: "break-word",
+                whiteSpace: "normal"
+              }}
+            >
               {item.description}
             </Typography>
           </Grid>
@@ -261,11 +268,11 @@ export default function VistaWeb() {
 
       <Box sx={{ marginTop: "40px", textAlign: "center" }}>
         <Typography variant="caption" sx={{ fontSize: isSmallScreen ? "10px" : "12px", color: "blue", lineHeight: "1.2" }}>
-          Kra 38 # 108 – 23 Tel 2511118 - 3116576633
+          Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465
           <br />
           Ferrequipos07@hotmail.com
           <br />
-          Ferrequiposdelacosta.co
+          Ferrequiposdelacosta.com
           <br />
           BARRANQUILLA - COLOMBIA
         </Typography>

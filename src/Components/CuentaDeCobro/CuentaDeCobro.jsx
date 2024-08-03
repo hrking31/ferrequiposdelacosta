@@ -30,6 +30,9 @@ export default function CuentaCobro() {
   const updateItem = (index, field, value) => {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
+    // Ensure quantity and price are numbers
+    updatedItem.quantity = Number(updatedItem.quantity) || 0;
+    updatedItem.price = Number(updatedItem.price) || 0;
     updatedItem.subtotal = updatedItem.quantity * updatedItem.price;
     updatedItem.subtotal = updatedItem.subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
     updatedItems[index] = updatedItem;
@@ -38,7 +41,7 @@ export default function CuentaCobro() {
 
   const calculateTotal = () => {
     const totalAmount = items.reduce(
-      (total, item) => total + item.quantity * item.price,
+      (total, item) => total + (Number(item.quantity) || 0) * (Number(item.price) || 0),
       0
     );
     const totalAmountFormatted = totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
@@ -46,7 +49,7 @@ export default function CuentaCobro() {
   };
 
   const addNewItem = () => {
-    const newItem = { description: "", quantity: 0, price: 0 };
+    const newItem = { description: "", quantity: "", price: "" };
     dispatch(setItemsCc([...items, newItem]));
   };
 
@@ -60,7 +63,7 @@ export default function CuentaCobro() {
   return (
     <Container>
       <Box component="form" sx={{ mt: 3 }}>
-        <Typography variant="h4" gutterBottom color="red">
+        <Typography variant="h4" gutterBottom color="#8B3A3A">
           Formulario Cuenta de Cobro
         </Typography>
         <Grid container spacing={2}>
@@ -74,6 +77,14 @@ export default function CuentaCobro() {
               onChange={handlerInputChange}
               InputLabelProps={{
                 shrink: true,
+                sx: {
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
+                },
               }}
               margin="normal"
               sx={{ 
@@ -110,6 +121,12 @@ export default function CuentaCobro() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -147,6 +164,12 @@ export default function CuentaCobro() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -184,6 +207,12 @@ export default function CuentaCobro() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -221,6 +250,12 @@ export default function CuentaCobro() {
                   display: 'flex',
                   alignItems: 'center',
                   height: '100%',
+                  color: "#8B3A3A", 
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A", 
                 },
               }}
               margin="normal"
@@ -244,50 +279,50 @@ export default function CuentaCobro() {
               }}
             />
           </Grid>
-          <Grid item xs={12}>
-            <IconButton onClick={addNewItem} color="primary" aria-label="add item">
-              <AddIcon />
-            </IconButton>
-            <Typography variant="h6" component="span" sx={{ ml: 1 }}>
-              Agregar Ítem
-            </Typography>
-          </Grid>
+
           {items.map((item, index) => (
             <Grid container spacing={2} key={index} sx={{ mt: 1 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  multiline
+                  rows={2}
                   type="text"
                   label="Descripción"
-                  value={item.description}
+                  value={item.description || ""}
                   onChange={(e) => updateItem(index, "description", e.target.value)}
                   InputLabelProps={{
                     shrink: true,
                     sx: {
                       display: 'flex',
-                      alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                   margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
-                },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: "#00008B",
-                  },
-                  '&:hover fieldset': {
-                    borderColor: "#4682B4",
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: "#1E90FF",
-                  },
-                },
-              }}
+                  sx={{ 
+                    mt: 1, 
+                    fontSize: '0.75rem', 
+                    '& .MuiInputBase-input': {
+                      padding: '6px 12px', 
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: "#00008B",
+                      },
+                      '&:hover fieldset': {
+                        borderColor: "#4682B4",
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: "#1E90FF",
+                      },
+                    },
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -295,7 +330,7 @@ export default function CuentaCobro() {
                   fullWidth
                   type="number"
                   label="Cantidad"
-                  value={item.quantity !== 0 ? item.quantity : ""}
+                  value={item.quantity || ""}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                   InputLabelProps={{
                     shrink: true,
@@ -303,27 +338,33 @@ export default function CuentaCobro() {
                       display: 'flex',
                       alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                   margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
-                },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: "#00008B",
-                  },
-                  '&:hover fieldset': {
-                    borderColor: "#4682B4",
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: "#1E90FF",
-                  },
-                },
-              }}
+                  sx={{ 
+                    mt: 1, 
+                    fontSize: '0.75rem', 
+                    '& .MuiInputBase-input': {
+                      padding: '6px 12px', 
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: "#00008B",
+                      },
+                      '&:hover fieldset': {
+                        borderColor: "#4682B4",
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: "#1E90FF",
+                      },
+                    },
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -331,7 +372,7 @@ export default function CuentaCobro() {
                   fullWidth
                   type="number"
                   label="Precio"
-                  value={item.price !== 0 ? item.price : ""}
+                  value={item.price || ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
                   InputLabelProps={{
                     shrink: true,
@@ -339,57 +380,89 @@ export default function CuentaCobro() {
                       display: 'flex',
                       alignItems: 'center',
                       height: '100%',
+                      color: "#8B3A3A", 
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      color: "#8B3A3A", 
                     },
                   }}
                   margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
-                },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: "#00008B",
-                  },
-                  '&:hover fieldset': {
-                    borderColor: "#4682B4",
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: "#1E90FF",
-                  },
-                },
-              }}
+                  sx={{ 
+                    mt: 1, 
+                    fontSize: '0.75rem', 
+                    '& .MuiInputBase-input': {
+                      padding: '6px 12px', 
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: "#00008B",
+                      },
+                      '&:hover fieldset': {
+                        borderColor: "#4682B4",
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: "#1E90FF",
+                      },
+                    },
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
                 <Typography>Subtotal: {item.subtotal}</Typography>
               </Grid>
             </Grid>
+            
           ))}
-          <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12}>
             <Button
-             variant="contained" 
-             color="primary" 
-             onClick={calculateTotal}
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
+              variant="contained"
+              color="primary"
+              onClick={addNewItem}
+              sx={{
+                mt: 2,
+                height: "45px",
+                width: "200px",
+                color: "#ffffff",
+                backgroundColor: "#1E90FF",
+                "&:hover": {
+                  backgroundColor: "#4682B4",
+                },
+              }}
+              startIcon={<AddIcon />}
+            >
+              Agregar Ítem
+            </Button>
+          </Grid>
+          <Grid item xs={12}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={calculateTotal}
+              sx={{
+                mt: 2,
+                height: "45px",
+                color: "#ffffff",
+                width: "200px",
+                backgroundColor: "#1E90FF",
+                "&:hover": {
+                  backgroundColor: "#4682B4",
+                },
+              }}
             >
               Calcular Total
             </Button>
           </Grid>
           <Grid item xs={12}>
-            <Typography variant="h6">Total: {total}</Typography>
+            <Typography variant="h6" gutterBottom>
+              Total: {total}
+            </Typography>
           </Grid>
         </Grid>
       </Box>
     </Container>
   );
 }
+
 
