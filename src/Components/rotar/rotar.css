@@ -1,0 +1,27 @@
+/* .container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+} */
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* Cambia de 100vh a 100% para evitar el espacio adicional */
+  overflow: hidden;
+  padding: 0; /* Asegúrate de que no haya ningún padding aplicado */
+  margin: 0; /* Asegúrate de que no haya ningún margen aplicado */
+}
+
+.rotating-image {
+  width: 100px; /* Ajusta el tamaño de la imagen según sea necesario */
+  height: auto;
+  transition: transform 2s; /* Ajusta la duración de la rotación */
+}
+
+.rotating-image.rotating {
+  transform: rotate(360deg);
+}

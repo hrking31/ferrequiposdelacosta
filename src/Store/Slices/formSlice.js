@@ -6,7 +6,7 @@ const formSlice = createSlice({
     values: {
       name: "",
       description: "",
-      url: [],
+      images: [],
     },
   },
   reducers: {
@@ -14,11 +14,12 @@ const formSlice = createSlice({
       state.values = action.payload;
     },
 
-    updateImageUrl: (state, action) => {
-      state.values.url.push(action.payload);
+    updateImage: (state, action) => {
+      const { url, name } = action.payload;
+      state.values.images.push({ url, name });
     },
   },
 });
 
-export const { setFormValues, updateImageUrl } = formSlice.actions;
+export const { setFormValues, updateImage } = formSlice.actions;
 export default formSlice.reducer;

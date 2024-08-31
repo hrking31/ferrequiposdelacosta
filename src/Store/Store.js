@@ -4,7 +4,6 @@ import equiposReducer from "./Slices/equiposSlice";
 import equipoDetailReducer from "./Slices/detailSlice";
 import passwordReducer from "./Slices/passwordSlice";
 import formReducer from "./Slices/formSlice";
-import nameImagenReducer from "./Slices/nameImagenSlice";
 import cotizacionReducer from "./Slices/cotizacionSlice";
 import cuentacobroReducer from "./Slices/cuentacobroSlice";
 import loadingSlice from "./slices/LodingSlice";
@@ -16,7 +15,6 @@ export default configureStore({
     equipoDetail: equipoDetailReducer,
     password: passwordReducer,
     form: formReducer,
-    nameImagen: nameImagenReducer,
     cotizacion: cotizacionReducer,
     cuentacobro: cuentacobroReducer,
     loading: loadingSlice,

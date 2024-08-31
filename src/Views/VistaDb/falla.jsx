@@ -1,35 +1,24 @@
 import React, { useState } from "react";
-import {
-  Box,
-  Button,
-  Grid,
-  TextField,
-  Typography,
-  Snackbar,
-  Alert,
-} from "@mui/material";
+import { Box, Button, Grid, TextField, Typography } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import { Link } from "react-router-dom";
 import { storage } from "../../Components/Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { fetchformData } from "../../Store/Actions/formAction";
-import { setFormValues, updateImage } from "../../Store/Slices/formSlice";
+import { setFormValues, updateImageUrl } from "../../Store/Slices/formSlice";
+import { updateNameImage } from "../../Store/Slices/nameImagenSlice";
 import LoadingCircle from "../../Components/LoadingCircle/LoadingCircle";
 import style from "./VistaDb.module.css";
 
 export default function AdminForms() {
   const { user, logout, loading } = useAuth();
-  const formValues = useSelector((state) => state.form.values);
-  const imageUrl = useSelector((state) => state.form.values.images);
-  const dispatch = useDispatch();
 
-  const [file, setFile] = useState(null);
-  const [nameImage, setNameImage] = useState("");
-  const [openFormSnackbar, setOpenFormSnackbar] = useState(false);
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const formValues = useSelector((state) => state.form.values);
+  const imageUrl = useSelector((state) => state.form.values.url);
+  const nameImg = useSelector((state) => state.nameImagen.nameImagen);
+
+  const dispatch = useDispatch();
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -37,73 +26,32 @@ export default function AdminForms() {
     dispatch(setFormValues(updatedFormValues));
   };
 
-  const resetForm = () => {
-    dispatch(setFormValues({ name: "", description: "", images: [] }));
-    setFile(null);
-    setNameImage("");
-  };
-
   const handlerSubmit = async (event) => {
     event.preventDefault();
-    if (!formValues.name || !formValues.description || !imageUrl.length) {
-      setSnackbarMessage("Por favor completa todos los campos del formulario.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
-      return;
-    }
     dispatch(fetchformData(formValues));
-    setSnackbarMessage("Equipo creado exitosamente!");
-    setSnackbarSeverity("success");
-    setOpenSnackbar(true);
-    resetForm();
   };
 
-  async function uploadFile(file, nameImage) {
-    if (!file || !nameImage) {
-      throw new Error("File or nameImage is missing");
-    }
+  const [file, setFile] = useState(null);
+  const [nameImage, setNameImage] = useState("");
 
-    try {
-      const uniqueName = `${nameImage}-${Date.now()}`;
-      const storageRef = ref(storage, uniqueName);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      return { url: downloadURL, name: uniqueName };
-    } catch (error) {
-      throw new Error("Error uploading file: " + error.message);
-    }
+  async function uploadFile(file) {
+    const storageRef = ref(storage, nameImage);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
   }
 
   const handleFileUpload = async () => {
-    if (!file) {
-      setSnackbarMessage("Por favor selecciona un archivo para subir.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
-      return;
-    }
-
-    if (!nameImage) {
-      setSnackbarMessage("Por favor ingresa un nombre para el archivo.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
-      return;
-    }
-
     try {
-      const { url, name } = await uploadFile(file, nameImage);
-      dispatch(updateImage({ url, name }));
-      setSnackbarMessage(`${name} Creado Exitosamente!!!!`);
-      setSnackbarSeverity("success");
-    } catch (error) {
-      setSnackbarMessage(
-        `Error al Subir el Archivo ${nameImage}. Intenta de Nuevo!`
-      );
-      setSnackbarSeverity("error");
-    } finally {
-      setOpenSnackbar(true);
+      const imageUrl = await uploadFile(file);
+      dispatch(updateImageUrl(imageUrl));
+      dispatch(updateNameImage(nameImage));
+      alert(`${nameImage} Creado Exitosamente!!!!`);
       setFile(null);
       setNameImage("");
       document.getElementById("file-upload").value = "";
+    } catch (error) {
+      alert(`Error al Subir el Archivo ${nameImage}. Intenta de Nuevo!`);
     }
   };
 
@@ -118,14 +66,6 @@ export default function AdminForms() {
 
   const handlerLogout = async () => {
     await logout();
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
-  const handleCloseFormSnackbar = () => {
-    setOpenFormSnackbar(false);
   };
 
   if (loading) {
@@ -254,7 +194,6 @@ export default function AdminForms() {
               type="text"
               name="name"
               onChange={handlerInputChange}
-              value={formValues.name}
               placeholder="Nombre del equipo..."
               fullWidth
               margin="normal"
@@ -280,7 +219,6 @@ export default function AdminForms() {
             <TextField
               name="description"
               onChange={handlerInputChange}
-              value={formValues.description}
               placeholder="Descripción del equipo..."
               multiline
               rows={4}
@@ -306,6 +244,7 @@ export default function AdminForms() {
               }}
             />
           </Grid>
+
           <Grid item xs={12} md={6}>
             <Box
               sx={{
@@ -316,7 +255,7 @@ export default function AdminForms() {
               }}
             >
               {imageUrl &&
-                imageUrl.map(({ url }, index) => (
+                imageUrl.map((url, index) => (
                   <Box key={index} sx={{ textAlign: "center", mb: 2 }}>
                     <img
                       className={style.previewImage}
@@ -340,8 +279,8 @@ export default function AdminForms() {
                         type="text"
                         readOnly
                         value={
-                          imageUrl && Array.isArray(imageUrl) && imageUrl[index]
-                            ? imageUrl[index].name
+                          nameImg && Array.isArray(nameImg) && nameImg[index]
+                            ? nameImg[index]
                             : `Nombre no disponible ${index + 1}`
                         }
                         fullWidth
@@ -355,6 +294,7 @@ export default function AdminForms() {
                           "& .MuiOutlinedInput-root": {
                             "& fieldset": {
                               borderColor: "#00008B",
+                              // borderWidth: '2px',
                             },
                             "&:hover fieldset": {
                               borderColor: "#4682B4",
@@ -377,7 +317,7 @@ export default function AdminForms() {
               }}
             >
               {imageUrl &&
-                imageUrl.map(({ url }, index) => (
+                imageUrl.map((url, index) => (
                   <TextField
                     key={index}
                     type="text"
@@ -395,6 +335,7 @@ export default function AdminForms() {
                       "& .MuiOutlinedInput-root": {
                         "& fieldset": {
                           borderColor: "#00008B",
+                          // borderWidth: '2px',
                         },
                         "&:hover fieldset": {
                           borderColor: "#4682B4",
@@ -409,6 +350,7 @@ export default function AdminForms() {
             </Box>
           </Grid>
         </Grid>
+
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={6} md={4}>
             <Button
@@ -463,24 +405,6 @@ export default function AdminForms() {
             </Button>
           </Grid>
         </Grid>
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-        >
-          <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-        <Snackbar
-          open={openFormSnackbar}
-          autoHideDuration={6000}
-          onClose={handleCloseFormSnackbar}
-        >
-          <Alert onClose={handleCloseFormSnackbar} severity={snackbarSeverity}>
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
       </Box>
     </form>
   );

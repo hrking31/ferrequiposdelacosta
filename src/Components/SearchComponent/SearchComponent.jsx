@@ -246,7 +246,7 @@ const SearchComponent = () => {
   const [editData, setEditData] = useState({
     name: "",
     description: "",
-    url: [""],
+    images: [""],
   });
 
   const handleSearch = async () => {
@@ -278,8 +278,8 @@ const SearchComponent = () => {
         }));
         console.log("Items: ", items);
         setResults(items);
-        setSelectedItem(items[0]); // Selecciona el primer elemento encontrado
-        setEditData(items[0]); // Inicializa los datos de edición
+        setSelectedItem(items[0]);
+        setEditData(items[0]);
       }
     } catch (error) {
       console.error("Error fetching documents: ", error);

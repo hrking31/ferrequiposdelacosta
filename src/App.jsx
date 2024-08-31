@@ -1,4 +1,13 @@
-import { Home, Landing, Detail, AdminForms, VistaCotizacion, VistaCuentaDeCobro, VistaDb, VistaEliminarEquipo } from "./Views";
+import {
+  Home,
+  // Landing,
+  Detail,
+  AdminForms,
+  VistaCotizacion,
+  VistaCuentaDeCobro,
+  VistaDb,
+  VistaEliminarEquipo,
+} from "./Views";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import Login from "./Components/Login/Login";
@@ -10,7 +19,7 @@ function App() {
   return (
     <div>
       {location.pathname === "/" ? null : <NavBar />}
-      {/* {location.pathname === "/" && <NavBar />} */}
+      {location.pathname === "/" && <NavBar />}
       <Routes>
         <Route
           path="/admin"
@@ -28,7 +37,7 @@ function App() {
             </ProtectedRoutes>
           }
         />
-         <Route
+        <Route
           path="/vistacuentadecobro"
           element={
             <ProtectedRoutes>
@@ -36,7 +45,7 @@ function App() {
             </ProtectedRoutes>
           }
         />
-         <Route
+        <Route
           path="/vistabasedatos"
           element={
             <ProtectedRoutes>
@@ -44,7 +53,7 @@ function App() {
             </ProtectedRoutes>
           }
         />
-         <Route
+        <Route
           path="/vistaeliminarequipo"
           element={
             <ProtectedRoutes>
@@ -52,8 +61,9 @@ function App() {
             </ProtectedRoutes>
           }
         />
-        <Route path="/" element={<Landing />} />
-        <Route path="/home" element={<Home />} />
+        {/* <Route path="/" element={<Landing />} /> */}
+        <Route path="/" element={<Home />} />
+        <Route path="/Home" element={<Home />} />
         {/* <Route path="/register" element={<Register />} /> */}
         <Route path="/login" element={<Login />} />
         <Route exact path="/detail/:name" element={<Detail />} />
