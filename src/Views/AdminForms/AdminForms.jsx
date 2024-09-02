@@ -2,8 +2,8 @@ import style from "./AdminForms.module.css";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import LoadingCircle from "../../Components/LoadingCircle/LoadingCircle";
-import Button from '@mui/material/Button';
-import { Typography, Box, Grid } from '@mui/material';
+import Button from "@mui/material/Button";
+import { Typography, Box, Grid } from "@mui/material";
 
 export default function AdminForms() {
   const { user, logout, loading } = useAuth();
@@ -17,14 +17,19 @@ export default function AdminForms() {
   }
 
   return (
-    <Box sx={{ padding: 2, textAlign: 'center' }}>
+    <Box sx={{ padding: 2, textAlign: "center" }}>
       <Box sx={{ marginBottom: 4 }}>
-        <Typography variant="h4" sx={{ color: '#8B3A3A', fontWeight: 'bold' }}>
+        <Typography variant="h4" sx={{ color: "#8B3A3A", fontWeight: "bold" }}>
           Bienvenida {user.email}, ¿Qué vamos a hacer hoy?
         </Typography>
       </Box>
 
-      <Grid container spacing={2} justifyContent="center" sx={{ marginBottom: 4 }}>
+      <Grid
+        container
+        spacing={2}
+        justifyContent="center"
+        sx={{ marginBottom: 4 }}
+      >
         <Grid item xs={12} sm={6} md={4}>
           <Button
             component={Link}
@@ -80,62 +85,60 @@ export default function AdminForms() {
           </Button>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-            <Button
-              onClick={handlerLogout}
-              variant="contained"
-              fullWidth
-              sx={{
-                height: "45px",
-                color: "#ffffff",
-                backgroundColor: "#1E90FF",
-                "&:hover": {
-                  backgroundColor: "#4682B4",
-                },
-              }}
-            >
-              EDITAR EQUIPO
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button
-           component={Link}
-           to="/vistaeliminarequipo"
-           variant="contained"
-           fullWidth
-           sx={{
-             height: "45px",
-             color: "#ffffff",
-             backgroundColor: "#1E90FF",
-             "&:hover": {
-               backgroundColor: "#4682B4",
-             },
-           }}
-            > 
-              ELIMINAR EQUIPO
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
           <Button
-        onClick={handlerLogout}
-        variant="contained"
-        fullWidth
-        sx={{
-
-          height: "45px",
-          color: "#ffffff",
-          backgroundColor: "#1E90FF",
-          "&:hover": {
-            backgroundColor: "#DC143C",
-          },
-          margin: "0 auto",
-        }}
-      >
-        Cerrar Sesión
-      </Button>
-      </Grid>
+            component={Link}
+            to="/vistaeditarequipo"
+            variant="contained"
+            fullWidth
+            sx={{
+              height: "45px",
+              color: "#ffffff",
+              backgroundColor: "#1E90FF",
+              "&:hover": {
+                backgroundColor: "#4682B4",
+              },
+            }}
+          >
+            EDITAR EQUIPO
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            component={Link}
+            to="/vistaeliminarequipo"
+            variant="contained"
+            fullWidth
+            sx={{
+              height: "45px",
+              color: "#ffffff",
+              backgroundColor: "#1E90FF",
+              "&:hover": {
+                backgroundColor: "#4682B4",
+              },
+            }}
+          >
+            ELIMINAR EQUIPO
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            onClick={handlerLogout}
+            variant="contained"
+            fullWidth
+            sx={{
+              height: "45px",
+              color: "#ffffff",
+              backgroundColor: "#1E90FF",
+              "&:hover": {
+                backgroundColor: "#DC143C",
+              },
+              margin: "0 auto",
+            }}
+          >
+            Cerrar Sesión
+          </Button>
+        </Grid>
       </Grid>
     </Box>
   );
 }
-
-

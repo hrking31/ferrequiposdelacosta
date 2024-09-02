@@ -5,6 +5,7 @@ import Detail from "./Detail/Detail";
 import VistaDb from "../Views/VistaDb/VistaDb";
 import VistaCotizacion from "../Views/VistaCotizacion/VistaCotizacion";
 import VistaCuentaDeCobro from "../Views/VistaCuentaDeCobro/VistaCuentaDeCobro";
+import VistaEditarEquipo from "../Views/VistaEditarEquipo/VistaEditarEquipo";
 import VistaEliminarEquipo from "../Views/VistaEliminarEquipo/VistaEliminarEquipo";
 
 export {
@@ -15,5 +16,6 @@ export {
   VistaDb,
   VistaCotizacion,
   VistaCuentaDeCobro,
+  VistaEditarEquipo,
   VistaEliminarEquipo,
 };

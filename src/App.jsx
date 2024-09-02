@@ -6,6 +6,7 @@ import {
   VistaCotizacion,
   VistaCuentaDeCobro,
   VistaDb,
+  VistaEditarEquipo,
   VistaEliminarEquipo,
 } from "./Views";
 import { Routes, Route, useLocation } from "react-router-dom";
@@ -58,6 +59,14 @@ function App() {
           element={
             <ProtectedRoutes>
               <VistaEliminarEquipo />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistaeditarequipo"
+          element={
+            <ProtectedRoutes>
+              <VistaEditarEquipo />
             </ProtectedRoutes>
           }
         />

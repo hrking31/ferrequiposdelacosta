@@ -1,19 +1,3 @@
-// import React from "react";
-// import Cards from "../../Components/Cards/Cards";
-// import SearchComponent from "../../Components/SearchComponent/SearchComponent";
-
-// const VistaEliminarEquipo = () => {
-//   return (
-//     <div>
-//       <SearchComponent />
-//       <Cards />
-//     </div>
-//   );
-// };
-
-// export default VistaEliminarEquipo;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 import React, { useEffect, useState } from "react";
 import { Box, Snackbar } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,7 +6,7 @@ import SearchComponent from "../../Components/SearchComponent/SearchComponent";
 import CardSearchEquipos from "../../Components/CardSearchEquipos/CardSearchEquipos";
 import { useAuth } from "../../Context/AuthContext";
 
-const VistaEliminaEquipo = () => {
+const VistaEditarEquipo = () => {
   const { user } = useAuth();
   const dispatch = useDispatch();
   const error = useSelector((state) => state.equipos.error);
@@ -56,9 +40,7 @@ const VistaEliminaEquipo = () => {
   );
 };
 
-export default VistaEliminaEquipo;
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
+export default VistaEditarEquipo;
 
 // import React, { useState } from "react";
 // import { TextField, Button, Grid, Typography, Box } from "@mui/material";
