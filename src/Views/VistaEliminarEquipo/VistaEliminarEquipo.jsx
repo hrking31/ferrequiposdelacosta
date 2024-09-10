@@ -1,19 +1,3 @@
-// import React from "react";
-// import Cards from "../../Components/Cards/Cards";
-// import SearchComponent from "../../Components/SearchComponent/SearchComponent";
-
-// const VistaEliminarEquipo = () => {
-//   return (
-//     <div>
-//       <SearchComponent />
-//       <Cards />
-//     </div>
-//   );
-// };
-
-// export default VistaEliminarEquipo;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 import React, { useEffect, useState } from "react";
 import { Box, Snackbar } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";

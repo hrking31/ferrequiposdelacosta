@@ -15,8 +15,9 @@ import { storage } from "../../Components/Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { fetchformData } from "../../Store/Actions/formAction";
 import { setFormValues, updateImage } from "../../Store/Slices/formSlice";
-import LoadingCircle from "../../Components/LoadingCircle/LoadingCircle";
+import LoadingCircle from "../../Components/LoadingLogo/LoadingLogo";
 import style from "./VistaDb.module.css";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
 export default function AdminForms() {
   const { user, logout, loading } = useAuth();
@@ -129,7 +130,7 @@ export default function AdminForms() {
   };
 
   if (loading) {
-    return <LoadingCircle />;
+    return <LoadingLogo />;
   }
 
   return (

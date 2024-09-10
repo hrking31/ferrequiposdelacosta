@@ -35,8 +35,7 @@ export default function CardEquipos({ name, url }) {
               <CardMedia
                 component="img"
                 height="400"
-                src={url} //nuevo array
-                // src={url[0]}
+                src={url}
                 alt="img not found"
               />
               <StyledCardContent>

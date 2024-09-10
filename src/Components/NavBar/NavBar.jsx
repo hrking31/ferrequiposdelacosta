@@ -180,16 +180,18 @@ const NavLinkStyled = styled(NavLink)(({ theme }) => ({
   },
 }));
 
-const Logo = styled("img")({
-  height: "90px",
-});
-
-const Title = styled(Typography)({
-  color: "white",
-  marginLeft: "10px",
-  fontSize: "20px",
-  fontWeight: "bold",
-});
+const Logo = styled("img")(({ theme }) => ({
+  height: "60px",
+  [theme.breakpoints.up("sm")]: {
+    height: "70px",
+  },
+  [theme.breakpoints.up("md")]: {
+    height: "80px",
+  },
+  [theme.breakpoints.up("lg")]: {
+    height: "90px",
+  },
+}));
 
 const NavBar = () => {
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -219,43 +221,42 @@ const NavBar = () => {
         sx={{
           backgroundImage: `url(${BackgroundImage})`,
           backgroundColor: "#F0F0F0",
+          height: "90px",
         }}
       >
         <Toolbar
           sx={{
             display: "flex",
-            justifyContent: "center",
+            justifyContent: "space-between",
             alignItems: "center",
+            height: "100%",
           }}
         >
           <NavLinkStyled
             to="/home"
-            style={{ display: "flex", alignItems: "center", flex: 1 }}
+            sx={{ display: "flex", alignItems: "center" }}
           >
             <Logo src={LogoFerrequipos} alt="logo" />
-            <Typography
-              variant="h3"
-              component="p"
-              sx={{
-                color: "#00008B",
-                textAlign: "center",
-                fontFamily: "Oswald, serif",
-                fontWeight: "bold",
-                fontweight: 400,
-                // textShadow: '4px 4px 4px #DC143C',
-                fontSize: {
-                  xs: "1.5rem",
-                  sm: "2rem",
-                  md: "2.5rem",
-                  lg: "3rem",
-                  xl: "3.5rem",
-                },
-                flex: 1,
-              }}
-            >
-              Ferrequipos De La Costa
-            </Typography>
           </NavLinkStyled>
+          <Typography
+            variant="h3"
+            component="p"
+            sx={{
+              color: "#00008B",
+              fontFamily: "Oswald, serif",
+              fontWeight: "bold",
+              fontSize: {
+                xs: "1.5rem",
+                sm: "2rem",
+                md: "2.5rem",
+                lg: "3rem",
+                xl: "4rem",
+              },
+              textAlign: "center",
+            }}
+          >
+            Ferrequipos De La Costa
+          </Typography>
           <IconButton
             edge="start"
             aria-label="menu"
@@ -290,9 +291,7 @@ const NavBar = () => {
             borderTopLeftRadius: "10px",
             borderBottomRightRadius: "0",
             borderBottomLeftRadius: "10px",
-            background: `url("./src/assets/white-leather.png") no-repeat center center,
-      #F0F0F0`,
-            boxSizing: "border-box",
+            background: `url("./src/assets/white-leather.png") no-repeat center center, #F0F0F0`,
           },
         }}
       >
@@ -303,34 +302,17 @@ const NavBar = () => {
             alignItems: "center",
             justifyContent: "center",
             height: "100%",
-            px: { xs: 2, sm: 0 },
           }}
         >
-          <ListItem
-            sx={{
-              justifyContent: "center",
-              marginBottom: "1px",
-              px: { xs: 0, sm: 2 },
-            }}
-          >
+          <ListItem sx={{ justifyContent: "center", marginBottom: "1px" }}>
             <Typography
               variant="h6"
-              sx={{
-                marginBottom: "1px",
-                color: "#00008B",
-                textAlign: "center",
-              }}
+              sx={{ color: "#00008B", textAlign: "center" }}
             >
               Eres Administrador?
             </Typography>
           </ListItem>
-          <ListItem
-            sx={{
-              justifyContent: "center",
-              marginBottom: "1px",
-              px: { xs: 0, sm: 2 },
-            }}
-          >
+          <ListItem sx={{ justifyContent: "center", marginBottom: "1px" }}>
             <Button
               component={NavLink}
               to="/login"

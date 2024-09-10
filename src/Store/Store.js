@@ -7,7 +7,7 @@ import formReducer from "./Slices/formSlice";
 import searchReducer from "./Slices/searchSlice";
 import cotizacionReducer from "./Slices/cotizacionSlice";
 import cuentacobroReducer from "./Slices/cuentacobroSlice";
-import loadingSlice from "./slices/LodingSlice";
+import loadingSlice from "./Slices/LoadingSlice";
 
 export default configureStore({
   reducer: {

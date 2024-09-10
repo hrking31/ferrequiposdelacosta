@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDetailData } from "../../Store/Actions/detailAction";
 import DetailGallery from "../../Components/DetailGallery/DetailGallery";
-import LoadingCircle from "../../Components/LoadingCircle/LoadingCircle";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { Grid, Typography, Box, IconButton, Button } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import InstagramIcon from "@mui/icons-material/Instagram";
@@ -23,7 +23,7 @@ export default function Detail() {
   }, [dispatch, name]);
 
   if (!equipo) {
-    return <LoadingCircle />;
+    return <LoadingLogo />;
   }
 
   return (

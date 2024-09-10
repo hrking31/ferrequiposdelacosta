@@ -7,8 +7,11 @@ const equipoDetail = createSlice({
     setSelectedEquipo: (state, action) => {
       state.selectedEquipo = action.payload;
     },
+    clearSelectedEquipo: (state) => {
+      state.selectedEquipo = null;
+    },
   },
 });
 
-export const { setSelectedEquipo } = equipoDetail.actions;
+export const { setSelectedEquipo, clearSelectedEquipo } = equipoDetail.actions;
 export default equipoDetail.reducer;

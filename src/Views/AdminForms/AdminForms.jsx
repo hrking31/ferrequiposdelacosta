@@ -1,7 +1,7 @@
 import style from "./AdminForms.module.css";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
-import LoadingCircle from "../../Components/LoadingCircle/LoadingCircle";
+import LoadingCircle from "../../Components/LoadingLogo/LoadingLogo";
 import Button from "@mui/material/Button";
 import { Typography, Box, Grid } from "@mui/material";
 
@@ -13,7 +13,7 @@ export default function AdminForms() {
   };
 
   if (loading) {
-    return <LoadingCircle />;
+    return <LoadingLogo />;
   }
 
   return (
