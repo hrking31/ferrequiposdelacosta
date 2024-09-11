@@ -207,8 +207,22 @@ export default function AdminForms() {
               name="name"
               onChange={changeHandlerName}
               value={nameImage}
-              placeholder="Nombre de la imagen..."
+              label="Nombre de la imagen"
               fullWidth
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A",
+                },
+              }}
               margin="normal"
               sx={{
                 mt: 1,
@@ -250,8 +264,22 @@ export default function AdminForms() {
               name="name"
               onChange={handlerInputChange}
               value={formValues.name}
-              placeholder="Nombre del equipo..."
+              label="Nombre del equipo"
               fullWidth
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A",
+                },
+              }}
               margin="normal"
               sx={{
                 mt: 1,
@@ -276,10 +304,23 @@ export default function AdminForms() {
               name="description"
               onChange={handlerInputChange}
               value={formValues.description}
-              placeholder="Descripción del equipo..."
+              label="Descripción del equipo"
               multiline
-              rows={4}
+              rows={6}
               fullWidth
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  display: "flex",
+                  height: "100%",
+                  color: "#8B3A3A",
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A",
+                },
+              }}
               margin="normal"
               sx={{
                 mt: 1,

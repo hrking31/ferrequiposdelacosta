@@ -30,7 +30,6 @@ export default function CuentaCobro() {
   const updateItem = (index, field, value) => {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
-    // Ensure quantity and price are numbers
     updatedItem.quantity = Number(updatedItem.quantity) || 0;
     updatedItem.price = Number(updatedItem.price) || 0;
     updatedItem.subtotal = updatedItem.quantity * updatedItem.price;

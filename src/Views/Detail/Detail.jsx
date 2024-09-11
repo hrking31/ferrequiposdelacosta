@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -56,7 +57,12 @@ export default function Detail() {
               {equipo.name}
             </StyleNameTypography>
             <StyleTypography variant="body1" component="p">
-              {equipo.description}
+              {equipo.description.split("\n").map((line, index) => (
+                <React.Fragment key={index}>
+                  {line}
+                  <br />
+                </React.Fragment>
+              ))}
             </StyleTypography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", marginTop: 2 }}>
