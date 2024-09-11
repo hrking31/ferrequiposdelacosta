@@ -3,6 +3,7 @@ import { Box, Snackbar } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEquipos } from "../../Store/Slices/searchSlice";
 import SearchComponent from "../../Components/SearchComponent/SearchComponent";
+// import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import { useAuth } from "../../Context/AuthContext";
 
@@ -28,6 +29,7 @@ const VistaEliminaEquipo = () => {
 
   return (
     <Box>
+      {/* <EliminarEquipos /> */}
       <SearchComponent onSearch={handleSearch} />
       <CardsSearchEquipos />
       <Snackbar

@@ -54,6 +54,15 @@ function App() {
             </ProtectedRoutes>
           }
         />
+        {/* <Route
+          exact
+          path="/vistaeliminarequipo/:name"
+          element={
+            <ProtectedRoutes>
+              <VistaEliminarEquipo />
+            </ProtectedRoutes>
+          }
+        /> */}
         <Route
           path="/vistaeliminarequipo"
           element={
