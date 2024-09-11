@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Box, Button, Grid, TextField, Typography, IconButton } from "@mui/material";
+import {
+  Box,
+  Button,
+  Grid,
+  TextField,
+  Typography,
+  IconButton,
+  Alert,
+} from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
@@ -60,7 +68,12 @@ export default function Login() {
               Iniciar sesión en mi cuenta
             </Typography>
             {error && (
-              <Typography sx={{ color: "#00008B" }}>{error}</Typography>
+              <Alert
+                severity="error"
+                sx={{ marginTop: "10px", color: "#b22222" }}
+              >
+                {error}
+              </Alert>
             )}
           </Grid>
           <Grid item xs={12}>
@@ -75,20 +88,16 @@ export default function Login() {
               InputLabelProps={{ style: { color: "#00008B" } }}
               InputProps={{
                 style: { color: "#00008B" },
-                classes: {
-                  notchedOutline: 'custom-notchedOutline',
-                  focused: 'custom-focused',
-                },
               }}
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -111,23 +120,23 @@ export default function Login() {
                   <IconButton
                     onClick={() => dispatch(togglePasswordVisibility())}
                   >
-                    {passwordVisible ? <FaEyeSlash color="#00008B" /> : <FaEye color="#00008B" />}
+                    {passwordVisible ? (
+                      <FaEyeSlash color="#00008B" />
+                    ) : (
+                      <FaEye color="#00008B" />
+                    )}
                   </IconButton>
                 ),
-                classes: {
-                  notchedOutline: 'custom-notchedOutline',
-                  focused: 'custom-focused',
-                },
               }}
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -158,8 +167,3 @@ export default function Login() {
     </Box>
   );
 }
-
-
-
-
-

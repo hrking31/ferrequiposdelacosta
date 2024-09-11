@@ -18,7 +18,7 @@ import { setFormValues, updateImage } from "../../Store/Slices/formSlice";
 import style from "./VistaDb.module.css";
 
 export default function AdminForms() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout } = useAuth();
   const formValues = useSelector((state) => state.form.values);
   const imageUrl = useSelector((state) => state.form.values.images);
   const dispatch = useDispatch();
