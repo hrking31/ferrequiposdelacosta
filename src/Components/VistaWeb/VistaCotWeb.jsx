@@ -156,15 +156,15 @@
 
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
-import { Box, Typography, Grid, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
 
-export default function VistaWeb() {
+export default function VistaCotWeb() {
   const formValues = useSelector((state) => state.cotizacion);
   const items = useSelector((state) => state.cotizacion.value.items);
   const total = useSelector((state) => state.cotizacion.value.total);
-  
+
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <Box
@@ -180,14 +180,20 @@ export default function VistaWeb() {
         zIndex: 10,
       }}
     >
-      <Grid container spacing={2} direction={isSmallScreen ? "column" : "row"} alignItems="center" sx={{ marginBottom: '20px' }}>
+      <Grid
+        container
+        spacing={2}
+        direction={isSmallScreen ? "column" : "row"}
+        alignItems="center"
+        sx={{ marginBottom: "20px" }}
+      >
         <Grid item>
           <img
             src={LogoFerrequipos}
             alt="Logo"
             style={{
               width: isSmallScreen ? "60px" : "100px", // Tamaño del logo ajustado para pantallas pequeñas
-              height: 'auto'
+              height: "auto",
             }}
           />
         </Grid>
@@ -219,7 +225,14 @@ export default function VistaWeb() {
           </Typography>
         </Grid>
       </Grid>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", textAlign: "left", marginBottom: "10px" }}>
+      <Typography
+        variant="body1"
+        sx={{
+          fontSize: isSmallScreen ? "12px" : "14px",
+          textAlign: "left",
+          marginBottom: "10px",
+        }}
+      >
         Barranquilla, {formValues.value.fecha}
         <br />
         Señores: {formValues.value.empresa}
@@ -229,26 +242,40 @@ export default function VistaWeb() {
         Obra: {formValues.value.direccion}
       </Typography>
 
-      <Typography variant="h4" sx={{ fontSize: isSmallScreen ? "18px" : "22px", textAlign: "center", margin: "20px 0" }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontSize: isSmallScreen ? "18px" : "22px",
+          textAlign: "center",
+          margin: "20px 0",
+        }}
+      >
         Cotización
       </Typography>
 
       {items.map((item, index) => (
-        <Grid container key={index} sx={{ borderBottom: "1px solid #ccc", padding: "10px 0" }}>
+        <Grid
+          container
+          key={index}
+          sx={{ borderBottom: "1px solid #ccc", padding: "10px 0" }}
+        >
           <Grid item xs={6}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
+            <Typography
+              variant="body2"
+              sx={{
                 fontSize: isSmallScreen ? "12px" : "14px",
                 wordBreak: "break-word",
-                whiteSpace: "normal"
+                whiteSpace: "normal",
               }}
             >
               {item.description}
             </Typography>
           </Grid>
           <Grid item xs={6} sx={{ textAlign: "right" }}>
-            <Typography variant="body2" sx={{ fontSize: isSmallScreen ? "12px" : "14px" }}>
+            <Typography
+              variant="body2"
+              sx={{ fontSize: isSmallScreen ? "12px" : "14px" }}
+            >
               {item.subtotal}
             </Typography>
           </Grid>
@@ -267,7 +294,14 @@ export default function VistaWeb() {
       </Typography>
 
       <Box sx={{ marginTop: "40px", textAlign: "center" }}>
-        <Typography variant="caption" sx={{ fontSize: isSmallScreen ? "10px" : "12px", color: "blue", lineHeight: "1.2" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontSize: isSmallScreen ? "10px" : "12px",
+            color: "blue",
+            lineHeight: "1.2",
+          }}
+        >
           Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465
           <br />
           Ferrequipos07@hotmail.com
@@ -280,4 +314,3 @@ export default function VistaWeb() {
     </Box>
   );
 }
-

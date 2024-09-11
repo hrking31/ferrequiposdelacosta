@@ -9,8 +9,8 @@ import VistaEditarEquipo from "../Views/VistaEditarEquipo/VistaEditarEquipo";
 import VistaEliminarEquipo from "../Views/VistaEliminarEquipo/VistaEliminarEquipo";
 
 export {
-  Home,
   // Landing,
+  Home,
   Detail,
   AdminForms,
   VistaDb,

@@ -1,60 +1,33 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { Card, CardActionArea, CardMedia, Grid } from "@mui/material";
-import {
-  StyleNameTypography,
-  StyledCardContent,
-} from "./CardsSearchEquiposStyles";
-import { Textfit } from "react-textfit";
+import CardSearchEquipos from "../CardSearchEquipos/CardSearchEquipos.jsx";
+import { Container, Grid } from "@mui/material";
+import { useSelector } from "react-redux";
 
-export default function CardEquipos({ name, url }) {
+export default function CardsSearchEquipos() {
+  const equipos = useSelector((state) => state.search.results);
+
   return (
-    <Grid
-      container
-      spacing={2}
-      sx={{
-        marginTop: "20px",
-        marginBottom: {
-          xs: "-15px",
-          sm: "-30px",
-          md: "-70px",
-        },
-      }}
-    >
-      <Grid item xs={12}>
-        <Link to={`/detail/${name}`} style={{ textDecoration: "none" }}>
-          <Card
-            sx={{
-              backgroundColor: "#ededed",
-              height: "auto",
-              transition: "0.2s",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: 6,
-              },
-            }}
-          >
-            <CardActionArea>
-              <CardMedia
-                component="img"
-                height="400"
-                src={url} //nuevo array
-                // src={url[0]}
-                alt="img not found"
-              />
-              <StyledCardContent>
-                <Grid container direction="column" spacing={2}>
-                  <Grid item xs={12} sx={{ marginBottom: "-15px" }}>
-                    <Textfit mode="multi" max={30}>
-                      <StyleNameTypography>{name}</StyleNameTypography>
-                    </Textfit>
-                  </Grid>
+    <div>
+      <Container>
+        <Grid
+          container
+          rowSpacing={{ xs: 2, sm: 6, md: 8 }}
+          columnSpacing={{ xs: 2, sm: 6, md: 8 }}
+        >
+          {equipos &&
+            equipos.map((equipo, index) => {
+              const imageUrl =
+                equipo.images && equipo.images.length > 0
+                  ? equipo.images[0].url
+                  : "default-image-url.jpg";
+
+              return (
+                <Grid item xs={12} sm={6} md={4} key={index}>
+                  <CardSearchEquipos name={equipo.name} url={imageUrl} />
                 </Grid>
-              </StyledCardContent>
-            </CardActionArea>
-          </Card>
-        </Link>
-      </Grid>
-    </Grid>
+              );
+            })}
+        </Grid>
+      </Container>
+    </div>
   );
 }

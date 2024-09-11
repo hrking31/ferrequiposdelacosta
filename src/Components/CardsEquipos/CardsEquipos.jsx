@@ -1,10 +1,9 @@
 import CardEquipos from "../CardEquipos/CardEquipos.jsx";
-import CardEquiposSkeleton from "../CardEquiposSkeleton/CardEquiposSkeleton";
 import { Container, Grid } from "@mui/material";
 import { useSelector } from "react-redux";
-import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import LoadingLogo from "../LoadingLogo/LoadingLogo.jsx";
 
-export default function Cards() {
+export default function CardsEquipos() {
   const loading = useSelector((state) => state.loading.loading);
   const equipos = useSelector((state) => state.equipos.equipos);
   return (

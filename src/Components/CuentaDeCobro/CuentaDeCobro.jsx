@@ -12,8 +12,8 @@ import {
   Grid,
   IconButton,
   Container,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
 export default function CuentaCobro() {
   const dispatch = useDispatch();
@@ -34,17 +34,24 @@ export default function CuentaCobro() {
     updatedItem.quantity = Number(updatedItem.quantity) || 0;
     updatedItem.price = Number(updatedItem.price) || 0;
     updatedItem.subtotal = updatedItem.quantity * updatedItem.price;
-    updatedItem.subtotal = updatedItem.subtotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    updatedItem.subtotal = updatedItem.subtotal.toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+    });
     updatedItems[index] = updatedItem;
     dispatch(setItemsCc(updatedItems));
   };
 
   const calculateTotal = () => {
     const totalAmount = items.reduce(
-      (total, item) => total + (Number(item.quantity) || 0) * (Number(item.price) || 0),
+      (total, item) =>
+        total + (Number(item.quantity) || 0) * (Number(item.price) || 0),
       0
     );
-    const totalAmountFormatted = totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+    const totalAmountFormatted = totalAmount.toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+    });
     dispatch(setTotalCc(totalAmountFormatted));
   };
 
@@ -54,7 +61,7 @@ export default function CuentaCobro() {
   };
 
   const formatNit = (nit) => {
-    const cleanNit = nit.replace(/[^\d-]/g, '');
+    const cleanNit = nit.replace(/[^\d-]/g, "");
     const soloDiez = cleanNit.substring(0, 11);
     const formattedNit = soloDiez.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return formattedNit;
@@ -78,29 +85,29 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
+              sx={{
+                mt: 1,
+                fontSize: "0.75rem",
+                "& .MuiInputBase-input": {
+                  padding: "6px 12px",
                 },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -118,32 +125,32 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
                 sx: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  color: "#8B3A3A", 
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
                 },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
+              sx={{
+                mt: 1,
+                fontSize: "0.75rem",
+                "& .MuiInputBase-input": {
+                  padding: "6px 12px",
                 },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -161,32 +168,32 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
                 sx: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  color: "#8B3A3A", 
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
                 },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
+              sx={{
+                mt: 1,
+                fontSize: "0.75rem",
+                "& .MuiInputBase-input": {
+                  padding: "6px 12px",
                 },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -204,32 +211,32 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
                 sx: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  color: "#8B3A3A", 
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
                 },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
+              sx={{
+                mt: 1,
+                fontSize: "0.75rem",
+                "& .MuiInputBase-input": {
+                  padding: "6px 12px",
                 },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -247,32 +254,32 @@ export default function CuentaCobro() {
               InputLabelProps={{
                 shrink: true,
                 sx: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  color: "#8B3A3A", 
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  color: "#8B3A3A",
                 },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A", 
+                  color: "#8B3A3A",
                 },
               }}
               margin="normal"
-              sx={{ 
-                mt: 1, 
-                fontSize: '0.75rem', 
-                '& .MuiInputBase-input': {
-                  padding: '6px 12px', 
+              sx={{
+                mt: 1,
+                fontSize: "0.75rem",
+                "& .MuiInputBase-input": {
+                  padding: "6px 12px",
                 },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
                     borderColor: "#00008B",
                   },
-                  '&:hover fieldset': {
+                  "&:hover fieldset": {
                     borderColor: "#4682B4",
                   },
-                  '&.Mui-focused fieldset': {
+                  "&.Mui-focused fieldset": {
                     borderColor: "#1E90FF",
                   },
                 },
@@ -290,35 +297,37 @@ export default function CuentaCobro() {
                   type="text"
                   label="Descripción"
                   value={item.description || ""}
-                  onChange={(e) => updateItem(index, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(index, "description", e.target.value)
+                  }
                   InputLabelProps={{
                     shrink: true,
                     sx: {
-                      display: 'flex',
-                      height: '100%',
-                      color: "#8B3A3A", 
+                      display: "flex",
+                      height: "100%",
+                      color: "#8B3A3A",
                     },
                   }}
                   InputProps={{
                     sx: {
-                      color: "#8B3A3A", 
+                      color: "#8B3A3A",
                     },
                   }}
                   margin="normal"
-                  sx={{ 
-                    mt: 1, 
-                    fontSize: '0.75rem', 
-                    '& .MuiInputBase-input': {
-                      padding: '6px 12px', 
+                  sx={{
+                    mt: 1,
+                    fontSize: "0.75rem",
+                    "& .MuiInputBase-input": {
+                      padding: "6px 12px",
                     },
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
                         borderColor: "#00008B",
                       },
-                      '&:hover fieldset': {
+                      "&:hover fieldset": {
                         borderColor: "#4682B4",
                       },
-                      '&.Mui-focused fieldset': {
+                      "&.Mui-focused fieldset": {
                         borderColor: "#1E90FF",
                       },
                     },
@@ -331,36 +340,38 @@ export default function CuentaCobro() {
                   type="number"
                   label="Cantidad"
                   value={item.quantity || ""}
-                  onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(index, "quantity", e.target.value)
+                  }
                   InputLabelProps={{
                     shrink: true,
                     sx: {
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '100%',
-                      color: "#8B3A3A", 
+                      display: "flex",
+                      alignItems: "center",
+                      height: "100%",
+                      color: "#8B3A3A",
                     },
                   }}
                   InputProps={{
                     sx: {
-                      color: "#8B3A3A", 
+                      color: "#8B3A3A",
                     },
                   }}
                   margin="normal"
-                  sx={{ 
-                    mt: 1, 
-                    fontSize: '0.75rem', 
-                    '& .MuiInputBase-input': {
-                      padding: '6px 12px', 
+                  sx={{
+                    mt: 1,
+                    fontSize: "0.75rem",
+                    "& .MuiInputBase-input": {
+                      padding: "6px 12px",
                     },
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
                         borderColor: "#00008B",
                       },
-                      '&:hover fieldset': {
+                      "&:hover fieldset": {
                         borderColor: "#4682B4",
                       },
-                      '&.Mui-focused fieldset': {
+                      "&.Mui-focused fieldset": {
                         borderColor: "#1E90FF",
                       },
                     },
@@ -377,32 +388,32 @@ export default function CuentaCobro() {
                   InputLabelProps={{
                     shrink: true,
                     sx: {
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '100%',
-                      color: "#8B3A3A", 
+                      display: "flex",
+                      alignItems: "center",
+                      height: "100%",
+                      color: "#8B3A3A",
                     },
                   }}
                   InputProps={{
                     sx: {
-                      color: "#8B3A3A", 
+                      color: "#8B3A3A",
                     },
                   }}
                   margin="normal"
-                  sx={{ 
-                    mt: 1, 
-                    fontSize: '0.75rem', 
-                    '& .MuiInputBase-input': {
-                      padding: '6px 12px', 
+                  sx={{
+                    mt: 1,
+                    fontSize: "0.75rem",
+                    "& .MuiInputBase-input": {
+                      padding: "6px 12px",
                     },
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': {
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
                         borderColor: "#00008B",
                       },
-                      '&:hover fieldset': {
+                      "&:hover fieldset": {
                         borderColor: "#4682B4",
                       },
-                      '&.Mui-focused fieldset': {
+                      "&.Mui-focused fieldset": {
                         borderColor: "#1E90FF",
                       },
                     },
@@ -413,9 +424,8 @@ export default function CuentaCobro() {
                 <Typography>Subtotal: {item.subtotal}</Typography>
               </Grid>
             </Grid>
-            
           ))}
-                    <Grid item xs={12}>
+          <Grid item xs={12}>
             <Button
               variant="contained"
               color="primary"
@@ -464,5 +474,3 @@ export default function CuentaCobro() {
     </Container>
   );
 }
-
-

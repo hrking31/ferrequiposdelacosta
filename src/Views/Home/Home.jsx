@@ -1,5 +1,5 @@
 import style from "../Home/Home.module.css";
-import Cards from "../../Components/Cards/Cards";
+import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setLoading } from "../../Store//Slices/LoadingSlice";
@@ -15,7 +15,7 @@ export default function Home() {
 
   return (
     <div>
-      <Cards />
+      <CardsEquipos />
     </div>
   );
 }

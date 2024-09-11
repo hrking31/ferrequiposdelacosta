@@ -1,44 +1,59 @@
-import CardSearchEquipos from "../CardsSearchEquipos/CardsSearchEquipos.jsx";
-import CardEquiposSkeleton from "../CardEquiposSkeleton/CardEquiposSkeleton";
-import { Container, Grid } from "@mui/material";
-import { useSelector } from "react-redux";
+import React from "react";
+// import { Link } from "react-router-dom";
+import { Card, CardActionArea, CardMedia, Grid } from "@mui/material";
+import {
+  StyleNameTypography,
+  StyledCardContent,
+} from "./CardSearchEquiposStyles";
+import { Textfit } from "react-textfit";
 
-export default function Cards() {
-  const loading = useSelector((state) => state.loading.loading);
-  const equipos = useSelector((state) => state.search.results);
-
+export default function CardSearchEquipos({ name, url }) {
   return (
-    <div>
-      <Container>
-        <Grid
-          container
-          rowSpacing={{ xs: 2, sm: 6, md: 8 }}
-          columnSpacing={{ xs: 2, sm: 6, md: 8 }}
+    <Grid
+      container
+      spacing={2}
+      sx={{
+        marginTop: "20px",
+        marginBottom: {
+          xs: "-15px",
+          sm: "-30px",
+          md: "-70px",
+        },
+      }}
+    >
+      <Grid item xs={12}>
+        {/* <Link to={`/detail/${name}`} style={{ textDecoration: "none" }}> */}
+        <Card
+          sx={{
+            backgroundColor: "#ededed",
+            height: "auto",
+            transition: "0.2s",
+            "&:hover": {
+              transform: "scale(1.05)",
+              boxShadow: 6,
+            },
+          }}
         >
-          {loading
-            ? Array.from(new Array(9)).map((_, index) => (
-                <CardEquiposSkeleton key={index} />
-              ))
-            : equipos &&
-              equipos.map((equipo, index) => {
-                const imageUrl =
-                  equipo.images && equipo.images.length > 0
-                    ? equipo.images[0].url
-                    : "default-image-url.jpg";
-
-                return (
-                  <Grid item xs={12} sm={6} md={4} key={index}>
-                    <CardSearchEquipos
-                      name={equipo.name}
-                      url={imageUrl}
-                      price={equipo.price}
-                      description={equipo.description}
-                    />
-                  </Grid>
-                );
-              })}
-        </Grid>
-      </Container>
-    </div>
+          <CardActionArea>
+            <CardMedia
+              component="img"
+              height="400"
+              src={url}
+              alt="img not found"
+            />
+            <StyledCardContent>
+              <Grid container direction="column" spacing={2}>
+                <Grid item xs={12} sx={{ marginBottom: "-15px" }}>
+                  <Textfit mode="multi" max={30}>
+                    <StyleNameTypography>{name}</StyleNameTypography>
+                  </Textfit>
+                </Grid>
+              </Grid>
+            </StyledCardContent>
+          </CardActionArea>
+        </Card>
+        {/* </Link> */}
+      </Grid>
+    </Grid>
   );
 }

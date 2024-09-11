@@ -1,7 +1,6 @@
 import style from "./AdminForms.module.css";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
-import LoadingCircle from "../../Components/LoadingLogo/LoadingLogo";
 import Button from "@mui/material/Button";
 import { Typography, Box, Grid } from "@mui/material";
 
@@ -11,10 +10,6 @@ export default function AdminForms() {
   const handlerLogout = async () => {
     await logout();
   };
-
-  if (loading) {
-    return <LoadingLogo />;
-  }
 
   return (
     <Box sx={{ padding: 2, textAlign: "center" }}>

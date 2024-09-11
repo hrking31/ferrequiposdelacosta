@@ -3,7 +3,7 @@ import { Box, Snackbar } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEquipos } from "../../Store/Slices/searchSlice";
 import SearchComponent from "../../Components/SearchComponent/SearchComponent";
-import CardSearchEquipos from "../../Components/CardSearchEquipos/CardSearchEquipos";
+import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import { useAuth } from "../../Context/AuthContext";
 
 const VistaEditarEquipo = () => {
@@ -29,7 +29,7 @@ const VistaEditarEquipo = () => {
   return (
     <Box>
       <SearchComponent onSearch={handleSearch} />
-      <CardSearchEquipos />
+      <CardsSearchEquipos />
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
