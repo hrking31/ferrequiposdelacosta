@@ -155,9 +155,9 @@ export default function AdminForms() {
                   src={file ? URL.createObjectURL(file) : ""}
                   alt="Vista previa de la imagen"
                   style={{
-                    width: "200px",
-                    height: "200px",
-                    objectFit: "cover",
+                    width: "100px",
+                    height: "100px",
+                    // objectFit: "cover",
                   }}
                 />
               ) : (
@@ -359,10 +359,10 @@ export default function AdminForms() {
                       src={url}
                       alt={`Vista previa ${index + 1}`}
                       style={{
-                        width: "200px",
-                        height: "200px",
-                        objectFit: "cover",
-                        marginBottom: "10px",
+                        width: "100px",
+                        height: "100px",
+                        // objectFit: "cover",
+                        // marginBottom: "10px",
                       }}
                     />
                     <Box

@@ -21,8 +21,9 @@ export default function CardsSearchEquipos() {
                   : "default-image-url.jpg";
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <CardSearchEquipos name={equipo.name} url={imageUrl} />
+                <Grid item xs={12} sm={6} md={6} key={index}>
+                  {/* <CardSearchEquipos name={equipo.name} url={imageUrl} /> */}
+                  <CardSearchEquipos equipo={equipo} />
                 </Grid>
               );
             })}
