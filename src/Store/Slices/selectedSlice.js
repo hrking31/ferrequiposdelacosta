@@ -1,17 +1,42 @@
+// import { createSlice } from "@reduxjs/toolkit";
+
+// const selectedSlice = createSlice({
+//   name: "selected",
+//   initialState: null,
+//   reducers: {
+//     setSelectedEquipo: (state, action) => {
+//       return action.payload;
+//     },
+//     clearSelectedEquipo: () => {
+//       return null;
+//     },
+//     setFormValues: (state, action) => {
+//       state.values = action.payload;
+//     },
+//   },
+// });
+
+// export const { setSelectedEquipo, clearSelectedEquipo, setFormValues } =
+//   selectedSlice.actions;
+// export default selectedSlice.reducer;
+
 import { createSlice } from "@reduxjs/toolkit";
 
 const selectedSlice = createSlice({
   name: "selected",
-  initialState: null,
+  initialState: {
+    selected: [],
+  },
   reducers: {
     setSelectedEquipo: (state, action) => {
-      return action.payload;
+      state.selected = action.payload;
     },
-    clearSelectedEquipo: () => {
-      return null;
+    clearSelectedEquipo: (state) => {
+      state.selected = [];
     },
   },
 });
 
-export const { setSelectedEquipo, clearSelectedEquipo } = selectedSlice.actions;
+export const { setSelectedEquipo, clearSelectedEquipo, setFormValues } =
+  selectedSlice.actions;
 export default selectedSlice.reducer;

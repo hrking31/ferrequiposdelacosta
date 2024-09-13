@@ -66,9 +66,9 @@ function App() {
         <Route
           path="/vistaeliminarequipo"
           element={
-            <ProtectedRoutes>
-              <VistaEliminarEquipo />
-            </ProtectedRoutes>
+            // <ProtectedRoutes>
+            <VistaEliminarEquipo />
+            // </ProtectedRoutes>
           }
         />
         <Route
