@@ -9,11 +9,21 @@
   position: relative;
 }
 
-.selectedImage {
+/* .selectedImage {
   width: 100%;
   height: auto;
-  max-height: 400px; 
+  max-height: 400px;
   object-fit: contain;
+} */
+
+.selectedImage {
+  width: 100%; /* Asegura que la imagen ocupe todo el ancho del contenedor */
+  max-width: 800px; /* Define el ancho máximo deseado */
+  height: 500px; /* Define una altura fija para la imagen */
+  object-fit: cover; /* Cubre el área del contenedor sin distorsionar la imagen */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden; /* Oculta cualquier contenido que se desborde del contenedor */
 }
 
 .thumbnails {
@@ -23,8 +33,8 @@
 }
 
 .thumbnail {
-  width: 50px; 
-  height: 50px; 
+  width: 50px;
+  height: 50px;
   margin: 0 5px;
   cursor: pointer;
   border: 2px solid transparent;
@@ -32,7 +42,5 @@
 
 .thumbnail:hover,
 .activeThumbnail {
-  border: 2px solid #000; 
+  border: 2px solid #000;
 }
-
-

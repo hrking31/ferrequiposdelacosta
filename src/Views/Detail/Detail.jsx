@@ -53,10 +53,30 @@ export default function Detail() {
           }}
         >
           <Box sx={{ flexGrow: 1 }}>
-            <StyleNameTypography variant="h4" component="h1" gutterBottom>
-              {equipo.name}
+            <StyleNameTypography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{
+                wordBreak: "break-word",
+                maxWidth: "100%",
+              }}
+            >
+              {equipo.name.split("\n").map((line, index) => (
+                <React.Fragment key={index}>
+                  {line}
+                  <br />
+                </React.Fragment>
+              ))}
             </StyleNameTypography>
-            <StyleTypography variant="body1" component="p">
+            <StyleTypography
+              variant="body1"
+              component="p"
+              sx={{
+                wordBreak: "break-word",
+                maxWidth: "100%",
+              }}
+            >
               {equipo.description.split("\n").map((line, index) => (
                 <React.Fragment key={index}>
                   {line}

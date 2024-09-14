@@ -74,9 +74,9 @@ function App() {
         <Route
           path="/vistaeditarequipo"
           element={
-            <ProtectedRoutes>
-              <VistaEditarEquipo />
-            </ProtectedRoutes>
+            // <ProtectedRoutes>
+            <VistaEditarEquipo />
+            // </ProtectedRoutes>
           }
         />
         {/* <Route path="/" element={<Landing />} /> */}

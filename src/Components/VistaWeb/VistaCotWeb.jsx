@@ -192,7 +192,7 @@ export default function VistaCotWeb() {
             src={LogoFerrequipos}
             alt="Logo"
             style={{
-              width: isSmallScreen ? "60px" : "100px", // Tamaño del logo ajustado para pantallas pequeñas
+              width: isSmallScreen ? "60px" : "100px",
               height: "auto",
             }}
           />
