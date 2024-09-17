@@ -1,17 +1,16 @@
 import { styled } from "@mui/system";
 import { CardContent, Typography } from "@mui/material";
 
-
 export const linkStyle = {
   textDecoration: "none",
 };
 
 export const StyledCardContent = styled(CardContent)`
-  background-color: #1E90FF;
+  background-color: #1e90ff;
 `;
 
 export const StyleNameTypography = styled(Typography)`
-  color: #8B3A3A;
-   font-family: "Oswald", serif;
+  color: #fff;
+  font-family: "Oswald", serif;
   font-weight: bold;
 `;

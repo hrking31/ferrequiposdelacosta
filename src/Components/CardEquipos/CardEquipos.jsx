@@ -22,9 +22,10 @@ export default function CardEquipos({ name, url }) {
         <Link to={`/detail/${name}`} style={{ textDecoration: "none" }}>
           <Card
             sx={{
-              backgroundColor: "#ededed",
-              height: "auto",
-              transition: "0.2s",
+              maxWidth: 345,
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              boxShadow: 4,
               "&:hover": {
                 transform: "scale(1.05)",
                 boxShadow: 6,
