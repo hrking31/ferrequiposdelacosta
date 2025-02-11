@@ -1,0 +1,21 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.rotating-image {
+  width: 100px;
+  height: auto;
+  animation: rotateImage 3s linear infinite;
+}
+
+@keyframes rotateImage {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
