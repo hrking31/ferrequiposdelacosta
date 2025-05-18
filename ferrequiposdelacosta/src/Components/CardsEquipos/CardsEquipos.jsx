@@ -4,8 +4,7 @@ import { useSelector } from "react-redux";
 import LoadingLogo from "../LoadingLogo/LoadingLogo.jsx";
 
 export default function CardsEquipos() {
-  const loading = useSelector((state) => state.loading.loading);
-  const equipos = useSelector((state) => state.equipos.equipos);
+  const { equipos, loading } = useSelector((state) => state.equipos);
   return (
     <div>
       <Container>
@@ -27,10 +26,9 @@ export default function CardsEquipos() {
               return (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <CardEquipos
+                    id={equipo.id}
                     name={equipo.name}
                     url={imageUrl}
-                    price={equipo.price}
-                    description={equipo.description}
                   />
                 </Grid>
               );

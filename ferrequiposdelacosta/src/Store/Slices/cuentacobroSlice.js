@@ -29,5 +29,5 @@ const cuentacobroSlice = createSlice({
 });
 
 export const { setFormCuentaCobro, setItemsCc, setTotalCc } =
-cuentacobroSlice.actions;
+  cuentacobroSlice.actions;
 export default cuentacobroSlice.reducer;

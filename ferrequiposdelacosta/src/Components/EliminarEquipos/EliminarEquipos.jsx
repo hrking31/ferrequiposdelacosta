@@ -1,52 +1,70 @@
-import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { deleteDoc, doc } from "firebase/firestore";
-import { ref, deleteObject } from "firebase/storage";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "../../Components/Firebase/Firebase";
-import { clearSelectedEquipo } from "../../Store/Slices/selectedSlice";
-import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
-import { Snackbar, Alert, Box, Typography, Button, Grid } from "@mui/material";
+import {
+  Snackbar,
+  Alert,
+  Box,
+  Typography,
+  Button,
+  Grid,
+  TextField,
+} from "@mui/material";
 
 const EliminarEquipo = () => {
-  const dispatch = useDispatch();
-  const equipoSeleccionado = useSelector((state) => state.selected.selected);
+  const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const equipoSeleccionado = location.state?.equipo;
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  const resetForm = () => {
-    dispatch(clearSelectedEquipo());
-    dispatch(clearSearchEquipo());
+  const eliminarCarpetaCompleta = async (equipoId) => {
+    const storage = getStorage();
+    const carpetaRef = ref(storage, `${equipoId}/`);
+    const resultado = await listAll(carpetaRef);
+    const promesasDeBorrado = resultado.items.map((item) => deleteObject(item));
+
+    try {
+      await Promise.all(promesasDeBorrado);
+      return `Carpeta de Imágenes`;
+    } catch (error) {
+      throw new Error("Error al eliminar la Carpeta de Imágenes");
+    }
   };
 
   const handleDelete = async () => {
     if (!equipoSeleccionado) return;
-    const { id, images } = equipoSeleccionado;
+    const { id, name } = equipoSeleccionado;
+    setLoading(true);
 
     try {
-      for (const image of images) {
-        const imageRef = ref(storage, image.url);
-        await deleteObject(imageRef);
-      }
-
+      const mensajeCarpeta = await eliminarCarpetaCompleta(id);
       const equipoDocRef = doc(db, "equipos", id);
       await deleteDoc(equipoDocRef);
 
-      setSnackbarMessage("Equipo eliminado con éxito");
+      setSnackbarMessage(`${mensajeCarpeta} y Equipo ${name} Eliminado.`);
       setSnackbarSeverity("success");
     } catch (error) {
-      console.error("Error eliminando el equipo: ", error);
-      setSnackbarMessage("Error al eliminar el equipo");
+      // console.error("Error eliminando el equipo: ", error);
+      setSnackbarMessage(
+        error.message || `Error al Eliminar el Equipo ${name}.`
+      );
       setSnackbarSeverity("error");
     } finally {
-      resetForm();
       setOpenSnackbar(true);
+      setLoading(false);
     }
   };
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
+
+  if (loading) return <LoadingLogo />;
 
   return (
     <Box sx={{ padding: 2 }}>
@@ -60,7 +78,13 @@ const EliminarEquipo = () => {
             fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
           }}
         >
-          Elimina equipo seleccionado.
+          Elimina Equipo {""}
+          <Box component="span" sx={{ color: "#1976d2" }}>
+            {equipoSeleccionado.name}.
+          </Box>
+        </Typography>
+        <Typography sx={{ color: "#1976d2", mb: 4 }}>
+          {equipoSeleccionado.description}
         </Typography>
       </Box>
 
@@ -90,40 +114,11 @@ const EliminarEquipo = () => {
                       <Typography
                         variant="body2"
                         sx={{
-                          fontSize: "1rem",
-                          color: "#8B3A3A",
-                        }}
-                      >
-                        Nombre Imagen:
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
                           fontSize: "0.85rem",
                           color: "#00008B",
                         }}
                       >
                         {image.name || `Nombre no disponible ${index + 1}`}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: "1rem",
-                          color: "#8B3A3A",
-                        }}
-                      >
-                        Url:
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: "0.85rem",
-                          color: "#00008B",
-                          wordBreak: "break-word",
-                          maxWidth: "100%",
-                        }}
-                      >
-                        {image.url}
                       </Typography>
                     </Box>
                   </Box>
@@ -135,32 +130,10 @@ const EliminarEquipo = () => {
 
       <Button
         variant="contained"
-        color="error"
+        // color="error"
         onClick={handleDelete}
-        sx={{
-          marginLeft: 2,
-          width: "200px",
-          height: "45px",
-        }}
       >
         Eliminar Equipo
-      </Button>
-
-      <Button
-        variant="contained"
-        onClick={resetForm}
-        sx={{
-          marginLeft: 2,
-          width: "200px",
-          height: "45px",
-          color: "#ffffff",
-          backgroundColor: "#1E90FF",
-          "&:hover": {
-            backgroundColor: "#4682B4",
-          },
-        }}
-      >
-        Cancelar
       </Button>
 
       <Snackbar
@@ -177,135 +150,3 @@ const EliminarEquipo = () => {
 };
 
 export default EliminarEquipo;
-
-////////////////////////////////////////////////////////////////
-{
-  /* <Grid container spacing={2}>
-        {equipoSeleccionado.images && equipoSeleccionado.images.length > 0
-          ? equipoSeleccionado.images.map((image, index) => (
-              <Grid item xs={12} sm={4} key={index}>
-                <Box sx={{ textAlign: "center", mb: 2 }}>
-                  <img
-                    src={image.url}
-                    alt={image.name}
-                    style={{
-                      width: "100px",
-                      height: "100px",
-                      objectFit: "cover",
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                    }}
-                  >
-                    <TextField
-                      type="text"
-                      readOnly
-                      value={image.name || `Nombre no disponible ${index + 1}`}
-                      fullWidth
-                      margin="normal"
-                      sx={{
-                        mt: 1,
-                        fontSize: "0.75rem",
-                        "& .MuiInputBase-input": {
-                          padding: "6px 12px",
-                        },
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": {
-                            borderColor: "#00008B",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "#4682B4",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "#1E90FF",
-                          },
-                        },
-                      }}
-                    />
-                    <TextField
-                      type="text"
-                      readOnly
-                      value={image.url}
-                      fullWidth
-                      margin="normal"
-                      sx={{
-                        mt: 1,
-                        fontSize: "0.75rem",
-                        "& .MuiInputBase-input": {
-                          padding: "6px 12px",
-                        },
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": {
-                            borderColor: "#00008B",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "#4682B4",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "#1E90FF",
-                          },
-                        },
-                      }}
-                    />
-                  </Box>
-                </Box>
-              </Grid>
-            ))
-          : null}
-        <TextField
-          type="text"
-          readOnly
-          value={name}
-          fullWidth
-          margin="normal"
-          sx={{
-            mt: 1,
-            fontSize: "0.75rem",
-            "& .MuiInputBase-input": {
-              padding: "6px 12px",
-            },
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": {
-                borderColor: "#00008B",
-              },
-              "&:hover fieldset": {
-                borderColor: "#4682B4",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#1E90FF",
-              },
-            },
-          }}
-        />
-
-        <TextField
-          type="text"
-          readOnly
-          value={description}
-          fullWidth
-          margin="normal"
-          sx={{
-            mt: 1,
-            fontSize: "0.75rem",
-            "& .MuiInputBase-input": {
-              padding: "6px 12px",
-            },
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": {
-                borderColor: "#00008B",
-              },
-              "&:hover fieldset": {
-                borderColor: "#4682B4",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#1E90FF",
-              },
-            },
-          }}
-        />
-      </Grid> */
-}

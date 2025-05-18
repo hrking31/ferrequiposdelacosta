@@ -1,17 +1,21 @@
 import {
   Home,
+  Login,
   // Landing,
   Detail,
   AdminForms,
   VistaCotizacion,
   VistaCuentaDeCobro,
-  VistaDb,
+  VistaCreaEquipo,
+  VistaSeleccionarEquipo,
   VistaEditarEquipo,
   VistaEliminarEquipo,
+  VistaCrearUsuarios,
+  VistaEliminarUsuario,
+  VistaNoAutorizada,
 } from "./Views";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
-import Login from "./Components/Login/Login";
 import NavBar from "./Components/NavBar/NavBar";
 
 function App() {
@@ -19,11 +23,10 @@ function App() {
 
   return (
     <div>
-      {location.pathname === "/" ? null : <NavBar />}
-      {location.pathname === "/" && <NavBar />}
+      {location.pathname !== "/" && <NavBar />}
       <Routes>
         <Route
-          path="/admin"
+          path="/adminforms"
           element={
             <ProtectedRoutes>
               <AdminForms />
@@ -33,7 +36,13 @@ function App() {
         <Route
           path="/vistacotizacion"
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes
+              allowedRoles={[
+                "administrador",
+                "gestorIntegral",
+                "gestorFacturacion",
+              ]}
+            >
               <VistaCotizacion />
             </ProtectedRoutes>
           }
@@ -41,53 +50,85 @@ function App() {
         <Route
           path="/vistacuentadecobro"
           element={
-            <ProtectedRoutes>
+            <ProtectedRoutes
+              allowedRoles={[
+                "administrador",
+                "gestorIntegral",
+                "gestorFacturacion",
+              ]}
+            >
               <VistaCuentaDeCobro />
             </ProtectedRoutes>
           }
         />
         <Route
-          path="/vistabasedatos"
+          path="/vistacreaequipo"
           element={
-            <ProtectedRoutes>
-              <VistaDb />
+            <ProtectedRoutes
+              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
+            >
+              <VistaCreaEquipo />
             </ProtectedRoutes>
           }
         />
-        {/* <Route
-          exact
-          path="/vistaeliminarequipo/:name"
+        <Route
+          path="/vistaseleccionarequipo"
           element={
-            <ProtectedRoutes>
-              <VistaEliminarEquipo />
+            <ProtectedRoutes
+              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
+            >
+              <VistaSeleccionarEquipo />
             </ProtectedRoutes>
           }
-        /> */}
+        />
         <Route
+          exact
           path="/vistaeliminarequipo"
           element={
-            // <ProtectedRoutes>
-            <VistaEliminarEquipo />
-            // </ProtectedRoutes>
+            <ProtectedRoutes
+              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
+            >
+              <VistaEliminarEquipo />
+            </ProtectedRoutes>
           }
         />
         <Route
           path="/vistaeditarequipo"
           element={
-            // <ProtectedRoutes>
-            <VistaEditarEquipo />
-            // </ProtectedRoutes>
+            <ProtectedRoutes
+              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
+            >
+              <VistaEditarEquipo />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistacrearusuarios"
+          element={
+            <ProtectedRoutes allowedRoles={["administrador"]}>
+              <VistaCrearUsuarios />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistaeliminarusuario"
+          element={
+            <ProtectedRoutes allowedRoles={["administrador"]}>
+              <VistaEliminarUsuario />
+            </ProtectedRoutes>
           }
         />
         {/* <Route path="/" element={<Landing />} /> */}
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
-        {/* <Route path="/register" element={<Register />} /> */}
         <Route path="/login" element={<Login />} />
-        <Route exact path="/detail/:name" element={<Detail />} />
+        <Route exact path="/detail/:id" element={<Detail />} />
+        <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
       </Routes>
     </div>
   );
 }
 
 export default App;
+
+
