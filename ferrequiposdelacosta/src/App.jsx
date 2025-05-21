@@ -1,7 +1,6 @@
 import {
   Home,
   Login,
-  // Landing,
   Detail,
   AdminForms,
   VistaCotizacion,
@@ -23,7 +22,7 @@ function App() {
 
   return (
     <div>
-      {location.pathname !== "/" && <NavBar />}
+      <NavBar />
       <Routes>
         <Route
           path="/adminforms"
@@ -118,7 +117,6 @@ function App() {
             </ProtectedRoutes>
           }
         />
-        {/* <Route path="/" element={<Landing />} /> */}
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
         <Route path="/login" element={<Login />} />

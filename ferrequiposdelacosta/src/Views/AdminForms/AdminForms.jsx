@@ -18,7 +18,7 @@ export default function AdminForms() {
     <Box sx={{ padding: 2, textAlign: "center" }}>
       <Box sx={{ marginBottom: 4 }}>
         <Typography variant="h4" sx={{ color: "#8B3A3A", fontWeight: "bold" }}>
-          {saludo} {name}, ¿Qué vamos a hacer hoy?
+          {saludo} {name} ¿Qué vamos a hacer hoy?
         </Typography>
       </Box>
 

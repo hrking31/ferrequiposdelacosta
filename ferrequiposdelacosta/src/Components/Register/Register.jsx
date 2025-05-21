@@ -15,6 +15,7 @@ import {
   FormControl,
   Tooltip,
   IconButton,
+  useTheme,
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,6 +26,7 @@ import RolesPermisos from "../RolesPermisos/RolesPermisos";
 
 export default function Register() {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const [user, setUser] = useState({ name: "", email: "", password: "" });
   const [roleSeleccionado, setRoleSeleccionado] = useState("");
   const [generoSeleccionado, setGeneroSeleccionado] = useState("");
@@ -139,8 +141,6 @@ export default function Register() {
 
   return (
     <Box
-      component="form"
-      onSubmit={handleSubmit}
       maxWidth={400}
       mx="auto"
       mt={5}
@@ -150,6 +150,9 @@ export default function Register() {
       display="flex"
       flexDirection="column"
       gap={2}
+      bgcolor={(theme) => theme.palette.background.paper}
+      border={(theme) => `1px solid ${theme.palette.divider}`}
+      color={(theme) => theme.palette.text.primary}
     >
       <Typography variant="h5" align="center" gutterBottom>
         Registro
@@ -162,24 +165,51 @@ export default function Register() {
         value={user.name}
         onChange={handleChange}
         fullWidth
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "primary.main",
+            },
+            "&:hover fieldset": {
+              borderColor: "primary.light",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "primary.dark",
+            },
+            "& input:-webkit-autofill": {
+              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+              WebkitTextFillColor: theme.palette.text.primary,
+            },
+          },
+        }}
       />
       <FormControl fullWidth>
-        <InputLabel id="genero-label">Genero</InputLabel>
+        <InputLabel id="genero-label">Género</InputLabel>
         <Select
           labelId="genero-label"
+          label="Género"
           name="genero"
           value={generoSeleccionado || ""}
           onChange={(e) => setGeneroSeleccionado(e.target.value)}
-          label="Genero"
+          sx={{
+            color: theme.palette.text.primary,
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.main,
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.light,
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.dark,
+            },
+          }}
         >
           <MenuItem value="" disabled>
-            Selecciona un Genero
+            Selecciona un Género
           </MenuItem>
-
           <MenuItem value="femenino">
             <Box component="span">Femenino</Box>
           </MenuItem>
-
           <MenuItem value="masculino">
             <Box component="span">Masculino</Box>
           </MenuItem>
@@ -193,6 +223,23 @@ export default function Register() {
         value={user.email}
         onChange={handleChange}
         fullWidth
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "primary.main",
+            },
+            "&:hover fieldset": {
+              borderColor: "primary.light",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "primary.dark",
+            },
+            "& input:-webkit-autofill": {
+              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+              WebkitTextFillColor: theme.palette.text.primary,
+            },
+          },
+        }}
       />
 
       <TextField
@@ -203,16 +250,33 @@ export default function Register() {
         onChange={handleChange}
         fullWidth
         InputProps={{
-          style: { color: "#00008B" },
+          style: { color: theme.palette.text.primary },
           endAdornment: (
             <IconButton onClick={() => dispatch(togglePasswordVisibility())}>
               {passwordVisible ? (
-                <FaEyeSlash color="#00008B" />
+                <FaEyeSlash color={theme.palette.primary.main} />
               ) : (
-                <FaEye color="#00008B" />
+                <FaEye color={theme.palette.primary.main} />
               )}
             </IconButton>
           ),
+        }}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "primary.main",
+            },
+            "&:hover fieldset": {
+              borderColor: "primary.light",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "primary.dark",
+            },
+            "& input:-webkit-autofill": {
+              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+              WebkitTextFillColor: theme.palette.text.primary,
+            },
+          },
         }}
       />
       <FormControl fullWidth>
@@ -223,6 +287,18 @@ export default function Register() {
           value={roleSeleccionado || ""}
           onChange={(e) => setRoleSeleccionado(e.target.value)}
           label="Rol"
+          sx={{
+            color: theme.palette.text.primary,
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.main,
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.light,
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.primary.dark,
+            },
+          }}
         >
           <MenuItem value="" disabled>
             Selecciona un Rol
@@ -253,7 +329,7 @@ export default function Register() {
         </Select>
       </FormControl>
 
-      <Button variant="contained" color="primary" type="submit" fullWidth>
+      <Button variant="success" type="submit" fullWidth>
         Registrar
       </Button>
 

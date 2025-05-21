@@ -22,17 +22,20 @@ export const CustomThemeProvider = ({ children }) => {
         palette: {
           mode,
           primary: {
-            main: "#C1121F",
+            main: "#669BBC",
           },
           secondary: {
             main: "#6699BBC",
           },
           background: {
-            default: mode === "light" ? "#FDF6EC" : "#121212",
-            paper: mode === "light" ? "#FFFFFF" : "#1E1E1E",
+            // default: mode === "light" ? "#FDF6EC" : "#121212",
+            // paper: mode === "light" ? "#6699BBC" : "#1E1E1E",
+            default: mode === "light" ? "#FDF6EC" : "#003049",
+            paper: mode === "light" ? "#6699BBC" : "#003049",
           },
           text: {
-            primary: mode === "light" ? "#111" : "#E0E0E0",
+            primary: mode === "light" ? "#003049" : "#FDF6EC",
+            secondary: mode === "light" ? "#780000" : "#AE1F23",
           },
         },
         typography: {
@@ -62,9 +65,9 @@ export const CustomThemeProvider = ({ children }) => {
                 props: { variant: "danger" },
                 style: ({ theme }) => ({
                   color: theme.palette.primary.contrastText,
-                  backgroundColor: "#7C4DFF",
+                  backgroundColor: theme.palette.primary.main,
                   "&:hover": {
-                    backgroundColor: "#780000",
+                    backgroundColor: "#DC143C",
                   },
                 }),
               },
@@ -72,9 +75,9 @@ export const CustomThemeProvider = ({ children }) => {
                 props: { variant: "success" },
                 style: ({ theme }) => ({
                   color: theme.palette.primary.contrastText,
-                  backgroundColor: "#7C4DFF",
+                  backgroundColor: theme.palette.primary.main,
                   "&:hover": {
-                    backgroundColor: "#669BBC",
+                    backgroundColor: "#28a745",
                   },
                 }),
               },
@@ -82,9 +85,9 @@ export const CustomThemeProvider = ({ children }) => {
                 props: { variant: "upload" },
                 style: ({ theme }) => ({
                   color: theme.palette.primary.contrastText,
-                  backgroundColor: "#00BFA5",
+                  backgroundColor: theme.palette.primary.main,
                   "&:hover": {
-                    backgroundColor: "#003049",
+                    backgroundColor: "#009e88",
                   },
                 }),
               },

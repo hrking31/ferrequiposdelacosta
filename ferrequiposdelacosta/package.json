@@ -17,14 +17,12 @@
     "@react-pdf/renderer": "^3.1.12",
     "@reduxjs/toolkit": "^1.9.5",
     "firebase": "^10.1.0",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.10.1",
     "react-redux": "^8.1.2",
     "react-router-dom": "^6.14.2",
-    "react-textfit": "^1.1.1"
+    "vite-plugin-pwa": "^1.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.14",
@@ -34,6 +32,6 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.1",
-    "vite": "^4.4.0"
+    "vite": "^6.3.5"
   }
 }

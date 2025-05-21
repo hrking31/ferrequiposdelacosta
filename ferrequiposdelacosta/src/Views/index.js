@@ -1,6 +1,5 @@
 import Home from "./Home/Home";
 import Login from "../Views/VistaLogin/VistaLogin";
-// import Landing from "./Landing/Landing";
 import Detail from "./Detail/Detail";
 import AdminForms from "./AdminForms/AdminForms";
 import VistaCotizacion from "../Views/VistaCotizacion/VistaCotizacion";
@@ -16,7 +15,6 @@ import VistaNoAutorizada from "../Views/VistaNoAutorizada/VistaNoAutorizada";
 export {
   Home,
   Login,
-  // Landing,
   Detail,
   AdminForms,
   VistaCotizacion,

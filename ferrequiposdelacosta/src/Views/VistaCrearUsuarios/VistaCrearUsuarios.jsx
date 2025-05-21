@@ -20,7 +20,7 @@ export default function VistaCrearUsuarios() {
         variant="h4"
         sx={{ color: "#8B3A3A", fontWeight: "bold", mb: 4 }}
       >
-        {saludo} {name}
+        {saludo} {name}.
       </Typography>
       <Register />;
       <Grid
@@ -35,14 +35,6 @@ export default function VistaCrearUsuarios() {
             to="/adminforms"
             variant="contained"
             fullWidth
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
           >
             MENU
           </Button>
@@ -50,17 +42,8 @@ export default function VistaCrearUsuarios() {
         <Grid item xs={12} sm={6} md={4}>
           <Button
             onClick={handlerLogout}
-            variant="contained"
+            variant="danger"
             fullWidth
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#DC143C",
-              },
-              margin: "0 auto",
-            }}
           >
             CERRAR SESIÓN
           </Button>

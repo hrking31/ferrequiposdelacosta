@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
-import { Box, Grid, Button, Snackbar, Alert, Typography  } from "@mui/material";
+import { Box, Grid, Button, Snackbar, Alert, Typography } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import SearchComponent from "../../Components/SearchComponent/SearchComponent";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
@@ -100,52 +100,20 @@ const VistaSeleccionarEquipo = () => {
       <Grid container spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
         <Grid item xs={12} sm={6} md={4}>
           <Button
-            variant="contained"
+            variant="danger"
             onClick={handleCancelarSeleccion}
-            sx={{
-              width: "200px",
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#FF4C4C",
-              "&:hover": {
-                backgroundColor: "#D32F2F",
-              },
-            }}
+            fullWidth
           >
             CANCELAR
           </Button>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Button
-            variant="contained"
-            onClick={handleEditar}
-            sx={{
-              width: "200px",
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
-          >
+          <Button variant="contained" onClick={handleEditar} fullWidth>
             EDITAR
           </Button>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Button
-            variant="contained"
-            onClick={handleEliminar}
-            sx={{
-              width: "200px",
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
-          >
+          <Button variant="contained" onClick={handleEliminar} fullWidth>
             ELIMINAR
           </Button>
         </Grid>
@@ -158,32 +126,12 @@ const VistaSeleccionarEquipo = () => {
             to="/adminforms"
             variant="contained"
             fullWidth
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
           >
             MENU
           </Button>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Button
-            onClick={handlerLogout}
-            variant="contained"
-            fullWidth
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#4682B4",
-              },
-            }}
-          >
+          <Button onClick={handlerLogout} variant="contained" fullWidth>
             CERRAR SESIÓN
           </Button>
         </Grid>

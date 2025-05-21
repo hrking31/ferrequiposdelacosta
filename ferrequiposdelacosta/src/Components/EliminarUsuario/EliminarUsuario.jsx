@@ -11,6 +11,7 @@ import {
   Snackbar,
   Alert,
   Typography,
+   useTheme,
 } from "@mui/material";
 
 export default function EliminarUsuario() {
@@ -18,6 +19,7 @@ export default function EliminarUsuario() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -67,29 +69,62 @@ export default function EliminarUsuario() {
       display="flex"
       flexDirection="column"
       gap={2}
+      bgcolor={(theme) => theme.palette.background.paper}
+      border={(theme) => `1px solid ${theme.palette.divider}`}
+      color={(theme) => theme.palette.text.primary}
     >
       <Typography variant="h6">Ingresa Datos del Usuario.</Typography>
       <TextField
-        label="Correo"
+        label="email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="tucorreo@compañia.ltd"
         fullWidth
         required
-        margin="normal"
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "primary.main",
+            },
+            "&:hover fieldset": {
+              borderColor: "primary.light",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "primary.dark",
+            },
+            "& input:-webkit-autofill": {
+              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+              WebkitTextFillColor: theme.palette.text.primary,
+            },
+          },
+        }}
       />
       <TextField
         label="Contraseña"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="******"
         fullWidth
         required
-        margin="normal"
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "primary.main",
+            },
+            "&:hover fieldset": {
+              borderColor: "primary.light",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "primary.dark",
+            },
+            "& input:-webkit-autofill": {
+              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+              WebkitTextFillColor: theme.palette.text.primary,
+            },
+          },
+        }}
       />
-      <Button variant="contained" color="error" onClick={handleDelete}>
+      <Button variant="danger" onClick={handleDelete}>
         Eliminar Usuario
       </Button>
 

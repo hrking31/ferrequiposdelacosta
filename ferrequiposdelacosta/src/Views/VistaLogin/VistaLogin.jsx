@@ -8,6 +8,7 @@ import {
   Typography,
   IconButton,
   Alert,
+  useTheme,
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,6 +21,7 @@ import { db } from "../../Components/Firebase/Firebase";
 export default function Login() {
   const [user, setUser] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const theme = useTheme();
 
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";
@@ -64,20 +66,26 @@ export default function Login() {
 
   return (
     <Box
-      sx={{
-        maxWidth: 500,
-        width: "90%",
-        margin: "40px auto",
-        padding: "20px",
-        border: "2px solid #00008B",
-        borderRadius: "5px",
-        backgroundColor: "transparent",
-      }}
+      maxWidth={400}
+      mx="auto"
+      mt={5}
+      p={3}
+      borderRadius={2}
+      boxShadow={3}
+      display="flex"
+      flexDirection="column"
+      gap={2}
+      bgcolor={(theme) => theme.palette.background.paper}
+      border={(theme) =>
+        `1px solid ${
+          theme.palette.mode === "dark" ? "#444" : "rgba(0,0,0,0.12)"
+        }`
+      }
     >
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <Typography variant="h6" sx={{ mt: 3, color: "#00008B" }}>
+            <Typography variant="h6" color="text.primary" sx={{ mt: 3 }}>
               Iniciar sesión en mi cuenta
             </Typography>
             {error && (
@@ -95,13 +103,21 @@ export default function Login() {
               onChange={handleChange}
               required
               fullWidth
-              InputLabelProps={{ style: { color: "#00008B" } }}
-              InputProps={{ style: { color: "#00008B" } }}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#00008B" },
-                  "&:hover fieldset": { borderColor: "#4682B4" },
-                  "&.Mui-focused fieldset": { borderColor: "#1E90FF" },
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
                 },
               }}
             />
@@ -115,26 +131,35 @@ export default function Login() {
               onChange={handleChange}
               required
               fullWidth
-              InputLabelProps={{ style: { color: "#00008B" } }}
               InputProps={{
-                style: { color: "#00008B" },
+                style: { color: theme.palette.text.primary },
                 endAdornment: (
                   <IconButton
                     onClick={() => dispatch(togglePasswordVisibility())}
                   >
                     {passwordVisible ? (
-                      <FaEyeSlash color="#00008B" />
+                      <FaEyeSlash color={theme.palette.primary.main} />
                     ) : (
-                      <FaEye color="#00008B" />
+                      <FaEye color={theme.palette.primary.main} />
                     )}
                   </IconButton>
                 ),
               }}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#00008B" },
-                  "&:hover fieldset": { borderColor: "#4682B4" },
-                  "&.Mui-focused fieldset": { borderColor: "#1E90FF" },
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
                 },
               }}
             />
@@ -142,16 +167,7 @@ export default function Login() {
         </Grid>
 
         <Box sx={{ textAlign: "center", mt: 3 }}>
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{
-              borderRadius: "20px",
-              backgroundColor: "#1E90FF",
-              color: "#fff",
-              "&:hover": { backgroundColor: "#4682B4" },
-            }}
-          >
+          <Button type="submit" variant="success">
             ACCESO
           </Button>
         </Box>
