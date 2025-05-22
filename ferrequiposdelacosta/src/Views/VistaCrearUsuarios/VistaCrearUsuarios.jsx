@@ -22,7 +22,7 @@ export default function VistaCrearUsuarios() {
       >
         {saludo} {name}.
       </Typography>
-      <Register />;
+      <Register />
       <Grid
         container
         spacing={2}

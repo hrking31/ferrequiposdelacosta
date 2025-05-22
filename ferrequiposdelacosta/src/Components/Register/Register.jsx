@@ -144,6 +144,7 @@ export default function Register() {
       maxWidth={400}
       mx="auto"
       mt={5}
+      mb={4}
       p={3}
       borderRadius={2}
       boxShadow={3}

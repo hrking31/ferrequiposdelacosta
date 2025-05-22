@@ -28,8 +28,6 @@ export const CustomThemeProvider = ({ children }) => {
             main: "#6699BBC",
           },
           background: {
-            // default: mode === "light" ? "#FDF6EC" : "#121212",
-            // paper: mode === "light" ? "#6699BBC" : "#1E1E1E",
             default: mode === "light" ? "#FDF6EC" : "#003049",
             paper: mode === "light" ? "#6699BBC" : "#003049",
           },
