@@ -18,6 +18,7 @@ import {
   fetchEquipos,
   clearSearchEquipo,
 } from "../../Store/Slices/searchSlice";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 
 const VistaSeleccionarEquipo = () => {
   const { logout } = useAuth();
@@ -25,12 +26,15 @@ const VistaSeleccionarEquipo = () => {
   const navigate = useNavigate();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const { name, genero } = useSelector((state) => state.user);
+  const equipos = useSelector((state) => state.search.results);
+  const loading = useSelector((state) => state.search.loading);
+  const error = useSelector((state) => state.search.error);
+  const hasSearched = useSelector((state) => state.search.hasSearched);
+
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("info");
-  const { results } = useSelector((state) => state.search);
 
-  
   const theme = useTheme();
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
@@ -79,50 +83,22 @@ const VistaSeleccionarEquipo = () => {
     };
   }, [dispatch]);
 
-  return (
-    <Box p={2} display="flex" flexDirection="column" gap={2}>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <Box sx={{ marginBottom: { xs: 1, sm: 2 }, width: "100%" }}>
-            <Typography
-              variant="h4"
-              sx={{
-                color: "#00008B",
-                fontWeight: "bold",
-                overflowWrap: "break-word",
-                fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
-              }}
-            >
-              {saludo} {name} Busca el equipo por su nombre.
-            </Typography>
-          </Box>
-          <Box sx={{ padding: 2 }}>
-            <SearchComponent onSearch={handleSearch} />
-            <Box sx={{ mb: { xs: 2, md: 6 } }}>
-              {results.length > 0 ? (
-                <CardsSearchEquipos
-                  onSelectEquipo={setEquipoSeleccionado}
-                  equipoSeleccionado={equipoSeleccionado}
-                />
-              ) : (
-                <Grid container spacing={2}>
-                  {[...Array(2)].map((_, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Skeleton
-                        variant="rectangular"
-                        height={250}
-                        animation="wave"
-                        sx={{ borderRadius: 2 }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
+  useEffect(() => {
+    if (error) {
+      setSnackbarMessage(
+        "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo."
+      );
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } else if (hasSearched && !loading && equipos.length === 0) {
+      setSnackbarMessage("No se encontraron equipos.");
+      setSnackbarSeverity("warning");
+      setOpenSnackbar(true);
+    }
+  }, [error, equipos, loading, hasSearched]);
 
+  return (
+    <Box mx="auto" p={2} display="flex" flexDirection="column">
       <Box
         mx="auto"
         p={2}
@@ -132,8 +108,54 @@ const VistaSeleccionarEquipo = () => {
           [theme.breakpoints.up("md")]: { width: "60%" },
         }}
       >
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} md={4}>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Box mx="auto" display="flex" flexDirection="column">
+              <Typography
+                variant="h4"
+                sx={{
+                  color: "#00008B",
+                  fontWeight: "bold",
+                  overflowWrap: "break-word",
+                  fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
+                }}
+              >
+                {saludo} {name} Busca el equipo por su nombre.
+              </Typography>
+            </Box>
+          </Grid>
+
+            <Grid item xs={12}>
+              <SearchComponent onSearch={handleSearch} />
+            </Grid>
+
+          <Grid item xs={12}>
+            {equipos.length > 0 ? (
+              <CardsSearchEquipos
+                onSelectEquipo={setEquipoSeleccionado}
+                equipoSeleccionado={equipoSeleccionado}
+              />
+            ) : loading ? (
+              <LoadingLogo height="40vh" />
+            ) : (
+              <Grid container spacing={2}>
+                {[...Array(2)].map((_, index) => (
+                  <Grid item xs={12} sm={6} md={6} key={index}>
+                    <Skeleton
+                      variant="rectangular"
+                      height={250}
+                      animation="wave"
+                      sx={{ borderRadius: 2 }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Grid item xs={12} sm={6} md={4}>
             <Button
               variant="danger"
               onClick={handleCancelarSeleccion}

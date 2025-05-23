@@ -3,14 +3,14 @@ import { Box, Typography } from "@mui/material";
 import RotatingImage from "../rotar/rotar";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 
-const LoadingLogo = () => {
+const LoadingLogo = ({ height = "80vh" }) => {
   return (
     <Box
       display="flex"
       flexDirection="column"
       justifyContent="center"
       alignItems="center"
-      height="80vh"
+      height={height}
       margin="0 auto"
     >
       <Box mb={1}>

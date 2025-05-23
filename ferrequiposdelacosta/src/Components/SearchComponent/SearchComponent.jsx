@@ -12,18 +12,9 @@ const SearchComponent = ({ onSearch }) => {
   };
 
   return (
-    <Box
-      mx="auto"
-      p={2}
-
-      display="flex"
-      flexDirection="column"
-      sx={{
-        [theme.breakpoints.up("md")]: { width: "60%" },
-      }}
-    >
+    <Box p={2} display="flex" flexDirection="column">
       <Grid container spacing={2} justifyContent="center">
-        <Grid item xs={12} sm={8} md={9}>
+        <Grid item xs={12} sm={6} md={8}>
           <TextField
             label="Nombre de Equipo"
             variant="outlined"
@@ -42,12 +33,16 @@ const SearchComponent = ({ onSearch }) => {
                 "&.Mui-focused fieldset": {
                   borderColor: "primary.dark",
                 },
+                "& input:-webkit-autofill": {
+                  boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                  WebkitTextFillColor: theme.palette.text.primary,
+                },
               },
             }}
           />
         </Grid>
 
-        <Grid item xs={12} sm={4} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Button variant="contained" onClick={handleSearch} fullWidth>
             Buscar
           </Button>
