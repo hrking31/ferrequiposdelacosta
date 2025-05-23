@@ -13,7 +13,6 @@ import {
   Container,
   useTheme,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 
 export default function Cotizacion() {
   const dispatch = useDispatch();
@@ -61,7 +60,7 @@ export default function Cotizacion() {
     const updatedItems = items.filter((_, index) => index !== indexToRemove);
     dispatch(setItems(updatedItems));
   };
-  
+
   const formatNit = (nit) => {
     const cleanNit = nit.replace(/[^\d-]/g, "");
     const soloDiez = cleanNit.substring(0, 11);
@@ -70,14 +69,18 @@ export default function Cotizacion() {
   };
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Box component="form" sx={{ mt: 3 }}>
-        <Typography variant="h4" gutterBottom color="#8B3A3A">
+    <Container sx={{ mt: 2 }}>
+      <Box component="form" sx={{ mt: 2 }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          color="theme.palette.text.primary"
+        >
           Formulario Cotización
         </Typography>
-        <Grid container spacing={2} sx={{ mt: 3 }}>
+        <Grid container spacing={2} sx={{ mt: 4 }}>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 type="date"
@@ -115,7 +118,7 @@ export default function Cotizacion() {
                 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 type="text"
@@ -142,7 +145,7 @@ export default function Cotizacion() {
                 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 type="text"
@@ -169,7 +172,7 @@ export default function Cotizacion() {
                 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 type="text"
@@ -303,7 +306,6 @@ export default function Cotizacion() {
                 variant="success"
                 color="primary"
                 onClick={addNewItem}
-                startIcon={<AddIcon />}
                 fullWidth
               >
                 Agregar Ítem
@@ -327,4 +329,4 @@ export default function Cotizacion() {
       </Box>
     </Container>
   );
-} 
+}

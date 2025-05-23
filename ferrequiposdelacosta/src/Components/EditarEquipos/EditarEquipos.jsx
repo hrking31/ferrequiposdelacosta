@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Snackbar,
@@ -8,6 +8,8 @@ import {
   Button,
   TextField,
   Grid,
+  useTheme,
+  Divider,
 } from "@mui/material";
 import {
   getStorage,
@@ -17,7 +19,6 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
-// import style from "./EditarEquipos.module.css";
 
 const EditarEquipo = () => {
   const location = useLocation();
@@ -26,6 +27,7 @@ const EditarEquipo = () => {
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(
     () => location.state?.equipo || null
   );
+  const theme = useTheme();
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
@@ -173,7 +175,6 @@ const EditarEquipo = () => {
     }
   };
 
-  // Elimina una imagen del storage
   const eliminarImagenStorage = async (path) => {
     try {
       const storage = getStorage();
@@ -184,20 +185,18 @@ const EditarEquipo = () => {
     }
   };
 
-  // Subir imágenes nuevas y reemplazar en sus posiciones originales
   const subirImagenesNuevas = async (imagenes, equipoId) => {
     const storage = getStorage();
     const subidas = await Promise.all(
       imagenes.map(async (img) => {
-        if (!img.isNew) return img; // Conservar imagen antigua si no es nueva
+        if (!img.isNew) return;
         console.log("🟢 Imagen no modificada:", img);
-        // Si hay una url existente, eliminar la imagen anterior
+
         if (img.path) {
           console.log("🟢 Imagen path:", img.path);
           await eliminarImagenStorage(img.path);
         }
 
-        // Subir nueva imagen
         const uniqueName = `${img.name}-${Date.now()}`;
         const storageRef = ref(storage, `${equipoId}/${uniqueName}`);
         await uploadBytes(storageRef, img.file);
@@ -217,7 +216,7 @@ const EditarEquipo = () => {
   const actualizarEquipoConCambios = async (formData, equipoId) => {
     try {
       const db = getFirestore();
-
+      console.log("formData.url:", formData.url);
       await Promise.all(
         imagenesEliminadas.map(async (path) => {
           await eliminarImagenStorage(path);
@@ -228,14 +227,13 @@ const EditarEquipo = () => {
         formData.images,
         equipoId
       );
-
+     
       const imagenesFinalesFiltradas = imagenesFinales.map((img) => ({
         name: img.name,
         url: img.url,
         path: img.path,
       }));
 
-      // Datos actualizados
       const datosActualizados = {
         name: formData.name,
         description: formData.description,
@@ -243,7 +241,6 @@ const EditarEquipo = () => {
         nameLowerCase: formData.name.toLowerCase(),
       };
 
-      // Actualizar documento
       const equipoRef = doc(db, "equipos", equipoId);
       await updateDoc(equipoRef, datosActualizados);
 
@@ -310,113 +307,131 @@ const EditarEquipo = () => {
   const [newIndices, setNewIndices] = useState({});
 
   return (
-    <Box sx={{ padding: 2 }}>
-      <Typography
-        variant="h4"
-        sx={{
-          color: "#8B3A3A",
-          fontWeight: "bold",
-          overflowWrap: "break-word",
-          fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
-        }}
-      >
-        Editar el equipo
-      </Typography>
-      <Grid container spacing={0.5} justifyContent="center">
-        <Grid item xs={12} sm={12} md={12}>
-          <TextField
-            inputRef={nameInputRef}
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-          />
+    <Box
+      mx="auto"
+      p={2}
+      pr={0}
+      display="flex"
+      flexDirection="column"
+      sx={{
+        [theme.breakpoints.up("md")]: { width: "60%" },
+      }}
+    >
+      <Grid container spacing={2}>
+        <Typography variant="h4" color="text.primary">
+          Editar el equipo
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              inputRef={nameInputRef}
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              fullWidth
+              size="small"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
+            />
+          </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setFormData({ ...formData, name: "" });
+                  setTimeout(() => {
+                    nameInputRef.current?.focus();
+                  }, 0);
+                }}
+              >
+                Editar Nombre
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button variant="danger" onClick={handleImputRestName}>
+                Cancelar Edicion
+              </Button>
+            </Grid>
+          <Grid
+            item
+            xs={12}
+            sx={{
+              mt: 2,
+            }}
+          >
+            <TextField
+              inputRef={descriptionInputRef}
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              fullWidth
+              size="small"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
+            />
+          </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setFormData({ ...formData, description: "" });
+                  setTimeout(() => {
+                    descriptionInputRef.current?.focus();
+                  }, 0);
+                }}
+              >
+                Editar descripción
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button variant="danger" onClick={handleImputRestDescription}>
+                Cancelar Edicion
+              </Button>
+            </Grid>
         </Grid>
-        <Button
-          variant="contained"
-          onClick={() => {
-            setFormData({ ...formData, name: "" });
-            setTimeout(() => {
-              nameInputRef.current?.focus();
-            }, 0);
-          }}
+        <Divider
           sx={{
-            fontSize: "12px",
-            backgroundColor: "#1E90FF",
-            "&:hover": {
-              backgroundColor: "#d32f2f",
-            },
+            width: "100%",
             mt: 2,
-            mr: 2,
+            mb: { xs: 2, md: 4 },
+            borderBottomWidth: "2.5px",
           }}
-        >
-          Editar Nombre
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleImputRestName}
-          sx={{
-            fontSize: "12px",
-            backgroundColor: "#1E90FF",
-            "&:hover": {
-              backgroundColor: "#d32f2f",
-            },
-            mt: 2,
-          }}
-        >
-          Cancelar Edicion
-        </Button>
-        <Grid item xs={12} sm={12} md={12}>
-          <TextField
-            inputRef={descriptionInputRef}
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-          />
-        </Grid>
-        <Button
-          variant="contained"
-          onClick={() => {
-            setFormData({ ...formData, description: "" });
-            setTimeout(() => {
-              descriptionInputRef.current?.focus();
-            }, 0);
-          }}
-          sx={{
-            fontSize: "12px",
-            backgroundColor: "#1E90FF",
-            "&:hover": {
-              backgroundColor: "#d32f2f",
-            },
-            mt: 2,
-            mr: 2,
-          }}
-        >
-          Editar descripción
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleImputRestDescription}
-          sx={{
-            fontSize: "12px",
-            backgroundColor: "#1E90FF",
-            "&:hover": {
-              backgroundColor: "#d32f2f",
-            },
-            mt: 2,
-            mb: 2,
-          }}
-        >
-          Cancelar Edicion
-        </Button>
-        <Grid container spacing={2}>
+        />
+        <Grid container spacing={2} sx={{ mt: 2, mb: 1 }}>
           {formData.images && formData.images.length > 0
             ? formData.images.map((image, index) => (
-                <Grid item xs={12} sm={4} key={index}>
-                  <Box sx={{ textAlign: "center", mb: 2 }}>
+                <Grid item xs={6} sm={4} key={index}>
+                  <Box sx={{ textAlign: "center" }}>
                     <img
                       src={image.url}
                       alt={image.name}
@@ -433,11 +448,11 @@ const EditarEquipo = () => {
                         alignItems: "center",
                       }}
                     >
-                      <Typography sx={{ color: "#00008B", marginBottom: 2 }}>
+                      <Typography sx={{ color: "#00008B" }}>
                         {image.name}
                       </Typography>
                       <Typography sx={{ color: "#00008B", marginBottom: 2 }}>
-                        Posición actual: {index}
+                        Posición: {index}
                       </Typography>
                       <TextField
                         label="Nueva Posición"
@@ -450,32 +465,39 @@ const EditarEquipo = () => {
                           })
                         }
                         size="small"
-                        sx={{ flexGrow: 1, mr: 2 }}
-                        inputProps={{
-                          min: 0,
-                          max: formData.images.length - 1,
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": {
+                              borderColor: "primary.main",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "primary.light",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "primary.dark",
+                            },
+                            "& input:-webkit-autofill": {
+                              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                              WebkitTextFillColor: theme.palette.text.primary,
+                            },
+                          },
                         }}
                       />
 
                       {editingImageIndex !== index ? (
-                        <Button
-                          variant="contained"
-                          onClick={() => {
-                            setEditingImageIndex(index);
-                            setOriginalImageBeforeEdit(formData.images[index]);
-                          }}
-                          sx={{
-                            fontSize: "12px",
-                            backgroundColor: "#FFA500",
-                            mt: 1,
-                            mb: 1,
-                            "&:hover": {
-                              backgroundColor: "#FF8C00",
-                            },
-                          }}
-                        >
-                          Editar Imagen {index + 1}
-                        </Button>
+                        <Box sx={{ textAlign: "center", mt: 2 }}>
+                          <Button
+                            variant="contained"
+                            onClick={() => {
+                              setEditingImageIndex(index);
+                              setOriginalImageBeforeEdit(
+                                formData.images[index]
+                              );
+                            }}
+                          >
+                            Editar Imagen {index + 1}
+                          </Button>
+                        </Box>
                       ) : (
                         <>
                           {editingNameIndex !== index ? (
@@ -497,22 +519,11 @@ const EditarEquipo = () => {
                                 }}
                                 style={{ display: "none" }}
                               />
-                              <Button
-                                variant="contained"
-                                component="span"
-                                sx={{
-                                  height: "45px",
-                                  color: "#ffffff",
-                                  backgroundColor: "#1E90FF",
-                                  "&:hover": {
-                                    backgroundColor: "#4682B4",
-                                  },
-                                  mt: 2,
-                                  mb: 2,
-                                }}
-                              >
-                                Selecciona Imagen
-                              </Button>
+                              <Box sx={{ textAlign: "center", mt: 2 }}>
+                                <Button variant="contained" component="span">
+                                  Selecciona Imagen
+                                </Button>
+                              </Box>
                             </label>
                           ) : (
                             <>
@@ -523,66 +534,68 @@ const EditarEquipo = () => {
                                   handleChangeImageName(index, e.target.value)
                                 }
                                 size="small"
-                                sx={{ flexGrow: 1, mr: 2 }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    "& fieldset": {
+                                      borderColor: "primary.main",
+                                    },
+                                    "&:hover fieldset": {
+                                      borderColor: "primary.light",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "primary.dark",
+                                    },
+                                    "& input:-webkit-autofill": {
+                                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                                      WebkitTextFillColor:
+                                        theme.palette.text.primary,
+                                    },
+                                  },
+                                  mt: 2,
+                                }}
                               />
                             </>
                           )}
-                          <Button
-                            variant="contained"
-                            onClick={() => handleDeleteImageByIndex(index)}
-                            sx={{
-                              fontSize: "12px",
-                              backgroundColor: "#1E90FF",
-                              "&:hover": {
-                                backgroundColor: "#d32f2f",
-                              },
-                              mt: 2,
-                            }}
-                          >
-                            Eliminar Imagen
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={() => {
-                              const updatedImages = [...formData.images];
-                              if (originalImageBeforeEdit) {
-                                updatedImages[index] = originalImageBeforeEdit;
-                              }
-
-                              setFormData((prev) => ({
-                                ...prev,
-                                images: updatedImages,
-                              }));
-
-                              setEditingImageIndex(null);
-                              setEditingNameIndex(null);
-                              setOriginalImageBeforeEdit(null);
-                            }}
-                            sx={{
-                              fontSize: "12px",
-                              backgroundColor: "#1E90FF",
-                              "&:hover": {
-                                backgroundColor: "#d32f2f",
-                              },
-                              mt: 2,
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-
-                          <Box sx={{ textAlign: "center", mt: 4 }}>
+                          <Box sx={{ textAlign: "center", mt: 2 }}>
                             <Button
-                              variant="contained"
+                              variant="danger"
+                              onClick={() => handleDeleteImageByIndex(index)}
+                            >
+                              Eliminar Imagen
+                            </Button>
+                          </Box>
+                          <Box sx={{ textAlign: "center", mt: 2 }}>
+                            <Button
+                              variant="danger"
+                              onClick={() => {
+                                const updatedImages = [...formData.images];
+                                if (originalImageBeforeEdit) {
+                                  updatedImages[index] =
+                                    originalImageBeforeEdit;
+                                }
+
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  images: updatedImages,
+                                }));
+
+                                setEditingImageIndex(null);
+                                setEditingNameIndex(null);
+                                setOriginalImageBeforeEdit(null);
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+
+                          <Box sx={{ textAlign: "center", mt: 2 }}>
+                            <Button
+                              variant="upload"
                               color="primary"
                               onClick={() => {
                                 handleConfirmImageName;
                                 setEditingImageIndex(null);
                                 console.log("imagenes guardadas:", formData);
-                              }}
-                              sx={{
-                                height: "40px",
-                                backgroundColor: "#1E90FF",
-                                "&:hover": { backgroundColor: "#28a745" },
                               }}
                             >
                               Guardar Cambios
@@ -595,151 +608,149 @@ const EditarEquipo = () => {
                 </Grid>
               ))
             : null}
-          <Box sx={{ textAlign: "center", mt: 4 }}>
-            {!nuevaImagenTemporal ? (
-              <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleInputNewImg(e.target.files)}
-                  style={{ display: "none" }}
-                />
-                <Button
-                  variant="contained"
-                  component="span"
-                  sx={{
-                    height: "45px",
-                    color: "#ffffff",
-                    backgroundColor: "#1E90FF",
-                    "&:hover": {
-                      backgroundColor: "#4682B4",
-                    },
-                    mt: 2,
-                    mb: 2,
-                    mr: 2,
-                  }}
-                >
+        </Grid>
+        <Divider
+          sx={{
+            width: "100%",
+            mt: 2,
+            mb: { xs: 2, md: 4 },
+            borderBottomWidth: "2.5px",
+          }}
+        />
+        <Box
+          mx="auto"
+          display="flex"
+          flexDirection="column"
+          gap={2}
+          sx={{ mb: 1 }}
+        >
+          {!nuevaImagenTemporal ? (
+            <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleInputNewImg(e.target.files)}
+                style={{ display: "none" }}
+              />
+              <Box sx={{ textAlign: "center", mt: 4 }}>
+                <Button variant="contained" component="span" fullWidth>
                   Selecciona Nueva Imagen
                 </Button>
-              </label>
-            ) : (
-              <Grid item xs={12} sm={4}>
-                <img
-                  src={nuevaImagenTemporal.url}
-                  alt="preview"
-                  style={{
-                    width: "100px",
-                    height: "100px",
-                  }}
-                />
-                <TextField
-                  label="Nombre de la imagen"
-                  value={nombreTemporal}
-                  onChange={(e) => setNombreTemporal(e.target.value)}
-                  size="small"
-                  sx={{ flexGrow: 1, mr: 2 }}
-                />
+              </Box>
+            </label>
+          ) : (
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: 400,
+                mx: "auto",
+                mt: 4,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                gap: 2,
+              }}
+            >
+              <img
+                src={nuevaImagenTemporal.url}
+                alt="preview"
+                style={{
+                  width: "100px",
+                  height: "100px",
+                }}
+              />
+              <TextField
+                label="Nombre de la imagen"
+                value={nombreTemporal}
+                onChange={(e) => setNombreTemporal(e.target.value)}
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": {
+                      borderColor: "primary.main",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "primary.light",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "primary.dark",
+                    },
+                    "& input:-webkit-autofill": {
+                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                      WebkitTextFillColor: theme.palette.text.primary,
+                    },
+                  },
+                }}
+              />
+              <Box sx={{ textAlign: "center", mt: 2 }}>
                 <Button
-                  variant="contained"
+                  variant="upload"
                   onClick={guardarImagenConNombre}
-                  sx={{
-                    height: "40px",
-                    backgroundColor: "#1E90FF",
-                    "&:hover": { backgroundColor: "#28a745" },
-                    mt: 2,
-                  }}
+                  fullWidth
                 >
                   Guardar Nueva Imagen
                 </Button>
+              </Box>
+              <Box sx={{ textAlign: "center", mt: 2 }}>
                 <Button
-                  variant="contained"
+                  variant="danger"
                   onClick={() => {
                     setNuevaImagenTemporal(null);
                     setNombreTemporal("");
                   }}
-                  sx={{
-                    fontSize: "12px",
-                    backgroundColor: "#1E90FF",
-                    "&:hover": {
-                      backgroundColor: "#d32f2f",
-                    },
-                    mt: 2,
-                  }}
                 >
                   Cancelar
                 </Button>
-              </Grid>
-            )}
-          </Box>
-        </Grid>
-        <Box sx={{ textAlign: "center", mt: 4 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              if (equipoSeleccionado) {
-                setFormData(equipoSeleccionado);
-              }
-              setOriginalImageBeforeEdit(null);
-              setEditingImageIndex(null);
-              setEditingNameIndex(null);
-              setNuevaImagenTemporal(null);
-              setNombreTemporal("");
-            }}
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#d32f2f",
-              },
-              mt: 2,
-              mb: 2,
-            }}
-          >
-            Cancelar Todo
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              actualizarEquipoConCambios(formData, equipoSeleccionado.id);
-              console.log("Datos guardados:", formData);
-            }}
-            sx={{
-              height: "45px",
-              color: "#ffffff",
-              backgroundColor: "#1E90FF",
-              "&:hover": {
-                backgroundColor: "#28a745",
-              },
-              mt: 2,
-              mb: 2,
-              ml: 2,
-            }}
-          >
-            Guardar Equipo
-          </Button>
+              </Box>
+            </Box>
+          )}
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={cambiarOrden}
+        <Divider
           sx={{
-            height: "45px",
-            color: "#ffffff",
-            backgroundColor: "#1E90FF",
-            "&:hover": {
-              backgroundColor: "#28a745",
-            },
+            width: "100%",
             mt: 2,
-            mb: 2,
-            ml: 2,
+            mb: { xs: 2, md: 4 },
+            borderBottomWidth: "2.5px",
           }}
-        >
-          Aplicar cambios de orden
-        </Button>
+        />
+        <Grid container spacing={2} sx={{ mt: 2 }}>
+          <Grid item xs={12} md={4}>
+            <Button variant="upload" onClick={cambiarOrden} fullWidth>
+              Aplicar Orden
+            </Button>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Button
+              variant="success"
+              fullWidth
+              onClick={() => {
+                actualizarEquipoConCambios(formData, equipoSeleccionado.id);
+              }}
+            >
+              Guardar Equipo
+            </Button>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Button
+              variant="danger"
+              fullWidt
+              onClick={() => {
+                if (equipoSeleccionado) {
+                  setFormData(equipoSeleccionado);
+                }
+                setOriginalImageBeforeEdit(null);
+                setEditingImageIndex(null);
+                setEditingNameIndex(null);
+                setNuevaImagenTemporal(null);
+                setNombreTemporal("");
+              }}
+            >
+              Cancelar Todo
+            </Button>
+          </Grid>
+        </Grid>
       </Grid>
       <Snackbar
         open={openSnackbar}

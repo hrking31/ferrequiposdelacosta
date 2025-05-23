@@ -13,7 +13,6 @@ import {
   Container,
   useTheme,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 
 export default function CuentaCobro() {
   const dispatch = useDispatch();
@@ -83,7 +82,7 @@ export default function CuentaCobro() {
         </Typography>
         <Grid container spacing={2} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 type="date"
@@ -385,7 +384,6 @@ export default function CuentaCobro() {
                 variant="success"
                 color="primary"
                 onClick={addNewItem}
-                startIcon={<AddIcon />}
                 fullWidth
               >
                 Agregar Ítem

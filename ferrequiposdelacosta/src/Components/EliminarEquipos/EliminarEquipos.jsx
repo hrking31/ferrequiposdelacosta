@@ -11,12 +11,13 @@ import {
   Typography,
   Button,
   Grid,
-  TextField,
+  useTheme,
 } from "@mui/material";
 
 const EliminarEquipo = () => {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
+  const theme = useTheme();
   const equipoSeleccionado = location.state?.equipo;
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -67,7 +68,15 @@ const EliminarEquipo = () => {
   if (loading) return <LoadingLogo />;
 
   return (
-    <Box sx={{ padding: 2 }}>
+    <Box
+      mx="auto"
+      p={2}
+      display="flex"
+      flexDirection="column"
+      sx={{
+        [theme.breakpoints.up("md")]: { width: "60%" },
+      }}
+    >
       <Box sx={{ marginBottom: { xs: 1, sm: 2 }, width: "100%" }}>
         <Typography
           variant="h4"
@@ -78,7 +87,7 @@ const EliminarEquipo = () => {
             fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
           }}
         >
-          Elimina Equipo {""}
+          Elimina Equipo
           <Box component="span" sx={{ color: "#1976d2" }}>
             {equipoSeleccionado.name}.
           </Box>
@@ -92,7 +101,7 @@ const EliminarEquipo = () => {
         <Grid container spacing={2}>
           {equipoSeleccionado.images && equipoSeleccionado.images.length > 0
             ? equipoSeleccionado.images.map((image, index) => (
-                <Grid item xs={12} sm={4} key={index}>
+                <Grid item xs={6} sm={4} key={index}>
                   <Box sx={{ textAlign: "center", mb: 2 }}>
                     <img
                       src={image.url}
@@ -128,11 +137,7 @@ const EliminarEquipo = () => {
         </Grid>
       </Grid>
 
-      <Button
-        variant="contained"
-        // color="error"
-        onClick={handleDelete}
-      >
+      <Button variant="danger" fullWidth onClick={handleDelete}>
         Eliminar Equipo
       </Button>
 

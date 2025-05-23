@@ -141,19 +141,16 @@ export default function Register() {
 
   return (
     <Box
+      component="form"
+      onSubmit={handleSubmit}
       maxWidth={400}
       mx="auto"
-      mt={5}
-      mb={4}
+      mt={2}
+      mb={2}
       p={3}
-      borderRadius={2}
-      boxShadow={3}
       display="flex"
       flexDirection="column"
       gap={2}
-      bgcolor={(theme) => theme.palette.background.paper}
-      border={(theme) => `1px solid ${theme.palette.divider}`}
-      color={(theme) => theme.palette.text.primary}
     >
       <Typography variant="h5" align="center" gutterBottom>
         Registro

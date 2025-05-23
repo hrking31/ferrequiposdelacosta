@@ -13,14 +13,13 @@ const SearchComponent = ({ onSearch }) => {
 
   return (
     <Box
+      mx="auto"
+      p={2}
+
+      display="flex"
+      flexDirection="column"
       sx={{
-        padding: { xs: 1, sm: 2, md: 3 },
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "100%",
-        textAlign: "center",
+        [theme.breakpoints.up("md")]: { width: "60%" },
       }}
     >
       <Grid container spacing={2} justifyContent="center">
@@ -31,6 +30,7 @@ const SearchComponent = ({ onSearch }) => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             fullWidth
+            size="small"
             sx={{
               "& .MuiOutlinedInput-root": {
                 "& fieldset": {
@@ -48,7 +48,7 @@ const SearchComponent = ({ onSearch }) => {
         </Grid>
 
         <Grid item xs={12} sm={4} md={3}>
-          <Button variant="contained" onClick={handleSearch} fullWidth >
+          <Button variant="contained" onClick={handleSearch} fullWidth>
             Buscar
           </Button>
         </Grid>

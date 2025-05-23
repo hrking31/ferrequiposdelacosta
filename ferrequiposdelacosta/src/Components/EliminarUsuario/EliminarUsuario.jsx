@@ -62,16 +62,12 @@ export default function EliminarUsuario() {
     <Box
       maxWidth={400}
       mx="auto"
-      mt={5}
+      mt={2}
+      mb={2}
       p={3}
-      borderRadius={2}
-      boxShadow={3}
       display="flex"
       flexDirection="column"
       gap={2}
-      bgcolor={(theme) => theme.palette.background.paper}
-      border={(theme) => `1px solid ${theme.palette.divider}`}
-      color={(theme) => theme.palette.text.primary}
     >
       <Typography variant="h6">Ingresa Datos del Usuario.</Typography>
       <TextField

@@ -70,17 +70,9 @@ export default function Login() {
       mx="auto"
       mt={5}
       p={3}
-      borderRadius={2}
-      boxShadow={3}
       display="flex"
       flexDirection="column"
       gap={2}
-      bgcolor={(theme) => theme.palette.background.paper}
-      border={(theme) =>
-        `1px solid ${
-          theme.palette.mode === "dark" ? "#444" : "rgba(0,0,0,0.12)"
-        }`
-      }
     >
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>

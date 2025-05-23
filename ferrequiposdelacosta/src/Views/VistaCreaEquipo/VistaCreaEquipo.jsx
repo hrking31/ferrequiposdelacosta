@@ -7,6 +7,7 @@ import {
   Typography,
   Snackbar,
   Alert,
+   useTheme,
 } from "@mui/material";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { useAuth } from "../../Context/AuthContext";
@@ -26,6 +27,7 @@ export default function VistaCreaEquipo() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const theme = useTheme();
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -139,11 +141,11 @@ export default function VistaCreaEquipo() {
         <Grid container spacing={2} justifyContent="center">
           <Box
             sx={{
-              width: { xs: "100%", md: "50%" }, // 100% en móviles, 50% en pantallas medianas o más
+              width: { xs: "90%", md: "60%" },
               display: "flex",
-              justifyContent: "center", // Centra contenido horizontalmente
-              alignItems: "center", // Centra contenido verticalmente (si se usa altura)
-              flexDirection: "column", // Opcional: organiza verticalmente el contenido interno
+              justifyContent: "center",
+              alignItems: "center",
+              flexDirection: "column",
             }}
           >
             <TextField
@@ -152,7 +154,23 @@ export default function VistaCreaEquipo() {
               value={formValues.name}
               onChange={handlerInputChange}
               fullWidth
-              margin="normal"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
             />
             <TextField
               name="description"
@@ -163,6 +181,23 @@ export default function VistaCreaEquipo() {
               multiline
               rows={4}
               margin="normal"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
             />
             {images &&
               images.map((img, index) => (
@@ -196,25 +231,35 @@ export default function VistaCreaEquipo() {
                         marginRight: 1.5,
                       }}
                     />
-                    {/* <Box> */}
-                      <TextField
-                        label="Nombre de la imagen"
-                        value={img.name}
-                        onChange={(e) =>
-                          handleNameChange(index, e.target.value)
-                        }
-                        size="small"
-                        sx={{
-                          marginRight: 1.5,
-                          flexGrow: 1,
-                        }}
-                      />
-                    {/* </Box> */}
+                    <TextField
+                      label="Nombre de la imagen"
+                      value={img.name}
+                      onChange={(e) => handleNameChange(index, e.target.value)}
+                      size="small"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "& fieldset": {
+                            borderColor: "primary.main",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "primary.light",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "primary.dark",
+                          },
+                          "& input:-webkit-autofill": {
+                            boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                            WebkitTextFillColor: theme.palette.text.primary,
+                          },
+                        },
+                        marginRight: 1.5,
+                        flexGrow: 1,
+                      }}
+                    />
                     <Button
                       variant="contained"
                       color="error"
                       onClick={() => handleRemoveImage(index)}
-                      // sx={{ flexGrow: 1 }}
                     >
                       Eliminar
                     </Button>

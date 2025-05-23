@@ -18,8 +18,8 @@ export default defineConfig({
           "La solución todo en uno para gestionar tu negocio, productos, y clientes.",
         start_url: "/",
         display: "standalone",
-        background_color: "#ffffff",
-        theme_color: "#ffffff",
+        background_color: "#669BBC",
+        theme_color: "#669BBC",
         icons: [
           {
             src: "/web-app-manifest-192x192.png",
