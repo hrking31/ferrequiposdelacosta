@@ -12,7 +12,7 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
   const PrimeraUrl = images?.[0]?.url || "";
 
   return (
-    <Grid item xs={12} >
+    <Grid item xs={12}>
       <Card
         onClick={onSelect}
         sx={{
@@ -23,7 +23,17 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
         }}
       >
         <CardActionArea>
-          <CardMedia component="img" image={PrimeraUrl} alt="img not found" />
+          <CardMedia
+            component="img"
+            image={PrimeraUrl}
+            alt="img not found"
+            sx={{
+              height: {
+                xs: 280,
+                md: 400,
+              },
+            }}
+          />
           <Box p={2}>
             <Typography
               variant="cardTitle"

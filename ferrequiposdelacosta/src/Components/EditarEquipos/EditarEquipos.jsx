@@ -307,388 +307,29 @@ const EditarEquipo = () => {
   const [newIndices, setNewIndices] = useState({});
 
   return (
-    <Box
-      mx="auto"
-      p={2}
-      pr={0}
-      display="flex"
-      flexDirection="column"
-      sx={{
-        [theme.breakpoints.up("md")]: { width: "60%" },
-      }}
-    >
-      <Grid container spacing={2}>
-        <Typography variant="h4" color="text.primary">
-          Editar el equipo
-        </Typography>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            <TextField
-              inputRef={nameInputRef}
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              fullWidth
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => {
-                setFormData({ ...formData, name: "" });
-                setTimeout(() => {
-                  nameInputRef.current?.focus();
-                }, 0);
-              }}
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              Editar Nombre
-            </Button>
-          </Grid>
-          <Grid item xs={6}>
-            <Button
-              variant="danger"
-              fullWidth
-              onClick={handleImputRestName}
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              Cancelar Edicion
-            </Button>
-          </Grid>
-          <Grid
-            item
-            xs={12}
-            sx={{
-              mt: 2,
-            }}
-          >
-            <TextField
-              inputRef={descriptionInputRef}
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              fullWidth
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => {
-                setFormData({ ...formData, description: "" });
-                setTimeout(() => {
-                  descriptionInputRef.current?.focus();
-                }, 0);
-              }}
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              Editar Descripción
-            </Button>
-          </Grid>
-          <Grid item xs={6}>
-            <Button
-              variant="danger"
-              fullWidth
-              onClick={handleImputRestDescription}
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              Cancelar Edicion
-            </Button>
-          </Grid>
-        </Grid>
-        <Divider
-          sx={{
-            width: "100%",
-            mt: 3,
-            mb: { xs: 2, md: 4 },
-            borderBottomWidth: "2.5px",
-          }}
-        />
-        <Grid container spacing={2} sx={{ mt: 2, mb: 1 }}>
-          {formData.images && formData.images.length > 0
-            ? formData.images.map((image, index) => (
-                <Grid item xs={6} sm={4} key={index}>
-                  <Box sx={{ textAlign: "center" }}>
-                    <img
-                      src={image.url}
-                      alt={image.name}
-                      style={{
-                        width: "100px",
-                        height: "100px",
-                      }}
-                    />
+    <Box sx={{ padding: 2 }}>
+      <Typography variant="h4" color="text.primary">
+        Editar el equipo
+      </Typography>
 
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Typography sx={{ color: "#00008B" }}>
-                        {image.name}
-                      </Typography>
-                      <Typography sx={{ color: "#00008B", marginBottom: 2 }}>
-                        Posición: {index}
-                      </Typography>
-                      <TextField
-                        label="Nueva Posición"
-                        type="number"
-                        fullWidth
-                        value={newIndices[index] ?? ""}
-                        onChange={(e) =>
-                          setNewIndices({
-                            ...newIndices,
-                            [index]: Number(e.target.value),
-                          })
-                        }
-                        size="small"
-                        inputProps={{
-                          min: 0,
-                          max: formData.images.length - 1,
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: "primary.main",
-                            },
-                            "&:hover fieldset": {
-                              borderColor: "primary.light",
-                            },
-                            "&.Mui-focused fieldset": {
-                              borderColor: "primary.dark",
-                            },
-                            "& input:-webkit-autofill": {
-                              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                              WebkitTextFillColor: theme.palette.text.primary,
-                            },
-                          },
-                        }}
-                      />
-
-                      {editingImageIndex !== index ? (
-                        <Box sx={{ width: "100%", mt: 2 }}>
-                          <Button
-                            variant="contained"
-                            fullWidth
-                            onClick={() => {
-                              setEditingImageIndex(index);
-                              setOriginalImageBeforeEdit(
-                                formData.images[index]
-                              );
-                            }}
-                          >
-                            Editar Imagen {index + 1}
-                          </Button>
-                        </Box>
-                      ) : (
-                        <>
-                          {editingNameIndex !== index ? (
-                            <label
-                              htmlFor={`file-upload-${index}`}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <input
-                                id={`file-upload-${index}`}
-                                type="file"
-                                name="fotos"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files[0];
-                                  if (file) {
-                                    handleReplaceImage(index, file);
-                                    setEditingNameIndex(index);
-                                  }
-                                }}
-                                style={{ display: "none" }}
-                              />
-                              <Box sx={{ width: "100%", mt: 2 }}>
-                                <Button variant="contained" component="span">
-                                  Selecciona Imagen
-                                </Button>
-                              </Box>
-                            </label>
-                          ) : (
-                            <>
-                              <TextField
-                                label="Nombre de la imagen"
-                                fullWidth
-                                value={formData.images[index]?.name || ""}
-                                onChange={(e) =>
-                                  handleChangeImageName(index, e.target.value)
-                                }
-                                size="small"
-                                sx={{
-                                  "& .MuiOutlinedInput-root": {
-                                    "& fieldset": {
-                                      borderColor: "primary.main",
-                                    },
-                                    "&:hover fieldset": {
-                                      borderColor: "primary.light",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "primary.dark",
-                                    },
-                                    "& input:-webkit-autofill": {
-                                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                                      WebkitTextFillColor:
-                                        theme.palette.text.primary,
-                                    },
-                                  },
-                                  mt: 2,
-                                }}
-                              />
-                            </>
-                          )}
-                          <Box sx={{ width: "100%", mt: 2 }}>
-                            <Button
-                              variant="danger"
-                              fullWidth
-                              onClick={() => handleDeleteImageByIndex(index)}
-                            >
-                              Eliminar Imagen
-                            </Button>
-                          </Box>
-                          <Box sx={{ width: "100%", mt: 2 }}>
-                            <Button
-                              variant="danger"
-                              fullWidth
-                              onClick={() => {
-                                const updatedImages = [...formData.images];
-                                if (originalImageBeforeEdit) {
-                                  updatedImages[index] =
-                                    originalImageBeforeEdit;
-                                }
-
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  images: updatedImages,
-                                }));
-
-                                setEditingImageIndex(null);
-                                setEditingNameIndex(null);
-                                setOriginalImageBeforeEdit(null);
-                              }}
-                            >
-                              Cancelar
-                            </Button>
-                          </Box>
-
-                          <Box sx={{ width: "100%", mt: 2 }}>
-                            <Button
-                              variant="upload"
-                              color="primary"
-                              fullWidth
-                              onClick={() => {
-                                handleConfirmImageName;
-                                setEditingImageIndex(null);
-                                console.log("imagenes guardadas:", formData);
-                              }}
-                            >
-                              Guardar Cambios
-                            </Button>
-                          </Box>
-                        </>
-                      )}
-                    </Box>
-                  </Box>
-                </Grid>
-              ))
-            : null}
-        </Grid>
-        <Divider
-          sx={{
-            width: "100%",
-            mt: 2,
-            mb: { xs: 2, md: 4 },
-            borderBottomWidth: "2.5px",
-          }}
-        />
-        <Box
-          mx="auto"
-          display="flex"
-          flexDirection="column"
-          gap={2}
-          sx={{ mb: 1 }}
-        >
-          {!nuevaImagenTemporal ? (
-            <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
-              <input
-                id="file-upload"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleInputNewImg(e.target.files)}
-                style={{ display: "none" }}
-              />
-              <Box sx={{ textAlign: "center", mt: 4 }}>
-                <Button variant="contained" component="span" fullWidth>
-                  Selecciona Nueva Imagen
-                </Button>
-              </Box>
-            </label>
-          ) : (
-            <Box
-              sx={{
-                width: "100%",
-                maxWidth: 400,
-                mx: "auto",
-                mt: 4,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                gap: 2,
-              }}
-            >
-              <img
-                src={nuevaImagenTemporal.url}
-                alt="preview"
-                style={{
-                  width: "100px",
-                  height: "100px",
-                }}
-              />
+      <Box
+        mx="auto"
+        p={2}
+        pr={0}
+        display="flex"
+        flexDirection="column"
+        sx={{
+          [theme.breakpoints.up("md")]: { width: "60%" },
+        }}
+      >
+        <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
               <TextField
-                label="Nombre de la imagen"
-                value={nombreTemporal}
-                onChange={(e) => setNombreTemporal(e.target.value)}
+                inputRef={nameInputRef}
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
                 fullWidth
                 size="small"
                 sx={{
@@ -709,89 +350,453 @@ const EditarEquipo = () => {
                   },
                 }}
               />
-              <Box sx={{ width: "100%", mt: 2 }}>
-                <Button
-                  variant="upload"
-                  onClick={guardarImagenConNombre}
-                  fullWidth
-                >
-                  Guardar Nueva Imagen
-                </Button>
-              </Box>
-              <Box sx={{ width: "100%", mt: 2 }}>
-                <Button
-                  variant="danger"
-                  fullWidth
-                  onClick={() => {
-                    setNuevaImagenTemporal(null);
-                    setNombreTemporal("");
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  setFormData({ ...formData, name: "" });
+                  setTimeout(() => {
+                    nameInputRef.current?.focus();
+                  }, 0);
+                }}
+                sx={{ flex: 1, whiteSpace: "nowrap" }}
+              >
+                Editar Nombre
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={handleImputRestName}
+                sx={{ flex: 1, whiteSpace: "nowrap" }}
+              >
+                Cancelar Edicion
+              </Button>
+            </Grid>
+            <Grid
+              item
+              xs={12}
+              sx={{
+                mt: 2,
+              }}
+            >
+              <TextField
+                inputRef={descriptionInputRef}
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                fullWidth
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": {
+                      borderColor: "primary.main",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "primary.light",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "primary.dark",
+                    },
+                    "& input:-webkit-autofill": {
+                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                      WebkitTextFillColor: theme.palette.text.primary,
+                    },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  setFormData({ ...formData, description: "" });
+                  setTimeout(() => {
+                    descriptionInputRef.current?.focus();
+                  }, 0);
+                }}
+                sx={{ flex: 1, whiteSpace: "nowrap" }}
+              >
+                Editar Descripción
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={handleImputRestDescription}
+                sx={{ flex: 1, whiteSpace: "nowrap" }}
+              >
+                Cancelar Edicion
+              </Button>
+            </Grid>
+          </Grid>
+          <Divider
+            sx={{
+              width: "100%",
+              mt: 3,
+              mb: { xs: 2, md: 4 },
+              borderBottomWidth: "2.5px",
+            }}
+          />
+          <Grid container spacing={2} sx={{ mt: 2, mb: 1 }}>
+            {formData.images && formData.images.length > 0
+              ? formData.images.map((image, index) => (
+                  <Grid item xs={6} sm={4} key={index}>
+                    <Box sx={{ textAlign: "center" }}>
+                      <img
+                        src={image.url}
+                        alt={image.name}
+                        style={{
+                          width: "100px",
+                          height: "100px",
+                          borderRadius: 12,
+                          border: "1px solid #e0e0e0",
+                        }}
+                      />
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography sx={{ color: "#00008B" }}>
+                          {image.name}
+                        </Typography>
+                        <Typography sx={{ color: "#00008B", marginBottom: 2 }}>
+                          Posición: {index}
+                        </Typography>
+                        <TextField
+                          label="Nueva Posición"
+                          type="number"
+                          fullWidth
+                          value={newIndices[index] ?? ""}
+                          onChange={(e) =>
+                            setNewIndices({
+                              ...newIndices,
+                              [index]: Number(e.target.value),
+                            })
+                          }
+                          size="small"
+                          inputProps={{
+                            min: 0,
+                            max: formData.images.length - 1,
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "primary.main",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "primary.light",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "primary.dark",
+                              },
+                              "& input:-webkit-autofill": {
+                                boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                                WebkitTextFillColor: theme.palette.text.primary,
+                              },
+                            },
+                          }}
+                        />
+
+                        {editingImageIndex !== index ? (
+                          <Box sx={{ width: "100%", mt: 2 }}>
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              onClick={() => {
+                                setEditingImageIndex(index);
+                                setOriginalImageBeforeEdit(
+                                  formData.images[index]
+                                );
+                              }}
+                            >
+                              Editar Imagen {index + 1}
+                            </Button>
+                          </Box>
+                        ) : (
+                          <>
+                            {editingNameIndex !== index ? (
+                              <label
+                                htmlFor={`file-upload-${index}`}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <input
+                                  id={`file-upload-${index}`}
+                                  type="file"
+                                  name="fotos"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      handleReplaceImage(index, file);
+                                      setEditingNameIndex(index);
+                                    }
+                                  }}
+                                  style={{ display: "none" }}
+                                />
+                                <Box sx={{ width: "100%", mt: 2 }}>
+                                  <Button variant="contained" component="span">
+                                    Selecciona Imagen
+                                  </Button>
+                                </Box>
+                              </label>
+                            ) : (
+                              <>
+                                <TextField
+                                  label="Nombre de la imagen"
+                                  fullWidth
+                                  value={formData.images[index]?.name || ""}
+                                  onChange={(e) =>
+                                    handleChangeImageName(index, e.target.value)
+                                  }
+                                  size="small"
+                                  sx={{
+                                    "& .MuiOutlinedInput-root": {
+                                      "& fieldset": {
+                                        borderColor: "primary.main",
+                                      },
+                                      "&:hover fieldset": {
+                                        borderColor: "primary.light",
+                                      },
+                                      "&.Mui-focused fieldset": {
+                                        borderColor: "primary.dark",
+                                      },
+                                      "& input:-webkit-autofill": {
+                                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                                        WebkitTextFillColor:
+                                          theme.palette.text.primary,
+                                      },
+                                    },
+                                    mt: 2,
+                                  }}
+                                />
+                              </>
+                            )}
+                            <Box sx={{ width: "100%", mt: 2 }}>
+                              <Button
+                                variant="danger"
+                                fullWidth
+                                onClick={() => handleDeleteImageByIndex(index)}
+                              >
+                                Eliminar Imagen
+                              </Button>
+                            </Box>
+                            <Box sx={{ width: "100%", mt: 2 }}>
+                              <Button
+                                variant="danger"
+                                fullWidth
+                                onClick={() => {
+                                  const updatedImages = [...formData.images];
+                                  if (originalImageBeforeEdit) {
+                                    updatedImages[index] =
+                                      originalImageBeforeEdit;
+                                  }
+
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    images: updatedImages,
+                                  }));
+
+                                  setEditingImageIndex(null);
+                                  setEditingNameIndex(null);
+                                  setOriginalImageBeforeEdit(null);
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                            </Box>
+
+                            <Box sx={{ width: "100%", mt: 2 }}>
+                              <Button
+                                variant="upload"
+                                color="primary"
+                                fullWidth
+                                onClick={() => {
+                                  handleConfirmImageName;
+                                  setEditingImageIndex(null);
+                                  console.log("imagenes guardadas:", formData);
+                                }}
+                              >
+                                Guardar Cambios
+                              </Button>
+                            </Box>
+                          </>
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))
+              : null}
+          </Grid>
+          <Divider
+            sx={{
+              width: "100%",
+              mt: 2,
+              mb: { xs: 2, md: 4 },
+              borderBottomWidth: "2.5px",
+            }}
+          />
+          <Box
+            mx="auto"
+            display="flex"
+            flexDirection="column"
+            gap={2}
+            sx={{ mb: 1 }}
+          >
+            {!nuevaImagenTemporal ? (
+              <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleInputNewImg(e.target.files)}
+                  style={{ display: "none" }}
+                />
+                <Box sx={{ textAlign: "center", mt: 4 }}>
+                  <Button variant="contained" component="span" fullWidth>
+                    Selecciona Nueva Imagen
+                  </Button>
+                </Box>
+              </label>
+            ) : (
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: 400,
+                  mx: "auto",
+                  mt: 4,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                  gap: 2,
+                }}
+              >
+                <img
+                  src={nuevaImagenTemporal.url}
+                  alt="preview"
+                  style={{
+                    width: "100px",
+                    height: "100px",
                   }}
-                >
-                  Cancelar
-                </Button>
+                />
+                <TextField
+                  label="Nombre de la imagen"
+                  value={nombreTemporal}
+                  onChange={(e) => setNombreTemporal(e.target.value)}
+                  fullWidth
+                  size="small"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "primary.main",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "primary.light",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "primary.dark",
+                      },
+                      "& input:-webkit-autofill": {
+                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                        WebkitTextFillColor: theme.palette.text.primary,
+                      },
+                    },
+                  }}
+                />
+                <Box sx={{ width: "100%", mt: 2 }}>
+                  <Button
+                    variant="upload"
+                    onClick={guardarImagenConNombre}
+                    fullWidth
+                  >
+                    Guardar Nueva Imagen
+                  </Button>
+                </Box>
+                <Box sx={{ width: "100%", mt: 2 }}>
+                  <Button
+                    variant="danger"
+                    fullWidth
+                    onClick={() => {
+                      setNuevaImagenTemporal(null);
+                      setNombreTemporal("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </Box>
               </Box>
-            </Box>
-          )}
-        </Box>
-        <Divider
-          sx={{
-            width: "100%",
-            mt: 2,
-            mb: { xs: 2, md: 4 },
-            borderBottomWidth: "2.5px",
-          }}
-        />
-        <Grid container spacing={2} sx={{ mt: 2,  p:1 }}>
-          <Grid item xs={12} md={4}>
-            <Button variant="upload" onClick={cambiarOrden} fullWidth>
-              Aplicar Orden
-            </Button>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Button
-              variant="success"
-              fullWidth
-              onClick={() => {
-                actualizarEquipoConCambios(formData, equipoSeleccionado.id);
-              }}
-            >
-              Guardar Equipo
-            </Button>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Button
-              variant="danger"
-              fullWidth
-              onClick={() => {
-                if (equipoSeleccionado) {
-                  setFormData(equipoSeleccionado);
-                }
-                setOriginalImageBeforeEdit(null);
-                setEditingImageIndex(null);
-                setEditingNameIndex(null);
-                setNuevaImagenTemporal(null);
-                setNombreTemporal("");
-              }}
-            >
-              Cancelar Todo
-            </Button>
+            )}
+          </Box>
+          <Divider
+            sx={{
+              width: "100%",
+              mt: 2,
+              mb: { xs: 2, md: 4 },
+              borderBottomWidth: "2.5px",
+            }}
+          />
+          <Grid container spacing={2} sx={{ mt: 2, p: 1 }}>
+            <Grid item xs={12} md={4}>
+              <Button variant="upload" onClick={cambiarOrden} fullWidth>
+                Aplicar Orden
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Button
+                variant="success"
+                fullWidth
+                onClick={() => {
+                  actualizarEquipoConCambios(formData, equipoSeleccionado.id);
+                }}
+              >
+                Guardar Equipo
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={() => {
+                  if (equipoSeleccionado) {
+                    setFormData(equipoSeleccionado);
+                  }
+                  setOriginalImageBeforeEdit(null);
+                  setEditingImageIndex(null);
+                  setEditingNameIndex(null);
+                  setNuevaImagenTemporal(null);
+                  setNombreTemporal("");
+                }}
+              >
+                Cancelar Todo
+              </Button>
+            </Grid>
           </Grid>
         </Grid>
-      </Grid>
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={4000}
           onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbarSeverity}
+            sx={{ width: "100%" }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
+      </Box>
     </Box>
   );
 };

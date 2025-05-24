@@ -16,10 +16,7 @@ export default function VistaCrearUsuarios() {
 
   return (
     <Box sx={{ padding: 2 }}>
-      <Typography
-        variant="h4"
-        sx={{ color: "#8B3A3A", fontWeight: "bold", mb: 4 }}
-      >
+      <Typography variant="h4" color="text.primary">
         {saludo} {name}.
       </Typography>
       <Register />
@@ -40,11 +37,7 @@ export default function VistaCrearUsuarios() {
           </Button>
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
-          <Button
-            onClick={handlerLogout}
-            variant="danger"
-            fullWidth
-          >
+          <Button onClick={handlerLogout} variant="danger" fullWidth>
             CERRAR SESIÓN
           </Button>
         </Grid>

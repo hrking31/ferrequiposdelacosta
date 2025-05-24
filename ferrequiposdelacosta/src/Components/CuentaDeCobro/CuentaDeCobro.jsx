@@ -76,10 +76,10 @@ export default function CuentaCobro() {
 
   return (
     <Container>
+      <Typography variant="h4" color="text.primary">
+        Formulario Cuenta de Cobro
+      </Typography>
       <Box component="form" sx={{ mt: 3 }}>
-        <Typography variant="h4" gutterBottom color="#8B3A3A">
-          Formulario Cuenta de Cobro
-        </Typography>
         <Grid container spacing={2} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>

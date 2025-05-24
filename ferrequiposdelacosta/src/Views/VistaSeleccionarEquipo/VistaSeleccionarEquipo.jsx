@@ -98,7 +98,12 @@ const VistaSeleccionarEquipo = () => {
   }, [error, equipos, loading, hasSearched]);
 
   return (
-    <Box mx="auto" p={2} display="flex" flexDirection="column">
+      <Box sx={{ padding: 2 }}>
+        <Typography variant="h4" color="text.primary">
+          {saludo} {name}, Busca el equipo por su nombre.
+        </Typography>
+
+
       <Box
         mx="auto"
         p={2}
@@ -110,24 +115,8 @@ const VistaSeleccionarEquipo = () => {
       >
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <Box mx="auto" display="flex" flexDirection="column">
-              <Typography
-                variant="h4"
-                sx={{
-                  color: "#00008B",
-                  fontWeight: "bold",
-                  overflowWrap: "break-word",
-                  fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
-                }}
-              >
-                {saludo} {name} Busca el equipo por su nombre.
-              </Typography>
-            </Box>
+            <SearchComponent onSearch={handleSearch} />
           </Grid>
-
-            <Grid item xs={12}>
-              <SearchComponent onSearch={handleSearch} />
-            </Grid>
 
           <Grid item xs={12}>
             {equipos.length > 0 ? (
@@ -155,23 +144,23 @@ const VistaSeleccionarEquipo = () => {
         </Grid>
 
         <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={4} md={4}>
+            <Button variant="contained" onClick={handleEditar} fullWidth>
+              EDITAR
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={4} md={4}>
+            <Button variant="danger" onClick={handleEliminar} fullWidth>
+              ELIMINAR
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={4} md={4}>
             <Button
               variant="danger"
               onClick={handleCancelarSeleccion}
               fullWidth
             >
               CANCELAR
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button variant="contained" onClick={handleEditar} fullWidth>
-              EDITAR
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button variant="danger" onClick={handleEliminar} fullWidth>
-              ELIMINAR
             </Button>
           </Grid>
         </Grid>

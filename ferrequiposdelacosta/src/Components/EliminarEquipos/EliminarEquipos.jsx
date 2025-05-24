@@ -78,17 +78,10 @@ const EliminarEquipo = () => {
       }}
     >
       <Box sx={{ marginBottom: { xs: 1, sm: 2 }, width: "100%" }}>
-        <Typography
-          variant="h4"
-          sx={{
-            color: "#8B3A3A",
-            fontWeight: "bold",
-            overflowWrap: "break-word",
-            fontSize: { xs: "h5.fontSize", sm: "h4.fontSize" },
-          }}
-        >
-          Elimina Equipo
+        <Typography variant="h4" color="text.primary">
+          Elimina el Equipo
           <Box component="span" sx={{ color: "#1976d2" }}>
+            {" "}
             {equipoSeleccionado.name}.
           </Box>
         </Typography>
@@ -110,6 +103,8 @@ const EliminarEquipo = () => {
                         width: "100px",
                         height: "100px",
                         objectFit: "cover",
+                        borderRadius: 12,
+                        border: "1px solid #e0e0e0",
                       }}
                     />
                     <Box

@@ -57,8 +57,34 @@ export default function Cotizacion() {
   };
 
   const removeItem = (indexToRemove) => {
+    const itemToRemove = items[indexToRemove];
+
+    const subtotalNumber = Number(
+      itemToRemove.subtotal
+        .replace(/[^\d,-]/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+    );
+
     const updatedItems = items.filter((_, index) => index !== indexToRemove);
     dispatch(setItems(updatedItems));
+
+    const currentTotalNumber = Number(
+      total
+        .toString()
+        .replace(/[^\d,-]/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+    );
+
+    const newTotalNumber = currentTotalNumber - subtotalNumber;
+
+    const newTotalFormatted = newTotalNumber.toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+    });
+
+    dispatch(setTotal(newTotalFormatted));
   };
 
   const formatNit = (nit) => {
@@ -207,7 +233,7 @@ export default function Cotizacion() {
                   fullWidth
                   multiline
                   rows={2}
-                  label="Descripción"
+                  label={`Descripción ${index + 1}`}
                   value={item.description}
                   onChange={(e) =>
                     updateItem(index, "description", e.target.value)
@@ -235,7 +261,7 @@ export default function Cotizacion() {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Cantidad"
+                  label={`Cantidad ${index + 1}`}
                   value={item.quantity !== 0 ? item.quantity : ""}
                   onChange={(e) =>
                     updateItem(index, "quantity", e.target.value)
@@ -263,7 +289,7 @@ export default function Cotizacion() {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Precio"
+                  label={`Precio ${index + 1}`}
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
                   sx={{
@@ -286,17 +312,17 @@ export default function Cotizacion() {
                 />
               </Grid>
               <Grid item xs={12}>
+                <Typography>Subtotal: {item.subtotal}</Typography>
+              </Grid>
+              <Grid item xs={12}>
                 <Button
                   variant="danger"
                   color="error"
                   onClick={() => removeItem(index)}
                   fullWidth
                 >
-                  Eliminar Ítem
+                  Eliminar Ítem {index + 1}
                 </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography>Subtotal: {item.subtotal}</Typography>
               </Grid>
             </Grid>
           ))}

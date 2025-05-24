@@ -7,7 +7,7 @@ import {
   Typography,
   Snackbar,
   Alert,
-   useTheme,
+  useTheme,
 } from "@mui/material";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { useAuth } from "../../Context/AuthContext";
@@ -131,13 +131,12 @@ export default function VistaCreaEquipo() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Box sx={{ padding: 2, textAlign: "center" }}>
-        <Typography
-          variant="h4"
-          sx={{ color: "#8B3A3A", fontWeight: "bold", mb: 4 }}
-        >
-          {saludo} {name}
+      <Box sx={{ padding: 2 }}>
+        <Typography variant="h4" color="text.primary">
+          {saludo} {name}.
         </Typography>
+      </Box>
+      <Box sx={{ padding: 2, textAlign: "center" }}>
         <Grid container spacing={2} justifyContent="center">
           <Box
             sx={{
@@ -146,6 +145,7 @@ export default function VistaCreaEquipo() {
               justifyContent: "center",
               alignItems: "center",
               flexDirection: "column",
+              mt: 4,
             }}
           >
             <TextField
@@ -280,11 +280,11 @@ export default function VistaCreaEquipo() {
                     component="span"
                     fullWidth
                     sx={{
-                      mt: 2,
-                      mb: 2,
+                      mt: 4,
+                      mb: 6,
                     }}
                   >
-                    Selecciona Imagen
+                    Selecciona una Imagen
                   </Button>
                 </Grid>
               </label>
@@ -300,7 +300,7 @@ export default function VistaCreaEquipo() {
         </Grid>
 
         <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               type="submit"
               variant="success"
@@ -310,12 +310,12 @@ export default function VistaCreaEquipo() {
               CREAR EQUIPO
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button onClick={handleCancel} variant="danger" fullWidth>
               CANCELAR
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               component={Link}
               to="/adminforms"
@@ -325,7 +325,7 @@ export default function VistaCreaEquipo() {
               MENU
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESION
             </Button>
