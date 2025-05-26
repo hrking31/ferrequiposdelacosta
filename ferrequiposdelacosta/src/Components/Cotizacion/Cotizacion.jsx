@@ -17,7 +17,7 @@ export default function Cotizacion() {
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cotizacion.value);
   const items = useSelector((state) => state.cotizacion.value.items);
-  const total = useSelector((state) => state.cotizacion.value.total);
+  const { total, totalNumero } = useSelector((state) => state.cotizacion.value);
   const theme = useTheme();
 
   const handlerInputChange = (event) => {
@@ -36,10 +36,11 @@ export default function Cotizacion() {
     });
     updatedItems[index] = updatedItem;
     dispatch(setItems(updatedItems));
+    calculateTotalFrom(updatedItems);  
   };
 
-  const calculateTotal = () => {
-    const totalAmount = items.reduce(
+  const calculateTotalFrom = (updatedItems) => {
+    const totalAmount = updatedItems.reduce(
       (total, item) => total + item.quantity * item.price,
       0
     );
@@ -56,34 +57,9 @@ export default function Cotizacion() {
   };
 
   const removeItem = (indexToRemove) => {
-    const itemToRemove = items[indexToRemove];
-
-    const subtotalNumber = Number(
-      itemToRemove.subtotal
-        .replace(/[^\d,-]/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    );
-
     const updatedItems = items.filter((_, index) => index !== indexToRemove);
     dispatch(setItems(updatedItems));
-
-    const currentTotalNumber = Number(
-      total
-        .toString()
-        .replace(/[^\d,-]/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    );
-
-    const newTotalNumber = currentTotalNumber - subtotalNumber;
-
-    const newTotalFormatted = newTotalNumber.toLocaleString("es-CO", {
-      style: "currency",
-      currency: "COP",
-    });
-
-    dispatch(setTotal(newTotalFormatted));
+    calculateTotalFrom(updatedItems);
   };
 
   const formatNit = (nit) => {
@@ -335,7 +311,6 @@ export default function Cotizacion() {
               <Grid item xs={6} md={6}>
                 <Button
                   variant="danger"
-                  color="error"
                   onClick={() => removeItem(index)}
                   fullWidth
                   sx={{ flex: 1, whiteSpace: "nowrap" }}
@@ -358,18 +333,8 @@ export default function Cotizacion() {
             </Button>
           </Grid>
           <Grid item xs={6}>
-            <Button
-              variant="success"
-              color="primary"
-              onClick={calculateTotal}
-              fullWidth
-            >
-              Calcular Total
-            </Button>
+            <Typography variant="h6">Total: {total}</Typography>
           </Grid>
-        </Grid>
-        <Grid item xs={12} sx={{ mt: 2 }}>
-          <Typography variant="h6">Total: {total}</Typography>
         </Grid>
       </Box>
     </Box>
