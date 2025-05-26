@@ -518,6 +518,7 @@ const EditarEquipo = () => {
                                   formData.images[index]
                                 );
                               }}
+                              sx={{ flex: 1, whiteSpace: "nowrap" }}
                             >
                               Editar Imagen {index + 1}
                             </Button>
@@ -544,7 +545,11 @@ const EditarEquipo = () => {
                                   style={{ display: "none" }}
                                 />
                                 <Box sx={{ width: "100%", mt: 2 }}>
-                                  <Button variant="contained" component="span">
+                                  <Button
+                                    variant="contained"
+                                    component="span"
+                                    sx={{ flex: 1, whiteSpace: "nowrap", p: 1 }}
+                                  >
                                     Selecciona Imagen
                                   </Button>
                                 </Box>
@@ -586,6 +591,7 @@ const EditarEquipo = () => {
                                 variant="danger"
                                 fullWidth
                                 onClick={() => handleDeleteImageByIndex(index)}
+                                sx={{ flex: 1, whiteSpace: "nowrap" }}
                               >
                                 Eliminar Imagen
                               </Button>
@@ -625,6 +631,7 @@ const EditarEquipo = () => {
                                   setEditingImageIndex(null);
                                   console.log("imagenes guardadas:", formData);
                                 }}
+                                sx={{ flex: 1, whiteSpace: "nowrap" }}
                               >
                                 Guardar Cambios
                               </Button>

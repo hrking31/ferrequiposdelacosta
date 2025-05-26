@@ -10,7 +10,6 @@ import {
   TextField,
   Typography,
   Grid,
-  Container,
   useTheme,
 } from "@mui/material";
 
@@ -95,8 +94,8 @@ export default function Cotizacion() {
   };
 
   return (
-    <Container sx={{ mt: 2 }}>
-      <Box component="form" sx={{ mt: 2 }}>
+    <Box mx="auto" display="flex" flexDirection="column">
+      <Box component="form">
         <Typography
           variant="h4"
           gutterBottom
@@ -104,136 +103,153 @@ export default function Cotizacion() {
         >
           Formulario Cotización
         </Typography>
-        <Grid container spacing={2} sx={{ mt: 4 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                name="fecha"
-                label="Fecha"
-                value={formValues.fecha}
-                onChange={handlerInputChange}
-                InputLabelProps={{
-                  shrink: true,
-                  sx: {
-                    color: "#8B3A3A",
+        <Grid container spacing={2} sx={{ mt: 2, px: 2 }}>
+          <Grid item xs={7} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              name="fecha"
+              label="Fecha"
+              size="small"
+              value={formValues.fecha}
+              onChange={handlerInputChange}
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  color: "#8B3A3A",
+                },
+              }}
+              InputProps={{
+                sx: {
+                  color: "#8B3A3A",
+                },
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
                   },
-                }}
-                InputProps={{
-                  sx: {
-                    color: "#8B3A3A",
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
                   },
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
                   },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="text"
-                name="empresa"
-                label="Empresa"
-                value={formValues.empresa}
-                onChange={handlerInputChange}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
                   },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="text"
-                name="nit"
-                label="NIT"
-                value={formatNit(formValues.nit)}
-                onChange={handlerInputChange}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="text"
-                name="direccion"
-                label="Dirección"
-                value={formValues.direccion}
-                onChange={handlerInputChange}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
-              />
-            </Grid>
+                },
+              }}
+            />
           </Grid>
-          {items.map((item, index) => (
-            <Grid container spacing={2} key={index} sx={{ mt: 1 }}>
+          <Grid item xs={5} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="nit"
+              label="NIT"
+              size="small"
+              value={formatNit(formValues.nit)}
+              onChange={handlerInputChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="empresa"
+              label="Empresa"
+              size="small"
+              value={formValues.empresa}
+              onChange={handlerInputChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="direccion"
+              label="Dirección"
+              size="small"
+              value={formValues.direccion}
+              onChange={handlerInputChange}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "primary.main",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "primary.light",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.dark",
+                  },
+                  "& input:-webkit-autofill": {
+                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                    WebkitTextFillColor: theme.palette.text.primary,
+                  },
+                },
+              }}
+            />
+          </Grid>
+        </Grid>
+        {items.map((item, index) => (
+          <Box
+            display="flex"
+            justifyContent="center"
+            sx={{
+              mt: 2,
+              pb: 1,
+              pt: 1,
+              px: 2,
+              boxShadow: "0 0 20px rgba(102, 155, 188, 0.4)",
+              borderRadius: 0.5,
+            }}
+          >
+            <Grid container spacing={2} key={index}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={2}
-                  label={`Descripción ${index + 1}`}
+                  s
+                  size="small"
+                  label="Descripción"
                   value={item.description}
                   onChange={(e) =>
                     updateItem(index, "description", e.target.value)
@@ -257,15 +273,16 @@ export default function Cotizacion() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={6} md={6}>
                 <TextField
                   fullWidth
                   type="number"
-                  label={`Cantidad ${index + 1}`}
+                  label="Cantidad"
                   value={item.quantity !== 0 ? item.quantity : ""}
                   onChange={(e) =>
                     updateItem(index, "quantity", e.target.value)
                   }
+                  size="small"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       "& fieldset": {
@@ -285,13 +302,14 @@ export default function Cotizacion() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={6} md={6}>
                 <TextField
                   fullWidth
                   type="number"
-                  label={`Precio ${index + 1}`}
+                  label="Precio"
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
+                  size="small"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       "& fieldset": {
@@ -311,48 +329,49 @@ export default function Cotizacion() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={6} md={6}>
                 <Typography>Subtotal: {item.subtotal}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={6} md={6}>
                 <Button
                   variant="danger"
                   color="error"
                   onClick={() => removeItem(index)}
                   fullWidth
+                  sx={{ flex: 1, whiteSpace: "nowrap" }}
                 >
                   Eliminar Ítem {index + 1}
                 </Button>
               </Grid>
             </Grid>
-          ))}
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={6}>
-              <Button
-                variant="success"
-                color="primary"
-                onClick={addNewItem}
-                fullWidth
-              >
-                Agregar Ítem
-              </Button>
-            </Grid>
-            <Grid item xs={6}>
-              <Button
-                variant="success"
-                color="primary"
-                onClick={calculateTotal}
-                fullWidth
-              >
-                Calcular Total
-              </Button>
-            </Grid>
+          </Box>
+        ))}
+        <Grid container spacing={2} sx={{ mt: 2 }}>
+          <Grid item xs={6}>
+            <Button
+              variant="success"
+              color="primary"
+              onClick={addNewItem}
+              fullWidth
+            >
+              Agregar Ítem
+            </Button>
           </Grid>
-          <Grid item xs={12}>
-            <Typography variant="h6">Total: {total}</Typography>
+          <Grid item xs={6}>
+            <Button
+              variant="success"
+              color="primary"
+              onClick={calculateTotal}
+              fullWidth
+            >
+              Calcular Total
+            </Button>
           </Grid>
         </Grid>
+        <Grid item xs={12} sx={{ mt: 2 }}>
+          <Typography variant="h6">Total: {total}</Typography>
+        </Grid>
       </Box>
-    </Container>
+    </Box>
   );
 }
