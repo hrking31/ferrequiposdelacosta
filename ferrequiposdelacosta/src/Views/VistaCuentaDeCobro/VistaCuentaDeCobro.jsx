@@ -4,13 +4,32 @@ import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import { useAuth } from "../../Context/AuthContext";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { useSelector } from "react-redux";
-import Button from "@mui/material/Button";
-import { Box, Grid } from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setFormCuentaCobro,
+  setItemsCc,
+  setTotalCc,
+} from "../../Store/Slices/cuentacobroSlice";
+import { Box, Grid, Button } from "@mui/material";
 
 export default function VistaCuentaDeCobro() {
+  const dispatch = useDispatch();
   const values = useSelector((state) => state.cuentacobro);
   const { logout } = useAuth();
+
+  const clearForm = () => {
+    dispatch(
+      setFormCuentaCobro({
+        empresa: "",
+        obra: "",
+        concepto: "",
+        nit: "",
+        fecha: "",
+      })
+    );
+    dispatch(setItemsCc([]));
+    dispatch(setTotalCc("0"));
+  };
 
   const handlerLogout = async () => {
     await logout();
@@ -32,19 +51,28 @@ export default function VistaCuentaDeCobro() {
         justifyContent="center"
         sx={{ marginBottom: 4, mt: 2 }}
       >
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={10} sm={2.8} md={2}>
           <PDFDownloadLink
             document={<VistaCcPdf values={values} />}
             fileName={`${values.value.empresa}.pdf`}
           >
             {({ loading }) => (
-              <Button variant="success" fullWidth>
+              <Button
+                variant="success"
+                fullWidth
+                sx={{ flex: 1, whiteSpace: "nowrap" }}
+              >
                 {loading ? "Cargando..." : "Descargar PDF"}
               </Button>
             )}
           </PDFDownloadLink>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={3} md={3}>
+          <Button variant="danger" onClick={clearForm} fullWidth>
+            Cancelar
+          </Button>
+        </Grid>
+        <Grid item xs={12} sm={3} md={3}>
           <Button
             component={Link}
             to="/adminforms"
@@ -54,8 +82,13 @@ export default function VistaCuentaDeCobro() {
             MENU
           </Button>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Button onClick={handlerLogout} variant="danger" fullWidth>
+        <Grid item xs={12} sm={3} md={3}>
+          <Button
+            onClick={handlerLogout}
+            variant="danger"
+            fullWidth
+            sx={{ flex: 1, whiteSpace: "nowrap" }}
+          >
             CERRAR SESION
           </Button>
         </Grid>

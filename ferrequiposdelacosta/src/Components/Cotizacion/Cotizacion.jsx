@@ -29,7 +29,7 @@ export default function Cotizacion() {
   const updateItem = (index, field, value) => {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
-    updatedItem.subtotal = updatedItem.quantity * updatedItem.price;
+    updatedItem.subtotal = updatedItem.quantity * updatedItem.price * updatedItem.day;
     updatedItem.subtotal = updatedItem.subtotal.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
@@ -41,7 +41,7 @@ export default function Cotizacion() {
 
   const calculateTotalFrom = (updatedItems) => {
     const totalAmount = updatedItems.reduce(
-      (total, item) => total + item.quantity * item.price,
+      (total, item) => total + item.quantity * item.price * item.day,
       0
     );
     const totalAmountFormatted = totalAmount.toLocaleString("es-CO", {
@@ -72,14 +72,10 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Typography
-          variant="h4"
-          gutterBottom
-          color="theme.palette.text.primary"
-        >
+        <Typography variant="h4" color="text.primary">
           Formulario Cotización
         </Typography>
-        <Grid container spacing={2} sx={{ mt: 2, px: 2 }}>
+        <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
           <Grid item xs={7} sm={6}>
             <TextField
               fullWidth
@@ -206,24 +202,24 @@ export default function Cotizacion() {
         </Grid>
         {items.map((item, index) => (
           <Box
+            key={item.id || index}
             display="flex"
             justifyContent="center"
             sx={{
               mt: 2,
               pb: 1,
               pt: 1,
-              px: 2,
+              px: 1,
               boxShadow: "0 0 20px rgba(102, 155, 188, 0.4)",
               borderRadius: 0.5,
             }}
           >
-            <Grid container spacing={2} key={index}>
+            <Grid container spacing={1} key={index}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
                   rows={2}
-                  s
                   size="small"
                   label="Descripción"
                   value={item.description}
@@ -249,7 +245,7 @@ export default function Cotizacion() {
                   }}
                 />
               </Grid>
-              <Grid item xs={6} md={6}>
+              <Grid item xs={4}>
                 <TextField
                   fullWidth
                   type="number"
@@ -278,7 +274,34 @@ export default function Cotizacion() {
                   }}
                 />
               </Grid>
-              <Grid item xs={6} md={6}>
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Dias"
+                  value={item.day !== 0 ? item.day : ""}
+                  onChange={(e) => updateItem(index, "day", e.target.value)}
+                  size="small"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: "primary.main",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: "primary.light",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "primary.dark",
+                      },
+                      "& input:-webkit-autofill": {
+                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                        WebkitTextFillColor: theme.palette.text.primary,
+                      },
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={4}>
                 <TextField
                   fullWidth
                   type="number"
@@ -323,12 +346,7 @@ export default function Cotizacion() {
         ))}
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={6}>
-            <Button
-              variant="success"
-              color="primary"
-              onClick={addNewItem}
-              fullWidth
-            >
+            <Button variant="success" onClick={addNewItem} fullWidth>
               Agregar Ítem
             </Button>
           </Grid>

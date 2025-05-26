@@ -112,7 +112,7 @@ export default function VistaCotWeb() {
                 whiteSpace: "normal",
               }}
             >
-              {item.description}
+              {item.quantity} {item.description}
             </Typography>
           </Grid>
           <Grid item xs={6} sx={{ textAlign: "right" }}>

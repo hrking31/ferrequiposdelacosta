@@ -1,6 +1,5 @@
 import {
   Home,
-  Login,
   Detail,
   AdminForms,
   VistaCotizacion,
@@ -119,7 +118,6 @@ function App() {
         />
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
         <Route exact path="/detail/:id" element={<Detail />} />
         <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
       </Routes>

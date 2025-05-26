@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -8,34 +8,23 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  Modal,
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import AccountCircle from "@mui/icons-material/AccountCircle";
-import MenuItem from "@mui/material/MenuItem";
 import { useColorMode } from "../../Theme/ThemeProvider";
-import Menu from "@mui/material/Menu";
 import Logos from "../../assets/LogoFerrequipos.png";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import Login from "../Login/Login";
 
 export default function MenuAppBar() {
-  const [anchorEl, setAnchorEl] = React.useState(null);
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
-  const navigate = useNavigate();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
+  const [open, setOpen] = useState(false);
 
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleAccountClick = () => {
-    navigate("/login");
-    handleClose();
-  };
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -97,7 +86,7 @@ export default function MenuAppBar() {
               aria-label="account of current user"
               aria-controls="menu-appbar"
               aria-haspopup="true"
-              onClick={handleMenu}
+              onClick={handleOpen}
               color="inherit"
             >
               <AccountCircle />
@@ -109,38 +98,26 @@ export default function MenuAppBar() {
                 <Brightness4 />
               )}
             </IconButton>
-            <Menu
-              id="menu-appbar"
-              anchorEl={anchorEl}
-              keepMounted
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-              anchorOrigin={{
-                vertical: isSmallScreen ? "bottom" : "top",
-                horizontal: "right",
-              }}
-              transformOrigin={{
-                vertical: isSmallScreen ? "top" : "top",
-                horizontal: "right",
-              }}
-              sx={{
-                "& .MuiPaper-root": {
-                  backgroundColor: theme.palette.background.paper,
-                  color: theme.palette.text.primary,
-                  boxShadow: 3,
-                  borderRadius: 2,
-                  width: 200,
-                  mt: isSmallScreen ? 2 : -1,
-                },
-              }}
-            >
-              <MenuItem onClick={handleAccountClick}>Mi cuenta</MenuItem>
-            </Menu>
+            <Modal open={open} onClose={handleClose}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  backgroundColor: "#FDF6EC",
+                  padding: "0px",
+                  borderRadius: "8px",
+                  maxWidth: "400px",
+                  width: "90%",
+                }}
+              >
+                <Login onClose={handleClose} />
+              </div>
+            </Modal>
           </div>
         </Toolbar>
       </AppBar>
     </Box>
   );
 }
-
-

@@ -16,9 +16,9 @@ import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { setUserData } from "../../Store/Slices/userSlice";
 import { useAuth } from "../../Context/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../Components/Firebase/Firebase";
+import { db } from "../Firebase/Firebase";
 
-export default function Login() {
+export default function Login({onClose}) {
   const [user, setUser] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const theme = useTheme();
@@ -35,6 +35,7 @@ export default function Login() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    onClose();
     setError("");
 
     try {
@@ -68,7 +69,6 @@ export default function Login() {
     <Box
       maxWidth={400}
       mx="auto"
-      mt={5}
       p={3}
       display="flex"
       flexDirection="column"
@@ -95,6 +95,7 @@ export default function Login() {
               onChange={handleChange}
               required
               fullWidth
+              size="small"
               sx={{
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": {
@@ -123,6 +124,7 @@ export default function Login() {
               onChange={handleChange}
               required
               fullWidth
+              size="small"
               InputProps={{
                 style: { color: theme.palette.text.primary },
                 endAdornment: (
