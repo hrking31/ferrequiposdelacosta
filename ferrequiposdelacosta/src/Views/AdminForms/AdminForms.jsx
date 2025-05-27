@@ -15,20 +15,14 @@ export default function AdminForms() {
   };
 
   return (
-    <Box sx={{ padding: 2, textAlign: "center" }}>
-      <Box sx={{ marginBottom: 4 }}>
+    <Box sx={{ padding: 2 }}>
+      <Box sx={{ mb: 6, mt: 4 }}>
         <Typography variant="h4" color="text.primary">
           {saludo} {name} ¿Qué vamos a hacer hoy?
         </Typography>
       </Box>
-
-      <Grid
-        container
-        spacing={2}
-        justifyContent="center"
-        sx={{ marginBottom: 4 }}
-      >
-        <Grid item xs={12} sm={6} md={4}>
+      <Grid container px={6} spacing={4} justifyContent="center">
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("cotizacion") && (
             <Button
               component={Link}
@@ -40,7 +34,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("cuentaCombro") && (
             <Button
               component={Link}
@@ -52,7 +46,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("crearEquipos") && (
             <Button
               component={Link}
@@ -64,7 +58,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("eliminarEditarEquipos") && (
             <Button
               component={Link}
@@ -76,7 +70,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("crearUsuarios") && (
             <Button
               component={Link}
@@ -88,7 +82,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("eliminarUsuarios") && (
             <Button
               component={Link}
@@ -100,7 +94,7 @@ export default function AdminForms() {
             </Button>
           )}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={5} md={4}>
           <Button onClick={handlerLogout} variant="danger" fullWidth>
             CERRAR SESIÓN
           </Button>

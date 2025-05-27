@@ -299,36 +299,45 @@ export default function VistaCreaEquipo() {
           </Box>
         </Grid>
 
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={6} md={2}>
-            <Button
-              type="submit"
-              variant="success"
-              disabled={loading}
-              fullWidth
-            >
-              CREAR EQUIPO
-            </Button>
+        <Grid
+          container
+          px={2}
+          justifyContent="center"
+          sx={{ marginBottom: 4, mt: 2 }}
+        >
+          <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+            <Grid item xs={10} sm={4} md={4}>
+              <Button
+                type="submit"
+                variant="success"
+                disabled={loading}
+                fullWidth
+              >
+                CREAR EQUIPO
+              </Button>
+            </Grid>
+            <Grid item xs={10} sm={4} md={4}>
+              <Button onClick={handleCancel} variant="danger" fullWidth>
+                CANCELAR
+              </Button>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Button onClick={handleCancel} variant="danger" fullWidth>
-              CANCELAR
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Button
-              component={Link}
-              to="/adminforms"
-              variant="contained"
-              fullWidth
-            >
-              MENU
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
-              CERRAR SESION
-            </Button>
+          <Grid container spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+            <Grid item xs={12} sm={5} md={5}>
+              <Button
+                component={Link}
+                to="/adminforms"
+                variant="contained"
+                fullWidth
+              >
+                MENU
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={5} md={5}>
+              <Button onClick={handlerLogout} variant="danger" fullWidth>
+                CERRAR SESION
+              </Button>
+            </Grid>
           </Grid>
         </Grid>
         <Snackbar

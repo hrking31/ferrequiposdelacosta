@@ -152,7 +152,7 @@ export default function Detail() {
                   },
                 }}
                 component="a"
-                href="https://wa.me/3028446805"
+                href="https://wa.me/3116576633"
                 target="_blank"
               >
                 <WhatsAppIcon sx={{ marginRight: 1 }} />

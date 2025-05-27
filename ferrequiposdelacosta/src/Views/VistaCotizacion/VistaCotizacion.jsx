@@ -10,7 +10,7 @@ import {
   setItems,
   setTotal,
 } from "../../Store/Slices/cotizacionSlice";
-import { Box, Grid , Button} from "@mui/material";
+import { Box, Grid, Button } from "@mui/material";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
@@ -46,50 +46,54 @@ export default function VistaCotizacion() {
       </Grid>
       <Grid
         container
-        spacing={2}
+        px={2}
         justifyContent="center"
         sx={{ marginBottom: 4, mt: 2 }}
       >
-        <Grid item xs={10} sm={2.8} md={2}>
-          <PDFDownloadLink
-            document={<VistaCotPdf values={values} />}
-            fileName={`${values.value.empresa}.pdf`}
-          >
-            {({ loading }) => (
-              <Button
-                variant="success"
-                fullWidth
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-              >
-                {loading ? "Cargando..." : "Descargar PDF"}
-              </Button>
-            )}
-          </PDFDownloadLink>
+        <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+          <Grid item xs={10} sm={4} md={4}>
+            <PDFDownloadLink
+              document={<VistaCotPdf values={values} />}
+              fileName={`${values.value.empresa}.pdf`}
+            >
+              {({ loading }) => (
+                <Button
+                  variant="success"
+                  fullWidth
+                  sx={{ flex: 1, whiteSpace: "nowrap" }}
+                >
+                  {loading ? "Cargando..." : "Descargar PDF"}
+                </Button>
+              )}
+            </PDFDownloadLink>
+          </Grid>
+          <Grid item xs={10} sm={4} md={4}>
+            <Button variant="danger" onClick={clearForm} fullWidth>
+              Cancelar
+            </Button>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={3} md={3}>
-          <Button variant="danger" onClick={clearForm} fullWidth>
-            Cancelar
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={3} md={3}>
-          <Button
-            component={Link}
-            to="/adminforms"
-            variant="contained"
-            fullWidth
-          >
-            MENU
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={3} md={3}>
-          <Button
-            onClick={handlerLogout}
-            variant="danger"
-            fullWidth
-            sx={{ flex: 1, whiteSpace: "nowrap" }}
-          >
-            CERRAR SESION
-          </Button>
+        <Grid container spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+          <Grid item xs={12} sm={5} md={5}>
+            <Button
+              component={Link}
+              to="/adminforms"
+              variant="contained"
+              fullWidth
+            >
+              MENU
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={5} md={5}>
+            <Button
+              onClick={handlerLogout}
+              variant="danger"
+              fullWidth
+              sx={{ flex: 1, whiteSpace: "nowrap" }}
+            >
+              CERRAR SESION
+            </Button>
+          </Grid>
         </Grid>
       </Grid>
     </Box>
