@@ -12,24 +12,79 @@ import {
   Button,
   Snackbar,
   Alert,
+  Paper,
+  Divider,
+  useTheme,
+  useMediaQuery,
+  Container,
 } from "@mui/material";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import InstagramIcon from "@mui/icons-material/Instagram";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import EmailIcon from "@mui/icons-material/Email";
-import { StyleTypography, StyleNameTypography } from "./DetailEquiposStyled";
+import {
+  WhatsApp,
+  Instagram,
+  Facebook,
+  Email,
+  LocalPhone,
+  Construction,
+} from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
+
+// Componentes estilizados
+const DetailContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius * 2,
+  margin: theme.spacing(3, "auto"),
+  maxWidth: "1200px",
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[4],
+  overflow: "hidden",
+}));
+
+const GalleryWrapper = styled(Box)(({ theme }) => ({
+  height: "100%",
+  minHeight: "400px",
+  display: "flex",
+  alignItems: "center",
+  [theme.breakpoints.down("sm")]: {
+    minHeight: "300px",
+  },
+}));
+
+const ContentWrapper = styled(Box)(({ theme }) => ({
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  padding: theme.spacing(0, 2),
+}));
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  padding: theme.spacing(1.5, 3),
+  borderRadius: theme.shape.borderRadius * 2,
+  fontWeight: 600,
+  margin: theme.spacing(1),
+  textTransform: "none",
+  boxShadow: theme.shadows[2],
+  "&:hover": {
+    boxShadow: theme.shadows[4],
+  },
+}));
 
 export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const {
     selectedEquipo: equipo,
     loading,
     error,
   } = useSelector((state) => state.equipoDetail);
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const [snackbarProps, setSnackbarProps] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
     dispatch(fetchDetailData(id));
@@ -37,215 +92,129 @@ export default function Detail() {
 
   useEffect(() => {
     if (error) {
-      setSnackbarMessage(error);
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      setSnackbarProps({
+        open: true,
+        message: error,
+        severity: "error",
+      });
     }
   }, [error]);
 
-  useEffect(() => {
-    setOpenSnackbar(false);
-    setSnackbarMessage("");
-    setSnackbarSeverity("success");
-  }, [id]);
+  const handleCloseSnackbar = () => {
+    setSnackbarProps((prev) => ({ ...prev, open: false }));
+  };
 
   if (loading) return <LoadingLogo />;
 
   return (
-    <Grid container spacing={2}>
+    <Container maxWidth="lg" sx={{ py: 2, height: "100%" }}>
       {equipo && (
-        <>
-          {/* primera */}
-          <Grid item xs={12} sm={4} md={4}>
-            <Box
-              sx={{
-                marginTop: "40px",
-                minHeight: "200px",
-                maxHeight: "400px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: 4,
-              }}
+        <DetailContainer elevation={3}>
+          <Grid container spacing={4} sx={{ height: "100%" }}>
+            {/* Sección de galería */}
+            <Grid
+              item
+              xs={12}
+              md={5}
+              sx={{ height: isMobile ? "auto" : "100%" }}
             >
-              <DetailGallery />
-            </Box>
-          </Grid>
-          {/* segunda */}
-          <Grid item xs={12} sm={8} md={8}>
-            <Box
-              sx={{
-                marginTop: "20px",
-                maxHeight: "60px",
-                minHeight: "60px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: "10px",
-                padding: "5px",
-                // border: "2px solid blue",
-              }}
-            >
-              <StyleNameTypography
-                variant="h4"
-                component="h1"
-                sx={{
-                  wordBreak: "break-word",
-                  fontSize: {
-                    xs: "1.5rem",
-                    sm: "2rem",
-                  },
-                }}
-              >
-                {equipo.name.split("\n").map((line, index) => (
-                  <React.Fragment key={index}>
-                    {line}
-                    <br />
-                  </React.Fragment>
-                ))}
-              </StyleNameTypography>
-            </Box>
-            <Box
-              sx={{
-                minHeight: "120px",
-                marginTop: "10px",
-                marginBottom: "15px",
-                padding: "5px",
-                paddingLeft: "30px",
-                paddingRight: "20px",
-                // border: "2px solid blue",
-              }}
-            >
-              <StyleTypography
-                variant="body1"
-                component="p"
-                sx={{
-                  wordBreak: "break-word",
-                }}
-              >
-                {equipo.description.split("\n").map((line, index) => (
-                  <React.Fragment key={index}>
-                    {line}
-                    <br />
-                  </React.Fragment>
-                ))}
-              </StyleTypography>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: "10px",
-                // border: "2px solid blue",
-              }}
-            >
-              <Button
-                variant="contained"
-                color="success"
-                sx={{
-                  borderRadius: "50px",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "10px 20px",
-                  backgroundColor: "#25D366",
-                  "&:hover": {
-                    backgroundColor: "#1DA851",
-                  },
-                }}
-                component="a"
-                href="https://wa.me/3116576633"
-                target="_blank"
-              >
-                <WhatsAppIcon sx={{ marginRight: 1 }} />
-                <Typography variant="body1" sx={{ color: "white" }}>
-                  Cotiza con nosotros
-                </Typography>
-              </Button>
-            </Box>
+              <GalleryWrapper>
+                <DetailGallery />
+              </GalleryWrapper>
+            </Grid>
 
-            <Box
-              sx={{
-                minHeight: "60px",
-                padding: "8px",
-                // border: "2px solid blue",
-              }}
-            >
-              <Typography
-                variant="h4"
-                component="p"
-                sx={{
-                  color: "#8B3A3A",
-                  textAlign: "center",
-                  fontFamily: "Oswald, serif",
-                  fontWeight: "bold",
-                  marginBottom: "15px",
-                  fontSize: {
-                    xs: "1.5rem",
-                    sm: "2rem",
-                  },
-                }}
-              >
-                Sector o Actividad del Negocio (Venta y Reparación de
-                Tecnología)
-              </Typography>
-              <Typography
-                variant="body1"
-                component="p"
-                sx={{
-                  textAlign: "center",
-                  fontFamily: "Roboto, sans-serif",
-                  color: "blue",
-                }}
-              >
-                Productos o Servicios Principales. (Venta de celulares,
-                accesorios, laptops y servicio técnico.)
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                // border: "2px solid blue",
-              }}
-            >
-              <IconButton
-                component="a"
-                href="mailto:hrking31@gmail.com"
-                target="_blank"
-              >
-                <EmailIcon fontSize="large" sx={{ color: "#0072C6" }} />
-              </IconButton>
-              <IconButton
-                component="a"
-                href="https://www.instagram.com/yourprofile"
-                target="_blank"
-              >
-                <InstagramIcon fontSize="large" sx={{ color: "#E4405F" }} />
-              </IconButton>
-              <IconButton
-                component="a"
-                href="https://www.facebook.com/yourprofile"
-                target="_blank"
-              >
-                <FacebookIcon fontSize="large" sx={{ color: "#1877F2" }} />
-              </IconButton>
-            </Box>
+            <Grid item xs={12} md={7} sx={{ height: "100%" }}>
+              <ContentWrapper>
+                <Typography
+                  variant="h3"
+                  component="h1"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 3,
+                    textAlign: isMobile ? "center" : "left",
+                  }}
+                >
+                  {equipo.name}
+                </Typography>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.6 }}>
+                  {equipo.description}
+                </Typography>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: 2,
+                  }}
+                >
+                  <ActionButton
+                    variant="contained"
+                    color="success"
+                    startIcon={<WhatsApp />}
+                    href="https://wa.me/3116576633"
+                    target="_blank"
+                    sx={{
+                      backgroundColor: "#25D366",
+                      "&:hover": { backgroundColor: "#128C7E" },
+                      minWidth: 200,
+                    }}
+                  >
+                    Cotiza con nosotros
+                  </ActionButton>
+                  <ActionButton
+                    variant="contained"
+                    color="primary"
+                    startIcon={<LocalPhone />}
+                    href="tel:+573116576633"
+                    sx={{ minWidth: 200 }}
+                  >
+                    Llamar ahora
+                  </ActionButton>
+                </Box>
+
+                <Box sx={{ mt: "auto", pt: 3 }}>
+                  <Divider sx={{ mb: 3 }} />
+                  <Box sx={{ textAlign: "center" }}>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                      <Construction sx={{ mr: 1 }} />
+                      Alquiler de Equipos para Construcción
+                    </Typography>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", gap: 2 }}
+                    >
+                      <IconButton href="mailto:ferrequipos07@hotmail.com">
+                        <Email />
+                      </IconButton>
+                      <IconButton href="https://instagram.com">
+                        <Instagram />
+                      </IconButton>
+                      <IconButton href="https://facebook.com">
+                        <Facebook />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Box>
+              </ContentWrapper>
+            </Grid>
           </Grid>
-        </>
+        </DetailContainer>
       )}
+
       <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={() => setOpenSnackbar(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        open={snackbarProps.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
       >
-        <Alert
-          onClose={() => setOpenSnackbar(false)}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
-        >
-          {snackbarMessage}
+        <Alert onClose={handleCloseSnackbar} severity={snackbarProps.severity}>
+          {snackbarProps.message}
         </Alert>
       </Snackbar>
-    </Grid>
+    </Container>
   );
 }
