@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Grid, IconButton, Box, useTheme, useMediaQuery, Paper } from "@mui/material";
+import { Grid, IconButton, Box, useTheme, useMediaQuery } from "@mui/material";
 import {
   Fullscreen,
   ChevronLeft,
@@ -9,18 +9,15 @@ import {
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
-const GalleryContainer = styled(Paper)(({ theme }) => ({
+const GalleryContainer = styled(Box)(({ theme }) => ({
   position: "relative",
   width: "100%",
-  // height: "400px",
+  borderRadius: theme.shape.borderRadius + 2,
   overflow: "hidden",
   backgroundColor: theme.palette.grey[100],
-  boxShadow: "none", 
+  boxShadow: "none",
   border: "none",
-  // [theme.breakpoints.down("sm")]: {
-  //   height: "300px",
-  // },
-}));
+  }));
 
 const MainImage = styled("img")({
   width: "100%",
@@ -35,7 +32,6 @@ const ThumbnailContainer = styled(Box)(({ theme }) => ({
   gap: theme.spacing(1),
   padding: theme.spacing(1),
   overflowX: "auto",
-  backgroundColor: theme.palette.background.paper,
 }));
 
 const ThumbnailImage = styled("img")(({ theme, selected }) => ({

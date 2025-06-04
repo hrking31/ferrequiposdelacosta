@@ -1,34 +1,22 @@
-import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import {
   AppBar,
   Toolbar,
-  IconButton,
   Typography,
   Grid,
   Box,
   useTheme,
   useMediaQuery,
-  Modal,
 } from "@mui/material";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
-import { Brightness4, Brightness7 } from "@mui/icons-material";
-import AccountCircle from "@mui/icons-material/AccountCircle";
-import { useColorMode } from "../../Theme/ThemeProvider";
 import Logos from "../../assets/LogoFerrequipos.png";
 import { useNavigate } from "react-router-dom";
-import Login from "../Login/Login";
 
 export default function MenuAppBar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { toggleColorMode } = useColorMode();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
-  const [open, setOpen] = useState(false);
-
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
@@ -38,12 +26,15 @@ export default function MenuAppBar() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
-        position="static"
+        position={isSmallScreen ? "fixed" : "static"}
         sx={{
           bgcolor:
             theme.palette.mode === "light"
               ? theme.palette.primary.main
               : theme.palette.secondary.main,
+          bottom: isSmallScreen ? 0 : "auto",
+          top: isSmallScreen ? "auto" : 0,
+          boxShadow: theme.shadows[4],
         }}
       >
         <Toolbar>
@@ -94,45 +85,9 @@ export default function MenuAppBar() {
               Ferrequipos
             </Typography>
           )}
-
-          <div>
-            <IconButton
-              size="large"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={handleOpen}
-              color="inherit"
-            >
-              <AccountCircle />
-            </IconButton>
-            <IconButton onClick={toggleColorMode}>
-              {theme.palette.mode === "dark" ? (
-                <Brightness7 />
-              ) : (
-                <Brightness4 />
-              )}
-            </IconButton>
-            <Modal open={open} onClose={handleClose}>
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  backgroundColor: "#FDF6EC",
-                  padding: "0px",
-                  borderRadius: "8px",
-                  maxWidth: "400px",
-                  width: "90%",
-                }}
-              >
-                <Login onClose={handleClose} />
-              </div>
-            </Modal>
-          </div>
         </Toolbar>
       </AppBar>
+      {isSmallScreen && <Box sx={{ height: "64px" }} />}
     </Box>
   );
 }

@@ -9,7 +9,6 @@ import {
   Typography,
   Box,
   IconButton,
-  Button,
   Snackbar,
   Alert,
   Divider,
@@ -17,15 +16,9 @@ import {
   useMediaQuery,
   Container,
 } from "@mui/material";
-import {
-  WhatsApp,
-  Instagram,
-  Facebook,
-  Email,
-  LocalPhone,
-  Construction,
-} from "@mui/icons-material";
+import { Instagram, Facebook, Email, Construction } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
 
 // Componentes estilizados
 const DetailContainer = styled(Box)(({ theme }) => ({
@@ -49,18 +42,6 @@ const ContentWrapper = styled(Box)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   padding: theme.spacing(0, 2),
-}));
-
-const ActionButton = styled(Button)(({ theme }) => ({
-  padding: theme.spacing(1.5, 3),
-  borderRadius: theme.shape.borderRadius * 2,
-  fontWeight: 600,
-  margin: theme.spacing(1),
-  textTransform: "none",
-  boxShadow: theme.shadows[2],
-  "&:hover": {
-    boxShadow: theme.shadows[4],
-  },
 }));
 
 export default function Detail() {
@@ -149,38 +130,7 @@ export default function Detail() {
 
                 <Divider sx={{ my: 2 }} />
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    gap: 2,
-                  }}
-                >
-                  <ActionButton
-                    variant="contained"
-                    color="success"
-                    startIcon={<WhatsApp />}
-                    href="https://wa.me/3116576633"
-                    target="_blank"
-                    sx={{
-                      backgroundColor: "#25D366",
-                      "&:hover": { backgroundColor: "#128C7E" },
-                      minWidth: 200,
-                    }}
-                  >
-                    Cotiza con nosotros
-                  </ActionButton>
-                  <ActionButton
-                    variant="contained"
-                    color="primary"
-                    startIcon={<LocalPhone />}
-                    href="tel:+573116576633"
-                    sx={{ minWidth: 200 }}
-                  >
-                    Llamar ahora
-                  </ActionButton>
-                </Box>
+                <ButtonContacto />
 
                 <Box sx={{ mt: "auto", pt: 3 }}>
                   <Divider sx={{ mb: 3 }} />
