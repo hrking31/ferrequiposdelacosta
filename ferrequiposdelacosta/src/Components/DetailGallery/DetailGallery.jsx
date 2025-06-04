@@ -12,14 +12,14 @@ import { styled } from "@mui/material/styles";
 const GalleryContainer = styled(Paper)(({ theme }) => ({
   position: "relative",
   width: "100%",
-  height: "400px",
-  borderRadius: theme.shape.borderRadius,
+  // height: "400px",
   overflow: "hidden",
-  boxShadow: theme.shadows[4],
   backgroundColor: theme.palette.grey[100],
-  [theme.breakpoints.down("sm")]: {
-    height: "300px",
-  },
+  boxShadow: "none", 
+  border: "none",
+  // [theme.breakpoints.down("sm")]: {
+  //   height: "300px",
+  // },
 }));
 
 const MainImage = styled("img")({
@@ -40,7 +40,7 @@ const ThumbnailContainer = styled(Box)(({ theme }) => ({
 
 const ThumbnailImage = styled("img")(({ theme, selected }) => ({
   width: "60px",
-  height: "40px",
+  height: "70px",
   objectFit: "cover",
   borderRadius: theme.shape.borderRadius / 2,
   cursor: "pointer",
