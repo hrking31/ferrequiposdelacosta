@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import {
   AppBar,
   Toolbar,
@@ -10,14 +11,17 @@ import {
   useMediaQuery,
   Modal,
 } from "@mui/material";
+import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import { useColorMode } from "../../Theme/ThemeProvider";
 import Logos from "../../assets/LogoFerrequipos.png";
-import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Login from "../Login/Login";
 
 export default function MenuAppBar() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
@@ -26,26 +30,37 @@ export default function MenuAppBar() {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  const handleLogoClick = () => {
+    dispatch(clearSearchEquipo());
+    navigate("/home");
+  };
+
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
+      <AppBar
+        position="static"
+        sx={{
+          bgcolor:
+            theme.palette.mode === "light"
+              ? theme.palette.primary.main
+              : theme.palette.secondary.main,
+        }}
+      >
         <Toolbar>
           <Grid item>
-            <Box>
-              <NavLink to="/home">
-                <img
-                  src={Logos}
-                  alt="logo"
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    maxWidth: "100%",
-                    maxHeight: "60px",
-                    height: "auto",
-                    filter: "drop-shadow(0 0 3px rgba(255, 255, 255, 0.8))",
-                  }}
-                />
-              </NavLink>
+            <Box onClick={handleLogoClick} sx={{ cursor: "pointer" }}>
+              <img
+                src={Logos}
+                alt="logo"
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  maxWidth: "100%",
+                  maxHeight: "60px",
+                  height: "auto",
+                  filter: "drop-shadow(0 0 3px rgba(255, 255, 255, 0.8))",
+                }}
+              />
             </Box>
           </Grid>
           {!isSmallScreen ? (

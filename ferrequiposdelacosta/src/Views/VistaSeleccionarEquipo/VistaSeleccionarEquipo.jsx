@@ -12,7 +12,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import SearchComponent from "../../Components/SearchComponent/SearchComponent";
+import Search from "../../Components/Search/Search";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import {
   fetchEquipos,
@@ -115,7 +115,7 @@ const VistaSeleccionarEquipo = () => {
       >
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <SearchComponent onSearch={handleSearch} />
+            <Search onSearch={handleSearch} />
           </Grid>
 
           <Grid item xs={12}>

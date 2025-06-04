@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { TextField, Button, Box, Grid, useTheme } from "@mui/material";
+import { TextField, Box, Grid, useTheme, InputAdornment} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 
-const SearchComponent = ({ onSearch }) => {
+const Search = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const theme = useTheme();
 
@@ -14,14 +15,29 @@ const SearchComponent = ({ onSearch }) => {
   return (
     <Box p={2} display="flex" flexDirection="column">
       <Grid container spacing={2} justifyContent="center">
-        <Grid item xs={12} sm={8} md={8}>
+        <Grid item xs={12} >
           <TextField
-            label="Nombre de Equipo"
+            label="¿Qué estás buscando?"
             variant="outlined"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             fullWidth
             size="small"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <SearchIcon
+                    sx={{ cursor: "pointer" }}
+                    onClick={handleSearch}
+                  />
+                </InputAdornment>
+              ),
+            }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 "& fieldset": {
@@ -41,15 +57,9 @@ const SearchComponent = ({ onSearch }) => {
             }}
           />
         </Grid>
-
-        <Grid item xs={12} sm={4} md={4}>
-          <Button variant="contained" onClick={handleSearch} fullWidth>
-            Buscar
-          </Button>
-        </Grid>
       </Grid>
     </Box>
   );
 };
 
-export default SearchComponent;
+export default Search;

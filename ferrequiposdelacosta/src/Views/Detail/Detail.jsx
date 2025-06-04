@@ -12,7 +12,6 @@ import {
   Button,
   Snackbar,
   Alert,
-  Paper,
   Divider,
   useTheme,
   useMediaQuery,
@@ -29,13 +28,9 @@ import {
 import { styled } from "@mui/material/styles";
 
 // Componentes estilizados
-const DetailContainer = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  borderRadius: theme.shape.borderRadius * 2,
+const DetailContainer = styled(Box)(({ theme }) => ({
   margin: theme.spacing(3, "auto"),
   maxWidth: "1200px",
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[4],
   overflow: "hidden",
 }));
 
@@ -111,7 +106,6 @@ export default function Detail() {
       {equipo && (
         <DetailContainer elevation={3}>
           <Grid container spacing={4} sx={{ height: "100%" }}>
-            {/* Sección de galería */}
             <Grid
               item
               xs={12}
@@ -134,13 +128,23 @@ export default function Detail() {
                     textAlign: isMobile ? "center" : "left",
                   }}
                 >
-                  {equipo.name}
+                  {equipo.name.split("\n").map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
                 </Typography>
 
                 <Divider sx={{ my: 2 }} />
 
                 <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.6 }}>
-                  {equipo.description}
+                  {equipo.description.split("\n").map((line, index) => (
+                    <React.Fragment key={index}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
                 </Typography>
 
                 <Divider sx={{ my: 2 }} />
@@ -191,10 +195,10 @@ export default function Detail() {
                       <IconButton href="mailto:ferrequipos07@hotmail.com">
                         <Email />
                       </IconButton>
-                      <IconButton href="https://instagram.com">
+                      <IconButton href="https://www.instagram.com/ferrequipos07?utm_source=qr&igsh=aGpqN2s4Y2h5ZmRi">
                         <Instagram />
                       </IconButton>
-                      <IconButton href="https://facebook.com">
+                      <IconButton href="https://www.facebook.com/share/19fZ91JWgg/">
                         <Facebook />
                       </IconButton>
                     </Box>

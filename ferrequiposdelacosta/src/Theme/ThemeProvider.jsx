@@ -22,18 +22,24 @@ export const CustomThemeProvider = ({ children }) => {
         palette: {
           mode,
           primary: {
+            light: "#85A6D2",
             main: "#669BBC",
+            dark: "#3B6B8B",
+            contrastText: "#fff",
           },
           secondary: {
-            main: "#6699BBC",
+            light: "#E57373",
+            main: "#C94C4C",
+            dark: "#8B2A2A",
+            contrastText: "#fff",
           },
           background: {
             default: mode === "light" ? "#FDF6EC" : "#003049",
-            paper: mode === "light" ? "#6699BBC" : "#003049",
+            paper: mode === "light" ? "#FFF8E7" : "#0A2540",
           },
           text: {
             primary: mode === "light" ? "#003049" : "#FDF6EC",
-            secondary: mode === "light" ? "#780000" : "#AE1F23",
+            secondary: mode === "light" ? "#5C5C5C" : "#CCCCCC",
           },
         },
         typography: {
@@ -57,11 +63,7 @@ export const CustomThemeProvider = ({ children }) => {
                 borderRadius: 12,
                 border: "1px solid #e0e0e0",
                 transition: "all 0.3s ease-in-out",
-                 cursor: "pointer",
-                // "&:hover": {
-                //   transform: "scale(1.03)",
-                //   boxShadow: "0 6px 16px rgba(102, 155, 188, 0.35)",
-                // },
+                cursor: "pointer",
               },
             },
           },
@@ -74,7 +76,6 @@ export const CustomThemeProvider = ({ children }) => {
               },
             },
           },
-
           MuiButton: {
             styleOverrides: {
               root: {
@@ -87,31 +88,31 @@ export const CustomThemeProvider = ({ children }) => {
                 props: { variant: "danger" },
                 style: ({ theme }) => ({
                   color: theme.palette.primary.contrastText,
-                  backgroundColor: theme.palette.primary.main,
+                  backgroundColor: theme.palette.secondary.main,
                   "&:hover": {
-                    backgroundColor: "#DC143C",
+                    backgroundColor: "#B03A3A",
                   },
                 }),
               },
               {
                 props: { variant: "success" },
-                style: ({ theme }) => ({
-                  color: theme.palette.primary.contrastText,
-                  backgroundColor: theme.palette.primary.main,
+                style: {
+                  color: "#ffffff",
+                  backgroundColor: "#28a745",
                   "&:hover": {
-                    backgroundColor: "#28a745",
+                    backgroundColor: "#218838",
                   },
-                }),
+                },
               },
               {
                 props: { variant: "upload" },
-                style: ({ theme }) => ({
-                  color: theme.palette.primary.contrastText,
-                  backgroundColor: theme.palette.primary.main,
+                style: {
+                  color: "#ffffff",
+                  backgroundColor: "#009e88",
                   "&:hover": {
-                    backgroundColor: "#009e88",
+                    backgroundColor: "#007d6c",
                   },
-                }),
+                },
               },
             ],
           },
