@@ -27,7 +27,9 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
 import Search from "../../Components/Search/Search";
 import InstallApp from "../../Components/InstallApp/InstallApp.jsx";
-import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
+import ButtonContacto, {
+  WhatsAppButton,
+} from "../../Components/ButtonContacto/ButtonContacto";
 import EquipoImageCarousel from "../../Components/EquipoImageCarousel/EquipoImageCarousel.jsx";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { useColorMode } from "../../Theme/ThemeProvider";
@@ -37,7 +39,7 @@ export default function MobileDrawerLayout() {
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery("(max-width:820px)");
+  const isMobile = useMediaQuery("(max-width:915px)");
   const equipos = useSelector((state) => state.equipos.equipos);
   const equipo = useSelector((state) => state.search.results);
   const loading = useSelector((state) => state.search.loading);
@@ -76,7 +78,7 @@ export default function MobileDrawerLayout() {
 
   const toggleDrawer = () => setOpen((prev) => !prev);
 
-  const drawerWidth = 260;
+  const drawerWidth = "clamp(240px, 50vw, 60vw)";
 
   const drawerContent = (
     <Box sx={{ width: drawerWidth }}>
@@ -102,7 +104,7 @@ export default function MobileDrawerLayout() {
       <Box
         sx={{
           width: drawerWidth,
-          height: "90vh", // altura completa de pantalla
+          height: "90vh",
           display: "flex",
           flexDirection: "column",
         }}
@@ -169,14 +171,27 @@ export default function MobileDrawerLayout() {
 
       {/* AppBar (solo visible en móvil) */}
       {isMobile && (
-        <AppBar position="fixed">
-          <Toolbar>
-            <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
+        <AppBar
+          position="fixed"
+          elevation={0}
+          sx={{
+            bgcolor: "#FDF6EC",
+          }}
+        >
+          <Toolbar
+            sx={{
+              minHeight: {
+                xs: 56,
+                sm: 64,
+              },
+            }}
+          >
+            <IconButton edge="start" onClick={toggleDrawer}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" component="div">
-              Ferrequipos
-            </Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              <Search onSearch={handleSearch} />
+            </Box>
           </Toolbar>
         </AppBar>
       )}
@@ -200,15 +215,12 @@ export default function MobileDrawerLayout() {
       )}
 
       {/* Contenido principal */}
-
       <Grid container>
-        {/* ///////////////////////////////////////////////////////////////////////// */}
         <Grid
           item
-          sm={2}
           md={3}
           sx={{
-            border: "2px solid #000",
+            // border: "2px solid #000",
             display: isMobile ? "none" : "block",
           }}
         >
@@ -220,36 +232,22 @@ export default function MobileDrawerLayout() {
               justifyContent: "space-between",
             }}
           >
-            <Box>
+            <Box sx={{ p: 2 }}>
               <Search onSearch={handleSearch} />
-
-              <Box sx={{ mt: 4 }}>
-                <InstallApp />
-              </Box>
-
-              <Box sx={{ mt: 6 }}>
-                <EquipoImageCarousel />
-              </Box>
-
-              <Box sx={{ p: 2 }}>
-                {/* {!isMobile && ( */}
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mt: "15px",
-                    mb: "15px",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  Alquiler de equipos para la Construcción
-                </Typography>
-                {/* )} */}
-
-                <ButtonContacto />
-              </Box>
+              <InstallApp />
+              <EquipoImageCarousel />
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: "15px",
+                  mb: "15px",
+                  fontSize: "1.5rem",
+                }}
+              >
+                Alquiler de equipos para la Construcción
+              </Typography>
+              <ButtonContacto />
             </Box>
-
-            {/* {!isMobile && ( */}
             <Box
               sx={{
                 p: 2,
@@ -283,7 +281,6 @@ export default function MobileDrawerLayout() {
                 )}
                 {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
               </IconButton>
-
               <Typography
                 onClick={handleOpenAccount}
                 sx={{
@@ -300,21 +297,30 @@ export default function MobileDrawerLayout() {
                 Mi cuenta
               </Typography>
             </Box>
-            {/* )} */}
           </Box>
         </Grid>
-        {/* {isMobile &&(
-        <Box sx={{ mt: 6 }}>
-          <EquipoImageCarousel />
-        </Box>
-      )} */}
-        {/* ///////////////////////////////////////////////////////////////////////////////// */}
         <Box
           sx={{
             flex: 1,
+            pt: 2,
+            pb: 8,
             //  border: "2px solid #000"
           }}
         >
+          {isMobile && (
+            <Box>
+              <InstallApp />
+              <Box
+                sx={{
+                  pt: 2,
+                }}
+              >
+                <EquipoImageCarousel />
+              </Box>
+              <WhatsAppButton />
+            </Box>
+          )}
+
           {loading ? <LoadingLogo /> : <CardsEquipos />}
         </Box>
         <Modal open={openAccount} onClose={handleCloseAccount}>

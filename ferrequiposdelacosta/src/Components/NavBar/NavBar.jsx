@@ -46,10 +46,10 @@ export default function MenuAppBar() {
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  maxWidth: "100%",
-                  maxHeight: "60px",
-                  height: "auto",
-                  filter: "drop-shadow(0 0 3px rgba(255, 255, 255, 0.8))",
+                  maxWidth: "clamp(250px, 90%, 600px)",
+                  maxHeight: "clamp(40px, 5vw, 60px)",
+                  // height: "auto",
+                  filter: "drop-shadow(0 0 3px rgba(255, 255, 255, 1))",
                 }}
               />
             </Box>
@@ -87,7 +87,17 @@ export default function MenuAppBar() {
           )}
         </Toolbar>
       </AppBar>
-      {isSmallScreen && <Box sx={{ height: "64px" }} />}
+      {/* {isSmallScreen && <Box sx={{ height: "64px" }} />} */}
+      <Box
+        sx={{
+          pt: {
+            xs: 4, 
+            sm: 4, 
+            md: 2,
+          },
+        }}
+      >
+      </Box>
     </Box>
   );
 }

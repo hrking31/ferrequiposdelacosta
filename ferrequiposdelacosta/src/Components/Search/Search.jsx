@@ -13,9 +13,9 @@ const Search = ({ onSearch }) => {
   };
 
   return (
-    <Box p={2} display="flex" flexDirection="column">
+    <Box  display="flex" flexDirection="column">
       <Grid container spacing={2} justifyContent="center">
-        <Grid item xs={12} >
+        <Grid item xs={12}  >
           <TextField
             label="¿Qué estás buscando?"
             variant="outlined"

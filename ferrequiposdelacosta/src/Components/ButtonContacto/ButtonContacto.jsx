@@ -8,9 +8,36 @@ import {
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
+export const WhatsAppButton=() =>{
+  return (
+    <IconButton
+      color="success"
+      href="https://wa.me/+573116576633"
+      sx={{
+        position: "fixed",
+        zIndex: 1300,
+        bottom: 75,
+        right: 12,
+        background: "linear-gradient(135deg, #25D366, #128C7E)",
+        color: "white",
+        width: 60,
+        height: 60,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 6px 8px rgba(0, 0, 0, 0.15)",
+        },
+        boxShadow: 3,
+      }}
+    >
+      <WhatsApp fontSize="large" />
+    </IconButton>
+  );
+}
+
 export default function ButtonContacto() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery("(max-width:915px)");
 
   const ActionButton = styled(Button)(({ theme }) => ({
     padding: theme.spacing(1.5, 3),
@@ -33,31 +60,6 @@ export default function ButtonContacto() {
         gap: 2,
       }}
     >
-      {isMobile ? (
-        <IconButton
-          color="success"
-          href="https://wa.me/+573116576633"
-          sx={{
-            position: "fixed",
-            zIndex: 1300,
-            bottom: 60,
-            right: 24,
-            background: "linear-gradient(135deg, #25D366, #128C7E)",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            color: "white",
-            width: 60,
-            height: 60,
-            transition: "all 0.3s ease",
-            "&:hover": {
-              transform: "translateY(-2px)",
-              boxShadow: "0 6px 8px rgba(0, 0, 0, 0.15)",
-            },
-            boxShadow: 3,
-          }}
-        >
-          <WhatsApp fontSize="large" />
-        </IconButton>
-      ) : (
         <Box>
           <ActionButton
             variant="contained"
@@ -85,7 +87,6 @@ export default function ButtonContacto() {
             Cotiza con nosotros
           </ActionButton>
         </Box>
-      )}
     </Box>
   );
 }

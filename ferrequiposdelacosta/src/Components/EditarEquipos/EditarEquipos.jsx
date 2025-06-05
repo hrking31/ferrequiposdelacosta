@@ -390,6 +390,8 @@ const EditarEquipo = () => {
                 onChange={handleInputChange}
                 fullWidth
                 size="small"
+                multiline
+                rows={4}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     "& fieldset": {

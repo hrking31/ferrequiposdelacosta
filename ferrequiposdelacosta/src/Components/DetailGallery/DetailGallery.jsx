@@ -14,10 +14,10 @@ const GalleryContainer = styled(Box)(({ theme }) => ({
   width: "100%",
   borderRadius: theme.shape.borderRadius + 2,
   overflow: "hidden",
-  backgroundColor: theme.palette.grey[100],
+  backgroundColor: "#fff",
   boxShadow: "none",
   border: "none",
-  }));
+}));
 
 const MainImage = styled("img")({
   width: "100%",
@@ -64,7 +64,7 @@ const NavButton = styled(IconButton)(({ theme }) => ({
 
 export default function DetailGallery() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery("(max-width:915px)");
   const imagenes = useSelector(
     (state) => state.equipoDetail.selectedEquipo?.images || []
   );

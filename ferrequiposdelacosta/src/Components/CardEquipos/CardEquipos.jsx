@@ -19,16 +19,16 @@ export default function CardEquipos({ name, url, id }) {
             flexDirection: "column",
           }}
         >
-          <CardActionArea
-            sx={{ flex: 1, flexDirection: "column" }}
-          >
+          <CardActionArea sx={{ flex: 1, flexDirection: "column" }}>
             <CardMedia
               component="img"
               src={url}
               alt="img not found"
               sx={{
-                height: { xs: 180, sm: 280, md: 400 }, 
-                objectFit: "cover", 
+                height: { xs: 180, sm: 280, md: 400 },
+                // objectFit: "cover",
+                objectFit: "contain",
+                backgroundColor: "#fff",
               }}
             />
             <Box
