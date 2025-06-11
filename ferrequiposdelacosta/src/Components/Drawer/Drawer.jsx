@@ -16,6 +16,7 @@ import {
   ListItemIcon,
   ListItemButton,
   ListItemText,
+  Divider,
   Alert,
   Snackbar,
   Modal,
@@ -114,6 +115,7 @@ export default function MobileDrawerLayout() {
           <ListItem>
             <ListItemText primary="Alquiler de equipos para la Construcción" />
           </ListItem>
+          <Divider sx={{ width: "80%", mx: "auto" }} />
           <List>
             <ListItem disablePadding>
               <ListItemButton
@@ -128,6 +130,7 @@ export default function MobileDrawerLayout() {
               </ListItemButton>
             </ListItem>
           </List>
+          <Divider sx={{ width: "80%", mx: "auto" }} />
           <List>
             <ListItem disablePadding>
               <ListItemButton component="a" href="tel:+573116576633">
@@ -138,6 +141,7 @@ export default function MobileDrawerLayout() {
               </ListItemButton>
             </ListItem>
           </List>
+          <Divider sx={{ width: "80%", mx: "auto" }} />
         </Box>
         <Box sx={{ mt: "auto" }}>
           <ListItem disablePadding>
@@ -152,6 +156,7 @@ export default function MobileDrawerLayout() {
               {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
             </ListItemButton>
           </ListItem>
+          <Divider sx={{ width: "80%", mx: "auto" }} />
           <ListItem disablePadding>
             <ListItemButton onClick={handleOpenAccount}>
               <ListItemIcon>
@@ -190,7 +195,7 @@ export default function MobileDrawerLayout() {
               <MenuIcon />
             </IconButton>
             <Box sx={{ flexGrow: 1 }}>
-              <Search onSearch={handleSearch} />
+              <Search onSearch={handleSearch} LabelOff={false} />
             </Box>
           </Toolbar>
         </AppBar>
@@ -232,10 +237,14 @@ export default function MobileDrawerLayout() {
               justifyContent: "space-between",
             }}
           >
-            <Box sx={{ p: 2 }}>
-              <Search onSearch={handleSearch} />
+            <Box sx={{ p: 1 }}>
+              <Box sx={{ pt: 2 }}>
+                <Search onSearch={handleSearch} />
+              </Box>
               <InstallApp />
-              <EquipoImageCarousel />
+              <Box sx={{ pt: 2 }}>
+                <EquipoImageCarousel />
+              </Box>
               <Typography
                 variant="body1"
                 sx={{
@@ -246,7 +255,9 @@ export default function MobileDrawerLayout() {
               >
                 Alquiler de equipos para la Construcción
               </Typography>
+              <Divider sx={{ my: 2 }} />
               <ButtonContacto />
+              <Divider sx={{ my: 2 }} />
             </Box>
             <Box
               sx={{
@@ -281,6 +292,7 @@ export default function MobileDrawerLayout() {
                 )}
                 {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
               </IconButton>
+
               <Typography
                 onClick={handleOpenAccount}
                 sx={{
@@ -302,7 +314,7 @@ export default function MobileDrawerLayout() {
         <Box
           sx={{
             flex: 1,
-            pt: 2,
+            pt: isMobile ? 2 : 0,
             pb: 8,
             //  border: "2px solid #000"
           }}

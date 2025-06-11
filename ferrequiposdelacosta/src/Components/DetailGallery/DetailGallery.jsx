@@ -119,6 +119,7 @@ export default function DetailGallery() {
             top: isFullscreen ? 0 : "auto",
             left: isFullscreen ? 0 : "auto",
             zIndex: isFullscreen ? theme.zIndex.modal : "auto",
+            borderRadius: isFullscreen ? 0 : 2,
           }}
         >
           <MainImage

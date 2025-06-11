@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TextField, Box, Grid, useTheme, InputAdornment} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
-const Search = ({ onSearch }) => {
+const Search = ({ LabelOff = true, onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const theme = useTheme();
 
@@ -13,11 +13,12 @@ const Search = ({ onSearch }) => {
   };
 
   return (
-    <Box  display="flex" flexDirection="column">
+    <Box display="flex" flexDirection="column">
       <Grid container spacing={2} justifyContent="center">
-        <Grid item xs={12}  >
+        <Grid item xs={12}>
           <TextField
-            label="¿Qué estás buscando?"
+            label={LabelOff ? "¿Qué estás buscando?" : ""}
+            placeholder={!LabelOff ? "¿Qué estás buscando?" : undefined}
             variant="outlined"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

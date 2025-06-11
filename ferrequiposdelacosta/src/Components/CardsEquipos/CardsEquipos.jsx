@@ -15,7 +15,7 @@ export default function CardsEquipos() {
       sx={{
         backgroundColor: theme.palette.background.default,
         minHeight: "100vh",
-        p: { xs: 1, sm: 2, md: 3 },
+        p: { xs: 1, sm: 2 },
         mt:1,
       }}
     >

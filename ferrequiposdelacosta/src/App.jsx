@@ -6,8 +6,8 @@ import {
   VistaCuentaDeCobro,
   VistaCreaEquipo,
   VistaSeleccionarEquipo,
-  VistaEditarEquipo,
   VistaEliminarEquipo,
+  VistaEditarEquipo,
   VistaCrearUsuarios,
   VistaEliminarUsuario,
   VistaNoAutorizada,
@@ -126,5 +126,3 @@ function App() {
 }
 
 export default App;
-
-
