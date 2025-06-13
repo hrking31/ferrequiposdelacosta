@@ -6,6 +6,7 @@ import searchReducer from "./Slices/searchSlice";
 import cotizacionReducer from "./Slices/cotizacionSlice";
 import cuentacobroReducer from "./Slices/cuentacobroSlice";
 import userReducer from "./Slices/userSlice";
+import installAppReducer from "./Slices/installAppSlice";
 
 export default configureStore({
   reducer: {
@@ -16,5 +17,6 @@ export default configureStore({
     cotizacion: cotizacionReducer,
     cuentacobro: cuentacobroReducer,
     user: userReducer,
+    installApp: installAppReducer,
   },
 });

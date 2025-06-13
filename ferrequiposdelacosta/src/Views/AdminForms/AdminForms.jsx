@@ -16,12 +16,12 @@ export default function AdminForms() {
 
   return (
     <Box sx={{ padding: 2 }}>
-      <Box sx={{ mb: 6, mt: 4 }}>
+      <Box sx={{ mb: 6 }}>
         <Typography variant="h4" color="text.primary">
           {saludo} {name} ¿Qué vamos a hacer hoy?
         </Typography>
       </Box>
-      <Grid container px={6} spacing={4} justifyContent="center">
+      <Grid container px={6} spacing={4} justifyContent="center" sx={{pb:8}}>
         <Grid item xs={12} sm={6} md={6}>
           {permisos.includes("cotizacion") && (
             <Button

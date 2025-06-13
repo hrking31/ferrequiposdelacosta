@@ -7,6 +7,7 @@ import {
   Typography,
   Snackbar,
   Alert,
+  Divider,
   useTheme,
 } from "@mui/material";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
@@ -131,12 +132,12 @@ export default function VistaCreaEquipo() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Box sx={{ padding: 2 }}>
+      <Box sx={{ padding: 1 }}>
         <Typography variant="h4" color="text.primary">
           {saludo} {name}.
         </Typography>
       </Box>
-      <Box sx={{ padding: 2, textAlign: "center" }}>
+      <Box sx={{ pl: 2, textAlign: "center" }}>
         <Grid container spacing={2} justifyContent="center">
           <Box
             sx={{
@@ -281,7 +282,6 @@ export default function VistaCreaEquipo() {
                     fullWidth
                     sx={{
                       mt: 4,
-                      mb: 6,
                     }}
                   >
                     Selecciona una Imagen
@@ -298,63 +298,78 @@ export default function VistaCreaEquipo() {
             </Box>
           </Box>
         </Grid>
-
-        <Grid
-          container
-          px={2}
-          justifyContent="center"
-          sx={{ marginBottom: 4, mt: 2 }}
-        >
-          <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-            <Grid item xs={10} sm={4} md={4}>
-              <Button
-                type="submit"
-                variant="success"
-                disabled={loading}
-                fullWidth
-              >
-                CREAR EQUIPO
-              </Button>
-            </Grid>
-            <Grid item xs={10} sm={4} md={4}>
-              <Button onClick={handleCancel} variant="danger" fullWidth>
-                CANCELAR
-              </Button>
-            </Grid>
+      </Box>
+      <Grid container px={2} justifyContent="center" sx={{ marginBottom: 4 }}>
+        <Divider
+          sx={{
+            width: "100%",
+            mt: 4,
+            mb: { xs: 2, md: 4 },
+            borderBottomWidth: "2.5px",
+          }}
+        />
+        <Grid container spacing={2} justifyContent="center" sx={{ mt: 1 }}>
+          <Grid item xs={10} sm={4} md={4}>
+            <Button
+              type="submit"
+              variant="success"
+              disabled={loading}
+              fullWidth
+            >
+              CREAR EQUIPO
+            </Button>
           </Grid>
-          <Grid container spacing={2} justifyContent="center" sx={{ mt: 4 }}>
-            <Grid item xs={12} sm={5} md={5}>
-              <Button
-                component={Link}
-                to="/adminforms"
-                variant="contained"
-                fullWidth
-              >
-                MENU
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={5} md={5}>
-              <Button onClick={handlerLogout} variant="danger" fullWidth>
-                CERRAR SESION
-              </Button>
-            </Grid>
+          <Grid item xs={10} sm={4} md={4}>
+            <Button onClick={handleCancel} variant="danger" fullWidth>
+              CANCELAR
+            </Button>
           </Grid>
         </Grid>
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={4000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        <Grid
+          container
+          spacing={2}
+          justifyContent="center"
+          sx={{
+            mt: 3,
+            mb: {
+              xs: 6,
+              sm:6,
+              md:6,
+              lg:0,
+            },
+          }}
         >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbarSeverity}
-            sx={{ width: "100%" }}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-      </Box>
+          <Grid item xs={12} sm={5} md={5}>
+            <Button
+              component={Link}
+              to="/adminforms"
+              variant="contained"
+              fullWidth
+            >
+              MENU
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={5} md={5}>
+            <Button onClick={handlerLogout} variant="danger" fullWidth>
+              CERRAR SESION
+            </Button>
+          </Grid>
+        </Grid>
+      </Grid>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </form>
   );
 }

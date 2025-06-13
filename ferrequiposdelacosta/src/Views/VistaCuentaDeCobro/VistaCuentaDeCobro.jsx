@@ -69,7 +69,20 @@ export default function VistaCuentaDeCobro() {
             </Button>
           </Grid>
         </Grid>
-        <Grid container spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+        <Grid
+          container
+          spacing={2}
+          justifyContent="center"
+          sx={{
+            mt: 4,
+            mb: {
+              xs: 6,
+              sm: 6,
+              md: 6,
+              lg: 0,
+            },
+          }}
+        >
           <Grid item xs={12} sm={5} md={5}>
             <Button
               component={Link}

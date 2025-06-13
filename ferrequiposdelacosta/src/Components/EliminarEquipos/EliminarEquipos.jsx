@@ -85,7 +85,19 @@ const EliminarEquipo = () => {
             {equipoSeleccionado.name}.
           </Box>
         </Typography>
-        <Typography sx={{ color: "#1976d2", mb: 4 }}>
+        <Typography
+          sx={{
+            color: "#1976d2",
+            mb: 4,
+            pl: 1,
+            lineHeight: 1.6,
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            hyphens: "auto",
+            maxWidth: "100%",
+            whiteSpace: "pre-line",
+          }}
+        >
           {equipoSeleccionado.description}
         </Typography>
       </Box>

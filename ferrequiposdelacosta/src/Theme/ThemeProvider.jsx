@@ -1,12 +1,25 @@
 import { createTheme, ThemeProvider, CssBaseline } from "@mui/material";
-import { useMemo, useState, createContext, useContext } from "react";
+import { useMemo, useState, useEffect , createContext, useContext } from "react";
 
 const ColorModeContext = createContext({ toggleColorMode: () => {} });
 
 export const useColorMode = () => useContext(ColorModeContext);
 
 export const CustomThemeProvider = ({ children }) => {
-  const [mode, setMode] = useState("light");
+  const [mode, setMode] = useState(() => {
+    // return localStorage.getItem("theme") || "light";
+    return (
+      localStorage.getItem("theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light")
+    );
+    
+  });
+
+  useEffect(() => {
+    localStorage.setItem("theme", mode);
+  }, [mode]);
 
   const colorMode = useMemo(
     () => ({

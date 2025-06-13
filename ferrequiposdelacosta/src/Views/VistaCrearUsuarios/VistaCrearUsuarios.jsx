@@ -24,7 +24,15 @@ export default function VistaCrearUsuarios() {
         container
         spacing={2}
         justifyContent="center"
-        sx={{ marginBottom: 4 }}
+        sx={{
+          marginBottom: 4,
+          mb: {
+            xs: 8,
+            sm: 8,
+            md: 8,
+            lg: 2,
+          },
+        }}
       >
         <Grid item xs={12} sm={6} md={4}>
           <Button

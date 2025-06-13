@@ -88,16 +88,6 @@ export default function MenuAppBar() {
         </Toolbar>
       </AppBar>
       {/* {isSmallScreen && <Box sx={{ height: "64px" }} />} */}
-      <Box
-        sx={{
-          pt: {
-            xs: 4, 
-            sm: 4, 
-            md: 2,
-          },
-        }}
-      >
-      </Box>
     </Box>
   );
 }

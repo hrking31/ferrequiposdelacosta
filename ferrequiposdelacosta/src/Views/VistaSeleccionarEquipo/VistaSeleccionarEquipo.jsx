@@ -98,11 +98,10 @@ const VistaSeleccionarEquipo = () => {
   }, [error, equipos, loading, hasSearched]);
 
   return (
-      <Box sx={{ padding: 2 }}>
-        <Typography variant="h4" color="text.primary">
-          {saludo} {name}, Busca el equipo por su nombre.
-        </Typography>
-
+    <Box sx={{ padding: 2 }}>
+      <Typography variant="h4" color="text.primary">
+        {saludo} {name}, Busca el equipo por su nombre.
+      </Typography>
 
       <Box
         mx="auto"
@@ -166,7 +165,20 @@ const VistaSeleccionarEquipo = () => {
         </Grid>
       </Box>
 
-      <Grid container spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
+      <Grid
+        container
+        spacing={2}
+        justifyContent="center"
+        sx={{
+          marginTop: 2,
+          mb: {
+            xs: 8,
+            sm: 8,
+            md: 8,
+            lg: 2,
+          },
+        }}
+      >
         <Grid item xs={12} sm={6} md={4}>
           <Button
             component={Link}

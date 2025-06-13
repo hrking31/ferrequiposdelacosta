@@ -24,7 +24,9 @@ export default function VistaEliminarUsuario() {
         container
         spacing={2}
         justifyContent="center"
-        sx={{ marginBottom: 4, mt: 2 }}
+        sx={{
+          mt: 2,
+        }}
       >
         <Grid item xs={12} sm={6} md={4}>
           <Button

@@ -8,6 +8,7 @@ import {
   Drawer,
   Box,
   Grid,
+  Button,
   CssBaseline,
   useTheme,
   useMediaQuery,
@@ -258,6 +259,28 @@ export default function MobileDrawerLayout() {
               <Divider sx={{ my: 2 }} />
               <ButtonContacto />
               <Divider sx={{ my: 2 }} />
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: "15px",
+                  mb: "15px",
+                  fontSize: "1.5rem",
+                }}
+              >
+                Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
+              </Typography>
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: "bold", color: "#333", fontSize: "1.5rem" }}
+                >
+                  +57 311 657 6633
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#555" }}>
+                  Llámanos para más información
+                </Typography>
+              </Box>
+              <Divider sx={{ my: 2 }} />
             </Box>
             <Box
               sx={{
@@ -269,6 +292,7 @@ export default function MobileDrawerLayout() {
             >
               <IconButton
                 onClick={toggleColorMode}
+                disableRipple
                 sx={{
                   display: "flex",
                   padding: 0,
@@ -278,10 +302,6 @@ export default function MobileDrawerLayout() {
                   fontSize: "1rem",
                   mb: 3,
                   cursor: "pointer",
-                  "&:hover": {
-                    textDecoration: "underline",
-                    backgroundColor: "transparent",
-                  },
                 }}
                 aria-label="Toggle theme"
               >
@@ -300,9 +320,6 @@ export default function MobileDrawerLayout() {
                   cursor: "pointer",
                   color: "primary.main",
                   fontWeight: 600,
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
                 }}
               >
                 <AccountCircle sx={{ mr: 1 }} />

@@ -5,6 +5,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import { keyframes } from "@mui/system";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
@@ -38,6 +39,28 @@ export const WhatsAppButton=() =>{
 export default function ButtonContacto() {
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:915px)");
+  const bounce = isMobile ? keyframes`
+  0%, 20%, 50%, 80%, 100% {
+    transform: translatex(0);
+  }
+  40% {
+    transform: translatex(-6px);
+  }
+  60% {
+    transform: translatex(-3px);
+  }`
+  : keyframes`
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }`;
+
+
 
   const ActionButton = styled(Button)(({ theme }) => ({
     padding: theme.spacing(1.5, 3),
@@ -60,7 +83,8 @@ export default function ButtonContacto() {
         gap: 2,
       }}
     >
-        <Box>
+      <Box>
+        {isMobile && (
           <ActionButton
             variant="contained"
             startIcon={<LocalPhone />}
@@ -73,20 +97,25 @@ export default function ButtonContacto() {
           >
             Llama ahora
           </ActionButton>
-          <ActionButton
-            variant="contained"
-            startIcon={<WhatsApp />}
-            href="https://wa.me/+573116576633"
-            target="_blank"
-            sx={{
-              backgroundColor: "#25D366",
-              "&:hover": { backgroundColor: "#128C7E" },
-              minWidth: 250,
-            }}
-          >
-            Cotiza con nosotros
-          </ActionButton>
-        </Box>
+        )}
+        <ActionButton
+          variant="contained"
+          startIcon={<WhatsApp />}
+          href="https://wa.me/+573116576633"
+          target="_blank"
+          sx={{
+            backgroundColor: "#25D366",
+            "&:hover": {
+              backgroundColor: "#128C7E",
+            },
+            minWidth: 250,
+            minWidth: 250,
+            animation: `${bounce} 2s infinite`,
+          }}
+        >
+          Cotiza con nosotros
+        </ActionButton>
+      </Box>
     </Box>
   );
 }

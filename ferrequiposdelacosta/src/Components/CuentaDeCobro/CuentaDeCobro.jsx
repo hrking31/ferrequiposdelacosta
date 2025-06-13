@@ -72,7 +72,7 @@ export default function CuentaCobro() {
 
   return (
     <Box mx="auto" display="flex" flexDirection="column">
-      <Box component="form" sx={{ mt: 3 }}>
+      <Box component="form">
         <Typography variant="h4" color="text.primary">
           Formulario Cuenta de Cobro
         </Typography>
