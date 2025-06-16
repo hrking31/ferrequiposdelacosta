@@ -308,9 +308,6 @@ const EditarEquipo = () => {
 
   return (
     <Box sx={{ padding: 2 }}>
-      <Typography variant="h4" color="text.primary">
-        Editar el equipo
-      </Typography>
 
       <Box
         mx="auto"

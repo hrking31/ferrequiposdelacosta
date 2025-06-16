@@ -27,6 +27,8 @@ export default function EliminarUsuario() {
   });
 
   const handleDelete = async () => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este usuario?"))
+      return;
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -62,8 +64,6 @@ export default function EliminarUsuario() {
     <Box
       maxWidth={400}
       mx="auto"
-      mt={2}
-      mb={2}
       p={3}
       display="flex"
       flexDirection="column"
@@ -77,6 +77,7 @@ export default function EliminarUsuario() {
         onChange={(e) => setEmail(e.target.value)}
         fullWidth
         required
+        size="small"
         sx={{
           "& .MuiOutlinedInput-root": {
             "& fieldset": {
@@ -102,6 +103,7 @@ export default function EliminarUsuario() {
         onChange={(e) => setPassword(e.target.value)}
         fullWidth
         required
+        size="small"
         sx={{
           "& .MuiOutlinedInput-root": {
             "& fieldset": {

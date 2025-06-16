@@ -9,6 +9,7 @@ import {
   Alert,
   Divider,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { useAuth } from "../../Context/AuthContext";
@@ -17,7 +18,6 @@ import { Link } from "react-router-dom";
 import { storage, db } from "../../Components/Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, setDoc, doc } from "firebase/firestore";
-import style from "./VistaCreaEquipo.module.css";
 
 export default function VistaCreaEquipo() {
   const { logout } = useAuth();
@@ -29,6 +29,10 @@ export default function VistaCreaEquipo() {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery("(max-width:600px)");
+  const isMediumScreen = useMediaQuery(
+    "(min-width:601px) and (max-width:915px)"
+  );
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -128,234 +132,249 @@ export default function VistaCreaEquipo() {
     await logout();
   };
 
+  let appBarHeight = 64;
+
+  if (isSmallScreen) {
+    appBarHeight = 56;
+  } else if (isMediumScreen) {
+    appBarHeight = 64;
+  }
+
   if (loading) return <LoadingLogo />;
 
   return (
     <form onSubmit={handleSubmit}>
-      <Box sx={{ padding: 1 }}>
+      <Box
+        sx={{
+          height: `calc(100vh - ${appBarHeight}px)`,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          p: 2,
+          overflow: "auto",
+          boxSizing: "border-box",
+          // border: "2px solid red",
+        }}
+      >
         <Typography variant="h4" color="text.primary">
           {saludo} {name}.
         </Typography>
-      </Box>
-      <Box sx={{ pl: 2, textAlign: "center" }}>
-        <Grid container spacing={2} justifyContent="center">
-          <Box
-            sx={{
-              width: { xs: "90%", md: "60%" },
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              mt: 4,
-            }}
-          >
-            <TextField
-              name="name"
-              label="Nombre del equipo"
-              value={formValues.name}
-              onChange={handlerInputChange}
-              fullWidth
+
+        <Box sx={{ flexGrow: 1, mb: 2 }}>
+          <Grid container spacing={2} justifyContent="center">
+            <Box
               sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
+                width: { xs: "90%", md: "60%" },
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flexDirection: "column",
+                mt: 4,
               }}
-            />
-            <TextField
-              name="description"
-              label="Descripción del equipo"
-              value={formValues.description}
-              onChange={handlerInputChange}
-              fullWidth
-              multiline
-              rows={4}
-              margin="normal"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
+            >
+              <TextField
+                name="name"
+                label="Nombre del equipo"
+                value={formValues.name}
+                onChange={handlerInputChange}
+                fullWidth
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": {
+                      borderColor: "primary.main",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "primary.light",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "primary.dark",
+                    },
+                    "& input:-webkit-autofill": {
+                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                      WebkitTextFillColor: theme.palette.text.primary,
+                    },
                   },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
+                }}
+              />
+              <TextField
+                name="description"
+                label="Descripción del equipo"
+                value={formValues.description}
+                onChange={handlerInputChange}
+                fullWidth
+                multiline
+                rows={4}
+                margin="normal"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": {
+                      borderColor: "primary.main",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "primary.light",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "primary.dark",
+                    },
+                    "& input:-webkit-autofill": {
+                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                      WebkitTextFillColor: theme.palette.text.primary,
+                    },
                   },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
-            />
-            {images &&
-              images.map((img, index) => (
-                <Box
-                  key={img.id}
-                  sx={{
-                    mb: 2,
-                    mt: 2,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
+                }}
+              />
+              {images &&
+                images.map((img, index) => (
                   <Box
+                    key={img.id}
                     sx={{
+                      mb: 2,
+                      mt: 2,
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       width: "100%",
-                      maxWidth: "100%",
                     }}
                   >
                     <Box
-                      component="img"
-                      src={img.preview}
-                      alt={`preview-${index}`}
-                      className={style.previewImage}
                       sx={{
-                        width: { xs: 80, sm: 90, md: 100 },
-                        height: { xs: 80, sm: 90, md: 100 },
-                        marginRight: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        width: "100%",
+                        maxWidth: "100%",
                       }}
-                    />
-                    <TextField
-                      label="Nombre de la imagen"
-                      value={img.name}
-                      onChange={(e) => handleNameChange(index, e.target.value)}
-                      size="small"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": {
-                            borderColor: "primary.main",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "primary.light",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "primary.dark",
-                          },
-                          "& input:-webkit-autofill": {
-                            boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                            WebkitTextFillColor: theme.palette.text.primary,
-                          },
-                        },
-                        marginRight: 1.5,
-                        flexGrow: 1,
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleRemoveImage(index)}
                     >
-                      Eliminar
-                    </Button>
+                      <Box
+                        component="img"
+                        src={img.preview}
+                        alt={`preview-${index}`}
+                        className={style.previewImage}
+                        sx={{
+                          width: { xs: 80, sm: 90, md: 100 },
+                          height: { xs: 80, sm: 90, md: 100 },
+                          marginRight: 1.5,
+                        }}
+                      />
+                      <TextField
+                        label="Nombre de la imagen"
+                        value={img.name}
+                        onChange={(e) =>
+                          handleNameChange(index, e.target.value)
+                        }
+                        size="small"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": {
+                              borderColor: "primary.main",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "primary.light",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "primary.dark",
+                            },
+                            "& input:-webkit-autofill": {
+                              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
+                              WebkitTextFillColor: theme.palette.text.primary,
+                            },
+                          },
+                          marginRight: 1.5,
+                          flexGrow: 1,
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => handleRemoveImage(index)}
+                      >
+                        Eliminar
+                      </Button>
+                    </Box>
                   </Box>
-                </Box>
-              ))}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
-                <Grid container spacing={2} justifyContent="center">
-                  <Button
-                    variant="upload"
-                    component="span"
-                    fullWidth
-                    sx={{
-                      mt: 4,
-                    }}
-                  >
-                    Selecciona una Imagen
-                  </Button>
-                </Grid>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                name="fotos"
-                onChange={handleImageChange}
-                style={{ display: "none" }}
-              />
+                ))}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
+                  <Grid container spacing={2} justifyContent="center">
+                    <Button
+                      variant="upload"
+                      component="span"
+                      fullWidth
+                      sx={{
+                        mt: 2,
+                      }}
+                    >
+                      Selecciona una Imagen
+                    </Button>
+                  </Grid>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  name="fotos"
+                  onChange={handleImageChange}
+                  style={{ display: "none" }}
+                />
+              </Box>
             </Box>
-          </Box>
-        </Grid>
+          </Grid>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Divider
+            sx={{
+              width: "100%",
+              mt: 1,
+              mb: { xs: 3, md: 4 },
+              borderBottomWidth: "2.5px",
+            }}
+          />
+          <Grid container spacing={2} justifyContent="center">
+            <Grid item xs={10} sm={4} md={4}>
+              <Button
+                type="submit"
+                variant="success"
+                disabled={loading}
+                fullWidth
+              >
+                CREAR EQUIPO
+              </Button>
+            </Grid>
+            <Grid item xs={10} sm={4} md={4}>
+              <Button onClick={handleCancel} variant="danger" fullWidth>
+                CANCELAR
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Grid container spacing={2} justifyContent="center">
+            <Grid item xs={12} sm={5} md={5}>
+              <Button
+                component={Link}
+                to="/adminforms"
+                variant="contained"
+                fullWidth
+              >
+                MENU
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={5} md={5}>
+              <Button onClick={handlerLogout} variant="danger" fullWidth>
+                CERRAR SESION
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
       </Box>
-      <Grid container px={2} justifyContent="center" sx={{ marginBottom: 4 }}>
-        <Divider
-          sx={{
-            width: "100%",
-            mt: 4,
-            mb: { xs: 2, md: 4 },
-            borderBottomWidth: "2.5px",
-          }}
-        />
-        <Grid container spacing={2} justifyContent="center" sx={{ mt: 1 }}>
-          <Grid item xs={10} sm={4} md={4}>
-            <Button
-              type="submit"
-              variant="success"
-              disabled={loading}
-              fullWidth
-            >
-              CREAR EQUIPO
-            </Button>
-          </Grid>
-          <Grid item xs={10} sm={4} md={4}>
-            <Button onClick={handleCancel} variant="danger" fullWidth>
-              CANCELAR
-            </Button>
-          </Grid>
-        </Grid>
-        <Grid
-          container
-          spacing={2}
-          justifyContent="center"
-          sx={{
-            mt: 3,
-            mb: {
-              xs: 6,
-              sm:6,
-              md:6,
-              lg:0,
-            },
-          }}
-        >
-          <Grid item xs={12} sm={5} md={5}>
-            <Button
-              component={Link}
-              to="/adminforms"
-              variant="contained"
-              fullWidth
-            >
-              MENU
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={5} md={5}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
-              CERRAR SESION
-            </Button>
-          </Grid>
-        </Grid>
-      </Grid>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}

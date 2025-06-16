@@ -10,12 +10,17 @@ import {
   setItems,
   setTotal,
 } from "../../Store/Slices/cotizacionSlice";
-import { Box, Grid, Button } from "@mui/material";
+import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
   const values = useSelector((state) => state.cotizacion);
   const { logout } = useAuth();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery("(max-width:600px)");
+  const isMediumScreen = useMediaQuery(
+    "(min-width:601px) and (max-width:915px)"
+  );
 
   const clearForm = () => {
     dispatch(
@@ -34,23 +39,40 @@ export default function VistaCotizacion() {
     await logout();
   };
 
+  let appBarHeight = 64;
+
+  if (isSmallScreen) {
+    appBarHeight = 56;
+  } else if (isMediumScreen) {
+    appBarHeight = 64;
+  }
+
   return (
-    <Box sx={{ minHeight: "100vh", padding: 2 }}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Cotizacion />
+    <Box
+      sx={{
+        height: `calc(100vh - ${appBarHeight}px)`,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        p: 2,
+        overflow: "auto",
+        boxSizing: "border-box",
+        // border: "2px solid red",
+      }}
+    >
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Cotizacion />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <VistaCotWeb />
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <VistaCotWeb />
-        </Grid>
-      </Grid>
-      <Grid
-        container
-        px={2}
-        justifyContent="center"
-        sx={{ marginBottom: 4, mt: 2 }}
-      >
-        <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, mb: 2 }}>
+        <Grid container spacing={2} justifyContent="center" >
           <Grid item xs={10} sm={4} md={4}>
             <PDFDownloadLink
               document={<VistaCotPdf values={values} />}
@@ -73,19 +95,13 @@ export default function VistaCotizacion() {
             </Button>
           </Grid>
         </Grid>
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
         <Grid
           container
           spacing={2}
           justifyContent="center"
-          sx={{
-            mt: 4,
-            mb: {
-              xs: 6,
-              sm: 6,
-              md: 6,
-              lg: 0,
-            },
-          }}
         >
           <Grid item xs={12} sm={5} md={5}>
             <Button
@@ -108,7 +124,7 @@ export default function VistaCotizacion() {
             </Button>
           </Grid>
         </Grid>
-      </Grid>
+      </Box>
     </Box>
   );
 }

@@ -9,6 +9,7 @@ import {
   Alert,
   Typography,
   useTheme,
+  useMediaQuery,
   Skeleton,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
@@ -36,6 +37,10 @@ const VistaSeleccionarEquipo = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState("info");
 
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery("(max-width:600px)");
+  const isMediumScreen = useMediaQuery(
+    "(min-width:601px) and (max-width:915px)"
+  );
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -97,8 +102,27 @@ const VistaSeleccionarEquipo = () => {
     }
   }, [error, equipos, loading, hasSearched]);
 
+  let appBarHeight = 64;
+
+  if (isSmallScreen) {
+    appBarHeight = 56;
+  } else if (isMediumScreen) {
+    appBarHeight = 64;
+  }
+
   return (
-    <Box sx={{ padding: 2 }}>
+    <Box
+      sx={{
+        height: `calc(100vh - ${appBarHeight}px)`,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        p: 2,
+        overflow: "auto",
+        boxSizing: "border-box",
+        // border: "2px solid red",
+      }}
+    >
       <Typography variant="h4" color="text.primary">
         {saludo} {name}, Busca el equipo por su nombre.
       </Typography>
@@ -165,36 +189,25 @@ const VistaSeleccionarEquipo = () => {
         </Grid>
       </Box>
 
-      <Grid
-        container
-        spacing={2}
-        justifyContent="center"
-        sx={{
-          marginTop: 2,
-          mb: {
-            xs: 8,
-            sm: 8,
-            md: 8,
-            lg: 2,
-          },
-        }}
-      >
-        <Grid item xs={12} sm={6} md={4}>
-          <Button
-            component={Link}
-            to="/adminforms"
-            variant="contained"
-            fullWidth
-          >
-            MENU
-          </Button>
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2} justifyContent="center">
+          <Grid item xs={12} sm={6} md={4}>
+            <Button
+              component={Link}
+              to="/adminforms"
+              variant="contained"
+              fullWidth
+            >
+              MENU
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <Button onClick={handlerLogout} variant="contained" fullWidth>
+              CERRAR SESIÓN
+            </Button>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Button onClick={handlerLogout} variant="contained" fullWidth>
-            CERRAR SESIÓN
-          </Button>
-        </Grid>
-      </Grid>
+      </Box>
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}

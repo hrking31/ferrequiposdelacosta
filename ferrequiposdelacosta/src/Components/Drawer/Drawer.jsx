@@ -341,7 +341,7 @@ export default function MobileDrawerLayout() {
               <InstallApp />
               <Box
                 sx={{
-                  pt: 2,
+                  pt: 6,
                 }}
               >
                 <EquipoImageCarousel />
