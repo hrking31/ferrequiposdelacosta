@@ -12,12 +12,14 @@ import { styled } from "@mui/material/styles";
 const GalleryContainer = styled(Box)(({ theme }) => ({
   position: "relative",
   width: "100%",
-  borderRadius: theme.shape.borderRadius + 2,
+  height: "100%",
   overflow: "hidden",
   backgroundColor: "#fff",
-  boxShadow: "none",
-  border: "none",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 }));
+
 
 const MainImage = styled("img")({
   width: "100%",
@@ -119,7 +121,6 @@ export default function DetailGallery() {
             top: isFullscreen ? 0 : "auto",
             left: isFullscreen ? 0 : "auto",
             zIndex: isFullscreen ? theme.zIndex.modal : "auto",
-            borderRadius: isFullscreen ? 0 : 2,
           }}
         >
           <MainImage

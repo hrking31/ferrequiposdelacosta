@@ -249,7 +249,6 @@ export default function VistaCreaEquipo() {
                         component="img"
                         src={img.preview}
                         alt={`preview-${index}`}
-                        className={style.previewImage}
                         sx={{
                           width: { xs: 80, sm: 90, md: 100 },
                           height: { xs: 80, sm: 90, md: 100 },

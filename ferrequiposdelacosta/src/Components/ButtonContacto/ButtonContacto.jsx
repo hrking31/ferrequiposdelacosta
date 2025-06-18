@@ -109,7 +109,6 @@ export default function ButtonContacto() {
               backgroundColor: "#128C7E",
             },
             minWidth: 250,
-            minWidth: 250,
             animation: `${bounce} 2s infinite`,
           }}
         >
