@@ -11,6 +11,7 @@ import {
   Snackbar,
   Alert,
   Divider,
+  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
@@ -19,6 +20,7 @@ import Footer from "../../Components/Footer/Footer";
 export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
   const isMediumScreen = useMediaQuery(
@@ -107,10 +109,8 @@ export default function Detail() {
             }}
           >
             <Typography
-              variant="h3"
-              component="h1"
+              variant="h4"
               sx={{
-                fontWeight: 700,
                 textAlign: isMobile ? "center" : "left",
                 lineHeight: 1.6,
                 overflowWrap: "break-word",
@@ -128,7 +128,6 @@ export default function Detail() {
               variant="body1"
               sx={{
                 pl: 1,
-                lineHeight: 1.6,
                 overflowWrap: "break-word",
                 wordBreak: "break-word",
                 hyphens: "auto",

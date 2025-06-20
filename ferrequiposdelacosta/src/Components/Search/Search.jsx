@@ -19,11 +19,8 @@ const Search = ({ LabelOff = true, onSearch }) => {
           <TextField
             label={LabelOff ? "¿Qué estás buscando?" : ""}
             placeholder={!LabelOff ? "¿Qué estás buscando?" : undefined}
-            variant="outlined"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            fullWidth
-            size="small"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleSearch();
@@ -32,29 +29,19 @@ const Search = ({ LabelOff = true, onSearch }) => {
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <SearchIcon
-                    sx={{ cursor: "pointer" }}
-                    onClick={handleSearch}
-                  />
+                  {theme.palette.mode === "light" ? (
+                    <SearchIcon
+                      onClick={handleSearch}
+                      sx={{ color: "secondary.main" }}
+                    />
+                  ) : (
+                    <SearchIcon
+                      onClick={handleSearch}
+                      sx={{ color: "secondary.light" }}
+                    />
+                  )}
                 </InputAdornment>
               ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: "primary.main",
-                },
-                "&:hover fieldset": {
-                  borderColor: "primary.light",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "primary.dark",
-                },
-                "& input:-webkit-autofill": {
-                  boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                  WebkitTextFillColor: theme.palette.text.primary,
-                },
-              },
             }}
           />
         </Grid>

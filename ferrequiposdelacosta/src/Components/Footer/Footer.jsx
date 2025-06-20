@@ -99,7 +99,17 @@ export default function Footer() {
         </Tooltip>
       </Box>
 
-      <Typography sx={{ mt: { xs: 1, md: 2 }, color: "#999", fontSize: 10 }}>
+      <Typography
+        sx={{
+          mt: { xs: 0.5, md: 1 },
+          color: "#999",
+          fontSize: {
+            xs: "0.6rem",
+            sm: "0.7rem",
+            md: "0.8rem",
+          },
+        }}
+      >
         © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los derechos
         reservados.
       </Typography>

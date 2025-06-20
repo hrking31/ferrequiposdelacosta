@@ -368,7 +368,6 @@ const getInitialMode = () => {
 export const CustomThemeProvider = ({ children }) => {
   const [mode, setMode] = useState(getInitialMode);
 
-  // Guarda en localStorage y escucha cambios del sistema
   useEffect(() => {
     localStorage.setItem("theme", mode);
 
@@ -384,7 +383,6 @@ export const CustomThemeProvider = ({ children }) => {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [mode]);
 
-  // Tema dinámico
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () =>
@@ -454,7 +452,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 600,
           fontSize: "calc(1.75rem + 1.5vw)",
           lineHeight: 1.3,
-          color: mode === "light" ? "#FFD166" : "#3A5169",
+          color: mode === "light" ? "#FFF" : "#FFD166",
           "@media (max-width:900px)": {
             fontSize: "calc(1.5rem + 1vw)",
           },
@@ -476,7 +474,7 @@ export const CustomThemeProvider = ({ children }) => {
         },
         h4: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 500,
+          fontWeight: 700,
           fontSize: "calc(1.25rem + 0.5vw)",
           color: mode === "light" ? "#2A3547" : "#FFFFFF",
           "@media (max-width:600px)": {
@@ -492,28 +490,39 @@ export const CustomThemeProvider = ({ children }) => {
         h6: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
-          fontSize: "1.1rem",
+          fontSize: "1.2rem", // base para desktop grandes
           lineHeight: 1.3,
-          // color: mode === "light" ? "#FFD166" : "#FFF",
           color: mode === "light" ? "#FFF" : "#FFD166",
-          "@media (max-width:900px)": {
-            fontSize: "0.95rem",
+
+          // Tablet
+          "@media (max-width:1200px)": {
+            fontSize: "1.1rem",
           },
+          // Laptop pequeña
+          "@media (max-width:900px)": {
+            fontSize: "1rem",
+          },
+          // Celulares grandes
           "@media (max-width:600px)": {
-            fontSize: "0.85rem",
+            fontSize: "0.9rem",
+          },
+          // Celulares pequeños
+          "@media (max-width:400px)": {
+            fontSize: "0.8rem",
           },
         },
+
         subtitle1: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "1rem",
-          color: mode === "light" ? "#5C6B73" : "#A0AEC0",
+          color: mode === "light" ? "#3A5169" : "#A0AEC0",
         },
         subtitle2: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
-          color: mode === "light" ? "#5C6B73" : "#A0AEC0",
+          color: mode === "light" ? "#3A5169" : "#A0AEC0",
         },
         body1: {
           fontFamily: '"Open Sans", sans-serif',
@@ -574,17 +583,15 @@ export const CustomThemeProvider = ({ children }) => {
         MuiCard: {
           styleOverrides: {
             root: {
-              borderRadius: 8,
-              border:
-                mode === "light" ? "1px solid #E2E8F0" : "1px solid #2D3748",
+              borderRadius: 4,
               boxShadow:
-                mode === "light"
+                mode === "dark"
                   ? "0 2px 4px rgba(0,0,0,0.1)"
                   : "0 2px 4px rgba(0,0,0,0.3)",
               transition: "all 0.3s ease-in-out",
               "&:hover": {
                 boxShadow:
-                  mode === "light"
+                  mode === "dark"
                     ? "0 4px 8px rgba(0,0,0,0.15)"
                     : "0 4px 8px rgba(0,0,0,0.4)",
               },
@@ -646,17 +653,48 @@ export const CustomThemeProvider = ({ children }) => {
             },
           ],
         },
-        MuiTextField: {
+
+        MuiOutlinedInput: {
           styleOverrides: {
-            root: {
-              borderRadius: 8,
+            root: ({ theme }) => ({
+              borderRadius: 4,
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor:
+                  theme.palette.mode === "light"
+                    ? theme.palette.secondary.main
+                    : theme.palette.secondary.light,
+              },
+              "&:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor:
+                  theme.palette.mode === "light"
+                    ? theme.palette.primary.main
+                    : theme.palette.primary.light,
+              },
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                borderColor: theme.palette.secondary.dark,
+              },
+            }),
+          },
+        },
+        MuiTextField: {
+          defaultProps: {
+            variant: "outlined",
+            size: "small",
+            fullWidth: true,
+          },
+        },
+        MuiInputAdornment: {
+          styleOverrides: {
+            positionEnd: {
+              cursor: "pointer",
             },
           },
         },
+
         MuiDivider: {
           styleOverrides: {
             root: {
-              borderColor: mode === "light" ? "#E2E8F0" : "#2D3748",
+              borderColor: mode === "light" ? "#5C6B73" : "#A0AEC0",
             },
           },
         },

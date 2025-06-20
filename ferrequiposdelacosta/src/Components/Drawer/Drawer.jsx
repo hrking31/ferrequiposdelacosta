@@ -47,6 +47,10 @@ export default function MobileDrawerLayout() {
   const error = useSelector((state) => state.search.error);
   const hasSearched = useSelector((state) => state.search.hasSearched);
   const { toggleColorMode } = useColorMode();
+  const isSmallScreen = useMediaQuery("(max-width:599px)");
+  const isMediumScreen = useMediaQuery(
+    "(min-width:600px) and (max-width:915px)"
+  );
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -80,61 +84,55 @@ export default function MobileDrawerLayout() {
   const toggleDrawer = () => setOpen((prev) => !prev);
 
   const drawerWidth = "clamp(240px, 50vw, 60vw)";
+
+  let appBarHeight = 64;
+
+  if (isSmallScreen) {
+    appBarHeight = 56;
+  } else if (isMediumScreen) {
+    appBarHeight = 64;
+  }
+
   const drawerContent = (
     <Box
       sx={{
-        height: "100%",
+        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        "@media (max-height: 600px)": {
-          height: "auto",
-          minHeight: "100%",
-        },
       }}
     >
-      {/* Header del Drawer */}
-      <Box sx={{ flexShrink: 0 }}>
-        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
-          <IconButton onClick={toggleDrawer} sx={{ color: "text.primary" }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-
-        {/* Título */}
-        <Box sx={{ px: 2, mb: 3 }}>
-          <Typography
-            variant="h4"
-            textAlign="center"
-            sx={{
-              color:
-                theme.palette.mode === "dark"
-                  ? "primary.light"
-                  : "primary.main",
-              fontWeight: 700,
-            }}
-          >
-            Ferrequipos
-          </Typography>
-          <Typography variant="subtitle1" textAlign="center" sx={{ mt: 1 }}>
-            Alquiler de equipos para la Construcción
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Contenido principal - Scrollable */}
       <Box
         sx={{
-          flex: "1 1 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ width: 48 }} />
+
+        <Typography variant="h2" textAlign="center">
+          Ferrequipos
+        </Typography>
+
+        <IconButton onClick={toggleDrawer}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" textAlign="center" sx={{ mt: 1 }}>
+          Alquiler de equipos para la Construcción
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          flexGrow: 1,
           overflowY: "auto",
-          py: 1,
-          "@media (max-height: 600px)": {
-            overflowY: "visible",
-          },
         }}
       >
         <List>
-          {/* Sección WhatsApp */}
           <ListItem disablePadding>
             <ListItemButton
               component="a"
@@ -154,14 +152,13 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary="Cotiza con nosotros"
-                primaryTypographyProps={{ fontWeight: 500 }}
+                primaryTypographyProps={{ variant: "subtitle2" }}
               />
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ width: "80%", mx: "auto", my: 1 }} />
+          <Divider sx={{ width: "80%", mx: "auto" }} />
 
-          {/* Sección Teléfono */}
           <ListItem disablePadding>
             <ListItemButton
               component="a"
@@ -180,71 +177,74 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary="Llama ahora"
-                primaryTypographyProps={{ fontWeight: 500 }}
+                primaryTypographyProps={{ variant: "subtitle2" }}
               />
             </ListItemButton>
           </ListItem>
         </List>
       </Box>
 
-      {/* Footer - Siempre visible */}
       <Box
         sx={{
-          flexShrink: 0,
           borderTop: "1px solid",
           borderColor: "divider",
-          py: 1,
-          position: "relative",
         }}
       >
         <List>
-          {/* Toggle de tema */}
           <ListItem disablePadding>
             <ListItemButton onClick={toggleColorMode}>
               <ListItemIcon>
                 {theme.palette.mode === "dark" ? (
                   <Brightness7 sx={{ color: "warning.main" }} />
                 ) : (
-                  <Brightness4 sx={{ color: "warning.main" }} />
+                  <Brightness4 sx={{ color: "primary.main" }} />
                 )}
               </ListItemIcon>
               <ListItemText
-                primary={
-                  theme.palette.mode === "dark" ? "Modo claro" : "Modo oscuro"
-                }
-                primaryTypographyProps={{ fontWeight: 500 }}
+                primary={theme.palette.mode === "dark" ? " Claro" : "Oscuro"}
+                primaryTypographyProps={{ variant: "subtitle2" }}
               />
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ width: "80%", mx: "auto", my: 1 }} />
+          <Divider sx={{ width: "80%", mx: "auto" }} />
 
-          {/* Cuenta */}
           <ListItem disablePadding>
             <ListItemButton onClick={handleOpenAccount}>
               <ListItemIcon>
-                <AccountCircle sx={{ color: "secondary.main" }} />
+                {theme.palette.mode === "dark" ? (
+                  <AccountCircle sx={{ color: "secondary.light" }} />
+                ) : (
+                  <AccountCircle sx={{ color: "primary.light" }} />
+                )}
               </ListItemIcon>
               <ListItemText
                 primary="Mi cuenta"
-                primaryTypographyProps={{ fontWeight: 500 }}
+                primaryTypographyProps={{ variant: "subtitle2" }}
               />
             </ListItemButton>
           </ListItem>
         </List>
 
-        {/* Copyright - Se mantiene en la parte inferior */}
         <Typography
           sx={{
-            px: 2,
-            py: 1,
-            color: "text.secondary",
-            fontSize: "0.7rem",
+            color:
+              theme.palette.mode === "light"
+                ? theme.palette.primary.light
+                : theme.palette.secondary.light,
+            fontSize: {
+              xs: "0.6rem",
+              sm: "0.7rem",
+              md: "0.8rem",
+            },
             textAlign: "center",
             display: "block",
           }}
         >
-          © {new Date().getFullYear()} Ferrequipos de la Costa.
+          © {new Date().getFullYear()}{" "}
+          {isMediumScreen
+            ? "Ferrequipos de la Costa. Todos los derechos reservados."
+            : "Ferrequipos de la Costa."}
         </Typography>
       </Box>
     </Box>
@@ -272,7 +272,11 @@ export default function MobileDrawerLayout() {
             }}
           >
             <IconButton edge="start" onClick={toggleDrawer}>
-              <MenuIcon />
+              {theme.palette.mode === "light" ? (
+                <MenuIcon sx={{ color: "secondary.main" }} />
+              ) : (
+                <MenuIcon sx={{ color: "secondary.light" }} />
+              )}
             </IconButton>
             <Box sx={{ flexGrow: 1 }}>
               <Search onSearch={handleSearch} LabelOff={false} />
@@ -321,23 +325,30 @@ export default function MobileDrawerLayout() {
               <Box sx={{ pt: 2 }}>
                 <Search onSearch={handleSearch} />
               </Box>
+
               <InstallApp />
+
               <Box sx={{ pt: 2 }}>
                 <EquipoImageCarousel />
               </Box>
-              <Typography
-                variant="body1"
+
+              <Box
                 sx={{
-                  mt: "15px",
-                  mb: "15px",
-                  fontSize: "1.5rem",
+                  alignItems: "center",
+                  p: 2,
                 }}
               >
-                Alquiler de equipos para la Construcción
-              </Typography>
+                <Typography variant="subtitle1">
+                  Alquiler de equipos para la Construcción
+                </Typography>
+              </Box>
+
               <Divider sx={{ my: 2 }} />
+
               <ButtonContacto />
+
               <Divider sx={{ my: 2 }} />
+
               <Box
                 sx={{
                   width: "100%",
@@ -359,28 +370,37 @@ export default function MobileDrawerLayout() {
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </Box>
-              <Typography
-                variant="body1"
+
+              <Box
                 sx={{
-                  mt: "15px",
-                  mb: "15px",
-                  fontSize: "1.5rem",
+                  alignItems: "center",
+                  p: 2,
                 }}
               >
-                Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
-              </Typography>
-              <Box>
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: "bold", color: "#333", fontSize: "1.5rem" }}
-                >
-                  +57 311 657 6633
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#555" }}>
-                  Llámanos para más información
+                <Typography variant="subtitle1">
+                  Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
                 </Typography>
               </Box>
-              <Divider sx={{ my: 2 }} />
+
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, p:2 }}>
+                  <LocalPhone />
+                  <Typography variant="subtitle2">
+                    +57 5 3356050 - 311 657 6633
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    alignItems: "center",
+                    pb: 2,
+                    pl:2
+                  }}
+                >
+                  <Typography variant="subtitle1">
+                    Llámanos para más información
+                  </Typography>
+              </Box>
             </Box>
 
             <Box
@@ -389,46 +409,52 @@ export default function MobileDrawerLayout() {
                 flexDirection: "column",
                 justifyContent: "flex-end",
                 boxSizing: "border-box",
+                borderTop: "1px solid",
+                borderColor: "divider",
               }}
             >
-              <IconButton
-                onClick={toggleColorMode}
-                disableRipple
-                sx={{
-                  display: "flex",
-                  padding: 0,
-                  color: "primary.main",
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  mb: 3,
-                  cursor: "pointer",
-                }}
-                aria-label="Toggle theme"
-              >
-                {theme.palette.mode === "dark" ? (
-                  <Brightness7 sx={{ mr: 0.5 }} />
-                ) : (
-                  <Brightness4 sx={{ mr: 0.5 }} />
-                )}
-                {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
-              </IconButton>
 
-              <Typography
-                onClick={handleOpenAccount}
-                sx={{
-                  display: "flex",
-                  cursor: "pointer",
-                  color: "primary.main",
-                  fontWeight: 600,
-                }}
-              >
-                <AccountCircle sx={{ mr: 1 }} />
-                Mi cuenta
-              </Typography>
+                <IconButton onClick={toggleColorMode} disableRipple>
+                  {theme.palette.mode === "dark" ? (
+                    <Brightness7 sx={{ color: "warning.main", mr: 2 }} />
+                  ) : (
+                    <Brightness4 sx={{ color: "primary.main", mr: 2 }} />
+                  )}
+                  <Typography variant="subtitle1">
+                    {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
+                  </Typography>
+                </IconButton>
+
+              <Divider sx={{ my: 2 }} />
+
+                <IconButton
+                  onClick={handleOpenAccount}
+                  disableRipple
+                >
+                  {theme.palette.mode === "dark" ? (
+                    <AccountCircle sx={{ color: "secondary.light", mr: 2 }} />
+                  ) : (
+                    <AccountCircle sx={{ color: "primary.light", mr: 2 }} />
+                  )}
+                  <Typography variant="subtitle1">Mi cuenta</Typography>
+                </IconButton>
+
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    p:2,
+                    textAlign: "center",
+                    display: "block",
+                  }}
+                >
+                  © {new Date().getFullYear()} Ferrequipos de la Costa. Todos
+                  los derechos reservados.
+                </Typography>
+              </Box>
             </Box>
-          </Box>
         </Grid>
+
         <Box
           sx={{
             flex: 1,
@@ -453,6 +479,7 @@ export default function MobileDrawerLayout() {
 
           {loading ? <LoadingLogo /> : <CardsEquipos />}
         </Box>
+
         <Modal open={openAccount} onClose={handleCloseAccount}>
           <div
             style={{
@@ -470,6 +497,7 @@ export default function MobileDrawerLayout() {
             <Login onClose={handleCloseAccount} />
           </div>
         </Modal>
+
         <Snackbar
           open={openSnackbar}
           autoHideDuration={4000}
