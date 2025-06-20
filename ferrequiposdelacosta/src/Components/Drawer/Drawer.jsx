@@ -8,7 +8,6 @@ import {
   Drawer,
   Box,
   Grid,
-  Button,
   CssBaseline,
   useTheme,
   useMediaQuery,
@@ -81,92 +80,172 @@ export default function MobileDrawerLayout() {
   const toggleDrawer = () => setOpen((prev) => !prev);
 
   const drawerWidth = "clamp(240px, 50vw, 60vw)";
-
   const drawerContent = (
-    <Box sx={{ width: drawerWidth }}>
-      <Box sx={{ display: "flex", justifyContent: "flex-end", p: 2 }}>
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{
-            flexGrow: 1,
-            textAlign: "center",
-            fontSize: {
-              xs: "1.5rem",
-              sm: "2rem",
-            },
-          }}
-        >
-          Ferrequipos
-        </Typography>
-        <IconButton onClick={toggleDrawer}>
-          <CloseIcon />
-        </IconButton>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        "@media (max-height: 600px)": {
+          height: "auto",
+          minHeight: "100%",
+        },
+      }}
+    >
+      {/* Header del Drawer */}
+      <Box sx={{ flexShrink: 0 }}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
+          <IconButton onClick={toggleDrawer} sx={{ color: "text.primary" }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        {/* Título */}
+        <Box sx={{ px: 2, mb: 3 }}>
+          <Typography
+            variant="h4"
+            textAlign="center"
+            sx={{
+              color:
+                theme.palette.mode === "dark"
+                  ? "primary.light"
+                  : "primary.main",
+              fontWeight: 700,
+            }}
+          >
+            Ferrequipos
+          </Typography>
+          <Typography variant="subtitle1" textAlign="center" sx={{ mt: 1 }}>
+            Alquiler de equipos para la Construcción
+          </Typography>
+        </Box>
       </Box>
+
+      {/* Contenido principal - Scrollable */}
       <Box
         sx={{
-          width: drawerWidth,
-          height: "90vh",
-          display: "flex",
-          flexDirection: "column",
+          flex: "1 1 auto",
+          overflowY: "auto",
+          py: 1,
+          "@media (max-height: 600px)": {
+            overflowY: "visible",
+          },
         }}
       >
-        {/* Contenido superior */}
-        <Box>
-          <ListItem>
-            <ListItemText primary="Alquiler de equipos para la Construcción" />
+        <List>
+          {/* Sección WhatsApp */}
+          <ListItem disablePadding>
+            <ListItemButton
+              component="a"
+              href="https://wa.me/+573116576633"
+              target="_blank"
+              sx={{
+                "&:hover": {
+                  backgroundColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(37, 211, 102, 0.08)"
+                      : "rgba(37, 211, 102, 0.12)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "#25D366" }}>
+                <WhatsApp />
+              </ListItemIcon>
+              <ListItemText
+                primary="Cotiza con nosotros"
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
+            </ListItemButton>
           </ListItem>
-          <Divider sx={{ width: "80%", mx: "auto" }} />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton
-                component="a"
-                href="https://wa.me/+573116576633"
-                target="_blank"
-              >
-                <ListItemIcon>
-                  <WhatsApp />
-                </ListItemIcon>
-                <ListItemText primary="Cotiza con nosotros" />
-              </ListItemButton>
-            </ListItem>
-          </List>
-          <Divider sx={{ width: "80%", mx: "auto" }} />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton component="a" href="tel:+573116576633">
-                <ListItemIcon>
-                  <LocalPhone />
-                </ListItemIcon>
-                <ListItemText primary="Llama ahora" />
-              </ListItemButton>
-            </ListItem>
-          </List>
-          <Divider sx={{ width: "80%", mx: "auto" }} />
-        </Box>
-        <Box sx={{ mt: "auto" }}>
+
+          <Divider sx={{ width: "80%", mx: "auto", my: 1 }} />
+
+          {/* Sección Teléfono */}
+          <ListItem disablePadding>
+            <ListItemButton
+              component="a"
+              href="tel:+573116576633"
+              sx={{
+                "&:hover": {
+                  backgroundColor:
+                    theme.palette.mode === "dark"
+                      ? "rgba(52, 183, 241, 0.08)"
+                      : "rgba(52, 183, 241, 0.12)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "#34B7F1" }}>
+                <LocalPhone />
+              </ListItemIcon>
+              <ListItemText
+                primary="Llama ahora"
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+
+      {/* Footer - Siempre visible */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          py: 1,
+          position: "relative",
+        }}
+      >
+        <List>
+          {/* Toggle de tema */}
           <ListItem disablePadding>
             <ListItemButton onClick={toggleColorMode}>
               <ListItemIcon>
                 {theme.palette.mode === "dark" ? (
-                  <Brightness7 sx={{ mr: 0.5 }} />
+                  <Brightness7 sx={{ color: "warning.main" }} />
                 ) : (
-                  <Brightness4 sx={{ mr: 0.5 }} />
+                  <Brightness4 sx={{ color: "warning.main" }} />
                 )}
               </ListItemIcon>
-              {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
+              <ListItemText
+                primary={
+                  theme.palette.mode === "dark" ? "Modo claro" : "Modo oscuro"
+                }
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
             </ListItemButton>
           </ListItem>
-          <Divider sx={{ width: "80%", mx: "auto" }} />
+
+          <Divider sx={{ width: "80%", mx: "auto", my: 1 }} />
+
+          {/* Cuenta */}
           <ListItem disablePadding>
             <ListItemButton onClick={handleOpenAccount}>
               <ListItemIcon>
-                <AccountCircle />
+                <AccountCircle sx={{ color: "secondary.main" }} />
               </ListItemIcon>
-              <ListItemText primary="Mi cuenta" />
+              <ListItemText
+                primary="Mi cuenta"
+                primaryTypographyProps={{ fontWeight: 500 }}
+              />
             </ListItemButton>
           </ListItem>
-        </Box>
+        </List>
+
+        {/* Copyright - Se mantiene en la parte inferior */}
+        <Typography
+          sx={{
+            px: 2,
+            py: 1,
+            color: "text.secondary",
+            fontSize: "0.7rem",
+            textAlign: "center",
+            display: "block",
+          }}
+        >
+          © {new Date().getFullYear()} Ferrequipos de la Costa.
+        </Typography>
       </Box>
     </Box>
   );
@@ -181,7 +260,7 @@ export default function MobileDrawerLayout() {
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: "#FDF6EC",
+            backgroundColor: theme.palette.background.default,
           }}
         >
           <Toolbar

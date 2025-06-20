@@ -80,7 +80,7 @@ export default function Detail() {
       }}
     >
       <Box sx={{ flexGrow: 1, p: isMobile ? 0 : 2 }}>
-        <Grid container >
+        <Grid container>
           <Grid
             item
             xs={12}
@@ -89,8 +89,7 @@ export default function Detail() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              minHeight: isMobile ? "300px" : "400px",
-              width: "100%",
+              // border: "2px solid red",
             }}
           >
             <DetailGallery />

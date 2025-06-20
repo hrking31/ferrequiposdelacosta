@@ -163,6 +163,7 @@ export default function Register() {
         value={user.name}
         onChange={handleChange}
         fullWidth
+        size="small"
         sx={{
           "& .MuiOutlinedInput-root": {
             "& fieldset": {
@@ -189,6 +190,7 @@ export default function Register() {
           name="genero"
           value={generoSeleccionado || ""}
           onChange={(e) => setGeneroSeleccionado(e.target.value)}
+          size="small"
           sx={{
             color: theme.palette.text.primary,
             "& .MuiOutlinedInput-notchedOutline": {
@@ -221,6 +223,7 @@ export default function Register() {
         value={user.email}
         onChange={handleChange}
         fullWidth
+        size="small"
         sx={{
           "& .MuiOutlinedInput-root": {
             "& fieldset": {
@@ -247,6 +250,7 @@ export default function Register() {
         value={user.password}
         onChange={handleChange}
         fullWidth
+        size="small"
         InputProps={{
           style: { color: theme.palette.text.primary },
           endAdornment: (
@@ -285,6 +289,7 @@ export default function Register() {
           value={roleSeleccionado || ""}
           onChange={(e) => setRoleSeleccionado(e.target.value)}
           label="Rol"
+          size="small"
           sx={{
             color: theme.palette.text.primary,
             "& .MuiOutlinedInput-notchedOutline": {

@@ -116,7 +116,7 @@ export default function DetailGallery() {
       <Grid item xs={12}>
         <GalleryContainer
           sx={{
-            height: isFullscreen ? "100vh" : isMobile ? "300px" : "400px",
+            height: isFullscreen ? "100vh" : isMobile ? "60vh" : "400px",
             position: isFullscreen ? "fixed" : "relative",
             top: isFullscreen ? 0 : "auto",
             left: isFullscreen ? 0 : "auto",

@@ -9,24 +9,25 @@ import {
 } from "@mui/material";
 
 export default function CardEquipos({ name, url, id }) {
+
+
   return (
     <Grid item xs={12}>
       <Link to={`/detail/${id}`} style={{ textDecoration: "none" }}>
         <Card
           sx={{
-            height: { xs: 235, sm: 330, md: 450 },
             display: "flex",
             flexDirection: "column",
+            height: { xs: 235, sm: 330, md: 450 },
           }}
         >
           <CardActionArea sx={{ flex: 1, flexDirection: "column" }}>
             <CardMedia
               component="img"
               src={url}
-              alt="img not found"
+              alt={name}
               sx={{
                 height: { xs: 180, sm: 280, md: 400 },
-                // objectFit: "cover",
                 objectFit: "contain",
                 backgroundColor: "#fff",
               }}
@@ -41,13 +42,13 @@ export default function CardEquipos({ name, url, id }) {
               }}
             >
               <Typography
-                variant="cardTitle"
+                variant="h6"
                 title={name}
                 sx={{
                   flex: 1,
-                  lineHeight: 1.2,
                   whiteSpace: "normal",
                   display: "-webkit-box",
+                  letterSpacing: "0.3px",
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",

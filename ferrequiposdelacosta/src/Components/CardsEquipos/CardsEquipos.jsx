@@ -1,25 +1,22 @@
 import { useSelector } from "react-redux";
-import { Grid, useTheme, Box } from "@mui/material";
+import { Grid, Box } from "@mui/material";
 import CardEquipos from "../CardEquipos/CardEquipos.jsx";
 import LoadingLogo from "../LoadingLogo/LoadingLogo.jsx";
 
 export default function CardsEquipos() {
   const { equipos, loading } = useSelector((state) => state.equipos);
   const equipo = useSelector((state) => state.search.results);
-  const theme = useTheme();
-
   const equiposToDisplay = equipo && equipo.length > 0 ? equipo : equipos;
 
   return (
     <Box
       sx={{
-        backgroundColor: theme.palette.background.default,
         minHeight: "100vh",
         p: { xs: 1, sm: 2 },
         mt:1,
       }}
     >
-      <Grid container spacing={1}>
+      <Grid container spacing={0.5}>
         {loading ? (
           <LoadingLogo />
         ) : (

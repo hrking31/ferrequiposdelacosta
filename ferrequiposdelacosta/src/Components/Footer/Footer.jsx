@@ -17,7 +17,7 @@ export default function Footer() {
         textAlign: "center",
         mt: 6,
         pt: 4,
-        pb: 2,
+        pb: 1,
         backgroundColor: "#fff",
         borderTop: "1px solid #ddd",
         px: 2,
@@ -43,7 +43,7 @@ export default function Footer() {
         sx={{
           color: "red",
           fontWeight: 500,
-          fontSize: isSmall ? 14 : 16,
+          fontSize: isSmall ? 13 : 16,
           mt: 0.5,
         }}
       >
@@ -51,10 +51,10 @@ export default function Footer() {
       </Typography>
 
       <Box sx={{ mt: 1 }}>
-        <Typography sx={{ color: "#666", fontSize: 14 }}>
+        <Typography sx={{ color: "#666", fontSize: 13 }}>
           📍 Cra. 38 # 108-23, Barranquilla, Colombia
         </Typography>
-        <Typography sx={{ color: "#666", fontSize: 14 }}>
+        <Typography sx={{ color: "#666", fontSize: 13 }}>
           🕒 Lunes: 7:30 AM - 5:30 PM | Sábado: 7:30 AM - 12:00 PM
         </Typography>
       </Box>
@@ -99,7 +99,7 @@ export default function Footer() {
         </Tooltip>
       </Box>
 
-      <Typography sx={{ mt: { xs: 1, md: 2 }, color: "#999", fontSize: 13 }}>
+      <Typography sx={{ mt: { xs: 1, md: 2 }, color: "#999", fontSize: 10 }}>
         © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los derechos
         reservados.
       </Typography>

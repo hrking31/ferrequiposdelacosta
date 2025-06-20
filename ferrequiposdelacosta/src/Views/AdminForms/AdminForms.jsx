@@ -38,20 +38,29 @@ export default function AdminForms() {
         height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         p: 2,
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography variant="h4" color="text.primary">
+      <Box sx={{ mb: 8 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            color: theme.palette.text.secondary,
+          }}
+        >
           {saludo} {name}, Qué vamos a hacer hoy?
         </Typography>
       </Box>
 
-      <Box sx={{ mb: 8 }}>
+      <Box
+        sx={{
+          flex: 1,
+        }}
+      >
         <Grid
           container
           justifyContent="center"
@@ -130,6 +139,11 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ mt: 4, mb: 2 }}>
+        <Grid container justifyContent="center">
           <Grid item xs={12} sm={5} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

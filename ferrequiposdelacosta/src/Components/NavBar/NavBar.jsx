@@ -3,7 +3,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Grid,
   Box,
   useTheme,
   useMediaQuery,
@@ -28,63 +27,57 @@ export default function MenuAppBar() {
       <AppBar
         position={isSmallScreen ? "fixed" : "static"}
         sx={{
-          bgcolor:
-            theme.palette.mode === "light"
-              ? theme.palette.primary.main
-              : theme.palette.secondary.main,
-          bottom: isSmallScreen ? 0 : "auto",
           top: isSmallScreen ? "auto" : 0,
+          bottom: isSmallScreen ? 0 : "auto",
           boxShadow: theme.shadows[4],
+          zIndex: theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar>
-          <Grid item>
-            <Box onClick={handleLogoClick} sx={{ cursor: "pointer" }}>
-              <img
-                src={Logos}
-                alt="logo"
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  maxWidth: "clamp(250px, 90%, 600px)",
-                  maxHeight: "clamp(40px, 5vw, 60px)",
-                  // height: "auto",
-                  filter: "drop-shadow(0 0 3px rgba(255, 255, 255, 1))",
-                }}
-              />
-            </Box>
-          </Grid>
-          {!isSmallScreen ? (
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                flexGrow: 1,
-                textAlign: "center",
-                fontSize: {
-                  xs: "1.5rem",
-                  sm: "2rem",
-                },
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            px: 2,
+          }}
+        >
+          <Box
+            onClick={handleLogoClick}
+            sx={{
+              cursor: "pointer",
+              p: 0.5,
+              borderRadius: 50,
+              backgroundColor:
+                theme.palette.mode === "light"
+                  ? // ? theme.palette.secondary.light
+                    // : theme.palette.primary.light,
+                    theme.palette.primary.light
+                  : theme.palette.secondary.light,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src={Logos}
+              alt="logo"
+              style={{
+                display: "block",
+                maxWidth: "clamp(150px, 25vw, 300px)",
+                maxHeight: "clamp(40px, 5vw, 80px)",
               }}
-            >
-              Ferrequipos De La Costa
-            </Typography>
-          ) : (
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                flexGrow: 1,
-                textAlign: "center",
-                fontSize: {
-                  xs: "1.5rem",
-                  sm: "2rem",
-                },
-              }}
-            >
-              Ferrequipos
-            </Typography>
-          )}
+            />
+          </Box>
+
+          <Typography
+            variant="h1"
+            sx={{
+              flexGrow: 1,
+              textAlign: "center",
+            }}
+          >
+            {isSmallScreen ? "Ferrequipos" : "Ferrequipos De La Costa"}
+          </Typography>
         </Toolbar>
       </AppBar>
     </Box>
