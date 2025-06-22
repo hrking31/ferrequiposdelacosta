@@ -69,15 +69,16 @@ export default function Login({onClose}) {
     <Box
       maxWidth={400}
       mx="auto"
-      p={3}
+      p={2}
       display="flex"
       flexDirection="column"
       gap={2}
+      sx={{ bgcolor: "background.default" }}
     >
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <Typography variant="h6" color="text.primary" sx={{ mt: 3 }}>
+            <Typography variant="h5" sx={{ mt: 2 }}>
               Iniciar sesión en mi cuenta
             </Typography>
             {error && (
@@ -94,25 +95,6 @@ export default function Login({onClose}) {
               value={user.email}
               onChange={handleChange}
               required
-              fullWidth
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
           <Grid item xs={12}>
@@ -123,8 +105,6 @@ export default function Login({onClose}) {
               value={user.password}
               onChange={handleChange}
               required
-              fullWidth
-              size="small"
               InputProps={{
                 style: { color: theme.palette.text.primary },
                 endAdornment: (
@@ -132,29 +112,24 @@ export default function Login({onClose}) {
                     onClick={() => dispatch(togglePasswordVisibility())}
                   >
                     {passwordVisible ? (
-                      <FaEyeSlash color={theme.palette.primary.main} />
+                      <FaEyeSlash
+                        color={
+                          theme.palette.mode === "light"
+                            ? theme.palette.text.primary
+                            : theme.palette.text.secondary
+                        }
+                      />
                     ) : (
-                      <FaEye color={theme.palette.primary.main} />
+                      <FaEye
+                        color={
+                          theme.palette.mode === "light"
+                            ? theme.palette.text.primary
+                            : theme.palette.text.secondary
+                        }
+                      />
                     )}
                   </IconButton>
                 ),
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
               }}
             />
           </Grid>

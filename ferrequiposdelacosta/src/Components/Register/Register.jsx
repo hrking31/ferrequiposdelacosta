@@ -145,9 +145,6 @@ export default function Register() {
       onSubmit={handleSubmit}
       maxWidth={400}
       mx="auto"
-      mt={2}
-      mb={2}
-      p={3}
       display="flex"
       flexDirection="column"
       gap={2}

@@ -32,11 +32,18 @@ import ButtonContacto, {
   WhatsAppButton,
 } from "../../Components/ButtonContacto/ButtonContacto";
 import EquipoImageCarousel from "../../Components/EquipoImageCarousel/EquipoImageCarousel.jsx";
+import {
+  fetchEquipos,
+  clearSearchEquipo,
+} from "../../Store/Slices/searchSlice";
+import { useDispatch } from "react-redux";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { useColorMode } from "../../Theme/ThemeProvider";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
 
 export default function MobileDrawerLayout() {
+   const dispatch = useDispatch();
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
@@ -69,6 +76,12 @@ export default function MobileDrawerLayout() {
       setOpenSnackbar(true);
     }
   }, [error, equipos, loading, hasSearched]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearSearchEquipo());
+    };
+  }, [dispatch]);
 
   const handleSearch = (searchTerm) => {
     dispatch(fetchEquipos(searchTerm));
@@ -322,13 +335,13 @@ export default function MobileDrawerLayout() {
             }}
           >
             <Box sx={{ p: 1 }}>
-              <Box sx={{ pt: 2 }}>
+              <Box sx={{ pt: 2, pb: 4 }}>
                 <Search onSearch={handleSearch} />
               </Box>
 
               <InstallApp />
 
-              <Box sx={{ pt: 2 }}>
+              <Box sx={{ pt: 2, pb: 4 }}>
                 <EquipoImageCarousel />
               </Box>
 
@@ -336,6 +349,7 @@ export default function MobileDrawerLayout() {
                 sx={{
                   alignItems: "center",
                   p: 2,
+                  pb: 6,
                 }}
               >
                 <Typography variant="subtitle1">
@@ -343,11 +357,15 @@ export default function MobileDrawerLayout() {
                 </Typography>
               </Box>
 
-              <Divider sx={{ my: 2 }} />
-
-              <ButtonContacto />
-
-              <Divider sx={{ my: 2 }} />
+              {/* <Divider sx={{ my: 2 }} /> */}
+              <Box
+                sx={{
+                  pb: 8,
+                }}
+              >
+                <ButtonContacto />
+              </Box>
+              {/* <Divider sx={{ my: 2 }} /> */}
 
               <Box
                 sx={{
@@ -356,6 +374,7 @@ export default function MobileDrawerLayout() {
                   overflow: "hidden",
                   display: "flex",
                   justifyContent: "center",
+                  pb: 4,
                 }}
               >
                 <iframe
@@ -375,6 +394,7 @@ export default function MobileDrawerLayout() {
                 sx={{
                   alignItems: "center",
                   p: 2,
+                  pb: 4,
                 }}
               >
                 <Typography variant="subtitle1">
@@ -382,24 +402,30 @@ export default function MobileDrawerLayout() {
                 </Typography>
               </Box>
 
+              <Box
+                sx={{
+                  alignItems: "center",
+                  pl: 2,
+                }}
+              >
+                <Typography variant="subtitle1">
+                  Llámanos para más información
+                </Typography>
+              </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, p:2 }}>
-                  <LocalPhone />
-                  <Typography variant="subtitle2">
-                    +57 5 3356050 - 311 657 6633
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    alignItems: "center",
-                    pb: 2,
-                    pl:2
-                  }}
-                >
-                  <Typography variant="subtitle1">
-                    Llámanos para más información
-                  </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  p: 2,
+                  pb: 6,
+                }}
+              >
+                <LocalPhone />
+                <Typography variant="body1">
+                  +57 5 3356050 - 311 657 6633
+                </Typography>
               </Box>
             </Box>
 
@@ -413,46 +439,42 @@ export default function MobileDrawerLayout() {
                 borderColor: "divider",
               }}
             >
-
-                <IconButton onClick={toggleColorMode} disableRipple>
-                  {theme.palette.mode === "dark" ? (
-                    <Brightness7 sx={{ color: "warning.main", mr: 2 }} />
-                  ) : (
-                    <Brightness4 sx={{ color: "primary.main", mr: 2 }} />
-                  )}
-                  <Typography variant="subtitle1">
-                    {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
-                  </Typography>
-                </IconButton>
-
-              <Divider sx={{ my: 2 }} />
-
-                <IconButton
-                  onClick={handleOpenAccount}
-                  disableRipple
-                >
-                  {theme.palette.mode === "dark" ? (
-                    <AccountCircle sx={{ color: "secondary.light", mr: 2 }} />
-                  ) : (
-                    <AccountCircle sx={{ color: "primary.light", mr: 2 }} />
-                  )}
-                  <Typography variant="subtitle1">Mi cuenta</Typography>
-                </IconButton>
-
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    p:2,
-                    textAlign: "center",
-                    display: "block",
-                  }}
-                >
-                  © {new Date().getFullYear()} Ferrequipos de la Costa. Todos
-                  los derechos reservados.
+              <IconButton onClick={toggleColorMode} disableRipple>
+                {theme.palette.mode === "dark" ? (
+                  <Brightness7 sx={{ color: "warning.main", mr: 2 }} />
+                ) : (
+                  <Brightness4 sx={{ color: "primary.main", mr: 2 }} />
+                )}
+                <Typography variant="subtitle1">
+                  {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
                 </Typography>
-              </Box>
+              </IconButton>
+
+              {/* <Divider sx={{ my: 2 }} /> */}
+              <Box sx={{ my: 2 }}></Box>
+
+              <IconButton onClick={handleOpenAccount} disableRipple>
+                {theme.palette.mode === "dark" ? (
+                  <AccountCircle sx={{ color: "secondary.light", mr: 2 }} />
+                ) : (
+                  <AccountCircle sx={{ color: "primary.main", mr: 2 }} />
+                )}
+                <Typography variant="subtitle1">Mi cuenta</Typography>
+              </IconButton>
+
+              <Typography
+                variant="body2"
+                sx={{
+                  p: 2,
+                  textAlign: "center",
+                  display: "block",
+                }}
+              >
+                © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los
+                derechos reservados.
+              </Typography>
             </Box>
+          </Box>
         </Grid>
 
         <Box

@@ -47,14 +47,17 @@ export default function VistaCrearUsuarios() {
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ flexGrow: 1, mb: 2 }}>
+      <Box sx={{ flexGrow: 1 }}>
         <Typography variant="h4" color="text.primary">
           {saludo} {name}.
         </Typography>
+      </Box>
+
+      <Box sx={{ flexGrow: 1 }}>
         <Register />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2}}>
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={6} md={4}>
             <Button

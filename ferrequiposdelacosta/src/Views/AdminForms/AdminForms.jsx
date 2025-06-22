@@ -9,10 +9,19 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import BuildIcon from "@mui/icons-material/Build";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
+import LogoutIcon from "@mui/icons-material/Logout";
+
 
 export default function AdminForms() {
   const { logout } = useAuth();
   const theme = useTheme();
+  const isMobile = useMediaQuery("(max-width:1024px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
   const isMediumScreen = useMediaQuery(
     "(min-width:601px) and (max-width:915px)"
@@ -31,7 +40,29 @@ export default function AdminForms() {
   } else if (isMediumScreen) {
     appBarHeight = 64;
   }
-
+  const buttonStyle = {
+    width: {
+      xs: "100%", 
+      sm: 240, 
+    },
+    height: {
+      xs: 180, 
+      sm: 150, 
+    },
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: {
+      xs: 2,
+      sm: 2,
+      md: 4,
+    },
+    textAlign: "center",
+    // border: "2px solid red",
+  };
+  
+  
   return (
     <Box
       sx={{
@@ -45,7 +76,7 @@ export default function AdminForms() {
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ mb: 8 }}>
+      <Box sx={{ mb: 4 }}>
         <Typography
           variant="h4"
           sx={{
@@ -58,83 +89,147 @@ export default function AdminForms() {
 
       <Box
         sx={{
+          width: "100%",
           flex: 1,
+          display: "flex",
+          justifyContent: "center",
+          // border: "2px solid red",
+          p: 0,
         }}
       >
         <Grid
           container
           justifyContent="center"
           spacing={{ xs: 2, sm: 4, md: 6 }}
-          px={{ xs: 1, sm: 3, md: 6 }}
         >
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("cotizacion") && (
               <Button
                 component={Link}
                 to="/vistacotizacion"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <BuildIcon sx={{ fontSize: 40 }} />
                 COTIZACIÓN
               </Button>
             )}
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("cuentaCombro") && (
               <Button
                 component={Link}
                 to="/vistacuentadecobro"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <ReceiptIcon sx={{ fontSize: 40 }} />
                 CUENTA DE COBRO
               </Button>
             )}
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("crearEquipos") && (
               <Button
                 component={Link}
                 to="/vistacreaequipo"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <AddCircleOutlineIcon sx={{ fontSize: 40 }} />
                 CREAR EQUIPO
               </Button>
             )}
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("eliminarEditarEquipos") && (
               <Button
                 component={Link}
                 to="/vistaseleccionarequipo"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <EditIcon sx={{ fontSize: 40 }} />
                 EDITAR o ELIMINAR EQUIPO
               </Button>
             )}
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("crearUsuarios") && (
               <Button
                 component={Link}
                 to="/VistaCrearUsuarios"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <PersonAddAlt1Icon sx={{ fontSize: 40 }} />
                 CREAR USUARIOS
               </Button>
             )}
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             {permisos.includes("eliminarUsuarios") && (
               <Button
                 component={Link}
                 to="/VistaEliminarUsuario"
-                variant="contained"
-                fullWidth
+                variant="adminSquare"
+                sx={buttonStyle}
               >
+                <PersonRemoveIcon sx={{ fontSize: 40 }} />
                 ELIMINAR USUARIOS
               </Button>
             )}
@@ -145,7 +240,12 @@ export default function AdminForms() {
       <Box sx={{ mt: 4, mb: 2 }}>
         <Grid container justifyContent="center">
           <Grid item xs={12} sm={5} md={4}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
+            <Button
+              onClick={handlerLogout}
+              variant="danger"
+              fullWidth
+              startIcon={<LogoutIcon />}
+            >
               CERRAR SESIÓN
             </Button>
           </Grid>
@@ -154,3 +254,9 @@ export default function AdminForms() {
     </Box>
   );
 }
+
+
+
+
+
+
