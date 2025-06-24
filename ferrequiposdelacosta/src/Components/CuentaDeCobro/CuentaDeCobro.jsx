@@ -442,7 +442,7 @@ export default function CuentaCobro() {
             </Button>
           </Grid>
           <Grid item xs={6}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h5" gutterBottom>
               Total: {total}
             </Typography>
           </Grid>

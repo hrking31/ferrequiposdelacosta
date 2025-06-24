@@ -4,9 +4,11 @@ import {
   Toolbar,
   Typography,
   Box,
+  IconButton,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import Logos from "../../assets/LogoFerrequipos.png";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +22,10 @@ export default function MenuAppBar() {
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
     navigate("/home");
+  };
+
+  const handlecartClick = () => {
+    navigate("/vistacart");
   };
 
   return (
@@ -78,6 +84,24 @@ export default function MenuAppBar() {
           >
             {isSmallScreen ? "Ferrequipos" : "Ferrequipos De La Costa"}
           </Typography>
+
+          <IconButton
+            onClick={handlecartClick}
+            sx={{
+              cursor: "pointer",
+              p: 0.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.primary.light
+                  : theme.palette.secondary.light,
+            }}
+          >
+            <ShoppingCartIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
     </Box>

@@ -152,7 +152,7 @@ export const CustomThemeProvider = ({ children }) => {
         },
         h5: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 500,
+          fontWeight: 600,
           fontSize: "1.2rem",
           color: mode === "light" ? "#3A5169" : "#FFD166",
         },
@@ -193,6 +193,14 @@ export const CustomThemeProvider = ({ children }) => {
           fontSize: "0.875rem",
           color: mode === "light" ? "#3A5169" : "#A0AEC0",
         },
+        subtitle3: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 200,
+          fontSize: "0.7rem",
+          lineHeight: 1.5,
+          color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
+          display: "block",
+        },
         body1: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
@@ -215,8 +223,8 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 600,
           fontSize: "0.875rem",
           textTransform: "none",
-          lineHeight: 1.75,
         },
+        lineHeight: 1.75,
         caption: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,

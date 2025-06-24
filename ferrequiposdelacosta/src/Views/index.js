@@ -10,6 +10,7 @@ import VistaEditarEquipo from "../Views/VistaEditarEquipo/VistaEditarEquipo";
 import VistaCrearUsuarios from "../Views/VistaCrearUsuarios/VistaCrearUsuarios";
 import VistaEliminarUsuario from "../Views/VistaEliminarUsuario/VistaEliminarUsuario";
 import VistaNoAutorizada from "../Views/VistaNoAutorizada/VistaNoAutorizada";
+import VistaCart from "../Views/VistaCart/VistaCart";
 
 export {
   Home,
@@ -24,4 +25,5 @@ export {
   VistaCrearUsuarios,
   VistaEliminarUsuario,
   VistaNoAutorizada,
+  VistaCart,
 };

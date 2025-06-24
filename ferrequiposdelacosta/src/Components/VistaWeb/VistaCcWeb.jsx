@@ -113,7 +113,7 @@ export default function VistaCcWeb() {
         </Box>
       ))}
       
-      <Typography variant="h6" sx={{ fontSize: isSmallScreen ? "16px" : "18px", fontWeight: "bold", textAlign: "right", marginTop: "20px" }}>
+      <Typography variant="h5" sx={{ fontSize: isSmallScreen ? "16px" : "18px", fontWeight: "bold", textAlign: "right", marginTop: "20px" }}>
         Total a Cancelar: {total}
       </Typography>
 

@@ -7,6 +7,7 @@ import cotizacionReducer from "./Slices/cotizacionSlice";
 import cuentacobroReducer from "./Slices/cuentacobroSlice";
 import userReducer from "./Slices/userSlice";
 import installAppReducer from "./Slices/installAppSlice";
+import cartReducer from "./Slices/cartSlice";
 
 export default configureStore({
   reducer: {
@@ -18,5 +19,6 @@ export default configureStore({
     cuentacobro: cuentacobroReducer,
     user: userReducer,
     installApp: installAppReducer,
+    cart: cartReducer,
   },
 });

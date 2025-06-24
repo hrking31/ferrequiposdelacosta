@@ -351,7 +351,7 @@ export default function Cotizacion() {
             </Button>
           </Grid>
           <Grid item xs={6}>
-            <Typography variant="h6">Total: {total}</Typography>
+            <Typography variant="h5">Total: {total}</Typography>
           </Grid>
         </Grid>
       </Box>

@@ -126,7 +126,7 @@ export default function VistaCotWeb() {
         </Grid>
       ))}
       <Typography
-        variant="h6"
+        variant="h5"
         sx={{
           fontSize: isSmallScreen ? "16px" : "18px",
           fontWeight: "bold",

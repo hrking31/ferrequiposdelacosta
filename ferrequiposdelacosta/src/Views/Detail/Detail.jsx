@@ -8,18 +8,22 @@ import {
   Grid,
   Typography,
   Box,
+  Button,
   Snackbar,
   Alert,
   Divider,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
 import Footer from "../../Components/Footer/Footer";
+import ProductModal from "../../Components/ProductModal/ProductModal";
 
 export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const [open, setOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -57,7 +61,6 @@ export default function Detail() {
     setSnackbarProps((prev) => ({ ...prev, open: false }));
   };
 
-
   let appBarHeight = 64;
 
   if (isSmallScreen) {
@@ -67,7 +70,6 @@ export default function Detail() {
   }
 
   if (loading || !equipo) return <LoadingLogo />;
-
 
   return (
     <Box
@@ -138,6 +140,24 @@ export default function Detail() {
             </Typography>
 
             <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ textAlign: "center", pb:2 }}>
+              <Button
+                variant="success"
+                color="primary"
+                onClick={() => setOpen(true)}
+                sx={{ borderRadius: 2 }}
+              >
+                <ShoppingCartIcon />
+                Agregar al Carrito
+              </Button>
+
+              <ProductModal
+                open={open}
+                onClose={() => setOpen(false)}
+                product={equipo}
+              />
+            </Box>
 
             <Box sx={{ textAlign: "center" }}>
               <ButtonContacto />

@@ -4,10 +4,12 @@ import {
   IconButton,
   useMediaQuery,
   Tooltip,
+  useTheme,
 } from "@mui/material";
 import { Instagram, Facebook, Email, Business } from "@mui/icons-material";
 
 export default function Footer() {
+  const theme = useTheme();
   const isSmall = useMediaQuery("(max-width:600px)");
 
   return (
@@ -18,8 +20,11 @@ export default function Footer() {
         mt: 6,
         pt: 4,
         pb: 1,
-        backgroundColor: "#fff",
-        borderTop: "1px solid #ddd",
+        backgroundColor: theme.palette.background.paper,
+        borderTop: `1px solid ${
+          theme.palette.mode === "light" ? "#5C6B73" : "#A0AEC0"
+        }`,
+
         px: 2,
       }}
     >
@@ -30,20 +35,27 @@ export default function Footer() {
           justifyContent: "center",
           alignItems: "center",
           gap: 1,
-          fontWeight: 700,
-          color: "#333",
+          color:
+            theme.palette.mode === "light"
+              ? theme.palette.primary.light
+              : theme.palette.secondary.light,
         }}
       >
-        <Business sx={{ color: "red" }} />
+        <Business
+          sx={{
+            color:
+              theme.palette.mode === "light"
+                ? theme.palette.primary.light
+                : theme.palette.secondary.light,
+          }}
+        />
         Ferrequipos de la Costa
       </Typography>
 
       <Typography
         variant="subtitle2"
         sx={{
-          color: "red",
-          fontWeight: 500,
-          fontSize: isSmall ? 13 : 16,
+          fontSize: isSmall ? "0.8rem" : "1rem",
           mt: 0.5,
         }}
       >
@@ -51,10 +63,10 @@ export default function Footer() {
       </Typography>
 
       <Box sx={{ mt: 1 }}>
-        <Typography sx={{ color: "#666", fontSize: 13 }}>
+        <Typography variant="subtitle3">
           📍 Cra. 38 # 108-23, Barranquilla, Colombia
         </Typography>
-        <Typography sx={{ color: "#666", fontSize: 13 }}>
+        <Typography variant="subtitle3">
           🕒 Lunes: 7:30 AM - 5:30 PM | Sábado: 7:30 AM - 12:00 PM
         </Typography>
       </Box>
@@ -72,7 +84,12 @@ export default function Footer() {
             href="mailto:ferrequipos07@hotmail.com"
             target="_blank"
             rel="noopener"
-            sx={{ color: "#444" }}
+            sx={{
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.primary.light
+                  : theme.palette.secondary.light,
+            }}
           >
             <Email />
           </IconButton>
@@ -82,7 +99,12 @@ export default function Footer() {
             href="https://www.instagram.com/ferrequipos07?utm_source=qr&igsh=aGpqN2s4Y2h5ZmRi"
             target="_blank"
             rel="noopener"
-            sx={{ color: "#444" }}
+            sx={{
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.primary.light
+                  : theme.palette.secondary.light,
+            }}
           >
             <Instagram />
           </IconButton>
@@ -92,7 +114,12 @@ export default function Footer() {
             href="https://www.facebook.com/share/19fZ91JWgg/"
             target="_blank"
             rel="noopener"
-            sx={{ color: "#444" }}
+            sx={{
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.primary.light
+                  : theme.palette.secondary.light,
+            }}
           >
             <Facebook />
           </IconButton>
@@ -101,12 +128,15 @@ export default function Footer() {
 
       <Typography
         sx={{
+          color:
+            theme.palette.mode === "light"
+              ? theme.palette.primary.light
+              : theme.palette.secondary.light,
           mt: { xs: 0.5, md: 1 },
-          color: "#999",
           fontSize: {
-            xs: "0.6rem",
-            sm: "0.7rem",
-            md: "0.8rem",
+            xs: "0.5rem",
+            sm: "0.6rem",
+            md: "0.7rem",
           },
         }}
       >

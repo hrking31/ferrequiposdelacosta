@@ -11,6 +11,7 @@ import {
   VistaCrearUsuarios,
   VistaEliminarUsuario,
   VistaNoAutorizada,
+  VistaCart,
 } from "./Views";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -120,6 +121,7 @@ function App() {
         <Route path="/Home" element={<Home />} />
         <Route exact path="/detail/:id" element={<Detail />} />
         <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
+        <Route path="/vistacart" element={<VistaCart />} />
       </Routes>
     </div>
   );
