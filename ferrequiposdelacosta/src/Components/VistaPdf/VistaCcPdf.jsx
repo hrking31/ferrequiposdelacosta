@@ -163,7 +163,9 @@ const VistaCcPdf = ({ values }) => {
         <View style={styles.piePagina}>
           <Text>ferrequiposdelacosta.com</Text>
           <Text>Ferrequipos07@hotmail.com</Text>
-          <Text>Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465</Text>
+          <Text>
+            Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
+          </Text>
           <Text>BARRANQUILLA - COLOMBIA</Text>
         </View>
       </Page>

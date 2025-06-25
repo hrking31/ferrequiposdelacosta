@@ -1,8 +1,7 @@
-// src/redux/cartSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  items: [], // array de productos en el carrito
+  items: [], 
 };
 
 const cartSlice = createSlice({
@@ -31,9 +30,14 @@ const cartSlice = createSlice({
       const item = state.items.find((item) => item.id === id);
       if (item && quantity > 0) item.quantity = quantity;
     },
+    updateDays(state, action) {
+      const { id, days } = action.payload;
+      const item = state.items.find((item) => item.id === id);
+      if (item && days > 0) item.days = days;
+    },
   },
 });
 
-export const { addToCart, removeFromCart, clearCart, updateQty } =
+export const { addToCart, removeFromCart, clearCart, updateQty, updateDays } =
   cartSlice.actions;
 export default cartSlice.reducer;

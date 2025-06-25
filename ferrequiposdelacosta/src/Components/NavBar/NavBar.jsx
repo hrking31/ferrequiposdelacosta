@@ -8,16 +8,17 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import Logos from "../../assets/LogoFerrequipos.png";
 import { useNavigate } from "react-router-dom";
+import Camion from "../../Components/Camion/Camion.jsx";
 
 export default function MenuAppBar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
@@ -87,20 +88,26 @@ export default function MenuAppBar() {
 
           <IconButton
             onClick={handlecartClick}
+            disableRipple
             sx={{
               cursor: "pointer",
               p: 0.5,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              textDecoration: "none",
               color:
                 theme.palette.mode === "light"
                   ? theme.palette.primary.light
                   : theme.palette.secondary.light,
+              "&:hover": {
+                backgroundColor: "transparent",
+              },
+              "&:focus": {
+                outline: "none",
+              },
             }}
           >
-            <ShoppingCartIcon />
+            <Camion size={isXs ? 28 : 38} />
           </IconButton>
         </Toolbar>
       </AppBar>

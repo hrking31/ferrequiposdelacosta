@@ -146,7 +146,7 @@ export default function VistaCotWeb() {
             lineHeight: "1.2",
           }}
         >
-          Kra 38 # 108 – 23 Tel 2511118 - 3116576633 - 3106046465
+          Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
           <br />
           Ferrequipos07@hotmail.com
           <br />

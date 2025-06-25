@@ -424,7 +424,7 @@ export default function MobileDrawerLayout() {
               >
                 <LocalPhone />
                 <Typography variant="body1">
-                  +57 5 3356050 - 311 657 6633
+                   605 3356050 - 311 657 6633
                 </Typography>
               </Box>
             </Box>
