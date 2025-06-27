@@ -2,26 +2,33 @@ import {
   Box,
   Typography,
   Button,
+  IconButton,
   Stack,
   Divider,
   useTheme,
   useMediaQuery,
+  Checkbox,
 } from "@mui/material";
+import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
+import { useState } from "react";
 import {
   removeFromCart,
-  clearCart,
   updateQty,
   updateDays,
 } from "../../Store/Slices/cartSlice.js";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import Camion from "../../Components/Camion/Camion.jsx";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Camion } from "../../Components/Camion/Camion.jsx";
 
 const VistaCart = () => {
   const theme = useTheme();
-  const items = useSelector((state) => state.cart.items);
   const dispatch = useDispatch();
+  const items = useSelector((state) => state.cart.items);
+  const [selectedItems, setSelectedItems] = useState([]);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMediumScreen = useMediaQuery("(max-width:915px)");
+
 
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
@@ -33,35 +40,88 @@ const VistaCart = () => {
     dispatch(updateDays({ id, days }));
   };
 
+  const handleToggleSelect = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    selectedItems.forEach((id) => {
+      dispatch(removeFromCart(id));
+    });
+    setSelectedItems([]);
+  };
+
   const message = encodeURIComponent(
-    "Hola, quiero alquilar los siguientes equipos:\n\n" +
+    "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
       items
-        .map((item) => `${item.quantity}  ${item.name} por ${item.days} días`)
-        .join("\n")
+        .map(
+          (item, index) =>
+            `*${index + 1}.* 🛠 *${item.name}*\n` +
+            `📦 Cantidad: ${item.quantity}\n` +
+            `📅 Días: ${item.days}\n` +
+            (item.images && item.images[0]?.url
+              ? `🖼 Imagen: ${item.images[0].url}\n`
+              : "") +
+            `\n`
+        )
+        .join("") +
+      "Gracias! 🙏"
   );
 
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" gap={1}>
-        <Camion
-          size={isXs ? 28 : 38}
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.primary.main
-              : theme.palette.secondary.light
+    <Box sx={{ p: 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Camion
+            cantidad={items.length}
+            size={isXs ? 28 : 38}
+            color={
+              theme.palette.mode === "light"
+                ? theme.palette.primary.main
+                : theme.palette.secondary.light
+            }
+          />
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{
+              paddingTop: "8px",
+            }}
+          >
+            Ferrequipos.
+          </Typography>
+        </Box>
+
+        <Box sx={{ ml: "auto" }}>
+          <IconButton
+            color="error"
+            onClick={handleDeleteSelected}
+            disabled={selectedItems.length === 0}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Checkbox
+          checked={selectedItems.length === items.length && items.length > 0}
+          indeterminate={
+            selectedItems.length > 0 && selectedItems.length < items.length
           }
-        />
-        <Typography
-          variant="h5"
-          gutterBottom
-          sx={{
-            paddingTop: "8px", 
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedItems(items.map((item) => item.id));
+            } else {
+              setSelectedItems([]);
+            }
           }}
-        >
-          Ferrequipos.
-        </Typography>
+        />
+        <Typography variant="body2">{items.length} Equipo</Typography>
       </Box>
 
       {items.length === 0 ? (
@@ -72,91 +132,193 @@ const VistaCart = () => {
             <Box
               key={item.id}
               sx={{
+                display: "flex",
+                alignItems: "center",
                 mb: 2,
-                p: 2,
-                border: "1px solid #ccc",
-                borderRadius: 2,
+                // border: "1px solid #ccc",
+                // borderRadius: 2,
               }}
             >
-              <Typography variant="subtitle1">{item.name}</Typography>
+              <Checkbox
+                checked={selectedItems.includes(item.id)}
+                onChange={() => handleToggleSelect(item.id)}
+              />
 
-              <Stack direction="row" spacing={2} alignItems="center" mt={1}>
-                <Box>
-                  <Typography fontWeight="bold">Días</Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleDaysChange(item.id, item.days - 1)}
-                      disabled={item.days <= 1}
-                      sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        padding: 0,
-                      }}
-                    >
-                      –
-                    </Button>
-                    <Typography>{item.days}</Typography>
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleDaysChange(item.id, item.days + 1)}
-                      sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        padding: 0,
-                      }}
-                    >
-                      +
-                    </Button>
-                  </Stack>
+              <img
+                src={item.images[0].url}
+                style={{
+                  width: "100px",
+                  height: "100px",
+                  objectFit: "cover",
+                }}
+              />
+
+              <Box
+                display="flex"
+                flexDirection={isMediumScreen ? "column" : "row"}
+                alignItems="center"
+              >
+                <Box display="flex" flexDirection="column" alignItems="center">
+                  <Typography variant="subtitle1">{item.name}</Typography>
                 </Box>
 
-                <Box>
-                  <Typography fontWeight="bold">Cantidad</Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Button
-                      variant="outlined"
-                      onClick={() =>
-                        handleQtyChange(item.id, item.quantity - 1)
-                      }
-                      disabled={item.quantity <= 1}
-                      sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        padding: 0,
-                      }}
-                    >
-                      –
-                    </Button>
-                    <Typography>{item.quantity}</Typography>
-                    <Button
-                      variant="outlined"
-                      onClick={() =>
-                        handleQtyChange(item.id, item.quantity + 1)
-                      }
-                      sx={{
-                        minWidth: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        padding: 0,
-                      }}
-                    >
-                      +
-                    </Button>
-                  </Stack>
-                </Box>
-
-                <Button
-                  color="error"
-                  variant="outlined"
-                  onClick={() => dispatch(removeFromCart(item.id))}
+                <Box
+                  display="flex"
+                  flexDirection="row"
+                  gap={2}
+                  justifyContent="center"
                 >
-                  Eliminar
-                </Button>
-              </Stack>
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                  >
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Días
+                    </Typography>
+
+                    <Box
+                      sx={{
+                        border: "1px solid",
+                        borderRadius: 2,
+                        px: 1.5,
+                        minHeight: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                      }}
+                    >
+                      <Button
+                        onClick={() => handleDaysChange(item.id, item.days - 1)}
+                        disabled={item.days <= 1}
+                        sx={{
+                          minWidth: { xs: 28 },
+                          height: { xs: 28 },
+                          padding: 0,
+                          backgroundColor: "transparent",
+                          boxShadow: "none",
+                          "&:hover": {
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        <Remove
+                          sx={{
+                            color:
+                              theme.palette.mode === "light"
+                                ? theme.palette.primary.main
+                                : theme.palette.secondary.light,
+                          }}
+                        />
+                      </Button>
+
+                      <Typography>{item.days}</Typography>
+
+                      <Button
+                        onClick={() => handleDaysChange(item.id, item.days + 1)}
+                        sx={{
+                          minWidth: { xs: 28 },
+                          height: { xs: 28 },
+                          padding: 0,
+                          backgroundColor: "transparent",
+                          boxShadow: "none",
+                          "&:hover": {
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        <Add
+                          sx={{
+                            color:
+                              theme.palette.mode === "light"
+                                ? theme.palette.primary.main
+                                : theme.palette.secondary.light,
+                          }}
+                        />
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                  >
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Cantidad
+                    </Typography>
+
+                    <Box
+                      sx={{
+                        border: "1px solid",
+                        borderRadius: 2,
+                        px: 1.5,
+                        minHeight: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                      }}
+                    >
+                      <Button
+                        onClick={() =>
+                          handleQtyChange(item.id, item.quantity - 1)
+                        }
+                        disabled={item.quantity <= 1}
+                        sx={{
+                          minWidth: { xs: 28 },
+                          height: { xs: 28 },
+                          padding: 0,
+                          backgroundColor: "transparent",
+                          boxShadow: "none",
+                          "&:hover": {
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        <Remove
+                          sx={{
+                            color:
+                              theme.palette.mode === "light"
+                                ? theme.palette.primary.main
+                                : theme.palette.secondary.light,
+                          }}
+                        />
+                      </Button>
+
+                      <Typography>{item.quantity}</Typography>
+
+                      <Button
+                        onClick={() =>
+                          handleQtyChange(item.id, item.quantity + 1)
+                        }
+                        sx={{
+                          minWidth: { xs: 28 },
+                          height: { xs: 28 },
+                          padding: 0,
+                          backgroundColor: "transparent",
+                          boxShadow: "none",
+                          "&:hover": {
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        <Add
+                          sx={{
+                            color:
+                              theme.palette.mode === "light"
+                                ? theme.palette.primary.main
+                                : theme.palette.secondary.light,
+                          }}
+                        />
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
             </Box>
           ))}
 
@@ -164,16 +326,7 @@ const VistaCart = () => {
 
           <Stack spacing={2}>
             <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => dispatch(clearCart())}
-            >
-              Vaciar carrito
-            </Button>
-
-            <Button
-              variant="contained"
-              color="success"
+              variant="whatsapp"
               startIcon={<WhatsAppIcon />}
               href={whatsappLink}
               target="_blank"

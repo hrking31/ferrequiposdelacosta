@@ -8,31 +8,26 @@ import {
   Grid,
   Typography,
   Box,
-  Button,
   Snackbar,
   Alert,
   Divider,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
 import Footer from "../../Components/Footer/Footer";
-import ProductModal from "../../Components/ProductModal/ProductModal";
-import Camion from "../../Components/Camion/Camion.jsx";
+import ProductCardDetail from "../../Components/ProductCardDetail/ProductCardDetail.jsx";
 
 export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const [open, setOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
   const isMediumScreen = useMediaQuery(
     "(min-width:601px) and (max-width:915px)"
   );
-  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-
+ 
   const {
     selectedEquipo: equipo,
     loading,
@@ -143,30 +138,7 @@ export default function Detail() {
 
             <Divider sx={{ my: 2 }} />
 
-            <Box sx={{ textAlign: "center", pb: 2,}}>
-              <Button
-                variant="success"
-                color="primary"
-                onClick={() => setOpen(true)}
-                sx={{ borderRadius: 2 }}
-              >
-                <Camion
-                  size={isXs ? 28 : 38}
-                  color={
-                    theme.palette.mode === "light"
-                      ? theme.palette.primary.main
-                      : theme.palette.secondary.light
-                  }
-                />
-                Agregar al Carrito
-              </Button>
-
-              <ProductModal
-                open={open}
-                onClose={() => setOpen(false)}
-                product={equipo}
-              />
-            </Box>
+            <ProductCardDetail product={equipo} />
 
             <Box sx={{ textAlign: "center" }}>
               <ButtonContacto />

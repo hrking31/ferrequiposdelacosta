@@ -11,7 +11,7 @@ import {
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import Logos from "../../assets/LogoFerrequipos.png";
 import { useNavigate } from "react-router-dom";
-import Camion from "../../Components/Camion/Camion.jsx";
+import CamionContador from "../../Components/Camion/Camion.jsx";
 
 export default function MenuAppBar() {
   const dispatch = useDispatch();
@@ -107,7 +107,7 @@ export default function MenuAppBar() {
               },
             }}
           >
-            <Camion size={isXs ? 28 : 38} />
+            <CamionContador size={isXs ? 28 : 38} />
           </IconButton>
         </Toolbar>
       </AppBar>
