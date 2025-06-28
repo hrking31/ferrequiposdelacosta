@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Home,
   Detail,
@@ -13,12 +15,40 @@ import {
   VistaNoAutorizada,
   VistaCart,
 } from "./Views";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
+import { addToCart } from "./Store/Slices/cartSlice.js";
+import { setCliente } from "./Store/Slices/clienteSlice";
 
 function App() {
-  const location = useLocation();
+   const dispatch = useDispatch();
+  const items = useSelector((state) => state.cart.items);
+  const cliente = useSelector((state) => state.cliente);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      const storedCart = localStorage.getItem("cart");
+      if (storedCart) {
+        const parsed = JSON.parse(storedCart);
+        parsed.items.forEach((item) => {
+          dispatch(addToCart(item));
+        });
+      }
+    }
+
+    const isClienteVacio = Object.values(cliente).every(
+      (value) => value === ""
+    );
+    if (isClienteVacio) {
+      const storedCliente = localStorage.getItem("datosCliente");
+
+      if (storedCliente) {
+        const parsedCliente = JSON.parse(storedCliente);
+        dispatch(setCliente(parsedCliente));
+      }
+    }
+  }, [dispatch]);
 
   return (
     <div>

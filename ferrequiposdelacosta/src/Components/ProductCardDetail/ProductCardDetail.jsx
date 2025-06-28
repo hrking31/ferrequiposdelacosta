@@ -8,9 +8,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
-import {Camion} from "../../Components/Camion/Camion.jsx";
+import { Camion } from "../../Components/Camion/Camion.jsx";
+import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";
 
 export default function ProductCardDetail({ product }) {
   const dispatch = useDispatch();
@@ -19,16 +20,42 @@ export default function ProductCardDetail({ product }) {
   const [days, setDays] = useState(1);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const handleAdd = () => {
-    dispatch(addToCart({ ...product, quantity, days }));
+  const [modalAbierto, setModalAbierto] = useState(false);
+
+  const handleAgregarAlCarrito = () => {
+    const datos = localStorage.getItem("datosCliente");
+    if (!datos) {
+      setModalAbierto(true);
+    }else{
+      handleAdd();
+    }
   };
 
+  const handleAdd = () => {
+    const newItem = { ...product, quantity, days };
+
+    const storedCart = JSON.parse(localStorage.getItem("cart")) || {
+      items: [],
+    };
+
+    const exists = storedCart.items.some((item) => item.id === newItem.id);
+
+    if (!exists) {
+      const updatedItems = [...storedCart.items, newItem];
+      localStorage.setItem("cart", JSON.stringify({ items: updatedItems }));
+      dispatch(addToCart(newItem));
+    } else {
+      // Opcional: notificación de que ya existe
+      console.log("El producto ya está en el carrito");
+    }
+  };
+  
   const handleIncrement = (setter, value) => () => setter(value + 1);
   const handleDecrement = (setter, value) => () =>
     setter(value > 1 ? value - 1 : 1);
 
   const ControlBox = ({ label, value, setValue }) => (
-    <Box >
+    <Box>
       <Typography variant="sustitle1" sx={{ mb: 1 }}>
         {label}
       </Typography>
@@ -80,7 +107,7 @@ export default function ProductCardDetail({ product }) {
             },
           }}
         >
-          <Add 
+          <Add
             sx={{
               color:
                 theme.palette.mode === "light"
@@ -97,13 +124,12 @@ export default function ProductCardDetail({ product }) {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Stack direction="row" spacing={4} sx={{ mb: 4}} justifyContent="center">
+      <Stack direction="row" spacing={4} sx={{ mb: 4 }} justifyContent="center">
         <Box display="flex" flexDirection="column" alignItems="center">
-
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
             Días
           </Typography>
-          
+
           <Box
             sx={{
               border: "1px solid",
@@ -138,21 +164,30 @@ export default function ProductCardDetail({ product }) {
       </Stack>
 
       <Box sx={{ textAlign: "center", pb: 2 }}>
-        <Button variant="success" onClick={handleAdd}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="button">Agregar al</Typography>
-            <Camion
-              size={isXs ? 28 : 38}
-              color={
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light
-              }
-            />
-          </Box>
-        </Button>
+        <>
+          <Button variant="success" onClick={handleAgregarAlCarrito}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="button">Agregar al</Typography>
+              <Camion
+                size={isXs ? 28 : 38}
+                color={
+                  theme.palette.mode === "light"
+                    ? theme.palette.primary.main
+                    : theme.palette.secondary.light
+                }
+              />
+            </Box>
+          </Button>
+
+          <DatosClienteModal
+            open={modalAbierto}
+            onClose={() => {
+              setModalAbierto(false);
+              handleAdd(); 
+            }}
+          />
+        </>
       </Box>
     </Box>
   );
-  
 }

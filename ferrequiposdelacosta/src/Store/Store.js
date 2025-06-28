@@ -8,6 +8,7 @@ import cuentacobroReducer from "./Slices/cuentacobroSlice";
 import userReducer from "./Slices/userSlice";
 import installAppReducer from "./Slices/installAppSlice";
 import cartReducer from "./Slices/cartSlice";
+import clienteReducer from "./Slices/clienteSlice";
 
 export default configureStore({
   reducer: {
@@ -20,5 +21,6 @@ export default configureStore({
     user: userReducer,
     installApp: installAppReducer,
     cart: cartReducer,
+    cliente: clienteReducer,
   },
 });
