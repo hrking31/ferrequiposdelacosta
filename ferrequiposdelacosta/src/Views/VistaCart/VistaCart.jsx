@@ -20,6 +20,8 @@ import {
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 
 const VistaCart = () => {
@@ -83,13 +85,21 @@ const VistaCart = () => {
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
   return (
-    <Box sx={{ p: 1.5, width: "100%", border: "2px solid red" }}>
+    <Box
+      sx={{
+        p: 1,
+        height: "100%",
+        width: "100%",
+        boxSizing: "border-box",
+        // border: "2px solid red",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          border: "2px solid red",
+          // border: "2px solid red",
         }}
       >
         <Box display="flex" alignItems="center" gap={1}>
@@ -121,7 +131,7 @@ const VistaCart = () => {
         >
           <LocationOnIcon />
           <Typography
-            variant="h5"
+            variant="body2"
             gutterBottom
             sx={{
               paddingTop: "8px",
@@ -145,7 +155,7 @@ const VistaCart = () => {
           display: "flex",
           alignItems: "center",
           p: 1,
-          border: "2px solid red",
+          // border: "2px solid red",
         }}
       >
         <Checkbox
@@ -162,7 +172,7 @@ const VistaCart = () => {
           }}
         />
         <Typography variant="body2">
-          {items.length} equipo en total {cliente.nombre}
+          {items.length} Equipo en Total {cliente.nombre}
         </Typography>
       </Box>
 
@@ -175,28 +185,45 @@ const VistaCart = () => {
               key={item.id}
               sx={{
                 display: "flex",
-                width: "80%",
-                height: "120px",
+                width: isMediumScreen ? "100%" : "80%",
+                height: isMediumScreen ? "100px" : "120px",
                 display: "flex",
                 alignItems: "center",
                 mb: 1,
-                border: "2px solid red",
+                // border: "2px solid green",
               }}
             >
-              <Checkbox
-                checked={selectedItems.includes(item.id)}
-                onChange={() => handleToggleSelect(item.id)}
-              />
+              <Box
+                display="flex"
+                alignItems="center"
+                height="100%"
+                // border="2px solid red"
+              >
+                {isMediumScreen && (
+                  <Checkbox
+                    checked={selectedItems.includes(item.id)}
+                    onChange={() => handleToggleSelect(item.id)}
+                    icon={<RadioButtonUncheckedIcon fontSize="small" />}
+                    checkedIcon={<CheckCircleIcon fontSize="small" />}
+                    sx={{
+                      p: { xs: 0.5, sm: 1.5 },
+                      m: 0,
+                      minWidth: 0,
+                      minHeight: 0,
+                    }}
+                  />
+                )}
 
-              <img
-                src={item.images[0].url}
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  objectFit: "cover",
-                  border: "2px solid red",
-                }}
-              />
+                <img
+                  src={item.images[0].url}
+                  style={{
+                    width: isMediumScreen ? "100px" : "120px",
+                    height: isMediumScreen ? "100px" : "120px",
+                    objectFit: "cover",
+                    // border: "2px solid red",
+                  }}
+                />
+              </Box>
 
               <Box
                 display="flex"
@@ -204,29 +231,48 @@ const VistaCart = () => {
                 alignItems="center"
                 width="100%"
                 height="100%"
-                border="2px solid blue"
+                boxSizing="border-box"
+                sx={{
+                  pl: { xs: 0, sm:5 },
+
+                }}
+                // border="2px solid blue"
               >
                 <Box
                   display="flex"
                   flexDirection="column"
                   alignItems="center"
-                  width="40%"
+                  width={isMediumScreen ? "100%" : "40%"}
                   height="100%"
-                  border="2px solid red"
-                  sx={{ p: 1 }}
+                  sx={{
+                    p: 1,
+                    m: 0,
+                    minWidth: 0,
+                    minHeight: 0,
+                  }}
+                  // border="2px solid blue"
                 >
-                  <Typography variant="subtitle1">{item.name}</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      width: "100%",
+                      wordBreak: "break-word",
+                      // textAlign: "center",
+                    }}
+                  >
+                    {item.name}
+                  </Typography>
                 </Box>
 
                 <Box
-                  width="40%"
+                  width={isMediumScreen ? "100%" : "40%"}
                   height="100%"
                   display="flex"
                   flexDirection="row"
                   gap={2}
                   alignItems="center"
                   justifyContent="center"
-                  border="2px solid red"
+                  // border="2px solid red"
                 >
                   <Box
                     display="flex"
@@ -239,12 +285,12 @@ const VistaCart = () => {
 
                     <Box
                       sx={{
-                        border: "1px solid",
-                        borderRadius: 2,
-                        px: 1.5,
-                        minHeight: 10,
                         display: "flex",
                         alignItems: "center",
+                        border: "1px solid",
+                        borderRadius: 2,
+                        px: isMediumScreen ? "0" : "1.5",
+                        minHeight: 10,
                         gap: 2,
                       }}
                     >
@@ -378,61 +424,27 @@ const VistaCart = () => {
                     </Box>
                   </Box>
                 </Box>
-                <Box
-                  width="20%"
-                  height="100%"
-                  display="flex"
-                  flexDirection="row"
-                  alignItems="center"
-                  justifyContent="center"
-                  border="2px solid red"
-                >
-                  <Button
-                    variant="danger"
-                    onClick={() => dispatch(removeFromCart(item.id))}
+                {!isMediumScreen && (
+                  <Box
+                    width="20%"
+                    height="100%"
+                    display="flex"
+                    flexDirection="row"
+                    alignItems="center"
+                    justifyContent="center"
+                    // border="2px solid red"
                   >
-                    Eliminar
-                  </Button>
-                </Box>
+                    <Button
+                      variant="danger"
+                      onClick={() => dispatch(removeFromCart(item.id))}
+                    >
+                      Eliminar
+                    </Button>
+                  </Box>
+                )}
               </Box>
             </Box>
           ))}
-
-          <Box display="flex" gap={2}>
-            {/* Columna izquierda: lista de productos */}
-            <Box flex={1}>
-              {/* Aquí tu contenido del carrito que hace scroll */}
-            </Box>
-
-            {/* Columna derecha: resumen fijo */}
-            <Box
-              sx={{
-                width: "300px",
-                position: "sticky",
-                top: "20px", // distancia desde la parte superior cuando se fija
-                alignSelf: "flex-start", // importante si usas flexbox
-                border: "1px solid #ccc",
-                borderRadius: 2,
-                p: 2,
-                bgcolor: "white",
-                boxShadow: 2,
-              }}
-            >
-              {/* Contenido del resumen */}
-              <Typography variant="h6">Resumen del Pedido</Typography>
-              <Typography>Total: $123.000</Typography>
-              <Button
-                variant="contained"
-                color="success"
-                fullWidth
-                sx={{ mt: 2 }}
-                href={`https://wa.me/573000000000?text=Hola%2C%20quiero%20finalizar%20mi%20pedido`}
-                target="_blank"
-              >
-                Enviar por WhatsApp
-              </Button>
-            </Box>
-          </Box>
 
           <Divider sx={{ my: 2 }} />
 
