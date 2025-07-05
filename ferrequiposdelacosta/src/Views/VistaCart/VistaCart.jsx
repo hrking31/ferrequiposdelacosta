@@ -87,10 +87,10 @@ const VistaCart = () => {
   return (
     <Box
       sx={{
-        p: 1,
         height: "100%",
         width: "100%",
         boxSizing: "border-box",
+        p: 1,
         // border: "2px solid red",
       }}
     >
@@ -98,11 +98,12 @@ const VistaCart = () => {
         sx={{
           display: "flex",
           alignItems: "center",
+          width: isMediumScreen ? "100%" : "80%",
           justifyContent: "space-between",
           // border: "2px solid red",
         }}
       >
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Camion
             cantidad={items.length}
             size={isXs ? 28 : 38}
@@ -124,10 +125,11 @@ const VistaCart = () => {
         </Box>
 
         <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="flex-end"
-          gap={1}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
         >
           <LocationOnIcon />
           <Typography
@@ -154,6 +156,7 @@ const VistaCart = () => {
         sx={{
           display: "flex",
           alignItems: "center",
+          width: isMediumScreen ? "100%" : "80%",
           p: 1,
           // border: "2px solid red",
         }}
@@ -176,290 +179,347 @@ const VistaCart = () => {
         </Typography>
       </Box>
 
-      {items.length === 0 ? (
-        <Typography variant="body1">Tu carrito está vacío</Typography>
-      ) : (
-        <>
-          {items.map((item) => (
-            <Box
-              key={item.id}
-              sx={{
-                display: "flex",
-                width: isMediumScreen ? "100%" : "80%",
-                height: isMediumScreen ? "100px" : "120px",
-                display: "flex",
-                alignItems: "center",
-                mb: 1,
-                // border: "2px solid green",
-              }}
-            >
+      <Box
+        sx={{
+          width: isMediumScreen ? "100%" : "80%",
+          // border: "2px solid green",
+        }}
+      >
+        {items.length === 0 ? (
+          <Typography variant="body1">Tu carrito está vacío</Typography>
+        ) : (
+          <>
+            {items.map((item) => (
               <Box
-                display="flex"
-                alignItems="center"
-                height="100%"
-                // border="2px solid red"
+                key={item.id}
+                sx={{
+                  display: "flex",
+                  width: "100%",
+                  height: isMediumScreen ? "100px" : "120px",
+                  alignItems: "center",
+                  mb: 1,
+                  // border: "2px solid green",
+                }}
               >
-                {isMediumScreen && (
-                  <Checkbox
-                    checked={selectedItems.includes(item.id)}
-                    onChange={() => handleToggleSelect(item.id)}
-                    icon={<RadioButtonUncheckedIcon fontSize="small" />}
-                    checkedIcon={<CheckCircleIcon fontSize="small" />}
-                    sx={{
-                      p: { xs: 0.5, sm: 1.5 },
-                      m: 0,
-                      minWidth: 0,
-                      minHeight: 0,
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: "100%",
+                    // border="2px solid red"
+                  }}
+                >
+                  {isMediumScreen && (
+                    <Checkbox
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => handleToggleSelect(item.id)}
+                      icon={<RadioButtonUncheckedIcon fontSize="small" />}
+                      checkedIcon={<CheckCircleIcon fontSize="small" />}
+                      sx={{
+                        p: { xs: 0.5, sm: 1.5 },
+                        m: 0,
+                        minWidth: 0,
+                        minHeight: 0,
+                      }}
+                    />
+                  )}
+
+                  <img
+                    src={item.images[0].url}
+                    style={{
+                      width: isMediumScreen ? "100px" : "120px",
+                      height: isMediumScreen ? "100px" : "120px",
+                      objectFit: "cover",
+                      // border: "2px solid red",
                     }}
                   />
-                )}
+                </Box>
 
-                <img
-                  src={item.images[0].url}
-                  style={{
-                    width: isMediumScreen ? "100px" : "120px",
-                    height: isMediumScreen ? "100px" : "120px",
-                    objectFit: "cover",
-                    // border: "2px solid red",
-                  }}
-                />
-              </Box>
-
-              <Box
-                display="flex"
-                flexDirection={isMediumScreen ? "column" : "row"}
-                alignItems="center"
-                width="100%"
-                height="100%"
-                boxSizing="border-box"
-                sx={{
-                  pl: { xs: 0, sm:5 },
-
-                }}
-                // border="2px solid blue"
-              >
                 <Box
-                  display="flex"
-                  flexDirection="column"
-                  alignItems="center"
-                  width={isMediumScreen ? "100%" : "40%"}
-                  height="100%"
                   sx={{
-                    p: 1,
-                    m: 0,
-                    minWidth: 0,
-                    minHeight: 0,
+                    display: "flex",
+                    flexDirection: isMediumScreen ? "column" : "row",
+                    alignItems: "center",
+                    width: "100%",
+                    height: "100%",
+                    boxSizing: "border-box",
+                    pl: { xs: 0, sm: 5 },
+                    // border: "2px solid blue"
                   }}
-                  // border="2px solid blue"
                 >
-                  <Typography
-                    variant="body2"
+                  <Box
                     sx={{
-                      width: "100%",
-                      wordBreak: "break-word",
-                      // textAlign: "center",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: isMediumScreen ? "100%" : "40%",
+                      height: "100%",
+                      // border: "2px solid blue",
                     }}
                   >
-                    {item.name}
-                  </Typography>
-                </Box>
-
-                <Box
-                  width={isMediumScreen ? "100%" : "40%"}
-                  height="100%"
-                  display="flex"
-                  flexDirection="row"
-                  gap={2}
-                  alignItems="center"
-                  justifyContent="center"
-                  // border="2px solid red"
-                >
-                  <Box
-                    display="flex"
-                    flexDirection="column"
-                    alignItems="center"
-                  >
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                      Días
-                    </Typography>
-
-                    <Box
+                    <Typography
+                      variant="body2"
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        border: "1px solid",
-                        borderRadius: 2,
-                        px: isMediumScreen ? "0" : "1.5",
-                        minHeight: 10,
-                        gap: 2,
+                        width: "100%",
+                        wordBreak: "break-word",
                       }}
                     >
-                      <Button
-                        onClick={() => handleDaysChange(item.id, item.days - 1)}
-                        disabled={item.days <= 1}
-                        sx={{
-                          minWidth: { xs: 28 },
-                          height: { xs: 28 },
-                          padding: 0,
-                          backgroundColor: "transparent",
-                          boxShadow: "none",
-                          "&:hover": {
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                          },
-                        }}
-                      >
-                        <Remove
-                          sx={{
-                            color:
-                              theme.palette.mode === "light"
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.light,
-                          }}
-                        />
-                      </Button>
-
-                      <Typography>{item.days}</Typography>
-
-                      <Button
-                        onClick={() => handleDaysChange(item.id, item.days + 1)}
-                        sx={{
-                          minWidth: { xs: 28 },
-                          height: { xs: 28 },
-                          padding: 0,
-                          backgroundColor: "transparent",
-                          boxShadow: "none",
-                          "&:hover": {
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                          },
-                        }}
-                      >
-                        <Add
-                          sx={{
-                            color:
-                              theme.palette.mode === "light"
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.light,
-                          }}
-                        />
-                      </Button>
-                    </Box>
+                      {item.name}
+                    </Typography>
                   </Box>
 
                   <Box
-                    display="flex"
-                    flexDirection="column"
-                    alignItems="center"
-                  >
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                      Cantidad
-                    </Typography>
-
-                    <Box
-                      sx={{
-                        border: "1px solid",
-                        borderRadius: 2,
-                        px: 1.5,
-                        minHeight: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                      }}
-                    >
-                      <Button
-                        onClick={() =>
-                          handleQtyChange(item.id, item.quantity - 1)
-                        }
-                        disabled={item.quantity <= 1}
-                        sx={{
-                          minWidth: { xs: 28 },
-                          height: { xs: 28 },
-                          padding: 0,
-                          backgroundColor: "transparent",
-                          boxShadow: "none",
-                          "&:hover": {
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                          },
-                        }}
-                      >
-                        <Remove
-                          sx={{
-                            color:
-                              theme.palette.mode === "light"
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.light,
-                          }}
-                        />
-                      </Button>
-
-                      <Typography>{item.quantity}</Typography>
-
-                      <Button
-                        onClick={() =>
-                          handleQtyChange(item.id, item.quantity + 1)
-                        }
-                        sx={{
-                          minWidth: { xs: 28 },
-                          height: { xs: 28 },
-                          padding: 0,
-                          backgroundColor: "transparent",
-                          boxShadow: "none",
-                          "&:hover": {
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                          },
-                        }}
-                      >
-                        <Add
-                          sx={{
-                            color:
-                              theme.palette.mode === "light"
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.light,
-                          }}
-                        />
-                      </Button>
-                    </Box>
-                  </Box>
-                </Box>
-                {!isMediumScreen && (
-                  <Box
-                    width="20%"
-                    height="100%"
-                    display="flex"
-                    flexDirection="row"
-                    alignItems="center"
-                    justifyContent="center"
+                    sx={{
+                      width: isMediumScreen ? "100%" : "40%",
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                     // border="2px solid red"
                   >
-                    <Button
-                      variant="danger"
-                      onClick={() => dispatch(removeFromCart(item.id))}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        mb:1,
+                      }}
                     >
-                      Eliminar
-                    </Button>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          mb: isMediumScreen ? 0 : 1,
+                        }}
+                      >
+                        Días
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          border: "1px solid",
+                          borderRadius: 2,
+                          px: isMediumScreen ? "0" : "1.5",
+                          minHeight: 10,
+                          gap: 2,
+                        }}
+                      >
+                        <Button
+                          onClick={() =>
+                            handleDaysChange(item.id, item.days - 1)
+                          }
+                          disabled={item.days <= 1}
+                          sx={{
+                            minWidth: { xs: 28 },
+                            height: { xs: 28 },
+                            padding: 0,
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                            "&:hover": {
+                              backgroundColor: "transparent",
+                              boxShadow: "none",
+                            },
+                          }}
+                        >
+                          <Remove
+                            sx={{
+                              color:
+                                theme.palette.mode === "light"
+                                  ? theme.palette.primary.main
+                                  : theme.palette.secondary.light,
+                            }}
+                          />
+                        </Button>
+
+                        <Typography>{item.days}</Typography>
+
+                        <Button
+                          onClick={() =>
+                            handleDaysChange(item.id, item.days + 1)
+                          }
+                          sx={{
+                            minWidth: { xs: 28 },
+                            height: { xs: 28 },
+                            padding: 0,
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                            "&:hover": {
+                              backgroundColor: "transparent",
+                              boxShadow: "none",
+                            },
+                          }}
+                        >
+                          <Add
+                            sx={{
+                              color:
+                                theme.palette.mode === "light"
+                                  ? theme.palette.primary.main
+                                  : theme.palette.secondary.light,
+                            }}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        mb:1,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          mb: isMediumScreen ? 0 : 1,
+                        }}
+                      >
+                        Cantidad
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          border: "1px solid",
+                          borderRadius: 2,
+                          px: isMediumScreen ? "0" : "1.5",
+                          minHeight: 10,
+                          gap: 2,
+                        }}
+                      >
+                        <Button
+                          onClick={() =>
+                            handleQtyChange(item.id, item.quantity - 1)
+                          }
+                          disabled={item.quantity <= 1}
+                          sx={{
+                            minWidth: { xs: 28 },
+                            height: { xs: 28 },
+                            padding: 0,
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                            "&:hover": {
+                              backgroundColor: "transparent",
+                              boxShadow: "none",
+                            },
+                          }}
+                        >
+                          <Remove
+                            sx={{
+                              color:
+                                theme.palette.mode === "light"
+                                  ? theme.palette.primary.main
+                                  : theme.palette.secondary.light,
+                            }}
+                          />
+                        </Button>
+
+                        <Typography>{item.quantity}</Typography>
+
+                        <Button
+                          onClick={() =>
+                            handleQtyChange(item.id, item.quantity + 1)
+                          }
+                          sx={{
+                            minWidth: { xs: 28 },
+                            height: { xs: 28 },
+                            padding: 0,
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                            "&:hover": {
+                              backgroundColor: "transparent",
+                              boxShadow: "none",
+                            },
+                          }}
+                        >
+                          <Add
+                            sx={{
+                              color:
+                                theme.palette.mode === "light"
+                                  ? theme.palette.primary.main
+                                  : theme.palette.secondary.light,
+                            }}
+                          />
+                        </Button>
+                      </Box>
+                    </Box>
                   </Box>
-                )}
+                  {!isMediumScreen && (
+                    <Box
+                      sx={{
+                        width: "20%",
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      // border="2px solid red"
+                    >
+                      <Button
+                        variant="danger"
+                        onClick={() => dispatch(removeFromCart(item.id))}
+                      >
+                        Eliminar
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
               </Box>
-            </Box>
-          ))}
+            ))}
 
-          <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 2 }} />
 
-          <Stack spacing={2}>
-            <Button
-              variant="whatsapp"
-              startIcon={<WhatsAppIcon />}
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Confirmar pedido por WhatsApp
-            </Button>
-          </Stack>
-        </>
+            <Stack spacing={2}>
+              <Button
+                variant="whatsapp"
+                startIcon={<WhatsAppIcon />}
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Confirmar pedido por WhatsApp
+              </Button>
+            </Stack>
+          </>
+        )}
+      </Box>
+      {!isMediumScreen && (
+        <Box
+          sx={{
+            width: "260px",
+            height: "74vh",
+            position: "fixed", 
+            top: "80px", 
+            right: "12px", 
+            zIndex: 1300,
+            border: "1px solid #ccc",
+            borderRadius: 2,
+            p: 2,
+            bgcolor: "white",
+            boxShadow: 2,
+          }}
+        >
+          {/* Contenido del resumen */}
+          <Typography variant="h6">Resumen del Pedido</Typography>
+          <Typography>Total: $123.000</Typography>
+          <Button
+            variant="contained"
+            color="success"
+            fullWidth
+            sx={{ mt: 2 }}
+            href="https://wa.me/573000000000?text=Hola%2C%20quiero%20finalizar%20mi%20pedido"
+            target="_blank"
+          >
+            Enviar por WhatsApp
+          </Button>
+        </Box>
       )}
     </Box>
   );

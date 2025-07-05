@@ -132,7 +132,6 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 700,
           fontSize: "calc(1.25rem + 0.5vw)",
           color: mode === "light" ? "#2A3547" : "#FFFFFF",
-          fontSize: "1.3rem",
           // Tablet
           "@media (max-width:1200px)": {
             fontSize: "1.2rem",
