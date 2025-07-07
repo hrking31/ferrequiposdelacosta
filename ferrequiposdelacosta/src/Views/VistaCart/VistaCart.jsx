@@ -3,11 +3,14 @@ import {
   Typography,
   Button,
   IconButton,
-  Stack,
   Divider,
   useTheme,
   useMediaQuery,
   Checkbox,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
@@ -28,6 +31,7 @@ const VistaCart = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [selectedItems, setSelectedItems] = useState([]);
+  const [tipoTransporte, setTipoTransporte] = useState("soloIda");
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
@@ -66,17 +70,16 @@ const VistaCart = () => {
     "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
       `👤 *Nombre:* ${cliente.nombre}\n` +
       `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
-      `📍 *Dirección:* ${cliente.direccion}\n\n` +
+      `📍 *Dirección:* ${cliente.direccion}\n` +
+      `🚚 *Transporte:* ${
+        tipoTransporte === "idaVuelta" ? "Ida y vuelta" : "Solo ida"
+      }\n\n` +
       items
         .map(
           (item, index) =>
             `*${index + 1}.* 🛠 *${item.name}*\n` +
             `📦 Cantidad: ${item.quantity}\n` +
-            `📅 Días: ${item.days}\n` +
-            (item.images && item.images[0]?.url
-              ? `🖼 Imagen: ${item.images[0].url}\n`
-              : "") +
-            `\n`
+            `📅 Días: ${item.days}\n`
         )
         .join("") +
       "Gracias! 🙏"
@@ -285,7 +288,7 @@ const VistaCart = () => {
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        mb:1,
+                        mb: 1,
                       }}
                     >
                       <Typography
@@ -370,7 +373,7 @@ const VistaCart = () => {
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        mb:1,
+                        mb: 1,
                       }}
                     >
                       <Typography
@@ -473,52 +476,106 @@ const VistaCart = () => {
                 </Box>
               </Box>
             ))}
-
+            {/* 
             <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={2}>
+            <Box spacing={2}>
               <Button
                 variant="whatsapp"
                 startIcon={<WhatsAppIcon />}
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
+                fullWidth
               >
                 Confirmar pedido por WhatsApp
               </Button>
-            </Stack>
+            </Box> */}
           </>
         )}
       </Box>
+
       {!isMediumScreen && (
         <Box
           sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
             width: "260px",
-            height: "74vh",
-            position: "fixed", 
-            top: "80px", 
-            right: "12px", 
+            height: "80vh",
+            position: "fixed",
+            top: "80px",
+            right: "12px",
             zIndex: 1300,
             border: "1px solid #ccc",
             borderRadius: 2,
             p: 2,
             bgcolor: "white",
             boxShadow: 2,
+            border: "2px solid red",
           }}
         >
-          {/* Contenido del resumen */}
-          <Typography variant="h6">Resumen del Pedido</Typography>
-          <Typography>Total: $123.000</Typography>
-          <Button
-            variant="contained"
-            color="success"
-            fullWidth
-            sx={{ mt: 2 }}
-            href="https://wa.me/573000000000?text=Hola%2C%20quiero%20finalizar%20mi%20pedido"
-            target="_blank"
+          <Typography variant="h5">Resumen del Pedido</Typography>
+          <Box
+            sx={{
+              flex: 1,
+              mt: 1,
+              overflowY: "auto",
+              // border: "2px solid red"
+            }}
           >
-            Enviar por WhatsApp
-          </Button>
+            {items.map((item, index) => (
+              <Box key={index} mb={3}>
+                <Typography variant="body2">
+                  {item.quantity} {item.name} por {item.days} dias
+                </Typography>
+                {/* <Divider sx={{ my: 1 }} /> */}
+              </Box>
+            ))}
+          </Box>
+
+          <Box>
+            <Divider sx={{ m: 1 }} />
+            <FormLabel component="body2" sx={{ mt: 2 }}>
+              Tipo de Transporte
+            </FormLabel>
+
+            <RadioGroup
+              value={tipoTransporte}
+              onChange={(e) => setTipoTransporte(e.target.value)}
+              row
+            >
+              <FormControlLabel
+                value="soloIda"
+                control={<Radio />}
+                label="Solo ida"
+              />
+              <FormControlLabel
+                value="idaVuelta"
+                control={<Radio />}
+                label="Ida y vuelta"
+              />
+            </RadioGroup>
+          </Box>
+
+          <Box
+            sx={{
+              pt: 1,
+              //  border: "2px solid red"
+            }}
+          >
+            <Button
+              variant="whatsapp"
+              startIcon={<WhatsAppIcon />}
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+            >
+              Confirmar Pedido
+            </Button>
+          </Box>
         </Box>
       )}
     </Box>
