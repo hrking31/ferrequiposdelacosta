@@ -20,7 +20,7 @@ import {
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { doc, setDoc } from "firebase/firestore";
-import { db, auth } from "../../Components/Firebase/Firebase";
+import { db } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 

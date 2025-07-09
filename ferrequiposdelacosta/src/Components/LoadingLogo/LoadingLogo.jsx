@@ -20,7 +20,7 @@ const LoadingLogo = ({ height = "80vh" }) => {
           style={{ width: "100px", height: "100px", marginBottom: "2px" }}
         />
       </Box>
-      <Typography variant="h6" mt={0.5}>
+      <Typography variant="h5" mt={0.5}>
         Cargando...
       </Typography>
     </Box>

@@ -1,10 +1,4 @@
-import {
-  Box,
-  Typography,
-  useTheme,
-  IconButton,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Typography, useTheme, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { forwardRef } from "react";
 
@@ -13,7 +7,6 @@ const AnimatedBox = forwardRef(function AnimatedBox(
   ref
 ) {
   const theme = useTheme();
-  const isMobile = useMediaQuery("(max-width:915px)");
 
   const boxStyles = {
     position: "fixed",
@@ -21,11 +14,8 @@ const AnimatedBox = forwardRef(function AnimatedBox(
     right: 0,
     zIndex: 1500,
     bgcolor: isDarkMode
-      ? theme.palette.secondary.main
-      : theme.palette.primary.main,
-    color: isDarkMode
-      ? theme.palette.secondary.contrastText
-      : theme.palette.primary.contrastText,
+      ? theme.palette.primary.main
+      : theme.palette.secondary.main,
     width: isExpanded ? { xs: 280, sm: 360 } : 35,
     height: isExpanded ? "auto" : 48,
     borderTopLeftRadius: 24,
@@ -93,12 +83,10 @@ const AnimatedBox = forwardRef(function AnimatedBox(
             <CloseIcon />
           </IconButton>
           <Typography
-            variant="body2"
+            variant="h6"
             sx={{
-              color: "#fff",
               textAlign: "center",
-              fontWeight: 500,
-              pt: 2,
+               p: 2,
             }}
           >
             ¡Lleva la experiencia a otro nivel! Instala nuestra app ahora y

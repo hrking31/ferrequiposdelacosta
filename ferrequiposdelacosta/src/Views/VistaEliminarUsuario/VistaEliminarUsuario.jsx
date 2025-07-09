@@ -41,9 +41,9 @@ export default function VistaEliminarUsuario() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        p: 2,
         overflow: "auto",
         boxSizing: "border-box",
+        p: 2,
         // border: "2px solid red",
       }}
     >

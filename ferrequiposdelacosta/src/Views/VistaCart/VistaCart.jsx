@@ -27,7 +27,7 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 
-const VistaCart = () => {
+export default function VistaCart({ navbarVisible }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [selectedItems, setSelectedItems] = useState([]);
@@ -35,7 +35,11 @@ const VistaCart = () => {
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-  const isMediumScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isSmallScreen = useMediaQuery("(max-width:600px)");
+  const isMediumScreen = useMediaQuery(
+    "(min-width:601px) and (max-width:915px)"
+  );
 
   useEffect(() => {
     if (items.length > 0) {
@@ -87,21 +91,32 @@ const VistaCart = () => {
 
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
+  let appBarHeight = 64;
+
+  if (isSmallScreen) {
+    appBarHeight = 56;
+  } else if (isMediumScreen) {
+    appBarHeight = 64;
+  }
+
   return (
     <Box
       sx={{
-        height: "100%",
-        width: "100%",
+        height: `calc(100vh - ${appBarHeight}px)`,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
         boxSizing: "border-box",
-        p: 1,
-        // border: "2px solid red",
+        // overflow: "auto",
+        p: { xs: 1, sm: 1.5, md: 2 },
+        border: "2px solid red",
       }}
     >
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          width: isMediumScreen ? "100%" : "80%",
+          width: isFullScreen ? "100%" : "81%",
           justifyContent: "space-between",
           // border: "2px solid red",
         }}
@@ -159,8 +174,8 @@ const VistaCart = () => {
         sx={{
           display: "flex",
           alignItems: "center",
-          width: isMediumScreen ? "100%" : "80%",
-          p: 1,
+          width: isFullScreen ? "100%" : "81%",
+          pb: 2,
           // border: "2px solid red",
         }}
       >
@@ -176,6 +191,13 @@ const VistaCart = () => {
               setSelectedItems([]);
             }
           }}
+          sx={{
+            p: { xs: 0.5, sm: 1.5, sm: 2 },
+            m: 0,
+            mr: 1,
+            minWidth: 0,
+            minHeight: 0,
+          }}
         />
         <Typography variant="body2">
           {items.length} Equipo en Total {cliente.nombre}
@@ -184,7 +206,8 @@ const VistaCart = () => {
 
       <Box
         sx={{
-          width: isMediumScreen ? "100%" : "80%",
+          width: isFullScreen ? "100%" : "81%",
+          overflow: "auto",
           // border: "2px solid green",
         }}
       >
@@ -198,9 +221,9 @@ const VistaCart = () => {
                 sx={{
                   display: "flex",
                   width: "100%",
-                  height: isMediumScreen ? "100px" : "120px",
+                  height: isFullScreen ? "100px" : "120px",
                   alignItems: "center",
-                  mb: 1,
+                  mb: 4,
                   // border: "2px solid green",
                 }}
               >
@@ -209,10 +232,10 @@ const VistaCart = () => {
                     display: "flex",
                     alignItems: "center",
                     height: "100%",
-                    // border="2px solid red"
+                    // border: "2px solid red",
                   }}
                 >
-                  {isMediumScreen && (
+                  {isFullScreen && (
                     <Checkbox
                       checked={selectedItems.includes(item.id)}
                       onChange={() => handleToggleSelect(item.id)}
@@ -221,6 +244,7 @@ const VistaCart = () => {
                       sx={{
                         p: { xs: 0.5, sm: 1.5 },
                         m: 0,
+                        mr: 1,
                         minWidth: 0,
                         minHeight: 0,
                       }}
@@ -230,8 +254,8 @@ const VistaCart = () => {
                   <img
                     src={item.images[0].url}
                     style={{
-                      width: isMediumScreen ? "100px" : "120px",
-                      height: isMediumScreen ? "100px" : "120px",
+                      width: isFullScreen ? "100px" : "120px",
+                      height: isFullScreen ? "100px" : "120px",
                       objectFit: "cover",
                       // border: "2px solid red",
                     }}
@@ -241,7 +265,7 @@ const VistaCart = () => {
                 <Box
                   sx={{
                     display: "flex",
-                    flexDirection: isMediumScreen ? "column" : "row",
+                    flexDirection: isFullScreen ? "column" : "row",
                     alignItems: "center",
                     width: "100%",
                     height: "100%",
@@ -255,7 +279,7 @@ const VistaCart = () => {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      width: isMediumScreen ? "100%" : "40%",
+                      width: isFullScreen ? "100%" : "40%",
                       height: "100%",
                       // border: "2px solid blue",
                     }}
@@ -273,7 +297,7 @@ const VistaCart = () => {
 
                   <Box
                     sx={{
-                      width: isMediumScreen ? "100%" : "40%",
+                      width: isFullScreen ? "100%" : "40%",
                       height: "100%",
                       display: "flex",
                       flexDirection: "row",
@@ -294,7 +318,7 @@ const VistaCart = () => {
                       <Typography
                         variant="subtitle1"
                         sx={{
-                          mb: isMediumScreen ? 0 : 1,
+                          mb: isFullScreen ? 0 : 1,
                         }}
                       >
                         Días
@@ -306,7 +330,7 @@ const VistaCart = () => {
                           alignItems: "center",
                           border: "1px solid",
                           borderRadius: 2,
-                          px: isMediumScreen ? "0" : "1.5",
+                          px: isFullScreen ? "0" : "1.5",
                           minHeight: 10,
                           gap: 2,
                         }}
@@ -379,7 +403,7 @@ const VistaCart = () => {
                       <Typography
                         variant="subtitle1"
                         sx={{
-                          mb: isMediumScreen ? 0 : 1,
+                          mb: isFullScreen ? 0 : 1,
                         }}
                       >
                         Cantidad
@@ -391,7 +415,7 @@ const VistaCart = () => {
                           alignItems: "center",
                           border: "1px solid",
                           borderRadius: 2,
-                          px: isMediumScreen ? "0" : "1.5",
+                          px: isFullScreen ? "0" : "1.5",
                           minHeight: 10,
                           gap: 2,
                         }}
@@ -453,7 +477,7 @@ const VistaCart = () => {
                       </Box>
                     </Box>
                   </Box>
-                  {!isMediumScreen && (
+                  {!isFullScreen && (
                     <Box
                       sx={{
                         width: "20%",
@@ -476,26 +500,67 @@ const VistaCart = () => {
                 </Box>
               </Box>
             ))}
-            {/* 
-            <Divider sx={{ my: 2 }} />
 
-            <Box spacing={2}>
-              <Button
-                variant="whatsapp"
-                startIcon={<WhatsAppIcon />}
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                fullWidth
-              >
-                Confirmar pedido por WhatsApp
-              </Button>
-            </Box> */}
+            {isFullScreen && (
+              <Box>
+                <Divider sx={{ m: 1 }} />
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    p: 1,
+                    // border: "2px solid red",
+                  }}
+                >
+                  <FormLabel variant="body2" sx={{ mt: 2 }}>
+                    Tipo de Transporte
+                  </FormLabel>
+                </Box>
+
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    p: 1,
+                    // border: "2px solid red",
+                  }}
+                >
+                  <RadioGroup
+                    value={tipoTransporte}
+                    onChange={(e) => setTipoTransporte(e.target.value)}
+                    row
+                  >
+                    <FormControlLabel
+                      value="soloIda"
+                      control={<Radio />}
+                      label="Solo ida"
+                    />
+                    <FormControlLabel
+                      value="idaVuelta"
+                      control={<Radio />}
+                      label="Ida y vuelta"
+                    />
+                  </RadioGroup>
+
+                  <Button
+                    variant="whatsapp"
+                    startIcon={<WhatsAppIcon />}
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Confirmar Pedido
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </>
         )}
       </Box>
 
-      {!isMediumScreen && (
+      {!isFullScreen && (
         <Box
           sx={{
             display: "flex",
@@ -503,20 +568,17 @@ const VistaCart = () => {
             alignItems: "center",
             justifyContent: "center",
             width: "260px",
-            height: "80vh",
+            height: navbarVisible ? "86vh" : "100vh",
             position: "fixed",
-            top: "80px",
-            right: "12px",
+            top: navbarVisible ? "80px" : "0px",
+            right: "0px",
             zIndex: 1300,
-            border: "1px solid #ccc",
-            borderRadius: 2,
             p: 2,
-            bgcolor: "white",
-            boxShadow: 2,
-            border: "2px solid red",
+            bgcolor: theme.palette.background.paper,
+            // border: "2px solid red",
           }}
         >
-          <Typography variant="h5">Resumen del Pedido</Typography>
+          <Typography variant="h3">Resumen del Pedido</Typography>
           <Box
             sx={{
               flex: 1,
@@ -537,7 +599,8 @@ const VistaCart = () => {
 
           <Box>
             <Divider sx={{ m: 1 }} />
-            <FormLabel component="body2" sx={{ mt: 2 }}>
+
+            <FormLabel variant="body2" sx={{ mt: 2 }}>
               Tipo de Transporte
             </FormLabel>
 
@@ -571,7 +634,6 @@ const VistaCart = () => {
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              fullWidth
             >
               Confirmar Pedido
             </Button>
@@ -580,6 +642,4 @@ const VistaCart = () => {
       )}
     </Box>
   );
-};
-
-export default VistaCart;
+}

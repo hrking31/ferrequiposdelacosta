@@ -8,7 +8,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch} from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";

@@ -119,7 +119,8 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
           fontSize: "calc(1.5rem + 1vw)",
-          color: mode === "light" ? "#2A3547" : "#FFFFFF",
+          // color: mode === "light" ? "#2A3547" : "#FFFFFF",
+          color: mode === "light" ? "#FFF" : "#FFD166",
           "@media (max-width:900px)": {
             fontSize: "calc(1.25rem + 0.75vw)",
           },
@@ -158,7 +159,7 @@ export const CustomThemeProvider = ({ children }) => {
         h6: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
-          fontSize: "1rem", // base para desktop grandes
+          fontSize: "1rem",
           lineHeight: 1.3,
           color: mode === "light" ? "#FFF" : "#FFD166",
 

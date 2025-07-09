@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
-import { Container, Typography, Box, Grid, useTheme, useMediaQuery } from '@mui/material';
+import { Container, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
 
 export default function VistaCcWeb() {
   const formValues = useSelector((state) => state.cuentacobro);
