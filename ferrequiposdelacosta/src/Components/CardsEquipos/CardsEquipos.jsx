@@ -13,7 +13,8 @@ export default function CardsEquipos() {
       sx={{
         minHeight: "100vh",
         p: { xs: 1, sm: 2 },
-        mt:1,
+        mt: 1,
+        // border: "2px solid red",
       }}
     >
       <Grid container spacing={1}>

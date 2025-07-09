@@ -43,7 +43,7 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
 
 export default function MobileDrawerLayout() {
-   const dispatch = useDispatch();
+  const dispatch = useDispatch();
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
@@ -101,7 +101,7 @@ export default function MobileDrawerLayout() {
   let appBarHeight = 64;
 
   if (isSmallScreen) {
-    appBarHeight = 56;
+    appBarHeight = 55;
   } else if (isMediumScreen) {
     appBarHeight = 64;
   }
@@ -112,7 +112,7 @@ export default function MobileDrawerLayout() {
         height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
+        justifyContent: "space-between",
       }}
     >
       <Box
@@ -264,7 +264,15 @@ export default function MobileDrawerLayout() {
   );
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        pt: isMobile ? 8 : 11,
+        pb: isMobile ? `${appBarHeight}px` : 0,
+        // border: "2px solid red",
+      }}
+    >
       <CssBaseline />
 
       {/* AppBar (solo visible en móvil) */}
@@ -424,7 +432,7 @@ export default function MobileDrawerLayout() {
               >
                 <LocalPhone />
                 <Typography variant="body1">
-                   605 3356050 - 311 657 6633
+                  605 3356050 - 311 657 6633
                 </Typography>
               </Box>
             </Box>
@@ -480,21 +488,17 @@ export default function MobileDrawerLayout() {
         <Box
           sx={{
             flex: 1,
-            pt: isMobile ? 2 : 0,
-            pb: 8,
-            //  border: "2px solid #000"
+            //  border: "2px solid red"
           }}
         >
           {isMobile && (
-            <Box>
+            <Box sx={{
+              // border: "2px solid red",
+            }}>
               <InstallApp />
-              <Box
-                sx={{
-                  pt: 6,
-                }}
-              >
-                <EquipoImageCarousel />
-              </Box>
+              
+              <EquipoImageCarousel />
+
               <WhatsAppButton />
             </Box>
           )}

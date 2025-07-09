@@ -94,7 +94,7 @@ export default function VistaCart({ navbarVisible }) {
   let appBarHeight = 64;
 
   if (isSmallScreen) {
-    appBarHeight = 56;
+    appBarHeight = 55;
   } else if (isMediumScreen) {
     appBarHeight = 64;
   }
@@ -102,26 +102,34 @@ export default function VistaCart({ navbarVisible }) {
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         boxSizing: "border-box",
-        // overflow: "auto",
-        p: { xs: 1, sm: 1.5, md: 2 },
-        border: "2px solid red",
+        pt: isFullScreen ? 1 : 11,
+        pb: isFullScreen ? `${appBarHeight}px` : 0,
+        pl: { xs: 1, sm: 1.5 },
+        pr: { xs: 1, sm: 1.5 },
+        // border: "2px solid red",
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
+          flexDirection: isFullScreen && "column-reverse",
           width: isFullScreen ? "100%" : "81%",
           justifyContent: "space-between",
           // border: "2px solid red",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-start",
+            gap: 1,
+            // border: "2px solid red",
+          }}
+        >
           <Camion
             cantidad={items.length}
             size={isXs ? 28 : 38}
@@ -145,8 +153,9 @@ export default function VistaCart({ navbarVisible }) {
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            justifyContent: "flex-end",
             gap: 1,
+            // border: "2px solid red",
           }}
         >
           <LocationOnIcon />
@@ -207,7 +216,6 @@ export default function VistaCart({ navbarVisible }) {
       <Box
         sx={{
           width: isFullScreen ? "100%" : "81%",
-          overflow: "auto",
           // border: "2px solid green",
         }}
       >
@@ -221,7 +229,7 @@ export default function VistaCart({ navbarVisible }) {
                 sx={{
                   display: "flex",
                   width: "100%",
-                  height: isFullScreen ? "100px" : "120px",
+                  height: isSmallScreen ? "100px" : "120px",
                   alignItems: "center",
                   mb: 4,
                   // border: "2px solid green",
@@ -254,8 +262,8 @@ export default function VistaCart({ navbarVisible }) {
                   <img
                     src={item.images[0].url}
                     style={{
-                      width: isFullScreen ? "100px" : "120px",
-                      height: isFullScreen ? "100px" : "120px",
+                      width: isSmallScreen ? "100px" : "120px",
+                      height: isSmallScreen ? "100px" : "120px",
                       objectFit: "cover",
                       // border: "2px solid red",
                     }}
@@ -265,13 +273,12 @@ export default function VistaCart({ navbarVisible }) {
                 <Box
                   sx={{
                     display: "flex",
-                    flexDirection: isFullScreen ? "column" : "row",
+                    flexDirection: isSmallScreen ? "column" : "row",
                     alignItems: "center",
                     width: "100%",
                     height: "100%",
                     boxSizing: "border-box",
-                    pl: { xs: 0, sm: 5 },
-                    // border: "2px solid blue"
+                    // border: "2px solid blue",
                   }}
                 >
                   <Box
@@ -279,8 +286,10 @@ export default function VistaCart({ navbarVisible }) {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      width: isFullScreen ? "100%" : "40%",
+                      justifyContent: "center",
+                      width: isSmallScreen ? "100%" : "40%",
                       height: "100%",
+                      pl: 2,
                       // border: "2px solid blue",
                     }}
                   >
@@ -297,15 +306,15 @@ export default function VistaCart({ navbarVisible }) {
 
                   <Box
                     sx={{
-                      width: isFullScreen ? "100%" : "40%",
+                      width: isSmallScreen ? "100%" : "60%",
                       height: "100%",
                       display: "flex",
                       flexDirection: "row",
-                      gap: 2,
+                      gap: isSmallScreen ? 2 : 0,
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: isSmallScreen ? "center" : "space-evenly",
+                      border: "2px solid red",
                     }}
-                    // border="2px solid red"
                   >
                     <Box
                       sx={{
@@ -313,6 +322,8 @@ export default function VistaCart({ navbarVisible }) {
                         flexDirection: "column",
                         alignItems: "center",
                         mb: 1,
+                        width: "100%",
+                        border: "2px solid red",
                       }}
                     >
                       <Typography
@@ -328,11 +339,12 @@ export default function VistaCart({ navbarVisible }) {
                         sx={{
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center", 
                           border: "1px solid",
                           borderRadius: 2,
-                          px: isFullScreen ? "0" : "1.5",
                           minHeight: 10,
-                          gap: 2,
+                          gap: 1,
+                          width: "40%",
                         }}
                       >
                         <Button
@@ -362,7 +374,14 @@ export default function VistaCart({ navbarVisible }) {
                           />
                         </Button>
 
-                        <Typography>{item.days}</Typography>
+                        <Typography
+                          sx={{
+                            minWidth: 28,
+                            textAlign: "center",
+                          }}
+                        >
+                          {item.days}
+                        </Typography>
 
                         <Button
                           onClick={() =>
@@ -398,6 +417,7 @@ export default function VistaCart({ navbarVisible }) {
                         flexDirection: "column",
                         alignItems: "center",
                         mb: 1,
+                        border: "2px solid red",
                       }}
                     >
                       <Typography
@@ -417,7 +437,7 @@ export default function VistaCart({ navbarVisible }) {
                           borderRadius: 2,
                           px: isFullScreen ? "0" : "1.5",
                           minHeight: 10,
-                          gap: 2,
+                          gap: 1,
                         }}
                       >
                         <Button
@@ -447,7 +467,14 @@ export default function VistaCart({ navbarVisible }) {
                           />
                         </Button>
 
-                        <Typography>{item.quantity}</Typography>
+                        <Typography
+                          sx={{
+                            minWidth: 28,
+                            textAlign: "center",
+                          }}
+                        >
+                          {item.quantity}
+                        </Typography>
 
                         <Button
                           onClick={() =>
@@ -477,6 +504,7 @@ export default function VistaCart({ navbarVisible }) {
                       </Box>
                     </Box>
                   </Box>
+
                   {!isFullScreen && (
                     <Box
                       sx={{
@@ -511,7 +539,7 @@ export default function VistaCart({ navbarVisible }) {
                     // border: "2px solid red",
                   }}
                 >
-                  <FormLabel variant="body2" sx={{ mt: 2 }}>
+                  <FormLabel variant="body2" sx={{ mt: 2, ml: 1 }}>
                     Tipo de Transporte
                   </FormLabel>
                 </Box>
@@ -523,7 +551,9 @@ export default function VistaCart({ navbarVisible }) {
                     flexDirection: "column",
                     justifyContent: "center",
                     alignItems: "center",
+                    gap: 2,
                     p: 1,
+                    mb: 4,
                     // border: "2px solid red",
                   }}
                 >
@@ -531,6 +561,7 @@ export default function VistaCart({ navbarVisible }) {
                     value={tipoTransporte}
                     onChange={(e) => setTipoTransporte(e.target.value)}
                     row
+                    sx={{ gap: 2 }}
                   >
                     <FormControlLabel
                       value="soloIda"
@@ -568,9 +599,11 @@ export default function VistaCart({ navbarVisible }) {
             alignItems: "center",
             justifyContent: "center",
             width: "260px",
-            height: navbarVisible ? "86vh" : "100vh",
+            // height: navbarVisible ? "86vh" : "100vh",
+            height: "86vh",
             position: "fixed",
-            top: navbarVisible ? "80px" : "0px",
+            // top: navbarVisible ? "80px" : "0px",
+            top: "80px",
             right: "0px",
             zIndex: 1300,
             p: 2,

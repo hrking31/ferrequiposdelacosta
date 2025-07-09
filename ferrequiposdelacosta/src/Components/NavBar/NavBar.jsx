@@ -32,7 +32,8 @@ export default function MenuAppBar() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
-        position={isSmallScreen ? "fixed" : "static"}
+        // position={isSmallScreen ? "fixed" : "static"}
+        position="fixed"
         sx={{
           top: isSmallScreen ? "auto" : 0,
           bottom: isSmallScreen ? 0 : "auto",
