@@ -11,6 +11,8 @@ import {
   RadioGroup,
   FormControlLabel,
   FormLabel,
+  Modal,
+  TextField,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
@@ -20,6 +22,7 @@ import {
   updateQty,
   updateDays,
 } from "../../Store/Slices/cartSlice.js";
+import { actualizarDireccion } from "../../Store/Slices/clienteSlice";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -27,19 +30,55 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 
-export default function VistaCart({ navbarVisible }) {
+export default function VistaCart() {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [tipoTransporte, setTipoTransporte] = useState("soloIda");
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
+  const [tipoTransporte, setTipoTransporte] = useState("soloIda");
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItemsModal, setSelectedItemsModal] = useState([]);
+  const [direccion, setDireccion] = useState(cliente.direccion);
+  const [open, setOpen] = useState(false);
+  const [openDay, setOpenDay] = useState(false);
+  const [openQuantity, setOpenQuantity] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
   const isMediumScreen = useMediaQuery(
     "(min-width:601px) and (max-width:915px)"
   );
+
+  const handleOpen = () => {
+    setDireccion(cliente.direccion);
+    setOpen(true);
+  };
+
+  const handleOpenDay = (item) => {
+    setSelectedItemsModal(item);
+    setOpenDay(true);
+  };
+
+  const handleOpenQuantity = (item) => {
+    setSelectedItemsModal(item);
+    setOpenQuantity(true);
+  };
+
+  const handleClose = () => setOpen(false);
+  const handleCloseDay = () => setOpenDay(false);
+  const handleCloseQuantity = () => setOpenQuantity(false);
+
+  const handleGuardar = () => {
+    dispatch(actualizarDireccion(direccion));
+    localStorage.setItem(
+      "datosCliente",
+      JSON.stringify({
+        ...cliente, 
+        direccion: direccion,
+      })
+    );
+    setOpen(false);
+  };
 
   useEffect(() => {
     if (items.length > 0) {
@@ -50,11 +89,17 @@ export default function VistaCart({ navbarVisible }) {
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
     dispatch(updateQty({ id, quantity }));
+    setOpenQuantity(false);
+    console.log("selectedItemsModal", selectedItemsModal);
+
   };
 
   const handleDaysChange = (id, days) => {
     if (days < 1) return;
     dispatch(updateDays({ id, days }));
+    setOpenDay(false);
+    console.log("selectedItemsModal", selectedItemsModal);
+
   };
 
   const handleToggleSelect = (id) => {
@@ -110,6 +155,7 @@ export default function VistaCart({ navbarVisible }) {
         pb: isFullScreen ? `${appBarHeight}px` : 0,
         pl: { xs: 1, sm: 1.5 },
         pr: { xs: 1, sm: 1.5 },
+        pr: !isFullScreen ? "260px" : 1,
         // border: "2px solid red",
       }}
     >
@@ -117,7 +163,6 @@ export default function VistaCart({ navbarVisible }) {
         sx={{
           display: "flex",
           flexDirection: isFullScreen && "column-reverse",
-          width: isFullScreen ? "100%" : "81%",
           justifyContent: "space-between",
           // border: "2px solid red",
         }}
@@ -158,16 +203,39 @@ export default function VistaCart({ navbarVisible }) {
             // border: "2px solid red",
           }}
         >
-          <LocationOnIcon />
-          <Typography
-            variant="body2"
-            gutterBottom
-            sx={{
-              paddingTop: "8px",
-            }}
-          >
-            {cliente.direccion}
-          </Typography>
+          <IconButton disableRipple onClick={handleOpen}>
+            <LocationOnIcon />
+            <Typography variant="body2">{cliente.direccion}</Typography>
+          </IconButton>
+
+          <Modal open={open} onClose={handleClose}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                p: 4,
+                width: { xs: 350, sm: 400 },
+                borderRadius: 2,
+                mx: "auto",
+                mt: "20vh",
+                boxShadow: 24,
+              }}
+            >
+              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                Editar dirección
+              </Typography>
+              <TextField
+                fullWidth
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                label="Dirección"
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+              <Button variant="contained" onClick={handleGuardar} fullWidth>
+                Guardar
+              </Button>
+            </Box>
+          </Modal>
 
           <IconButton
             color="error"
@@ -183,7 +251,6 @@ export default function VistaCart({ navbarVisible }) {
         sx={{
           display: "flex",
           alignItems: "center",
-          width: isFullScreen ? "100%" : "81%",
           pb: 2,
           // border: "2px solid red",
         }}
@@ -214,10 +281,12 @@ export default function VistaCart({ navbarVisible }) {
       </Box>
 
       <Box
-        sx={{
-          width: isFullScreen ? "100%" : "81%",
-          // border: "2px solid green",
-        }}
+        sx={
+          {
+            // width: "100%",
+            // border: "2px solid green",
+          }
+        }
       >
         {items.length === 0 ? (
           <Typography variant="body1">Tu carrito está vacío</Typography>
@@ -232,7 +301,7 @@ export default function VistaCart({ navbarVisible }) {
                   height: isSmallScreen ? "100px" : "120px",
                   alignItems: "center",
                   mb: 4,
-                  // border: "2px solid green",
+                  // border: "2px solid blue",
                 }}
               >
                 <Box
@@ -240,7 +309,7 @@ export default function VistaCart({ navbarVisible }) {
                     display: "flex",
                     alignItems: "center",
                     height: "100%",
-                    // border: "2px solid red",
+                    // border: "2px solid yellow",
                   }}
                 >
                   {isFullScreen && (
@@ -287,10 +356,10 @@ export default function VistaCart({ navbarVisible }) {
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      width: isSmallScreen ? "100%" : "40%",
+                      width: isFullScreen ? { xs: "100%", sm: "40%" } : "30%",
                       height: "100%",
                       pl: 2,
-                      // border: "2px solid blue",
+                      // border: "2px solid yellow",
                     }}
                   >
                     <Typography
@@ -306,14 +375,15 @@ export default function VistaCart({ navbarVisible }) {
 
                   <Box
                     sx={{
-                      width: isSmallScreen ? "100%" : "60%",
+                      width: isFullScreen ? { xs: "100%", sm: "60%" } : "50%",
                       height: "100%",
                       display: "flex",
                       flexDirection: "row",
-                      gap: isSmallScreen ? 2 : 0,
-                      alignItems: "center",
                       justifyContent: isSmallScreen ? "center" : "space-evenly",
-                      border: "2px solid red",
+                      gap: isSmallScreen ? 2 : 3,
+                      alignItems: "center",
+                      p: 2,
+                      // border: "2px solid red",
                     }}
                   >
                     <Box
@@ -323,7 +393,7 @@ export default function VistaCart({ navbarVisible }) {
                         alignItems: "center",
                         mb: 1,
                         width: "100%",
-                        border: "2px solid red",
+                        // border: "2px solid yellow",
                       }}
                     >
                       <Typography
@@ -337,14 +407,13 @@ export default function VistaCart({ navbarVisible }) {
 
                       <Box
                         sx={{
+                          width: "100%",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center", 
+                          justifyContent: "center",
+                          justifyContent: "space-evenly",
                           border: "1px solid",
                           borderRadius: 2,
-                          minHeight: 10,
-                          gap: 1,
-                          width: "40%",
                         }}
                       >
                         <Button
@@ -375,9 +444,11 @@ export default function VistaCart({ navbarVisible }) {
                         </Button>
 
                         <Typography
+                          onClick={() => handleOpenDay(item)}
                           sx={{
                             minWidth: 28,
                             textAlign: "center",
+                            cursor: "pointer",
                           }}
                         >
                           {item.days}
@@ -417,7 +488,8 @@ export default function VistaCart({ navbarVisible }) {
                         flexDirection: "column",
                         alignItems: "center",
                         mb: 1,
-                        border: "2px solid red",
+                        width: "100%",
+                        // border: "2px solid green",
                       }}
                     >
                       <Typography
@@ -431,13 +503,13 @@ export default function VistaCart({ navbarVisible }) {
 
                       <Box
                         sx={{
+                          width: "100%",
                           display: "flex",
                           alignItems: "center",
+                          justifyContent: "center",
+                          justifyContent: "space-evenly",
                           border: "1px solid",
                           borderRadius: 2,
-                          px: isFullScreen ? "0" : "1.5",
-                          minHeight: 10,
-                          gap: 1,
                         }}
                       >
                         <Button
@@ -468,9 +540,11 @@ export default function VistaCart({ navbarVisible }) {
                         </Button>
 
                         <Typography
+                          onClick={() => handleOpenQuantity(item)}
                           sx={{
                             minWidth: 28,
                             textAlign: "center",
+                            cursor: "pointer",
                           }}
                         >
                           {item.quantity}
@@ -511,11 +585,11 @@ export default function VistaCart({ navbarVisible }) {
                         width: "20%",
                         height: "100%",
                         display: "flex",
-                        flexDirection: "row",
                         alignItems: "center",
                         justifyContent: "center",
+                        p: 1,
+                        // border:"2px solid red"
                       }}
-                      // border="2px solid red"
                     >
                       <Button
                         variant="danger"
@@ -599,10 +673,8 @@ export default function VistaCart({ navbarVisible }) {
             alignItems: "center",
             justifyContent: "center",
             width: "260px",
-            // height: navbarVisible ? "86vh" : "100vh",
             height: "86vh",
             position: "fixed",
-            // top: navbarVisible ? "80px" : "0px",
             top: "80px",
             right: "0px",
             zIndex: 1300,
@@ -625,7 +697,6 @@ export default function VistaCart({ navbarVisible }) {
                 <Typography variant="body2">
                   {item.quantity} {item.name} por {item.days} dias
                 </Typography>
-                {/* <Divider sx={{ my: 1 }} /> */}
               </Box>
             ))}
           </Box>
@@ -673,6 +744,92 @@ export default function VistaCart({ navbarVisible }) {
           </Box>
         </Box>
       )}
+
+      <Modal open={openDay} onClose={handleCloseDay}>
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            width: { xs: 350, sm: 400 },
+            borderRadius: 2,
+            mx: "auto",
+            mt: "20vh",
+            boxShadow: 24,
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            Editar dias
+          </Typography>
+
+          <TextField
+            value={selectedItemsModal?.days || ""}
+            onChange={(e) =>
+              setSelectedItemsModal({
+                ...selectedItemsModal,
+                days: e.target.value,
+              })
+            }
+            label="Dias"
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+          <Button
+            variant="contained"
+            onClick={() =>
+              handleDaysChange(
+                selectedItemsModal?.id,
+                Number(selectedItemsModal?.days)
+              )
+            }
+            fullWidth
+          >
+            Guardar
+          </Button>
+        </Box>
+      </Modal>
+
+      <Modal open={openQuantity} onClose={handleCloseQuantity}>
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            width: { xs: 350, sm: 400 },
+            borderRadius: 2,
+            mx: "auto",
+            mt: "20vh",
+            boxShadow: 24,
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            Editar cantidad
+          </Typography>
+
+          <TextField
+            value={selectedItemsModal?.quantity || ""}
+            onChange={(e) =>
+              setSelectedItemsModal({
+                ...selectedItemsModal,
+                quantity: e.target.value,
+              })
+            }
+            label="Cantidad"
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+          <Button
+            variant="contained"
+            onClick={() =>
+              handleQtyChange(
+                selectedItemsModal?.id,
+                Number(selectedItemsModal?.quantity)
+              )
+            }
+            fullWidth
+          >
+            Guardar
+          </Button>
+        </Box>
+      </Modal>
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Home,
@@ -25,8 +25,6 @@ function App() {
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
-  const navbarRef = useRef(null);
-  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
 
   useEffect(() => {
     if (items.length === 0) {
@@ -52,30 +50,9 @@ function App() {
     }
   }, [dispatch]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsNavbarVisible(entry.isIntersecting);
-      },
-      { threshold: 0 }
-    );
-
-    if (navbarRef.current) {
-      observer.observe(navbarRef.current);
-    }
-
-    return () => {
-      if (navbarRef.current) {
-        observer.unobserve(navbarRef.current);
-      }
-    };
-  }, []);
-
   return (
     <div>
-      <div ref={navbarRef}>
-        <NavBar />
-      </div>
+      <NavBar />
 
       <Routes>
         <Route
@@ -175,10 +152,7 @@ function App() {
         <Route path="/Home" element={<Home />} />
         <Route exact path="/detail/:id" element={<Detail />} />
         <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
-        <Route
-          path="/vistacart"
-          element={<VistaCart navbarVisible={isNavbarVisible} />}
-        />
+        <Route path="/vistacart" element={<VistaCart />} />
       </Routes>
     </div>
   );

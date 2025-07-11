@@ -24,8 +24,11 @@ const clienteSlice = createSlice({
       state.identificacion = "";
       state.direccion = "";
     },
+    actualizarDireccion: (state, action) => {
+      state.direccion = action.payload;
+    },
   },
 });
 
-export const { setCliente, clearCliente } = clienteSlice.actions;
+export const { setCliente, clearCliente, actualizarDireccion } = clienteSlice.actions;
 export default clienteSlice.reducer;
