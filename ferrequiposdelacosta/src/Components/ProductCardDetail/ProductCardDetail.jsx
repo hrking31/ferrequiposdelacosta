@@ -4,11 +4,13 @@ import {
   Typography,
   Button,
   Stack,
+  Alert,
+  Snackbar,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
-import { useDispatch} from "react-redux";
+import { useDispatch } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";
@@ -22,11 +24,19 @@ export default function ProductCardDetail({ product }) {
 
   const [modalAbierto, setModalAbierto] = useState(false);
 
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
   const handleAgregarAlCarrito = () => {
     const datos = localStorage.getItem("datosCliente");
     if (!datos) {
       setModalAbierto(true);
-    }else{
+    } else {
       handleAdd();
     }
   };
@@ -44,12 +54,16 @@ export default function ProductCardDetail({ product }) {
       const updatedItems = [...storedCart.items, newItem];
       localStorage.setItem("cart", JSON.stringify({ items: updatedItems }));
       dispatch(addToCart(newItem));
+      setSnackbarMessage("Producto agregado al carrito");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
     } else {
-      // Opcional: notificación de que ya existe
-      console.log("El producto ya está en el carrito");
+      setSnackbarMessage("El producto ya está en el carrito");
+      setSnackbarSeverity("warning");
+      setOpenSnackbar(true);
     }
   };
-  
+
   const handleIncrement = (setter, value) => () => setter(value + 1);
   const handleDecrement = (setter, value) => () =>
     setter(value > 1 ? value - 1 : 1);
@@ -183,11 +197,32 @@ export default function ProductCardDetail({ product }) {
             open={modalAbierto}
             onClose={() => {
               setModalAbierto(false);
-              handleAdd(); 
+              handleAdd();
             }}
           />
         </>
       </Box>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+          },
+        }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

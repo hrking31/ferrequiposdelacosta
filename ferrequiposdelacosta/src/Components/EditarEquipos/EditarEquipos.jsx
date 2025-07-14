@@ -31,7 +31,8 @@ const EditarEquipo = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  console.log("Estado equipo Seleccionado:", equipoSeleccionado);
+  // console.log("Estado equipo Seleccionado:", equipoSeleccionado);
+  
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -39,7 +40,7 @@ const EditarEquipo = () => {
     images: [],
   });
 
-  console.log("Estado Equipo Editado:", formData);
+  // console.log("Estado Equipo Editado:", formData);
   useEffect(() => {
     if (equipoSeleccionado) {
       setFormData({

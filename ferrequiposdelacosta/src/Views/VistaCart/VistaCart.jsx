@@ -10,13 +10,13 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
-  FormLabel,
+  Grid,
   Modal,
   TextField,
 } from "@mui/material";
-import { Add, Remove } from "@mui/icons-material";
+import { Add, ClassSharp, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   removeFromCart,
   updateQty,
@@ -45,9 +45,6 @@ export default function VistaCart() {
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
 
   const handleOpen = () => {
     setDireccion(cliente.direccion);
@@ -73,7 +70,7 @@ export default function VistaCart() {
     localStorage.setItem(
       "datosCliente",
       JSON.stringify({
-        ...cliente, 
+        ...cliente,
         direccion: direccion,
       })
     );
@@ -105,14 +102,29 @@ export default function VistaCart() {
     setSelectedItems([]);
   };
 
+  const gruposPorDias = items.reduce((acc, item) => {
+    const key = item.days;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const transporteLabel = {
+    ida: "Solo ida",
+    vuelta: "Solo vuelta",
+    idaVuelta: "Ida y vuelta",
+    no: "Sin transporte",
+  };
+
+  const transporte = transporteLabel[tipoTransporte] || "No especificado";
+
+
   const message = encodeURIComponent(
     "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
       `👤 *Nombre:* ${cliente.nombre}\n` +
       `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
       `📍 *Dirección:* ${cliente.direccion}\n` +
-      `🚚 *Transporte:* ${
-        tipoTransporte === "idaVuelta" ? "Ida y vuelta" : "Solo ida"
-      }\n\n` +
+      `🚚 *Transporte:* ${transporte}\n\n` +
       items
         .map(
           (item, index) =>
@@ -126,14 +138,6 @@ export default function VistaCart() {
 
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 55;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   return (
     <Box
       sx={{
@@ -141,142 +145,141 @@ export default function VistaCart() {
         flexDirection: "column",
         justifyContent: "space-between",
         boxSizing: "border-box",
-        pt: isFullScreen ? 1 : 11,
-        pb: isFullScreen ? `${appBarHeight}px` : 0,
-        pl: { xs: 1, sm: 1.5 },
-        pr: !isFullScreen ? "260px" : 1,
+        width: "100%",
+        height: "100%",
         // border: "2px solid red",
       }}
     >
       <Box
         sx={{
-          display: "flex",
-          flexDirection: isFullScreen && "column-reverse",
-          justifyContent: "space-between",
+          pt: isFullScreen ? { xs: 1, sm: 1.5 } : 9.5,
+          // pt: isFullScreen ? { xs: 1, sm: 1.5 } : `${appBarHeight}px`,
+          pl: { xs: 1, sm: 1.5 },
+          pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
           // border: "2px solid red",
         }}
       >
         <Box
           sx={{
             display: "flex",
-            justifyContent: "flex-start",
-            gap: 1,
+            flexDirection: isFullScreen && "column-reverse",
+            justifyContent: "space-between",
             // border: "2px solid red",
           }}
         >
-          <Camion
-            cantidad={items.length}
-            size={isXs ? 28 : 38}
-            color={
-              theme.palette.mode === "light"
-                ? theme.palette.primary.main
-                : theme.palette.secondary.light
-            }
-          />
-          <Typography
-            variant="h5"
-            gutterBottom
+          <Box
             sx={{
-              paddingTop: "8px",
+              display: "flex",
+              justifyContent: "flex-start",
+              gap: 1,
+              // border: "2px solid red",
             }}
           >
-            Ferrequipos.
+            <Camion
+              cantidad={items.length}
+              size={isXs ? 28 : 38}
+              color={
+                theme.palette.mode === "light"
+                  ? theme.palette.primary.main
+                  : theme.palette.secondary.light
+              }
+            />
+            <Typography
+              variant="h5"
+              gutterBottom
+              sx={{
+                paddingTop: "8px",
+              }}
+            >
+              Ferrequipos.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 1,
+              // border: "2px solid red",
+            }}
+          >
+            <IconButton disableRipple onClick={handleOpen}>
+              <LocationOnIcon />
+              <Typography variant="body2">{cliente.direccion}</Typography>
+            </IconButton>
+
+            <Modal open={open} onClose={handleClose}>
+              <Box
+                sx={{
+                  bgcolor: "background.paper",
+                  p: 4,
+                  width: { xs: 350, sm: 400 },
+                  borderRadius: 2,
+                  mx: "auto",
+                  mt: "20vh",
+                  boxShadow: 24,
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Editar dirección
+                </Typography>
+                <TextField
+                  fullWidth
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                  label="Dirección"
+                  variant="outlined"
+                  sx={{ mb: 2 }}
+                />
+                <Button variant="contained" onClick={handleGuardar} fullWidth>
+                  Guardar
+                </Button>
+              </Box>
+            </Modal>
+
+            <IconButton
+              color="error"
+              onClick={handleDeleteSelected}
+              disabled={selectedItems.length === 0}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            pb: 2,
+            // border: "2px solid red",
+          }}
+        >
+          <Checkbox
+            checked={selectedItems.length === items.length && items.length > 0}
+            indeterminate={
+              selectedItems.length > 0 && selectedItems.length < items.length
+            }
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedItems(items.map((item) => item.id));
+              } else {
+                setSelectedItems([]);
+              }
+            }}
+            sx={{
+              p: { xs: 0.5, md: 1.5, sm: 2 },
+              m: 0,
+              mr: 1,
+              minWidth: 0,
+              minHeight: 0,
+            }}
+          />
+          <Typography variant="body2">
+            {items.length} Equipo en Total {cliente.nombre}
           </Typography>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 1,
-            // border: "2px solid red",
-          }}
-        >
-          <IconButton disableRipple onClick={handleOpen}>
-            <LocationOnIcon />
-            <Typography variant="body2">{cliente.direccion}</Typography>
-          </IconButton>
-
-          <Modal open={open} onClose={handleClose}>
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                p: 4,
-                width: { xs: 350, sm: 400 },
-                borderRadius: 2,
-                mx: "auto",
-                mt: "20vh",
-                boxShadow: 24,
-              }}
-            >
-              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                Editar dirección
-              </Typography>
-              <TextField
-                fullWidth
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                label="Dirección"
-                variant="outlined"
-                sx={{ mb: 2 }}
-              />
-              <Button variant="contained" onClick={handleGuardar} fullWidth>
-                Guardar
-              </Button>
-            </Box>
-          </Modal>
-
-          <IconButton
-            color="error"
-            onClick={handleDeleteSelected}
-            disabled={selectedItems.length === 0}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          pb: 2,
-          // border: "2px solid red",
-        }}
-      >
-        <Checkbox
-          checked={selectedItems.length === items.length && items.length > 0}
-          indeterminate={
-            selectedItems.length > 0 && selectedItems.length < items.length
-          }
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedItems(items.map((item) => item.id));
-            } else {
-              setSelectedItems([]);
-            }
-          }}
-          sx={{
-            p: { xs: 0.5, md: 1.5, sm: 2 },
-            m: 0,
-            mr: 1,
-            minWidth: 0,
-            minHeight: 0,
-          }}
-        />
-        <Typography variant="body2">
-          {items.length} Equipo en Total {cliente.nombre}
-        </Typography>
-      </Box>
-
-      <Box
-        sx={
-          {
-            // width: "100%",
-            // border: "2px solid green",
-          }
-        }
-      >
         {items.length === 0 ? (
           <Typography variant="body1">Tu carrito está vacío</Typography>
         ) : (
@@ -589,148 +592,132 @@ export default function VistaCart() {
                 </Box>
               </Box>
             ))}
-
-            {isFullScreen && (
-              <Box>
-                <Divider sx={{ m: 1 }} />
-                <Box
-                  sx={{
-                    flexGrow: 1,
-                    p: 1,
-                    // border: "2px solid red",
-                  }}
-                >
-                  <FormLabel variant="body2" sx={{ mt: 2, ml: 1 }}>
-                    Tipo de Transporte
-                  </FormLabel>
-                </Box>
-
-                <Box
-                  sx={{
-                    flexGrow: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: 2,
-                    p: 1,
-                    mb: 4,
-                    // border: "2px solid red",
-                  }}
-                >
-                  <RadioGroup
-                    value={tipoTransporte}
-                    onChange={(e) => setTipoTransporte(e.target.value)}
-                    row
-                    sx={{ gap: 2 }}
-                  >
-                    <FormControlLabel
-                      value="soloIda"
-                      control={<Radio />}
-                      label="Solo ida"
-                    />
-                    <FormControlLabel
-                      value="idaVuelta"
-                      control={<Radio />}
-                      label="Ida y vuelta"
-                    />
-                  </RadioGroup>
-
-                  <Button
-                    variant="whatsapp"
-                    startIcon={<WhatsAppIcon />}
-                    href={whatsappLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Confirmar Pedido
-                  </Button>
-                </Box>
-              </Box>
-            )}
           </>
         )}
       </Box>
 
-      {!isFullScreen && (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: isFullScreen ? "flex-start" : "center",
+          width: isFullScreen ? "100%" : "260px",
+          height: isFullScreen ? "auto" : "86vh",
+          position: isFullScreen ? "relative" : "fixed",
+          top: isFullScreen ? "auto" : "80px",
+          right: isFullScreen ? "auto" : "0px",
+          zIndex: isFullScreen ? "auto" : "1300",
+          pt: 1,
+          pb: isFullScreen ? { xs: 9, sm: 9.5 } : 1,
+          pl: 2,
+          pr: 2,
+          bgcolor: theme.palette.background.paper,
+          // border: "2px solid red",
+        }}
+      >
+        <Typography variant="h3">Resumen del Pedido</Typography>
+        <Box
+          sx={{
+            flex: 1,
+            mt: 1,
+            overflowY: "auto",
+            // border: "2px solid red"
+          }}
+        >
+
+          {Object.entries(gruposPorDias).map(([days, items]) => (
+            <Box
+              key={days}
+              sx={{
+                p: 1,
+                mb: 1,
+                // border: "1px solid #ccc",
+              }}
+            >
+              <Typography variant="h3" gutterBottom>
+                Equipos para {days} días
+              </Typography>
+
+              {items.map((item) => (
+                <Typography variant="body2" key={item.id} sx={{ pl: 2 }}>
+                  {item.quantity} _ {item.name}
+                </Typography>
+              ))}
+            </Box>
+          ))}
+        </Box>
+
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "260px",
-            height: "86vh",
-            position: "fixed",
-            top: "80px",
-            right: "0px",
-            zIndex: 1300,
-            p: 2,
-            bgcolor: theme.palette.background.paper,
-            // border: "2px solid red",
+            pb: 1,
           }}
         >
-          <Typography variant="h3">Resumen del Pedido</Typography>
-          <Box
-            sx={{
-              flex: 1,
-              mt: 1,
-              overflowY: "auto",
-              // border: "2px solid red"
-            }}
+          <Divider sx={{ m: 1 }} />
+
+          <Typography variant="h3" sx={{ mt: 1 }}>
+            Tipo de Transporte
+          </Typography>
+
+          <RadioGroup
+            value={tipoTransporte}
+            onChange={(e) => setTipoTransporte(e.target.value)}
+            row
           >
-            {items.map((item, index) => (
-              <Box key={index} mb={3}>
-                <Typography variant="body2">
-                  {item.quantity} {item.name} por {item.days} dias
-                </Typography>
-              </Box>
-            ))}
-          </Box>
 
-          <Box>
-            <Divider sx={{ m: 1 }} />
-
-            <FormLabel variant="body2" sx={{ mt: 2 }}>
-              Tipo de Transporte
-            </FormLabel>
-
-            <RadioGroup
-              value={tipoTransporte}
-              onChange={(e) => setTipoTransporte(e.target.value)}
-              row
+            <Grid
+              container
+              spacing={1}
+              j
+              justifyContent="center" 
+              maxWidth="600px"
+              m="0 auto"
+              // border="1px solid #ccc"
             >
-              <FormControlLabel
-                value="soloIda"
-                control={<Radio />}
-                label="Solo ida"
-              />
-              <FormControlLabel
-                value="idaVuelta"
-                control={<Radio />}
-                label="Ida y vuelta"
-              />
-            </RadioGroup>
-          </Box>
-
-          <Box
-            sx={{
-              pt: 1,
-              //  border: "2px solid red"
-            }}
-          >
-            <Button
-              variant="whatsapp"
-              startIcon={<WhatsAppIcon />}
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Confirmar Pedido
-            </Button>
-          </Box>
+              <Grid item xs={6}>
+                <FormControlLabel
+                  value="ida"
+                  control={<Radio />}
+                  label="Solo ida"
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <FormControlLabel
+                  value="vuelta"
+                  control={<Radio />}
+                  label="Solo vuelta"
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <FormControlLabel
+                  value="idaVuelta"
+                  control={<Radio />}
+                  label="Ida y vuelta"
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <FormControlLabel
+                  value="no"
+                  control={<Radio />}
+                  label="Sin transporte"
+                />
+              </Grid>
+            </Grid>
+          </RadioGroup>
         </Box>
-      )}
+
+        <Button
+          variant="whatsapp"
+          startIcon={<WhatsAppIcon />}
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          fullWidth
+        >
+          Confirmar Pedido
+        </Button>
+      </Box>
 
       <Modal open={openDay} onClose={handleCloseDay}>
         <Box
@@ -774,7 +761,6 @@ export default function VistaCart() {
           </Button>
         </Box>
       </Modal>
-
       <Modal open={openQuantity} onClose={handleCloseQuantity}>
         <Box
           sx={{
