@@ -50,6 +50,14 @@ function App() {
     }
   }, [dispatch]);
 
+    useEffect(() => {
+      if (items.length > 0) {
+        localStorage.setItem("cart", JSON.stringify({ items }));
+      } else {
+        localStorage.removeItem("cart");
+      }
+    }, [items]);
+
   return (
     <div>
       <NavBar />

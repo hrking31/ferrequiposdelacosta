@@ -80,26 +80,16 @@ export default function VistaCart() {
     setOpen(false);
   };
 
-  useEffect(() => {
-    if (items.length > 0) {
-      localStorage.setItem("cart", JSON.stringify({ items }));
-    }
-  }, [items]);
-
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
     dispatch(updateQty({ id, quantity }));
     setOpenQuantity(false);
-    console.log("selectedItemsModal", selectedItemsModal);
-
   };
 
   const handleDaysChange = (id, days) => {
     if (days < 1) return;
     dispatch(updateDays({ id, days }));
     setOpenDay(false);
-    console.log("selectedItemsModal", selectedItemsModal);
-
   };
 
   const handleToggleSelect = (id) => {
@@ -154,7 +144,6 @@ export default function VistaCart() {
         pt: isFullScreen ? 1 : 11,
         pb: isFullScreen ? `${appBarHeight}px` : 0,
         pl: { xs: 1, sm: 1.5 },
-        pr: { xs: 1, sm: 1.5 },
         pr: !isFullScreen ? "260px" : 1,
         // border: "2px solid red",
       }}
@@ -268,7 +257,7 @@ export default function VistaCart() {
             }
           }}
           sx={{
-            p: { xs: 0.5, sm: 1.5, sm: 2 },
+            p: { xs: 0.5, md: 1.5, sm: 2 },
             m: 0,
             mr: 1,
             minWidth: 0,
@@ -410,7 +399,6 @@ export default function VistaCart() {
                           width: "100%",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
                           justifyContent: "space-evenly",
                           border: "1px solid",
                           borderRadius: 2,
@@ -506,7 +494,6 @@ export default function VistaCart() {
                           width: "100%",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
                           justifyContent: "space-evenly",
                           border: "1px solid",
                           borderRadius: 2,
