@@ -14,7 +14,7 @@ import {
   Modal,
   TextField,
 } from "@mui/material";
-import { Add, ClassSharp, Remove } from "@mui/icons-material";
+import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
 import { useState } from "react";
 import {
@@ -118,7 +118,6 @@ export default function VistaCart() {
 
   const transporte = transporteLabel[tipoTransporte] || "No especificado";
 
-
   const message = encodeURIComponent(
     "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
       `👤 *Nombre:* ${cliente.nombre}\n` +
@@ -153,7 +152,6 @@ export default function VistaCart() {
       <Box
         sx={{
           pt: isFullScreen ? { xs: 1, sm: 1.5 } : 9.5,
-          // pt: isFullScreen ? { xs: 1, sm: 1.5 } : `${appBarHeight}px`,
           pl: { xs: 1, sm: 1.5 },
           pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
           // border: "2px solid red",
@@ -204,7 +202,7 @@ export default function VistaCart() {
             }}
           >
             <IconButton disableRipple onClick={handleOpen}>
-              <LocationOnIcon />
+              <LocationOnIcon fontSize="small" />
               <Typography variant="body2">{cliente.direccion}</Typography>
             </IconButton>
 
@@ -231,7 +229,7 @@ export default function VistaCart() {
                   variant="outlined"
                   sx={{ mb: 2 }}
                 />
-                <Button variant="contained" onClick={handleGuardar} fullWidth>
+                <Button variant="success" onClick={handleGuardar} fullWidth>
                   Guardar
                 </Button>
               </Box>
@@ -269,13 +267,10 @@ export default function VistaCart() {
             }}
             sx={{
               p: { xs: 0.5, md: 1.5, sm: 2 },
-              m: 0,
               mr: 1,
-              minWidth: 0,
-              minHeight: 0,
             }}
           />
-          <Typography variant="body2">
+          <Typography variant="body1">
             {items.length} Equipo en Total {cliente.nombre}
           </Typography>
         </Box>
@@ -312,10 +307,7 @@ export default function VistaCart() {
                       checkedIcon={<CheckCircleIcon fontSize="small" />}
                       sx={{
                         p: { xs: 0.5, sm: 1.5 },
-                        m: 0,
                         mr: 1,
-                        minWidth: 0,
-                        minHeight: 0,
                       }}
                     />
                   )}
@@ -355,7 +347,7 @@ export default function VistaCart() {
                     }}
                   >
                     <Typography
-                      variant="body2"
+                      variant="body1"
                       sx={{
                         width: "100%",
                         wordBreak: "break-word",
@@ -389,7 +381,7 @@ export default function VistaCart() {
                       }}
                     >
                       <Typography
-                        variant="subtitle1"
+                        variant="body1"
                         sx={{
                           mb: isFullScreen ? 0 : 1,
                         }}
@@ -484,7 +476,7 @@ export default function VistaCart() {
                       }}
                     >
                       <Typography
-                        variant="subtitle1"
+                        variant="body1"
                         sx={{
                           mb: isFullScreen ? 0 : 1,
                         }}
@@ -619,22 +611,19 @@ export default function VistaCart() {
         <Box
           sx={{
             flex: 1,
-            mt: 1,
             overflowY: "auto",
             // border: "2px solid red"
           }}
         >
-
           {Object.entries(gruposPorDias).map(([days, items]) => (
             <Box
               key={days}
               sx={{
                 p: 1,
-                mb: 1,
                 // border: "1px solid #ccc",
               }}
             >
-              <Typography variant="h3" gutterBottom>
+              <Typography variant="subtitle2" gutterBottom>
                 Equipos para {days} días
               </Typography>
 
@@ -656,7 +645,7 @@ export default function VistaCart() {
         >
           <Divider sx={{ m: 1 }} />
 
-          <Typography variant="h3" sx={{ mt: 1 }}>
+          <Typography variant="subtitle2" sx={{ mt: 1 }}>
             Tipo de Transporte
           </Typography>
 
@@ -665,42 +654,42 @@ export default function VistaCart() {
             onChange={(e) => setTipoTransporte(e.target.value)}
             row
           >
-
             <Grid
               container
               spacing={1}
-              j
-              justifyContent="center" 
+              justifyContent="center"
               maxWidth="600px"
-              m="0 auto"
+              // m="0 auto"
               // border="1px solid #ccc"
             >
               <Grid item xs={6}>
                 <FormControlLabel
                   value="ida"
                   control={<Radio />}
-                  label="Solo ida"
+                  label={<Typography variant="body2">Solo ida</Typography>}
                 />
               </Grid>
               <Grid item xs={6}>
                 <FormControlLabel
                   value="vuelta"
                   control={<Radio />}
-                  label="Solo vuelta"
+                  label={<Typography variant="body2">Solo vuelta</Typography>}
                 />
               </Grid>
               <Grid item xs={6}>
                 <FormControlLabel
                   value="idaVuelta"
                   control={<Radio />}
-                  label="Ida y vuelta"
+                  label={<Typography variant="body2">Ida y vuelta</Typography>}
                 />
               </Grid>
               <Grid item xs={6}>
                 <FormControlLabel
                   value="no"
                   control={<Radio />}
-                  label="Sin transporte"
+                  label={
+                    <Typography variant="body2">Sin transporte</Typography>
+                  }
                 />
               </Grid>
             </Grid>

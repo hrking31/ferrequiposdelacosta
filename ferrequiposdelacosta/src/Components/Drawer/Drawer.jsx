@@ -165,7 +165,7 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary="Cotiza con nosotros"
-                primaryTypographyProps={{ variant: "subtitle2" }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
               />
             </ListItemButton>
           </ListItem>
@@ -190,7 +190,7 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary="Llama ahora"
-                primaryTypographyProps={{ variant: "subtitle2" }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
               />
             </ListItemButton>
           </ListItem>
@@ -215,7 +215,7 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary={theme.palette.mode === "dark" ? " Claro" : "Oscuro"}
-                primaryTypographyProps={{ variant: "subtitle2" }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
               />
             </ListItemButton>
           </ListItem>
@@ -233,7 +233,7 @@ export default function MobileDrawerLayout() {
               </ListItemIcon>
               <ListItemText
                 primary="Mi cuenta"
-                primaryTypographyProps={{ variant: "subtitle2" }}
+                primaryTypographyProps={{ variant: "subtitle1" }}
               />
             </ListItemButton>
           </ListItem>

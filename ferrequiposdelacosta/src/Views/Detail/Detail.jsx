@@ -22,12 +22,9 @@ export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const theme = useTheme();
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
- 
+
   const {
     selectedEquipo: equipo,
     loading,
@@ -58,29 +55,28 @@ export default function Detail() {
     setSnackbarProps((prev) => ({ ...prev, open: false }));
   };
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   if (loading || !equipo) return <LoadingLogo />;
 
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         boxSizing: "border-box",
         overflow: "auto",
+        pt: isFullScreen ? { xs: 0, sm: 0 } : 8,
+        pb: isFullScreen ? { xs: 6, sm: 7 } : 0,
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ flexGrow: 1, p: isMobile ? 0 : 2 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          p: isMobile ? 0 : 2,
+          // border: "2px solid red",
+        }}
+      >
         <Grid container>
           <Grid
             item
@@ -89,7 +85,6 @@ export default function Detail() {
             sx={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
               // border: "2px solid red",
             }}
           >
@@ -105,10 +100,11 @@ export default function Detail() {
               flexDirection: "column",
               justifyContent: "center",
               p: 2,
+              // border: "2px solid red",
             }}
           >
             <Typography
-              variant="h4"
+              variant="h5"
               sx={{
                 textAlign: isMobile ? "center" : "left",
                 lineHeight: 1.6,
@@ -147,7 +143,14 @@ export default function Detail() {
         </Grid>
       </Box>
 
-      <Box component="footer" sx={{ width: "100%", mt: 2 }}>
+      <Box
+        component="footer"
+        sx={{
+          width: "100%",
+          mt: 2,
+          //  border: "2px solid red"
+        }}
+      >
         <Footer />
       </Box>
 

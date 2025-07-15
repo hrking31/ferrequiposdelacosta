@@ -119,8 +119,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
           fontSize: "calc(1.5rem + 1vw)",
-          // color: mode === "light" ? "#2A3547" : "#FFFFFF",
-          color: mode === "light" ? "#FFF" : "#FFD166",
+          color: mode === "light" ? "#F7F7F7" : "#FFD166",
           "@media (max-width:900px)": {
             fontSize: "calc(1.25rem + 0.75vw)",
           },
@@ -132,20 +131,16 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 700,
           fontSize: "calc(1.25rem + 0.5vw)",
-          color: mode === "light" ? "#2A3547" : "#FFFFFF",
-          // Tablet
+          color: mode === "light" ? "#F7F7F7" : "#FFD166",
           "@media (max-width:1200px)": {
             fontSize: "1.2rem",
           },
-          // Laptop pequeña
           "@media (max-width:900px)": {
             fontSize: "1rem",
           },
-          // Celulares grandes
           "@media (max-width:600px)": {
             fontSize: "0.95rem",
           },
-          // Celulares pequeños
           "@media (max-width:400px)": {
             fontSize: "0.9rem",
           },
@@ -186,21 +181,25 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 600,
           fontSize: "1rem",
           color: mode === "light" ? "#3A5169" : "#A0AEC0",
+          // color: mode === "light" ? "#F7F7F7" : "#FFD166",
         },
         subtitle2: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
-          color: mode === "light" ? "#3A5169" : "#A0AEC0",
+          // color: mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: mode === "light" ? "#F7F7F7" : "#FFD166",
         },
         subtitle3: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 200,
           fontSize: "0.7rem",
+          // fontSize: "0.675rem",
           lineHeight: 1.5,
           color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
           display: "block",
         },
+
         body1: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
@@ -211,19 +210,23 @@ export const CustomThemeProvider = ({ children }) => {
             fontSize: "0.9rem",
           },
         },
+
         body2: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
-          fontSize: "0.875rem",
+          // fontSize: "0.875rem",
+          fontSize: "0.675rem",
           lineHeight: 1.5,
           color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
         },
+
         button: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
           textTransform: "none",
         },
+
         lineHeight: 1.75,
         caption: {
           fontFamily: '"Open Sans", sans-serif',
@@ -231,6 +234,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontSize: "0.75rem",
           color: mode === "light" ? "#5C6B73" : "#A0AEC0",
         },
+
         overline: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
@@ -239,9 +243,11 @@ export const CustomThemeProvider = ({ children }) => {
           color: mode === "light" ? "#5C6B73" : "#A0AEC0",
         },
       },
+
       shape: {
         borderRadius: 8,
       },
+
       components: {
         MuiAppBar: {
           styleOverrides: {
@@ -253,7 +259,7 @@ export const CustomThemeProvider = ({ children }) => {
                     theme.palette.secondary.main
                   : theme.palette.primary.main,
               // color: mode === "light" ? "#FFD166" : "#FFF",
-              color: mode === "light" ? "#FFF" : "#FFD166",
+              color: mode === "light" ? "#F7F7F7" : "#FFD166",
             }),
           },
         },
@@ -382,6 +388,7 @@ export const CustomThemeProvider = ({ children }) => {
             }),
           },
         },
+
         MuiTextField: {
           defaultProps: {
             variant: "outlined",
@@ -389,6 +396,7 @@ export const CustomThemeProvider = ({ children }) => {
             fullWidth: true,
           },
         },
+
         MuiInputAdornment: {
           styleOverrides: {
             positionEnd: {
@@ -396,6 +404,7 @@ export const CustomThemeProvider = ({ children }) => {
             },
           },
         },
+
         MuiInputLabel: {
           styleOverrides: {
             root: ({ theme }) => ({
@@ -421,6 +430,35 @@ export const CustomThemeProvider = ({ children }) => {
             },
           },
         },
+
+        MuiCheckbox: {
+          styleOverrides: {
+            root: {
+              color: mode === "light" ? "#3A5169" : "#FFD166",
+              "&.Mui-checked": {
+                color: mode === "light" ? "#3A5169" : "#FFD166",
+              },
+            },
+          },
+          defaultProps: {
+            size: "small", 
+          },
+        },
+
+        MuiRadio: {
+          styleOverrides: {
+            root: {
+              color: mode === "light" ? "#F7F7F7" : "#FFD166",
+              "&.Mui-checked": {
+                color: mode === "light" ? "#F7F7F7" : "#FFD166",
+              },
+            },
+          },
+          defaultProps: {
+            size: "small",
+          },
+        },
+
         MuiTypography: {
           defaultProps: {
             variantMapping: {
