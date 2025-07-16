@@ -249,6 +249,26 @@ export const CustomThemeProvider = ({ children }) => {
       },
 
       components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            "*": {
+              scrollbarWidth: "thin",
+              scrollbarColor: "#c1c1c1 #f5f5f5",
+            },
+            "*::-webkit-scrollbar": {
+              width: "8px",
+              height: "8px",
+            },
+            "*::-webkit-scrollbar-thumb": {
+              backgroundColor: "#c1c1c1",
+              borderRadius: "10px",
+            },
+            "*::-webkit-scrollbar-thumb:hover": {
+              backgroundColor: "#a8a8a8",
+            },
+          },
+        },
+
         MuiAppBar: {
           styleOverrides: {
             root: ({ theme }) => ({
@@ -441,7 +461,7 @@ export const CustomThemeProvider = ({ children }) => {
             },
           },
           defaultProps: {
-            size: "small", 
+            size: "small",
           },
         },
 

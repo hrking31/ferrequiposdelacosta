@@ -309,7 +309,6 @@ const EditarEquipo = () => {
 
   return (
     <Box sx={{ padding: 2 }}>
-
       <Box
         mx="auto"
         p={2}
@@ -623,7 +622,7 @@ const EditarEquipo = () => {
 
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
-                                variant="upload"
+                                variant="success"
                                 color="primary"
                                 fullWidth
                                 onClick={() => {
@@ -722,7 +721,7 @@ const EditarEquipo = () => {
                 />
                 <Box sx={{ width: "100%", mt: 2 }}>
                   <Button
-                    variant="upload"
+                    variant="success"
                     onClick={guardarImagenConNombre}
                     fullWidth
                   >
@@ -754,7 +753,7 @@ const EditarEquipo = () => {
           />
           <Grid container spacing={2} sx={{ mt: 2, p: 1 }}>
             <Grid item xs={12} md={4}>
-              <Button variant="upload" onClick={cambiarOrden} fullWidth>
+              <Button variant="success" onClick={cambiarOrden} fullWidth>
                 Aplicar Orden
               </Button>
             </Grid>

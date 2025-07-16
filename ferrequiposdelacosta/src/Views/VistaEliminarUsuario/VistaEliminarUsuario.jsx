@@ -15,10 +15,7 @@ export default function VistaEliminarUsuario() {
   const { name, genero } = useSelector((state) => state.user);
   const { logout } = useAuth();
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
+   const isFullScreen = useMediaQuery("(max-width:915px)");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -26,35 +23,38 @@ export default function VistaEliminarUsuario() {
     await logout();
   };
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         overflow: "auto",
         boxSizing: "border-box",
-        p: 2,
+        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
+        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
+        pl: { xs: 1, sm: 1.5 },
+        pr: { xs: 1, sm: 1.5 },
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography variant="h4" color="text.primary">
+      <Box sx={{ flexGrow: 1, p: 2,
+        //  border: "2px solid red"
+          }}>
+        <Typography variant="h5">
           {saludo} {name}.
         </Typography>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, p: 2, 
+        // border: "2px solid red" 
+        }}>
         <EliminarUsuario />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ p: 2,
+        //  border: "2px solid red" 
+         }}>
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={6} md={4}>
             <Button

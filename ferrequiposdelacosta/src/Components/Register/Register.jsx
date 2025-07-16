@@ -161,24 +161,8 @@ export default function Register() {
         onChange={handleChange}
         fullWidth
         size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "& fieldset": {
-              borderColor: "primary.main",
-            },
-            "&:hover fieldset": {
-              borderColor: "primary.light",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.dark",
-            },
-            "& input:-webkit-autofill": {
-              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-              WebkitTextFillColor: theme.palette.text.primary,
-            },
-          },
-        }}
       />
+      
       <FormControl fullWidth>
         <InputLabel id="genero-label">Género</InputLabel>
         <Select
@@ -188,18 +172,6 @@ export default function Register() {
           value={generoSeleccionado || ""}
           onChange={(e) => setGeneroSeleccionado(e.target.value)}
           size="small"
-          sx={{
-            color: theme.palette.text.primary,
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.main,
-            },
-            "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.light,
-            },
-            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.dark,
-            },
-          }}
         >
           <MenuItem value="" disabled>
             Selecciona un Género
@@ -221,23 +193,6 @@ export default function Register() {
         onChange={handleChange}
         fullWidth
         size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "& fieldset": {
-              borderColor: "primary.main",
-            },
-            "&:hover fieldset": {
-              borderColor: "primary.light",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.dark",
-            },
-            "& input:-webkit-autofill": {
-              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-              WebkitTextFillColor: theme.palette.text.primary,
-            },
-          },
-        }}
       />
 
       <TextField
@@ -260,24 +215,8 @@ export default function Register() {
             </IconButton>
           ),
         }}
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "& fieldset": {
-              borderColor: "primary.main",
-            },
-            "&:hover fieldset": {
-              borderColor: "primary.light",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.dark",
-            },
-            "& input:-webkit-autofill": {
-              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-              WebkitTextFillColor: theme.palette.text.primary,
-            },
-          },
-        }}
       />
+
       <FormControl fullWidth>
         <InputLabel id="rol-label">Rol</InputLabel>
         <Select
@@ -287,18 +226,6 @@ export default function Register() {
           onChange={(e) => setRoleSeleccionado(e.target.value)}
           label="Rol"
           size="small"
-          sx={{
-            color: theme.palette.text.primary,
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.main,
-            },
-            "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.light,
-            },
-            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: theme.palette.primary.dark,
-            },
-          }}
         >
           <MenuItem value="" disabled>
             Selecciona un Rol

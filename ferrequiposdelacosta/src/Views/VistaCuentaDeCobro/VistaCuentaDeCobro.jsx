@@ -17,10 +17,7 @@ export default function VistaCuentaDeCobro() {
   const values = useSelector((state) => state.cuentacobro);
   const { logout } = useAuth();
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
+   const isFullScreen = useMediaQuery("(max-width:915px)");
 
   const clearForm = () => {
     dispatch(
@@ -40,38 +37,30 @@ export default function VistaCuentaDeCobro() {
     await logout();
   };
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
-
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        p: 2,
+        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
+        pb: isFullScreen ? { xs: 8, sm: 9 } : 1,
+        pl: { xs: 1, sm: 1.5 },
+        pr: { xs: 1, sm: 1.5 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
       }}
     >
-      
       <Box sx={{ mb: 2 }}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <CuentaDeCobro />
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <CuentaDeCobro />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <VistaCcWeb />
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <VistaCcWeb />
-        </Grid>
-      </Grid>
       </Box>
 
       <Box sx={{ flexGrow: 1, mb: 2 }}>
@@ -98,14 +87,10 @@ export default function VistaCuentaDeCobro() {
             </Button>
           </Grid>
         </Grid>
-        </Box>
+      </Box>
 
-        <Box sx={{ mb: 2 }}>
-        <Grid
-          container
-          spacing={2}
-          justifyContent="center"
-        >
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={5} md={5}>
             <Button
               component={Link}
@@ -127,7 +112,7 @@ export default function VistaCuentaDeCobro() {
             </Button>
           </Grid>
         </Grid>
-        </Box>
+      </Box>
     </Box>
   );
 }

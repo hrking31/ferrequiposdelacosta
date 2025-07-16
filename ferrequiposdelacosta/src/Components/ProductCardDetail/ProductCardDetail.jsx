@@ -3,8 +3,10 @@ import {
   Box,
   Typography,
   Button,
+  TextField,
   Stack,
   Alert,
+  Modal,
   Snackbar,
   useTheme,
   useMediaQuery,
@@ -24,12 +26,41 @@ export default function ProductCardDetail({ product }) {
 
   const [modalAbierto, setModalAbierto] = useState(false);
 
+  const [activeModal, setActiveModal] = useState(null);
+  const [valorTemp, setValorTemp] = useState(1);
+
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
+  };
+
+  const handleOpenModal = (type) => {
+    setActiveModal(type);
+    if (type === "days") {
+      setValorTemp(days);
+    } else if (type === "quantity") {
+      setValorTemp(quantity);
+    }
+  };
+
+  const handleCloseModal = () => setActiveModal(null);
+
+  const handleSaveModal = () => {
+    if (valorTemp < 1 || isNaN(valorTemp)) {
+      setValorTemp(1);
+      return;
+    }
+
+    if (activeModal === "days") {
+      setDays(valorTemp);
+    } else if (activeModal === "quantity") {
+      setQuantity(valorTemp);
+    }
+
+    handleCloseModal();
   };
 
   const handleAgregarAlCarrito = () => {
@@ -64,16 +95,12 @@ export default function ProductCardDetail({ product }) {
     }
   };
 
-  const handleIncrement = (setter, value) => () => setter(value + 1);
-  const handleDecrement = (setter, value) => () =>
-    setter(value > 1 ? value - 1 : 1);
+  const handleIncrement = (setValue, value) => () => setValue(value + 1);
+  const handleDecrement = (setValue, value) => () =>
+    setValue(value > 1 ? value - 1 : 1);
 
-  const ControlBox = ({ label, value, setValue }) => (
+  const ControlBox = ({ type, value, setValue }) => (
     <Box>
-      <Typography variant="sustitle1" sx={{ mb: 1 }}>
-        {label}
-      </Typography>
-
       <Stack direction="row" spacing={2} alignItems="center">
         <Button
           onClick={handleDecrement(setValue, value)}
@@ -102,7 +129,11 @@ export default function ProductCardDetail({ product }) {
           />
         </Button>
 
-        <Typography variant="sustitle1" sx={{ width: 32, textAlign: "center" }}>
+        <Typography
+          variant="sustitle1"
+          onClick={() => handleOpenModal(type)}
+          sx={{ width: 32, textAlign: "center" }}
+        >
           {value}
         </Typography>
 
@@ -154,7 +185,12 @@ export default function ProductCardDetail({ product }) {
               alignItems: "center",
             }}
           >
-            <ControlBox value={days} setValue={setDays} />
+            <ControlBox
+              value={days}
+              setValue={setDays}
+              type="days"
+              handleOpenModal={handleOpenModal}
+            />
           </Box>
         </Box>
 
@@ -172,7 +208,12 @@ export default function ProductCardDetail({ product }) {
               alignItems: "center",
             }}
           >
-            <ControlBox value={quantity} setValue={setQuantity} />
+            <ControlBox
+              value={quantity}
+              setValue={setQuantity}
+              type="quantity"
+              handleOpenModal={handleOpenModal}
+            />
           </Box>
         </Box>
       </Stack>
@@ -202,6 +243,38 @@ export default function ProductCardDetail({ product }) {
           />
         </>
       </Box>
+
+      <Modal open={Boolean(activeModal)} onClose={handleCloseModal}>
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            width: { xs: 350, sm: 400 },
+            borderRadius: 2,
+            mx: "auto",
+            mt: "20vh",
+            boxShadow: 24,
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            Editar {activeModal === "days" ? "dias" : "cantidad"}
+          </Typography>
+
+          <TextField
+            type="number"
+            inputProps={{ min: 1 }}
+            value={valorTemp || ""}
+            onChange={(e) => setValorTemp(Number(e.target.value))}
+            label={activeModal === "days" ? "Dias" : "Cantidad"}
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+          <Button variant="success" onClick={handleSaveModal} fullWidth>
+            Guardar
+          </Button>
+        </Box>
+      </Modal>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}

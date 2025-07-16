@@ -69,7 +69,7 @@ export default function EliminarUsuario() {
       flexDirection="column"
       gap={2}
     >
-      <Typography variant="h6">Ingresa Datos del Usuario.</Typography>
+      <Typography variant="h5">Ingresa Datos del Usuario.</Typography>
       <TextField
         label="email"
         type="email"
@@ -78,24 +78,8 @@ export default function EliminarUsuario() {
         fullWidth
         required
         size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "& fieldset": {
-              borderColor: "primary.main",
-            },
-            "&:hover fieldset": {
-              borderColor: "primary.light",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.dark",
-            },
-            "& input:-webkit-autofill": {
-              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-              WebkitTextFillColor: theme.palette.text.primary,
-            },
-          },
-        }}
       />
+
       <TextField
         label="Contraseña"
         type="password"
@@ -104,24 +88,8 @@ export default function EliminarUsuario() {
         fullWidth
         required
         size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            "& fieldset": {
-              borderColor: "primary.main",
-            },
-            "&:hover fieldset": {
-              borderColor: "primary.light",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "primary.dark",
-            },
-            "& input:-webkit-autofill": {
-              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-              WebkitTextFillColor: theme.palette.text.primary,
-            },
-          },
-        }}
       />
+      
       <Button variant="danger" onClick={handleDelete}>
         Eliminar Usuario
       </Button>

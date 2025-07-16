@@ -17,15 +17,11 @@ import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import LogoutIcon from "@mui/icons-material/Logout";
 
-
 export default function AdminForms() {
   const { logout } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:1024px)");
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const { name, genero, permisos } = useSelector((state) => state.user);
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -33,21 +29,15 @@ export default function AdminForms() {
     await logout();
   };
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
+ 
   const buttonStyle = {
     width: {
-      xs: "100%", 
-      sm: 240, 
+      xs: "100%",
+      sm: 240,
     },
     height: {
-      xs: 180, 
-      sm: 150, 
+      xs: 180,
+      sm: 150,
     },
     display: "flex",
     flexDirection: "column",
@@ -61,22 +51,25 @@ export default function AdminForms() {
     textAlign: "center",
     // border: "2px solid red",
   };
-  
-  
+
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
-        p: 2,
+        pt: isFullScreen ? { xs: 2, sm: 2 } : 10,
+        pb: isFullScreen ? { xs: 9, sm: 9.8 } : 1,
+        pl: 2,
+        pr: 2,
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ pb: 4,
+        //  border: "2px solid red" 
+         }}>
         <Typography
           variant="h4"
           sx={{
@@ -94,7 +87,6 @@ export default function AdminForms() {
           display: "flex",
           justifyContent: "center",
           // border: "2px solid red",
-          p: 0,
         }}
       >
         <Grid
@@ -124,6 +116,7 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
           <Grid
             item
             xs={6}
@@ -146,6 +139,7 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
           <Grid
             item
             xs={6}
@@ -168,6 +162,7 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
           <Grid
             item
             xs={6}
@@ -190,6 +185,7 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
           <Grid
             item
             xs={6}
@@ -212,6 +208,7 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
           <Grid
             item
             xs={6}
@@ -237,7 +234,9 @@ export default function AdminForms() {
         </Grid>
       </Box>
 
-      <Box sx={{ mt: 4, mb: 2 }}>
+      <Box sx={{ pt: 4, pb: 2,
+        //  border: "2px solid red"
+          }}>
         <Grid container justifyContent="center">
           <Grid item xs={12} sm={5} md={4}>
             <Button
@@ -254,9 +253,3 @@ export default function AdminForms() {
     </Box>
   );
 }
-
-
-
-
-
-

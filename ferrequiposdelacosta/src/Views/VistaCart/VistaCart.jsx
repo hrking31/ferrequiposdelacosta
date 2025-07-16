@@ -628,7 +628,17 @@ export default function VistaCart() {
               </Typography>
 
               {items.map((item) => (
-                <Typography variant="body2" key={item.id} sx={{ pl: 2 }}>
+                <Typography
+                  variant="body2"
+                  key={item.id}
+                  sx={{
+                    pl: 2,
+                    fontSize: {
+                      xs: "1rem",
+                      sm: theme.typography.body2.fontSize,
+                    },
+                  }}
+                >
                   {item.quantity} _ {item.name}
                 </Typography>
               ))}
@@ -659,28 +669,63 @@ export default function VistaCart() {
               spacing={1}
               justifyContent="center"
               maxWidth="600px"
-              // m="0 auto"
               // border="1px solid #ccc"
             >
               <Grid item xs={6}>
                 <FormControlLabel
                   value="ida"
                   control={<Radio />}
-                  label={<Typography variant="body2">Solo ida</Typography>}
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: {
+                          xs: "1rem",
+                          sm: theme.typography.body2.fontSize,
+                        },
+                      }}
+                    >
+                      Solo ida
+                    </Typography>
+                  }
                 />
               </Grid>
               <Grid item xs={6}>
                 <FormControlLabel
                   value="vuelta"
                   control={<Radio />}
-                  label={<Typography variant="body2">Solo vuelta</Typography>}
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: {
+                          xs: "1rem",
+                          sm: theme.typography.body2.fontSize,
+                        },
+                      }}
+                    >
+                      Solo vuelta
+                    </Typography>
+                  }
                 />
               </Grid>
               <Grid item xs={6}>
                 <FormControlLabel
                   value="idaVuelta"
                   control={<Radio />}
-                  label={<Typography variant="body2">Ida y vuelta</Typography>}
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: {
+                          xs: "1rem",
+                          sm: theme.typography.body2.fontSize,
+                        },
+                      }}
+                    >
+                      Ida y vuelta
+                    </Typography>
+                  }
                 />
               </Grid>
               <Grid item xs={6}>
@@ -688,7 +733,17 @@ export default function VistaCart() {
                   value="no"
                   control={<Radio />}
                   label={
-                    <Typography variant="body2">Sin transporte</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: {
+                          xs: "1rem",
+                          sm: theme.typography.body2.fontSize,
+                        },
+                      }}
+                    >
+                      Sin transporte
+                    </Typography>
                   }
                 />
               </Grid>
@@ -725,6 +780,8 @@ export default function VistaCart() {
           </Typography>
 
           <TextField
+            type="number"
+            inputProps={{ min: 1 }}
             value={selectedItemsModal?.days || ""}
             onChange={(e) =>
               setSelectedItemsModal({
@@ -737,7 +794,7 @@ export default function VistaCart() {
             sx={{ mb: 2 }}
           />
           <Button
-            variant="contained"
+            variant="success"
             onClick={() =>
               handleDaysChange(
                 selectedItemsModal?.id,
@@ -750,6 +807,7 @@ export default function VistaCart() {
           </Button>
         </Box>
       </Modal>
+
       <Modal open={openQuantity} onClose={handleCloseQuantity}>
         <Box
           sx={{
@@ -767,6 +825,8 @@ export default function VistaCart() {
           </Typography>
 
           <TextField
+            type="number"
+            inputProps={{ min: 1 }}
             value={selectedItemsModal?.quantity || ""}
             onChange={(e) =>
               setSelectedItemsModal({
@@ -779,7 +839,7 @@ export default function VistaCart() {
             sx={{ mb: 2 }}
           />
           <Button
-            variant="contained"
+            variant="success"
             onClick={() =>
               handleQtyChange(
                 selectedItemsModal?.id,

@@ -37,10 +37,7 @@ const VistaSeleccionarEquipo = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState("info");
 
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
+  const isFullScreen = useMediaQuery("(max-width:915px)");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -102,22 +99,16 @@ const VistaSeleccionarEquipo = () => {
     }
   }, [error, equipos, loading, hasSearched]);
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        p: 2,
+        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
+        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
+        pl: { xs: 1, sm: 1.5 },
+        pr: { xs: 1, sm: 1.5 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
@@ -134,6 +125,7 @@ const VistaSeleccionarEquipo = () => {
         flexDirection="column"
         sx={{
           [theme.breakpoints.up("md")]: { width: "60%" },
+          // border: "2px solid red",
         }}
       >
         <Grid container spacing={2}>

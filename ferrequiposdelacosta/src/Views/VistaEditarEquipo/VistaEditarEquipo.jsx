@@ -15,10 +15,7 @@ const VistaEditarEquipo = () => {
   const { logout } = useAuth();
   const { name, genero } = useSelector((state) => state.user);
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery("(max-width:600px)");
-  const isMediumScreen = useMediaQuery(
-    "(min-width:601px) and (max-width:915px)"
-  );
+   const isFullScreen = useMediaQuery("(max-width:915px)");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -26,22 +23,16 @@ const VistaEditarEquipo = () => {
     await logout();
   };
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 56;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   return (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        p: 2,
+        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
+        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
+        pl: { xs: 1, sm: 1.5 },
+        pr: { xs: 1, sm: 1.5 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
