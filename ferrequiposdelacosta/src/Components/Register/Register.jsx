@@ -149,6 +149,7 @@ export default function Register() {
       flexDirection="column"
       gap={2}
     >
+
       <Typography variant="h5" align="center" gutterBottom>
         Registro
       </Typography>
@@ -160,7 +161,6 @@ export default function Register() {
         value={user.name}
         onChange={handleChange}
         fullWidth
-        size="small"
       />
       
       <FormControl fullWidth>
@@ -171,17 +171,20 @@ export default function Register() {
           name="genero"
           value={generoSeleccionado || ""}
           onChange={(e) => setGeneroSeleccionado(e.target.value)}
-          size="small"
         >
+
           <MenuItem value="" disabled>
             Selecciona un Género
           </MenuItem>
+
           <MenuItem value="femenino">
             <Box component="span">Femenino</Box>
           </MenuItem>
+
           <MenuItem value="masculino">
             <Box component="span">Masculino</Box>
           </MenuItem>
+
         </Select>
       </FormControl>
 
@@ -192,7 +195,6 @@ export default function Register() {
         value={user.email}
         onChange={handleChange}
         fullWidth
-        size="small"
       />
 
       <TextField
@@ -202,7 +204,6 @@ export default function Register() {
         value={user.password}
         onChange={handleChange}
         fullWidth
-        size="small"
         InputProps={{
           style: { color: theme.palette.text.primary },
           endAdornment: (
@@ -225,11 +226,11 @@ export default function Register() {
           value={roleSeleccionado || ""}
           onChange={(e) => setRoleSeleccionado(e.target.value)}
           label="Rol"
-          size="small"
         >
           <MenuItem value="" disabled>
             Selecciona un Rol
           </MenuItem>
+
           <MenuItem value="administrador">
             <Tooltip title="Acceso Total" placement="right">
               <Box component="span">Administrador</Box>
@@ -253,6 +254,7 @@ export default function Register() {
               <Box component="span">Gestor Integral</Box>
             </Tooltip>
           </MenuItem>
+          
         </Select>
       </FormControl>
 

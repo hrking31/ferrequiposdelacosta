@@ -73,9 +73,10 @@ export default function CuentaCobro() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Typography variant="h4" color="text.primary">
+        <Typography variant="h5" color="text.primary">
           Formulario Cuenta de Cobro
         </Typography>
+
         <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
           <Grid item xs={7} sm={6}>
             <TextField
@@ -85,37 +86,17 @@ export default function CuentaCobro() {
               label="Fecha"
               value={formValues.fecha}
               onChange={handlerInputChange}
-              size="small"
               InputLabelProps={{
                 shrink: true,
-                sx: {
-                  color: "#8B3A3A",
-                },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A",
-                },
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
+                  color: theme.palette.mode === "light" ? "#1A1A1A" : "#A0AEC0",
                 },
               }}
             />
           </Grid>
+
           <Grid item xs={5} sm={6}>
             <TextField
               fullWidth
@@ -124,26 +105,9 @@ export default function CuentaCobro() {
               label="NIT"
               value={formatNit(formValues.nit)}
               onChange={handlerInputChange}
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -152,24 +116,6 @@ export default function CuentaCobro() {
               label="Empresa"
               value={formValues.empresa}
               onChange={handlerInputChange}
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
 
@@ -181,52 +127,17 @@ export default function CuentaCobro() {
               label="Obra"
               value={formValues.obra}
               onChange={handlerInputChange}
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
+
           <Grid item xs={12}>
             <TextField
               fullWidth
               type="text"
               name="concepto"
-              label="Por Concepto De"
+              label="Por concepto de"
               value={formValues.concepto}
               onChange={handlerInputChange}
-              size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
         </Grid>
@@ -250,47 +161,16 @@ export default function CuentaCobro() {
                 <TextField
                   fullWidth
                   multiline
-                  rows={2}
                   type="text"
+                  rows={2}
                   label="Descripción"
                   value={item.description || ""}
                   onChange={(e) =>
                     updateItem(index, "description", e.target.value)
                   }
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: {
-                      display: "flex",
-                      height: "100%",
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  InputProps={{
-                    sx: {
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  margin="normal"
-                  sx={{
-                    mt: 1,
-                    fontSize: "0.75rem",
-                    "& .MuiInputBase-input": {
-                      padding: "6px 12px",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "#00008B",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#4682B4",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#1E90FF",
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -300,41 +180,9 @@ export default function CuentaCobro() {
                   onChange={(e) =>
                     updateItem(index, "quantity", e.target.value)
                   }
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: {
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  InputProps={{
-                    sx: {
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  margin="normal"
-                  sx={{
-                    mt: 1,
-                    fontSize: "0.75rem",
-                    "& .MuiInputBase-input": {
-                      padding: "6px 12px",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "#00008B",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#4682B4",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#1E90FF",
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -342,41 +190,9 @@ export default function CuentaCobro() {
                   label="Dias"
                   value={item.day !== 0 ? item.day : ""}
                   onChange={(e) => updateItem(index, "day", e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: {
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  InputProps={{
-                    sx: {
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  margin="normal"
-                  sx={{
-                    mt: 1,
-                    fontSize: "0.75rem",
-                    "& .MuiInputBase-input": {
-                      padding: "6px 12px",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "#00008B",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#4682B4",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#1E90FF",
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -384,44 +200,13 @@ export default function CuentaCobro() {
                   label="Precio"
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: {
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  InputProps={{
-                    sx: {
-                      color: "#8B3A3A",
-                    },
-                  }}
-                  margin="normal"
-                  sx={{
-                    mt: 1,
-                    fontSize: "0.75rem",
-                    "& .MuiInputBase-input": {
-                      padding: "6px 12px",
-                    },
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "#00008B",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "#4682B4",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#1E90FF",
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={6} md={6}>
-                <Typography>Subtotal: {item.subtotal}</Typography>
+                <Typography variant="h5">Subtotal: {item.subtotal}</Typography>
               </Grid>
+
               <Grid item xs={6} md={6}>
                 <Button
                   variant="danger"
@@ -441,10 +226,9 @@ export default function CuentaCobro() {
               Agregar Ítem
             </Button>
           </Grid>
+
           <Grid item xs={6}>
-            <Typography variant="h5" gutterBottom>
-              Total: {total}
-            </Typography>
+            <Typography variant="h5">Total: {total}</Typography>
           </Grid>
         </Grid>
       </Box>

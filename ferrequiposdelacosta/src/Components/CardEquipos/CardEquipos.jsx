@@ -6,10 +6,11 @@ import {
   Grid,
   Typography,
   Box,
+  useTheme,
 } from "@mui/material";
 
 export default function CardEquipos({ name, url, id }) {
-
+  const theme = useTheme();
 
   return (
     <Grid item xs={12}>
@@ -42,15 +43,16 @@ export default function CardEquipos({ name, url, id }) {
               sx={{
                 display: "flex",
                 height: { xs: 55, sm: 50, md: 70 },
-                alignItems: "center", 
+                alignItems: "center",
                 justifyContent: "center",
                 // border: "2px solid #000",
               }}
             >
               <Typography
-                variant="h6"
+                variant="body1"
                 title={name}
                 sx={{
+                  color: theme.palette.custom.primary,
                   display: "-webkit-box",
                   WebkitBoxOrient: "vertical",
                   WebkitLineClamp: 3,

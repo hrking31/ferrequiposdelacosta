@@ -39,9 +39,11 @@ const VistaEliminaEquipo = () => {
       }}
     >
       <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography variant="h4" color="text.primary">
+
+        <Typography variant="h5">
           {saludo} {name}.
         </Typography>
+
         <EliminarEquipos />
       </Box>
 
@@ -57,6 +59,7 @@ const VistaEliminaEquipo = () => {
               SELECCIONA OTRO EQUIPO
             </Button>
           </Grid>
+          
           <Grid item xs={12} sm={6} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

@@ -5,9 +5,11 @@ import {
   Grid,
   Typography,
   Box,
+  useTheme,
 } from "@mui/material";
 
 export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
+  const theme = useTheme();
   const { name, images } = equipo;
   const PrimeraUrl = images?.[0]?.url || "";
 
@@ -34,14 +36,15 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
               },
             }}
           />
+
           <Box p={2}>
             <Typography
-              variant="cardTitle"
+              variant="body1"
+              title={name}
               sx={{
                 fontWeight: isSelected ? 700 : undefined,
-                color: isSelected ? "#669BBC" : undefined,
+                color: isSelected ? "#669BBC" : theme.palette.custom.primary,
               }}
-              title={name}
             >
               {name}
             </Typography>
@@ -51,4 +54,3 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
     </Grid>
   );
 }
-

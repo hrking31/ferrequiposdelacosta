@@ -41,6 +41,7 @@ export default function VistaEliminarUsuario() {
       <Box sx={{ flexGrow: 1, p: 2,
         //  border: "2px solid red"
           }}>
+
         <Typography variant="h5">
           {saludo} {name}.
         </Typography>
@@ -55,6 +56,7 @@ export default function VistaEliminarUsuario() {
       <Box sx={{ p: 2,
         //  border: "2px solid red" 
          }}>
+
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={6} md={4}>
             <Button
@@ -66,6 +68,7 @@ export default function VistaEliminarUsuario() {
               MENU
             </Button>
           </Grid>
+          
           <Grid item xs={12} sm={6} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

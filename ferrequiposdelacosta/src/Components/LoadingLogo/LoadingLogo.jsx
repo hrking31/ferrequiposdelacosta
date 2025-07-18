@@ -13,6 +13,7 @@ const LoadingLogo = ({ height = "80vh" }) => {
       height={height}
       margin="0 auto"
     >
+      
       <Box mb={1}>
         <RotatingImage
           src={LogoFerrequipos}
@@ -20,6 +21,7 @@ const LoadingLogo = ({ height = "80vh" }) => {
           style={{ width: "100px", height: "100px", marginBottom: "2px" }}
         />
       </Box>
+
       <Typography variant="h5" mt={0.5}>
         Cargando...
       </Typography>

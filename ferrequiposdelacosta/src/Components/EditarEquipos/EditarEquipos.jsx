@@ -328,26 +328,9 @@ const EditarEquipo = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 fullWidth
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
               />
             </Grid>
+
             <Grid item xs={6}>
               <Button
                 variant="contained"
@@ -363,6 +346,7 @@ const EditarEquipo = () => {
                 Editar Nombre
               </Button>
             </Grid>
+
             <Grid item xs={6}>
               <Button
                 variant="danger"
@@ -373,6 +357,7 @@ const EditarEquipo = () => {
                 Cancelar Edicion
               </Button>
             </Grid>
+
             <Grid
               item
               xs={12}
@@ -386,28 +371,11 @@ const EditarEquipo = () => {
                 value={formData.description}
                 onChange={handleInputChange}
                 fullWidth
-                size="small"
                 multiline
                 rows={4}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
               />
             </Grid>
+
             <Grid item xs={6}>
               <Button
                 variant="contained"
@@ -423,6 +391,7 @@ const EditarEquipo = () => {
                 Editar Descripción
               </Button>
             </Grid>
+
             <Grid item xs={6}>
               <Button
                 variant="danger"
@@ -434,6 +403,7 @@ const EditarEquipo = () => {
               </Button>
             </Grid>
           </Grid>
+
           <Divider
             sx={{
               width: "100%",
@@ -442,6 +412,7 @@ const EditarEquipo = () => {
               borderBottomWidth: "2.5px",
             }}
           />
+
           <Grid container spacing={2} sx={{ mt: 2, mb: 1 }}>
             {formData.images && formData.images.length > 0
               ? formData.images.map((image, index) => (
@@ -465,12 +436,12 @@ const EditarEquipo = () => {
                           alignItems: "center",
                         }}
                       >
-                        <Typography sx={{ color: "#00008B" }}>
-                          {image.name}
-                        </Typography>
-                        <Typography sx={{ color: "#00008B", marginBottom: 2 }}>
+                        <Typography variant="body2">{image.name}</Typography>
+
+                        <Typography variant="body2" sx={{ mb: 2 }}>
                           Posición: {index}
                         </Typography>
+
                         <TextField
                           label="Nueva Posición"
                           type="number"
@@ -482,27 +453,9 @@ const EditarEquipo = () => {
                               [index]: Number(e.target.value),
                             })
                           }
-                          size="small"
                           inputProps={{
                             min: 0,
                             max: formData.images.length - 1,
-                          }}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              "& fieldset": {
-                                borderColor: "primary.main",
-                              },
-                              "&:hover fieldset": {
-                                borderColor: "primary.light",
-                              },
-                              "&.Mui-focused fieldset": {
-                                borderColor: "primary.dark",
-                              },
-                              "& input:-webkit-autofill": {
-                                boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                                WebkitTextFillColor: theme.palette.text.primary,
-                              },
-                            },
                           }}
                         />
 
@@ -522,6 +475,7 @@ const EditarEquipo = () => {
                               Editar Imagen {index + 1}
                             </Button>
                           </Box>
+                          
                         ) : (
                           <>
                             {editingNameIndex !== index ? (
@@ -543,6 +497,7 @@ const EditarEquipo = () => {
                                   }}
                                   style={{ display: "none" }}
                                 />
+
                                 <Box sx={{ width: "100%", mt: 2 }}>
                                   <Button
                                     variant="contained"
@@ -553,6 +508,7 @@ const EditarEquipo = () => {
                                   </Button>
                                 </Box>
                               </label>
+
                             ) : (
                               <>
                                 <TextField
@@ -562,29 +518,13 @@ const EditarEquipo = () => {
                                   onChange={(e) =>
                                     handleChangeImageName(index, e.target.value)
                                   }
-                                  size="small"
                                   sx={{
-                                    "& .MuiOutlinedInput-root": {
-                                      "& fieldset": {
-                                        borderColor: "primary.main",
-                                      },
-                                      "&:hover fieldset": {
-                                        borderColor: "primary.light",
-                                      },
-                                      "&.Mui-focused fieldset": {
-                                        borderColor: "primary.dark",
-                                      },
-                                      "& input:-webkit-autofill": {
-                                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                                        WebkitTextFillColor:
-                                          theme.palette.text.primary,
-                                      },
-                                    },
                                     mt: 2,
                                   }}
                                 />
                               </>
                             )}
+
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
                                 variant="danger"
@@ -595,6 +535,7 @@ const EditarEquipo = () => {
                                 Eliminar Imagen
                               </Button>
                             </Box>
+                            
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
                                 variant="danger"
@@ -643,6 +584,7 @@ const EditarEquipo = () => {
                 ))
               : null}
           </Grid>
+
           <Divider
             sx={{
               width: "100%",
@@ -651,6 +593,7 @@ const EditarEquipo = () => {
               borderBottomWidth: "2.5px",
             }}
           />
+
           <Box
             mx="auto"
             display="flex"
@@ -667,12 +610,14 @@ const EditarEquipo = () => {
                   onChange={(e) => handleInputNewImg(e.target.files)}
                   style={{ display: "none" }}
                 />
+
                 <Box sx={{ textAlign: "center", mt: 4 }}>
                   <Button variant="contained" component="span" fullWidth>
                     Selecciona Nueva Imagen
                   </Button>
                 </Box>
               </label>
+
             ) : (
               <Box
                 sx={{
@@ -687,6 +632,7 @@ const EditarEquipo = () => {
                   gap: 2,
                 }}
               >
+
                 <img
                   src={nuevaImagenTemporal.url}
                   alt="preview"
@@ -695,30 +641,14 @@ const EditarEquipo = () => {
                     height: "100px",
                   }}
                 />
+
                 <TextField
                   label="Nombre de la imagen"
                   value={nombreTemporal}
                   onChange={(e) => setNombreTemporal(e.target.value)}
                   fullWidth
-                  size="small"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "primary.light",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "primary.dark",
-                      },
-                      "& input:-webkit-autofill": {
-                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                        WebkitTextFillColor: theme.palette.text.primary,
-                      },
-                    },
-                  }}
                 />
+
                 <Box sx={{ width: "100%", mt: 2 }}>
                   <Button
                     variant="success"
@@ -728,6 +658,7 @@ const EditarEquipo = () => {
                     Guardar Nueva Imagen
                   </Button>
                 </Box>
+
                 <Box sx={{ width: "100%", mt: 2 }}>
                   <Button
                     variant="danger"
@@ -743,6 +674,7 @@ const EditarEquipo = () => {
               </Box>
             )}
           </Box>
+
           <Divider
             sx={{
               width: "100%",
@@ -751,12 +683,14 @@ const EditarEquipo = () => {
               borderBottomWidth: "2.5px",
             }}
           />
+
           <Grid container spacing={2} sx={{ mt: 2, p: 1 }}>
             <Grid item xs={12} md={4}>
               <Button variant="success" onClick={cambiarOrden} fullWidth>
                 Aplicar Orden
               </Button>
             </Grid>
+
             <Grid item xs={12} md={4}>
               <Button
                 variant="success"
@@ -768,6 +702,7 @@ const EditarEquipo = () => {
                 Guardar Equipo
               </Button>
             </Grid>
+
             <Grid item xs={12} md={4}>
               <Button
                 variant="danger"
@@ -788,6 +723,7 @@ const EditarEquipo = () => {
             </Grid>
           </Grid>
         </Grid>
+        
         <Snackbar
           open={openSnackbar}
           autoHideDuration={4000}

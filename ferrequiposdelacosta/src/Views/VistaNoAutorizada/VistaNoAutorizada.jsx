@@ -9,12 +9,14 @@ const VistaNoAutorizada = () => {
       maxWidth="sm"
       style={{ textAlign: "center", marginTop: "100px" }}
     >
-      <Typography variant="h4" color="error" gutterBottom>
+      <Typography variant="h1" color="error" gutterBottom>
         Acceso denegado
       </Typography>
+      
       <Typography variant="body1" gutterBottom>
         No tienes permiso para ver esta página.
       </Typography>
+
       <Button variant="danger" onClick={() => navigate("/")}>
         Volver al inicio
       </Button>

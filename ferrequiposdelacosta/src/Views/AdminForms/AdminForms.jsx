@@ -71,7 +71,7 @@ export default function AdminForms() {
         //  border: "2px solid red" 
          }}>
         <Typography
-          variant="h4"
+          variant="h5"
           sx={{
             color: theme.palette.text.secondary,
           }}

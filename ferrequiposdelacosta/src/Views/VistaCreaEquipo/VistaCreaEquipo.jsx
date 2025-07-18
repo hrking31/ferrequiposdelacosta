@@ -25,13 +25,13 @@ export default function VistaCreaEquipo() {
   const { name, genero } = useSelector((state) => state.user);
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
+  const theme = useTheme();
+  const isFullScreen = useMediaQuery("(max-width:915px)"); 
+  const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
+  
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  const theme = useTheme();
-   const isFullScreen = useMediaQuery("(max-width:915px)");
-
-  const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -147,7 +147,7 @@ export default function VistaCreaEquipo() {
           // border: "2px solid red",
         }}
       >
-        <Typography variant="h4" color="text.primary">
+        <Typography variant="h5" color="text.primary">
           {saludo} {name}.
         </Typography>
 
@@ -169,25 +169,8 @@ export default function VistaCreaEquipo() {
                 value={formValues.name}
                 onChange={handlerInputChange}
                 fullWidth
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
               />
+
               <TextField
                 name="description"
                 label="Descripción del equipo"
@@ -197,24 +180,8 @@ export default function VistaCreaEquipo() {
                 multiline
                 rows={4}
                 margin="normal"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "primary.main",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "primary.light",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "primary.dark",
-                    },
-                    "& input:-webkit-autofill": {
-                      boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                      WebkitTextFillColor: theme.palette.text.primary,
-                    },
-                  },
-                }}
               />
+
               {images &&
                 images.map((img, index) => (
                   <Box
@@ -252,27 +219,11 @@ export default function VistaCreaEquipo() {
                         onChange={(e) =>
                           handleNameChange(index, e.target.value)
                         }
-                        size="small"
                         sx={{
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": {
-                              borderColor: "primary.main",
-                            },
-                            "&:hover fieldset": {
-                              borderColor: "primary.light",
-                            },
-                            "&.Mui-focused fieldset": {
-                              borderColor: "primary.dark",
-                            },
-                            "& input:-webkit-autofill": {
-                              boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                              WebkitTextFillColor: theme.palette.text.primary,
-                            },
-                          },
                           marginRight: 1.5,
-                          flexGrow: 1,
                         }}
                       />
+
                       <Button
                         variant="contained"
                         color="error"
@@ -293,7 +244,7 @@ export default function VistaCreaEquipo() {
                 <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
                   <Grid container spacing={2} justifyContent="center">
                     <Button
-                      variant="upload"
+                      variant="contained"
                       component="span"
                       fullWidth
                       sx={{
@@ -369,12 +320,30 @@ export default function VistaCreaEquipo() {
         open={openSnackbar}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            position: "fixed",
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1300,
+          },
+        }}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbarSeverity}
-          sx={{ width: "100%" }}
+          variant="filled"
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbarSeverity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbarSeverity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
         >
           {snackbarMessage}
         </Alert>

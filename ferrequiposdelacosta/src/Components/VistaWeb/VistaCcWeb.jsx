@@ -1,6 +1,13 @@
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
-import { Container, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Box,
+  Grid,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 
 export default function VistaCcWeb() {
   const formValues = useSelector((state) => state.cuentacobro);
@@ -8,7 +15,7 @@ export default function VistaCcWeb() {
   const total = useSelector((state) => state.cuentacobro.value.total);
 
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <Container
@@ -21,112 +28,207 @@ export default function VistaCcWeb() {
         margin: "0 auto",
       }}
     >
-      <Box
+      <Grid
+        container
+        spacing={1}
+        direction={isSmallScreen ? "row" : "row"}
+        alignItems="center"
+        justifyContent="center"
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '20px',
-          flexDirection: isSmallScreen ? 'column' : 'row',
+          marginBottom: "20px",
+          textAlign: isSmallScreen ? "left" : "center",
         }}
       >
-        <img
-          src={LogoFerrequipos}
-          alt="Logo"
-          style={{ width: isSmallScreen ? "80px" : "100px", marginRight: isSmallScreen ? "0" : "20px" }}
-        />
-        <Box
-          sx={{
-            textAlign: isSmallScreen ? "center" : "left",
-          }}
-        >
+        <Grid item>
+          <img
+            src={LogoFerrequipos}
+            alt="Logo"
+            style={{
+              width: isSmallScreen ? "60px" : "100px",
+              height: "auto",
+            }}
+          />
+        </Grid>
+
+        <Grid item>
           <Typography
             variant="h5"
-            color="primary"
-            sx={{ fontSize: isSmallScreen ? "16px" : "18px" }}
+            component="div"
+            sx={{
+              color: "blue",
+              textAlign: "center",
+              lineHeight: "1.2",
+            }}
           >
             FERREQUIPOS DE LA COSTA
           </Typography>
+
           <Typography
-            variant="body1"
+            variant="subtitle2"
+            component="div"
             sx={{
-              fontSize: isSmallScreen ? "12px" : "14px",
               color: "red",
-              margin: "10px 0",
+              textAlign: "center",
             }}
           >
             Alquiler de equipos para la construcción
             <br />
             Nit: 22.736.950 - 1
           </Typography>
-        </Box>
-      </Box>
+        </Grid>
+      </Grid>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         Barranquilla, {formValues.value.fecha}
       </Typography>
 
-      <Typography variant="h6" sx={{ fontSize: isSmallScreen ? "18px" : "20px", fontWeight: "bold", textAlign: "center", margin: "20px 0" }}>
+      <Typography
+        variant="h5"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          textAlign: "center",
+          m: "20px",
+        }}
+      >
         CUENTA DE COBRO
       </Typography>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         {formValues.value.empresa}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         Nit: {formValues.value.nit}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         Obra: {formValues.value.obra}
       </Typography>
 
-      <Typography variant="h6" sx={{ fontSize: isSmallScreen ? "18px" : "20px", fontWeight: "bold", textAlign: "center", margin: "20px 0" }}>
+      <Typography
+        variant="h5"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          textAlign: "center",
+          m: "20px",
+        }}
+      >
         DEBE A
       </Typography>
 
-      <Typography variant="h6" sx={{ fontSize: isSmallScreen ? "18px" : "20px", fontWeight: "bold", textAlign: "center", margin: "20px 0" }}>
+      <Typography
+        variant="h5"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          textAlign: "center",
+          m: "20px ",
+        }}
+      >
         FERREQUIPOS DE LA COSTA
       </Typography>
 
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         LA SUMA DE: {formValues.value.total}
       </Typography>
-      <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", marginBottom: "10px", textAlign: "center" }}>
+
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
         POR CONCEPTO DE: {formValues.value.concepto}
       </Typography>
 
       {items.map((item, index) => (
-        <Box key={index} sx={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #ccc", padding: "5px 0" }}>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              fontSize: isSmallScreen ? "12px" : "14px", 
-              flex: 2,
+        <Box
+          key={index}
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            borderBottom: "1px solid #ccc",
+            padding: "5px 0",
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{
               wordBreak: "break-word",
-              whiteSpace: "normal"
+              whiteSpace: "normal",
             }}
           >
             {item.description}
           </Typography>
-          <Typography variant="body1" sx={{ fontSize: isSmallScreen ? "12px" : "14px", flex: 1, textAlign: "right" }}>
-            {item.subtotal}
-          </Typography>
+
+          <Typography variant="subtitle1">{item.subtotal}</Typography>
         </Box>
       ))}
-      
-      <Typography variant="h5" sx={{ fontSize: isSmallScreen ? "16px" : "18px", fontWeight: "bold", textAlign: "right", marginTop: "20px" }}>
+
+      <Typography
+        variant="subtitle1"
+        sx={{
+          textAlign: "right",
+          mt: "20px",
+        }}
+      >
         Total a Cancelar: {total}
       </Typography>
 
-      <Typography variant="body2" sx={{ fontSize: isSmallScreen ? "10px" : "12px", color: "blue", textAlign: "center", marginTop: "20px" }}>
-        Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
-        <br />
-        Ferrequipos07@hotmail.com
-        <br />
-        Ferrequiposdelacosta.com
-        <br />
-        BARRANQUILLA - COLOMBIA
-      </Typography>
+      <Box sx={{ mt: "40px", textAlign: "center" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontSize: isSmallScreen ? "0.625rem" : "0.75rem",
+            color: "blue",
+            lineHeight: "1.2",
+          }}
+        >
+          Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
+          <br />
+          Ferrequipos07@hotmail.com
+          <br />
+          Ferrequiposdelacosta.com
+          <br />
+          BARRANQUILLA - COLOMBIA
+        </Typography>
+      </Box>
     </Container>
   );
 }
-

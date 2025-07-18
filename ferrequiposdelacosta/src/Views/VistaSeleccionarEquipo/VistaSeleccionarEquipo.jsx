@@ -114,7 +114,7 @@ const VistaSeleccionarEquipo = () => {
         // border: "2px solid red",
       }}
     >
-      <Typography variant="h4" color="text.primary">
+      <Typography variant="h5" color="text.primary">
         {saludo} {name}, Busca el equipo por su nombre.
       </Typography>
 
@@ -200,13 +200,36 @@ const VistaSeleccionarEquipo = () => {
           </Grid>
         </Grid>
       </Box>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            position: "fixed",
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1300,
+          },
+        }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbarSeverity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbarSeverity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>

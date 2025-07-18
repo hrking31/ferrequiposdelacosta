@@ -82,8 +82,9 @@ const AnimatedBox = forwardRef(function AnimatedBox(
           >
             <CloseIcon />
           </IconButton>
+          
           <Typography
-            variant="h6"
+            variant="h5"
             sx={{
               textAlign: "center",
                p: 2,

@@ -39,9 +39,10 @@ const VistaEditarEquipo = () => {
       }}
     >
       <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography variant="h4" color="text.primary">
+        <Typography variant="h5" color="text.primary">
           {saludo} {name}, Vas a editar el equipo?
         </Typography>
+
         <EditarEquipos />
       </Box>
 
@@ -57,6 +58,7 @@ const VistaEditarEquipo = () => {
               SELECCIONA OTRO EQUIPO
             </Button>
           </Grid>
+          
           <Grid item xs={12} sm={6} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

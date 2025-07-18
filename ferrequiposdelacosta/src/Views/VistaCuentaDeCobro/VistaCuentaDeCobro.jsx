@@ -70,6 +70,7 @@ export default function VistaCuentaDeCobro() {
               document={<VistaCcPdf values={values} />}
               fileName={`${values.value.empresa}.pdf`}
             >
+              
               {({ loading }) => (
                 <Button
                   variant="success"
@@ -81,6 +82,7 @@ export default function VistaCuentaDeCobro() {
               )}
             </PDFDownloadLink>
           </Grid>
+
           <Grid item xs={10} sm={4} md={4}>
             <Button variant="danger" onClick={clearForm} fullWidth>
               Cancelar

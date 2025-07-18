@@ -17,6 +17,7 @@ export default function CardsEquipos() {
         // border: "2px solid red",
       }}
     >
+      
       <Grid container spacing={1}>
         {loading ? (
           <LoadingLogo />

@@ -74,6 +74,11 @@ export const CustomThemeProvider = ({ children }) => {
           main: "#D64045",
           contrastText: "#FFFFFF",
         },
+        info: {
+          main: "#0288d1", 
+          contrastText: "#FFFFFF", 
+        },
+
         background: {
           default: mode === "light" ? "#F5F7FA" : "#313D4A",
           // paper: mode === "light" ? "#3A5169" : "#FF6B35",
@@ -83,96 +88,76 @@ export const CustomThemeProvider = ({ children }) => {
           primary: mode === "light" ? "#1A1A1A" : "#F7F7F7",
           secondary: mode === "light" ? "#5C6B73" : "#A0AEC0",
         },
+        custom: {
+          primary: mode === "light" ? "#F7F7F7" : "#FFD166",
+          secondary: mode === "light" ? "#3A5169" : "#FFD166",
+        },
       },
       typography: {
         fontFamily: '"Open Sans", "Roboto", "Arial", sans-serif',
+
         h1: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 700,
-          fontSize: "calc(2rem + 2vw)",
+          fontSize: "2.5rem",
           lineHeight: 1.2,
           letterSpacing: "-0.01562em",
-          // color: mode === "light" ? "#FFD166" : "#FFF",
-          color: mode === "light" ? "#FFF" : "#FFD166",
+          color: mode === "light" ? "#F7F7F7" : "#FFD166",
+
+          "@media (max-width:1200px)": {
+            fontSize: "2.5rem",
+          },
           "@media (max-width:900px)": {
-            fontSize: "calc(1.8rem + 1vw)",
+            fontSize: "2rem",
           },
           "@media (max-width:600px)": {
-            fontSize: "calc(1.5rem + 0.5vw)",
+            fontSize: "1.75rem",
             lineHeight: 1.3,
           },
+          "@media (max-width:400px)": {
+            fontSize: "1.5rem",
+            lineHeight: 1.35,
+          },
         },
+
         h2: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
-          fontSize: "calc(1.75rem + 1.5vw)",
+          fontSize: "2.25rem", // 36px base
           lineHeight: 1.3,
-          color: mode === "light" ? "#FFF" : "#FFD166",
-          "@media (max-width:900px)": {
-            fontSize: "calc(1.5rem + 1vw)",
-          },
-          "@media (max-width:600px)": {
-            fontSize: "calc(1.25rem + 0.5vw)",
-          },
-        },
-        h3: {
-          fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 600,
-          fontSize: "calc(1.5rem + 1vw)",
           color: mode === "light" ? "#F7F7F7" : "#FFD166",
-          "@media (max-width:900px)": {
-            fontSize: "calc(1.25rem + 0.75vw)",
-          },
-          "@media (max-width:600px)": {
-            fontSize: "1.25rem",
-          },
-        },
-        h4: {
-          fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 700,
-          fontSize: "calc(1.25rem + 0.5vw)",
-          color: mode === "light" ? "#F7F7F7" : "#FFD166",
+
           "@media (max-width:1200px)": {
-            fontSize: "1.2rem",
+            fontSize: "2rem", // 32px
           },
           "@media (max-width:900px)": {
-            fontSize: "1rem",
+            fontSize: "1.75rem", // 28px
           },
           "@media (max-width:600px)": {
-            fontSize: "0.95rem",
+            fontSize: "1.5rem", // 24px
           },
           "@media (max-width:400px)": {
-            fontSize: "0.9rem",
+            fontSize: "1.375rem", // 22px
           },
         },
+
         h5: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 600,
           fontSize: "1.2rem",
           color: mode === "light" ? "#3A5169" : "#FFD166",
-        },
-        h6: {
-          fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 600,
-          fontSize: "1rem",
-          lineHeight: 1.3,
-          color: mode === "light" ? "#FFF" : "#FFD166",
 
-          // Tablet
           "@media (max-width:1200px)": {
-            fontSize: "1rem",
+            fontSize: "1.1rem", // lg
           },
-          // Laptop pequeña
           "@media (max-width:900px)": {
-            fontSize: "0.95rem",
+            fontSize: "1rem", // md
           },
-          // Celulares grandes
           "@media (max-width:600px)": {
-            fontSize: "0.85rem",
+            fontSize: "0.95rem", // sm
           },
-          // Celulares pequeños
           "@media (max-width:400px)": {
-            fontSize: "0.7rem",
+            fontSize: "0.9rem", // xs
           },
         },
 
@@ -181,43 +166,81 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 600,
           fontSize: "1rem",
           color: mode === "light" ? "#3A5169" : "#A0AEC0",
-          // color: mode === "light" ? "#F7F7F7" : "#FFD166",
+
+          "@media (max-width:1200px)": {
+            fontSize: "0.95rem", // lg
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.925rem", // md
+          },
+          "@media (max-width:600px)": {
+            fontSize: "0.875rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.825rem", // xs
+          },
         },
+
         subtitle2: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
-          // color: mode === "light" ? "#3A5169" : "#A0AEC0",
-          color: mode === "light" ? "#F7F7F7" : "#FFD166",
-        },
-        subtitle3: {
-          fontFamily: '"Open Sans", sans-serif',
-          fontWeight: 200,
-          fontSize: "0.7rem",
-          // fontSize: "0.675rem",
-          lineHeight: 1.5,
-          color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
-          display: "block",
+          color: mode === "light" ? "#3A5169" : "#A0AEC0",
+
+          "@media (max-width:1200px)": {
+            fontSize: "0.85rem", // lg
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.825rem", // md
+          },
+          "@media (max-width:600px)": {
+            fontSize: "0.8rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.75rem", // xs
+          },
         },
 
         body1: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
-          fontSize: "1rem",
+          fontSize: "1rem", // >= md
           lineHeight: 1.5,
-          color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
+          color: mode === "light" ? "#1E2A3A" : "#F7F7F7",
+
+          "@media (max-width:1200px)": {
+            fontSize: "0.95rem", // lg
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.925rem", // md
+          },
           "@media (max-width:600px)": {
-            fontSize: "0.9rem",
+            fontSize: "0.875rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.8rem", // xs
           },
         },
 
         body2: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
-          // fontSize: "0.875rem",
-          fontSize: "0.675rem",
-          lineHeight: 1.5,
-          color: mode === "light" ? "#1A1A1A" : "#F7F7F7",
+          fontSize: "0.875rem",
+          lineHeight: 1.43,
+          color: mode === "light" ? "#1E2A3A" : "#F7F7F7",
+
+          "@media (max-width:1200px)": {
+            fontSize: "0.85rem", // lg
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.825rem", // md
+          },
+          "@media (max-width:600px)": {
+            fontSize: "0.8rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.75rem", // xs
+          },
         },
 
         button: {
@@ -274,11 +297,8 @@ export const CustomThemeProvider = ({ children }) => {
             root: ({ theme }) => ({
               backgroundColor:
                 theme.palette.mode === "light"
-                  ? // ? theme.palette.primary.main
-                    // : theme.palette.secondary.main,
-                    theme.palette.secondary.main
+                  ? theme.palette.secondary.main
                   : theme.palette.primary.main,
-              // color: mode === "light" ? "#FFD166" : "#FFF",
               color: mode === "light" ? "#F7F7F7" : "#FFD166",
             }),
           },
@@ -427,19 +447,37 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiInputLabel: {
           styleOverrides: {
+            // Estilos para la etiqueta flotante (label)
             root: ({ theme }) => ({
+              fontSize: "0.875rem", // Tamaño de fuente del label
+              fontWeight: 400, // Grosor del texto del label
               color:
                 theme.palette.mode === "light"
                   ? theme.palette.text.primary
                   : theme.palette.text.secondary,
 
               "&.Mui-focused": {
+                // Color del label cuando el input está enfocado
                 color:
                   theme.palette.mode === "light"
                     ? theme.palette.text.primary
                     : theme.palette.text.secondary,
               },
             }),
+          },
+        },
+
+        MuiInputBase: {
+          styleOverrides: {
+            // Estilo general de todos los inputs base (TextField, Select, etc.)
+            root: {
+              fontSize: "0.875rem", // Tamaño de fuente
+              fontWeight: 400, // Peso de la fuente
+            },
+            input: {
+              fontSize: "0.875rem", // Tamaño dentro del campo
+              fontWeight: 400, // Peso del texto
+            },
           },
         },
 
@@ -484,10 +522,7 @@ export const CustomThemeProvider = ({ children }) => {
             variantMapping: {
               h1: "h1",
               h2: "h2",
-              h3: "h3",
-              h4: "h4",
               h5: "h5",
-              h6: "h6",
               subtitle1: "p",
               subtitle2: "p",
               body1: "p",

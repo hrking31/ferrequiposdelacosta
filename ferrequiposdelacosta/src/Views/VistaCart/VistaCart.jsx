@@ -37,11 +37,10 @@ export default function VistaCart() {
   const cliente = useSelector((state) => state.cliente);
   const [tipoTransporte, setTipoTransporte] = useState("soloIda");
   const [selectedItems, setSelectedItems] = useState([]);
-  const [selectedItemsModal, setSelectedItemsModal] = useState([]);
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedItemsModal, setSelectedItemsModal] = useState(null);
   const [direccion, setDireccion] = useState(cliente.direccion);
   const [open, setOpen] = useState(false);
-  const [openDay, setOpenDay] = useState(false);
-  const [openQuantity, setOpenQuantity] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -51,19 +50,12 @@ export default function VistaCart() {
     setOpen(true);
   };
 
-  const handleOpenDay = (item) => {
+  const handleOpenModal = (item, type) => {
     setSelectedItemsModal(item);
-    setOpenDay(true);
-  };
-
-  const handleOpenQuantity = (item) => {
-    setSelectedItemsModal(item);
-    setOpenQuantity(true);
+    setActiveModal(type); 
   };
 
   const handleClose = () => setOpen(false);
-  const handleCloseDay = () => setOpenDay(false);
-  const handleCloseQuantity = () => setOpenQuantity(false);
 
   const handleGuardar = () => {
     dispatch(actualizarDireccion(direccion));
@@ -80,13 +72,11 @@ export default function VistaCart() {
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
     dispatch(updateQty({ id, quantity }));
-    setOpenQuantity(false);
   };
 
   const handleDaysChange = (id, days) => {
     if (days < 1) return;
     dispatch(updateDays({ id, days }));
-    setOpenDay(false);
   };
 
   const handleToggleSelect = (id) => {
@@ -381,7 +371,7 @@ export default function VistaCart() {
                       }}
                     >
                       <Typography
-                        variant="body1"
+                        variant="body2"
                         sx={{
                           mb: isFullScreen ? 0 : 1,
                         }}
@@ -427,7 +417,8 @@ export default function VistaCart() {
                         </Button>
 
                         <Typography
-                          onClick={() => handleOpenDay(item)}
+                          variant="body2"
+                          onClick={() => handleOpenModal(item, "days")}
                           sx={{
                             minWidth: 28,
                             textAlign: "center",
@@ -476,7 +467,7 @@ export default function VistaCart() {
                       }}
                     >
                       <Typography
-                        variant="body1"
+                        variant="body2"
                         sx={{
                           mb: isFullScreen ? 0 : 1,
                         }}
@@ -522,7 +513,8 @@ export default function VistaCart() {
                         </Button>
 
                         <Typography
-                          onClick={() => handleOpenQuantity(item)}
+                          variant="body2"
+                          onClick={() => handleOpenModal(item, "quantity")}
                           sx={{
                             minWidth: 28,
                             textAlign: "center",
@@ -607,7 +599,15 @@ export default function VistaCart() {
           // border: "2px solid red",
         }}
       >
-        <Typography variant="h3">Resumen del Pedido</Typography>
+        <Typography
+          variant="h5"
+          sx={{
+            color: theme.palette.custom.primary,
+          }}
+        >
+          Resumen del Pedido
+        </Typography>
+        
         <Box
           sx={{
             flex: 1,
@@ -634,8 +634,8 @@ export default function VistaCart() {
                   sx={{
                     pl: 2,
                     fontSize: {
-                      xs: "1rem",
-                      sm: theme.typography.body2.fontSize,
+                      md: "0.675rem",
+
                     },
                   }}
                 >
@@ -680,8 +680,7 @@ export default function VistaCart() {
                       variant="body2"
                       sx={{
                         fontSize: {
-                          xs: "1rem",
-                          sm: theme.typography.body2.fontSize,
+                          md: "0.675rem",
                         },
                       }}
                     >
@@ -699,8 +698,7 @@ export default function VistaCart() {
                       variant="body2"
                       sx={{
                         fontSize: {
-                          xs: "1rem",
-                          sm: theme.typography.body2.fontSize,
+                          md: "0.675rem",
                         },
                       }}
                     >
@@ -718,8 +716,7 @@ export default function VistaCart() {
                       variant="body2"
                       sx={{
                         fontSize: {
-                          xs: "1rem",
-                          sm: theme.typography.body2.fontSize,
+                          md: "0.675rem",
                         },
                       }}
                     >
@@ -737,8 +734,7 @@ export default function VistaCart() {
                       variant="body2"
                       sx={{
                         fontSize: {
-                          xs: "1rem",
-                          sm: theme.typography.body2.fontSize,
+                          md: "0.675rem",
                         },
                       }}
                     >
@@ -763,7 +759,7 @@ export default function VistaCart() {
         </Button>
       </Box>
 
-      <Modal open={openDay} onClose={handleCloseDay}>
+      <Modal open={Boolean(activeModal)} onClose={() => setActiveModal(null)}>
         <Box
           sx={{
             bgcolor: "background.paper",
@@ -776,77 +772,42 @@ export default function VistaCart() {
           }}
         >
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Editar dias
+            {activeModal === "days" ? "Editar días" : "Editar cantidad"}
           </Typography>
 
           <TextField
             type="number"
             inputProps={{ min: 1 }}
-            value={selectedItemsModal?.days || ""}
+            value={selectedItemsModal?.[activeModal] ?? ""}
             onChange={(e) =>
-              setSelectedItemsModal({
-                ...selectedItemsModal,
-                days: e.target.value,
-              })
+              setSelectedItemsModal((prev) => ({
+                ...prev,
+                [activeModal]: e.target.value,
+              }))
             }
-            label="Dias"
+            label={activeModal === "days" ? "Días" : "Cantidad"}
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          <Button
-            variant="success"
-            onClick={() =>
-              handleDaysChange(
-                selectedItemsModal?.id,
-                Number(selectedItemsModal?.days)
-              )
-            }
-            fullWidth
-          >
-            Guardar
-          </Button>
-        </Box>
-      </Modal>
 
-      <Modal open={openQuantity} onClose={handleCloseQuantity}>
-        <Box
-          sx={{
-            bgcolor: "background.paper",
-            p: 4,
-            width: { xs: 350, sm: 400 },
-            borderRadius: 2,
-            mx: "auto",
-            mt: "20vh",
-            boxShadow: 24,
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Editar cantidad
-          </Typography>
-
-          <TextField
-            type="number"
-            inputProps={{ min: 1 }}
-            value={selectedItemsModal?.quantity || ""}
-            onChange={(e) =>
-              setSelectedItemsModal({
-                ...selectedItemsModal,
-                quantity: e.target.value,
-              })
-            }
-            label="Cantidad"
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
           <Button
-            variant="success"
-            onClick={() =>
-              handleQtyChange(
-                selectedItemsModal?.id,
-                Number(selectedItemsModal?.quantity)
-              )
-            }
+            variant="contained"
+            color="success"
             fullWidth
+            onClick={() => {
+              const value = Number(selectedItemsModal?.[activeModal]);
+
+              if (isNaN(value) || value < 1) return;
+
+              if (activeModal === "days") {
+                handleDaysChange(selectedItemsModal.id, value);
+              } else if (activeModal === "quantity") {
+                handleQtyChange(selectedItemsModal.id, value);
+              }
+
+              setActiveModal(null);
+              setSelectedItemsModal(null);
+            }}
           >
             Guardar
           </Button>

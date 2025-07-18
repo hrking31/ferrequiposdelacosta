@@ -471,8 +471,10 @@ export default function MobileDrawerLayout() {
               </IconButton>
 
               <Typography
-                variant="body2"
                 sx={{
+                  fontSize: {
+                    md: "0.675rem",
+                  },
                   p: 2,
                   textAlign: "center",
                   display: "block",
@@ -492,11 +494,15 @@ export default function MobileDrawerLayout() {
           }}
         >
           {isMobile && (
-            <Box sx={{
-              // border: "2px solid red",
-            }}>
+            <Box
+              sx={
+                {
+                  // border: "2px solid red",
+                }
+              }
+            >
               <InstallApp />
-              
+
               <EquipoImageCarousel />
 
               <WhatsAppButton />

@@ -130,7 +130,7 @@ export default function ProductCardDetail({ product }) {
         </Button>
 
         <Typography
-          variant="sustitle1"
+          variant="body2"
           onClick={() => handleOpenModal(type)}
           sx={{ width: 32, textAlign: "center" }}
         >
@@ -171,7 +171,7 @@ export default function ProductCardDetail({ product }) {
     <Box sx={{ p: 2 }}>
       <Stack direction="row" spacing={4} sx={{ mb: 4 }} justifyContent="center">
         <Box display="flex" flexDirection="column" alignItems="center">
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
             Días
           </Typography>
 
@@ -195,7 +195,7 @@ export default function ProductCardDetail({ product }) {
         </Box>
 
         <Box display="flex" flexDirection="column" alignItems="center">
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
             Cantidad
           </Typography>
           <Box
@@ -282,16 +282,27 @@ export default function ProductCardDetail({ product }) {
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         sx={{
           "&.MuiSnackbar-root": {
+            position: "fixed",
             top: "50% !important",
             left: "50% !important",
             transform: "translate(-50%, -50%)",
+            zIndex: 1300,
           },
         }}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbarSeverity}
-          sx={{ width: "100%" }}
+          variant="filled"
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbarSeverity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbarSeverity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
         >
           {snackbarMessage}
         </Alert>

@@ -29,14 +29,15 @@ export default function Cotizacion() {
   const updateItem = (index, field, value) => {
     const updatedItems = [...items];
     const updatedItem = { ...updatedItems[index], [field]: value };
-    updatedItem.subtotal = updatedItem.quantity * updatedItem.price * updatedItem.day;
+    updatedItem.subtotal =
+      updatedItem.quantity * updatedItem.price * updatedItem.day;
     updatedItem.subtotal = updatedItem.subtotal.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
     });
     updatedItems[index] = updatedItem;
     dispatch(setItems(updatedItems));
-    calculateTotalFrom(updatedItems);  
+    calculateTotalFrom(updatedItems);
   };
 
   const calculateTotalFrom = (updatedItems) => {
@@ -72,9 +73,8 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Typography variant="h4" color="text.primary">
-          Formulario Cotización
-        </Typography>
+        <Typography variant="h5">Formulario Cotización</Typography>
+
         <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
           <Grid item xs={7} sm={6}>
             <TextField
@@ -82,124 +82,53 @@ export default function Cotizacion() {
               type="date"
               name="fecha"
               label="Fecha"
-              size="small"
               value={formValues.fecha}
               onChange={handlerInputChange}
               InputLabelProps={{
                 shrink: true,
-                sx: {
-                  color: "#8B3A3A",
-                },
               }}
               InputProps={{
                 sx: {
-                  color: "#8B3A3A",
-                },
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
+                  color: theme.palette.mode === "light" ? "#1A1A1A" : "#A0AEC0",
                 },
               }}
             />
           </Grid>
+
           <Grid item xs={5} sm={6}>
             <TextField
               fullWidth
               type="text"
               name="nit"
               label="NIT"
-              size="small"
               value={formatNit(formValues.nit)}
               onChange={handlerInputChange}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               type="text"
               name="empresa"
               label="Empresa"
-              size="small"
               value={formValues.empresa}
               onChange={handlerInputChange}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               type="text"
               name="direccion"
               label="Dirección"
-              size="small"
               value={formValues.direccion}
               onChange={handlerInputChange}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: "primary.main",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "primary.light",
-                  },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.dark",
-                  },
-                  "& input:-webkit-autofill": {
-                    boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                    WebkitTextFillColor: theme.palette.text.primary,
-                  },
-                },
-              }}
             />
           </Grid>
         </Grid>
+
         {items.map((item, index) => (
           <Box
             key={item.id || index}
@@ -219,32 +148,16 @@ export default function Cotizacion() {
                 <TextField
                   fullWidth
                   multiline
+                  type="text"
                   rows={2}
-                  size="small"
                   label="Descripción"
                   value={item.description}
                   onChange={(e) =>
                     updateItem(index, "description", e.target.value)
                   }
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "primary.light",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "primary.dark",
-                      },
-                      "& input:-webkit-autofill": {
-                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                        WebkitTextFillColor: theme.palette.text.primary,
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -254,26 +167,9 @@ export default function Cotizacion() {
                   onChange={(e) =>
                     updateItem(index, "quantity", e.target.value)
                   }
-                  size="small"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "primary.light",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "primary.dark",
-                      },
-                      "& input:-webkit-autofill": {
-                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                        WebkitTextFillColor: theme.palette.text.primary,
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -281,26 +177,9 @@ export default function Cotizacion() {
                   label="Dias"
                   value={item.day !== 0 ? item.day : ""}
                   onChange={(e) => updateItem(index, "day", e.target.value)}
-                  size="small"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "primary.light",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "primary.dark",
-                      },
-                      "& input:-webkit-autofill": {
-                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                        WebkitTextFillColor: theme.palette.text.primary,
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={4}>
                 <TextField
                   fullWidth
@@ -308,29 +187,13 @@ export default function Cotizacion() {
                   label="Precio"
                   value={item.price !== 0 ? item.price : ""}
                   onChange={(e) => updateItem(index, "price", e.target.value)}
-                  size="small"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": {
-                        borderColor: "primary.main",
-                      },
-                      "&:hover fieldset": {
-                        borderColor: "primary.light",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "primary.dark",
-                      },
-                      "& input:-webkit-autofill": {
-                        boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                        WebkitTextFillColor: theme.palette.text.primary,
-                      },
-                    },
-                  }}
                 />
               </Grid>
+
               <Grid item xs={6} md={6}>
-                <Typography>Subtotal: {item.subtotal}</Typography>
+                <Typography variant="h5">Subtotal: {item.subtotal}</Typography>
               </Grid>
+
               <Grid item xs={6} md={6}>
                 <Button
                   variant="danger"
@@ -350,6 +213,7 @@ export default function Cotizacion() {
               Agregar Ítem
             </Button>
           </Grid>
+
           <Grid item xs={6}>
             <Typography variant="h5">Total: {total}</Typography>
           </Grid>

@@ -39,6 +39,7 @@ export default function VistaCrearUsuarios() {
         // border: "2px solid red",
       }}
     >
+
       <Box sx={{ flexGrow: 1, p: 1, 
         // border: "2px solid red"
          }}>
@@ -47,7 +48,7 @@ export default function VistaCrearUsuarios() {
         </Typography>
       </Box>
 
-      <Box sx={{ flexGrow: 1, p: 2, 
+      <Box sx={{ flexGrow: 1, p: 1, 
         // border: "2px solid red" 
         }}>
         <Register />
@@ -67,6 +68,7 @@ export default function VistaCrearUsuarios() {
               MENU
             </Button>
           </Grid>
+          
           <Grid item xs={12} sm={6} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

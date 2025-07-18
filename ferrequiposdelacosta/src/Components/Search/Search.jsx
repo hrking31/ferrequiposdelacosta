@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TextField, Box, Grid, useTheme, InputAdornment} from "@mui/material";
+import { TextField, Box, Grid, useTheme, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
 const Search = ({ LabelOff = true, onSearch }) => {

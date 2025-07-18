@@ -70,6 +70,7 @@ export default function EliminarUsuario() {
       gap={2}
     >
       <Typography variant="h5">Ingresa Datos del Usuario.</Typography>
+
       <TextField
         label="email"
         type="email"
@@ -77,7 +78,6 @@ export default function EliminarUsuario() {
         onChange={(e) => setEmail(e.target.value)}
         fullWidth
         required
-        size="small"
       />
 
       <TextField
@@ -87,7 +87,6 @@ export default function EliminarUsuario() {
         onChange={(e) => setPassword(e.target.value)}
         fullWidth
         required
-        size="small"
       />
       
       <Button variant="danger" onClick={handleDelete}>

@@ -77,6 +77,7 @@ export default function Detail() {
           // border: "2px solid red",
         }}
       >
+
         <Grid container>
           <Grid
             item
@@ -103,6 +104,7 @@ export default function Detail() {
               // border: "2px solid red",
             }}
           >
+            
             <Typography
               variant="h5"
               sx={{

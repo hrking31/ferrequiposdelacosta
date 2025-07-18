@@ -41,6 +41,7 @@ export default function MenuAppBar() {
           zIndex: theme.zIndex.drawer + 1,
         }}
       >
+
         <Toolbar
           sx={{
             display: "flex",
@@ -49,6 +50,7 @@ export default function MenuAppBar() {
             px: 2,
           }}
         >
+
           <Box
             onClick={handleLogoClick}
             sx={{
@@ -66,6 +68,7 @@ export default function MenuAppBar() {
               justifyContent: "center",
             }}
           >
+            
             <img
               src={Logos}
               alt="logo"

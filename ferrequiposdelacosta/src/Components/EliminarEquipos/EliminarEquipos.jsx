@@ -78,18 +78,19 @@ const EliminarEquipo = () => {
       }}
     >
       <Box sx={{ marginBottom: { xs: 1, sm: 2 }, width: "100%" }}>
-        <Typography variant="h4" color="text.primary">
+        <Typography variant="h5">
           Elimina el Equipo
-          <Box component="span" sx={{ color: "#1976d2" }}>
+          <Typography component="span" variant="body2">
             {" "}
             {equipoSeleccionado.name}.
-          </Box>
+          </Typography>
         </Typography>
+
         <Typography
+          variant="body2"
           sx={{
-            color: "#1976d2",
             mb: 4,
-            pl: 1,
+            p: 2,
             lineHeight: 1.6,
             overflowWrap: "break-word",
             wordBreak: "break-word",
@@ -119,6 +120,7 @@ const EliminarEquipo = () => {
                         border: "1px solid #e0e0e0",
                       }}
                     />
+
                     <Box
                       sx={{
                         display: "flex",
@@ -127,13 +129,7 @@ const EliminarEquipo = () => {
                         mt: 1,
                       }}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: "0.85rem",
-                          color: "#00008B",
-                        }}
-                      >
+                      <Typography variant="body2">
                         {image.name || `Nombre no disponible ${index + 1}`}
                       </Typography>
                     </Box>
@@ -150,10 +146,33 @@ const EliminarEquipo = () => {
 
       <Snackbar
         open={openSnackbar}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            position: "fixed",
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1300,
+          },
+        }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbarSeverity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbarSeverity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>
