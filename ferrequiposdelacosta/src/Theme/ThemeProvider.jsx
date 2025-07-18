@@ -81,7 +81,6 @@ export const CustomThemeProvider = ({ children }) => {
 
         background: {
           default: mode === "light" ? "#F5F7FA" : "#313D4A",
-          // paper: mode === "light" ? "#3A5169" : "#FF6B35",
           paper: mode === "light" ? "#FF6B35" : "#3A5169",
         },
         text: {

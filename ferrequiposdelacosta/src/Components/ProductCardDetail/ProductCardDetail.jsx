@@ -247,7 +247,7 @@ export default function ProductCardDetail({ product }) {
       <Modal open={Boolean(activeModal)} onClose={handleCloseModal}>
         <Box
           sx={{
-            bgcolor: "background.paper",
+            bgcolor: "background.default",
             p: 4,
             width: { xs: 350, sm: 400 },
             borderRadius: 2,

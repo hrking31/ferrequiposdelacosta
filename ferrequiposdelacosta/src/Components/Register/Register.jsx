@@ -149,7 +149,6 @@ export default function Register() {
       flexDirection="column"
       gap={2}
     >
-
       <Typography variant="h5" align="center" gutterBottom>
         Registro
       </Typography>
@@ -162,7 +161,7 @@ export default function Register() {
         onChange={handleChange}
         fullWidth
       />
-      
+
       <FormControl fullWidth>
         <InputLabel id="genero-label">Género</InputLabel>
         <Select
@@ -172,7 +171,6 @@ export default function Register() {
           value={generoSeleccionado || ""}
           onChange={(e) => setGeneroSeleccionado(e.target.value)}
         >
-
           <MenuItem value="" disabled>
             Selecciona un Género
           </MenuItem>
@@ -184,7 +182,6 @@ export default function Register() {
           <MenuItem value="masculino">
             <Box component="span">Masculino</Box>
           </MenuItem>
-
         </Select>
       </FormControl>
 
@@ -254,7 +251,6 @@ export default function Register() {
               <Box component="span">Gestor Integral</Box>
             </Tooltip>
           </MenuItem>
-          
         </Select>
       </FormControl>
 
@@ -264,15 +260,32 @@ export default function Register() {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={4000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            position: "fixed",
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1300,
+          },
+        }}
       >
         <Alert
-          severity={snackbar.severity}
           onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbar.severity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbar.severity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
         >
           {snackbar.message}
         </Alert>

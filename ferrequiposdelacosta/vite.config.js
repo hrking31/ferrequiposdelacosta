@@ -14,12 +14,11 @@ export default defineConfig({
         id: "/",
         name: "Ferrequipos de la Costa",
         short_name: "Ferrequipos",
-        description:
-          "La solución todo en uno para gestionar tu negocio, productos, y clientes.",
+        description: "Alquiler de equipos para la Construcción.",
         start_url: "/",
         display: "standalone",
-        background_color: "#669BBC",
-        theme_color: "#669BBC",
+        background_color: "#A0AEC0",
+        theme_color: "#A0AEC0",
         icons: [
           {
             src: "/web-app-manifest-192x192.png",

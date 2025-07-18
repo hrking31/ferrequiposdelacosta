@@ -52,7 +52,7 @@ export default function VistaCart() {
 
   const handleOpenModal = (item, type) => {
     setSelectedItemsModal(item);
-    setActiveModal(type); 
+    setActiveModal(type);
   };
 
   const handleClose = () => setOpen(false);
@@ -199,7 +199,7 @@ export default function VistaCart() {
             <Modal open={open} onClose={handleClose}>
               <Box
                 sx={{
-                  bgcolor: "background.paper",
+                  bgcolor: "background.default",
                   p: 4,
                   width: { xs: 350, sm: 400 },
                   borderRadius: 2,
@@ -607,7 +607,7 @@ export default function VistaCart() {
         >
           Resumen del Pedido
         </Typography>
-        
+
         <Box
           sx={{
             flex: 1,
@@ -623,7 +623,7 @@ export default function VistaCart() {
                 // border: "1px solid #ccc",
               }}
             >
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography variant="subtitle1">
                 Equipos para {days} días
               </Typography>
 
@@ -635,7 +635,6 @@ export default function VistaCart() {
                     pl: 2,
                     fontSize: {
                       md: "0.675rem",
-
                     },
                   }}
                 >
@@ -655,7 +654,12 @@ export default function VistaCart() {
         >
           <Divider sx={{ m: 1 }} />
 
-          <Typography variant="subtitle2" sx={{ mt: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              mt: 1,
+            }}
+          >
             Tipo de Transporte
           </Typography>
 
@@ -762,7 +766,7 @@ export default function VistaCart() {
       <Modal open={Boolean(activeModal)} onClose={() => setActiveModal(null)}>
         <Box
           sx={{
-            bgcolor: "background.paper",
+            bgcolor: "background.default",
             p: 4,
             width: { xs: 350, sm: 400 },
             borderRadius: 2,
@@ -771,7 +775,7 @@ export default function VistaCart() {
             boxShadow: 24,
           }}
         >
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
             {activeModal === "days" ? "Editar días" : "Editar cantidad"}
           </Typography>
 

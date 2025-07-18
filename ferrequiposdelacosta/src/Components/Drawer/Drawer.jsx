@@ -515,11 +515,11 @@ export default function MobileDrawerLayout() {
         <Modal open={openAccount} onClose={handleCloseAccount}>
           <div
             style={{
+              bgcolor: "background.default",
               position: "absolute",
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              backgroundColor: "#FDF6EC",
               padding: "0px",
               borderRadius: "8px",
               maxWidth: "400px",
