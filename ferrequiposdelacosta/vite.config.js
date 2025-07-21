@@ -17,8 +17,8 @@ export default defineConfig({
         description: "Alquiler de equipos para la Construcción.",
         start_url: "/",
         display: "standalone",
-        background_color: "#A0AEC0",
-        theme_color: "#A0AEC0",
+        background_color: "#5C6B73",
+        theme_color: "#5C6B73",
         icons: [
           {
             src: "/web-app-manifest-192x192.png",

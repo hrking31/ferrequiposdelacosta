@@ -16,6 +16,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 
 export default function AdminForms() {
   const { logout } = useAuth();
@@ -29,7 +31,6 @@ export default function AdminForms() {
     await logout();
   };
 
- 
   const buttonStyle = {
     width: {
       xs: "100%",
@@ -67,9 +68,12 @@ export default function AdminForms() {
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ pb: 4,
-        //  border: "2px solid red" 
-         }}>
+      <Box
+        sx={{
+          pb: 4,
+          //  border: "2px solid red"
+        }}
+      >
         <Typography
           variant="h5"
           sx={{
@@ -231,12 +235,61 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {permisos.includes("eliminarEditarEquipos") && (
+              <Button
+                component={Link}
+                // to="/vistaseleccionarequipo"
+                variant="adminSquare"
+                sx={buttonStyle}
+              >
+                <FolderSharedIcon sx={{ fontSize: 40 }} />
+                CLIENTES
+              </Button>
+            )}
+          </Grid>
+
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {permisos.includes("eliminarEditarEquipos") && (
+              <Button
+                component={Link}
+                // to="/vistaseleccionarequipo"
+                variant="adminSquare"
+                sx={buttonStyle}
+              >
+                <SupportAgentIcon sx={{ fontSize: 40 }} />
+                CLIENTES POR COBRAR
+              </Button>
+            )}
+          </Grid>
         </Grid>
       </Box>
 
-      <Box sx={{ pt: 4, pb: 2,
-        //  border: "2px solid red"
-          }}>
+      <Box
+        sx={{
+          pt: 4,
+          pb: 2,
+          //  border: "2px solid red"
+        }}
+      >
         <Grid container justifyContent="center">
           <Grid item xs={12} sm={5} md={4}>
             <Button

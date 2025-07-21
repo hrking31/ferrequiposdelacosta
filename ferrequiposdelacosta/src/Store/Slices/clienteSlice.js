@@ -4,7 +4,12 @@ const initialState = {
   tipo: "",
   nombre: "",
   identificacion: "",
-  direccion: "",
+  // direccion: "",
+  direccion: {
+    departamento: "",
+    municipio: "",
+    detalle: "",
+  },
 };
 
 const clienteSlice = createSlice({
@@ -22,10 +27,22 @@ const clienteSlice = createSlice({
       state.tipo = "";
       state.nombre = "";
       state.identificacion = "";
-      state.direccion = "";
+      // state.direccion = "";
+      state.direccion = {
+        departamento: "",
+        municipio: "",
+        detalle: "",
+      };
     },
+    // actualizarDireccion: (state, action) => {
+    //   state.direccion = action.payload;
+    // },
     actualizarDireccion: (state, action) => {
-      state.direccion = action.payload;
+      const { departamento, municipio, detalle } = action.payload;
+      if (departamento !== undefined)
+        state.direccion.departamento = departamento;
+      if (municipio !== undefined) state.direccion.municipio = municipio;
+      if (detalle !== undefined) state.direccion.detalle = detalle;
     },
   },
 });

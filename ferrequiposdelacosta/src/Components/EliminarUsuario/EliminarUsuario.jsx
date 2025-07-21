@@ -245,7 +245,7 @@ export default function EliminarUsuario() {
           variant="filled"
           action={
             <Button
-              color="inherit"
+              variant="success"
               size="small"
               onClick={handleDeleteConfirmed}
             >
@@ -262,7 +262,6 @@ export default function EliminarUsuario() {
         </Alert>
       </Snackbar>
 
-      {/* Mensajes de éxito o error */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

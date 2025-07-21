@@ -13,6 +13,8 @@ import {
   Grid,
   Modal,
   TextField,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
@@ -23,12 +25,16 @@ import {
   updateDays,
 } from "../../Store/Slices/cartSlice.js";
 import { actualizarDireccion } from "../../Store/Slices/clienteSlice";
+import { setCliente } from "../../Store/Slices/clienteSlice";
+import DatosClienteModal from "../../Components/DatosClienteModal/DatosClienteModal.jsx";
+import SelectorUbicacion from "../../Components/SelectorUbicacion/selectorubicacion.jsx";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
+import PersonIcon from "@mui/icons-material/Person";
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -41,13 +47,17 @@ export default function VistaCart() {
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
   const [direccion, setDireccion] = useState(cliente.direccion);
   const [open, setOpen] = useState(false);
+  const [openCliente, setOpenCliente] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
 
-  const handleOpen = () => {
-    setDireccion(cliente.direccion);
-    setOpen(true);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   const handleOpenModal = (item, type) => {
@@ -55,7 +65,17 @@ export default function VistaCart() {
     setActiveModal(type);
   };
 
+  const handleOpen = () => {
+    setDireccion(cliente.direccion);
+    setOpen(true);
+  };
+
+  const handleOpenCliente = () => {
+    setOpenCliente(true);
+  };
+
   const handleClose = () => setOpen(false);
+  const handleCloseCliente = () => setOpenCliente(false);
 
   const handleGuardar = () => {
     dispatch(actualizarDireccion(direccion));
@@ -68,6 +88,30 @@ export default function VistaCart() {
     );
     setOpen(false);
   };
+
+const handleEliminarDir = () => {
+  const clienteGuardado =
+    JSON.parse(localStorage.getItem("datosCliente")) || {};
+
+  delete clienteGuardado.direccion;
+
+  const quedanDatos = Object.keys(clienteGuardado).length > 0;
+
+  if (quedanDatos) {
+    dispatch(setCliente(clienteGuardado));
+    localStorage.setItem("datosCliente", JSON.stringify(clienteGuardado));
+  } else {
+    dispatch(setCliente({}));
+    localStorage.removeItem("datosCliente");
+  }
+  setDireccion("");
+
+  setOpenSnackbar(true);
+  setSnackbarMessage("Dirección eliminada");
+  setSnackbarSeverity("info");
+
+  setOpen(false);
+};
 
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
@@ -193,8 +237,18 @@ export default function VistaCart() {
           >
             <IconButton disableRipple onClick={handleOpen}>
               <LocationOnIcon fontSize="small" />
-              <Typography variant="body2">{cliente.direccion}</Typography>
+              {/* <Typography variant="body2">{cliente.direccion}</Typography> */}
+              <Typography variant="body2">{cliente.direccion?.departamento}</Typography>
             </IconButton>
+
+            <IconButton disableRipple onClick={handleOpenCliente}>
+              <PersonIcon fontSize="small" />
+            </IconButton>
+            <DatosClienteModal
+              open={openCliente}
+              onClose={handleCloseCliente}
+              modoEdicion
+            />
 
             <Modal open={open} onClose={handleClose}>
               <Box
@@ -211,17 +265,39 @@ export default function VistaCart() {
                 <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
                   Editar dirección
                 </Typography>
+
                 <TextField
                   fullWidth
-                  value={direccion}
+                  value={direccion.detalle || ""}
+                  // value={direccion}
                   onChange={(e) => setDireccion(e.target.value)}
                   label="Dirección"
                   variant="outlined"
                   sx={{ mb: 2 }}
                 />
-                <Button variant="success" onClick={handleGuardar} fullWidth>
-                  Guardar
-                </Button>
+
+                <SelectorUbicacion />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 2,
+                    pt: 2,
+                  }}
+                >
+                  <Button variant="danger" onClick={handleClose}>
+                    Cancelar
+                  </Button>
+
+                  <Button variant="success" onClick={handleGuardar}>
+                    Guardar
+                  </Button>
+
+                  <Button variant="danger" onClick={handleEliminarDir}>
+                    Eliminar
+                  </Button>
+                </Box>
               </Box>
             </Modal>
 
@@ -817,6 +893,39 @@ export default function VistaCart() {
           </Button>
         </Box>
       </Modal>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          "&.MuiSnackbar-root": {
+            position: "fixed",
+            top: "50% !important",
+            left: "50% !important",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1300,
+          },
+        }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            bgcolor: (theme) =>
+              theme.palette[snackbarSeverity]?.main ||
+              theme.palette.primary.main,
+            color: (theme) =>
+              theme.palette[snackbarSeverity]?.contrastText ||
+              theme.palette.primary.contrastText,
+          }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
