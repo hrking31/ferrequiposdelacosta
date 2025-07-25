@@ -198,6 +198,7 @@ export default function ProductCardDetail({ product }) {
           <Typography variant="body2" sx={{ mb: 1 }}>
             Cantidad
           </Typography>
+
           <Box
             sx={{
               border: "1px solid",
@@ -236,7 +237,9 @@ export default function ProductCardDetail({ product }) {
 
           <DatosClienteModal
             open={modalAbierto}
-            onClose={() => {
+            modoAdmin
+            onClose={() => setModalAbierto(false)}
+            onSuccess={() => {
               setModalAbierto(false);
               handleAdd();
             }}

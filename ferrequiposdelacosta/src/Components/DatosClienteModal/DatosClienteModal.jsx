@@ -16,16 +16,24 @@ import {
   Alert,
 } from "@mui/material";
 import { setCliente } from "../../Store/Slices/clienteSlice";
+import { actualizarDireccion } from "../../Store/Slices/clienteSlice";
 import SelectorUbicacion from "../../Components/SelectorUbicacion/selectorubicacion.jsx";
 
-const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
+const DatosClienteModal = ({
+  open,
+  onClose,
+  onSuccess,
+  modoAdmin = false,
+  modoCliente = false,
+  modoDireccion = false,
+}) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const cliente = useSelector((state) => state.cliente);
   const [tipo, setTipo] = useState("persona");
   const [nombre, setNombre] = useState("");
   const [id, setId] = useState("");
-  const [direccion, setDireccion] = useState("");
+  const [direccion, setDireccion] = useState(null);
   const [errors, setErrors] = useState({});
 
   const [snackbar, setSnackbar] = useState({
@@ -34,14 +42,16 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
     severity: "success",
   });
 
+  console.log("direccion en modal",direccion);
+  
+
   useEffect(() => {
-    if (modoEdicion && cliente?.nombre) {
+    if (modoCliente && cliente?.nombre) {
       setTipo(cliente.tipo || "persona");
       setNombre(cliente.nombre || "");
       setId(cliente.identificacion || "");
-      setDireccion(cliente.direccion || "");
     }
-  }, [modoEdicion, cliente]);
+  }, [modoCliente, cliente]);
 
   const validarCampos = () => {
     const errores = {};
@@ -51,9 +61,6 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
       errores.id = "Este campo es obligatorio.";
     } else if (!/^\d{5,20}$/.test(id.trim())) {
       errores.id = "Debe contener solo números (mínimo 5 dígitos).";
-    }
-    if (!modoEdicion && !direccion.trim()) {
-      errores.direccion = "Este campo es obligatorio.";
     }
 
     setErrors(errores);
@@ -65,7 +72,7 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
 
     let datos;
 
-    if (modoEdicion) {
+    if (modoCliente) {
       datos = {
         ...cliente,
         tipo,
@@ -77,7 +84,6 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
         tipo,
         nombre,
         identificacion: id,
-        direccion,
       };
     }
 
@@ -90,7 +96,11 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
       severity: "success",
     });
 
-    onClose();
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      onClose();
+    }
   };
 
   const handleEliminarDatos = () => {
@@ -145,103 +155,105 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
             // border: "2px solid blue",
           }}
         >
-          <Typography variant="h5" gutterBottom>
-            {modoEdicion ? "Editar datos del Cliente" : "Datos del Cliente"}
-          </Typography>
-
-          {cliente?.nombre && modoEdicion && (
-            <Box mb={2}>
-              <Typography variant="subtitle1" color="text.secondary">
-                <strong>Cliente actual:</strong>
+          {!modoDireccion && (
+            <Box>
+              <Typography variant="h5" gutterBottom>
+                {modoCliente
+                  ? "Editar datos del Cliente"
+                  : "Ingresar datos del Cliente"}
               </Typography>
 
-              <Typography variant="body2">
-                {getLabelNombre()}: {cliente.nombre}
-              </Typography>
+              {cliente?.nombre && modoCliente && (
+                <Box mb={2}>
+                  <Typography variant="subtitle1">
+                    <strong>Cliente actual:</strong>
+                  </Typography>
 
-              <Typography variant="body2">
-                {getLabelID()}: {cliente.identificacion}
-              </Typography>
+                  <Typography variant="body2">
+                    {getLabelNombre()}: {cliente.nombre}
+                  </Typography>
 
-              <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2">
+                    {getLabelID()}: {cliente.identificacion}
+                  </Typography>
+
+                  <Divider sx={{ my: 1 }} />
+                </Box>
+              )}
+
+              <FormLabel component="legend">Tipo de cliente</FormLabel>
+              <RadioGroup
+                row
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                sx={{ mb: 2 }}
+              >
+                <FormControlLabel
+                  value="persona"
+                  control={
+                    <Radio
+                      sx={{
+                        color: theme.palette.custom.secondary,
+                        "&.Mui-checked": {
+                          color: theme.palette.custom.secondary,
+                        },
+                      }}
+                    />
+                  }
+                  label="Persona"
+                />
+                <FormControlLabel
+                  value="empresa"
+                  control={
+                    <Radio
+                      sx={{
+                        color: theme.palette.custom.secondary,
+                        "&.Mui-checked": {
+                          color: theme.palette.custom.secondary,
+                        },
+                      }}
+                    />
+                  }
+                  label="Empresa"
+                />
+              </RadioGroup>
+
+              <TextField
+                fullWidth
+                margin="normal"
+                label={getLabelNombre()}
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                error={!!errors.nombre}
+                helperText={errors.nombre}
+              />
+
+              <TextField
+                fullWidth
+                margin="normal"
+                label={getLabelID()}
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                error={!!errors.id}
+                helperText={errors.id}
+              />
             </Box>
           )}
 
-          <FormLabel component="legend">Tipo de cliente</FormLabel>
-          <RadioGroup
-            row
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
-            sx={{ mb: 2 }}
-          >
-            <FormControlLabel
-              value="persona"
-              control={
-                <Radio
-                  sx={{
-                    color: theme.palette.custom.secondary,
-                    "&.Mui-checked": {
-                      color: theme.palette.custom.secondary,
-                    },
-                  }}
-                />
-              }
-              label="Persona"
-            />
-            <FormControlLabel
-              value="empresa"
-              control={
-                <Radio
-                  sx={{
-                    color: theme.palette.custom.secondary,
-                    "&.Mui-checked": {
-                      color: theme.palette.custom.secondary,
-                    },
-                  }}
-                />
-              }
-              label="Empresa"
-            />
-          </RadioGroup>
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label={getLabelNombre()}
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            error={!!errors.nombre}
-            helperText={errors.nombre}
-          />
-
-          <TextField
-            fullWidth
-            margin="normal"
-            label={getLabelID()}
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            error={!!errors.id}
-            helperText={errors.id}
-          />
-
-          {!modoEdicion && (
+          {!modoCliente && (
             <Box
               sx={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 1,
               }}
             >
-              <TextField
-                fullWidth
-                margin="normal"
-                label="Dirección"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                error={!!errors.direccion}
-                helperText={errors.direccion}
+              <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+                {modoAdmin ? null : " Editar dirección"}
+              </Typography>
+              <SelectorUbicacion
+                modoAdmin={modoAdmin}
+                onGuardarDireccion={setDireccion}
               />
-              <SelectorUbicacion />
             </Box>
           )}
 
@@ -256,7 +268,7 @@ const DatosClienteModal = ({ open, onClose, modoEdicion = false }) => {
               Guardar
             </Button>
 
-            {modoEdicion && (
+            {!modoAdmin && (
               <Button variant="danger" onClick={handleEliminarDatos}>
                 Eliminar
               </Button>

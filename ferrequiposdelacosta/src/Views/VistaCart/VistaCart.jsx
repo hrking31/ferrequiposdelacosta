@@ -24,10 +24,7 @@ import {
   updateQty,
   updateDays,
 } from "../../Store/Slices/cartSlice.js";
-import { actualizarDireccion } from "../../Store/Slices/clienteSlice";
-import { setCliente } from "../../Store/Slices/clienteSlice";
 import DatosClienteModal from "../../Components/DatosClienteModal/DatosClienteModal.jsx";
-import SelectorUbicacion from "../../Components/SelectorUbicacion/selectorubicacion.jsx";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -45,9 +42,8 @@ export default function VistaCart() {
   const [selectedItems, setSelectedItems] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
-  const [direccion, setDireccion] = useState(cliente.direccion);
-  const [open, setOpen] = useState(false);
   const [openCliente, setOpenCliente] = useState(false);
+  const [openDireccion, setOpenDireccion] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -65,53 +61,18 @@ export default function VistaCart() {
     setActiveModal(type);
   };
 
-  const handleOpen = () => {
-    setDireccion(cliente.direccion);
-    setOpen(true);
-  };
-
   const handleOpenCliente = () => {
     setOpenCliente(true);
   };
 
-  const handleClose = () => setOpen(false);
   const handleCloseCliente = () => setOpenCliente(false);
 
-  const handleGuardar = () => {
-    dispatch(actualizarDireccion(direccion));
-    localStorage.setItem(
-      "datosCliente",
-      JSON.stringify({
-        ...cliente,
-        direccion: direccion,
-      })
-    );
-    setOpen(false);
+  const handleOpenDireccion = () => {
+    setOpenDireccion(true);
   };
 
-const handleEliminarDir = () => {
-  const clienteGuardado =
-    JSON.parse(localStorage.getItem("datosCliente")) || {};
+  const handleCloseDireccion = () => setOpenDireccion(false);
 
-  delete clienteGuardado.direccion;
-
-  const quedanDatos = Object.keys(clienteGuardado).length > 0;
-
-  if (quedanDatos) {
-    dispatch(setCliente(clienteGuardado));
-    localStorage.setItem("datosCliente", JSON.stringify(clienteGuardado));
-  } else {
-    dispatch(setCliente({}));
-    localStorage.removeItem("datosCliente");
-  }
-  setDireccion("");
-
-  setOpenSnackbar(true);
-  setSnackbarMessage("Dirección eliminada");
-  setSnackbarSeverity("info");
-
-  setOpen(false);
-};
 
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
@@ -235,71 +196,45 @@ const handleEliminarDir = () => {
               // border: "2px solid red",
             }}
           >
-            <IconButton disableRipple onClick={handleOpen}>
-              <LocationOnIcon fontSize="small" />
-              {/* <Typography variant="body2">{cliente.direccion}</Typography> */}
-              <Typography variant="body2">{cliente.direccion?.departamento}</Typography>
-            </IconButton>
+            <Typography variant="body2">
+              <IconButton disableRipple onClick={handleOpenDireccion}>
+                <LocationOnIcon
+                  fontSize="small"
+                  sx={{
+                    color:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.light,
+                  }}
+                />
+              </IconButton>
+              {cliente.direccion.detalle}
+              {cliente.direccion.otrosDatos}
+            </Typography>
+
+            <DatosClienteModal
+              open={openDireccion}
+              onClose={handleCloseDireccion}
+              modoDireccion
+            />
 
             <IconButton disableRipple onClick={handleOpenCliente}>
-              <PersonIcon fontSize="small" />
+              <PersonIcon
+                fontSize="small"
+                sx={{
+                  color:
+                    theme.palette.mode === "light"
+                      ? theme.palette.primary.main
+                      : theme.palette.secondary.light,
+                }}
+              />
             </IconButton>
+
             <DatosClienteModal
               open={openCliente}
               onClose={handleCloseCliente}
-              modoEdicion
+              modoCliente
             />
-
-            <Modal open={open} onClose={handleClose}>
-              <Box
-                sx={{
-                  bgcolor: "background.default",
-                  p: 4,
-                  width: { xs: 350, sm: 400 },
-                  borderRadius: 2,
-                  mx: "auto",
-                  mt: "20vh",
-                  boxShadow: 24,
-                }}
-              >
-                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                  Editar dirección
-                </Typography>
-
-                <TextField
-                  fullWidth
-                  value={direccion.detalle || ""}
-                  // value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  label="Dirección"
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                />
-
-                <SelectorUbicacion />
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    gap: 2,
-                    pt: 2,
-                  }}
-                >
-                  <Button variant="danger" onClick={handleClose}>
-                    Cancelar
-                  </Button>
-
-                  <Button variant="success" onClick={handleGuardar}>
-                    Guardar
-                  </Button>
-
-                  <Button variant="danger" onClick={handleEliminarDir}>
-                    Eliminar
-                  </Button>
-                </Box>
-              </Box>
-            </Modal>
 
             <IconButton
               color="error"
