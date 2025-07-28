@@ -14,10 +14,12 @@ import {
   Divider,
   Snackbar,
   Alert,
+  MenuItem,
+  FormControl,
+  FormHelperText,
 } from "@mui/material";
+import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 import { setCliente } from "../../Store/Slices/clienteSlice";
-import { actualizarDireccion } from "../../Store/Slices/clienteSlice";
-import SelectorUbicacion from "../../Components/SelectorUbicacion/selectorubicacion.jsx";
 
 const DatosClienteModal = ({
   open,
@@ -30,10 +32,17 @@ const DatosClienteModal = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const cliente = useSelector((state) => state.cliente);
-  const [tipo, setTipo] = useState("persona");
+  const [tipo, setTipo] = useState("");
   const [nombre, setNombre] = useState("");
   const [id, setId] = useState("");
-  const [direccion, setDireccion] = useState(null);
+  const estadoInicialDireccion = {
+    departamento: "",
+    municipio: "",
+    detalle: "",
+    barrio: "",
+    otrosDatos: "",
+  };
+  const [direccion, setDireccion] = useState(estadoInicialDireccion);
   const [errors, setErrors] = useState({});
 
   const [snackbar, setSnackbar] = useState({
@@ -42,25 +51,69 @@ const DatosClienteModal = ({
     severity: "success",
   });
 
-  console.log("direccion en modal",direccion);
-  
-
-  useEffect(() => {
-    if (modoCliente && cliente?.nombre) {
-      setTipo(cliente.tipo || "persona");
-      setNombre(cliente.nombre || "");
-      setId(cliente.identificacion || "");
-    }
-  }, [modoCliente, cliente]);
-
   const validarCampos = () => {
     const errores = {};
+    if (modoCliente) {
+      if (!tipo.trim()) errores.tipo = "Este campo es obligatorio.";
 
-    if (!nombre.trim()) errores.nombre = "Este campo es obligatorio.";
-    if (!id.trim()) {
-      errores.id = "Este campo es obligatorio.";
-    } else if (!/^\d{5,20}$/.test(id.trim())) {
-      errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+      if (!nombre.trim()) errores.nombre = "Este campo es obligatorio.";
+
+      if (!id.trim()) {
+        errores.id = "Este campo es obligatorio.";
+      } else if (!/^\d{5,20}$/.test(id.trim())) {
+        errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+      }
+    } else if (modoDireccion) {
+      if (!direccion.detalle?.trim()) {
+        errores.detalle = "La dirección es obligatoria.";
+      }
+
+      if (!direccion.barrio?.trim()) {
+        errores.barrio = "Barrio es obligatoria.";
+      }
+
+      if (!direccion.otrosDatos?.trim()) {
+        errores.otrosDatos = "Este campo es obligatorio.";
+      }
+
+      if (!direccion.departamento?.trim()) {
+        errores.departamento = "Debe seleccionar un departamento.";
+      }
+
+      if (!direccion.municipio?.trim()) {
+        errores.municipio = "Debe seleccionar un municipio.";
+      }
+    } else {
+      if (modoAdmin) {
+        if (!tipo.trim()) errores.tipo = "Este campo es obligatorio.";
+
+        if (!nombre.trim()) errores.nombre = "Este campo es obligatorio.";
+
+        if (!id.trim()) {
+          errores.id = "Este campo es obligatorio.";
+        } else if (!/^\d{5,20}$/.test(id.trim())) {
+          errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+        }
+        if (!direccion.detalle?.trim()) {
+          errores.detalle = "La dirección es obligatoria.";
+        }
+
+        if (!direccion.barrio?.trim()) {
+          errores.barrio = "Barrio es obligatoria.";
+        }
+
+        if (!direccion.otrosDatos?.trim()) {
+          errores.otrosDatos = "Este campo es obligatorio.";
+        }
+
+        if (!direccion.departamento?.trim()) {
+          errores.departamento = "Debe seleccionar un departamento.";
+        }
+
+        if (!direccion.municipio?.trim()) {
+          errores.municipio = "Debe seleccionar un municipio.";
+        }
+      }
     }
 
     setErrors(errores);
@@ -73,22 +126,43 @@ const DatosClienteModal = ({
     let datos;
 
     if (modoCliente) {
-      datos = {
+      const datosCliente = {
         ...cliente,
         tipo,
         nombre,
         identificacion: id,
       };
+      dispatch(setCliente(datosCliente));
+      localStorage.setItem("datosCliente", JSON.stringify(datosCliente));
+      setTipo("");
+      setNombre("");
+      setId("");
+    } else if (modoDireccion) {
+      const datosDireccion = {
+        ...cliente.direccion,
+        detalle: direccion.detalle,
+        barrio: direccion.barrio,
+        otrosDatos: direccion.otrosDatos,
+        municipio: direccion.municipio,
+        departamento: direccion.departamento,
+      };
+      const nuevoCliente = {
+        ...cliente,
+        direccion: datosDireccion,
+      };
+      dispatch(setCliente(nuevoCliente));
+      localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+      setDireccion(estadoInicialDireccion);
     } else {
       datos = {
         tipo,
         nombre,
+        direccion,
         identificacion: id,
       };
+      dispatch(setCliente(datos));
+      localStorage.setItem("datosCliente", JSON.stringify(datos));
     }
-
-    dispatch(setCliente(datos));
-    localStorage.setItem("datosCliente", JSON.stringify(datos));
 
     setSnackbar({
       open: true,
@@ -104,21 +178,48 @@ const DatosClienteModal = ({
   };
 
   const handleEliminarDatos = () => {
-    const clienteGuardado =
-      JSON.parse(localStorage.getItem("datosCliente")) || {};
-    const direccionActual = clienteGuardado.direccion || "";
+    if (modoCliente) {
+      const clienteGuardado =
+        JSON.parse(localStorage.getItem("datosCliente")) || {};
+      const direccionActual = clienteGuardado.direccion;
 
-    const nuevoCliente = {
-      direccion: direccionActual,
-    };
+      if (!direccionActual || Object.keys(direccionActual).length === 0) {
+        dispatch(setCliente({}));
+        localStorage.removeItem("datosCliente");
+      } else {
+        const nuevoCliente = {
+          direccion: direccionActual,
+        };
 
-    dispatch(setCliente(nuevoCliente));
-    localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+        dispatch(setCliente(nuevoCliente));
+        localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+      }
+      setNombre("");
+      setId("");
+      setTipo("");
+      setErrors({});
+    } else if (modoDireccion) {
+      const clienteGuardado =
+        JSON.parse(localStorage.getItem("datosCliente")) || {};
 
-    setNombre("");
-    setId("");
-    setTipo("persona");
+      delete clienteGuardado.direccion;
 
+      if (Object.keys(clienteGuardado).length === 0) {
+        dispatch(setCliente({}));
+        localStorage.removeItem("datosCliente");
+      } else {
+        const nuevoCliente = {
+          nombre: clienteGuardado.nombre,
+          identificacion: clienteGuardado.identificacion,
+          tipo: clienteGuardado.tipo,
+        };
+        dispatch(setCliente(nuevoCliente));
+        localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+      }
+
+      setDireccion(estadoInicialDireccion);
+      setErrors({});
+    }
     setSnackbar({
       open: true,
       message: "Datos eliminados correctamente",
@@ -132,8 +233,8 @@ const DatosClienteModal = ({
   };
 
   const getLabelNombre = () =>
-    tipo === "persona" ? "Nombre completo" : "Razón social";
-  const getLabelID = () => (tipo === "persona" ? "Cédula" : "NIT");
+    cliente.tipo === "persona" ? "Nombre completo" : "Razón social";
+  const getLabelID = () => (cliente.tipo === "persona" ? "Cédula" : "NIT");
 
   return (
     <>
@@ -152,21 +253,24 @@ const DatosClienteModal = ({
             borderRadius: 2,
             boxShadow: 24,
             p: 4,
+            gap: 2,
             // border: "2px solid blue",
           }}
         >
           {!modoDireccion && (
             <Box>
               <Typography variant="h5" gutterBottom>
-                {modoCliente
-                  ? "Editar datos del Cliente"
-                  : "Ingresar datos del Cliente"}
+                {modoCliente ? "Editar datos" : "Ingresar datos del Cliente"}
               </Typography>
 
-              {cliente?.nombre && modoCliente && (
+              {cliente?.nombre && (
                 <Box mb={2}>
                   <Typography variant="subtitle1">
-                    <strong>Cliente actual:</strong>
+                    {cliente.tipo === "persona" ? (
+                      <strong>Cliente actual:</strong>
+                    ) : (
+                      <strong>Datos empresa</strong>
+                    )}
                   </Typography>
 
                   <Typography variant="body2">
@@ -177,46 +281,53 @@ const DatosClienteModal = ({
                     {getLabelID()}: {cliente.identificacion}
                   </Typography>
 
-                  <Divider sx={{ my: 1 }} />
+                  <Divider sx={{ my: 2 }} />
                 </Box>
               )}
 
-              <FormLabel component="legend">Tipo de cliente</FormLabel>
-              <RadioGroup
-                row
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value)}
+              <FormControl
+                component="fieldset"
+                error={!!errors.tipo}
                 sx={{ mb: 2 }}
               >
-                <FormControlLabel
-                  value="persona"
-                  control={
-                    <Radio
-                      sx={{
-                        color: theme.palette.custom.secondary,
-                        "&.Mui-checked": {
+                <FormLabel component="legend">Tipo de cliente</FormLabel>
+                <RadioGroup
+                  row
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                >
+                  <FormControlLabel
+                    value="persona"
+                    control={
+                      <Radio
+                        sx={{
                           color: theme.palette.custom.secondary,
-                        },
-                      }}
-                    />
-                  }
-                  label="Persona"
-                />
-                <FormControlLabel
-                  value="empresa"
-                  control={
-                    <Radio
-                      sx={{
-                        color: theme.palette.custom.secondary,
-                        "&.Mui-checked": {
+                          "&.Mui-checked": {
+                            color: theme.palette.custom.secondary,
+                          },
+                        }}
+                      />
+                    }
+                    label="Persona"
+                  />
+
+                  <FormControlLabel
+                    value="empresa"
+                    control={
+                      <Radio
+                        sx={{
                           color: theme.palette.custom.secondary,
-                        },
-                      }}
-                    />
-                  }
-                  label="Empresa"
-                />
-              </RadioGroup>
+                          "&.Mui-checked": {
+                            color: theme.palette.custom.secondary,
+                          },
+                        }}
+                      />
+                    }
+                    label="Empresa"
+                  />
+                </RadioGroup>
+                {errors.tipo && <FormHelperText>{errors.tipo}</FormHelperText>}
+              </FormControl>
 
               <TextField
                 fullWidth
@@ -245,22 +356,198 @@ const DatosClienteModal = ({
               sx={{
                 display: "flex",
                 flexDirection: "column",
+                gap: 3,
               }}
             >
-              <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
-                {modoAdmin ? null : " Editar dirección"}
-              </Typography>
-              <SelectorUbicacion
-                modoAdmin={modoAdmin}
-                onGuardarDireccion={setDireccion}
+              {!modoAdmin && (
+                <Box>
+                  <Typography variant="h5" gutterBottom>
+                    {modoAdmin ? null : " Editar dirección"}
+                  </Typography>
+
+                  {!cliente.direccion && (
+                    <>
+                      <FormControl
+                        component="fieldset"
+                        error={!!errors.tipo}
+                        sx={{ mb: 2 }}
+                      >
+                        <FormLabel component="legend">
+                          Tipo de cliente
+                        </FormLabel>
+                        <RadioGroup
+                          row
+                          value={tipo}
+                          onChange={(e) => setTipo(e.target.value)}
+                        >
+                          <FormControlLabel
+                            value="persona"
+                            control={
+                              <Radio
+                                sx={{
+                                  color: theme.palette.custom.secondary,
+                                  "&.Mui-checked": {
+                                    color: theme.palette.custom.secondary,
+                                  },
+                                }}
+                              />
+                            }
+                            label="Persona"
+                          />
+
+                          <FormControlLabel
+                            value="empresa"
+                            control={
+                              <Radio
+                                sx={{
+                                  color: theme.palette.custom.secondary,
+                                  "&.Mui-checked": {
+                                    color: theme.palette.custom.secondary,
+                                  },
+                                }}
+                              />
+                            }
+                            label="Empresa"
+                          />
+                        </RadioGroup>
+                        {errors.tipo && (
+                          <FormHelperText>{errors.tipo}</FormHelperText>
+                        )}
+                      </FormControl>
+                    </>
+                  )}
+                  {cliente.direccion && (
+                    <>
+                      <Typography variant="subtitle1">
+                        {cliente.tipo === "persona" ? (
+                          <strong>Cliente actual:</strong>
+                        ) : (
+                          <strong>Direccion empresa</strong>
+                        )}
+                      </Typography>
+
+                      <Typography variant="body2">
+                        Direccion: {cliente.direccion.detalle}
+                      </Typography>
+
+                      <Typography variant="body2">
+                        Barrio: {cliente.direccion.barrio}
+                      </Typography>
+
+                      <Typography variant="body2">
+                        Otros: {cliente.direccion.otrosDatos}
+                      </Typography>
+
+                      <Typography variant="body2">
+                        Departamento: {cliente.direccion.departamento}
+                      </Typography>
+
+                      <Typography variant="body2">
+                        Municipio: {cliente.direccion.municipio}
+                      </Typography>
+                      <Divider sx={{ my: 2 }} />
+                    </>
+                  )}
+                </Box>
+              )}
+
+              <TextField
+                label="Dirección"
+                value={direccion.detalle}
+                onChange={(e) =>
+                  setDireccion({ ...direccion, detalle: e.target.value })
+                }
+                fullWidth
+                placeholder="Ej: Calle 123 #45-67"
+                error={!!errors.detalle}
+                helperText={errors.detalle}
               />
+
+              <TextField
+                label="Barrio"
+                value={direccion.barrio}
+                onChange={(e) =>
+                  setDireccion({ ...direccion, barrio: e.target.value })
+                }
+                fullWidth
+                placeholder="Ej. La Concepción
+"
+                error={!!errors.barrio}
+                helperText={errors.barrio}
+              />
+
+              <TextField
+                label="Otros datos (Ej: bodega, edificio, obra)"
+                value={direccion.otrosDatos}
+                onChange={(e) =>
+                  setDireccion({ ...direccion, otrosDatos: e.target.value })
+                }
+                fullWidth
+                placeholder="Ej: Bodega 5, Edificio Torre Sur"
+                error={!!errors.otrosDatos}
+                helperText={errors.otrosDatos}
+              />
+
+              <TextField
+                select
+                label="Departamento"
+                value={direccion.departamento}
+                onChange={(e) =>
+                  setDireccion({ ...direccion, departamento: e.target.value })
+                }
+                fullWidth
+                error={!!errors.departamento}
+                helperText={errors.departamento}
+              >
+                {Object.keys(departamentosYMunicipios).map((dep) => (
+                  <MenuItem key={dep} value={dep}>
+                    {dep}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                label="Municipio"
+                value={direccion.municipio}
+                onChange={(e) =>
+                  setDireccion({ ...direccion, municipio: e.target.value })
+                }
+                fullWidth
+                disabled={!direccion.departamento}
+                error={!!errors.municipio}
+                helperText={errors.municipio}
+              >
+                {direccion.departamento &&
+                departamentosYMunicipios[direccion.departamento]?.length > 0 ? (
+                  departamentosYMunicipios[direccion.departamento].map(
+                    (mun) => (
+                      <MenuItem key={mun} value={mun}>
+                        {mun}
+                      </MenuItem>
+                    )
+                  )
+                ) : (
+                  <MenuItem disabled>Seleccione un departamento</MenuItem>
+                )}
+              </TextField>
             </Box>
           )}
 
           <Box
             sx={{ display: "flex", justifyContent: "center", gap: 2, pt: 2 }}
           >
-            <Button variant="danger" onClick={onClose}>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setDireccion(estadoInicialDireccion);
+                setTipo("");
+                setNombre("");
+                setId("");
+                setErrors({});
+                onClose();
+              }}
+            >
               Cancelar
             </Button>
 

@@ -35,17 +35,9 @@ const clienteSlice = createSlice({
       };
     },
 
-    actualizarDireccion: (state, action) => {
-      const { departamento, municipio, detalle, otrosDatos } = action.payload;
-      if (departamento !== undefined)
-        state.direccion.departamento = departamento;
-      if (municipio !== undefined) state.direccion.municipio = municipio;
-      if (detalle !== undefined) state.direccion.detalle = detalle;
-      if (otrosDatos !== undefined) state.direccion.otrosDatos = otrosDatos;
-    },
   },
 });
 
-export const { setCliente, clearCliente, actualizarDireccion } =
+export const { setCliente, clearCliente } =
   clienteSlice.actions;
 export default clienteSlice.reducer;

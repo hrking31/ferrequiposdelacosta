@@ -73,7 +73,6 @@ export default function VistaCart() {
 
   const handleCloseDireccion = () => setOpenDireccion(false);
 
-
   const handleQtyChange = (id, quantity) => {
     if (quantity < 1) return;
     dispatch(updateQty({ id, quantity }));
@@ -196,8 +195,8 @@ export default function VistaCart() {
               // border: "2px solid red",
             }}
           >
-            <Typography variant="body2">
-              <IconButton disableRipple onClick={handleOpenDireccion}>
+            <IconButton disableRipple onClick={handleOpenDireccion}>
+              <Typography variant="body2">
                 <LocationOnIcon
                   fontSize="small"
                   sx={{
@@ -207,10 +206,10 @@ export default function VistaCart() {
                         : theme.palette.secondary.light,
                   }}
                 />
-              </IconButton>
-              {cliente.direccion.detalle}
-              {cliente.direccion.otrosDatos}
-            </Typography>
+                {cliente.direccion?.detalle || ""}
+                {cliente.direccion?.barrio || ""}
+              </Typography>
+            </IconButton>
 
             <DatosClienteModal
               open={openDireccion}

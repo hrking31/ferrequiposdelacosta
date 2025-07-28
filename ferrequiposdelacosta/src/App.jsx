@@ -37,9 +37,12 @@ function App() {
       }
     }
 
-    const isClienteVacio = Object.values(cliente).every(
-      (value) => value === ""
-    );
+  const isClienteVacio = Object.entries(cliente).every(([key, value]) => {
+    if (typeof value === "object" && value !== null) {
+      return Object.values(value).every((v) => v === "");
+    }
+    return value === "";
+  });
     if (isClienteVacio) {
       const storedCliente = localStorage.getItem("datosCliente");
 
