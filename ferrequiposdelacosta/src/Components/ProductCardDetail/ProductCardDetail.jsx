@@ -12,13 +12,14 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector  } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";
 
 export default function ProductCardDetail({ product }) {
   const dispatch = useDispatch();
+  const cliente = useSelector((state) => state.cliente);
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -63,8 +64,17 @@ export default function ProductCardDetail({ product }) {
   };
 
   const handleAgregarAlCarrito = () => {
-    const datos = localStorage.getItem("datosCliente");
-    if (!datos) {
+    const datosClienteVacios =
+      ["nombre", "identificacion", "tipo"].every(
+        (campo) => (cliente[campo] ?? "").trim() === ""
+      ) &&
+      (cliente.direccion && typeof cliente.direccion === "object"
+        ? Object.values(cliente.direccion).every(
+            (v) => (v ?? "").trim?.() === ""
+          )
+        : true);
+
+    if (datosClienteVacios) {
       setModalAbierto(true);
     } else {
       handleAdd();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Modal,
@@ -7,7 +7,6 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
-  FormLabel,
   Typography,
   Box,
   useTheme,
@@ -16,7 +15,6 @@ import {
   Alert,
   MenuItem,
   FormControl,
-  FormHelperText,
 } from "@mui/material";
 import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 import {
@@ -45,6 +43,14 @@ const DatosClienteModal = ({
     barrio: "",
     otrosDatos: "",
   };
+
+  const clienteInicial = {
+    nombre: "",
+    identificacion: "",
+    tipo: "",
+    direccion: { ...estadoInicialDireccion },
+  };
+
   const [direccion, setDireccion] = useState(estadoInicialDireccion);
   const [errors, setErrors] = useState({});
 
@@ -57,6 +63,10 @@ const DatosClienteModal = ({
   const direccionVacia = cliente.direccion
     ? Object.values(cliente.direccion).every((valor) => valor.trim?.() === "")
     : true;
+
+  const clienteVacio = ["nombre", "identificacion", "tipo"].every(
+    (campo) => (cliente[campo] ?? "").trim() === ""
+  );
 
   const validarCampos = () => {
     const errores = {};
@@ -226,16 +236,17 @@ const DatosClienteModal = ({
       const direccionActual = clienteGuardado.direccion;
 
       if (!direccionActual || Object.keys(direccionActual).length === 0) {
-        dispatch(setCliente({}));
-        localStorage.removeItem("datosCliente");
+        dispatch(setCliente(clienteInicial));
+        localStorage.setItem("datosCliente", JSON.stringify(clienteInicial));
       } else {
         const nuevoCliente = {
+          ...clienteInicial,
           direccion: direccionActual,
         };
-
         dispatch(setCliente(nuevoCliente));
         localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
       }
+
       setNombre("");
       setId("");
       setTipo("");
@@ -244,29 +255,26 @@ const DatosClienteModal = ({
       const clienteGuardado =
         JSON.parse(localStorage.getItem("datosCliente")) || {};
 
-      delete clienteGuardado.direccion;
+      const nuevoCliente = {
+        nombre: clienteGuardado.nombre || "",
+        identificacion: clienteGuardado.identificacion || "",
+        tipo: clienteGuardado.tipo || "",
+        direccion: { ...estadoInicialDireccion },
+      };
 
-      if (Object.keys(clienteGuardado).length === 0) {
-        dispatch(setCliente({}));
-        localStorage.removeItem("datosCliente");
-      } else {
-        const nuevoCliente = {
-          nombre: clienteGuardado.nombre,
-          identificacion: clienteGuardado.identificacion,
-          tipo: clienteGuardado.tipo,
-        };
-        dispatch(setCliente(nuevoCliente));
-        localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
-      }
+      dispatch(setCliente(nuevoCliente));
+      localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
 
-      setDireccion(estadoInicialDireccion);
+      setDireccion({ ...estadoInicialDireccion });
       setErrors({});
     }
+
     setSnackbar({
       open: true,
       message: "Datos eliminados correctamente",
       severity: "info",
     });
+
     onClose();
   };
 
@@ -275,7 +283,7 @@ const DatosClienteModal = ({
   };
 
   const getLabelNombre = () =>
-    cliente.tipo === "persona" ? "Nombre completo" : "Razón social";
+    cliente.tipo === "persona" ? "Nombre" : "Razón social";
   const getLabelID = () => (cliente.tipo === "persona" ? "Cédula" : "NIT");
 
   return (
@@ -294,47 +302,52 @@ const DatosClienteModal = ({
             width: "90%",
             maxWidth: 400,
             maxHeight: "90vh",
-            // borderRadius: 2,
             boxShadow: 24,
             p: 4,
             gap: 2,
             // border: "2px solid blue",
           }}
         >
-          {!modoDireccion && (
+          {modoAdmin && (
+            <Typography variant="h5" gutterBottom>
+              Ingresar datos del Cliente
+            </Typography>
+          )}
+
+          {modoCliente && (
+            <Typography variant="h5" gutterBottom>
+              {clienteVacio ? "Ingresar datos" : "Editar datos"}
+            </Typography>
+          )}
+
+          {modoCliente && !clienteVacio && (
             <Box>
-              <Typography variant="h5" gutterBottom>
-                {modoCliente ? "Editar datos" : "Ingresar datos del Cliente"}
+              <Typography variant="subtitle1">
+                {cliente.tipo === "persona"
+                  ? "Cliente actual:"
+                  : "Datos empresa:"}
               </Typography>
 
-              {cliente?.nombre && (
-                <Box mb={2}>
-                  <Typography variant="subtitle1">
-                    {cliente.tipo === "persona" ? (
-                      <strong>Cliente actual:</strong>
-                    ) : (
-                      <strong>Datos empresa</strong>
-                    )}
-                  </Typography>
+              <Typography variant="body2">
+                {getLabelNombre()}: {cliente.nombre}
+              </Typography>
 
-                  <Typography variant="body2">
-                    {getLabelNombre()}: {cliente.nombre}
-                  </Typography>
+              <Typography variant="body2">
+                {getLabelID()}: {cliente.identificacion}
+              </Typography>
 
-                  <Typography variant="body2">
-                    {getLabelID()}: {cliente.identificacion}
-                  </Typography>
+              <Divider sx={{ my: 2 }} />
+            </Box>
+          )}
 
-                  <Divider sx={{ my: 2 }} />
-                </Box>
-              )}
-
+          {(modoAdmin || modoCliente) && (
+            <Box>
               <FormControl
                 component="fieldset"
                 error={!!errors.tipo}
                 sx={{ mb: 2 }}
               >
-                <FormLabel component="legend">Tipo de cliente</FormLabel>
+                <Typography variant="subtitle2">Tipo de cliente</Typography>
                 <RadioGroup
                   row
                   value={tipo}
@@ -370,7 +383,12 @@ const DatosClienteModal = ({
                     label="Empresa"
                   />
                 </RadioGroup>
-                {errors.tipo && <FormHelperText>{errors.tipo}</FormHelperText>}
+                
+                {errors.tipo && (
+                  <Typography variant="caption" color="error">
+                    {errors.tipo}
+                  </Typography>
+                )}
               </FormControl>
 
               <TextField
@@ -395,7 +413,43 @@ const DatosClienteModal = ({
             </Box>
           )}
 
-          {!modoCliente && (
+          {modoDireccion && (
+            <Box>
+              <Typography variant="h5">
+                {direccionVacia ? "Ingrese direccion" : " Editar dirección"}
+              </Typography>
+
+              {!direccionVacia && (
+                <>
+                  <Typography variant="subtitle1">Direccion actual:</Typography>
+
+                  <Typography variant="body2">
+                    Direccion: {cliente.direccion.detalle}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Barrio: {cliente.direccion.barrio}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Otros: {cliente.direccion.otrosDatos}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Departamento: {cliente.direccion.departamento}
+                  </Typography>
+
+                  <Typography variant="body2">
+                    Municipio: {cliente.direccion.municipio}
+                  </Typography>
+
+                  <Divider sx={{ my: 2 }} />
+                </>
+              )}
+            </Box>
+          )}
+
+          {(modoDireccion || modoAdmin) && (
             <Box
               sx={{
                 display: "flex",
@@ -403,47 +457,6 @@ const DatosClienteModal = ({
                 gap: 3,
               }}
             >
-              {!modoAdmin && (
-                <Box>
-                  <Typography variant="h5" gutterBottom>
-                    {direccionVacia ? "Ingrese direccion" : " Editar dirección"}
-                  </Typography>
-
-                  {!direccionVacia && (
-                    <>
-                      <Typography variant="subtitle1">
-                        {cliente.tipo === "persona" ? (
-                          <strong>Cliente actual:</strong>
-                        ) : (
-                          <strong>Direccion empresa</strong>
-                        )}
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Direccion: {cliente.direccion.detalle}
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Barrio: {cliente.direccion.barrio}
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Otros: {cliente.direccion.otrosDatos}
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Departamento: {cliente.direccion.departamento}
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Municipio: {cliente.direccion.municipio}
-                      </Typography>
-                      <Divider sx={{ my: 2 }} />
-                    </>
-                  )}
-                </Box>
-              )}
-
               <TextField
                 label="Dirección"
                 value={direccion.detalle}
@@ -482,8 +495,6 @@ const DatosClienteModal = ({
               />
 
               <TextField
-                id="departamento"
-                name="departamento"
                 select
                 label="Departamento"
                 value={direccion.departamento}
@@ -502,8 +513,6 @@ const DatosClienteModal = ({
               </TextField>
 
               <TextField
-                id="municipio"
-                name="municipio"
                 select
                 label="Municipio"
                 value={direccion.municipio}

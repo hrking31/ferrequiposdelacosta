@@ -112,27 +112,26 @@ export default function VistaCart() {
 
   const transporte = transporteLabel[tipoTransporte] || "No especificado";
 
-const message = encodeURIComponent(
-  "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
-    `👤 *Nombre:* ${cliente.nombre}\n` +
-    `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
-    `📍 *Dirección:* ${
-      cliente.direccion
-        ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
-        : ""
-    }\n` +
-    `🚚 *Transporte:* ${transporte}\n\n` +
-    items
-      .map(
-        (item, index) =>
-          `*${index + 1}.* 🛠 *${item.name}*\n` +
-          `📦 Cantidad: ${item.quantity}\n` +
-          `📅 Días: ${item.days}\n`
-      )
-      .join("") +
-    "Gracias! 🙏"
-);
-
+  const message = encodeURIComponent(
+    "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
+      `👤 *Nombre:* ${cliente.nombre}\n` +
+      `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
+      `📍 *Dirección:* ${
+        cliente.direccion
+          ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
+          : ""
+      }\n` +
+      `🚚 *Transporte:* ${transporte}\n\n` +
+      items
+        .map(
+          (item, index) =>
+            `*${index + 1}.* 🛠 *${item.name}*\n` +
+            `📦 Cantidad: ${item.quantity}\n` +
+            `📅 Días: ${item.days}\n`
+        )
+        .join("") +
+      "Gracias! 🙏"
+  );
 
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
@@ -259,6 +258,8 @@ const message = encodeURIComponent(
           }}
         >
           <Checkbox
+            id="checkbox-select-all"
+            name="checkbox-select-all"
             checked={selectedItems.length === items.length && items.length > 0}
             indeterminate={
               selectedItems.length > 0 && selectedItems.length < items.length
@@ -281,7 +282,18 @@ const message = encodeURIComponent(
         </Box>
 
         {items.length === 0 ? (
-          <Typography variant="body1">Tu carrito está vacío</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              p: 2,
+              // border: "2px solid yellow",
+            }}
+          >
+            <Typography variant="body1">
+              No has agregado ningún equipo
+            </Typography>
+          </Box>
         ) : (
           <>
             {items.map((item) => (
@@ -306,6 +318,8 @@ const message = encodeURIComponent(
                 >
                   {isFullScreen && (
                     <Checkbox
+                      id={`checkbox-${item.id}`}
+                      name={`checkbox-${item.id}`}
                       checked={selectedItems.includes(item.id)}
                       onChange={() => handleToggleSelect(item.id)}
                       icon={<RadioButtonUncheckedIcon fontSize="small" />}
