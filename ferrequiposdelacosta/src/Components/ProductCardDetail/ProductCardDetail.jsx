@@ -20,12 +20,11 @@ import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";
 export default function ProductCardDetail({ product }) {
   const dispatch = useDispatch();
   const theme = useTheme();
-  const [quantity, setQuantity] = useState(1);
-  const [days, setDays] = useState(1);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const [quantity, setQuantity] = useState(1);
+  const [days, setDays] = useState(1);
   const [modalAbierto, setModalAbierto] = useState(false);
-
   const [activeModal, setActiveModal] = useState(null);
   const [valorTemp, setValorTemp] = useState(1);
 
@@ -236,8 +235,8 @@ export default function ProductCardDetail({ product }) {
           </Button>
 
           <DatosClienteModal
-            open={modalAbierto}
             modoAdmin
+            open={modalAbierto}
             onClose={() => setModalAbierto(false)}
             onSuccess={() => {
               setModalAbierto(false);

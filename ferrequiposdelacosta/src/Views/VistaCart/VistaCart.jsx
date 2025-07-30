@@ -112,22 +112,27 @@ export default function VistaCart() {
 
   const transporte = transporteLabel[tipoTransporte] || "No especificado";
 
-  const message = encodeURIComponent(
-    "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
-      `👤 *Nombre:* ${cliente.nombre}\n` +
-      `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
-      `📍 *Dirección:* ${cliente.direccion}\n` +
-      `🚚 *Transporte:* ${transporte}\n\n` +
-      items
-        .map(
-          (item, index) =>
-            `*${index + 1}.* 🛠 *${item.name}*\n` +
-            `📦 Cantidad: ${item.quantity}\n` +
-            `📅 Días: ${item.days}\n`
-        )
-        .join("") +
-      "Gracias! 🙏"
-  );
+const message = encodeURIComponent(
+  "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
+    `👤 *Nombre:* ${cliente.nombre}\n` +
+    `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
+    `📍 *Dirección:* ${
+      cliente.direccion
+        ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
+        : ""
+    }\n` +
+    `🚚 *Transporte:* ${transporte}\n\n` +
+    items
+      .map(
+        (item, index) =>
+          `*${index + 1}.* 🛠 *${item.name}*\n` +
+          `📦 Cantidad: ${item.quantity}\n` +
+          `📅 Días: ${item.days}\n`
+      )
+      .join("") +
+    "Gracias! 🙏"
+);
+
 
   const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
@@ -205,8 +210,8 @@ export default function VistaCart() {
                         ? theme.palette.primary.main
                         : theme.palette.secondary.light,
                   }}
-                />
-                {cliente.direccion?.detalle || ""}
+                />{" "}
+                {cliente.direccion?.detalle || ""}{" "}
                 {cliente.direccion?.barrio || ""}
               </Typography>
             </IconButton>

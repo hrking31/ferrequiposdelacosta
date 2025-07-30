@@ -19,12 +19,15 @@ import {
   FormHelperText,
 } from "@mui/material";
 import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
-import { setCliente } from "../../Store/Slices/clienteSlice";
+import {
+  setCliente,
+  actualizarDireccion,
+} from "../../Store/Slices/clienteSlice";
 
 const DatosClienteModal = ({
   open,
   onClose,
-  onSuccess,
+  onSuccess = () => {},
   modoAdmin = false,
   modoCliente = false,
   modoDireccion = false,
@@ -51,6 +54,10 @@ const DatosClienteModal = ({
     severity: "success",
   });
 
+  const direccionVacia = cliente.direccion
+    ? Object.values(cliente.direccion).every((valor) => valor.trim?.() === "")
+    : true;
+
   const validarCampos = () => {
     const errores = {};
     if (modoCliente) {
@@ -63,7 +70,7 @@ const DatosClienteModal = ({
       } else if (!/^\d{5,20}$/.test(id.trim())) {
         errores.id = "Debe contener solo números (mínimo 5 dígitos).";
       }
-    } else if (modoDireccion) {
+    } else if (modoDireccion && direccionVacia) {
       if (!direccion.detalle?.trim()) {
         errores.detalle = "La dirección es obligatoria.";
       }
@@ -122,7 +129,6 @@ const DatosClienteModal = ({
 
   const handleGuardar = () => {
     if (!validarCampos()) return;
-
     let datos;
 
     if (modoCliente) {
@@ -137,6 +143,37 @@ const DatosClienteModal = ({
       setTipo("");
       setNombre("");
       setId("");
+    } else if (modoDireccion && !direccionVacia) {
+      const direccionAnterior = cliente.direccion || {};
+      const camposModificados = {};
+
+      Object.keys(direccion).forEach((campo) => {
+        const nuevoValor = direccion[campo]?.trim();
+        const valorAnterior = direccionAnterior[campo]?.trim();
+
+        if (nuevoValor && nuevoValor !== valorAnterior) {
+          camposModificados[campo] = nuevoValor;
+        }
+      });
+
+      if (Object.keys(camposModificados).length > 0) {
+        dispatch(actualizarDireccion(camposModificados));
+
+        const direccionActualizada = {
+          ...cliente.direccion,
+          ...camposModificados,
+        };
+
+        const clienteActualizado = {
+          ...cliente,
+          direccion: direccionActualizada,
+        };
+
+        localStorage.setItem(
+          "datosCliente",
+          JSON.stringify(clienteActualizado)
+        );
+      }
     } else if (modoDireccion) {
       const datosDireccion = {
         ...cliente.direccion,
@@ -152,7 +189,6 @@ const DatosClienteModal = ({
       };
       dispatch(setCliente(nuevoCliente));
       localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
-      setDireccion(estadoInicialDireccion);
     } else {
       datos = {
         tipo,
@@ -172,7 +208,13 @@ const DatosClienteModal = ({
 
     if (onSuccess) {
       onSuccess();
-    } else {
+    }
+    setDireccion(estadoInicialDireccion);
+    setTipo("");
+    setNombre("");
+    setId("");
+    setErrors({});
+    if (onClose) {
       onClose();
     }
   };
@@ -243,6 +285,7 @@ const DatosClienteModal = ({
           sx={{
             display: "flex",
             flexDirection: "column",
+            overflowY: "auto",
             bgcolor: "background.default",
             position: "absolute",
             top: "50%",
@@ -250,7 +293,8 @@ const DatosClienteModal = ({
             transform: "translate(-50%, -50%)",
             width: "90%",
             maxWidth: 400,
-            borderRadius: 2,
+            maxHeight: "90vh",
+            // borderRadius: 2,
             boxShadow: 24,
             p: 4,
             gap: 2,
@@ -362,61 +406,10 @@ const DatosClienteModal = ({
               {!modoAdmin && (
                 <Box>
                   <Typography variant="h5" gutterBottom>
-                    {modoAdmin ? null : " Editar dirección"}
+                    {direccionVacia ? "Ingrese direccion" : " Editar dirección"}
                   </Typography>
 
-                  {!cliente.direccion && (
-                    <>
-                      <FormControl
-                        component="fieldset"
-                        error={!!errors.tipo}
-                        sx={{ mb: 2 }}
-                      >
-                        <FormLabel component="legend">
-                          Tipo de cliente
-                        </FormLabel>
-                        <RadioGroup
-                          row
-                          value={tipo}
-                          onChange={(e) => setTipo(e.target.value)}
-                        >
-                          <FormControlLabel
-                            value="persona"
-                            control={
-                              <Radio
-                                sx={{
-                                  color: theme.palette.custom.secondary,
-                                  "&.Mui-checked": {
-                                    color: theme.palette.custom.secondary,
-                                  },
-                                }}
-                              />
-                            }
-                            label="Persona"
-                          />
-
-                          <FormControlLabel
-                            value="empresa"
-                            control={
-                              <Radio
-                                sx={{
-                                  color: theme.palette.custom.secondary,
-                                  "&.Mui-checked": {
-                                    color: theme.palette.custom.secondary,
-                                  },
-                                }}
-                              />
-                            }
-                            label="Empresa"
-                          />
-                        </RadioGroup>
-                        {errors.tipo && (
-                          <FormHelperText>{errors.tipo}</FormHelperText>
-                        )}
-                      </FormControl>
-                    </>
-                  )}
-                  {cliente.direccion && (
+                  {!direccionVacia && (
                     <>
                       <Typography variant="subtitle1">
                         {cliente.tipo === "persona" ? (
@@ -489,6 +482,8 @@ const DatosClienteModal = ({
               />
 
               <TextField
+                id="departamento"
+                name="departamento"
                 select
                 label="Departamento"
                 value={direccion.departamento}
@@ -507,6 +502,8 @@ const DatosClienteModal = ({
               </TextField>
 
               <TextField
+                id="municipio"
+                name="municipio"
                 select
                 label="Municipio"
                 value={direccion.municipio}
@@ -546,6 +543,7 @@ const DatosClienteModal = ({
                 setId("");
                 setErrors({});
                 onClose();
+                onSuccess();
               }}
             >
               Cancelar
