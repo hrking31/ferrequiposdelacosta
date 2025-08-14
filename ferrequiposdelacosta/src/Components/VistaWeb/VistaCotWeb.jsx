@@ -144,11 +144,11 @@ export default function VistaCotWeb() {
             lineHeight: "1.2",
           }}
         >
-          Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
+          www.ferrequiposdelacosta.com
           <br />
-          Ferrequipos07@hotmail.com
+          ferrequipos07@hotmail.com
           <br />
-          Ferrequiposdelacosta.com
+          Kra 38 # 108 – 23. Tel 605 3356050 - 311 6576633 - 310 6046465
           <br />
           BARRANQUILLA - COLOMBIA
         </Typography>

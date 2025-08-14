@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
 import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import { useAuth } from "../../Context/AuthContext";
-import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCuentaCobro,
@@ -17,7 +17,8 @@ export default function VistaCuentaDeCobro() {
   const values = useSelector((state) => state.cuentacobro);
   const { logout } = useAuth();
   const theme = useTheme();
-   const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
+  const [loading, setLoading] = useState(false);
 
   const clearForm = () => {
     dispatch(
@@ -31,6 +32,14 @@ export default function VistaCuentaDeCobro() {
     );
     dispatch(setItemsCc([]));
     dispatch(setTotalCc("0"));
+  };
+
+  const handleClick = () => {
+    setLoading(true);
+    setTimeout(() => {
+      VistaCcPdf(values);
+      setLoading(false);
+    }, 200);
   };
 
   const handlerLogout = async () => {
@@ -66,21 +75,14 @@ export default function VistaCuentaDeCobro() {
       <Box sx={{ flexGrow: 1, mb: 2 }}>
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={10} sm={4} md={4}>
-            <PDFDownloadLink
-              document={<VistaCcPdf values={values} />}
-              fileName={`${values.value.empresa}.pdf`}
+            <Button
+              variant="success"
+              fullWidth
+              sx={{ flex: 1, whiteSpace: "nowrap" }}
+              onClick={handleClick}
             >
-              
-              {({ loading }) => (
-                <Button
-                  variant="success"
-                  fullWidth
-                  sx={{ flex: 1, whiteSpace: "nowrap" }}
-                >
-                  {loading ? "Cargando..." : "Descargar PDF"}
-                </Button>
-              )}
-            </PDFDownloadLink>
+              {loading ? "Cargando..." : "Descargar PDF"}
+            </Button>
           </Grid>
 
           <Grid item xs={10} sm={4} md={4}>

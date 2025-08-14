@@ -53,7 +53,7 @@ export default function CuentaCobro() {
   };
 
   const addNewItem = () => {
-    const newItem = { description: "", quantity: "", price: "" };
+  const newItem = { description: "", quantity: 0, price: 0, day: 1 };
     dispatch(setItemsCc([...items, newItem]));
   };
 

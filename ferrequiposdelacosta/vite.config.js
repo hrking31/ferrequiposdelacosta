@@ -39,4 +39,18 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules") && id.includes("firebase")) {
+            return "firebase";
+          }
+          if (id.includes("node_modules") && id.includes("jspdf")) {
+            return "jspdf";
+          }
+        },
+      },
+    },
+  },
 });

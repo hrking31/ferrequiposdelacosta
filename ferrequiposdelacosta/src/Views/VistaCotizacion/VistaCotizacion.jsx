@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
-import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -17,7 +17,8 @@ export default function VistaCotizacion() {
   const values = useSelector((state) => state.cotizacion);
   const { logout } = useAuth();
   const theme = useTheme();
- const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
+  const [loading, setLoading] = useState(false);
 
   const clearForm = () => {
     dispatch(
@@ -30,6 +31,14 @@ export default function VistaCotizacion() {
     );
     dispatch(setItems([]));
     dispatch(setTotal("0"));
+  };
+
+  const handleClick = () => {
+    setLoading(true);
+    setTimeout(() => {
+      VistaCotPdf(values);
+      setLoading(false);
+    }, 200);
   };
 
   const handlerLogout = async () => {
@@ -51,9 +60,12 @@ export default function VistaCotizacion() {
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ mb: 2,
-        //  border: "2px solid red"
-          }}>
+      <Box
+        sx={{
+          mb: 2,
+          //  border: "2px solid red"
+        }}
+      >
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
             <Cotizacion />
@@ -64,27 +76,25 @@ export default function VistaCotizacion() {
         </Grid>
       </Box>
 
-      <Box sx={{ flexGrow: 1, mb: 2, 
-        // border: "2px solid red"
-        }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          mb: 2,
+          // border: "2px solid red"
+        }}
+      >
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={10} sm={4} md={4}>
-            <PDFDownloadLink
-              document={<VistaCotPdf values={values} />}
-              fileName={`${values.value.empresa}.pdf`}
+            <Button
+              variant="success"
+              fullWidth
+              sx={{ flex: 1, whiteSpace: "nowrap" }}
+              onClick={handleClick}
             >
-              {({ loading }) => (
-                <Button
-                  variant="success"
-                  fullWidth
-                  sx={{ flex: 1, whiteSpace: "nowrap" }}
-                >
-                  {loading ? "Cargando..." : "Descargar PDF"}
-                </Button>
-              )}
-            </PDFDownloadLink>
+              {loading ? "Cargando..." : "Descargar PDF"}
+            </Button>
           </Grid>
-          
+
           <Grid item xs={10} sm={4} md={4}>
             <Button variant="danger" onClick={clearForm} fullWidth>
               Cancelar
@@ -93,9 +103,12 @@ export default function VistaCotizacion() {
         </Grid>
       </Box>
 
-      <Box sx={{ mb: 2,
-        //  border: "2px solid red" 
-         }}>
+      <Box
+        sx={{
+          mb: 2,
+          //  border: "2px solid red"
+        }}
+      >
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={5} md={5}>
             <Button

@@ -53,7 +53,7 @@ export default function Cotizacion() {
   };
 
   const addNewItem = () => {
-    const newItem = { description: "", quantity: 0, price: 0 };
+    const newItem = { description: "", quantity: 0, price: 0, day: 1 };
     dispatch(setItems([...items, newItem]));
   };
 

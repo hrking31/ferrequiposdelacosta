@@ -1,176 +1,95 @@
-import React from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 
-import {
-  Page,
-  Text,
-  View,
-  Document,
-  Image,
-  StyleSheet,
-} from "@react-pdf/renderer";
+export default function generarCuentaCobro(values) {
+  const doc = new jsPDF();
 
-const styles = StyleSheet.create({
-  page: {
-    fontFamily: "Helvetica",
-    padding: "40px",
-    maxWidth: "600px",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  titleContainer: {
-    flex: 1,
-    marginRight: 100,
-  },
-  title: {
-    fontSize: 18,
-    color: "blue",
-    textAlign: "center",
-  },
-  subHeader: {
-    textAlign: "center",
-    color: "red",
-    marginTop: "10px",
-    marginBottom: "12px",
-    fontSize: "12px",
-  },
-  fecha: {
-    fontSize: "12px",
-    color: "#444",
-    marginTop: "30px",
-    textAlign: "center",
-  },
-  cotizacion: {
-    fontSize: "20px",
-    textAlign: "center",
-    color: "#444",
-    marginTop: "30px",
-    fontWeight: "bold",
-  },
-  text: {
-    fontSize: "12px",
-    marginBottom: "5px",
-    color: "#444",
-  },
-  itemDescription: {
-    fontSize: "12px",
-    wordBreak: "break-all",
-    marginBottom: "10px",
-    flex: 2,
-    width: "100%",
-  },
-  item: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "10px",
-    borderBottom: "1px dotted #ccc",
-  },
-  itemSubtotal: {
-    fontSize: "12px",
-    textAlign: "right",
-    flex: 1,
-  },
-  empresa: {
-    fontSize: "12px",
-    color: "#444",
-    marginTop: "30px",
-    textAlign: "center",
-  },
-  logo: {
-    width: "75px",
-    marginLeft: 30,
-    marginTop: "1px",
-  },
-  contentContainer: {
-    marginBottom: "10px",
-  },
-  piePagina: {
-    fontSize: "12px",
-    color: "blue",
-    textAlign: "center",
-    position: "absolute",
-    bottom: 30,
-    left: 0,
-    right: 0,
-  },
-  totalContainer: {
-    fontSize: "18px",
-    color: "#444",
-    textAlign: "right",
-    fontWeight: "bold",
-  },
-  centeredText: {
-    textAlign: "center",
-  },
-});
+  // ===== ENCABEZADO =====
+  doc.addImage(LogoFerrequipos, "PNG", 30, 10, 25, 25);
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 255);
+  doc.text("FERREQUIPOS DE LA COSTA", 105, 20, { align: "center" });
 
-const VistaCcPdf = ({ values }) => {
-  return (
-    <Document>
-      <Page size="letter" style={styles.page}>
-        <View style={styles.header}>
-          <View style={styles.logo}>
-            <Image style={styles.logo} src={LogoFerrequipos} />
-          </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>FERREQUIPOS DE LA COSTA</Text>
-            <View style={styles.subHeader}>
-              <Text>Alquiler de equipos para la construcción</Text>
-              <Text>Nit: 22.736.950 - 1</Text>
-            </View>
-          </View>
-        </View>
+  doc.setFontSize(10);
+  doc.setTextColor(255, 0, 0);
+  doc.text("Alquiler de equipos para la construcción", 105, 26, {
+    align: "center",
+  });
+  doc.text("Nit: 22.736.950 - 1", 105, 31, { align: "center" });
 
-        <View style={styles.contentContainer}>
-          <View style={styles.fecha}>
-            <Text style={[styles.text, styles.centeredText]}>
-              Barranquilla, {values.value.fecha}
-            </Text>
-          </View>
-          <Text style={styles.cotizacion}>CUENTA DE COBRO</Text>
-          <View style={styles.empresa}>
-            <Text>{values.value.empresa}</Text>
-            <Text>Nit: {values.value.nit}</Text>
-            <Text>Obra: {values.value.obra}</Text>
-          </View>
-          <Text style={styles.cotizacion}>DEBE A</Text>
-          <Text style={styles.cotizacion}>FERREQUIPOS DE LA COSTA</Text>
-          <Text style={[styles.text, styles.centeredText]}>
-            LA SUMA DE: {values.value.total}
-          </Text>
-          <Text style={[styles.text, styles.centeredText]}>
-            POR CONCEPTO DE: {values.value.concepto}
-          </Text>
+  // Fecha
+  doc.setFontSize(10);
+  doc.setTextColor(68, 68, 68);
+  doc.text(`Barranquilla, ${values.value.fecha}`, 105, 50, { align: "center" });
 
-          {values.value.items.map((item, index) => (
-            <View key={index} style={styles.item}>
-              <Text style={styles.itemDescription}>
-                {item.quantity} {item.description}
-              </Text>
-              <Text style={styles.itemSubtotal}>{item.subtotal}</Text>
-            </View>
-          ))}
+  // Título documento
+  doc.setFontSize(14);
+  doc.setTextColor(68, 68, 68);
+  doc.text("CUENTA DE COBRO", 105, 65, { align: "center" });
 
-          <View style={styles.totalContainer}>
-            <Text>Total a Cancelar: {values.value.total}</Text>
-          </View>
-        </View>
+  // ===== DATOS EMPRESA =====
+  doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
+  doc.text(values.value.empresa, 105, 75, { align: "center" });
+  doc.text(`Nit: ${values.value.nit}`, 105, 82, { align: "center" });
+  doc.text(`Obra: ${values.value.obra}`, 105, 89, { align: "center" });
 
-        <View style={styles.piePagina}>
-          <Text>ferrequiposdelacosta.com</Text>
-          <Text>Ferrequipos07@hotmail.com</Text>
-          <Text>
-            Kra 38 # 108 – 23 Tel 605 3356050 - 311 6576633 - 310 6046465
-          </Text>
-          <Text>BARRANQUILLA - COLOMBIA</Text>
-        </View>
-      </Page>
-    </Document>
+  // Deudor
+  doc.setFontSize(14);
+  doc.text("DEBE A", 105, 105, { align: "center" });
+  doc.text("FERREQUIPOS DE LA COSTA", 105, 112, { align: "center" });
+
+  // Concepto
+  doc.setFontSize(12);
+  doc.text(`LA SUMA DE: ${values.value.total}`, 105, 125, { align: "center" });
+  doc.text(`POR CONCEPTO DE: ${values.value.concepto}`, 105, 135, {
+    align: "center",
+  });
+
+  // ===== TABLA DE ITEMS =====
+  autoTable(doc, {
+    startY: 150,
+    head: [["Cantidad", "Descripción", "Subtotal"]],
+    body: values.value.items.map((item) => [
+      item.quantity,
+      item.description,
+      item.subtotal,
+    ]),
+    styles: { fontSize: 11, halign: "center" },
+    columnStyles: {
+      0: { cellWidth: 30, halign: "center" },
+      1: { cellWidth: 100, halign: "left" },
+      2: { cellWidth: 40, halign: "right" },
+    },
+    margin: { left: 20, right: 20 },
+  });
+
+  // ===== TOTAL FINAL =====
+  doc.setFontSize(14);
+  // doc.setFont(undefined, "bold");
+  doc.setTextColor(68, 68, 68);
+  doc.text(
+    `Total a Cancelar: ${values.value.total}`,
+    200,
+    doc.lastAutoTable.finalY + 12,
+    { align: "right" }
   );
-};
 
-export default VistaCcPdf;
+  // ===== PIE DE PÁGINA =====
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.setTextColor(0, 0, 255);
+  doc.text("www.ferrequiposdelacosta.com", 105, 270, { align: "center" });
+  doc.text("ferrequipos07@hotmail.com", 105, 275, { align: "center" });
+  doc.text(
+    "Kra 38 # 108 – 23. Tel 605 3356050 - 311 6576633 - 310 6046465",
+    105,
+    280,
+    { align: "center" }
+  );
+  doc.text("BARRANQUILLA - COLOMBIA", 105, 285, { align: "center" });
+
+  // Descargar PDF
+  doc.save(`CuentaCobro_${values.value.empresa}.pdf`);
+}
