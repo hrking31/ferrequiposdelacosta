@@ -14,6 +14,7 @@ import {
   VistaEliminarUsuario,
   VistaNoAutorizada,
   VistaCart,
+  VistaKioskHome,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -37,12 +38,12 @@ function App() {
       }
     }
 
-  const isClienteVacio = Object.entries(cliente).every(([key, value]) => {
-    if (typeof value === "object" && value !== null) {
-      return Object.values(value).every((v) => v === "");
-    }
-    return value === "";
-  });
+    const isClienteVacio = Object.entries(cliente).every(([key, value]) => {
+      if (typeof value === "object" && value !== null) {
+        return Object.values(value).every((v) => v === "");
+      }
+      return value === "";
+    });
     if (isClienteVacio) {
       const storedCliente = localStorage.getItem("datosCliente");
 
@@ -53,13 +54,13 @@ function App() {
     }
   }, [dispatch]);
 
-    useEffect(() => {
-      if (items.length > 0) {
-        localStorage.setItem("cart", JSON.stringify({ items }));
-      } else {
-        localStorage.removeItem("cart");
-      }
-    }, [items]);
+  useEffect(() => {
+    if (items.length > 0) {
+      localStorage.setItem("cart", JSON.stringify({ items }));
+    } else {
+      localStorage.removeItem("cart");
+    }
+  }, [items]);
 
   return (
     <div>
@@ -164,6 +165,7 @@ function App() {
         <Route exact path="/detail/:id" element={<Detail />} />
         <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
         <Route path="/vistacart" element={<VistaCart />} />
+        <Route path="/vistakioskhome" element={<VistaKioskHome />} />
       </Routes>
     </div>
   );
