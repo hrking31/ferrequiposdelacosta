@@ -9,12 +9,12 @@ import store from "./Store/Store";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
-    <CustomThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <CustomThemeProvider>
+        <AuthProvider>
           <App />
-        </BrowserRouter>
-      </AuthProvider>
-    </CustomThemeProvider>
-  </Provider>
+        </AuthProvider>
+      </CustomThemeProvider>
+    </BrowserRouter>
+  </Provider>,
 );

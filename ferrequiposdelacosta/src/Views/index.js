@@ -1,17 +1,19 @@
 import Home from "./Home/Home";
 import Detail from "./Detail/Detail";
 import AdminForms from "./AdminForms/AdminForms";
-import VistaCotizacion from "../Views/VistaCotizacion/VistaCotizacion";
-import VistaCuentaDeCobro from "../Views/VistaCuentaDeCobro/VistaCuentaDeCobro";
-import VistaCreaEquipo from "../Views/VistaCreaEquipo/VistaCreaEquipo";
-import VistaSeleccionarEquipo from "../Views/VistaSeleccionarEquipo/VistaSeleccionarEquipo";
-import VistaEliminarEquipo from "../Views/VistaEliminarEquipo/VistaEliminarEquipo";
-import VistaEditarEquipo from "../Views/VistaEditarEquipo/VistaEditarEquipo";
-import VistaCrearUsuarios from "../Views/VistaCrearUsuarios/VistaCrearUsuarios";
-import VistaEliminarUsuario from "../Views/VistaEliminarUsuario/VistaEliminarUsuario";
-import VistaNoAutorizada from "../Views/VistaNoAutorizada/VistaNoAutorizada";
-import VistaCart from "../Views/VistaCart/VistaCart";
-import VistaKioskHome from "./VistaKioskHome/VistaKioskHome";
+import VistaCotizacion from "./VistaCotizacion/VistaCotizacion";
+import VistaCuentaDeCobro from "./VistaCuentaDeCobro/VistaCuentaDeCobro";
+import VistaCreaEquipo from "./VistaCreaEquipo/VistaCreaEquipo";
+import VistaSeleccionarEquipo from "./VistaSeleccionarEquipo/VistaSeleccionarEquipo";
+import VistaEliminarEquipo from "./VistaEliminarEquipo/VistaEliminarEquipo";
+import VistaEditarEquipo from "./VistaEditarEquipo/VistaEditarEquipo";
+import VistaCrearUsuarios from "./VistaCrearUsuarios/VistaCrearUsuarios";
+import VistaEliminarUsuario from "./VistaEliminarUsuario/VistaEliminarUsuario";
+import VistaNoAutorizada from "./VistaNoAutorizada/VistaNoAutorizada";
+import VistaCart from "./VistaCart/VistaCart";
+import KioskHome from "./KioskHome/KioskHome";
+import KioskDetail from "./KioskDetail/KioskDetail";
+import KioskCart from "./KioskCart/KioskCart";
 
 export {
   Home,
@@ -27,5 +29,7 @@ export {
   VistaEliminarUsuario,
   VistaNoAutorizada,
   VistaCart,
-  VistaKioskHome,
+  KioskHome,
+  KioskDetail,
+  KioskCart
 };

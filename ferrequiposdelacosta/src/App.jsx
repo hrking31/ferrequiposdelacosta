@@ -14,7 +14,9 @@ import {
   VistaEliminarUsuario,
   VistaNoAutorizada,
   VistaCart,
-  VistaKioskHome,
+  KioskHome,
+  KioskDetail,
+  KioskCart
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -165,7 +167,9 @@ function App() {
         <Route exact path="/detail/:id" element={<Detail />} />
         <Route path="/vistanoautorizada" element={<VistaNoAutorizada />} />
         <Route path="/vistacart" element={<VistaCart />} />
-        <Route path="/vistakioskhome" element={<VistaKioskHome />} />
+        <Route path="/kioskhome" element={<KioskHome />} />
+        <Route path="/kioskdetail/:id" element={<KioskDetail />} />
+        <Route path="/kioskcart" element={<KioskCart />} />
       </Routes>
     </div>
   );

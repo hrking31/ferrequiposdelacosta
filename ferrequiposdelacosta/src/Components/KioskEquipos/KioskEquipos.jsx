@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  Grid,
-  useTheme,
-  Alert,
-  Snackbar,
-} from "@mui/material";
+import { Grid, Box, useTheme, Alert, Snackbar } from "@mui/material";
 import {
   fetchEquipos,
   clearSearchEquipo,
 } from "../../Store/Slices/searchSlice";
-import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
+import KioskCards from "../KioskCards/KioskCards.jsx";
 import Search from "../../Components/Search/Search";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
+import Footer from "../../Components/Footer/Footer.jsx";
 
 export default function KioskEquipos() {
   const dispatch = useDispatch();
@@ -63,11 +59,21 @@ export default function KioskEquipos() {
         display: "flex",
         flexDirection: "column",
         pt: 8,
-        pb: 8,
         // border: "2px solid red",
       }}
     >
-      <CardsEquipos />
+      <KioskCards />
+
+      <Box
+        component="footer"
+        sx={{
+          width: "100%",
+          mt: 2,
+          //  border: "2px solid red"
+        }}
+      >
+        <Footer />
+      </Box>
 
       <Snackbar
         open={openSnackbar}

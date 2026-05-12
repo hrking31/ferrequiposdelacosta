@@ -20,14 +20,20 @@ export default function MenuAppBar() {
   const isSmallScreen = useMediaQuery("(max-width:915px)");
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const isKioskMode = location.pathname.startsWith("/kiosk");
+
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
-    navigate("/home");
+    navigate(isKioskMode ? "/kioskhome" : "/home");
   };
 
-  const handlecartClick = () => {
-    navigate("/vistacart");
-  };
+const handlecartClick = () => {
+  if (isKioskMode) {
+     navigate("/kioskcart");
+  } else {
+     navigate("/vistacart");
+  }
+};
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -41,7 +47,6 @@ export default function MenuAppBar() {
           zIndex: theme.zIndex.drawer + 1,
         }}
       >
-
         <Toolbar
           sx={{
             display: "flex",
@@ -50,7 +55,6 @@ export default function MenuAppBar() {
             px: 2,
           }}
         >
-
           <Box
             onClick={handleLogoClick}
             sx={{
@@ -68,7 +72,6 @@ export default function MenuAppBar() {
               justifyContent: "center",
             }}
           >
-            
             <img
               src={Logos}
               alt="logo"

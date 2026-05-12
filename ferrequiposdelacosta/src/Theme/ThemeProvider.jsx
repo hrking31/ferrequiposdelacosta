@@ -5,6 +5,7 @@ import {
   responsiveFontSizes,
 } from "@mui/material";
 import { useMemo, useState, useEffect, createContext, useContext } from "react";
+import { useLocation } from "react-router-dom";
 
 // Contexto para cambiar el modo del tema
 const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -22,21 +23,38 @@ const getInitialMode = () => {
 
 export const CustomThemeProvider = ({ children }) => {
   const [mode, setMode] = useState(getInitialMode);
+  const location = useLocation();
 
-  useEffect(() => {
+useEffect(() => {
+  const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
+
+  if (isKioskRoute) {
+    setMode("dark"); // Oscuro si esta en el visor
+  } else {
+    //Restaurar el modo guardado si sale del kiosco
+    const stored = localStorage.getItem("theme");
+    if (stored) setMode(stored);
+  }
+}, [location.pathname]); // Se dispara cada vez que cambias de página
+
+useEffect(() => {
+  // Solo guarda en localStorage si NO esta en modo kiosco
+  const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
+  if (!isKioskRoute) {
     localStorage.setItem("theme", mode);
+  }
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e) => {
-      const stored = localStorage.getItem("theme");
-      if (!stored) {
-        setMode(e.matches ? "dark" : "light");
-      }
-    };
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const handleChange = (e) => {
+    const stored = localStorage.getItem("theme");
+    if (!stored && !isKioskRoute) {
+      setMode(e.matches ? "dark" : "light");
+    }
+  };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [mode]);
+  mediaQuery.addEventListener("change", handleChange);
+  return () => mediaQuery.removeEventListener("change", handleChange);
+}, [mode, location.pathname]);
 
   const colorMode = useMemo(
     () => ({
