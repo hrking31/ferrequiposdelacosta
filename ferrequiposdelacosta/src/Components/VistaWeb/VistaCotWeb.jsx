@@ -125,6 +125,34 @@ export default function VistaCotWeb() {
         </Grid>
       ))}
 
+      <Box sx={{ mt: 2 }}>
+        <Grid
+          container
+          sx={{
+            borderBottom: "1px solid #ccc",
+            padding: "10px 0",
+          }}
+        >
+          <Grid item xs={6}>
+            <Typography variant="subtitle2">
+              Transporte: {formValues.value.transporte}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={6} sx={{ textAlign: "right" }}>
+            <Typography variant="subtitle2">
+              {Number(formValues.value.valorTransporte).toLocaleString(
+                "es-CO",
+                {
+                  style: "currency",
+                  currency: "COP",
+                },
+              )}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
       <Typography
         variant="subtitle1"
         sx={{

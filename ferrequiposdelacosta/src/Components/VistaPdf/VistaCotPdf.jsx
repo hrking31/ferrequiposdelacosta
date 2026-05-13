@@ -53,10 +53,37 @@ export default function generarCotizacion(values) {
     margin: { left: 20, right: 20 },
   });
 
-  // Total
+  // === VALORES DE TRANSPORTE Y TOTAL ===
+const tableEndY = doc.lastAutoTable.finalY;
+doc.setFontSize(12);
+doc.setTextColor(0, 0, 0);
+const transporteTexto = `Transporte: ${values.value.transporte}`;
+const valorTransporte = Number(values.value.valorTransporte).toLocaleString(
+  "es-CO",
+  {
+    style: "currency",
+    currency: "COP",
+  },
+);
+// Posiciones
+const leftX = 20;
+const rightX = 190;
+const lineY = tableEndY + 15;
+// Texto izquierda
+doc.text(transporteTexto, leftX, lineY);
+// Texto derecha
+doc.text(valorTransporte, rightX, lineY, {
+  align: "right",
+});
+// Línea punteada
+doc.setLineDash([1, 1], 0);
+doc.line(85, lineY - 1, 160, lineY - 1);
+// Restaurar línea normal
+doc.setLineDash([], 0);
+
+// Total
   doc.setFontSize(14);
-  // doc.setFont(undefined, "bold");
-  doc.text(`Total: ${values.value.total}`, 200, doc.lastAutoTable.finalY + 12, {
+  doc.text(`Total: ${values.value.total}`, 200, tableEndY + 35, {
     align: "right",
   });
 
@@ -70,7 +97,7 @@ export default function generarCotizacion(values) {
     "Kra 38 # 108 – 23. Tel 605 3356050 - 311 6576633 - 310 6046465",
     105,
     280,
-    { align: "center" }
+    { align: "center" },
   );
   doc.text("BARRANQUILLA - COLOMBIA", 105, 285, { align: "center" });
 

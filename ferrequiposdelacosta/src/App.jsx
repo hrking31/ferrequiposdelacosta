@@ -16,7 +16,8 @@ import {
   VistaCart,
   KioskHome,
   KioskDetail,
-  KioskCart
+  KioskCart,
+  KioskAdminCotizaciones,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -74,6 +75,20 @@ function App() {
           element={
             <ProtectedRoutes>
               <AdminForms />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/kioskadmincotizaciones"
+          element={
+            <ProtectedRoutes
+              allowedRoles={[
+                "administrador",
+                "gestorIntegral",
+                "gestorFacturacion",
+              ]}
+            >
+              <KioskAdminCotizaciones />
             </ProtectedRoutes>
           }
         />

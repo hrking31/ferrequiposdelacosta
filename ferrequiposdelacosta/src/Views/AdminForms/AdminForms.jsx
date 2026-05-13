@@ -280,6 +280,29 @@ export default function AdminForms() {
               </Button>
             )}
           </Grid>
+
+          <Grid
+            item
+            xs={6}
+            md={isMobile ? 6 : 4}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {permisos.includes("eliminarEditarEquipos") && (
+              <Button
+                component={Link}
+                to="/kioskadmincotizaciones"
+                variant="adminSquare"
+                sx={buttonStyle}
+              >
+                <SupportAgentIcon sx={{ fontSize: 40 }} />
+                ADMIN COTIZACIONES
+              </Button>
+            )}
+          </Grid>
         </Grid>
       </Box>
 

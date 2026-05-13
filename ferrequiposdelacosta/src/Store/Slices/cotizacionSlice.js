@@ -9,6 +9,10 @@ const cotizacionSlice = createSlice({
       nit: "",
       fecha: "",
       items: [],
+      transporte: "",
+      valorTransporte: 0,
+      subtotal: 0,
+      iva: false,
       total: 0,
     },
   },
@@ -21,12 +25,16 @@ const cotizacionSlice = createSlice({
       state.value.items = action.payload;
     },
 
+    setSubtotal: (state, action) => {
+      state.value.subtotal = action.payload;
+    },
+
     setTotal: (state, action) => {
       state.value.total = action.payload;
     },
   },
 });
 
-export const { setFormCotizacion, setItems, setTotal } =
+export const { setFormCotizacion, setItems, setSubtotal, setTotal } =
   cotizacionSlice.actions;
 export default cotizacionSlice.reducer;

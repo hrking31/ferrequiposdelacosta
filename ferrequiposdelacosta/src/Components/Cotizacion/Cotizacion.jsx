@@ -2,6 +2,7 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCotizacion,
   setItems,
+  setSubtotal,
   setTotal,
 } from "../../Store/Slices/cotizacionSlice";
 import {
@@ -10,6 +11,10 @@ import {
   TextField,
   Typography,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   useTheme,
 } from "@mui/material";
 
@@ -17,13 +22,27 @@ export default function Cotizacion() {
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cotizacion.value);
   const items = useSelector((state) => state.cotizacion.value.items);
+  const subtotal = useSelector((state) => state.cotizacion.value.subtotal);
   const { total, totalNumero } = useSelector((state) => state.cotizacion.value);
   const theme = useTheme();
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
-    const updatedFormValues = { ...formValues, [name]: value };
+
+    const updatedFormValues = {
+      ...formValues,
+      [name]: value,
+    };
+
+    if (name === "transporte" && value === "Sin transporte") {
+      updatedFormValues.valorTransporte = 0;
+    }
+
     dispatch(setFormCotizacion(updatedFormValues));
+
+    if (name === "valorTransporte" || name === "transporte") {
+      calculateTotalFrom(items, updatedFormValues);
+    }
   };
 
   const updateItem = (index, field, value) => {
@@ -40,15 +59,23 @@ export default function Cotizacion() {
     calculateTotalFrom(updatedItems);
   };
 
-  const calculateTotalFrom = (updatedItems) => {
-    const totalAmount = updatedItems.reduce(
+  const calculateTotalFrom = (updatedItems, currentFormValues = formValues) => {
+    const subtotal = updatedItems.reduce(
       (total, item) => total + item.quantity * item.price * item.day,
-      0
+      0,
     );
+    const subtotalFormatted = subtotal.toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+    });
+    dispatch(setSubtotal(subtotalFormatted));
+    const transporte = Number(currentFormValues.valorTransporte) || 0;
+    const totalAmount = subtotal + transporte;
     const totalAmountFormatted = totalAmount.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
     });
+
     dispatch(setTotal(totalAmountFormatted));
   };
 
@@ -94,7 +121,6 @@ export default function Cotizacion() {
               }}
             />
           </Grid>
-
           <Grid item xs={5} sm={6}>
             <TextField
               fullWidth
@@ -105,7 +131,6 @@ export default function Cotizacion() {
               onChange={handlerInputChange}
             />
           </Grid>
-
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -116,7 +141,6 @@ export default function Cotizacion() {
               onChange={handlerInputChange}
             />
           </Grid>
-
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -126,6 +150,72 @@ export default function Cotizacion() {
               value={formValues.direccion}
               onChange={handlerInputChange}
             />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Transporte</InputLabel>
+
+              <Select
+                name="transporte"
+                value={formValues.transporte || ""}
+                label="Transporte"
+                onChange={handlerInputChange}
+              >
+                <MenuItem value="Solo ida">Solo ida</MenuItem>
+                <MenuItem value="Solo vuelta">Solo vuelta</MenuItem>
+                <MenuItem value="Ida y vuelta">Ida y vuelta</MenuItem>
+                <MenuItem value="Sin transporte">Sin transporte</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="valorTransporte"
+              label="Valor transporte"
+              disabled={formValues.transporte === "Sin transporte"}
+              value={
+                formValues.valorTransporte
+                  ? Number(formValues.valorTransporte).toLocaleString("es-CO")
+                  : ""
+              }
+              onChange={(e) => {
+                const rawValue = e.target.value.replace(/\./g, "");
+
+                handlerInputChange({
+                  target: {
+                    name: "valorTransporte",
+                    value: rawValue,
+                  },
+                });
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>IVA</InputLabel>
+
+              <Select
+                name="iva"
+                value={formValues.iva ? "Sí" : "No"}
+                label="IVA"
+                onChange={(e) => {
+                  handlerInputChange({
+                    target: {
+                      name: "iva",
+                      value: e.target.value === "Sí",
+                    },
+                  });
+                }}
+              >
+                <MenuItem value="No">Sin IVA</MenuItem>
+
+                <MenuItem value="Sí">Con IVA</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
         </Grid>
 
@@ -183,10 +273,18 @@ export default function Cotizacion() {
               <Grid item xs={4}>
                 <TextField
                   fullWidth
-                  type="number"
+                  type="text"
                   label="Precio"
-                  value={item.price !== 0 ? item.price : ""}
-                  onChange={(e) => updateItem(index, "price", e.target.value)}
+                  value={
+                    item.price !== 0
+                      ? Number(item.price).toLocaleString("es-CO")
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\./g, "");
+
+                    updateItem(index, "price", rawValue);
+                  }}
                 />
               </Grid>
 
@@ -215,6 +313,7 @@ export default function Cotizacion() {
           </Grid>
 
           <Grid item xs={6}>
+            <Typography variant="h5">Subtotal: {subtotal}</Typography>
             <Typography variant="h5">Total: {total}</Typography>
           </Grid>
         </Grid>

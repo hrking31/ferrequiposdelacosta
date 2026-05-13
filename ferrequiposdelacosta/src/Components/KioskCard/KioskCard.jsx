@@ -16,11 +16,14 @@ export default function KioskCard({ name, url, id }) {
     <Grid item xs={12}>
       <Link to={`/kioskdetail/${id}`} style={{ textDecoration: "none" }}>
         <Card
+          elevation={3}
           sx={{
             display: "flex",
             flexDirection: "column",
-            height: { xs: 235, sm: 330, md: 470 },
-            // border: "2px solid #000",
+            height: "100%",
+            borderRadius: 4,
+            transition: "transform 0.2s",
+            "&:active": { transform: "scale(0.95)" },
           }}
         >
           <CardActionArea sx={{ flexDirection: "column" }}>

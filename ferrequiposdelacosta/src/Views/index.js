@@ -14,6 +14,7 @@ import VistaCart from "./VistaCart/VistaCart";
 import KioskHome from "./KioskHome/KioskHome";
 import KioskDetail from "./KioskDetail/KioskDetail";
 import KioskCart from "./KioskCart/KioskCart";
+import KioskAdminCotizaciones from "./KioskAdminCotizaciones/KioskAdminCotizaciones";
 
 export {
   Home,
@@ -31,5 +32,6 @@ export {
   VistaCart,
   KioskHome,
   KioskDetail,
-  KioskCart
+  KioskCart,
+  KioskAdminCotizaciones,
 };
