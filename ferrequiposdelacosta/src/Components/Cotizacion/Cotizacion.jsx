@@ -4,6 +4,9 @@ import {
   setItems,
   setSubtotal,
   setTotal,
+  setSubtotalNumero,
+  setIvaNumero,
+  setTotalNumero,
 } from "../../Store/Slices/cotizacionSlice";
 import {
   Box,
@@ -20,11 +23,10 @@ import {
 
 export default function Cotizacion() {
   const dispatch = useDispatch();
-  const formValues = useSelector((state) => state.cotizacion.value);
-  const items = useSelector((state) => state.cotizacion.value.items);
-  const subtotal = useSelector((state) => state.cotizacion.value.subtotal);
-  const { total, totalNumero } = useSelector((state) => state.cotizacion.value);
   const theme = useTheme();
+  const formValues = useSelector((state) => state.cotizacion.value);
+  const { items, subtotal, subtotalNumero, ivaNumero, total, totalNumero } =
+    formValues;
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -40,7 +42,7 @@ export default function Cotizacion() {
 
     dispatch(setFormCotizacion(updatedFormValues));
 
-    if (name === "valorTransporte" || name === "transporte") {
+    if (name === "valorTransporte" || name === "transporte" || name === "iva") {
       calculateTotalFrom(items, updatedFormValues);
     }
   };
@@ -60,23 +62,27 @@ export default function Cotizacion() {
   };
 
   const calculateTotalFrom = (updatedItems, currentFormValues = formValues) => {
-    const subtotal = updatedItems.reduce(
+    const subtotalNumero = updatedItems.reduce(
       (total, item) => total + item.quantity * item.price * item.day,
       0,
     );
-    const subtotalFormatted = subtotal.toLocaleString("es-CO", {
+    const subtotalFormatted = subtotalNumero.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
     });
+    dispatch(setSubtotalNumero(subtotalNumero));
     dispatch(setSubtotal(subtotalFormatted));
     const transporte = Number(currentFormValues.valorTransporte) || 0;
-    const totalAmount = subtotal + transporte;
-    const totalAmountFormatted = totalAmount.toLocaleString("es-CO", {
+    const ivaNumero = currentFormValues.iva ? subtotalNumero * 0.19 : 0;
+    dispatch(setIvaNumero(ivaNumero));
+    const totalNumero = subtotalNumero + transporte + ivaNumero;
+    const totalFormatted = totalNumero.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
     });
 
-    dispatch(setTotal(totalAmountFormatted));
+    dispatch(setTotalNumero(totalNumero));
+    dispatch(setTotal(totalFormatted));
   };
 
   const addNewItem = () => {
@@ -305,16 +311,80 @@ export default function Cotizacion() {
             </Grid>
           </Box>
         ))}
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={6}>
-            <Button variant="success" onClick={addNewItem} fullWidth>
+
+        <Grid container spacing={3} sx={{ mt: 2 }}>
+          <Grid item xs={12}>
+            <Button
+              variant="success"
+              onClick={addNewItem}
+              fullWidth
+              sx={{
+                py: 1.5,
+              }}
+            >
               Agregar Ítem
             </Button>
           </Grid>
 
-          <Grid item xs={6}>
-            <Typography variant="h5">Subtotal: {subtotal}</Typography>
-            <Typography variant="h5">Total: {total}</Typography>
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                backgroundColor:
+                  theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+              }}
+            >
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="subtitle1">Subtotal</Typography>
+
+                <Typography variant="subtitle1">{subtotal}</Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="subtitle1">IVA (19%)</Typography>
+
+                <Typography variant="subtitle1">
+                  {(ivaNumero || 0).toLocaleString("es-CO", {
+                    style: "currency",
+                    currency: "COP",
+                  })}
+                </Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="subtitle1">Transporte</Typography>
+
+                <Typography variant="subtitle1">
+                  {Number(formValues.valorTransporte || 0).toLocaleString(
+                    "es-CO",
+                    {
+                      style: "currency",
+                      currency: "COP",
+                    },
+                  )}
+                </Typography>
+              </Box>
+
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                mt={2}
+                pt={2}
+                sx={{
+                  borderTop: "1px dashed #999",
+                }}
+              >
+                <Typography variant="h5" fontWeight="bold">
+                  TOTAL
+                </Typography>
+
+                <Typography variant="h5" fontWeight="bold">
+                  {total}
+                </Typography>
+              </Box>
+            </Box>
           </Grid>
         </Grid>
       </Box>
