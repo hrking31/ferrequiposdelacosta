@@ -19,7 +19,6 @@ export default function MenuAppBar() {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-
   const isKioskMode = location.pathname.startsWith("/kiosk");
 
   const handleLogoClick = () => {
@@ -27,13 +26,13 @@ export default function MenuAppBar() {
     navigate(isKioskMode ? "/kioskhome" : "/home");
   };
 
-const handlecartClick = () => {
-  if (isKioskMode) {
-     navigate("/kioskcart");
-  } else {
-     navigate("/vistacart");
-  }
-};
+  const handlecartClick = () => {
+    if (isKioskMode) {
+      navigate("/kioskcart");
+    } else {
+      navigate("/vistacart");
+    }
+  };
 
   return (
     <Box sx={{ flexGrow: 1 }}>

@@ -19,6 +19,7 @@ import {
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   removeFromCart,
   updateQty,
@@ -32,10 +33,15 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
+import { database } from "../../Components/Firebase/Firebase.js";
+import { push, ref } from "firebase/database";
+import { clearCart } from "../../Store/Slices/cartSlice";
+import { clearCliente } from "../../Store/Slices/clienteSlice.js";
 
 export default function KioskCart() {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
   const [tipoTransporte, setTipoTransporte] = useState("soloIda");
@@ -85,7 +91,9 @@ export default function KioskCart() {
 
   const handleToggleSelect = (id) => {
     setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((itemId) => itemId !== id)
+        : [...prev, id],
     );
   };
 
@@ -94,6 +102,56 @@ export default function KioskCart() {
       dispatch(removeFromCart(id));
     });
     setSelectedItems([]);
+  };
+
+  const handleSendQuotation = async () => {
+    try {
+      if (items.length === 0) {
+        setSnackbarMessage("No hay equipos en el carrito");
+        setSnackbarSeverity("warning");
+        setOpenSnackbar(true);
+        return;
+      }
+
+      const quotationData = {
+        cliente: {
+          nombre: cliente.nombre || "",
+          identificacion: cliente.identificacion || "",
+          direccion: cliente.direccion || {},
+        },
+
+        transporte,
+
+        equipos: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          days: item.days,
+        })),
+
+        createdAt: Date.now(),
+
+        status: "pending",
+      };
+
+      await push(ref(database, "cotizaciones"), quotationData);
+
+      dispatch(clearCart());
+      dispatch(clearCliente());
+      localStorage.removeItem("cart");
+      localStorage.removeItem("datosCliente");
+      navigate("/kioskhome");
+
+      setSnackbarMessage("Solicitud enviada correctamente");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+    } catch (error) {
+      console.error(error);
+
+      setSnackbarMessage("Error enviando solicitud");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    }
   };
 
   const gruposPorDias = items.reduce((acc, item) => {
@@ -111,29 +169,6 @@ export default function KioskCart() {
   };
 
   const transporte = transporteLabel[tipoTransporte] || "No especificado";
-
-  const message = encodeURIComponent(
-    "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
-      `👤 *Nombre:* ${cliente.nombre}\n` +
-      `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
-      `📍 *Dirección:* ${
-        cliente.direccion
-          ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
-          : ""
-      }\n` +
-      `🚚 *Transporte:* ${transporte}\n\n` +
-      items
-        .map(
-          (item, index) =>
-            `*${index + 1}.* 🛠 *${item.name}*\n` +
-            `📦 Cantidad: ${item.quantity}\n` +
-            `📅 Días: ${item.days}\n`
-        )
-        .join("") +
-      "Gracias! 🙏"
-  );
-
-  const whatsappLink = `https://wa.me/573116576633?text=${message}`;
 
   return (
     <Box
@@ -781,14 +816,14 @@ export default function KioskCart() {
         </Box>
 
         <Button
-          variant="whatsapp"
-          startIcon={<WhatsAppIcon />}
-          href={whatsappLink}
+          variant="contained"
+          color="secondary"
+          onClick={handleSendQuotation}
           target="_blank"
           rel="noopener noreferrer"
           fullWidth
         >
-          Confirmar Pedido
+          Solicitar Cotización
         </Button>
       </Box>
 

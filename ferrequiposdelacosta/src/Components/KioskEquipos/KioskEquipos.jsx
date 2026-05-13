@@ -58,10 +58,14 @@ export default function KioskEquipos() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        pt: 8,
+        pt: 1,
         // border: "2px solid red",
       }}
     >
+      <Box sx={{ p: 2 }}>
+        <Search onSearch={handleSearch} />
+      </Box>
+
       <KioskCards />
 
       <Box

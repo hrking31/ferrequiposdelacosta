@@ -35,6 +35,8 @@ const clienteSlice = createSlice({
         state.direccion.departamento = departamento;
       if (municipio !== undefined) state.direccion.municipio = municipio;
     },
+
+    clearCliente: () => initialState,
   },
 });
 
