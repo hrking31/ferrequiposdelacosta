@@ -18,6 +18,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Checkbox,
+  FormControlLabel,
   useTheme,
 } from "@mui/material";
 
@@ -40,9 +42,19 @@ export default function Cotizacion() {
       updatedFormValues.valorTransporte = 0;
     }
 
+    if (!value && name === "deposito") {
+      updatedFormValues.valorDeposito = 0;
+    }
+
     dispatch(setFormCotizacion(updatedFormValues));
 
-    if (name === "valorTransporte" || name === "transporte" || name === "iva") {
+    if (
+      name === "valorTransporte" ||
+      name === "transporte" ||
+      name === "iva" ||
+      name === "deposito" ||
+      name === "valorDeposito"
+    ) {
       calculateTotalFrom(items, updatedFormValues);
     }
   };
@@ -73,9 +85,12 @@ export default function Cotizacion() {
     dispatch(setSubtotalNumero(subtotalNumero));
     dispatch(setSubtotal(subtotalFormatted));
     const transporte = Number(currentFormValues.valorTransporte) || 0;
+    const deposito = currentFormValues.deposito
+      ? Number(currentFormValues.valorDeposito) || 0
+      : 0;
     const ivaNumero = currentFormValues.iva ? subtotalNumero * 0.19 : 0;
     dispatch(setIvaNumero(ivaNumero));
-    const totalNumero = subtotalNumero + transporte + ivaNumero;
+    const totalNumero = subtotalNumero + transporte + deposito + ivaNumero;
     const totalFormatted = totalNumero.toLocaleString("es-CO", {
       style: "currency",
       currency: "COP",
@@ -175,12 +190,13 @@ export default function Cotizacion() {
               </Select>
             </FormControl>
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               type="text"
               name="valorTransporte"
-              label="Valor transporte"
+              label="Valor Transporte"
               disabled={formValues.transporte === "Sin transporte"}
               value={
                 formValues.valorTransporte
@@ -201,27 +217,70 @@ export default function Cotizacion() {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>IVA</InputLabel>
+            <Box display="flex" alignItems="center" width="100%">
+              <Box flex={1}>
+                <FormControlLabel
+                  label="IVA"
+                  control={
+                    <Checkbox
+                      checked={formValues.iva}
+                      onChange={(e) => {
+                        handlerInputChange({
+                          target: {
+                            name: "iva",
+                            value: e.target.checked,
+                          },
+                        });
+                      }}
+                    />
+                  }
+                />
+              </Box>
 
-              <Select
-                name="iva"
-                value={formValues.iva ? "Sí" : "No"}
-                label="IVA"
-                onChange={(e) => {
-                  handlerInputChange({
-                    target: {
-                      name: "iva",
-                      value: e.target.value === "Sí",
-                    },
-                  });
-                }}
-              >
-                <MenuItem value="No">Sin IVA</MenuItem>
+              <Box flex={1}>
+                <FormControlLabel
+                  label="Depósito"
+                  control={
+                    <Checkbox
+                      checked={formValues.deposito}
+                      onChange={(e) => {
+                        handlerInputChange({
+                          target: {
+                            name: "deposito",
+                            value: e.target.checked,
+                          },
+                        });
+                      }}
+                    />
+                  }
+                />
+              </Box>
+            </Box>
+          </Grid>
 
-                <MenuItem value="Sí">Con IVA</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="valorDeposito"
+              label="Valor Depósito"
+              disabled={!formValues.deposito}
+              value={
+                formValues.valorDeposito
+                  ? Number(formValues.valorDeposito).toLocaleString("es-CO")
+                  : ""
+              }
+              onChange={(e) => {
+                const rawValue = e.target.value.replace(/\./g, "");
+
+                handlerInputChange({
+                  target: {
+                    name: "valorDeposito",
+                    value: rawValue,
+                  },
+                });
+              }}
+            />
           </Grid>
         </Grid>
 
@@ -350,6 +409,20 @@ export default function Cotizacion() {
                     style: "currency",
                     currency: "COP",
                   })}
+                </Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="subtitle1">Depósito</Typography>
+
+                <Typography variant="subtitle1">
+                  {Number(formValues.valorDeposito || 0).toLocaleString(
+                    "es-CO",
+                    {
+                      style: "currency",
+                      currency: "COP",
+                    },
+                  )}
                 </Typography>
               </Box>
 

@@ -36,6 +36,8 @@ const DatosClienteModal = ({
   const [tipo, setTipo] = useState("");
   const [nombre, setNombre] = useState("");
   const [id, setId] = useState("");
+  const [telefono, setTelefono] = useState("");
+  
   const estadoInicialDireccion = {
     departamento: "",
     municipio: "",
@@ -47,6 +49,7 @@ const DatosClienteModal = ({
   const clienteInicial = {
     nombre: "",
     identificacion: "",
+    telefono: "",
     tipo: "",
     direccion: { ...estadoInicialDireccion },
   };
@@ -64,8 +67,8 @@ const DatosClienteModal = ({
     ? Object.values(cliente.direccion).every((valor) => valor.trim?.() === "")
     : true;
 
-  const clienteVacio = ["nombre", "identificacion", "tipo"].every(
-    (campo) => (cliente[campo] ?? "").trim() === ""
+  const clienteVacio = ["nombre", "identificacion", "tipo", "telefono"].every(
+    (campo) => (cliente[campo] ?? "").trim() === "",
   );
 
   const validarCampos = () => {
@@ -79,6 +82,11 @@ const DatosClienteModal = ({
         errores.id = "Este campo es obligatorio.";
       } else if (!/^\d{5,20}$/.test(id.trim())) {
         errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+      }
+      if (!telefono.trim()) {
+        errores.telefono = "Este campo es obligatorio.";
+      } else if (!/^\d{7,15}$/.test(telefono.trim())) {
+        errores.telefono = "Debe contener solo números.";
       }
     } else if (modoDireccion && direccionVacia) {
       if (!direccion.detalle?.trim()) {
@@ -110,6 +118,11 @@ const DatosClienteModal = ({
           errores.id = "Este campo es obligatorio.";
         } else if (!/^\d{5,20}$/.test(id.trim())) {
           errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+        }
+        if (!telefono.trim()) {
+          errores.telefono = "Este campo es obligatorio.";
+        } else if (!/^\d{7,15}$/.test(telefono.trim())) {
+          errores.telefono = "Debe contener solo números.";
         }
         if (!direccion.detalle?.trim()) {
           errores.detalle = "La dirección es obligatoria.";
@@ -146,7 +159,10 @@ const DatosClienteModal = ({
         ...cliente,
         tipo,
         nombre,
+        telefono,
         identificacion: id,
+        iva: true,
+        deposito: true,
       };
       dispatch(setCliente(datosCliente));
       localStorage.setItem("datosCliente", JSON.stringify(datosCliente));
@@ -181,7 +197,7 @@ const DatosClienteModal = ({
 
         localStorage.setItem(
           "datosCliente",
-          JSON.stringify(clienteActualizado)
+          JSON.stringify(clienteActualizado),
         );
       }
     } else if (modoDireccion) {
@@ -205,6 +221,9 @@ const DatosClienteModal = ({
         nombre,
         direccion,
         identificacion: id,
+        telefono,
+        iva: true,
+        deposito: true,
       };
       dispatch(setCliente(datos));
       localStorage.setItem("datosCliente", JSON.stringify(datos));
@@ -223,6 +242,7 @@ const DatosClienteModal = ({
     setTipo("");
     setNombre("");
     setId("");
+    setTelefono("");
     setErrors({});
     if (onClose) {
       onClose();
@@ -250,6 +270,7 @@ const DatosClienteModal = ({
       setNombre("");
       setId("");
       setTipo("");
+      setTelefono("");
       setErrors({});
     } else if (modoDireccion) {
       const clienteGuardado =
@@ -336,6 +357,10 @@ const DatosClienteModal = ({
                 {getLabelID()}: {cliente.identificacion}
               </Typography>
 
+              <Typography variant="body2">
+                Teléfono: {cliente.telefono}
+              </Typography>
+
               <Divider sx={{ my: 2 }} />
             </Box>
           )}
@@ -383,7 +408,7 @@ const DatosClienteModal = ({
                     label="Empresa"
                   />
                 </RadioGroup>
-                
+
                 {errors.tipo && (
                   <Typography variant="caption" color="error">
                     {errors.tipo}
@@ -409,6 +434,16 @@ const DatosClienteModal = ({
                 onChange={(e) => setId(e.target.value)}
                 error={!!errors.id}
                 helperText={errors.id}
+              />
+
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Teléfono"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                error={!!errors.telefono}
+                helperText={errors.telefono}
               />
             </Box>
           )}
@@ -531,7 +566,7 @@ const DatosClienteModal = ({
                       <MenuItem key={mun} value={mun}>
                         {mun}
                       </MenuItem>
-                    )
+                    ),
                   )
                 ) : (
                   <MenuItem disabled>Seleccione un departamento</MenuItem>
@@ -550,6 +585,7 @@ const DatosClienteModal = ({
                 setTipo("");
                 setNombre("");
                 setId("");
+                setTelefono("");
                 setErrors({});
                 onClose();
                 onSuccess();

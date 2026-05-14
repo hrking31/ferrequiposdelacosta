@@ -27,10 +27,20 @@ export default function VistaCotizacion() {
         direccion: "",
         nit: "",
         fecha: "",
-      })
+        items: [],
+        transporte: "",
+        valorTransporte: 0,
+        deposito: true,
+        valorDeposito: 0,
+        iva: true,
+        subtotalNumero: 0,
+        ivaNumero: 0,
+        totalNumero: 0,
+        subtotal: "$0",
+        total: "$0",
+      }),
     );
     dispatch(setItems([]));
-    dispatch(setTotal("0"));
   };
 
   const handleClick = () => {

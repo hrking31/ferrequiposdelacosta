@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   tipo: "",
   nombre: "",
+  telefono:"",
   identificacion: "",
   direccion: {
     detalle: "",
@@ -11,6 +12,8 @@ const initialState = {
     departamento: "",
     municipio: "",
   },
+  iva: true,
+  deposito: true,
 };
 
 const clienteSlice = createSlice({
@@ -18,11 +21,22 @@ const clienteSlice = createSlice({
   initialState,
   reducers: {
     setCliente: (state, action) => {
-      const { tipo, nombre, identificacion, direccion } = action.payload;
+      const {
+        tipo,
+        nombre,
+        telefono,
+        identificacion,
+        direccion,
+        iva,
+        deposito,
+      } = action.payload;
       state.tipo = tipo;
       state.nombre = nombre;
+      state.telefono = telefono;
       state.identificacion = identificacion;
       state.direccion = direccion;
+      state.iva = iva;
+      state.deposito = deposito;
     },
 
     actualizarDireccion: (state, action) => {

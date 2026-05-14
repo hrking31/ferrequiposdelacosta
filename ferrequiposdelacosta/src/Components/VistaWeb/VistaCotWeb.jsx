@@ -87,7 +87,7 @@ export default function VistaCotWeb() {
         <br />
         Nit: {formValues.value.nit}
         <br />
-        Obra: {formValues.value.direccion}
+        Obra: {formValues.value.direccion} {formValues.value.barrio}
       </Typography>
 
       <Typography
@@ -125,12 +125,43 @@ export default function VistaCotWeb() {
         </Grid>
       ))}
 
+      <Typography
+        variant="subtitle1"
+        sx={{
+          textAlign: "right",
+          mt: "20px",
+        }}
+      >
+        Subtotal: {formValues.value.subtotal}
+      </Typography>
+
       <Box sx={{ mt: 2 }}>
         <Grid
           container
           sx={{
             borderBottom: "1px solid #ccc",
-            padding: "10px 0",
+          }}
+        >
+          <Grid item xs={6}>
+            <Typography variant="subtitle2">Depósito</Typography>
+          </Grid>
+
+          <Grid item xs={6} sx={{ textAlign: "right" }}>
+            <Typography variant="subtitle2">
+              {Number(formValues.value.valorDeposito).toLocaleString("es-CO", {
+                style: "currency",
+                currency: "COP",
+              })}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Grid
+          container
+          sx={{
+            borderBottom: "1px solid #ccc",
           }}
         >
           <Grid item xs={6}>
@@ -148,6 +179,28 @@ export default function VistaCotWeb() {
                   currency: "COP",
                 },
               )}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Grid
+          container
+          sx={{
+            borderBottom: "1px solid #ccc",
+          }}
+        >
+          <Grid item xs={6}>
+            <Typography variant="subtitle2">Iva</Typography>
+          </Grid>
+
+          <Grid item xs={6} sx={{ textAlign: "right" }}>
+            <Typography variant="subtitle2">
+              {Number(formValues.value.ivaNumero).toLocaleString("es-CO", {
+                style: "currency",
+                currency: "COP",
+              })}
             </Typography>
           </Grid>
         </Grid>
