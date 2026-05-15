@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   tipo: "",
   nombre: "",
-  telefono:"",
+  telefono: "",
   identificacion: "",
   direccion: {
     detalle: "",
@@ -39,6 +39,14 @@ const clienteSlice = createSlice({
       state.deposito = deposito;
     },
 
+    actualizarCliente: (state, action) => {
+      const { tipo, nombre, telefono, identificacion } = action.payload;
+      if (tipo !== undefined) state.tipo = tipo;
+      if (nombre !== undefined) state.nombre = nombre;
+      if (telefono !== undefined) state.telefono = telefono;
+      if (identificacion !== undefined) state.identificacion = identificacion;
+    },
+
     actualizarDireccion: (state, action) => {
       const { departamento, municipio, detalle, barrio, otrosDatos } =
         action.payload;
@@ -54,6 +62,10 @@ const clienteSlice = createSlice({
   },
 });
 
-export const { setCliente, clearCliente, actualizarDireccion } =
-  clienteSlice.actions;
+export const {
+  setCliente,
+  clearCliente,
+  actualizarCliente,
+  actualizarDireccion,
+} = clienteSlice.actions;
 export default clienteSlice.reducer;

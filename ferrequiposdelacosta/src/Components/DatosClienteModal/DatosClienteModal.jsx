@@ -20,6 +20,7 @@ import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 import {
   setCliente,
   actualizarDireccion,
+  actualizarCliente,
 } from "../../Store/Slices/clienteSlice";
 
 const DatosClienteModal = ({
@@ -33,11 +34,16 @@ const DatosClienteModal = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const cliente = useSelector((state) => state.cliente);
-  const [tipo, setTipo] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [id, setId] = useState("");
-  const [telefono, setTelefono] = useState("");
-  
+
+  const estadoInicialCliente = {
+    tipo: "",
+    nombre: "",
+    telefono: "",
+    identificacion: "",
+    deposito: true,
+    iva: true,
+  };
+
   const estadoInicialDireccion = {
     departamento: "",
     municipio: "",
@@ -47,16 +53,19 @@ const DatosClienteModal = ({
   };
 
   const clienteInicial = {
-    nombre: "",
-    identificacion: "",
-    telefono: "",
     tipo: "",
+    nombre: "",
+    telefono: "",
+    identificacion: "",
+    deposito: true,
+    iva: true,
     direccion: { ...estadoInicialDireccion },
   };
 
+  const [clienteLocal, setClienteLocal] = useState(estadoInicialCliente);
   const [direccion, setDireccion] = useState(estadoInicialDireccion);
-  const [errors, setErrors] = useState({});
 
+  const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -73,19 +82,22 @@ const DatosClienteModal = ({
 
   const validarCampos = () => {
     const errores = {};
-    if (modoCliente) {
-      if (!tipo.trim()) errores.tipo = "Este campo es obligatorio.";
+    if (modoCliente && clienteVacio) {
+      if (!clienteLocal.tipo?.trim())
+        errores.tipo = "Este campo es obligatorio.";
 
-      if (!nombre.trim()) errores.nombre = "Este campo es obligatorio.";
+      if (!clienteLocal.nombre?.trim())
+        errores.nombre = "Este campo es obligatorio.";
 
-      if (!id.trim()) {
-        errores.id = "Este campo es obligatorio.";
-      } else if (!/^\d{5,20}$/.test(id.trim())) {
-        errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+      if (!clienteLocal.identificacion?.trim()) {
+        errores.identificacion = "Este campo es obligatorio.";
+      } else if (!/^\d{5,20}$/.test(clienteLocal.identificacion?.trim())) {
+        errores.identificacion =
+          "Debe contener solo números (mínimo 5 dígitos).";
       }
-      if (!telefono.trim()) {
+      if (!clienteLocal.telefono?.trim()) {
         errores.telefono = "Este campo es obligatorio.";
-      } else if (!/^\d{7,15}$/.test(telefono.trim())) {
+      } else if (!/^\d{7,15}$/.test(clienteLocal.telefono?.trim())) {
         errores.telefono = "Debe contener solo números.";
       }
     } else if (modoDireccion && direccionVacia) {
@@ -110,18 +122,21 @@ const DatosClienteModal = ({
       }
     } else {
       if (modoAdmin) {
-        if (!tipo.trim()) errores.tipo = "Este campo es obligatorio.";
+        if (!clienteLocal.tipo?.trim())
+          errores.tipo = "Este campo es obligatorio.";
 
-        if (!nombre.trim()) errores.nombre = "Este campo es obligatorio.";
+        if (!clienteLocal.nombre?.trim())
+          errores.nombre = "Este campo es obligatorio.";
 
-        if (!id.trim()) {
-          errores.id = "Este campo es obligatorio.";
-        } else if (!/^\d{5,20}$/.test(id.trim())) {
-          errores.id = "Debe contener solo números (mínimo 5 dígitos).";
+        if (!clienteLocal.identificacion?.trim()) {
+          errores.identificacion = "Este campo es obligatorio.";
+        } else if (!/^\d{5,20}$/.test(clienteLocal.identificacion?.trim())) {
+          errores.identificacion =
+            "Debe contener solo números (mínimo 5 dígitos).";
         }
-        if (!telefono.trim()) {
+        if (!clienteLocal.telefono?.trim()) {
           errores.telefono = "Este campo es obligatorio.";
-        } else if (!/^\d{7,15}$/.test(telefono.trim())) {
+        } else if (!/^\d{7,15}$/.test(clienteLocal.telefono?.trim())) {
           errores.telefono = "Debe contener solo números.";
         }
         if (!direccion.detalle?.trim()) {
@@ -154,21 +169,45 @@ const DatosClienteModal = ({
     if (!validarCampos()) return;
     let datos;
 
-    if (modoCliente) {
+    if (modoCliente && !clienteVacio) {
+      const camposModificados = {};
+
+      if (clienteLocal.nombre.trim()) {
+        camposModificados.nombre = clienteLocal.nombre.trim();
+      }
+
+      if (clienteLocal.telefono.trim()) {
+        camposModificados.telefono = clienteLocal.telefono.trim();
+      }
+
+      if (clienteLocal.identificacion.trim()) {
+        camposModificados.identificacion = clienteLocal.identificacion.trim();
+      }
+
+      if (clienteLocal.tipo.trim()) {
+        camposModificados.tipo = clienteLocal.tipo.trim();
+      }
+
+      if (Object.keys(camposModificados).length > 0) {
+        dispatch(actualizarCliente(camposModificados));
+
+        const clienteActualizado = {
+          ...cliente,
+          ...camposModificados,
+        };
+
+        localStorage.setItem(
+          "datosCliente",
+          JSON.stringify(clienteActualizado),
+        );
+      }
+    } else if (modoCliente) {
       const datosCliente = {
         ...cliente,
-        tipo,
-        nombre,
-        telefono,
-        identificacion: id,
-        iva: true,
-        deposito: true,
+        ...clienteLocal,
       };
       dispatch(setCliente(datosCliente));
       localStorage.setItem("datosCliente", JSON.stringify(datosCliente));
-      setTipo("");
-      setNombre("");
-      setId("");
     } else if (modoDireccion && !direccionVacia) {
       const direccionAnterior = cliente.direccion || {};
       const camposModificados = {};
@@ -217,13 +256,8 @@ const DatosClienteModal = ({
       localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
     } else {
       datos = {
-        tipo,
-        nombre,
+        ...clienteLocal,
         direccion,
-        identificacion: id,
-        telefono,
-        iva: true,
-        deposito: true,
       };
       dispatch(setCliente(datos));
       localStorage.setItem("datosCliente", JSON.stringify(datos));
@@ -239,10 +273,7 @@ const DatosClienteModal = ({
       onSuccess();
     }
     setDireccion(estadoInicialDireccion);
-    setTipo("");
-    setNombre("");
-    setId("");
-    setTelefono("");
+    setClienteLocal(estadoInicialCliente);
     setErrors({});
     if (onClose) {
       onClose();
@@ -267,10 +298,7 @@ const DatosClienteModal = ({
         localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
       }
 
-      setNombre("");
-      setId("");
-      setTipo("");
-      setTelefono("");
+      setClienteLocal(estadoInicialCliente);
       setErrors({});
     } else if (modoDireccion) {
       const clienteGuardado =
@@ -303,9 +331,15 @@ const DatosClienteModal = ({
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  const getLabelNombre = () =>
-    cliente.tipo === "persona" ? "Nombre" : "Razón social";
-  const getLabelID = () => (cliente.tipo === "persona" ? "Cédula" : "NIT");
+  const getLabelNombre = () => {
+    const tipoActivo = clienteLocal.tipo || cliente.tipo;
+    return tipoActivo === "persona" ? "Nombre" : "Razón social";
+  };
+  const getLabelID = () => {
+    const tipoActivo = clienteLocal.tipo || cliente.tipo;
+
+    return tipoActivo === "persona" ? "Cédula" : "NIT";
+  };
 
   return (
     <>
@@ -344,7 +378,7 @@ const DatosClienteModal = ({
           {modoCliente && !clienteVacio && (
             <Box>
               <Typography variant="subtitle1">
-                {cliente.tipo === "persona"
+                {(clienteLocal.tipo || cliente.tipo) === "persona"
                   ? "Cliente actual:"
                   : "Datos empresa:"}
               </Typography>
@@ -375,8 +409,10 @@ const DatosClienteModal = ({
                 <Typography variant="subtitle2">Tipo de cliente</Typography>
                 <RadioGroup
                   row
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value)}
+                  value={clienteLocal.tipo}
+                  onChange={(e) =>
+                    setClienteLocal({ ...clienteLocal, tipo: e.target.value })
+                  }
                 >
                   <FormControlLabel
                     value="persona"
@@ -420,8 +456,10 @@ const DatosClienteModal = ({
                 fullWidth
                 margin="normal"
                 label={getLabelNombre()}
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                value={clienteLocal.nombre}
+                onChange={(e) =>
+                  setClienteLocal({ ...clienteLocal, nombre: e.target.value })
+                }
                 error={!!errors.nombre}
                 helperText={errors.nombre}
               />
@@ -430,18 +468,25 @@ const DatosClienteModal = ({
                 fullWidth
                 margin="normal"
                 label={getLabelID()}
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-                error={!!errors.id}
-                helperText={errors.id}
+                value={clienteLocal.identificacion}
+                onChange={(e) =>
+                  setClienteLocal({
+                    ...clienteLocal,
+                    identificacion: e.target.value,
+                  })
+                }
+                error={!!errors.identificacion}
+                helperText={errors.identificacion}
               />
 
               <TextField
                 fullWidth
                 margin="normal"
                 label="Teléfono"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
+                value={clienteLocal.telefono}
+                onChange={(e) =>
+                  setClienteLocal({ ...clienteLocal, telefono: e.target.value })
+                }
                 error={!!errors.telefono}
                 helperText={errors.telefono}
               />
@@ -582,10 +627,7 @@ const DatosClienteModal = ({
               variant="danger"
               onClick={() => {
                 setDireccion(estadoInicialDireccion);
-                setTipo("");
-                setNombre("");
-                setId("");
-                setTelefono("");
+                setClienteLocal(estadoInicialCliente);
                 setErrors({});
                 onClose();
                 onSuccess();
