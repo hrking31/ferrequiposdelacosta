@@ -5,7 +5,7 @@ const cotizacionSlice = createSlice({
   initialState: {
     listaCotizaciones: [],
     value: {
-      tipo: "",
+      tipo: "persona",
       empresa: "",
       direccion: "",
       barrio: "",

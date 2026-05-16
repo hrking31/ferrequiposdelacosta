@@ -15,10 +15,13 @@ import {
   Typography,
   Grid,
   FormControl,
+  FormLabel,
   InputLabel,
   Select,
   MenuItem,
   Checkbox,
+  RadioGroup,
+  Radio,
   FormControlLabel,
   useTheme,
 } from "@mui/material";
@@ -124,6 +127,36 @@ export default function Cotizacion() {
         <Typography variant="h5">Formulario Cotización</Typography>
 
         <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
+          <Grid item xs={12}>
+            <FormControl>
+              <RadioGroup
+                row
+                name="tipo"
+                value={formValues.tipo}
+                onChange={(e) => {
+                  handlerInputChange({
+                    target: {
+                      name: "tipo",
+                      value: e.target.value,
+                    },
+                  });
+                }}
+              >
+                <FormControlLabel
+                  value="persona"
+                  control={<Radio />}
+                  label="Persona"
+                />
+
+                <FormControlLabel
+                  value="empresa"
+                  control={<Radio />}
+                  label="Empresa"
+                />
+              </RadioGroup>
+            </FormControl>
+          </Grid>
+
           <Grid item xs={7} sm={6}>
             <TextField
               fullWidth
@@ -146,9 +179,9 @@ export default function Cotizacion() {
             <TextField
               fullWidth
               type="text"
-              name="nit"
-              label="NIT"
-              value={formatNit(formValues.nit)}
+              name={formValues.tipo === "empresa" ? "nit" : "cedula"}
+              label={formValues.tipo === "empresa" ? "NIT" : "Cédula"}
+              value={formValues.nit}
               onChange={handlerInputChange}
             />
           </Grid>
@@ -156,8 +189,8 @@ export default function Cotizacion() {
             <TextField
               fullWidth
               type="text"
-              name="empresa"
-              label="Empresa"
+              name={formValues.tipo === "empresa" ? "empresa" : "nombre"}
+              label={formValues.tipo === "empresa" ? "Empresa" : "Nombre"}
               value={formValues.empresa}
               onChange={handlerInputChange}
             />
