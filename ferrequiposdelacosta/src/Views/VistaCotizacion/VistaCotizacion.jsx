@@ -5,11 +5,7 @@ import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  setFormCotizacion,
-  setItems,
-  setTotal,
-} from "../../Store/Slices/cotizacionSlice";
+import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
 import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 
 export default function VistaCotizacion() {
@@ -21,26 +17,7 @@ export default function VistaCotizacion() {
   const [loading, setLoading] = useState(false);
 
   const clearForm = () => {
-    dispatch(
-      setFormCotizacion({
-        empresa: "",
-        direccion: "",
-        nit: "",
-        fecha: "",
-        items: [],
-        transporte: "",
-        valorTransporte: 0,
-        deposito: true,
-        valorDeposito: 0,
-        iva: true,
-        subtotalNumero: 0,
-        ivaNumero: 0,
-        totalNumero: 0,
-        subtotal: "$0",
-        total: "$0",
-      }),
-    );
-    dispatch(setItems([]));
+    dispatch(resetCotizacion());
   };
 
   const handleClick = () => {

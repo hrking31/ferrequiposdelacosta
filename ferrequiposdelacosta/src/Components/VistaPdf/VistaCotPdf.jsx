@@ -26,9 +26,31 @@ export default function generarCotizacion(values) {
   // Datos del cliente
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
-  doc.text(`Señores: ${values.value.empresa}`, 20, 63);
-  doc.text(`Nit: ${values.value.nit}`, 20, 70);
-  doc.text(`Obra: ${values.value.direccion}`, 20, 77);
+  doc.text(
+    `${values.value.tipo === "empresa" ? "Señores" : "Nombre"}: ${
+      values.value.empresa
+    }`,
+    20,
+    63,
+  );
+
+  doc.text(
+    `${values.value.tipo === "empresa" ? "NIT" : "Cédula"}: ${
+      values.value.nit
+    }`,
+    20,
+    70,
+  );
+
+  doc.text(
+    `${
+      values.value.tipo === "empresa" ? "Obra" : "Dirección"
+    }: ${values.value.direccion} ${values.value.barrio}${
+      values.value.otrosDatos ? `, ${values.value.otrosDatos}` : ""
+    }`,
+    20,
+    77,
+  );
 
   // Título de la cotización
   doc.setFontSize(16);
@@ -38,53 +60,113 @@ export default function generarCotizacion(values) {
   // === TABLA DE ITEMS ===
   autoTable(doc, {
     startY: 105,
-    head: [["Cantidad", "Descripción", "Subtotal"]],
-    body: values.value.items.map((item) => [
-      item.quantity,
-      item.description,
-      item.subtotal,
-    ]),
-    styles: { fontSize: 11, halign: "center" },
-    columnStyles: {
-      0: { cellWidth: 30, halign: "center" },
-      1: { cellWidth: 100, halign: "left" },
-      2: { cellWidth: 40, halign: "right" },
+
+    head: [["Cantidad", "Descripción", "Valor"]],
+
+    body: [
+      ...values.value.items.map((item) => [
+        item.quantity,
+        [
+          item.description,
+
+          item.day ? `${item.day} día(s)` : "",
+
+          item.details || "",
+        ]
+          .filter(Boolean)
+          .join(" - "),
+        item.subtotal,
+      ]),
+
+      // Espacio
+      ["", "", ""],
+
+      // Subtotal
+      ["", "Subtotal", values.value.subtotal],
+
+      // IVA
+      [
+        `IVA`,
+        "",
+        Number(values.value.ivaNumero).toLocaleString("es-CO", {
+          style: "currency",
+          currency: "COP",
+        }),
+      ],
+
+      // Depósito
+      [
+        `Depósito`,
+        "",
+        Number(values.value.valorDeposito).toLocaleString("es-CO", {
+          style: "currency",
+          currency: "COP",
+        }),
+      ],
+
+      // Transporte
+      [
+        `Transporte`,
+        `${values.value.transporte}`,
+        Number(values.value.valorTransporte).toLocaleString("es-CO", {
+          style: "currency",
+          currency: "COP",
+        }),
+      ],
+
+      // Total
+      ["", "TOTAL", values.value.total],
+    ],
+
+    styles: {
+      fontSize: 10,
+      halign: "center",
     },
-    margin: { left: 20, right: 20 },
-  });
 
-  // === VALORES DE TRANSPORTE Y TOTAL ===
-const tableEndY = doc.lastAutoTable.finalY;
-doc.setFontSize(12);
-doc.setTextColor(0, 0, 0);
-const transporteTexto = `Transporte: ${values.value.transporte}`;
-const valorTransporte = Number(values.value.valorTransporte).toLocaleString(
-  "es-CO",
-  {
-    style: "currency",
-    currency: "COP",
-  },
-);
-// Posiciones
-const leftX = 20;
-const rightX = 190;
-const lineY = tableEndY + 15;
-// Texto izquierda
-doc.text(transporteTexto, leftX, lineY);
-// Texto derecha
-doc.text(valorTransporte, rightX, lineY, {
-  align: "right",
-});
-// Línea punteada
-doc.setLineDash([1, 1], 0);
-doc.line(85, lineY - 1, 160, lineY - 1);
-// Restaurar línea normal
-doc.setLineDash([], 0);
+    columnStyles: {
+      0: {
+        cellWidth: 30,
+        halign: "center",
+      },
 
-// Total
-  doc.setFontSize(14);
-  doc.text(`Total: ${values.value.total}`, 200, tableEndY + 35, {
-    align: "right",
+      1: {
+        cellWidth: 100,
+        halign: "left",
+      },
+
+      2: {
+        cellWidth: 40,
+        halign: "right",
+      },
+    },
+
+    margin: {
+      left: 20,
+      right: 20,
+    },
+
+    didParseCell: function (data) {
+      const rowIndex = data.row.index;
+      const itemsLength = values.value.items.length;
+
+      // Subtotal
+      if (rowIndex === itemsLength + 1) {
+        data.cell.styles.fontSize = 12;
+        data.cell.styles.fontStyle = "bold";
+        if (data.column.index === 1) {
+          data.cell.styles.halign = "right";
+        }
+      }
+
+      // Total
+      if (rowIndex === itemsLength + 5) {
+        data.cell.styles.fontSize = 12;
+        data.cell.styles.fontStyle = "bold";
+        if (data.column.index === 1) {
+          data.cell.styles.halign = "right";
+        }
+      }
+    },
   });
 
   // === PIE DE PÁGINA ===

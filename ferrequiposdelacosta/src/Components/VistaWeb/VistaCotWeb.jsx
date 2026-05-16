@@ -83,11 +83,15 @@ export default function VistaCotWeb() {
       >
         Barranquilla, {formValues.value.fecha}
         <br />
-        Señores: {formValues.value.empresa}
+        {formValues.value.tipo === "empresa" ? "Señores" : "Nombre"}:{" "}
+        {formValues.value.empresa}
         <br />
-        Nit: {formValues.value.nit}
+        {formValues.value.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
+        {formValues.value.nit}
         <br />
-        Obra: {formValues.value.direccion} {formValues.value.barrio}
+        {formValues.value.tipo === "empresa" ? "Obra" : "Dirección"}:{" "}
+        {formValues.value.direccion} {formValues.value.barrio}
+        {formValues.value.otrosDatos && `, ${formValues.value.otrosDatos}`}
       </Typography>
 
       <Typography
@@ -143,6 +147,28 @@ export default function VistaCotWeb() {
           }}
         >
           <Grid item xs={6}>
+            <Typography variant="subtitle2">Iva</Typography>
+          </Grid>
+
+          <Grid item xs={6} sx={{ textAlign: "right" }}>
+            <Typography variant="subtitle2">
+              {Number(formValues.value.ivaNumero).toLocaleString("es-CO", {
+                style: "currency",
+                currency: "COP",
+              })}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Grid
+          container
+          sx={{
+            borderBottom: "1px solid #ccc",
+          }}
+        >
+          <Grid item xs={6}>
             <Typography variant="subtitle2">Depósito</Typography>
           </Grid>
 
@@ -179,28 +205,6 @@ export default function VistaCotWeb() {
                   currency: "COP",
                 },
               )}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box sx={{ mt: 2 }}>
-        <Grid
-          container
-          sx={{
-            borderBottom: "1px solid #ccc",
-          }}
-        >
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">Iva</Typography>
-          </Grid>
-
-          <Grid item xs={6} sx={{ textAlign: "right" }}>
-            <Typography variant="subtitle2">
-              {Number(formValues.value.ivaNumero).toLocaleString("es-CO", {
-                style: "currency",
-                currency: "COP",
-              })}
             </Typography>
           </Grid>
         </Grid>

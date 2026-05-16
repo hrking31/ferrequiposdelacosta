@@ -1,32 +1,40 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+const initialValue = {
+  tipo: "persona",
+  empresa: "",
+  nit: "",
+  telefono: "",
+  direccion: "",
+  barrio: "",
+  otrosDatos: "",
+  fecha: "",
+  items: [],
+  transporte: "",
+  valorTransporte: 0,
+  deposito: true,
+  valorDeposito: 0,
+  iva: true,
+  ivaNumero: 0,
+  subtotalNumero: 0,
+  subtotal: "$0",
+  totalNumero: 0,
+  total: "$0",
+};
+
 const cotizacionSlice = createSlice({
   name: "cotizacion",
+
   initialState: {
     listaCotizaciones: [],
-    value: {
-      tipo: "persona",
-      empresa: "",
-      direccion: "",
-      barrio: "",
-      otrosDatos: "",
-      telefono: "",
-      nit: "",
-      fecha: "",
-      items: [],
-      transporte: "",
-      valorTransporte: 0,
-      deposito: true,
-      valorDeposito: 0,
-      iva: true,
-      ivaNumero: 0,
-      subtotalNumero: 0,
-      subtotal: "$0",
-      totalNumero: 0,
-      total: "$0",
-    },
+    value: initialValue,
   },
+
   reducers: {
+    resetCotizacion: (state) => {
+      state.value = initialValue;
+    },
+
     setListaCotizaciones: (state, action) => {
       state.listaCotizaciones = action.payload;
     },
@@ -43,7 +51,7 @@ const cotizacionSlice = createSlice({
       }));
 
       state.value.fecha = new Date().toISOString().split("T")[0];
-      state.value.tipo = quotation.cliente?.tipo || "";
+      state.value.tipo = quotation.cliente?.tipo || "persona";
       state.value.nit = quotation.cliente?.identificacion || "";
       state.value.empresa = quotation.cliente?.nombre || "";
       state.value.telefono = quotation.cliente?.telefono || "";
@@ -63,7 +71,10 @@ const cotizacionSlice = createSlice({
     },
 
     setFormCotizacion: (state, action) => {
-      state.value = action.payload;
+      state.value = {
+        ...state.value,
+        ...action.payload,
+      };
     },
 
     setItems: (state, action) => {
@@ -92,6 +103,17 @@ const cotizacionSlice = createSlice({
   },
 });
 
-export const { kioskCotizacion, setFormCotizacion, setItems, setSubtotal, setSubtotalNumero, setIvaNumero, setTotal, setTotalNumero, setListaCotizaciones } =
-  cotizacionSlice.actions;
+export const {
+  resetCotizacion,
+  kioskCotizacion,
+  setFormCotizacion,
+  setItems,
+  setSubtotal,
+  setSubtotalNumero,
+  setIvaNumero,
+  setTotal,
+  setTotalNumero,
+  setListaCotizaciones,
+} = cotizacionSlice.actions;
+
 export default cotizacionSlice.reducer;
