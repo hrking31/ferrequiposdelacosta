@@ -38,7 +38,7 @@ export default function VistaCart() {
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
-  const [tipoTransporte, setTipoTransporte] = useState("soloIda");
+  const [tipoTransporte, setTipoTransporte] = useState("");
   const [selectedItems, setSelectedItems] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
@@ -110,7 +110,7 @@ export default function VistaCart() {
     no: "Sin transporte",
   };
 
-  const transporte = transporteLabel[tipoTransporte] || "No especificado";
+  const transporte = transporteLabel[tipoTransporte || "no"];
 
   const message = encodeURIComponent(
     "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +

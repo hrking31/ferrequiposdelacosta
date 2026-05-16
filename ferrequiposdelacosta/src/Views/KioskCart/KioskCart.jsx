@@ -26,7 +26,6 @@ import {
   updateDays,
 } from "../../Store/Slices/cartSlice.js";
 import DatosClienteModal from "../../Components/DatosClienteModal/DatosClienteModal.jsx";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -44,7 +43,7 @@ export default function KioskCart() {
   const navigate = useNavigate();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
-  const [tipoTransporte, setTipoTransporte] = useState("soloIda");
+  const [tipoTransporte, setTipoTransporte] = useState("");
   const [selectedItems, setSelectedItems] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
@@ -115,9 +114,13 @@ export default function KioskCart() {
 
       const quotationData = {
         cliente: {
+          tipo: cliente.tipo || "",
           nombre: cliente.nombre || "",
           identificacion: cliente.identificacion || "",
+          telefono: cliente.telefono || "",
           direccion: cliente.direccion || {},
+          iva: cliente.iva,
+          deposito: cliente.deposito,
         },
 
         transporte,
@@ -168,7 +171,7 @@ export default function KioskCart() {
     no: "Sin transporte",
   };
 
-  const transporte = transporteLabel[tipoTransporte] || "No especificado";
+  const transporte = transporteLabel[tipoTransporte || "no"];
 
   return (
     <Box

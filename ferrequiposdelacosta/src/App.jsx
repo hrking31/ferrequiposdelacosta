@@ -1,5 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import {
+  ref,
+  onValue,
+  query,
+  orderByChild,
+  limitToLast,
+} from "firebase/database";
+import { database } from "./Components/Firebase/Firebase.js";
 import {
   Home,
   Detail,
@@ -24,11 +32,14 @@ import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
 import { addToCart } from "./Store/Slices/cartSlice.js";
 import { setCliente } from "./Store/Slices/clienteSlice";
+import { setListaCotizaciones } from "./Store/Slices/cotizacionSlice";
 
 function App() {
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
+  const initialized = useRef(false);
+  const lastQuotationIdRef = useRef(null);
 
   useEffect(() => {
     if (items.length === 0) {
@@ -64,6 +75,44 @@ function App() {
       localStorage.removeItem("cart");
     }
   }, [items]);
+
+  useEffect(() => {
+    const quotationsRef = ref(database, "cotizaciones");
+
+    const unsubscribe = onValue(quotationsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+
+        const quotationsArray = Object.entries(data)
+          .map(([id, value]) => ({
+            id,
+            ...value,
+          }))
+          .reverse();
+
+        const newest = quotationsArray[0];
+
+        if (initialized.current) {
+          if (newest && newest.id !== lastQuotationIdRef.current) {
+            lastQuotationIdRef.current = newest.id;
+
+            const audio = new Audio("/notification.mp3");
+            audio.play().catch(() => {});
+          }
+        } else {
+          if (newest) lastQuotationIdRef.current = newest.id;
+          initialized.current = true;
+        }
+
+        dispatch(setListaCotizaciones(quotationsArray));
+      } else {
+
+        dispatch(setListaCotizaciones([]));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
 
   return (
     <div>
