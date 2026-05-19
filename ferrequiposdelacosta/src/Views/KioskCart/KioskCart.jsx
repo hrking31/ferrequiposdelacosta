@@ -134,7 +134,7 @@ export default function KioskCart() {
 
         createdAt: Date.now(),
 
-        status: "pending",
+        status: "pendiente",
       };
 
       await push(ref(database, "cotizaciones"), quotationData);

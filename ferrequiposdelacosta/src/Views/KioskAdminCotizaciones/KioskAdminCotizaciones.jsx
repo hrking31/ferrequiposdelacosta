@@ -19,6 +19,8 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
+import { ref, remove } from "firebase/database";
+import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
   const dispatch = useDispatch();
@@ -31,6 +33,16 @@ export default function KioskAdminCotizaciones() {
   const handleOpenQuotation = (quotation) => {
     dispatch(kioskCotizacion(quotation));
     navigate("/vistacotizacion");
+  };
+
+  const handleEliminar = async (id) => {
+    try {
+      await remove(ref(database, `cotizaciones/${id}`));
+
+      console.log("Solicitud eliminada");
+    } catch (error) {
+      console.error("Error eliminando solicitud:", error);
+    }
   };
 
   return (
@@ -77,7 +89,7 @@ export default function KioskAdminCotizaciones() {
           variant="body1"
           sx={{ textAlign: "center", mt: 4, color: "text.secondary" }}
         >
-          No hay solicitudes de cotización pendientes o cargando...
+          No hay solicitudes de cotización pendientes...
         </Typography>
       ) : (
         cotizaciones.map((quotation) => (
@@ -186,19 +198,29 @@ export default function KioskAdminCotizaciones() {
                   </Box>
                 </Stack>
 
-                <Chip
-                  label={quotation.status}
-                  sx={{
-                    fontWeight: "bold",
-                    textTransform: "uppercase",
-                    borderRadius: 1,
-                    px: 1,
-                    backgroundColor: (theme) => theme.palette.warning.main,
-                    color: (theme) => theme.palette.warning.contrastText,
-                    boxShadow: 1,
-                    alignSelf: { xs: "flex-end", sm: "center" },
-                  }}
-                />
+                {quotation.status === "creada" ? (
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleEliminar(quotation.id)}
+                  >
+                    Eliminar
+                  </Button>
+                ) : (
+                  <Chip
+                    label={quotation.status}
+                    sx={{
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      borderRadius: 1,
+                      px: 1,
+                      backgroundColor: (theme) => theme.palette.warning.main,
+                      color: (theme) => theme.palette.warning.contrastText,
+                      boxShadow: 1,
+                      alignSelf: { xs: "flex-end", sm: "center" },
+                    }}
+                  />
+                )}
               </Stack>
 
               <Divider sx={{ my: 2 }} />
@@ -241,32 +263,34 @@ export default function KioskAdminCotizaciones() {
                     mt: { xs: 2, sm: 0 },
                   }}
                 >
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    onClick={() => handleOpenQuotation(quotation)}
-                    endIcon={<ReceiptLongIcon />}
-                    sx={{
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === "light"
-                          ? "primary.main"
-                          : "secondary.main",
-                      color: "primary.contrastText",
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      py: 1.5,
-                      "&:hover": {
+                  {quotation.status !== "creada" && (
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="large"
+                      onClick={() => handleOpenQuotation(quotation)}
+                      endIcon={<ReceiptLongIcon />}
+                      sx={{
                         backgroundColor: (theme) =>
                           theme.palette.mode === "light"
-                            ? "primary.dark"
-                            : "secondary.dark",
-                      },
-                    }}
-                  >
-                    Crear Cotización
-                  </Button>
+                            ? "primary.main"
+                            : "secondary.main",
+                        color: "primary.contrastText",
+                        fontWeight: "bold",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        py: 1.5,
+                        "&:hover": {
+                          backgroundColor: (theme) =>
+                            theme.palette.mode === "light"
+                              ? "primary.dark"
+                              : "secondary.dark",
+                        },
+                      }}
+                    >
+                      Crear Cotización
+                    </Button>
+                  )}
                 </Box>
               </Stack>
             </CardContent>

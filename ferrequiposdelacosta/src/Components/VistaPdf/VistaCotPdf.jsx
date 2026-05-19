@@ -21,22 +21,22 @@ export default function generarCotizacion(values) {
   // Fecha
   doc.setFontSize(10);
   doc.setTextColor(68, 68, 68);
-  doc.text(`Barranquilla, ${values.value.fecha}`, 20, 50);
+  doc.text(`Barranquilla, ${values.fecha}`, 20, 50);
 
   // Datos del cliente
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
   doc.text(
-    `${values.value.tipo === "empresa" ? "Señores" : "Nombre"}: ${
-      values.value.empresa
+    `${values.tipo === "empresa" ? "Señores" : "Nombre"}: ${
+      values.empresa
     }`,
     20,
     63,
   );
 
   doc.text(
-    `${values.value.tipo === "empresa" ? "NIT" : "Cédula"}: ${
-      values.value.nit
+    `${values.tipo === "empresa" ? "NIT" : "Cédula"}: ${
+      values.nit
     }`,
     20,
     70,
@@ -44,9 +44,9 @@ export default function generarCotizacion(values) {
 
   doc.text(
     `${
-      values.value.tipo === "empresa" ? "Obra" : "Dirección"
-    }: ${values.value.direccion} ${values.value.barrio}${
-      values.value.otrosDatos ? `, ${values.value.otrosDatos}` : ""
+      values.tipo === "empresa" ? "Obra" : "Dirección"
+    }: ${values.direccion} ${values.barrio}${
+      values.otrosDatos ? `, ${values.otrosDatos}` : ""
     }`,
     20,
     77,
@@ -64,7 +64,7 @@ export default function generarCotizacion(values) {
     head: [["Cantidad", "Descripción", "Valor"]],
 
     body: [
-      ...values.value.items.map((item) => [
+      ...values.items.map((item) => [
         item.quantity,
         [
           item.description,
@@ -79,13 +79,13 @@ export default function generarCotizacion(values) {
       ["", "", ""],
 
       // Subtotal
-      ["", "Subtotal", values.value.subtotal],
+      ["", "Subtotal", values.subtotal],
 
       // IVA
       [
         `IVA`,
         "",
-        Number(values.value.ivaNumero).toLocaleString("es-CO", {
+        Number(values.ivaNumero).toLocaleString("es-CO", {
           style: "currency",
           currency: "COP",
         }),
@@ -95,7 +95,7 @@ export default function generarCotizacion(values) {
       [
         `Depósito`,
         "",
-        Number(values.value.valorDeposito).toLocaleString("es-CO", {
+        Number(values.valorDeposito).toLocaleString("es-CO", {
           style: "currency",
           currency: "COP",
         }),
@@ -104,15 +104,15 @@ export default function generarCotizacion(values) {
       // Transporte
       [
         `Transporte`,
-        `${values.value.transporte}`,
-        Number(values.value.valorTransporte).toLocaleString("es-CO", {
+        `${values.transporte}`,
+        Number(values.valorTransporte).toLocaleString("es-CO", {
           style: "currency",
           currency: "COP",
         }),
       ],
 
       // Total
-      ["", "TOTAL", values.value.total],
+      ["", "TOTAL", values.total],
     ],
 
     styles: {
@@ -144,7 +144,7 @@ export default function generarCotizacion(values) {
 
     didParseCell: function (data) {
       const rowIndex = data.row.index;
-      const itemsLength = values.value.items.length;
+      const itemsLength = values.items.length;
 
       // Subtotal
       if (rowIndex === itemsLength + 1) {
@@ -181,5 +181,5 @@ export default function generarCotizacion(values) {
   doc.text("BARRANQUILLA - COLOMBIA", 105, 285, { align: "center" });
 
   // Guardar PDF
-  doc.save(`Cotizacion_${values.value.empresa}.pdf`);
+  doc.save(`Cotizacion_${values.empresa}.pdf`);
 }

@@ -6,11 +6,13 @@ import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector, useDispatch } from "react-redux";
 import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
+import { ref, update } from "firebase/database";
+import { database } from "../../Components/Firebase/Firebase.js";
 import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
-  const values = useSelector((state) => state.cotizacion);
+  const values = useSelector((state) => state.cotizacion.value);
   const { logout } = useAuth();
   const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
@@ -20,15 +22,26 @@ export default function VistaCotizacion() {
     dispatch(resetCotizacion());
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (values?.id) {
+        await update(ref(database, `cotizaciones/${values.id}`), {
+          status: "creada",
+        });
+      }
+
       VistaCotPdf(values);
-      setLoading(false);
-    }, 200);
+      dispatch(resetCotizacion());
+    } catch (error) {
+      console.error(error);
+    }
+
+    setLoading(false);
   };
 
   const handlerLogout = async () => {
+    dispatch(resetCotizacion());
     await logout();
   };
 

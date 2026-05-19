@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialValue = {
+  id: null,
   tipo: "persona",
   empresa: "",
   nit: "",
@@ -50,6 +51,7 @@ const cotizacionSlice = createSlice({
         subtotal: 0,
       }));
 
+      state.value.id = quotation.id;
       state.value.fecha = new Date().toISOString().split("T")[0];
       state.value.tipo = quotation.cliente?.tipo || "persona";
       state.value.nit = quotation.cliente?.identificacion || "";
