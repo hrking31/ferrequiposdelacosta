@@ -119,7 +119,7 @@ export default function VistaCotWeb() {
                 whiteSpace: "normal",
               }}
             >
-              {item.quantity} {item.description}
+              {item.quantity} {item.description} x {item.day === "1" ? `${item.day} día` : `${item.day} días`}
             </Typography>
           </Grid>
 

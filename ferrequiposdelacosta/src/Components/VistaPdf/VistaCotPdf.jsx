@@ -68,13 +68,10 @@ export default function generarCotizacion(values) {
         item.quantity,
         [
           item.description,
-
-          item.day ? `${item.day} día(s)` : "",
-
-          item.details || "",
+          item.day === "1" ? `${item.day} día` : `${item.day} días`,
         ]
           .filter(Boolean)
-          .join(" - "),
+          .join(" x "),
         item.subtotal,
       ]),
 
