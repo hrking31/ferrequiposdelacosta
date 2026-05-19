@@ -179,7 +179,7 @@ export default function Cotizacion() {
             <TextField
               fullWidth
               type="text"
-              name={formValues.tipo === "empresa" ? "nit" : "cedula"}
+              name="nit"
               label={formValues.tipo === "empresa" ? "NIT" : "Cédula"}
               value={formValues.nit}
               onChange={handlerInputChange}
@@ -189,7 +189,7 @@ export default function Cotizacion() {
             <TextField
               fullWidth
               type="text"
-              name={formValues.tipo === "empresa" ? "empresa" : "nombre"}
+              name="empresa"
               label={formValues.tipo === "empresa" ? "Empresa" : "Nombre"}
               value={formValues.empresa}
               onChange={handlerInputChange}
