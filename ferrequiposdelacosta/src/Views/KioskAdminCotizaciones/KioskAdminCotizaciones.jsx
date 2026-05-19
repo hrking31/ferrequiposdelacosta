@@ -19,7 +19,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
-import { ref, remove } from "firebase/database";
+import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
@@ -30,8 +30,17 @@ export default function KioskAdminCotizaciones() {
     (state) => state.cotizacion.listaCotizaciones,
   );
 
-  const handleOpenQuotation = (quotation) => {
+  const handleOpenQuotation = async (quotation) => {
     dispatch(kioskCotizacion(quotation));
+    try {
+      if (quotation?.id) {
+        await update(ref(database, `cotizaciones/${quotation?.id}`), {
+          status: "enProceso",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
     navigate("/vistacotizacion");
   };
 
@@ -206,6 +215,20 @@ export default function KioskAdminCotizaciones() {
                   >
                     Eliminar
                   </Button>
+                ) : quotation.status === "enProceso" ? (
+                  <Chip
+                    label="En Proceso"
+                    sx={{
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      borderRadius: 1,
+                      px: 1,
+                      backgroundColor: (theme) => theme.palette.info.main,
+                      color: (theme) => theme.palette.info.contrastText,
+                      boxShadow: 1,
+                      alignSelf: { xs: "flex-end", sm: "center" },
+                    }}
+                  />
                 ) : (
                   <Chip
                     label={quotation.status}
@@ -263,34 +286,35 @@ export default function KioskAdminCotizaciones() {
                     mt: { xs: 2, sm: 0 },
                   }}
                 >
-                  {quotation.status !== "creada" && (
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      size="large"
-                      onClick={() => handleOpenQuotation(quotation)}
-                      endIcon={<ReceiptLongIcon />}
-                      sx={{
-                        backgroundColor: (theme) =>
-                          theme.palette.mode === "light"
-                            ? "primary.main"
-                            : "secondary.main",
-                        color: "primary.contrastText",
-                        fontWeight: "bold",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                        py: 1.5,
-                        "&:hover": {
+                  {quotation.status !== "creada" &&
+                    quotation.status !== "enProceso" && (
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        onClick={() => handleOpenQuotation(quotation)}
+                        endIcon={<ReceiptLongIcon />}
+                        sx={{
                           backgroundColor: (theme) =>
                             theme.palette.mode === "light"
-                              ? "primary.dark"
-                              : "secondary.dark",
-                        },
-                      }}
-                    >
-                      Crear Cotización
-                    </Button>
-                  )}
+                              ? "primary.main"
+                              : "secondary.main",
+                          color: "primary.contrastText",
+                          fontWeight: "bold",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                          py: 1.5,
+                          "&:hover": {
+                            backgroundColor: (theme) =>
+                              theme.palette.mode === "light"
+                                ? "primary.dark"
+                                : "secondary.dark",
+                          },
+                        }}
+                      >
+                        Crear Cotización
+                      </Button>
+                    )}
                 </Box>
               </Stack>
             </CardContent>
