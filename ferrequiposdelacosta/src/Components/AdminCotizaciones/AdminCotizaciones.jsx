@@ -9,7 +9,7 @@ import {
   Avatar,
   Divider,
 } from "@mui/material";
-import { kioskCotizacion } from "../../Store/Slices/cotizacionSlice";
+import { kioskCotizacion } from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
@@ -19,7 +19,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
-import { ref, remove, update } from "firebase/database";
+import { ref, remove, update, get } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
@@ -31,17 +31,36 @@ export default function KioskAdminCotizaciones() {
   );
 
   const handleOpenQuotation = async (quotation) => {
-    dispatch(kioskCotizacion(quotation));
     try {
-      if (quotation?.id) {
-        await update(ref(database, `cotizaciones/${quotation?.id}`), {
-          status: "enProceso",
-        });
+      const tieneCotizacionEnProceso = cotizaciones.some(
+        (cot) => cot.status === "enProceso",
+      );
+      if (tieneCotizacionEnProceso) {
+        alert("¡Atención! Ya tienes una cotización en proceso en tu pantalla.");
+        return;
       }
+
+      const quotationRef = ref(database, `cotizaciones/${quotation.id}`);
+      const snapshot = await get(quotationRef);
+      if (!snapshot.exists()) {
+        alert("La solicitud ya no existe");
+        return;
+      }
+
+      const data = snapshot.val();
+      if (data.status !== "pendiente") {
+        alert(
+          "Esta solicitud ya fue tomada por otro administrador o ya está en proceso.",
+        );
+        return;
+      }
+
+      await update(quotationRef, { status: "enProceso" });
+      dispatch(kioskCotizacion(quotation));
+      navigate("/vistacotizacion");
     } catch (error) {
       console.error(error);
     }
-    navigate("/vistacotizacion");
   };
 
   const handleEliminar = async (id) => {
@@ -208,13 +227,19 @@ export default function KioskAdminCotizaciones() {
                 </Stack>
 
                 {quotation.status === "creada" ? (
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => handleEliminar(quotation.id)}
-                  >
-                    Eliminar
-                  </Button>
+                  <Chip
+                    label="Finalizada"
+                    sx={{
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      borderRadius: 1,
+                      px: 1,
+                      backgroundColor: (theme) => theme.palette.error.main,
+                      color: (theme) => theme.palette.primary.contrastText,
+                      boxShadow: 1,
+                      alignSelf: { xs: "flex-end", sm: "center" },
+                    }}
+                  />
                 ) : quotation.status === "enProceso" ? (
                   <Chip
                     label="En Proceso"
@@ -223,8 +248,8 @@ export default function KioskAdminCotizaciones() {
                       textTransform: "uppercase",
                       borderRadius: 1,
                       px: 1,
-                      backgroundColor: (theme) => theme.palette.info.main,
-                      color: (theme) => theme.palette.info.contrastText,
+                      backgroundColor: (theme) => theme.palette.secondary.main,
+                      color: (theme) => theme.palette.primary.contrastText,
                       boxShadow: 1,
                       alignSelf: { xs: "flex-end", sm: "center" },
                     }}
@@ -237,8 +262,8 @@ export default function KioskAdminCotizaciones() {
                       textTransform: "uppercase",
                       borderRadius: 1,
                       px: 1,
-                      backgroundColor: (theme) => theme.palette.warning.main,
-                      color: (theme) => theme.palette.warning.contrastText,
+                      backgroundColor: (theme) => theme.palette.secondary.light,
+                      color: (theme) => theme.palette.primary.contrastText,
                       boxShadow: 1,
                       alignSelf: { xs: "flex-end", sm: "center" },
                     }}
@@ -286,35 +311,54 @@ export default function KioskAdminCotizaciones() {
                     mt: { xs: 2, sm: 0 },
                   }}
                 >
-                  {quotation.status !== "creada" &&
-                    quotation.status !== "enProceso" && (
+                  {(() => {
+                    let btnConfig = null;
+
+                    if (quotation.status === "creada") {
+                      btnConfig = {
+                        texto: "Eliminar",
+                        backgroundColor: (theme) => theme.palette.error.main,
+                        hoverColor: (theme) => theme.palette.primary.dark,
+                        accion: () => handleEliminar(quotation.id),
+                      };
+                    } else if (quotation.status === "enProceso") {
+                      btnConfig = {
+                        texto: "Continuar Cotización",
+                        backgroundColor: (theme) =>
+                          theme.palette.secondary.main,
+                        hoverColor: (theme) => theme.palette.primary.dark,
+                        accion: () => navigate("/vistacotizacion"),
+                      };
+                    } else {
+                      btnConfig = {
+                        texto: "Crear Cotización",
+                        backgroundColor: (theme) =>
+                          theme.palette.secondary.light,
+                        hoverColor: (theme) => theme.palette.primary.dark,
+                        accion: () => handleOpenQuotation(quotation),
+                      };
+                    }
+
+                    return (
                       <Button
                         variant="contained"
                         fullWidth
                         size="large"
-                        onClick={() => handleOpenQuotation(quotation)}
+                        onClick={btnConfig.accion}
                         endIcon={<ReceiptLongIcon />}
                         sx={{
-                          backgroundColor: (theme) =>
-                            theme.palette.mode === "light"
-                              ? "primary.main"
-                              : "secondary.main",
-                          color: "primary.contrastText",
                           fontWeight: "bold",
                           textTransform: "uppercase",
                           letterSpacing: 0.5,
                           py: 1.5,
-                          "&:hover": {
-                            backgroundColor: (theme) =>
-                              theme.palette.mode === "light"
-                                ? "primary.dark"
-                                : "secondary.dark",
-                          },
+                          backgroundColor: btnConfig.backgroundColor,
+                          color: "primary.contrastText",
                         }}
                       >
-                        Crear Cotización
+                        {btnConfig.texto}
                       </Button>
-                    )}
+                    );
+                  })()}
                 </Box>
               </Stack>
             </CardContent>

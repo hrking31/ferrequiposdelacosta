@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
@@ -12,37 +12,49 @@ import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const values = useSelector((state) => state.cotizacion.value);
   const { logout } = useAuth();
   const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
 
-  const clearForm = () => {
-    dispatch(resetCotizacion());
+  // Función cambiar el estado en Firebase
+  const cambiarEstadoFirebase = async (nuevoEstado) => {
+    if (values?.id) {
+      try {
+        await update(ref(database, `cotizaciones/${values.id}`), {
+          status: nuevoEstado,
+        });
+      } catch (error) {
+        console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
+      }
+    }
   };
 
   const handleClick = async () => {
     setLoading(true);
-    try {
-      if (values?.id) {
-        await update(ref(database, `cotizaciones/${values.id}`), {
-          status: "creada",
-        });
-      }
-
-      VistaCotPdf(values);
-      dispatch(resetCotizacion());
-    } catch (error) {
-      console.error(error);
-    }
-
+    await cambiarEstadoFirebase("creada");
+    VistaCotPdf(values);
+    dispatch(resetCotizacion());
     setLoading(false);
+    navigate("/adminforms");
+  };
+
+  const clearForm = async () => {
+    setLoading(true);
+    await cambiarEstadoFirebase("pendiente");
+    dispatch(resetCotizacion());
+    setLoading(false);
+    navigate("/adminforms");
   };
 
   const handlerLogout = async () => {
+    setLoading(true);
+    await cambiarEstadoFirebase("pendiente");
     dispatch(resetCotizacion());
     await logout();
+    setLoading(false);
   };
 
   return (
@@ -112,14 +124,14 @@ export default function VistaCotizacion() {
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={5} md={5}>
             <Button
-              component={Link}
-              to="/adminforms"
               variant="contained"
               fullWidth
+              onClick={() => navigate("/adminforms")}
             >
               MENU
             </Button>
           </Grid>
+
           <Grid item xs={12} sm={5} md={5}>
             <Button
               onClick={handlerLogout}

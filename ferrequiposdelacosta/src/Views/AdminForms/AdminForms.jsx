@@ -294,12 +294,12 @@ export default function AdminForms() {
             {permisos.includes("eliminarEditarEquipos") && (
               <Button
                 component={Link}
-                to="/kioskadmincotizaciones"
+                to="/vistacotizacionesAdmin"
                 variant="adminSquare"
                 sx={buttonStyle}
               >
                 <SupportAgentIcon sx={{ fontSize: 40 }} />
-                ADMIN COTIZACIONES
+                SOLICITUDES COTIZACIONES
               </Button>
             )}
           </Grid>

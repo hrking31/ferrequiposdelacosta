@@ -25,7 +25,7 @@ import {
   KioskHome,
   KioskDetail,
   KioskCart,
-  KioskAdminCotizaciones,
+  VistaCotizacionesAdmin,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -128,7 +128,7 @@ function App() {
           }
         />
         <Route
-          path="/kioskadmincotizaciones"
+          path="/vistacotizacionesadmin"
           element={
             <ProtectedRoutes
               allowedRoles={[
@@ -137,7 +137,7 @@ function App() {
                 "gestorFacturacion",
               ]}
             >
-              <KioskAdminCotizaciones />
+              <VistaCotizacionesAdmin />
             </ProtectedRoutes>
           }
         />
