@@ -49,9 +49,7 @@ export default function KioskAdminCotizaciones() {
 
       const data = snapshot.val();
       if (data.status !== "pendiente") {
-        alert(
-          "Esta solicitud ya fue tomada por otro administrador o ya está en proceso.",
-        );
+        alert("¡Atención! Otro usuario ya está trabajando en esta cotización.");
         return;
       }
 
@@ -59,7 +57,7 @@ export default function KioskAdminCotizaciones() {
       dispatch(kioskCotizacion(quotation));
       navigate("/vistacotizacion");
     } catch (error) {
-      console.error(error);
+      console.error("Error al abrir la cotización:", error);
     }
   };
 
