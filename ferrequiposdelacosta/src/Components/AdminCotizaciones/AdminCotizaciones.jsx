@@ -32,29 +32,36 @@ export default function KioskAdminCotizaciones() {
 
   const handleOpenQuotation = async (quotation) => {
     try {
-      const tieneCotizacionEnProceso = cotizaciones.some(
-        (cot) => cot.status === "enProceso",
-      );
-      if (tieneCotizacionEnProceso) {
-        alert("¡Atención! Ya tienes una cotización en proceso en tu pantalla.");
-        return;
-      }
-
       const quotationRef = ref(database, `cotizaciones/${quotation.id}`);
       const snapshot = await get(quotationRef);
+
       if (!snapshot.exists()) {
         alert("La solicitud ya no existe");
         return;
       }
 
       const data = snapshot.val();
-      if (data.status !== "pendiente") {
+
+      if (data.status !== "pendiente" && data.status !== "pausada") {
         alert("¡Atención! Otro usuario ya está trabajando en esta cotización.");
         return;
       }
+      console.log("STATUS REAL:", data.status);
 
-      await update(quotationRef, { status: "enProceso" });
-      dispatch(kioskCotizacion(quotation));
+      // Cambiar a enProceso
+      await update(quotationRef, {
+        status: "enProceso",
+      });
+
+      // Guardar en redux
+      dispatch(
+        kioskCotizacion({
+          ...quotation,
+          status: "enProceso",
+        }),
+      );
+
+      // Navegar
       navigate("/vistacotizacion");
     } catch (error) {
       console.error("Error al abrir la cotización:", error);
@@ -246,6 +253,20 @@ export default function KioskAdminCotizaciones() {
                       textTransform: "uppercase",
                       borderRadius: 1,
                       px: 1,
+                      backgroundColor: (theme) => theme.palette.primary.main,
+                      color: (theme) => theme.palette.secondary.main,
+                      boxShadow: 1,
+                      alignSelf: { xs: "flex-end", sm: "center" },
+                    }}
+                  />
+                ) : quotation.status === "pausada" ? (
+                  <Chip
+                    label={quotation.status}
+                    sx={{
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      borderRadius: 1,
+                      px: 1,
                       backgroundColor: (theme) => theme.palette.secondary.main,
                       color: (theme) => theme.palette.primary.contrastText,
                       boxShadow: 1,
@@ -260,7 +281,7 @@ export default function KioskAdminCotizaciones() {
                       textTransform: "uppercase",
                       borderRadius: 1,
                       px: 1,
-                      backgroundColor: (theme) => theme.palette.secondary.light,
+                      backgroundColor: (theme) => theme.palette.warning.main,
                       color: (theme) => theme.palette.primary.contrastText,
                       boxShadow: 1,
                       alignSelf: { xs: "flex-end", sm: "center" },
@@ -319,23 +340,23 @@ export default function KioskAdminCotizaciones() {
                         hoverColor: (theme) => theme.palette.primary.dark,
                         accion: () => handleEliminar(quotation.id),
                       };
-                    } else if (quotation.status === "enProceso") {
+                    } else if (quotation.status === "pausada") {
                       btnConfig = {
                         texto: "Continuar Cotización",
                         backgroundColor: (theme) =>
                           theme.palette.secondary.main,
                         hoverColor: (theme) => theme.palette.primary.dark,
-                        accion: () => navigate("/vistacotizacion"),
+                        accion: () => handleOpenQuotation(quotation),
                       };
-                    } else {
+                    } else if (quotation.status === "pendiente") {
                       btnConfig = {
                         texto: "Crear Cotización",
-                        backgroundColor: (theme) =>
-                          theme.palette.secondary.light,
+                        backgroundColor: (theme) => theme.palette.warning.main,
                         hoverColor: (theme) => theme.palette.primary.dark,
                         accion: () => handleOpenQuotation(quotation),
                       };
                     }
+                    if (!btnConfig) return null;
 
                     return (
                       <Button

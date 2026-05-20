@@ -49,7 +49,15 @@ export default function VistaCotizacion() {
     navigate("/adminforms");
   };
 
-  const handlerLogout = async () => {
+  const handleMenu = async () => {
+    setLoading(true);
+    await cambiarEstadoFirebase("pausada");
+    dispatch(resetCotizacion());
+    setLoading(false);
+    navigate("/adminforms");
+  };
+
+  const handleLogout = async () => {
     setLoading(true);
     await cambiarEstadoFirebase("pendiente");
     dispatch(resetCotizacion());
@@ -123,18 +131,14 @@ export default function VistaCotizacion() {
       >
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={5} md={5}>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => navigate("/adminforms")}
-            >
+            <Button variant="contained" fullWidth onClick={handleMenu}>
               MENU
             </Button>
           </Grid>
 
           <Grid item xs={12} sm={5} md={5}>
             <Button
-              onClick={handlerLogout}
+              onClick={handleLogout}
               variant="danger"
               fullWidth
               sx={{ flex: 1, whiteSpace: "nowrap" }}
