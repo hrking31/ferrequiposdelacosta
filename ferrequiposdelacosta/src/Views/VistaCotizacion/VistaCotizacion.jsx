@@ -19,13 +19,17 @@ export default function VistaCotizacion() {
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
 
-  // Función cambiar el estado en Firebase
-  const cambiarEstadoFirebase = async (nuevoEstado) => {
+  const cambiarEstadoFirebase = async (
+    nuevoEstado,
+    guardarCotizacion = false,
+  ) => {
     if (values?.id) {
       try {
-        await update(ref(database, `cotizaciones/${values.id}`), {
-          status: nuevoEstado,
-        });
+        const dataToUpdate = guardarCotizacion
+          ? { ...values, status: nuevoEstado }
+          : { status: nuevoEstado };
+
+        await update(ref(database, `cotizaciones/${values.id}`), dataToUpdate);
       } catch (error) {
         console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
       }
@@ -51,7 +55,7 @@ export default function VistaCotizacion() {
 
   const handleMenu = async () => {
     setLoading(true);
-    await cambiarEstadoFirebase("pausada");
+    await cambiarEstadoFirebase("pausada", true);
     dispatch(resetCotizacion());
     setLoading(false);
     navigate("/adminforms");

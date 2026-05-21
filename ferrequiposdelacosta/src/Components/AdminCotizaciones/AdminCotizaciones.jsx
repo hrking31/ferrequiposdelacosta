@@ -9,7 +9,7 @@ import {
   Avatar,
   Divider,
 } from "@mui/material";
-import { kioskCotizacion } from "../../Store/Slices/cotizacionSlice.js";
+import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import BuildCircleIcon from "@mui/icons-material/BuildCircle";
@@ -30,43 +30,24 @@ export default function KioskAdminCotizaciones() {
     (state) => state.cotizacion.listaCotizaciones,
   );
 
-  const handleOpenQuotation = async (quotation) => {
-    try {
-      const quotationRef = ref(database, `cotizaciones/${quotation.id}`);
-      const snapshot = await get(quotationRef);
+const handleOpenQuotation = async (quotation) => {
+  try {
+    await update(ref(database, `cotizaciones/${quotation.id}`), {
+      status: "enProceso",
+    });
 
-      if (!snapshot.exists()) {
-        alert("La solicitud ya no existe");
-        return;
-      }
-
-      const data = snapshot.val();
-
-      if (data.status !== "pendiente" && data.status !== "pausada") {
-        alert("¡Atención! Otro usuario ya está trabajando en esta cotización.");
-        return;
-      }
-      console.log("STATUS REAL:", data.status);
-
-      // Cambiar a enProceso
-      await update(quotationRef, {
+    dispatch(
+      setCotizacionActual({
+        ...quotation,
         status: "enProceso",
-      });
+      }),
+    );
 
-      // Guardar en redux
-      dispatch(
-        kioskCotizacion({
-          ...quotation,
-          status: "enProceso",
-        }),
-      );
-
-      // Navegar
-      navigate("/vistacotizacion");
-    } catch (error) {
-      console.error("Error al abrir la cotización:", error);
-    }
-  };
+    navigate("/vistacotizacion");
+  } catch (error) {
+    console.error("Error al abrir la cotización:", error);
+  }
+};
 
   const handleEliminar = async (id) => {
     try {
@@ -186,7 +167,7 @@ export default function KioskAdminCotizaciones() {
                       flexShrink: 0,
                     }}
                   >
-                    {quotation.cliente?.tipo === "empresa" ? (
+                    {quotation.tipo === "empresa" ? (
                       <BusinessIcon
                         sx={{ fontSize: 32, color: "primary.contrastText" }}
                       />
@@ -206,9 +187,7 @@ export default function KioskAdminCotizaciones() {
                         mb: -0.5,
                       }}
                     >
-                      {quotation.cliente?.tipo === "empresa"
-                        ? "Empresa:"
-                        : "Nombre:"}
+                      {quotation.tipo === "empresa" ? "Empresa:" : "Nombre:"}
                     </Typography>
 
                     <Typography
@@ -220,13 +199,13 @@ export default function KioskAdminCotizaciones() {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {quotation.cliente?.nombre || "Cliente sin nombre"}
+                      {quotation.empresa || "Cliente sin nombre"}
                     </Typography>
                     <Typography
                       variant="caption"
                       sx={{ color: "text.secondary" }}
                     >
-                      Solicitud ID: {quotation.id}
+                      Solicitud ID: {quotation.cotizacionId}
                     </Typography>
                   </Box>
                 </Stack>
@@ -303,14 +282,14 @@ export default function KioskAdminCotizaciones() {
                   <Stack direction="row" alignItems="center" gap={1.5}>
                     <BadgeIcon sx={{ color: "text.secondary", fontSize: 20 }} />
                     <Typography variant="body2">
-                      <b>Identificación:</b> {quotation.cliente?.identificacion}
+                      <b>Identificación:</b> {quotation.nit}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" alignItems="center" gap={1.5}>
                     <PhoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
                     <Typography variant="body2">
-                      <b>Teléfono:</b> {quotation.cliente?.telefono}
+                      <b>Teléfono:</b> {quotation.telefono}
                     </Typography>
                   </Stack>
 
@@ -319,7 +298,7 @@ export default function KioskAdminCotizaciones() {
                       sx={{ color: "text.secondary", fontSize: 20 }}
                     />
                     <Typography variant="body2">
-                      <b>Dirección:</b> {quotation.cliente?.direccion?.detalle}
+                      <b>Dirección:</b> {quotation.direccion}
                     </Typography>
                   </Stack>
                 </Stack>

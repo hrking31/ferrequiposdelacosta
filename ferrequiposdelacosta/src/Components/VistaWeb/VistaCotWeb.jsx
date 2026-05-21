@@ -89,9 +89,14 @@ export default function VistaCotWeb() {
         {formValues.value.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
         {formValues.value.nit}
         <br />
+        Tel:{" "}
+        {formValues.value.telefono}
+        <br />
         {formValues.value.tipo === "empresa" ? "Obra" : "Dirección"}:{" "}
         {formValues.value.direccion} {formValues.value.barrio}
         {formValues.value.otrosDatos && `, ${formValues.value.otrosDatos}`}
+        <br />
+        {formValues.value.municipio && `, ${formValues.value.departamento}`}
       </Typography>
 
       <Typography
@@ -119,7 +124,8 @@ export default function VistaCotWeb() {
                 whiteSpace: "normal",
               }}
             >
-              {item.quantity} {item.description} x {item.day === "1" ? `${item.day} día` : `${item.day} días`}
+              {item.quantity} {item.description} x{" "}
+              {item.day === "1" ? `${item.day} día` : `${item.day} días`}
             </Typography>
           </Grid>
 

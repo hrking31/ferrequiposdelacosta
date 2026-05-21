@@ -33,7 +33,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
 import { database } from "../../Components/Firebase/Firebase.js";
-import { push, ref } from "firebase/database";
+import { push, ref, update } from "firebase/database";
 import { clearCart } from "../../Store/Slices/cartSlice";
 import { clearCliente } from "../../Store/Slices/clienteSlice.js";
 
@@ -113,31 +113,48 @@ export default function KioskCart() {
       }
 
       const quotationData = {
-        cliente: {
-          tipo: cliente.tipo || "",
-          nombre: cliente.nombre || "",
-          identificacion: cliente.identificacion || "",
-          telefono: cliente.telefono || "",
-          direccion: cliente.direccion || {},
-          iva: cliente.iva,
-          deposito: cliente.deposito,
-        },
-
-        transporte,
-
-        equipos: items.map((item) => ({
+        id: null,
+        tipo: cliente.tipo || "persona",
+        empresa: cliente.nombre || "",
+        nit: cliente.identificacion || "",
+        telefono: cliente.telefono || "",
+        direccion: cliente.direccion?.detalle || "",
+        barrio: cliente.direccion?.barrio || "",
+        otrosDatos: cliente.direccion?.otrosDatos || "",
+        departamento: cliente.direccion?.departamento || "",
+        municipio: cliente.direccion?.municipio || "",
+        fecha: new Date().toISOString().split("T")[0],
+        items: items.map((item) => ({
           id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          days: item.days,
+          description: item.description || item.name,
+          quantity: item.quantity || 1,
+          day: item.days || 1,
+          price: item.price || 0,
+          subtotal: item.subtotal || 0,
         })),
-
+        transporte,
+        valorTransporte: 0,
+        deposito: cliente.deposito ?? true,
+        valorDeposito: 0,
+        iva: cliente.iva ?? true,
+        ivaNumero: 0,
+        subtotalNumero: 0,
+        subtotal: "$0",
+        totalNumero: 0,
+        total: "$0",
+        cotizacionId: `COT-${Date.now()}`,
         createdAt: Date.now(),
-
         status: "pendiente",
       };
 
-      await push(ref(database, "cotizaciones"), quotationData);
+    const quotationRef = await push(
+      ref(database, "cotizaciones"),
+      quotationData,
+    );
+
+    await update(quotationRef, {
+      id: quotationRef.key,
+    });
 
       dispatch(clearCart());
       dispatch(clearCliente());

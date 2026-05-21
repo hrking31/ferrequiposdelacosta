@@ -27,20 +27,18 @@ export default function generarCotizacion(values) {
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
   doc.text(
-    `${values.tipo === "empresa" ? "Señores" : "Nombre"}: ${
-      values.empresa
-    }`,
+    `${values.tipo === "empresa" ? "Señores" : "Nombre"}: ${values.empresa}`,
     20,
     63,
   );
 
   doc.text(
-    `${values.tipo === "empresa" ? "NIT" : "Cédula"}: ${
-      values.nit
-    }`,
+    `${values.tipo === "empresa" ? "NIT" : "Cédula"}: ${values.nit}`,
     20,
     70,
   );
+
+  doc.text(`Tel: ${values.telefono}`, 20, 77);
 
   doc.text(
     `${
@@ -49,7 +47,13 @@ export default function generarCotizacion(values) {
       values.otrosDatos ? `, ${values.otrosDatos}` : ""
     }`,
     20,
-    77,
+    84,
+  );
+
+  doc.text(
+    [values.municipio, values.departamento].filter(Boolean).join(", "),
+    20,
+    91,
   );
 
   // Título de la cotización

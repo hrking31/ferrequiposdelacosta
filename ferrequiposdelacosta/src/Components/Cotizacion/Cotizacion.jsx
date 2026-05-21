@@ -25,6 +25,7 @@ import {
   FormControlLabel,
   useTheme,
 } from "@mui/material";
+import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 
 export default function Cotizacion() {
   const dispatch = useDispatch();
@@ -127,37 +128,51 @@ export default function Cotizacion() {
         <Typography variant="h5">Formulario Cotización</Typography>
 
         <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
-          <Grid item xs={12}>
-            <FormControl>
-              <RadioGroup
-                row
-                name="tipo"
-                value={formValues.tipo}
-                onChange={(e) => {
-                  handlerInputChange({
-                    target: {
-                      name: "tipo",
-                      value: e.target.value,
-                    },
-                  });
-                }}
-              >
-                <FormControlLabel
-                  value="persona"
-                  control={<Radio />}
-                  label="Persona"
-                />
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <Box display="flex" width="100%">
+                <RadioGroup
+                  row
+                  name="tipo"
+                  value={formValues.tipo}
+                  onChange={(e) => {
+                    handlerInputChange({
+                      target: {
+                        name: "tipo",
+                        value: e.target.value,
+                      },
+                    });
+                  }}
+                  sx={{
+                    display: "flex",
+                    width: "100%",
+                  }}
+                >
+                  <FormControlLabel
+                    value="persona"
+                    control={<Radio />}
+                    label="Persona"
+                    sx={{
+                      flex: 1,
+                      alignItems: "center",
+                    }}
+                  />
 
-                <FormControlLabel
-                  value="empresa"
-                  control={<Radio />}
-                  label="Empresa"
-                />
-              </RadioGroup>
+                  <FormControlLabel
+                    value="empresa"
+                    control={<Radio />}
+                    label="Empresa"
+                    sx={{
+                      flex: 1,
+                      alignItems: "center",
+                    }}
+                  />
+                </RadioGroup>
+              </Box>
             </FormControl>
           </Grid>
 
-          <Grid item xs={7} sm={6}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               type="date"
@@ -175,13 +190,25 @@ export default function Cotizacion() {
               }}
             />
           </Grid>
-          <Grid item xs={5} sm={6}>
+
+          <Grid item xs={6} sm={6}>
             <TextField
               fullWidth
               type="text"
               name="nit"
               label={formValues.tipo === "empresa" ? "NIT" : "Cédula"}
               value={formValues.nit}
+              onChange={handlerInputChange}
+            />
+          </Grid>
+
+          <Grid item xs={6} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="telefono"
+              label="Teléfono"
+              value={formValues.telefono}
               onChange={handlerInputChange}
             />
           </Grid>
@@ -204,6 +231,46 @@ export default function Cotizacion() {
               value={formValues.direccion}
               onChange={handlerInputChange}
             />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              select
+              name="departamento"
+              label="Departamento"
+              value={formValues.departamento}
+              onChange={handlerInputChange}
+              fullWidth
+            >
+              {Object.keys(departamentosYMunicipios).map((dep) => (
+                <MenuItem key={dep} value={dep}>
+                  {dep}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              select
+              name="municipio"
+              label="Municipio"
+              value={formValues.municipio}
+              onChange={handlerInputChange}
+              fullWidth
+              disabled={!formValues.departamento}
+            >
+              {formValues.departamento &&
+              departamentosYMunicipios[formValues.departamento]?.length > 0 ? (
+                departamentosYMunicipios[formValues.departamento].map((mun) => (
+                  <MenuItem key={mun} value={mun}>
+                    {mun}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem disabled>Seleccione un departamento</MenuItem>
+              )}
+            </TextField>
           </Grid>
 
           <Grid item xs={12} sm={6}>
