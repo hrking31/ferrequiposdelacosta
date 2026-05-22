@@ -51,7 +51,9 @@ export default function generarCotizacion(values) {
   );
 
   doc.text(
-    [values.municipio, values.departamento].filter(Boolean).join(", "),
+    `${values.municipio}${
+      values.municipio && values.departamento ? ", " : ""
+    }${values.departamento}`,
     20,
     91,
   );

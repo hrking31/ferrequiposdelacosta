@@ -6,7 +6,7 @@ import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector, useDispatch } from "react-redux";
 import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
-import { ref, update } from "firebase/database";
+import { ref, update, push } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 
@@ -23,16 +23,32 @@ export default function VistaCotizacion() {
     nuevoEstado,
     guardarCotizacion = false,
   ) => {
-    if (values?.id) {
-      try {
+    try {
+      if (values?.id) {
         const dataToUpdate = guardarCotizacion
           ? { ...values, status: nuevoEstado }
           : { status: nuevoEstado };
 
         await update(ref(database, `cotizaciones/${values.id}`), dataToUpdate);
-      } catch (error) {
-        console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
+
+        return;
       }
+
+      if (guardarCotizacion) {
+        const quotationRef = push(ref(database, "cotizaciones"));
+
+        const newQuotation = {
+          ...values,
+          id: quotationRef.key,
+          status: nuevoEstado,
+          cotizacionId: `COT-${Date.now()}`,
+          createdAt: Date.now(),
+        };
+
+        await update(quotationRef, newQuotation);
+      }
+    } catch (error) {
+      console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
     }
   };
 

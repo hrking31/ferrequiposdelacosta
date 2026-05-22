@@ -89,14 +89,17 @@ export default function VistaCotWeb() {
         {formValues.value.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
         {formValues.value.nit}
         <br />
-        Tel:{" "}
-        {formValues.value.telefono}
+        Tel: {formValues.value.telefono}
         <br />
         {formValues.value.tipo === "empresa" ? "Obra" : "Dirección"}:{" "}
         {formValues.value.direccion} {formValues.value.barrio}
         {formValues.value.otrosDatos && `, ${formValues.value.otrosDatos}`}
         <br />
-        {formValues.value.municipio && `, ${formValues.value.departamento}`}
+        {formValues.value.municipio}
+        {formValues.value.municipio && formValues.value.departamento
+          ? ", "
+          : ""}
+        {formValues.value.departamento}
       </Typography>
 
       <Typography

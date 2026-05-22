@@ -86,6 +86,7 @@ function App() {
         const quotationsArray = Object.entries(data)
           .map(([id, value]) => ({
             id,
+            items: value.items || [],
             ...value,
           }))
           .reverse();
