@@ -85,6 +85,25 @@ export default function VistaCotizacion() {
     setLoading(false);
   };
 
+  const telefono = `57${values.telefono}`;
+  const message = encodeURIComponent(`
+    Hola 👋
+
+    Hemos preparado su cotización 📄
+
+    Número: ${values.cotizacionId}
+
+    En el PDF encontrará el detalle de equipos, tiempos y valores correspondientes.
+
+    Quedamos atentos a cualquier ajuste o confirmación.
+
+    FERREQUIPOS DE LA COSTA
+
+    Gracias 🙏
+`);
+
+  const whatsappLink = `https://wa.me/${telefono}?text=${message}`;
+
   return (
     <Box
       sx={{
@@ -130,14 +149,18 @@ export default function VistaCotizacion() {
               fullWidth
               sx={{ flex: 1, whiteSpace: "nowrap" }}
               onClick={handleClick}
+              component="a"
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {loading ? "Cargando..." : "Descargar PDF"}
+              {loading ? "Cargando..." : "Finalizar y Descargar PDF"}
             </Button>
           </Grid>
 
           <Grid item xs={10} sm={4} md={4}>
             <Button variant="danger" onClick={clearForm} fullWidth>
-              Cancelar
+              Cancelar o Pendiente
             </Button>
           </Grid>
         </Grid>
@@ -152,7 +175,7 @@ export default function VistaCotizacion() {
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12} sm={5} md={5}>
             <Button variant="contained" fullWidth onClick={handleMenu}>
-              MENU
+              Pausar y Salir
             </Button>
           </Grid>
 
