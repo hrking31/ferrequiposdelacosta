@@ -235,6 +235,28 @@ export default function Cotizacion() {
 
           <Grid item xs={12} sm={6}>
             <TextField
+              fullWidth
+              type="text"
+              name="barrio"
+              label="Barrio"
+              value={formValues.barrio}
+              onChange={handlerInputChange}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="text"
+              name="otrosDatos"
+              label="Otros datos (Ej: bodega, edificio, obra)"
+              value={formValues.otrosDatos}
+              onChange={handlerInputChange}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
               select
               name="departamento"
               label="Departamento"
