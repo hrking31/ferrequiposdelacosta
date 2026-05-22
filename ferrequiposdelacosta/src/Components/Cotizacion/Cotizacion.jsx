@@ -125,7 +125,19 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Typography variant="h5">Formulario Cotización</Typography>
+        <Grid
+          container
+          spacing={2}
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Grid item xs={12} sm={6}>
+            <Typography variant="h5">Formulario Cotización</Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Typography variant="h5">{formValues.cotizacionId}</Typography>
+          </Grid>
+        </Grid>
 
         <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
           <Grid item xs={12} sm={6}>

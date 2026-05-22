@@ -7,6 +7,11 @@ export default function generarCotizacion(values) {
 
   // === ENCABEZADO ===
   doc.addImage(LogoFerrequipos, "PNG", 30, 10, 25, 25);
+
+  doc.setFontSize(9);
+  doc.setTextColor(180, 180, 180);
+  doc.text(values.cotizacionId || "", 200, 12, { align: "right" });
+
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 255);
   doc.text("FERREQUIPOS DE LA COSTA", 105, 20, { align: "center" });

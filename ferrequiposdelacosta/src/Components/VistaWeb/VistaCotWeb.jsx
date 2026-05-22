@@ -46,6 +46,23 @@ export default function VistaCotWeb() {
           />
         </Grid>
 
+        <Typography
+          sx={{
+            position: "absolute",
+            top: { xs: 6, sm: 12 },
+            right: { xs: 10, sm: 20 },
+            fontSize: { xs: "8px", sm: "10px", md: "12px" },
+            fontWeight: 700,
+            color: "rgba(0,0,0,0.15)",
+            letterSpacing: { xs: 0.5, sm: 1.5 },
+            textTransform: "uppercase",
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        >
+          {formValues.value.cotizacionId}
+        </Typography>
+
         <Grid item>
           <Typography
             variant="h5"
