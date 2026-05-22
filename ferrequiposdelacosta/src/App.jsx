@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   ref,
@@ -35,6 +36,7 @@ import { setCliente } from "./Store/Slices/clienteSlice";
 import { setListaCotizaciones } from "./Store/Slices/cotizacionSlice";
 
 function App() {
+  const location = useLocation();
   const dispatch = useDispatch();
   const items = useSelector((state) => state.cart.items);
   const cliente = useSelector((state) => state.cliente);
@@ -97,8 +99,14 @@ function App() {
           if (newest && newest.id !== lastQuotationIdRef.current) {
             lastQuotationIdRef.current = newest.id;
 
-            const audio = new Audio("/notification.mp3");
-            audio.play().catch(() => {});
+            const isKioskRoute =
+              location.pathname.toLowerCase().includes("kiosk") ||
+              location.pathname.toLowerCase().includes("vistacart");
+
+            if (!isKioskRoute) {
+              const audio = new Audio("/notification.mp3");
+              audio.play().catch(() => {});
+            }
           }
         } else {
           if (newest) lastQuotationIdRef.current = newest.id;
@@ -107,7 +115,6 @@ function App() {
 
         dispatch(setListaCotizaciones(quotationsArray));
       } else {
-
         dispatch(setListaCotizaciones([]));
       }
     });

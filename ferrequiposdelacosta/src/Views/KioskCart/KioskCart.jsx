@@ -24,7 +24,9 @@ import {
   removeFromCart,
   updateQty,
   updateDays,
+  clearCart,
 } from "../../Store/Slices/cartSlice.js";
+import { clearCliente } from "../../Store/Slices/clienteSlice.js";
 import DatosClienteModal from "../../Components/DatosClienteModal/DatosClienteModal.jsx";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -34,8 +36,6 @@ import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
 import { database } from "../../Components/Firebase/Firebase.js";
 import { push, ref, update } from "firebase/database";
-import { clearCart } from "../../Store/Slices/cartSlice";
-import { clearCliente } from "../../Store/Slices/clienteSlice.js";
 
 export default function KioskCart() {
   const theme = useTheme();

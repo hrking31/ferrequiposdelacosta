@@ -192,5 +192,5 @@ export default function generarCotizacion(values) {
   doc.text("BARRANQUILLA - COLOMBIA", 105, 285, { align: "center" });
 
   // Guardar PDF
-  doc.save(`Cotizacion_${values.empresa}.pdf`);
+  doc.save(`${values.cotizacionId}.pdf`);
 }

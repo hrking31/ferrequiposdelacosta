@@ -32,6 +32,8 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
+import { database } from "../../Components/Firebase/Firebase.js";
+import { push, ref, update } from "firebase/database";
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -85,7 +87,9 @@ export default function VistaCart() {
 
   const handleToggleSelect = (id) => {
     setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((itemId) => itemId !== id)
+        : [...prev, id],
     );
   };
 
@@ -94,6 +98,75 @@ export default function VistaCart() {
       dispatch(removeFromCart(id));
     });
     setSelectedItems([]);
+  };
+
+  const validarCarrito = () => {
+    if (items.length === 0) {
+      setSnackbarMessage("No hay equipos en el carrito");
+      setSnackbarSeverity("warning");
+      setOpenSnackbar(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSendQuotation = async () => {
+    try {
+      const quotationData = {
+        id: null,
+        tipo: cliente.tipo || "persona",
+        empresa: cliente.nombre || "",
+        nit: cliente.identificacion || "",
+        telefono: cliente.telefono || "",
+        direccion: cliente.direccion?.detalle || "",
+        barrio: cliente.direccion?.barrio || "",
+        otrosDatos: cliente.direccion?.otrosDatos || "",
+        departamento: cliente.direccion?.departamento || "",
+        municipio: cliente.direccion?.municipio || "",
+        fecha: new Date().toISOString().split("T")[0],
+        items: items.map((item) => ({
+          id: item.id,
+          description: item.description || item.name,
+          quantity: item.quantity || 1,
+          day: item.days || 1,
+          price: item.price || 0,
+          subtotal: item.subtotal || 0,
+        })),
+        transporte,
+        valorTransporte: 0,
+        deposito: cliente.deposito ?? true,
+        valorDeposito: 0,
+        iva: cliente.iva ?? true,
+        ivaNumero: 0,
+        subtotalNumero: 0,
+        subtotal: "$0",
+        totalNumero: 0,
+        total: "$0",
+        cotizacionId: `COT-${Date.now()}`,
+        createdAt: Date.now(),
+        status: "pendiente",
+      };
+
+      const quotationRef = await push(
+        ref(database, "cotizaciones"),
+        quotationData,
+      );
+
+      await update(quotationRef, {
+        id: quotationRef.key,
+      });
+
+      setSnackbarMessage("Solicitud enviada correctamente");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+    } catch (error) {
+      console.error(error);
+
+      setSnackbarMessage("Error enviando solicitud");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    }
   };
 
   const gruposPorDias = items.reduce((acc, item) => {
@@ -112,28 +185,37 @@ export default function VistaCart() {
 
   const transporte = transporteLabel[tipoTransporte || "no"];
 
-  const message = encodeURIComponent(
-    "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
-      `👤 *Nombre:* ${cliente.nombre}\n` +
-      `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
-      `📍 *Dirección:* ${
-        cliente.direccion
-          ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
-          : ""
-      }\n` +
-      `🚚 *Transporte:* ${transporte}\n\n` +
-      items
-        .map(
-          (item, index) =>
-            `*${index + 1}.* 🛠 *${item.name}*\n` +
-            `📦 Cantidad: ${item.quantity}\n` +
-            `📅 Días: ${item.days}\n`
-        )
-        .join("") +
-      "Gracias! 🙏"
-  );
+  const handleEnviarPedido = () => {
+    const message = encodeURIComponent(
+      "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
+        `👤 *Nombre:* ${cliente.nombre}\n` +
+        `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
+        `📍 *Dirección:* ${
+          cliente.direccion
+            ? `${cliente.direccion.detalle}, ${cliente.direccion.barrio}, ${cliente.direccion.municipio}, ${cliente.direccion.departamento}, ${cliente.direccion.otrosDatos}`
+            : ""
+        }\n` +
+        `🚚 *Transporte:* ${transporte}\n\n` +
+        items
+          .map(
+            (item, index) =>
+              `*${index + 1}.* 🛠 *${item.name}*\n` +
+              `📦 Cantidad: ${item.quantity}\n` +
+              `📅 Días: ${item.days}\n`,
+          )
+          .join("") +
+        "Gracias! 🙏",
+    );
 
-  const whatsappLink = `https://wa.me/573116576633?text=${message}`;
+    const whatsappLink = `https://wa.me/573116576633?text=${message}`;
+    window.open(whatsappLink, "_blank");
+  };
+
+  const handleProcesarSolicitud = async () => {
+    if (!validarCarrito()) return;
+    await handleSendQuotation();
+    handleEnviarPedido();
+  };
 
   return (
     <Box
@@ -783,12 +865,10 @@ export default function VistaCart() {
         <Button
           variant="whatsapp"
           startIcon={<WhatsAppIcon />}
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
           fullWidth
+          onClick={handleProcesarSolicitud}
         >
-          Confirmar Pedido
+          Solicitar Cotización
         </Button>
       </Box>
 
