@@ -30,24 +30,24 @@ export default function KioskAdminCotizaciones() {
     (state) => state.cotizacion.listaCotizaciones,
   );
 
-const handleOpenQuotation = async (quotation) => {
-  try {
-    await update(ref(database, `cotizaciones/${quotation.id}`), {
-      status: "enProceso",
-    });
-
-    dispatch(
-      setCotizacionActual({
-        ...quotation,
+  const handleOpenQuotation = async (quotation) => {
+    try {
+      await update(ref(database, `cotizaciones/${quotation.id}`), {
         status: "enProceso",
-      }),
-    );
+      });
 
-    navigate("/vistacotizacion");
-  } catch (error) {
-    console.error("Error al abrir la cotización:", error);
-  }
-};
+      dispatch(
+        setCotizacionActual({
+          ...quotation,
+          status: "enProceso",
+        }),
+      );
+
+      navigate("/vistacotizacion");
+    } catch (error) {
+      console.error("Error al abrir la cotización:", error);
+    }
+  };
 
   const handleEliminar = async (id) => {
     try {
@@ -310,51 +310,76 @@ const handleOpenQuotation = async (quotation) => {
                   }}
                 >
                   {(() => {
-                    let btnConfig = null;
+                    let btnConfig = [];
 
                     if (quotation.status === "creada") {
-                      btnConfig = {
-                        texto: "Eliminar",
-                        backgroundColor: (theme) => theme.palette.error.main,
-                        hoverColor: (theme) => theme.palette.primary.dark,
-                        accion: () => handleEliminar(quotation.id),
-                      };
+                      btnConfig = [
+                        {
+                          texto: "Eliminar",
+                          backgroundColor: (theme) => theme.palette.error.main,
+                          hoverColor: (theme) => theme.palette.primary.dark,
+                          accion: () => handleEliminar(quotation.id),
+                        },
+                        {
+                          texto: "Editar",
+                          backgroundColor: (theme) =>
+                            theme.palette.secondary.main,
+                          hoverColor: (theme) => theme.palette.primary.dark,
+                          accion: () => handleOpenQuotation(quotation),
+                        },
+                      ];
                     } else if (quotation.status === "pausada") {
-                      btnConfig = {
-                        texto: "Continuar Cotización",
-                        backgroundColor: (theme) =>
-                          theme.palette.secondary.main,
-                        hoverColor: (theme) => theme.palette.primary.dark,
-                        accion: () => handleOpenQuotation(quotation),
-                      };
+                      btnConfig = [
+                        {
+                          texto: "Continuar Cotización",
+                          backgroundColor: (theme) =>
+                            theme.palette.secondary.main,
+                          hoverColor: (theme) => theme.palette.primary.dark,
+                          accion: () => handleOpenQuotation(quotation),
+                        },
+                      ];
                     } else if (quotation.status === "pendiente") {
-                      btnConfig = {
-                        texto: "Crear Cotización",
-                        backgroundColor: (theme) => theme.palette.warning.main,
-                        hoverColor: (theme) => theme.palette.primary.dark,
-                        accion: () => handleOpenQuotation(quotation),
-                      };
+                      btnConfig = [
+                        {
+                          texto: "Crear Cotización",
+                          backgroundColor: (theme) =>
+                            theme.palette.warning.main,
+                          hoverColor: (theme) => theme.palette.primary.dark,
+                          accion: () => handleOpenQuotation(quotation),
+                        },
+                      ];
                     }
-                    if (!btnConfig) return null;
+                    if (btnConfig.length === 0) return null;
 
                     return (
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        onClick={btnConfig.accion}
-                        endIcon={<ReceiptLongIcon />}
+                      <Box
                         sx={{
-                          fontWeight: "bold",
-                          textTransform: "uppercase",
-                          letterSpacing: 0.5,
-                          py: 1.5,
-                          backgroundColor: btnConfig.backgroundColor,
-                          color: "primary.contrastText",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1,
                         }}
                       >
-                        {btnConfig.texto}
-                      </Button>
+                        {btnConfig.map((btn, index) => (
+                          <Button
+                            key={index}
+                            variant="contained"
+                            fullWidth
+                            size="large"
+                            onClick={() => btn.accion()}
+                            endIcon={<ReceiptLongIcon />}
+                            sx={{
+                              fontWeight: "bold",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.5,
+                              py: 1.5,
+                              backgroundColor: btn.backgroundColor,
+                              color: "primary.contrastText",
+                            }}
+                          >
+                            {btn.texto}
+                          </Button>
+                        ))}
+                      </Box>
                     );
                   })()}
                 </Box>

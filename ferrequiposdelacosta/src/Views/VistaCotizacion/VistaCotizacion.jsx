@@ -54,7 +54,7 @@ export default function VistaCotizacion() {
 
   const handleClick = async () => {
     setLoading(true);
-    await cambiarEstadoFirebase("creada");
+    await cambiarEstadoFirebase("creada", true);
     VistaCotPdf(values);
     dispatch(resetCotizacion());
     setLoading(false);
@@ -154,7 +154,7 @@ export default function VistaCotizacion() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              {loading ? "Cargando..." : "Finalizar y Descargar PDF"}
+              {loading ? "Cargando..." : "Descargar PDF"}
             </Button>
           </Grid>
 
