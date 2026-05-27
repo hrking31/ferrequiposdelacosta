@@ -17,6 +17,7 @@ import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 
 export default function AdminForms() {
@@ -298,7 +299,7 @@ export default function AdminForms() {
                 variant="adminSquare"
                 sx={buttonStyle}
               >
-                <SupportAgentIcon sx={{ fontSize: 40 }} />
+                <ReceiptLongIcon sx={{ fontSize: 40 }} />
                 SOLICITUDES COTIZACIONES
               </Button>
             )}
