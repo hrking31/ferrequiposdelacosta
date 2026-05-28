@@ -50,13 +50,13 @@ export default function MobileDrawerLayout() {
   const isMobile = useMediaQuery("(max-width:915px)");
   const equipos = useSelector((state) => state.equipos.equipos);
   const equipo = useSelector((state) => state.search.results);
-  const loading = useSelector((state) => state.search.loading);
+  const loading = useSelector((state) => state.equipos.loading);
   const error = useSelector((state) => state.search.error);
   const hasSearched = useSelector((state) => state.search.hasSearched);
   const { toggleColorMode } = useColorMode();
   const isSmallScreen = useMediaQuery("(max-width:599px)");
   const isMediumScreen = useMediaQuery(
-    "(min-width:600px) and (max-width:915px)"
+    "(min-width:600px) and (max-width:915px)",
   );
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -66,7 +66,7 @@ export default function MobileDrawerLayout() {
   useEffect(() => {
     if (error) {
       setSnackbarMessage(
-        "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo."
+        "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo.",
       );
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
@@ -170,7 +170,7 @@ export default function MobileDrawerLayout() {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ width: "80%", mx: "auto" }} />
+          <Divider sx={{ width: "90%", mx: "auto" }} />
 
           <ListItem disablePadding>
             <ListItemButton
@@ -220,7 +220,7 @@ export default function MobileDrawerLayout() {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ width: "80%", mx: "auto" }} />
+          <Divider sx={{ width: "90%", mx: "auto" }} />
 
           <ListItem disablePadding>
             <ListItemButton onClick={handleOpenAccount}>
@@ -265,12 +265,20 @@ export default function MobileDrawerLayout() {
 
   return (
     <Box
+      // sx={{
+      //   display: "flex",
+      //   flexDirection: "column",
+      //   pt: isMobile ? 8 : 11,
+      //   pb: isMobile ? `${appBarHeight}px` : 0,
+      //   // border: "2px solid red",
+      // }}
       sx={{
         display: "flex",
         flexDirection: "column",
         pt: isMobile ? 8 : 11,
         pb: isMobile ? `${appBarHeight}px` : 0,
-        // border: "2px solid red",
+        height: isMobile ? "auto" : "100vh",
+        overflow: isMobile ? "visible" : "hidden",
       }}
     >
       <CssBaseline />
@@ -325,13 +333,26 @@ export default function MobileDrawerLayout() {
       )}
 
       {/* Contenido principal */}
-      <Grid container>
+      {/* <Grid container> */}
+      <Grid container sx={{ height: isMobile ? "auto" : "100%" }}>
         <Grid
           item
           md={3}
+          // sx={{
+          //   // border: "2px solid #000",
+          //   display: isMobile ? "none" : "block",
+          // }}
           sx={{
-            // border: "2px solid #000",
             display: isMobile ? "none" : "block",
+            height: "100%",
+            overflowY: "auto",
+            borderRight: "1px solid",
+            borderColor: "divider",
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
           }}
         >
           <Box
@@ -443,8 +464,18 @@ export default function MobileDrawerLayout() {
                 flexDirection: "column",
                 justifyContent: "flex-end",
                 boxSizing: "border-box",
-                borderTop: "1px solid",
-                borderColor: "divider",
+                position: "relative", 
+
+               "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0, 
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "90%", 
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                },
               }}
             >
               <IconButton onClick={toggleColorMode} disableRipple>
@@ -488,9 +519,14 @@ export default function MobileDrawerLayout() {
         </Grid>
 
         <Box
+          // sx={{
+          //   flex: 1,
+          //   //  border: "2px solid red"
+          // }}
           sx={{
             flex: 1,
-            //  border: "2px solid red"
+            height: isMobile ? "auto" : "100%", 
+            overflowY: isMobile ? "visible" : "auto", 
           }}
         >
           {isMobile && (
@@ -509,7 +545,11 @@ export default function MobileDrawerLayout() {
             </Box>
           )}
 
-          {loading ? <LoadingLogo /> : <CardsEquipos />}
+          {loading ? (
+            <LoadingLogo text="Cargando Equipos..." />
+          ) : (
+            <CardsEquipos />
+          )}
         </Box>
 
         <Modal open={openAccount} onClose={handleCloseAccount}>

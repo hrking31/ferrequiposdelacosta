@@ -1,9 +1,12 @@
-import React from "react";
-import { Box, Typography } from "@mui/material";
-import RotatingImage from "../rotar/rotar";
+import React, { useState, useEffect } from "react";
+import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import "./loadingLogo.css";
 
-const LoadingLogo = ({ height = "80vh" }) => {
+const LoadingLogo = ({ height = "90vh", text = "Cargando..." }) => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === "dark";
+
   return (
     <Box
       display="flex"
@@ -11,19 +14,44 @@ const LoadingLogo = ({ height = "80vh" }) => {
       justifyContent="center"
       alignItems="center"
       height={height}
-      margin="0 auto"
+      width="100%"
+      sx={{
+        backgroundColor: isDarkMode ? "primary.main" : "#FFFFFF",
+        transition: "background-color 0.3s ease",
+        userSelect: "none",
+      }}
     >
-      
-      <Box mb={1}>
-        <RotatingImage
+      <Box
+        className={`logo-container-industrial ${isDarkMode ? "dark-glow" : "light-glow"}`}
+      >
+        <CircularProgress
+          size={160}
+          thickness={2.5}
+          sx={{
+            color: isDarkMode ? "secondary.light" : "secondary.main",
+            position: "absolute",
+            animationDuration: "2.8s",
+          }}
+        />
+
+        <img
           src={LogoFerrequipos}
-          alt="Rotating Logo"
-          style={{ width: "100px", height: "100px", marginBottom: "2px" }}
+          alt="Ferrequipos Logo"
+          className="industrial-logo"
         />
       </Box>
 
-      <Typography variant="h5" mt={0.5}>
-        Cargando...
+      <Typography
+        variant="h5"
+        className={isDarkMode ? "shimmer-text-dark" : "shimmer-text-light"}
+        sx={{
+          fontWeight: 700,
+          letterSpacing: "2px",
+          textTransform: "uppercase",
+          mb: 1.5,
+        }}
+      >
+        {text}
       </Typography>
     </Box>
   );
