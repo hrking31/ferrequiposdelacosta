@@ -17,7 +17,7 @@ export default function Footer() {
       component="footer"
       sx={{
         textAlign: "center",
-        mt: 6,
+        // mt: 6,
         pt: 4,
         pb: 1,
         backgroundColor: theme.palette.background.paper,

@@ -376,17 +376,27 @@ export default function MobileDrawerLayout() {
 
               <Box
                 sx={{
-                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "center",
                   p: 2,
                   pb: 6,
                 }}
               >
-                <Typography variant="subtitle1">
+                <Typography
+                  sx={{
+                    fontSize: "1.75rem",
+                    fontWeight: "bold",
+                    letterSpacing: "0.5px",
+                    color:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.light,
+                  }}
+                >
                   Alquiler de equipos para la Construcción
                 </Typography>
               </Box>
 
-              {/* <Divider sx={{ my: 2 }} /> */}
               <Box
                 sx={{
                   pb: 8,
@@ -394,7 +404,6 @@ export default function MobileDrawerLayout() {
               >
                 <ButtonContacto />
               </Box>
-              {/* <Divider sx={{ my: 2 }} /> */}
 
               <Box
                 sx={{
@@ -421,12 +430,23 @@ export default function MobileDrawerLayout() {
 
               <Box
                 sx={{
-                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "center",
                   p: 2,
-                  pb: 4,
+                  pb: 6,
                 }}
               >
-                <Typography variant="subtitle1">
+                <Typography
+                  sx={{
+                    fontSize: "1.5rem",
+                    fontWeight: "bold",
+                    letterSpacing: "0.5px",
+                    color:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.light,
+                  }}
+                >
                   Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
                 </Typography>
               </Box>
@@ -437,7 +457,7 @@ export default function MobileDrawerLayout() {
                   pl: 2,
                 }}
               >
-                <Typography variant="subtitle1">
+                <Typography variant="subtitle1 ">
                   Llámanos para más información
                 </Typography>
               </Box>
@@ -451,7 +471,14 @@ export default function MobileDrawerLayout() {
                   pb: 6,
                 }}
               >
-                <LocalPhone />
+                <LocalPhone
+                  sx={{
+                    color:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.light,
+                  }}
+                />
                 <Typography variant="body1">
                   605 3356050 - 311 657 6633
                 </Typography>
@@ -460,19 +487,20 @@ export default function MobileDrawerLayout() {
 
             <Box
               sx={{
-                p: 2,
+                display: "flex",
                 flexDirection: "column",
-                justifyContent: "flex-end",
+                alignItems: "flex-start",
+                gap: 1,
+                p: 2,
                 boxSizing: "border-box",
-                position: "relative", 
-
-               "&::before": {
+                position: "relative",
+                "&::before": {
                   content: '""',
                   position: "absolute",
-                  top: 0, 
+                  top: 0,
                   left: "50%",
                   transform: "translateX(-50%)",
-                  width: "90%", 
+                  width: "95%",
                   borderTop: "1px solid",
                   borderColor: "divider",
                 },
@@ -489,9 +517,6 @@ export default function MobileDrawerLayout() {
                 </Typography>
               </IconButton>
 
-              {/* <Divider sx={{ my: 2 }} /> */}
-              <Box sx={{ my: 2 }}></Box>
-
               <IconButton onClick={handleOpenAccount} disableRipple>
                 {theme.palette.mode === "dark" ? (
                   <AccountCircle sx={{ color: "secondary.light", mr: 2 }} />
@@ -500,21 +525,26 @@ export default function MobileDrawerLayout() {
                 )}
                 <Typography variant="subtitle1">Mi cuenta</Typography>
               </IconButton>
-
-              <Typography
-                sx={{
-                  fontSize: {
-                    md: "0.675rem",
-                  },
-                  p: 2,
-                  textAlign: "center",
-                  display: "block",
-                }}
-              >
-                © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los
-                derechos reservados.
-              </Typography>
             </Box>
+
+            <Typography
+              sx={{
+                width: "100%",
+                color:
+                  theme.palette.mode === "light"
+                    ? theme.palette.primary.main
+                    : theme.palette.secondary.light,
+                fontSize: {
+                  md: "0.675rem",
+                },
+                pt: 2,
+                display: "block",
+                textAlign: "center",
+              }}
+            >
+              © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los
+              derechos reservados.
+            </Typography>
           </Box>
         </Grid>
 
@@ -525,8 +555,8 @@ export default function MobileDrawerLayout() {
           // }}
           sx={{
             flex: 1,
-            height: isMobile ? "auto" : "100%", 
-            overflowY: isMobile ? "visible" : "auto", 
+            height: isMobile ? "auto" : "100%",
+            overflowY: isMobile ? "visible" : "auto",
           }}
         >
           {isMobile && (

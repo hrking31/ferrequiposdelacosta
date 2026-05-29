@@ -34,6 +34,7 @@ export const { setSelectedEquipo, clearSelectedEquipo, setLoading, setError } =
 
 export const fetchDetailData = (id) => async (dispatch) => {
   try {
+    // await new Promise((resolve) => setTimeout(resolve, 20000));
     dispatch(setLoading(true));
     dispatch(clearSelectedEquipo());
 

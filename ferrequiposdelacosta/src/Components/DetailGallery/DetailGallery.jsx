@@ -20,7 +20,6 @@ const GalleryContainer = styled(Box)(({ theme }) => ({
   justifyContent: "center",
 }));
 
-
 const MainImage = styled("img")({
   width: "100%",
   height: "100%",
@@ -38,18 +37,18 @@ const ThumbnailContainer = styled(Box)(({ theme }) => ({
 
 const ThumbnailImage = styled("img")(({ theme, selected }) => ({
   width: "60px",
-  height: "70px",
+  height: "60px",
   objectFit: "cover",
-  borderRadius: theme.shape.borderRadius / 2,
+  borderRadius: "14px",
   cursor: "pointer",
   border: selected
-    ? `2px solid ${theme.palette.primary.main}`
-    : `1px solid ${theme.palette.divider}`,
-  opacity: selected ? 1 : 0.7,
-  transition: "all 0.2s ease",
+    ? `2px solid ${theme.palette.secondary.dark}`
+    : `1px solid ${theme.palette.secondary.light}`,
+  opacity: selected ? 1 : 0.6,
+  transition: "all 0.25s ease",
+  backgroundColor: "#f5f5f5",
   "&:hover": {
     opacity: 1,
-    transform: "scale(1.05)",
   },
 }));
 
@@ -64,15 +63,14 @@ const NavButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-export default function DetailGallery() {
+export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:915px)");
   const imagenes = useSelector(
-    (state) => state.equipoDetail.selectedEquipo?.images || []
+    (state) => state.equipoDetail.selectedEquipo?.images || [],
   );
   const images = Array.isArray(imagenes) ? imagenes : [];
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleImageClick = (index) => {
     setSelectedImageIndex(index);
@@ -80,18 +78,18 @@ export default function DetailGallery() {
 
   const handlePrev = () => {
     setSelectedImageIndex((prev) =>
-      prev === 0 ? images.length - 1 : prev - 1
+      prev === 0 ? images.length - 1 : prev - 1,
     );
   };
 
   const handleNext = () => {
     setSelectedImageIndex((prev) =>
-      prev === images.length - 1 ? 0 : prev + 1
+      prev === images.length - 1 ? 0 : prev + 1,
     );
   };
 
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    setIsFullscreen((prev) => !prev);
   };
 
   const selectedImage = images[selectedImageIndex]?.url || "";
@@ -116,11 +114,16 @@ export default function DetailGallery() {
       <Grid item xs={12}>
         <GalleryContainer
           sx={{
-            height: isFullscreen ? "100vh" : isMobile ? "60vh" : "400px",
+            height: isFullscreen
+              ? "100vh"
+              : isMobile
+                ? "60vh"
+                : "min(56vh, 540px)",
             position: isFullscreen ? "fixed" : "relative",
             top: isFullscreen ? 0 : "auto",
             left: isFullscreen ? 0 : "auto",
             zIndex: isFullscreen ? theme.zIndex.modal : "auto",
+            borderRadius: isMobile ? 0 : isFullscreen ? 0 : "28px",
           }}
         >
           <MainImage

@@ -22,6 +22,7 @@ export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const theme = useTheme();
+  const [isGalleryFullscreen, setIsGalleryFullscreen] = useState(false);
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
 
@@ -55,46 +56,62 @@ export default function Detail() {
     setSnackbarProps((prev) => ({ ...prev, open: false }));
   };
 
-  if (loading || !equipo) return <LoadingLogo />;
+  if (loading || !equipo) return <LoadingLogo text="Cargando Equipo..." />;
 
   return (
     <Box
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        boxSizing: "border-box",
-        overflow: "auto",
-        pt: isFullScreen ? { xs: 0, sm: 0 } : 8,
+        minHeight: "100vh",
+        pt: isFullScreen ? { xs: 0, sm: 0, md: 0 } : { md: 8, lg: 10, xl: 11 },
         pb: isFullScreen ? { xs: 6, sm: 7 } : 0,
         // border: "2px solid red",
       }}
     >
       <Box
         sx={{
-          flexGrow: 1,
-          p: isMobile ? 0 : 2,
-          // border: "2px solid red",
+          flex: 1,
         }}
       >
-        <Grid container>
-          <Grid
-            item
-            xs={12}
-            md={isMobile ? 12 : 5}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              // border: "2px solid red",
-            }}
-          >
-            <DetailGallery />
+        <Grid
+          container
+          spacing={{
+            xs: 0,
+            md: 4,
+            lg: 8,
+          }}
+          sx={{
+            p: isMobile ? 0 : 2,
+            // border: "2px solid red",
+          }}
+        >
+          <Grid item xs={12} lg={8}>
+            <Box
+              sx={{
+                position: {
+                  xs: "relative",
+                  lg: isGalleryFullscreen ? "relative" : "sticky",
+                },
+                top: {
+                  lg: isGalleryFullscreen ? 0 : 100,
+                },
+                alignSelf: "flex-start",
+                overflow: "hidden",
+                // border: "2px solid red",
+              }}
+            >
+              <DetailGallery
+                isFullscreen={isGalleryFullscreen}
+                setIsFullscreen={setIsGalleryFullscreen}
+              />
+            </Box>
           </Grid>
 
           <Grid
             item
             xs={12}
-            md={isMobile ? 12 : 7}
+            lg={4}
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -136,23 +153,30 @@ export default function Detail() {
 
             <ProductCardDetail product={equipo} />
 
-            <Box sx={{ textAlign: "center" }}>
+            <Box sx={{ textAlign: "center", pb: 4 }}>
               <ButtonContacto />
             </Box>
+
+            <Typography
+              sx={{
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+                display: "block",
+                textAlign: "center",
+                color:
+                  theme.palette.mode === "light"
+                    ? theme.palette.primary.main
+                    : theme.palette.secondary.light,
+              }}
+            >
+              Contáctenos para consultar disponibilidad, tiempos de alquiler,
+              transporte y asesoría sobre el equipo ideal para tu proyecto.
+            </Typography>
           </Grid>
         </Grid>
       </Box>
 
-      <Box
-        component="footer"
-        sx={{
-          width: "100%",
-          mt: 2,
-          //  border: "2px solid red"
-        }}
-      >
-        <Footer />
-      </Box>
+      <Footer />
 
       <Snackbar
         open={snackbarProps.open}
