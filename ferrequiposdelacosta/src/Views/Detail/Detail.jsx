@@ -64,9 +64,9 @@ export default function Detail() {
         display: "flex",
         flexDirection: "column",
         minHeight: "100vh",
-        pt: isFullScreen ? { xs: 0, sm: 0, md: 0 } : { md: 8, lg: 10, xl: 11 },
-        pb: isFullScreen ? { xs: 6, sm: 7 } : 0,
-        // border: "2px solid red",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 0,
+        // border: "2px solid red ",
       }}
     >
       <Box
@@ -76,11 +76,6 @@ export default function Detail() {
       >
         <Grid
           container
-          spacing={{
-            xs: 0,
-            md: 4,
-            lg: 8,
-          }}
           sx={{
             p: isMobile ? 0 : 2,
             // border: "2px solid red",

@@ -37,17 +37,22 @@ export default function MenuAppBar() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
-        // position={isSmallScreen ? "fixed" : "static"}
         position="fixed"
         sx={{
           top: isSmallScreen ? "auto" : 0,
           bottom: isSmallScreen ? 0 : "auto",
           boxShadow: theme.shadows[4],
           zIndex: theme.zIndex.drawer + 1,
+          // border: "2px solid red",
         }}
       >
         <Toolbar
           sx={{
+            minHeight: {
+              xs: "56px !important",
+              sm: "64px !important",
+              lg: "72px !important",
+            },
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -62,9 +67,7 @@ export default function MenuAppBar() {
               borderRadius: 50,
               backgroundColor:
                 theme.palette.mode === "light"
-                  ? // ? theme.palette.secondary.light
-                    // : theme.palette.primary.light,
-                    theme.palette.primary.light
+                  ? theme.palette.primary.light
                   : theme.palette.secondary.light,
               display: "flex",
               alignItems: "center",
@@ -76,14 +79,15 @@ export default function MenuAppBar() {
               alt="logo"
               style={{
                 display: "block",
-                maxWidth: "clamp(150px, 25vw, 300px)",
-                maxHeight: "clamp(40px, 5vw, 80px)",
+                height: "clamp(32px, 3vw, 48px)",
+                width: "auto",
               }}
             />
           </Box>
 
           <Typography
             variant="h1"
+            component="div"
             sx={{
               flexGrow: 1,
               textAlign: "center",

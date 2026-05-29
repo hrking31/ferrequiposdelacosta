@@ -47,7 +47,7 @@ export default function MobileDrawerLayout() {
   const [open, setOpen] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const equipos = useSelector((state) => state.equipos.equipos);
   const equipo = useSelector((state) => state.search.results);
   const loading = useSelector((state) => state.equipos.loading);
@@ -98,21 +98,14 @@ export default function MobileDrawerLayout() {
 
   const drawerWidth = "clamp(240px, 50vw, 60vw)";
 
-  let appBarHeight = 64;
-
-  if (isSmallScreen) {
-    appBarHeight = 55;
-  } else if (isMediumScreen) {
-    appBarHeight = 64;
-  }
-
   const drawerContent = (
     <Box
       sx={{
-        height: `calc(100vh - ${appBarHeight}px)`,
+        height: `calc(100vh - ${isSmallScreen ? 56 : 64}px)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
+        // border: "2px solid red",
       }}
     >
       <Box
@@ -265,26 +258,20 @@ export default function MobileDrawerLayout() {
 
   return (
     <Box
-      // sx={{
-      //   display: "flex",
-      //   flexDirection: "column",
-      //   pt: isMobile ? 8 : 11,
-      //   pb: isMobile ? `${appBarHeight}px` : 0,
-      //   // border: "2px solid red",
-      // }}
       sx={{
         display: "flex",
         flexDirection: "column",
-        pt: isMobile ? 8 : 11,
-        pb: isMobile ? `${appBarHeight}px` : 0,
-        height: isMobile ? "auto" : "100vh",
-        overflow: isMobile ? "visible" : "hidden",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 0,
+        height: isFullScreen ? "auto" : "100vh",
+        overflow: isFullScreen ? "visible" : "hidden",
+        // border: "2px solid red",
       }}
     >
       <CssBaseline />
 
       {/* AppBar (solo visible en móvil) */}
-      {isMobile && (
+      {isFullScreen && (
         <AppBar
           position="fixed"
           elevation={0}
@@ -315,7 +302,7 @@ export default function MobileDrawerLayout() {
       )}
 
       {/* Drawer solo para móviles */}
-      {isMobile && (
+      {isFullScreen && (
         <Drawer
           open={open}
           onClose={toggleDrawer}
@@ -333,17 +320,18 @@ export default function MobileDrawerLayout() {
       )}
 
       {/* Contenido principal */}
-      {/* <Grid container> */}
-      <Grid container sx={{ height: isMobile ? "auto" : "100%" }}>
+      <Grid
+        container
+        sx={{
+          height: isFullScreen ? "auto" : "100%",
+          //  border: "2px solid red"
+        }}
+      >
         <Grid
           item
           md={3}
-          // sx={{
-          //   // border: "2px solid #000",
-          //   display: isMobile ? "none" : "block",
-          // }}
           sx={{
-            display: isMobile ? "none" : "block",
+            display: isFullScreen ? "none" : "block",
             height: "100%",
             overflowY: "auto",
             borderRight: "1px solid",
@@ -555,11 +543,11 @@ export default function MobileDrawerLayout() {
           // }}
           sx={{
             flex: 1,
-            height: isMobile ? "auto" : "100%",
-            overflowY: isMobile ? "visible" : "auto",
+            height: isFullScreen ? "auto" : "100%",
+            overflowY: isFullScreen ? "visible" : "auto",
           }}
         >
-          {isMobile && (
+          {isFullScreen && (
             <Box
               sx={
                 {

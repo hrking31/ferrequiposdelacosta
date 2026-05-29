@@ -67,7 +67,7 @@ export default function Footer() {
           📍 Cra. 38 # 108-23, Barranquilla, Colombia
         </Typography>
         <Typography variant="subtitle3">
-          🕒 Lunes: 7:30 AM - 5:30 PM | Sábado: 7:30 AM - 12:00 PM
+          🕒 Lunes: 7:30 AM - 5:30 PM | Sábado: 8:00 AM - 12:00 PM
         </Typography>
       </Box>
 

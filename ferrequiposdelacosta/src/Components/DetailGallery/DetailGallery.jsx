@@ -66,6 +66,7 @@ const NavButton = styled(IconButton)(({ theme }) => ({
 export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:915px)");
+   const fullScreen = useMediaQuery("(max-width:1200px)");
   const imagenes = useSelector(
     (state) => state.equipoDetail.selectedEquipo?.images || [],
   );
@@ -123,7 +124,7 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
             top: isFullscreen ? 0 : "auto",
             left: isFullscreen ? 0 : "auto",
             zIndex: isFullscreen ? theme.zIndex.modal : "auto",
-            borderRadius: isMobile ? 0 : isFullscreen ? 0 : "28px",
+            borderRadius: isMobile || fullScreen || isFullscreen ? 0 : "28px",
           }}
         >
           <MainImage

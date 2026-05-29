@@ -231,7 +231,7 @@ export default function VistaCart() {
     >
       <Box
         sx={{
-          pt: isFullScreen ? { xs: 1, sm: 1.5 } : 9.5,
+          pt: isFullScreen ? { sm: 1 } : { md: 8, lg: 9},
           pl: { xs: 1, sm: 1.5 },
           pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
           // border: "2px solid red",
@@ -697,15 +697,13 @@ export default function VistaCart() {
           flexDirection: "column",
           justifyContent: isFullScreen ? "flex-start" : "center",
           width: isFullScreen ? "100%" : "260px",
-          height: isFullScreen ? "auto" : "86vh",
+          height: isFullScreen ? "auto" : "90vh",
           position: isFullScreen ? "relative" : "fixed",
-          top: isFullScreen ? "auto" : "80px",
-          right: isFullScreen ? "auto" : "0px",
-          zIndex: isFullScreen ? "auto" : "1300",
-          pt: 1,
-          pb: isFullScreen ? { xs: 9, sm: 9.5 } : 1,
-          pl: 2,
-          pr: 2,
+          top: isFullScreen ? "auto" : 80,
+          right: isFullScreen ? "auto" : 0,
+          zIndex: isFullScreen ? "auto" : 1300,
+          p: 2,
+          pb: isFullScreen ? { xs: 9, sm: 10 } : 2,
           bgcolor: theme.palette.background.paper,
           // border: "2px solid red",
         }}
