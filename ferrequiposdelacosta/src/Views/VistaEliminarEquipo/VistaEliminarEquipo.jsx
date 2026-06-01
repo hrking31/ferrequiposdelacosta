@@ -39,9 +39,24 @@ const VistaEliminaEquipo = () => {
       }}
     >
       <Box sx={{ flexGrow: 1, mb: 2 }}>
-
-        <Typography variant="h5">
-          {saludo} {name}.
+        <Typography
+          variant="h4"
+          sx={{
+            fontSize: {
+              xs: "1rem",
+              sm: "1.25rem",
+              md: "2rem",
+            },
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? "primary.main"
+                : "secondary.main",
+          }}
+        >
+          {saludo} {name}
         </Typography>
 
         <EliminarEquipos />
@@ -59,7 +74,7 @@ const VistaEliminaEquipo = () => {
               SELECCIONA OTRO EQUIPO
             </Button>
           </Grid>
-          
+
           <Grid item xs={12} sm={6} md={4}>
             <Button onClick={handlerLogout} variant="danger" fullWidth>
               CERRAR SESIÓN

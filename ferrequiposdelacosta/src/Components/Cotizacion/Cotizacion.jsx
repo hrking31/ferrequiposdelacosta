@@ -24,7 +24,9 @@ import {
   Radio,
   FormControlLabel,
   useTheme,
+  Stack,
 } from "@mui/material";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 
 export default function Cotizacion() {
@@ -127,19 +129,71 @@ export default function Cotizacion() {
       <Box component="form">
         <Grid
           container
-          spacing={2}
+          spacing={{ xs: 0, sm: 2 }}
           justifyContent="space-between"
           alignItems="center"
         >
           <Grid item xs={12} sm={6}>
-            <Typography variant="h5">Formulario Cotización</Typography>
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={1}
+              justifyContent={{ xs: "center", sm: "flex-start" }}
+            >
+              <BuildCircleIcon
+                sx={{
+                  fontSize: {
+                    xs: 30,
+                    sm: 40,
+                  },
+                  color: (theme) =>
+                    theme.palette.mode === "light"
+                      ? "primary.main"
+                      : "secondary.main",
+                }}
+              />
+              <Typography
+                variant="susbtitle1"
+                sx={{
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  color: (theme) =>
+                    theme.palette.mode === "light"
+                      ? "primary.main"
+                      : "secondary.main",
+                }}
+              >
+                Formulario Cotización
+              </Typography>
+            </Stack>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="h5">{formValues.cotizacionId}</Typography>
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            sx={{
+              textAlign: { xs: "center", sm: "right" },
+            }}
+          >
+            <Typography
+              variant="susbtitle1"
+              sx={{
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: (theme) =>
+                  theme.palette.mode === "light"
+                    ? "primary.main"
+                    : "secondary.main",
+              }}
+            >
+              {formValues.cotizacionId}
+            </Typography>
           </Grid>
         </Grid>
 
-        <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
+        <Grid container spacing={2} sx={{ mt: { xs: 1, md: 2 }, px: 1 }}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <Box display="flex" width="100%">

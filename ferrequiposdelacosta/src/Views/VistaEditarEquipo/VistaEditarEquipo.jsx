@@ -39,9 +39,23 @@ const VistaEditarEquipo = () => {
       }}
     >
       <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography variant="h5" color="text.primary">
-          {saludo} {name}, Vas a editar el equipo?
-        </Typography>
+      <Typography
+        variant="h4"
+        sx={{
+          fontSize: {
+            xs: "1rem",
+            sm: "1.25rem",
+            md: "2rem",
+          },
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          color: (theme) =>
+            theme.palette.mode === "light" ? "primary.main" : "secondary.main",
+        }}
+      >
+        {saludo} {name}, Vas a editar el equipo?
+      </Typography>
 
         <EditarEquipos />
       </Box>

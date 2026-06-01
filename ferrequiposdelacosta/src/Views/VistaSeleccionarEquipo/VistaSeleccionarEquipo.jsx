@@ -114,8 +114,22 @@ const VistaSeleccionarEquipo = () => {
         // border: "2px solid red",
       }}
     >
-      <Typography variant="h5" color="text.primary">
-        {saludo} {name}, Busca el equipo por su nombre.
+      <Typography
+        variant="h4"
+        sx={{
+          fontSize: {
+            xs: "1rem",
+            sm: "1.25rem",
+            md: "2rem",
+          },
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          color: (theme) =>
+            theme.palette.mode === "light" ? "primary.main" : "secondary.main",
+        }}
+      >
+        {saludo} {name}, Selecciona el Equipo que deseas Editar o Eliminar.
       </Typography>
 
       <Box

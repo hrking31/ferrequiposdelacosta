@@ -523,9 +523,9 @@ useEffect(() => {
         MuiRadio: {
           styleOverrides: {
             root: {
-              color: mode === "light" ? "#F7F7F7" : "#FFD166",
+              color: mode === "light" ? "#3A5169" : "#FFD166",
               "&.Mui-checked": {
-                color: mode === "light" ? "#F7F7F7" : "#FFD166",
+                color: mode === "light" ? "#3A5169" : "#FFD166",
               },
             },
           },

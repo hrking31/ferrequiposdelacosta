@@ -76,9 +76,15 @@ export default function AdminForms() {
         }}
       >
         <Typography
-          variant="h5"
+            variant="h4"
           sx={{
-            color: theme.palette.text.secondary,
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? "primary.main"
+                : "secondary.main",
           }}
         >
           {saludo} {name}, Qué vamos a hacer hoy?

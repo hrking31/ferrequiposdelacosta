@@ -147,8 +147,19 @@ export default function VistaCreaEquipo() {
           // border: "2px solid red",
         }}
       >
-        <Typography variant="h5" color="text.primary">
-          {saludo} {name}.
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? "primary.main"
+                : "secondary.main",
+          }}
+        >
+          {saludo} {name}, crea un nuevo equipo.
         </Typography>
 
         <Box sx={{ flexGrow: 1, mb: 2 }}>
