@@ -231,7 +231,7 @@ export default function VistaCart() {
     >
       <Box
         sx={{
-          pt: isFullScreen ? { sm: 1 } : { md: 8, lg: 9},
+          pt: isFullScreen ? { sm: 1 } : { md: 8, lg: 9 },
           pl: { xs: 1, sm: 1.5 },
           pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
           // border: "2px solid red",

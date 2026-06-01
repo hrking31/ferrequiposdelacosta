@@ -390,7 +390,16 @@ export default function MobileDrawerLayout() {
                   pb: 8,
                 }}
               >
-                <ButtonContacto />
+                <ButtonContacto
+                  width={{
+                    md: 180,
+                    lg: 250,
+                  }}
+                  fontSize={{
+                    md: "0.8rem",
+                    lg: "1rem",
+                  }}
+                />
               </Box>
 
               <Box

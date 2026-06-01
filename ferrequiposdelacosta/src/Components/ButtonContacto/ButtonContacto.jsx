@@ -1,15 +1,22 @@
-import {
-  Box,
-  Button,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Button, IconButton, useMediaQuery } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
-export const WhatsAppButton=() =>{
+  const ActionButton = styled(Button)(({ theme }) => ({
+    padding: theme.spacing(1.5, 1.5),
+    borderRadius: theme.shape.borderRadius * 2,
+    fontWeight: 600,
+    margin: theme.spacing(1),
+    textTransform: "none",
+    boxShadow: theme.shadows[2],
+    whiteSpace: "nowrap",
+    "&:hover": {
+      boxShadow: theme.shadows[4],
+    },
+  }));
+
+export const WhatsAppButton = () => {
   return (
     <IconButton
       color="success"
@@ -34,12 +41,12 @@ export const WhatsAppButton=() =>{
       <WhatsApp fontSize="large" />
     </IconButton>
   );
-}
+};
 
-export default function ButtonContacto() {
-  const theme = useTheme();
+export default function ButtonContacto({ width, fontSize }) {
   const isMobile = useMediaQuery("(max-width:915px)");
-  const bounce = isMobile ? keyframes`
+  const bounce = isMobile
+    ? keyframes`
   0%, 20%, 50%, 80%, 100% {
     transform: translatex(0);
   }
@@ -49,7 +56,7 @@ export default function ButtonContacto() {
   60% {
     transform: translatex(-3px);
   }`
-  : keyframes`
+    : keyframes`
   0%, 20%, 50%, 80%, 100% {
     transform: translateY(0);
   }
@@ -59,20 +66,6 @@ export default function ButtonContacto() {
   60% {
     transform: translateY(-3px);
   }`;
-
-
-
-  const ActionButton = styled(Button)(({ theme }) => ({
-    padding: theme.spacing(1.5, 3),
-    borderRadius: theme.shape.borderRadius * 2,
-    fontWeight: 600,
-    margin: theme.spacing(1),
-    textTransform: "none",
-    boxShadow: theme.shadows[2],
-    "&:hover": {
-      boxShadow: theme.shadows[4],
-    },
-  }));
 
   return (
     <Box
@@ -90,7 +83,8 @@ export default function ButtonContacto() {
             startIcon={<LocalPhone />}
             href="tel:+573116576633"
             sx={{
-              minWidth: 250,
+              width,
+              fontSize,
               backgroundColor: "#34B7F1",
               "&:hover": { backgroundColor: "#269BD1" },
             }}
@@ -108,7 +102,8 @@ export default function ButtonContacto() {
             "&:hover": {
               backgroundColor: "#128C7E",
             },
-            minWidth: 250,
+            width,
+            fontSize,
             animation: `${bounce} 2s infinite`,
           }}
         >

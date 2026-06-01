@@ -149,7 +149,12 @@ export default function Detail() {
             <ProductCardDetail product={equipo} />
 
             <Box sx={{ textAlign: "center", pb: 4 }}>
-              <ButtonContacto />
+              <ButtonContacto
+                width={250}
+                fontSize={{
+                  md: "1rem",
+                }}
+              />
             </Box>
 
             <Typography
