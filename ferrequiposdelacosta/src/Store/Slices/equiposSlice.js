@@ -7,7 +7,6 @@ export const fetchEquiposData = createAsyncThunk(
   "equipos/fetchEquiposData",
   async (_, thunkAPI) => {
     try {
-      // await new Promise((resolve) => setTimeout(resolve, 20000));
       const querySnapshot = await getDocs(collection(db, "equipos"));
       const equiposData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
