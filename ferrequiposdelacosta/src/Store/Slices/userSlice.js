@@ -7,6 +7,7 @@ const initialState = {
   genero: null,
   role: null,
   permisos: [],
+  photoURL: null,
 };
 
 const userSlice = createSlice({

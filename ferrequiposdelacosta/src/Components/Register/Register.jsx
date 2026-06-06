@@ -19,8 +19,10 @@ import {
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "../../Components/Firebase/Firebase";
+// import { doc, setDoc } from "firebase/firestore";
+// import { db } from "../../Components/Firebase/Firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 
@@ -40,7 +42,8 @@ export default function Register() {
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";
 
-  const { signup } = useAuth();
+  // const { signup } = useAuth();
+  const createUser = httpsCallable(functions, "createUser");
   const navigate = useNavigate();
 
   const handleChange = ({ target: { name, value } }) => {
@@ -100,13 +103,11 @@ export default function Register() {
 
     try {
       setLoading(true);
-      const newUserCredential = await signup(user.email, user.password);
-      const uid = newUserCredential.user.uid;
-
-      await setDoc(doc(db, "users", uid), {
+      await createUser({
+        email: user.email,
+        password: user.password,
         name: user.name,
         genero: generoSeleccionado,
-        email: user.email,
         role: roleSeleccionado,
         permisos,
       });
@@ -116,8 +117,11 @@ export default function Register() {
         message: "Usuario registrado con éxito",
         severity: "success",
       });
+      
+      setUser({ name: "", email: "", password: "" });
+      setRoleSeleccionado("");
+      setGeneroSeleccionado("");
 
-      setTimeout(() => navigate("/home"), 1500);
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setSnackbar({
@@ -150,7 +154,7 @@ export default function Register() {
       gap={2}
     >
       <Typography variant="h5" align="center" gutterBottom>
-        Registro
+        Registrar Nuevo Personal
       </Typography>
 
       <TextField

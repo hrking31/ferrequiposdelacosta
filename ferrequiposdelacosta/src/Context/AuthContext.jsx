@@ -1,53 +1,8 @@
-// import { createContext, useContext, useEffect, useState } from "react";
-// import { auth } from "../Components/Firebase/Firebase";
-// import {
-//   createUserWithEmailAndPassword,
-//   signInWithEmailAndPassword,
-//   onAuthStateChanged,
-//   signOut,
-// } from "firebase/auth";
-
-// export const authContext = createContext();
-
-// export const useAuth = () => {
-//   const context = useContext(authContext);
-//   return context;
-// };
-
-// export function AuthProvider({ children }) {
-//   const [user, setUser] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   const signup = (email, password) =>
-//     createUserWithEmailAndPassword(auth, email, password);
-
-//   const login = async (email, password) =>
-//     signInWithEmailAndPassword(auth, email, password);
-
-//   const logout = () => signOut(auth);
-
-//   useEffect(() => {
-//     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-//       setUser(currentUser);
-//       setLoading(false);
-//     });
-
-//     return () => unsubscribe();
-//   }, []);
-
-//   return (
-//     <authContext.Provider value={{ signup, login, user, logout, loading }}>
-//       {children}
-//     </authContext.Provider>
-//   );
-// }
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
@@ -66,9 +21,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const dispatch = useDispatch();
-
-  const signup = (email, password) =>
-    createUserWithEmailAndPassword(auth, email, password);
 
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
@@ -99,6 +51,7 @@ export function AuthProvider({ children }) {
                 genero: profile.genero || "",
                 role: profile.role || "",
                 permisos: profile.permisos || [],
+                photoURL: profile.photoURL || currentUser.photoURL || null,
               }),
             );
           }
@@ -119,7 +72,6 @@ export function AuthProvider({ children }) {
   return (
     <authContext.Provider
       value={{
-        signup,
         login,
         logout,
         user,

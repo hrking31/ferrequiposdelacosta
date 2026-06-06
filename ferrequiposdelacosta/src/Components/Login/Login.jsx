@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   Box,
   Button,
@@ -16,9 +17,10 @@ import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { useAuth } from "../../Context/AuthContext";
 
 export default function Login({ onClose }) {
+  const theme = useTheme();
+  const dispatch = useDispatch();
   const [user, setUser] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const theme = useTheme();
 
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";

@@ -131,9 +131,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { doc, deleteDoc } from "firebase/firestore";
-import { db, auth } from "../Firebase/Firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../Firebase/Firebase";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import {
   Box,
@@ -147,7 +146,6 @@ import {
 
 export default function EliminarUsuario() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false); // para mostrar alerta de confirmación
   const navigate = useNavigate();
@@ -158,35 +156,42 @@ export default function EliminarUsuario() {
     severity: "info",
   });
 
+  const deleteUserCloud = httpsCallable(functions, "deleteUser");
+
   const handleDeleteConfirmed = async () => {
     setConfirming(false);
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-      const userRef = doc(db, "users", user.uid);
-      await deleteDoc(userRef);
-      await deleteUser(user);
+      await deleteUserCloud({ email });
 
       setSnackbar({
         open: true,
         message: "Usuario eliminado con éxito",
         severity: "success",
       });
-
-      navigate("/home");
+      setEmail("");
     } catch (error) {
-      setSnackbar({ open: true, message: error.message, severity: "error" });
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar el usuario",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Por favor, ingresa un correo.",
+        severity: "error",
+      });
+      return;
+    }
     setConfirming(true);
   };
 
@@ -201,22 +206,13 @@ export default function EliminarUsuario() {
       flexDirection="column"
       gap={2}
     >
-      <Typography variant="h5">Ingresa Datos del Usuario.</Typography>
+      <Typography variant="h5">Ingrese el correo del usuario.</Typography>
 
       <TextField
         label="email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        fullWidth
-        required
-      />
-
-      <TextField
-        label="Contraseña"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
         fullWidth
         required
       />
@@ -237,28 +233,53 @@ export default function EliminarUsuario() {
             left: "50% !important",
             transform: "translate(-50%, -50%)",
             zIndex: 1300,
+            width: "90%",
+            maxWidth: "400px",
           },
         }}
       >
         <Alert
           severity="warning"
           variant="filled"
-          action={
-            <Button
-              variant="success"
-              size="small"
-              onClick={handleDeleteConfirmed}
-            >
-              Confirmar
-            </Button>
-          }
           sx={{
             width: "100%",
             bgcolor: theme.palette.warning.main,
             color: theme.palette.warning.contrastText,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            "& .MuiAlert-message": {
+              width: "100%",
+            },
           }}
         >
-          ¿Estás seguro de que quieres eliminar este usuario?
+          <Box display="flex" flexDirection="column" gap={1.5}>
+            <Typography
+              variant="body1"
+              sx={{
+                color: theme.palette.primary.dark,
+              }}
+            >
+              ¿Estás seguro de que quieres eliminar este usuario?
+            </Typography>
+
+            <Box display="flex" justifyContent="flex-end" gap={1}>
+              <Button
+                variant="danger"
+                size="small"
+                onClick={() => setConfirming(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="success"
+                size="small"
+                onClick={handleDeleteConfirmed}
+              >
+                Confirmar
+              </Button>
+            </Box>
+          </Box>
         </Alert>
       </Snackbar>
 
@@ -296,4 +317,3 @@ export default function EliminarUsuario() {
     </Box>
   );
 }
-
