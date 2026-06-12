@@ -1,6 +1,3 @@
-import { Link } from "react-router-dom";
-import { useAuth } from "../../Context/AuthContext";
-import { useSelector } from "react-redux";
 import {
   Box,
   Grid,
@@ -9,16 +6,17 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../Context/AuthContext";
+import { useSelector } from "react-redux";
 import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEliminaEquipo = () => {
-  const { name, genero } = useSelector((state) => state.user);
+  const { name, photoURL } = useSelector((state) => state.user);
   const { user, logout } = useAuth();
   const theme = useTheme();
    const isFullScreen = useMediaQuery("(max-width:915px)");
-
-  const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
-
   const handlerLogout = async () => {
     await logout();
   };
@@ -28,37 +26,21 @@ const VistaEliminaEquipo = () => {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
-        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
-        pl: { xs: 1, sm: 1.5 },
-        pr: { xs: 1, sm: 1.5 },
+        height: "100dvh",
+        width: "100%",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        px: { xs: 2, sm: 3 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
       }}
     >
-      <Box sx={{ flexGrow: 1, mb: 2 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: {
-              xs: "1rem",
-              sm: "1.25rem",
-              md: "2rem",
-            },
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? "primary.main"
-                : "secondary.main",
-          }}
-        >
-          {saludo} {name}
-        </Typography>
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+      </Box>
 
+      <Box sx={{ flexGrow: 1, mb: 2 }}>
         <EliminarEquipos />
       </Box>
 

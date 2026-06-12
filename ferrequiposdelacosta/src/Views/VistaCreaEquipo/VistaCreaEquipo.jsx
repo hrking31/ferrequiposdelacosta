@@ -4,31 +4,29 @@ import {
   Button,
   Grid,
   TextField,
-  Typography,
   Snackbar,
   Alert,
   Divider,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
 import { storage, db } from "../../Components/Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, setDoc, doc } from "firebase/firestore";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCreaEquipo() {
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
-  const { name, genero } = useSelector((state) => state.user);
+  const { name, photoURL } = useSelector((state) => state.user);
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
   const theme = useTheme();
-  const isFullScreen = useMediaQuery("(max-width:915px)"); 
-  const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
-  
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
@@ -52,8 +50,8 @@ export default function VistaCreaEquipo() {
   const handleNameChange = (index, newName) => {
     setImages((prevImages) =>
       prevImages.map((img, i) =>
-        i === index ? { ...img, name: newName } : img
-      )
+        i === index ? { ...img, name: newName } : img,
+      ),
     );
   };
 
@@ -137,30 +135,19 @@ export default function VistaCreaEquipo() {
         sx={{
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
-          pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
-          pl: { xs: 1, sm: 1.5 },
-          pr: { xs: 1, sm: 1.5 },
+          height: "100dvh",
+          width: "100%",
+          pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+          pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+          px: { xs: 2, sm: 3 },
           overflow: "auto",
           boxSizing: "border-box",
           // border: "2px solid red",
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? "primary.main"
-                : "secondary.main",
-          }}
-        >
-          {saludo} {name}, crea un nuevo equipo.
-        </Typography>
+        <Box sx={{ p: 2, flexShrink: 0 }}>
+          <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        </Box>
 
         <Box sx={{ flexGrow: 1, mb: 2 }}>
           <Grid container spacing={2} justifyContent="center">

@@ -4,15 +4,14 @@ import {
   CardContent,
   Typography,
   Chip,
-  Stack,
   Button,
   Avatar,
   Divider,
+  Stack,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -62,42 +61,14 @@ export default function KioskAdminCotizaciones() {
   return (
     <Box
       sx={{
-        p: 3,
         display: "flex",
         flexDirection: "column",
+        p: 3,
         gap: 3,
         backgroundColor: (theme) => theme.palette.background.default,
-        minHeight: "100vh",
         transition: "background-color 0.3s ease",
       }}
     >
-      {/* Encabezado del Panel */}
-      <Stack direction="row" alignItems="center" gap={2}>
-        <BuildCircleIcon
-          sx={{
-            fontSize: 40,
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? "primary.main"
-                : "secondary.main",
-          }}
-        />
-        <Typography
-          variant="h2"
-          sx={{
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? "primary.dark"
-                : "secondary.main",
-          }}
-        >
-          Panel de Solicitudes
-        </Typography>
-      </Stack>
-
       {cotizaciones.length === 0 ? (
         <Typography
           variant="body1"

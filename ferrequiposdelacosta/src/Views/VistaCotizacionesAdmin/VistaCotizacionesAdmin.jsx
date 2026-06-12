@@ -1,16 +1,18 @@
+import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import AdminCotizaciones from "../../Components/AdminCotizaciones/AdminCotizaciones";
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
+  const { name, photoURL } = useSelector((state) => state.user);
   const [loading, setLoading] = useState(false);
 
   const handlerLogout = async () => {
@@ -24,30 +26,38 @@ export default function VistaCotizacion() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
-        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
-        pl: { xs: 1, sm: 1.5 },
-        pr: { xs: 1, sm: 1.5 },
+        height: "100dvh",
+        width: "100%",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        px: { xs: 2, sm: 3 },
         overflow: "auto",
         boxSizing: "border-box",
-        // border: "2px solid red",
+        border: "2px solid red",
       }}
     >
-      <Box
-        sx={{
-          mb: 2,
-          //  border: "2px solid red"
-        }}
-      >
-        <Grid item xs={12} md={6}>
-          <AdminCotizaciones />
-        </Grid>
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
       </Box>
 
       <Box
         sx={{
-          mb: 2,
+          flexGrow: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          p: 1,
+          my: 1,
+          //  border: "2px solid red"
+        }}
+      >
+        <AdminCotizaciones />
+
+      </Box>
+
+      <Box
+        sx={{
+          p: 1,
+          flexShrink: 0,
           //  border: "2px solid red"
         }}
       >
