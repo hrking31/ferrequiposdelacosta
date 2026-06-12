@@ -1,9 +1,7 @@
 import {
-  Typography,
   Box,
   Grid,
   Button,
-  Avatar,
   useTheme,
   useMediaQuery,
 } from "@mui/material";

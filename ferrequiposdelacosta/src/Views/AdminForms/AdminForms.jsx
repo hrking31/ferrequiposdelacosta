@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector } from "react-redux";
 import {
-  Typography,
   Box,
   Grid,
   Button,
@@ -19,14 +18,14 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function AdminForms() {
-  const { logout } = useAuth();
   const theme = useTheme();
+  const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const { name, genero, permisos } = useSelector((state) => state.user);
-  const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
+  const { name, photoURL, permisos } = useSelector((state) => state.user);
 
   const handlerLogout = async () => {
     await logout();
@@ -59,36 +58,18 @@ export default function AdminForms() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-start",
-        pt: isFullScreen ? { xs: 2, sm: 2 } : 10,
-        pb: isFullScreen ? { xs: 9, sm: 9.8 } : 1,
-        pl: 2,
-        pr: 2,
+        height: "100dvh",
+        width: "100%",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        px: { xs: 2, sm: 3 },
         overflow: "auto",
         boxSizing: "border-box",
-        // border: "2px solid red",
+        //  border: "2px solid red"
       }}
     >
-      <Box
-        sx={{
-          pb: 4,
-          //  border: "2px solid red"
-        }}
-      >
-        <Typography
-            variant="h4"
-          sx={{
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? "primary.main"
-                : "secondary.main",
-          }}
-        >
-          {saludo} {name}, Qué vamos a hacer hoy?
-        </Typography>
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
       </Box>
 
       <Box
