@@ -1,21 +1,23 @@
+import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { ref, update, push } from "firebase/database";
+import { database } from "../../Components/Firebase/Firebase.js";
+import { useAuth } from "../../Context/AuthContext";
+import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
-import { useAuth } from "../../Context/AuthContext";
-import { useSelector, useDispatch } from "react-redux";
-import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
-import { ref, update, push } from "firebase/database";
-import { database } from "../../Components/Firebase/Firebase.js";
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const values = useSelector((state) => state.cotizacion.value);
+  const { name, photoURL } = useSelector((state) => state.user);
   const { logout } = useAuth();
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
 
@@ -109,16 +111,20 @@ export default function VistaCotizacion() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
-        pb: isFullScreen ? { xs: 8, sm: 9 } : 1.5,
-        pl: { xs: 1, sm: 1.5 },
-        pr: { xs: 1, sm: 1.5 },
+        height: "100dvh",
+        width: "100%",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        px: { xs: 2, sm: 3 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
       }}
     >
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+      </Box>
+
       <Box
         sx={{
           mb: 2,

@@ -1,9 +1,3 @@
-import { useSelector, useDispatch } from "react-redux";
-import {
-  setFormCuentaCobro,
-  setItemsCc,
-  setTotalCc,
-} from "../../Store/Slices/cuentacobroSlice";
 import {
   Box,
   Button,
@@ -13,15 +7,20 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setFormCuentaCobro,
+  setItemsCc,
+  setTotalCc,
+} from "../../Store/Slices/cuentacobroSlice";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 
 export default function CuentaCobro() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
   const items = useSelector((state) => state.cuentacobro.value.items);
   const total = useSelector((state) => state.cuentacobro.value.total);
-  const theme = useTheme();
-
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
     const updatedFormValues = { ...formValues, [name]: value };
@@ -109,7 +108,7 @@ export default function CuentaCobro() {
           </Typography>
         </Stack>
 
-        <Grid container spacing={2} sx={{ mt: 2, px: 1 }}>
+        <Grid container spacing={2} sx={{ mt: { xs: 0.5, md: 1 }, px: 0.5 }}>
           <Grid item xs={7} sm={6}>
             <TextField
               fullWidth

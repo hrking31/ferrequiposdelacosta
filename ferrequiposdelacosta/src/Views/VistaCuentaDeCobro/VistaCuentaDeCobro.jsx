@@ -1,22 +1,24 @@
+import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
-import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
-import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
-import { useAuth } from "../../Context/AuthContext";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCuentaCobro,
   setItemsCc,
   setTotalCc,
 } from "../../Store/Slices/cuentacobroSlice";
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
+import { useAuth } from "../../Context/AuthContext";
+import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
+import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
+import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
+import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCuentaDeCobro() {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const values = useSelector((state) => state.cuentacobro);
+  const { name, photoURL } = useSelector((state) => state.user);
   const { logout } = useAuth();
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +30,7 @@ export default function VistaCuentaDeCobro() {
         concepto: "",
         nit: "",
         fecha: "",
-      })
+      }),
     );
     dispatch(setItemsCc([]));
     dispatch(setTotalCc("0"));
@@ -61,6 +63,10 @@ export default function VistaCuentaDeCobro() {
         // border: "2px solid red",
       }}
     >
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+      </Box>
+
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
