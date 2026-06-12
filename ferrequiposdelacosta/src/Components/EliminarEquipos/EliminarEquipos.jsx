@@ -156,6 +156,8 @@ const EliminarEquipo = () => {
             left: "50% !important",
             transform: "translate(-50%, -50%)",
             zIndex: 1300,
+            width: { xs: "90%", sm: "auto" },
+            maxWidth: { xs: "none", sm: "md" },
           },
         }}
       >
@@ -165,6 +167,7 @@ const EliminarEquipo = () => {
           variant="filled"
           sx={{
             width: "100%",
+            minWidth: { xs: "100%", sm: "300px" },
             bgcolor: (theme) =>
               theme.palette[snackbarSeverity]?.main ||
               theme.palette.primary.main,

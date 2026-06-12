@@ -274,6 +274,8 @@ export default function Register() {
             left: "50% !important",
             transform: "translate(-50%, -50%)",
             zIndex: 1300,
+            width: { xs: "90%", sm: "auto" },
+            maxWidth: { xs: "none", sm: "md" },
           },
         }}
       >
@@ -283,6 +285,7 @@ export default function Register() {
           variant="filled"
           sx={{
             width: "100%",
+            minWidth: { xs: "100%", sm: "300px" },
             bgcolor: (theme) =>
               theme.palette[snackbar.severity]?.main ||
               theme.palette.primary.main,
