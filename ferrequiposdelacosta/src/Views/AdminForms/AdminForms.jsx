@@ -25,7 +25,7 @@ export default function AdminForms() {
   const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const { name, photoURL, permisos } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
 
   const handlerLogout = async () => {
     await logout();
@@ -69,7 +69,7 @@ export default function AdminForms() {
       }}
     >
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal name={name} photoURL={photoURL} role={role} genero={genero} />
       </Box>
 
       <Box

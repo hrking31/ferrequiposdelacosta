@@ -13,7 +13,7 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 
 export default function VistaCrearUsuarios() {
   const theme = useTheme();
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero } = useSelector((state) => state.user);
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
 
@@ -36,9 +36,13 @@ export default function VistaCrearUsuarios() {
         //  border: "2px solid red"
       }}
     >
-      
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       {/* Contenido Principal */}
