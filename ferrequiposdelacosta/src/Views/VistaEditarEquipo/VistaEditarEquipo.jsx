@@ -14,7 +14,9 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 
 const VistaEditarEquipo = () => {
   const { logout } = useAuth();
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const theme = useTheme();
    const isFullScreen = useMediaQuery("(max-width:915px)");
   const handlerLogout = async () => {
@@ -36,9 +38,13 @@ const VistaEditarEquipo = () => {
         // border: "2px solid red",
       }}
     >
-
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       <Box sx={{ flexGrow: 1, mb: 2 }}>

@@ -8,7 +8,9 @@ import UsersList from "../../Components/Usuarios/Usuarios";
 
 export default function VistaEliminarUsuario() {
   const theme = useTheme();
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
 
@@ -38,7 +40,12 @@ export default function VistaEliminarUsuario() {
           //  border: "2px solid red"
         }}
       >
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       <Box

@@ -22,7 +22,9 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 export default function VistaCreaEquipo() {
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
   const theme = useTheme();
@@ -146,7 +148,12 @@ export default function VistaCreaEquipo() {
         }}
       >
         <Box sx={{ p: 2, flexShrink: 0 }}>
-          <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+          <HeaderUsuarioConModal
+            name={name}
+            photoURL={photoURL}
+            role={role}
+            genero={genero}
+          />
         </Box>
 
         <Box sx={{ flexGrow: 1, mb: 2 }}>

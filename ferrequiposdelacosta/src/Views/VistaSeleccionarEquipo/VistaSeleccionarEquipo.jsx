@@ -28,7 +28,9 @@ const VistaSeleccionarEquipo = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const equipos = useSelector((state) => state.search.results);
   const loading = useSelector((state) => state.search.loading);
   const error = useSelector((state) => state.search.error);
@@ -122,7 +124,12 @@ const VistaSeleccionarEquipo = () => {
           width: "100%",
         }}
       >
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       <Box

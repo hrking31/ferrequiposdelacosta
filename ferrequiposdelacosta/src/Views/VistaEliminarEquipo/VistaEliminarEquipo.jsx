@@ -13,7 +13,9 @@ import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEliminaEquipo = () => {
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const { user, logout } = useAuth();
   const theme = useTheme();
    const isFullScreen = useMediaQuery("(max-width:915px)");
@@ -37,7 +39,12 @@ const VistaEliminaEquipo = () => {
       }}
     >
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       <Box sx={{ flexGrow: 1, mb: 2 }}>
