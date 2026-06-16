@@ -1,21 +1,16 @@
-import {
-  Box,
-  Grid,
-  Button,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import EliminarUsuario from "../../Components/EliminarUsuario/EliminarUsuario";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import UsersList from "../../Components/Usuarios/Usuarios";
 
 export default function VistaEliminarUsuario() {
   const theme = useTheme();
   const { name, photoURL } = useSelector((state) => state.user);
   const { logout } = useAuth();
-   const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
 
   const handlerLogout = async () => {
     await logout();
@@ -31,12 +26,18 @@ export default function VistaEliminarUsuario() {
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
         px: { xs: 2, sm: 3 },
-        overflow: "hidden",
+        overflow: "auto",
         boxSizing: "border-box",
         //  border: "2px solid red"
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0 }}>
+      <Box
+        sx={{
+          p: 2,
+          flexShrink: 0,
+          //  border: "2px solid red"
+        }}
+      >
         <HeaderUsuarioConModal name={name} photoURL={photoURL} />
       </Box>
 
@@ -46,9 +47,17 @@ export default function VistaEliminarUsuario() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          p: 1,
-          my: 1,
-          // border: "2px solid red"
+          // border: "2px solid red",
+        }}
+      >
+        <UsersList />
+      </Box>
+
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          // border: "2px solid red",
         }}
       >
         <EliminarUsuario />

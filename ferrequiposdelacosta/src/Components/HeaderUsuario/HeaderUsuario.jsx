@@ -96,6 +96,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
     }
   };
 
+  const formatearNombreRol = (rolKey) => {
+    if (!rolKey) return "Usuario";
+    const conEspacios = rolKey.replace(/([A-Z])/g, " $1");
+    return conEspacios.charAt(0).toUpperCase() + conEspacios.slice(1);
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
@@ -165,7 +171,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
               pr: isMobile ? 0 : 1.5,
             }}
           >
-            {role || ""}
+            {formatearNombreRol(role)}
           </Typography>
         </Box>
 
@@ -278,7 +284,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
               gap: 2,
             }}
           >
-
             <input
               type="file"
               accept="image/*"
