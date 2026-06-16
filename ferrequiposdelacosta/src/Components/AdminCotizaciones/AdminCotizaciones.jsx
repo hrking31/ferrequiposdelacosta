@@ -84,14 +84,24 @@ export default function KioskAdminCotizaciones() {
               position: "relative",
               overflow: "visible",
               backgroundColor: (theme) =>
-                theme.palette.mode === "light" ? "#FFFFFF" : "primary.main",
-              border: "1px solid transparent",
-              willChange: "transform, box-shadow, border-color",
+                theme.palette.mode === "light"
+                  ? "secondary.main"
+                  : "primary.main",
+              // border: "1px solid transparent",
+              borderRadius: "8px 8px 0 0",
+              outline: "1px solid transparent",
+              // willChange: "transform, box-shadow, border-color",
+              willChange: "transform, box-shadow",
               transition:
                 "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
               "&:hover": {
-                transform: "translateY(-6px)",
-                borderColor: (theme) => theme.palette.secondary.main,
+                // transform: "translateY(-6px)",
+                transform: "translateY(0)",
+                // borderColor: (theme) =>
+                outlineColor: (theme) =>
+                  theme.palette.mode === "light"
+                    ? "primary.main"
+                    : "secondary.main",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 12px 20px -5px rgba(0,0,0,0.4), 0 4px 12px -2px rgba(0,0,0,0.2)"
@@ -107,8 +117,11 @@ export default function KioskAdminCotizaciones() {
             <Box
               sx={{
                 height: 6,
-                backgroundColor: (theme) => theme.palette.secondary.main,
-                // borderRadius: "8px 8px 0 0",
+                backgroundColor: (theme) =>
+                  theme.palette.mode === "light"
+                    ? "primary.main"
+                    : "secondary.main",
+                borderRadius: "8px 8px 0 0",
               }}
             />
 

@@ -12,7 +12,9 @@ export default function VistaCotizacion() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const { name, photoURL } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector(
+    (state) => state.user,
+  );
   const [loading, setLoading] = useState(false);
 
   const handlerLogout = async () => {
@@ -30,14 +32,19 @@ export default function VistaCotizacion() {
         width: "100%",
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
-        px: { xs: 2, sm: 3 },
+        px: { xs: 1, sm: 2 },
         overflow: "auto",
         boxSizing: "border-box",
         border: "2px solid red",
       }}
     >
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+        />
       </Box>
 
       <Box
@@ -45,13 +52,10 @@ export default function VistaCotizacion() {
           flexGrow: 1,
           alignItems: "center",
           justifyContent: "center",
-          p: 1,
-          my: 1,
           //  border: "2px solid red"
         }}
       >
         <AdminCotizaciones />
-
       </Box>
 
       <Box
