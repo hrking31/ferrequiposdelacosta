@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import Register from "../../Components/Register/Register";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import UsersList from "../../Components/Usuarios/Usuarios";
 
 export default function VistaCrearUsuarios() {
   const theme = useTheme();
@@ -26,9 +25,9 @@ export default function VistaCrearUsuarios() {
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
         px: { xs: 2, sm: 3 },
-        overflow: "auto",
+        overflow: "hidden",
         boxSizing: "border-box",
-        //  border: "2px solid red"
+         border: "2px solid red"
       }}
     >
       <Box
@@ -46,18 +45,6 @@ export default function VistaCrearUsuarios() {
         />
       </Box>
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          // border: "2px solid red",
-        }}
-      >
-        <UsersList />
-      </Box>
-
       {/* Contenido Principal */}
       <Box
         sx={{
@@ -65,6 +52,8 @@ export default function VistaCrearUsuarios() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          p: 1,
+          my: 1,
           //  border: "2px solid red"
         }}
       >
