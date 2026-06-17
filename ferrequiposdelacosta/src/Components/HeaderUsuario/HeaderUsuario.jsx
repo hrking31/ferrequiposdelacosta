@@ -142,7 +142,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
             {!isMobile && (
               <Typography
                 variant="subtitle2"
-                sx={{ lineHeight: 1.2, textTransform: "capitalize" }}
+                sx={{
+                  lineHeight: 1.2,
+                  textTransform: "capitalize",
+                  color: (theme) =>
+                    theme.palette.mode === "light" ? "#E2E8F0" : "#A0AEC0",
+                }}
               >
                 {saludo || ""}
               </Typography>

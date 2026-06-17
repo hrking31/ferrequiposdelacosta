@@ -400,7 +400,7 @@ export const CustomThemeProvider = ({ children }) => {
                     : theme.palette.primary.main,
                 color:
                   theme.palette.mode === "light"
-                    ? theme.palette.primary.light
+                    ? theme.palette.primary.main
                     : theme.palette.secondary.light,
                 boxShadow: "none",
                 transition:
@@ -414,7 +414,35 @@ export const CustomThemeProvider = ({ children }) => {
                   transform: "translateY(-4px)",
                   boxShadow:
                     theme.palette.mode === "light"
-                      ? `0 10px 20px ${theme.palette.primary.main}60`
+                      ? `0 10px 20px ${theme.palette.primary.main}80`
+                      : `0 8px 20px ${theme.palette.secondary.light}35`,
+                },
+              }),
+            },
+            {
+              props: { variant: "quotationSquare" },
+              style: ({ theme }) => ({
+                backgroundColor:
+                  theme.palette.mode === "light"
+                    ? "#fa5012"
+                    : theme.palette.primary.main,
+                color:
+                  theme.palette.mode === "light"
+                    ? theme.palette.primary.light
+                    : theme.palette.secondary.light,
+                boxShadow: "none",
+                transition:
+                  "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                transform: "translateY(0)",
+                "&:hover": {
+                  backgroundColor:
+                    theme.palette.mode === "light"
+                      ? "#fa5012"
+                      : theme.palette.primary.main,
+                  transform: "translateY(-4px)",
+                  boxShadow:
+                    theme.palette.mode === "light"
+                      ? `0 10px 20px ${theme.palette.primary.main}80`
                       : `0 8px 20px ${theme.palette.secondary.light}35`,
                 },
               }),

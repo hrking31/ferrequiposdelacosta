@@ -181,6 +181,7 @@ export default function KioskAdminCotizaciones() {
                     >
                       {quotation.empresa || "Cliente sin nombre"}
                     </Typography>
+
                     <Typography
                       variant="caption"
                       sx={{ color: "text.secondary" }}
@@ -299,17 +300,10 @@ export default function KioskAdminCotizaciones() {
                       btnConfig = [
                         {
                           texto: "Eliminar",
-                          backgroundColor: (theme) => theme.palette.error.main,
-                          hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleEliminar(quotation.id),
                         },
                         {
                           texto: "Editar",
-                          backgroundColor: (theme) =>
-                            theme.palette.mode === "light"
-                              ? "primary.main"
-                              : "secondary.main",
-                          hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleOpenQuotation(quotation),
                         },
                       ];
@@ -317,11 +311,6 @@ export default function KioskAdminCotizaciones() {
                       btnConfig = [
                         {
                           texto: "Continuar Cotización",
-                          backgroundColor: (theme) =>
-                            theme.palette.mode === "light"
-                              ? "primary.main"
-                              : "secondary.main",
-                          hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleOpenQuotation(quotation),
                         },
                       ];
@@ -329,9 +318,6 @@ export default function KioskAdminCotizaciones() {
                       btnConfig = [
                         {
                           texto: "Crear Cotización",
-                          backgroundColor: (theme) =>
-                            theme.palette.warning.main,
-                          hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleOpenQuotation(quotation),
                         },
                       ];
@@ -349,7 +335,7 @@ export default function KioskAdminCotizaciones() {
                         {btnConfig.map((btn, index) => (
                           <Button
                             key={index}
-                            variant="adminSquare"
+                            variant="quotationSquare"
                             fullWidth
                             size="large"
                             onClick={() => btn.accion()}
@@ -359,8 +345,6 @@ export default function KioskAdminCotizaciones() {
                               textTransform: "uppercase",
                               letterSpacing: 0.5,
                               py: 1.5,
-                              // backgroundColor: btn.backgroundColor,
-                              // color: "primary.contrastText",
                             }}
                           >
                             {btn.texto}
