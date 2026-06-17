@@ -349,7 +349,7 @@ export default function KioskAdminCotizaciones() {
                         {btnConfig.map((btn, index) => (
                           <Button
                             key={index}
-                            variant="contained"
+                            variant="adminSquare"
                             fullWidth
                             size="large"
                             onClick={() => btn.accion()}
@@ -359,8 +359,8 @@ export default function KioskAdminCotizaciones() {
                               textTransform: "uppercase",
                               letterSpacing: 0.5,
                               py: 1.5,
-                              backgroundColor: btn.backgroundColor,
-                              color: "primary.contrastText",
+                              // backgroundColor: btn.backgroundColor,
+                              // color: "primary.contrastText",
                             }}
                           >
                             {btn.texto}

@@ -25,43 +25,43 @@ export const CustomThemeProvider = ({ children }) => {
   const [mode, setMode] = useState(getInitialMode);
   const location = useLocation();
 
-useEffect(() => {
-  const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
+  useEffect(() => {
+    const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
 
-  if (isKioskRoute) {
-    setMode("dark"); // Oscuro si esta en el visor
-  } else {
-    //Restaurar el modo guardado si sale del kiosco
-    const stored = localStorage.getItem("theme");
-    if (stored) setMode(stored);
-  }
-}, [location.pathname]); // Se dispara cada vez que cambias de página
-
-useEffect(() => {
-  // Solo guarda en localStorage si NO esta en modo kiosco
-  const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
-  if (!isKioskRoute) {
-    localStorage.setItem("theme", mode);
-  }
-
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  const handleChange = (e) => {
-    const stored = localStorage.getItem("theme");
-    if (!stored && !isKioskRoute) {
-      setMode(e.matches ? "dark" : "light");
+    if (isKioskRoute) {
+      setMode("dark"); // Oscuro si esta en el visor
+    } else {
+      //Restaurar el modo guardado si sale del kiosco
+      const stored = localStorage.getItem("theme");
+      if (stored) setMode(stored);
     }
-  };
+  }, [location.pathname]); // Se dispara cada vez que cambias de página
 
-  mediaQuery.addEventListener("change", handleChange);
-  return () => mediaQuery.removeEventListener("change", handleChange);
-}, [mode, location.pathname]);
+  useEffect(() => {
+    // Solo guarda en localStorage si NO esta en modo kiosco
+    const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
+    if (!isKioskRoute) {
+      localStorage.setItem("theme", mode);
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e) => {
+      const stored = localStorage.getItem("theme");
+      if (!stored && !isKioskRoute) {
+        setMode(e.matches ? "dark" : "light");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [mode, location.pathname]);
 
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () =>
         setMode((prev) => (prev === "light" ? "dark" : "light")),
     }),
-    []
+    [],
   );
 
   const theme = useMemo(() => {
@@ -93,8 +93,8 @@ useEffect(() => {
           contrastText: "#FFFFFF",
         },
         info: {
-          main: "#0288d1", 
-          contrastText: "#FFFFFF", 
+          main: "#0288d1",
+          contrastText: "#FFFFFF",
         },
 
         background: {
@@ -402,11 +402,20 @@ useEffect(() => {
                   theme.palette.mode === "light"
                     ? theme.palette.primary.light
                     : theme.palette.secondary.light,
+                boxShadow: "none",
+                transition:
+                  "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                transform: "translateY(0)",
                 "&:hover": {
                   backgroundColor:
                     theme.palette.mode === "light"
-                      ? theme.palette.primary.dark
+                      ? theme.palette.secondary.main
                       : theme.palette.primary.main,
+                  transform: "translateY(-4px)",
+                  boxShadow:
+                    theme.palette.mode === "light"
+                      ? `0 10px 20px ${theme.palette.primary.main}60`
+                      : `0 8px 20px ${theme.palette.secondary.light}35`,
                 },
               }),
             },
