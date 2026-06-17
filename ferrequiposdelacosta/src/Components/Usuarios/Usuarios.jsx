@@ -84,7 +84,7 @@ export default function UsersList() {
                     borderColor: (theme) =>
                       theme.palette.mode === "light"
                         ? "primary.main"
-                        : "secondary.main",
+                        : "secondary.light",
                   }}
                 >
                   {/* Avatar y Texto */}

@@ -185,7 +185,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
             "&:hover .avatar-overlay": { opacity: 1 },
           }}
         >
-          <Avatar
+          {/* <Avatar
             src={photoURL}
             alt={name}
             sx={{
@@ -197,6 +197,28 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
               bgcolor: theme.palette.primary.main,
               boxShadow: `0 0 0 4px ${theme.palette.primary.light}25`,
               border: "2px solid #fff",
+            }}
+          >
+            {name ? name.charAt(0).toUpperCase() : "A"}
+          </Avatar> */}
+
+          <Avatar
+            src={photoURL}
+            alt={name}
+            sx={{
+              width: 56,
+              height: 56,
+              fontSize: "1.4rem",
+              fontWeight: "bold",
+              color: (theme) => theme.palette.primary.contrastText,
+              bgcolor: (theme) => theme.palette.primary.main,
+              boxShadow: (theme) =>
+                `0 0 0 4px ${
+                  theme.palette.mode === "light"
+                    ? `${theme.palette.primary.main}`
+                    : `${theme.palette.secondary.light}`
+                }`,
+              border: (theme) => `2px solid ${theme.palette.primary.light}`,
             }}
           >
             {name ? name.charAt(0).toUpperCase() : "A"}

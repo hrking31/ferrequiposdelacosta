@@ -87,21 +87,17 @@ export default function KioskAdminCotizaciones() {
                 theme.palette.mode === "light"
                   ? "secondary.main"
                   : "primary.main",
-              // border: "1px solid transparent",
               borderRadius: "8px 8px 0 0",
               outline: "1px solid transparent",
-              // willChange: "transform, box-shadow, border-color",
               willChange: "transform, box-shadow",
               transition:
                 "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
               "&:hover": {
-                // transform: "translateY(-6px)",
                 transform: "translateY(0)",
-                // borderColor: (theme) =>
                 outlineColor: (theme) =>
                   theme.palette.mode === "light"
                     ? "primary.main"
-                    : "secondary.main",
+                    : "secondary.light",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 12px 20px -5px rgba(0,0,0,0.4), 0 4px 12px -2px rgba(0,0,0,0.2)"
@@ -120,13 +116,13 @@ export default function KioskAdminCotizaciones() {
                 backgroundColor: (theme) =>
                   theme.palette.mode === "light"
                     ? "primary.main"
-                    : "secondary.main",
+                    : "secondary.light",
                 borderRadius: "8px 8px 0 0",
               }}
             />
 
             <CardContent sx={{ p: 3 }}>
-              {/* Nombre/Empresa y Estado  */}
+              {/* Nombre, Empresa y Estado */}
               <Stack
                 direction={{ xs: "column-reverse", sm: "row" }}
                 justifyContent="space-between"
@@ -230,7 +226,10 @@ export default function KioskAdminCotizaciones() {
                       textTransform: "uppercase",
                       borderRadius: 1,
                       px: 1,
-                      backgroundColor: (theme) => theme.palette.secondary.main,
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === "light"
+                          ? "primary.main"
+                          : "secondary.main",
                       color: (theme) => theme.palette.primary.contrastText,
                       boxShadow: 1,
                       alignSelf: { xs: "flex-end", sm: "center" },
@@ -307,7 +306,9 @@ export default function KioskAdminCotizaciones() {
                         {
                           texto: "Editar",
                           backgroundColor: (theme) =>
-                            theme.palette.secondary.main,
+                            theme.palette.mode === "light"
+                              ? "primary.main"
+                              : "secondary.main",
                           hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleOpenQuotation(quotation),
                         },
@@ -317,7 +318,9 @@ export default function KioskAdminCotizaciones() {
                         {
                           texto: "Continuar Cotización",
                           backgroundColor: (theme) =>
-                            theme.palette.secondary.main,
+                            theme.palette.mode === "light"
+                              ? "primary.main"
+                              : "secondary.main",
                           hoverColor: (theme) => theme.palette.primary.dark,
                           accion: () => handleOpenQuotation(quotation),
                         },
