@@ -16,8 +16,7 @@ const LoadingLogo = ({ height = "90vh", text = "Cargando..." }) => {
       height={height}
       width="100%"
       sx={{
-        backgroundColor: isDarkMode ? "primary.main" : "#FFFFFF",
-        transition: "background-color 0.3s ease",
+        backgroundColor: "transparent",
         userSelect: "none",
       }}
     >
