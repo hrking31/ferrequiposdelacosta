@@ -28,8 +28,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { useEffect, useState } from "react";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
-import { db, functions } from "../Firebase/Firebase";
+import { db, functions, storage, auth } from "../Firebase/Firebase";
 
 export default function UsersList() {
   const theme = useTheme();
@@ -134,13 +135,29 @@ export default function UsersList() {
   const handleDeleteUser = async () => {
     setOpenConfirmDelete(false);
     setLoading(true);
-    try {
-      // Borrar de Firebase Authentication mediante la Function
-      await deleteUserCloud({ email: selectedUser.email });
 
+    try {
+      const userId = selectedUser?.id;
+      const userEmail = selectedUser?.email;
+      const isSelfDeletion = auth.currentUser?.uid === userId;
+
+      if (userId) {
+        const storageRef = ref(storage, `avatars/${userId}`);
+        deleteObject(storageRef).catch((err) => {});
+      }
+
+      // Borrar de Firebase Authentication mediante la Function
+      await deleteUserCloud({ email: userEmail });
       showMessage("Usuario eliminado con éxito", "success");
       handleCloseModal();
-      fetchUsers();
+
+      if (isSelfDeletion) {
+        await auth.signOut();
+        dispatch(clearUserData());
+        navigate("/login");
+      } else {
+        fetchUsers();
+      }
     } catch (error) {
       console.error(error);
       showMessage(error.message || "Error al eliminar el usuario", "error");

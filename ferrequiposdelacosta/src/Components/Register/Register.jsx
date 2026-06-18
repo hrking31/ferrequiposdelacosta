@@ -40,7 +40,6 @@ export default function Register() {
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";
 
-  // const { signup } = useAuth();
   const createUser = httpsCallable(functions, "createUser");
   const navigate = useNavigate();
 
