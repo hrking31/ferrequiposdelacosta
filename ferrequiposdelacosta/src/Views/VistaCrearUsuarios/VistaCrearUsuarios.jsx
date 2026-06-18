@@ -50,6 +50,7 @@ export default function VistaCrearUsuarios() {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Crea un nuevo Usuario "}
         />
       </Box>
 

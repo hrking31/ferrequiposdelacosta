@@ -155,6 +155,7 @@ export default function VistaCreaEquipo() {
             photoURL={photoURL}
             role={role}
             genero={genero}
+            vista={"Crea un Nuevo Equipo"}
           />
         </Box>
 

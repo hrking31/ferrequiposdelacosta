@@ -74,39 +74,6 @@ export default function CuentaCobro() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Stack
-          direction="row"
-          alignItems="center"
-          gap={1}
-          justifyContent={{ xs: "center", sm: "flex-start" }}
-        >
-          <ReceiptIcon
-            sx={{
-              fontSize: {
-                xs: 30,
-                sm: 40,
-              },
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? "primary.main"
-                  : "secondary.main",
-            }}
-          />
-          <Typography
-            variant="susbtitle1"
-            sx={{
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? "primary.main"
-                  : "secondary.main",
-            }}
-          >
-            Formulario Cuenta de Cobro
-          </Typography>
-        </Stack>
 
         <Grid container spacing={2} sx={{ mt: { xs: 0.5, md: 1 }, px: 0.5 }}>
           <Grid item xs={7} sm={6}>

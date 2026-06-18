@@ -70,7 +70,13 @@ export default function AdminForms() {
       }}
     >
       <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal name={name} photoURL={photoURL} role={role} genero={genero} />
+        <HeaderUsuarioConModal
+          name={name}
+          photoURL={photoURL}
+          role={role}
+          genero={genero}
+          vista={"Gestión de Operaciones"}
+        />
       </Box>
 
       <Box
@@ -220,7 +226,7 @@ export default function AdminForms() {
                 sx={buttonStyle}
               >
                 <PersonRemoveIcon sx={{ fontSize: 40 }} />
-               EDITAR o ELIMINAR USUARIOS
+                EDITAR o ELIMINAR USUARIOS
               </Button>
             )}
           </Grid>

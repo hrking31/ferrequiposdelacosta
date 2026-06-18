@@ -79,6 +79,7 @@ export default function VistaCuentaDeCobro() {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Crear Cuenta de Cobro"}
         />
       </Box>
 

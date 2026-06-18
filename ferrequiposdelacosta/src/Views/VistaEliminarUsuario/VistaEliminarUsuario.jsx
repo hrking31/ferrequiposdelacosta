@@ -52,6 +52,7 @@ export default function VistaEliminarUsuario() {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Edita o Elimina un Usuario"}
         />
       </Box>
 

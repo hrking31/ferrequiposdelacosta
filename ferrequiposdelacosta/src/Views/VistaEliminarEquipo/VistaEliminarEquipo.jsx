@@ -46,6 +46,7 @@ const VistaEliminaEquipo = () => {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Elimina el Equipo"}
         />
       </Box>
 
@@ -70,7 +71,7 @@ const VistaEliminaEquipo = () => {
           <Button
             variant="contained"
             fullWidth
-            onClick={() => navigate("/adminforms")}
+            onClick={() => navigate("/vistaseleccionarequipo")}
           >
             SELECCIONA OTRO EQUIPO
           </Button>

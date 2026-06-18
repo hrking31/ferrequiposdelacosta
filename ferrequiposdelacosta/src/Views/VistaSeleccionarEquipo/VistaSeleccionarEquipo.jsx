@@ -1,6 +1,7 @@
 import {
   Box,
   Grid,
+  Stack,
   Button,
   Snackbar,
   Alert,
@@ -10,7 +11,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -24,9 +25,9 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 
 const VistaSeleccionarEquipo = () => {
   const theme = useTheme();
-  const { logout } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const { name, photoURL, role, genero, permisos } = useSelector(
     (state) => state.user,
@@ -104,8 +105,6 @@ const VistaSeleccionarEquipo = () => {
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
-        // justifyContent: { xs: "flex-start", md: "center" },
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
@@ -129,6 +128,7 @@ const VistaSeleccionarEquipo = () => {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Edita o Elimina un Equipo"}
         />
       </Box>
 
@@ -210,28 +210,30 @@ const VistaSeleccionarEquipo = () => {
 
       <Box
         sx={{
-          p: 1,
+          p: 1.5,
           flexShrink: 0,
-          width: "100%",
+          // border: "2px solid red",
         }}
       >
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={6} md={4}>
-            <Button
-              component={Link}
-              to="/adminforms"
-              variant="contained"
-              fullWidth
-            >
-              MENU
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
-              CERRAR SESIÓN
-            </Button>
-          </Grid>
-        </Grid>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          // border="2px solid red"
+        >
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => navigate("/adminforms")}
+          >
+            MENU
+          </Button>
+
+          <Button onClick={handlerLogout} variant="danger" fullWidth>
+            CERRAR SESIÓN
+          </Button>
+        </Stack>
       </Box>
 
       <Snackbar

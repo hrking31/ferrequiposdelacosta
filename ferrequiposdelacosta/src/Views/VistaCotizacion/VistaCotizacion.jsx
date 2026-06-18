@@ -136,6 +136,7 @@ export default function VistaCotizacion() {
           photoURL={photoURL}
           role={role}
           genero={genero}
+          vista={"Crea una Cotización"}
         />
       </Box>
 
