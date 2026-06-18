@@ -2,23 +2,25 @@ import {
   Typography,
   Box,
   Grid,
+  Stack,
   Button,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector } from "react-redux";
 import EditarEquipos from "../../Components/EditarEquipos/EditarEquipos";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEditarEquipo = () => {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const { name, photoURL, role, genero, permisos } = useSelector(
     (state) => state.user,
   );
-  const theme = useTheme();
-   const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const handlerLogout = async () => {
     await logout();
   };
@@ -51,25 +53,32 @@ const VistaEditarEquipo = () => {
         <EditarEquipos />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={6} md={4}>
-            <Button
-              component={Link}
-              to="/vistaseleccionarequipo"
-              variant="contained"
-              fullWidth
-            >
-              SELECCIONA OTRO EQUIPO
-            </Button>
-          </Grid>
+      <Box
+        sx={{
+          p: 1.5,
+          flexShrink: 0,
+          // border: "2px solid red",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          // border="2px solid red"
+        >
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => navigate("/adminforms")}
+          >
+            SELECCIONA OTRO EQUIPO
+          </Button>
 
-          <Grid item xs={12} sm={6} md={4}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
-              CERRAR SESIÓN
-            </Button>
-          </Grid>
-        </Grid>
+          <Button onClick={handlerLogout} variant="danger" fullWidth>
+            CERRAR SESION
+          </Button>
+        </Stack>
       </Box>
     </Box>
   );

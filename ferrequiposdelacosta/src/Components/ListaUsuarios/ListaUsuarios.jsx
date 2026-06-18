@@ -173,7 +173,7 @@ export default function UsersList() {
   };
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box p={3} sx={{ width: "100%" }}>
       <Grid container spacing={3}>
         {loading
           ? [...Array(6)].map((_, index) => (
@@ -297,13 +297,12 @@ export default function UsersList() {
         maxWidth="xs"
         PaperProps={{
           sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === "light" ? "primary.light" : "primary.main",
+            backgroundColor: "background.default",
             backgroundImage: "none",
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: "bold" }}>
+        <DialogTitle variant="h5" gutterBottom>
           Editar Perfil de Usuario
         </DialogTitle>
 

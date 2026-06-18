@@ -296,9 +296,14 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
         onClose={handleCloseModal}
         fullWidth
         maxWidth="xs"
+        PaperProps={{
+          sx: {
+            backgroundColor: "background.default",
+            backgroundImage: "none",
+          },
+        }}
       >
-        <DialogContent sx={{ bgcolor: "background.paper" }}>
-          <DialogTitle align="center" fontWeight="bold">
+          <DialogTitle variant="h5" gutterBottom align="center">
             Actualizar Foto de Perfil
           </DialogTitle>
 
@@ -375,7 +380,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero }) {
               {uploading ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogActions>
-        </DialogContent>
       </Dialog>
     </>
   );

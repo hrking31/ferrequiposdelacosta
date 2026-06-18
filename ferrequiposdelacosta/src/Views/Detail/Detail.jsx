@@ -1,9 +1,3 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchDetailData } from "../../Store/Slices/detailSlice";
-import DetailGallery from "../../Components/DetailGallery/DetailGallery";
-import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import {
   Grid,
   Typography,
@@ -14,6 +8,12 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchDetailData } from "../../Store/Slices/detailSlice";
+import DetailGallery from "../../Components/DetailGallery/DetailGallery";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
 import Footer from "../../Components/Footer/Footer";
 import ProductCardDetail from "../../Components/ProductCardDetail/ProductCardDetail.jsx";

@@ -1,13 +1,14 @@
-import { Link } from "react-router-dom";
-import { useAuth } from "../../Context/AuthContext";
-import { useSelector } from "react-redux";
 import {
   Box,
   Grid,
+   Stack,
   Button,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../Context/AuthContext";
+import { useSelector } from "react-redux";
 import BuildIcon from "@mui/icons-material/Build";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -219,7 +220,7 @@ export default function AdminForms() {
                 sx={buttonStyle}
               >
                 <PersonRemoveIcon sx={{ fontSize: 40 }} />
-                ELIMINAR USUARIOS
+               EDITAR o ELIMINAR USUARIOS
               </Button>
             )}
           </Grid>
@@ -297,7 +298,7 @@ export default function AdminForms() {
       <Box
         sx={{
           pt: 4,
-          pb: 2,
+          pb: 1.5,
           //  border: "2px solid red"
         }}
       >

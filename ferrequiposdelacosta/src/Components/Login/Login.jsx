@@ -31,38 +31,6 @@ export default function Login({ onClose }) {
   const handleChange = ({ target: { name, value } }) =>
     setUser((prev) => ({ ...prev, [name]: value }));
 
-  // const handleSubmit = async (event) => {
-  //   event.preventDefault();
-  //   onClose();
-  //   setError("");
-
-  //   try {
-  //     const userCredential = await login(user.email, user.password);
-  //     const { uid, email } = userCredential.user;
-
-  //     const userDocRef = doc(db, "users", uid);
-  //     const userDoc = await getDoc(userDocRef);
-
-  //     if (userDoc.exists()) {
-  //       const { name, genero, role, permisos } = userDoc.data();
-
-  //       dispatch(setUserData({ uid, email, name, genero, role, permisos }));
-
-  //       navigate("/adminforms");
-  //     } else {
-  //       setError("No se encontró información del usuario en Firestore.");
-  //     }
-  //   } catch (error) {
-  //     if (error.code === "auth/wrong-password") {
-  //       setError("Contraseña incorrecta");
-  //     } else if (error.code === "auth/user-not-found") {
-  //       setError("Usuario no registrado");
-  //     } else {
-  //       setError("Error al iniciar sesión");
-  //     }
-  //   }
-  // };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     onClose();

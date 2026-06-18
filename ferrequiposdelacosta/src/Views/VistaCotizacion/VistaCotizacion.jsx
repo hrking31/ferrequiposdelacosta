@@ -1,4 +1,11 @@
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Grid,
+  Stack,
+  Button,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -181,28 +188,26 @@ export default function VistaCotizacion() {
 
       <Box
         sx={{
-          mb: 2,
-          //  border: "2px solid red"
+          p: 1.5,
+          flexShrink: 0,
+          // border: "2px solid red",
         }}
       >
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={5} md={5}>
-            <Button variant="contained" fullWidth onClick={handleMenu}>
-              Pausar y Salir
-            </Button>
-          </Grid>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          // border="2px solid red"
+        >
+          <Button variant="contained" fullWidth onClick={handleMenu}>
+            Pausar y Salir
+          </Button>
 
-          <Grid item xs={12} sm={5} md={5}>
-            <Button
-              onClick={handleLogout}
-              variant="danger"
-              fullWidth
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              CERRAR SESION
-            </Button>
-          </Grid>
-        </Grid>
+          <Button onClick={handleLogout} variant="danger" fullWidth>
+            CERRAR SESION
+          </Button>
+        </Stack>
       </Box>
     </Box>
   );

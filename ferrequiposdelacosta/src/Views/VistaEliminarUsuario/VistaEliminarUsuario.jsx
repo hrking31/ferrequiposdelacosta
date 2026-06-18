@@ -1,5 +1,12 @@
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
-import { Link } from "react-router-dom";
+import {
+  Box,
+  Grid,
+  Stack,
+  Button,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
@@ -7,6 +14,7 @@ import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 
 export default function VistaEliminarUsuario() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const { name, photoURL, role, genero, permisos } = useSelector(
     (state) => state.user,
   );
@@ -61,29 +69,30 @@ export default function VistaEliminarUsuario() {
 
       <Box
         sx={{
-          p: 1,
+          p: 1.5,
           flexShrink: 0,
-          //  border: "2px solid red"
+          // border: "2px solid red",
         }}
       >
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={6} md={4}>
-            <Button
-              component={Link}
-              to="/adminforms"
-              variant="contained"
-              fullWidth
-            >
-              MENU
-            </Button>
-          </Grid>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          // border="2px solid red"
+        >
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => navigate("/adminforms")}
+          >
+            MENU
+          </Button>
 
-          <Grid item xs={12} sm={6} md={4}>
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
-              CERRAR SESIÓN
-            </Button>
-          </Grid>
-        </Grid>
+          <Button onClick={handlerLogout} variant="danger" fullWidth>
+            CERRAR SESIÓN
+          </Button>
+        </Stack>
       </Box>
     </Box>
   );

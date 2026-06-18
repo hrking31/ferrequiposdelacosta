@@ -1,6 +1,13 @@
-import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Grid,
+  Stack,
+  Button,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCuentaCobro,
@@ -16,6 +23,7 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 export default function VistaCuentaDeCobro() {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const values = useSelector((state) => state.cuentacobro);
   const { name, photoURL, role, genero, permisos } = useSelector(
     (state) => state.user,
@@ -55,11 +63,11 @@ export default function VistaCuentaDeCobro() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        pt: isFullScreen ? { xs: 1, sm: 1.5 } : 10,
-        pb: isFullScreen ? { xs: 8, sm: 9 } : 1,
-        pl: { xs: 1, sm: 1.5 },
-        pr: { xs: 1, sm: 1.5 },
+        height: "100dvh",
+        width: "100%",
+        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        px: { xs: 2, sm: 3 },
         overflow: "auto",
         boxSizing: "border-box",
         // border: "2px solid red",
@@ -106,29 +114,32 @@ export default function VistaCuentaDeCobro() {
         </Grid>
       </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12} sm={5} md={5}>
-            <Button
-              component={Link}
-              to="/adminforms"
-              variant="contained"
-              fullWidth
-            >
-              MENU
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={5} md={5}>
-            <Button
-              onClick={handlerLogout}
-              variant="danger"
-              fullWidth
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-            >
-              CERRAR SESION
-            </Button>
-          </Grid>
-        </Grid>
+      <Box
+        sx={{
+          p: 1.5,
+          flexShrink: 0,
+          // border: "2px solid red",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          // border="2px solid red"
+        >
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => navigate("/adminforms")}
+          >
+            MENU
+          </Button>
+
+          <Button onClick={handlerLogout} variant="danger" fullWidth>
+            CERRAR SESION
+          </Button>
+        </Stack>
       </Box>
     </Box>
   );

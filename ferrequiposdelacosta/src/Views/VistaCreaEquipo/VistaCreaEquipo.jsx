@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Grid,
+  Stack,
   TextField,
   Snackbar,
   Alert,
@@ -10,7 +11,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector } from "react-redux";
 import { storage, db } from "../../Components/Firebase/Firebase";
@@ -20,6 +21,8 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCreaEquipo() {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const { name, photoURL, role, genero, permisos } = useSelector(
@@ -27,7 +30,6 @@ export default function VistaCreaEquipo() {
   );
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -300,24 +302,32 @@ export default function VistaCreaEquipo() {
           </Grid>
         </Box>
 
-        <Box sx={{ mb: 2 }}>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={12} sm={5} md={5}>
-              <Button
-                component={Link}
-                to="/adminforms"
-                variant="contained"
-                fullWidth
-              >
-                MENU
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={5} md={5}>
-              <Button onClick={handlerLogout} variant="danger" fullWidth>
-                CERRAR SESION
-              </Button>
-            </Grid>
-          </Grid>
+        <Box
+          sx={{
+            p: 1.5,
+            flexShrink: 0,
+            // border: "2px solid red",
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            justifyContent="center"
+            alignItems="center"
+            // border="2px solid red"
+          >
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => navigate("/adminforms")}
+            >
+              MENU
+            </Button>
+
+            <Button onClick={handlerLogout} variant="danger" fullWidth>
+              CERRAR SESION
+            </Button>
+          </Stack>
         </Box>
       </Box>
 
