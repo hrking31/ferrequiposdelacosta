@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import EliminarUsuario from "../../Components/EliminarUsuario/EliminarUsuario";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import UsersList from "../../Components/Usuarios/Usuarios";
+import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 
 export default function VistaEliminarUsuario() {
   const theme = useTheme();
@@ -60,7 +60,7 @@ export default function VistaEliminarUsuario() {
         <UsersList />
       </Box>
 
-      <Box
+      {/* <Box
         sx={{
           flexGrow: 1,
           display: "flex",
@@ -68,7 +68,7 @@ export default function VistaEliminarUsuario() {
         }}
       >
         <EliminarUsuario />
-      </Box>
+      </Box> */}
 
       <Box
         sx={{

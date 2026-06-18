@@ -19,8 +19,6 @@ import {
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-// import { doc, setDoc } from "firebase/firestore";
-// import { db } from "../../Components/Firebase/Firebase";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
@@ -222,13 +220,13 @@ export default function Register() {
       />
 
       <FormControl fullWidth>
-        <InputLabel id="rol-label">Rol</InputLabel>
+        <InputLabel id="rol-label">Rol del Usuario</InputLabel>
         <Select
           labelId="rol-label"
           name="role"
           value={roleSeleccionado || ""}
           onChange={(e) => setRoleSeleccionado(e.target.value)}
-          label="Rol"
+          label="Rol del Usuario"
         >
           <MenuItem value="" disabled>
             Selecciona un Rol
