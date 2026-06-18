@@ -52,8 +52,6 @@ export default function VistaCrearUsuarios() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          p: 1,
-          my: 1,
           //  border: "2px solid red"
         }}
       >

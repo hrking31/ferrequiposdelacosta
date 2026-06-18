@@ -2,7 +2,6 @@ import { Box, Grid, Button, useTheme, useMediaQuery } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
-import EliminarUsuario from "../../Components/EliminarUsuario/EliminarUsuario";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 
@@ -59,16 +58,6 @@ export default function VistaEliminarUsuario() {
       >
         <UsersList />
       </Box>
-
-      {/* <Box
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          // border: "2px solid red",
-        }}
-      >
-        <EliminarUsuario />
-      </Box> */}
 
       <Box
         sx={{
