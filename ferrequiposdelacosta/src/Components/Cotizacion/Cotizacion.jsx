@@ -127,45 +127,7 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-          <Grid item xs={12} sm={6}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={1}
-              justifyContent={{ xs: "center", sm: "flex-start" }}
-            >
-              {formValues.cotizacionId && (
-              <BuildCircleIcon
-                sx={{
-                  fontSize: {
-                    xs: 30,
-                    sm: 40,
-                  },
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? "primary.main"
-                      : "secondary.main",
-                }}
-              />
-              )}
-              <Typography
-                variant="susbtitle1"
-                sx={{
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? "primary.main"
-                      : "secondary.main",
-                }}
-              >
-                {formValues.cotizacionId}
-              </Typography>
-            </Stack>
-          </Grid>
-
-        <Grid container spacing={2} sx={{ mt: { xs: 0.5, md: 1 }, px: 0.5}}>
+         <Grid container spacing={2} sx={{ mt: { xs: 0.5, md: 1 }, px: 0.5}}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <Box display="flex" width="100%">

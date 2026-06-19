@@ -23,7 +23,7 @@ import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [openModal, setOpenModal] = useState(false);
@@ -140,7 +140,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista }) {
           <Box
             display="flex"
             flexDirection="column"
-            alignItems={isMobile ? "center" : "flex-start"}
             // border="2px solid red"
           >
             {!isMobile && (
@@ -178,10 +177,18 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista }) {
               variant="h5"
               sx={{
                 lineHeight: 1.1,
-                textAlign: isMobile ? "center" : "left",
               }}
             >
               {vista || ""}
+            </Typography>
+
+            <Typography
+              variant="subtitle2"
+              sx={{
+                lineHeight: 1.1,
+              }}
+            >
+              {cotId || ""}
             </Typography>
           </Box>
 
@@ -197,8 +204,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista }) {
                 // pr: 1.5,
                 lineHeight: 1.1,
                 textTransform: "capitalize",
-                alignSelf: isMobile ? "center" : "left",
-                textAlign: isMobile ? "center" : "left",
                 color: (theme) =>
                   theme.palette.mode === "light" ? "#E2E8F0" : "text.secondary",
               }}

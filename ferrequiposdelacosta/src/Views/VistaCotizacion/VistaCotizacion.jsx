@@ -29,7 +29,6 @@ export default function VistaCotizacion() {
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
-
   const cambiarEstadoFirebase = async (
     nuevoEstado,
     guardarCotizacion = false,
@@ -137,6 +136,7 @@ export default function VistaCotizacion() {
           role={role}
           genero={genero}
           vista={"Crea una Cotización"}
+          cotId={values.cotizacionId}
         />
       </Box>
 
