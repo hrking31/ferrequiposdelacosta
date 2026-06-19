@@ -30,10 +30,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
-import { database } from "../../Components/Firebase/Firebase.js";
-import { push, ref, update } from "firebase/database";
+import { Camion } from "../../Components/Camion/Camion.jsx";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -114,7 +113,6 @@ export default function VistaCart() {
   const handleSendQuotation = async () => {
     try {
       const quotationData = {
-        id: null,
         tipo: cliente.tipo || "persona",
         empresa: cliente.nombre || "",
         nit: cliente.identificacion || "",
@@ -143,19 +141,12 @@ export default function VistaCart() {
         subtotal: "$0",
         totalNumero: 0,
         total: "$0",
-        cotizacionId: `COT-${Date.now()}`,
-        createdAt: Date.now(),
-        status: "pendiente",
       };
 
-      const quotationRef = await push(
-        ref(database, "cotizaciones"),
-        quotationData,
-      );
+      const functions = getFunctions();
+      const crearCotizacionFn = httpsCallable(functions, "crearCotizacion");
 
-      await update(quotationRef, {
-        id: quotationRef.key,
-      });
+      await crearCotizacionFn(quotationData);
 
       setSnackbarMessage("Solicitud enviada correctamente");
       setSnackbarSeverity("success");

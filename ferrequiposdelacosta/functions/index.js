@@ -1,5 +1,5 @@
-const {setGlobalOptions} = require("firebase-functions");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 const admin = require("firebase-admin");
 
@@ -12,12 +12,12 @@ setGlobalOptions({
 
 exports.createUser = onCall(async (request) => {
   try {
-    const {email, password, name, genero, role, permisos} = request.data;
+    const { email, password, name, genero, role, permisos } = request.data;
 
     if (!email || !password) {
       throw new HttpsError(
-          "invalid-argument",
-          "Email y contraseña son obligatorios",
+        "invalid-argument",
+        "Email y contraseña son obligatorios",
       );
     }
 
@@ -56,27 +56,26 @@ exports.createUser = onCall(async (request) => {
       errorMessage.indexOf("invalid email") !== -1
     ) {
       throw new HttpsError(
-          "invalid-argument",
-          "El formato del correo es inválido.",
+        "invalid-argument",
+        "El formato del correo es inválido.",
       );
     }
 
     throw new HttpsError(
-        "internal",
-        errorMessage || "Error interno del servidor",
+      "internal",
+      errorMessage || "Error interno del servidor",
     );
   }
 });
 
-
 exports.deleteUser = onCall(async (request) => {
   try {
-    const {email} = request.data;
+    const { email } = request.data;
 
     if (!email) {
       throw new HttpsError(
-          "invalid-argument",
-          "El correo electrónico es obligatorio.",
+        "invalid-argument",
+        "El correo electrónico es obligatorio.",
       );
     }
 
@@ -104,8 +103,45 @@ exports.deleteUser = onCall(async (request) => {
     }
 
     throw new HttpsError(
-        "internal",
-        errorMessage || "Error interno al eliminar el usuario.",
+      "internal",
+      errorMessage || "Error interno al eliminar el usuario.",
     );
+  }
+});
+
+exports.crearCotizacion = onCall(async (request) => {
+  const quotationData = request.data;
+
+  if (
+    !quotationData ||
+    !quotationData.items ||
+    quotationData.items.length === 0
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "La cotización debe contener al menos un equipo.",
+    );
+  }
+
+  try {
+    const db = admin.database();
+    const cotizacionesRef = db.ref("cotizaciones");
+
+    const newQuotationRef = cotizacionesRef.push();
+
+    const finalData = {
+      ...quotationData,
+      id: newQuotationRef.key,
+      cotizacionId: `COT-${Date.now()}`,
+      createdAt: admin.database.ServerValue.TIMESTAMP,
+      status: "pendiente",
+    };
+
+    await newQuotationRef.set(finalData);
+
+    return { success: true, id: newQuotationRef.key };
+  } catch (error) {
+    console.error("Error al guardar cotización:", error);
+    throw new HttpsError("internal", "No se pudo procesar la solicitud.");
   }
 });

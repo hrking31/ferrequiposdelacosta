@@ -217,7 +217,6 @@ const EditarEquipo = () => {
   const actualizarEquipoConCambios = async (formData, equipoId) => {
     try {
       const db = getFirestore();
-      console.log("formData.url:", formData.url);
       await Promise.all(
         imagenesEliminadas.map(async (path) => {
           await eliminarImagenStorage(path);
