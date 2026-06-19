@@ -17,10 +17,9 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }) {
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const dispatch = useDispatch();
 
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
@@ -32,28 +31,30 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(true);
+
       try {
         if (currentUser) {
-          setUser(currentUser);
-
           const userRef = doc(db, "users", currentUser.uid);
-
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             const profile = userDoc.data();
 
-            dispatch(
-              setUserData({
-                uid: currentUser.uid,
-                email: currentUser.email,
-                name: profile.name || "",
-                genero: profile.genero || "",
-                role: profile.role || "",
-                permisos: profile.permisos || [],
-                photoURL: profile.photoURL || currentUser.photoURL || null,
-              }),
-            );
+            const fullUserData = {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              name: profile.name || "",
+              genero: profile.genero || "",
+              role: profile.role || "",
+              permisos: profile.permisos || [],
+              photoURL: profile.photoURL || currentUser.photoURL || null,
+            };
+
+            setUser(fullUserData);
+            dispatch(setUserData(fullUserData));
+          } else {
+            setUser(currentUser);
           }
         } else {
           setUser(null);
@@ -61,6 +62,7 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error("Error cargando perfil del usuario:", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
