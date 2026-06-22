@@ -21,7 +21,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import { ref, remove, update, get } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
-export default function KioskAdminCotizaciones() {
+export default function KioskAdminCotizaciones({ usuario }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -191,66 +191,57 @@ export default function KioskAdminCotizaciones() {
                   </Box>
                 </Stack>
 
-                {quotation.status === "creada" ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: { xs: "flex-start", sm: "center" },
+                    gap: 0.5,
+                    // border: "2px solid red",
+                  }}
+                >
                   <Chip
-                    label="Finalizada"
+                    label={
+                      quotation.status === "enProceso"
+                        ? "En Proceso"
+                        : quotation.status === "pendiente"
+                          ? "Pendiente"
+                          : quotation.status === "pausada"
+                            ? "Pausada"
+                            : quotation.status
+                              ? quotation.status.charAt(0).toUpperCase() +
+                                quotation.status.slice(1)
+                              : ""
+                    }
                     sx={{
                       fontWeight: "bold",
-                      textTransform: "uppercase",
-                      borderRadius: 1,
-                      px: 1,
-                      backgroundColor: (theme) => theme.palette.error.main,
-                      color: (theme) => theme.palette.primary.contrastText,
-                      boxShadow: 1,
-                      alignSelf: { xs: "flex-end", sm: "center" },
-                    }}
-                  />
-                ) : quotation.status === "enProceso" ? (
-                  <Chip
-                    label="En Proceso"
-                    sx={{
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                      borderRadius: 1,
-                      px: 1,
-                      backgroundColor: (theme) => theme.palette.primary.main,
-                      color: (theme) => theme.palette.secondary.main,
-                      boxShadow: 1,
-                      alignSelf: { xs: "flex-end", sm: "center" },
-                    }}
-                  />
-                ) : quotation.status === "pausada" ? (
-                  <Chip
-                    label={quotation.status}
-                    sx={{
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                      borderRadius: 1,
-                      px: 1,
-                      backgroundColor: (theme) =>
+                      color: "text.secondary",
+                      borderRadius: "6px",
+                      fontSize: "0.75rem",
+                      height: "26px",
+                      border: "none",
+
+                      boxShadow: (theme) =>
                         theme.palette.mode === "light"
-                          ? "primary.main"
-                          : "secondary.main",
-                      color: (theme) => theme.palette.primary.contrastText,
-                      boxShadow: 1,
-                      alignSelf: { xs: "flex-end", sm: "center" },
+                          ? "inset 1px 2px 4px rgba(0, 0, 0, 0.12), inset -1px -1px 2px rgba(255, 255, 255, 0.5)"
+                          : "inset 1px 2px 4px rgba(0, 0, 0, 0.5), inset -1px -1px 1px rgba(255, 255, 255, 0.05)",
                     }}
                   />
-                ) : (
-                  <Chip
-                    label={quotation.status}
-                    sx={{
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                      borderRadius: 1,
-                      px: 1,
-                      backgroundColor: (theme) => theme.palette.warning.main,
-                      color: (theme) => theme.palette.primary.contrastText,
-                      boxShadow: 1,
-                      alignSelf: { xs: "flex-end", sm: "center" },
-                    }}
-                  />
-                )}
+
+                  {quotation.status === "enProceso" && usuario && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.primary",
+                        fontSize: "0.7rem",
+                        fontStyle: "italic",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Atendido por: <strong>{usuario}</strong>
+                    </Typography>
+                  )}
+                </Box>
               </Stack>
 
               <Divider sx={{ my: 2 }} />

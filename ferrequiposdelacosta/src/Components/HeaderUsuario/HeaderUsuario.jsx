@@ -131,8 +131,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
           flexDirection={isMobile ? "column" : "row"}
           alignItems={isMobile ? "stretch" : "center"}
           justifyContent={"space-between"}
-          gap={0.5}
           sx={{
+            gap: { xs: 0.3, sm: 0 },
             px: 1.5,
           }}
           // border="2px solid red"
@@ -201,7 +201,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             <Typography
               variant="subtitle2"
               sx={{
-                // pr: 1.5,
                 lineHeight: 1.1,
                 textTransform: "capitalize",
                 color: (theme) =>

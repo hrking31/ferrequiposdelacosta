@@ -244,7 +244,7 @@ export default function Register() {
           </MenuItem>
 
           <MenuItem value="gestorFacturacion">
-            <Tooltip title="Cotizaciones y Cuentas de Cobro" placement="right">
+            <Tooltip title="Cotizaciones, Cuentas de Cobro y Cartera" placement="right">
               <Box component="span">Gestor Facturación</Box>
             </Tooltip>
           </MenuItem>

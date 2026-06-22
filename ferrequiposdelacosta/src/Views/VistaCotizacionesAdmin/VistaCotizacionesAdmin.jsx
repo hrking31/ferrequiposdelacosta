@@ -63,7 +63,7 @@ export default function VistaCotizacion() {
           //  border: "2px solid red"
         }}
       >
-        <AdminCotizaciones />
+        <AdminCotizaciones usuario={name} />
       </Box>
 
       <Box

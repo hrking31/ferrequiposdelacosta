@@ -17,10 +17,6 @@ export function ProtectedRoutes({ children, allowedRoles }) {
 
   const permisosDelUsuario = RolesPermisos[user?.role] || [];
 
-  // if (allowedRoles && !allowedRoles.includes(user?.role)) {
-  //   return <VistaNoAutorizada />;
-  // }
-
   if (
     allowedRoles &&
     !allowedRoles.every((permiso) => permisosDelUsuario.includes(permiso))
