@@ -240,7 +240,7 @@ export default function AdminForms() {
               alignItems: "center",
             }}
           >
-            {permisos.includes("eliminarEditarEquipos") && (
+            {permisos.includes("clientes") && (
               <Button
                 component={Link}
                 // to="/vistaseleccionarequipo"
@@ -263,7 +263,7 @@ export default function AdminForms() {
               alignItems: "center",
             }}
           >
-            {permisos.includes("eliminarEditarEquipos") && (
+            {permisos.includes("gestionCartera") && (
               <Button
                 component={Link}
                 // to="/vistaseleccionarequipo"
@@ -286,7 +286,7 @@ export default function AdminForms() {
               alignItems: "center",
             }}
           >
-            {permisos.includes("eliminarEditarEquipos") && (
+            {permisos.includes("solicitudesCotizaciones") && (
               <Button
                 component={Link}
                 to="/vistacotizacionesAdmin"

@@ -29,6 +29,7 @@ export default function VistaCotizacion() {
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
+  
   const cambiarEstadoFirebase = async (
     nuevoEstado,
     guardarCotizacion = false,

@@ -1,11 +1,20 @@
 const RolesPermisos = {
   gestorEditor: ["eliminarEditarEquipos", "crearEquipos"],
-  gestorFacturacion: ["cuentaCombro", "cotizacion"],
+  gestorFacturacion: [
+    "cuentaCombro",
+    "cotizacion",
+    "solicitudesCotizaciones",
+    "clientes",
+    "gestionCartera",
+  ],
   gestorIntegral: [
     "eliminarEditarEquipos",
     "crearEquipos",
     "cuentaCombro",
     "cotizacion",
+    "solicitudesCotizaciones",
+    "clientes",
+    "gestionCartera",
   ],
   administrador: [
     "eliminarEditarEquipos",
@@ -14,6 +23,9 @@ const RolesPermisos = {
     "crearUsuarios",
     "cuentaCombro",
     "cotizacion",
+    "solicitudesCotizaciones",
+    "clientes",
+    "gestionCartera",
   ],
 };
 export default RolesPermisos;

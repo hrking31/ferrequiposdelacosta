@@ -2,6 +2,7 @@ import { useAuth } from "../../Context/AuthContext";
 import { Navigate } from "react-router-dom";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import VistaNoAutorizada from "../../Views/VistaNoAutorizada/VistaNoAutorizada";
+import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 
 export function ProtectedRoutes({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -14,7 +15,16 @@ export function ProtectedRoutes({ children, allowedRoles }) {
     return <Navigate to="/home" />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  const permisosDelUsuario = RolesPermisos[user?.role] || [];
+
+  // if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  //   return <VistaNoAutorizada />;
+  // }
+
+  if (
+    allowedRoles &&
+    !allowedRoles.every((permiso) => permisosDelUsuario.includes(permiso))
+  ) {
     return <VistaNoAutorizada />;
   }
 

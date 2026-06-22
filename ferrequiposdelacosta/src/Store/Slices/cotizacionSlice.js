@@ -27,17 +27,31 @@ const initialValue = {
   status: "pendiente",
 };
 
+const getInitialState = () => {
+  try {
+    const savedCotizacion = localStorage.getItem("sesion_trabajo_cotizacion");
+    if (savedCotizacion) {
+      return JSON.parse(savedCotizacion);
+    }
+  } catch (error) {
+    console.error("Error al leer de localStorage:", error);
+  }
+  return initialValue;
+};
+
 const cotizacionSlice = createSlice({
   name: "cotizacion",
 
   initialState: {
     listaCotizaciones: [],
-    value: initialValue,
+    // value: initialValue,
+    value: getInitialState(),
   },
 
   reducers: {
     resetCotizacion: (state) => {
       state.value = initialValue;
+      localStorage.removeItem("sesion_trabajo_cotizacion");
     },
 
     setListaCotizaciones: (state, action) => {
@@ -45,7 +59,11 @@ const cotizacionSlice = createSlice({
     },
 
     setCotizacionActual: (state, action) => {
-     state.value = action.payload;
+      state.value = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(action.payload),
+      );
     },
 
     setFormCotizacion: (state, action) => {
@@ -53,30 +71,58 @@ const cotizacionSlice = createSlice({
         ...state.value,
         ...action.payload,
       };
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setItems: (state, action) => {
       state.value.items = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setSubtotal: (state, action) => {
       state.value.subtotal = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setSubtotalNumero: (state, action) => {
       state.value.subtotalNumero = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setIvaNumero: (state, action) => {
       state.value.ivaNumero = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setTotal: (state, action) => {
       state.value.total = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
 
     setTotalNumero: (state, action) => {
       state.value.totalNumero = action.payload;
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
     },
   },
 });

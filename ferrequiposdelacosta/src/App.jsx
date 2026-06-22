@@ -138,13 +138,7 @@ function App() {
         <Route
           path="/vistacotizacionesadmin"
           element={
-            <ProtectedRoutes
-              allowedRoles={[
-                "administrador",
-                "gestorIntegral",
-                "gestorFacturacion",
-              ]}
-            >
+            <ProtectedRoutes allowedRoles={["solicitudesCotizaciones"]}>
               <VistaCotizacionesAdmin />
             </ProtectedRoutes>
           }
@@ -152,13 +146,7 @@ function App() {
         <Route
           path="/vistacotizacion"
           element={
-            <ProtectedRoutes
-              allowedRoles={[
-                "administrador",
-                "gestorIntegral",
-                "gestorFacturacion",
-              ]}
-            >
+            <ProtectedRoutes allowedRoles={["cotizacion"]}>
               <VistaCotizacion />
             </ProtectedRoutes>
           }
@@ -166,13 +154,7 @@ function App() {
         <Route
           path="/vistacuentadecobro"
           element={
-            <ProtectedRoutes
-              allowedRoles={[
-                "administrador",
-                "gestorIntegral",
-                "gestorFacturacion",
-              ]}
-            >
+            <ProtectedRoutes allowedRoles={["cuentaCombro"]}>
               <VistaCuentaDeCobro />
             </ProtectedRoutes>
           }
@@ -180,9 +162,7 @@ function App() {
         <Route
           path="/vistacreaequipo"
           element={
-            <ProtectedRoutes
-              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
-            >
+            <ProtectedRoutes allowedRoles={["crearEquipos"]}>
               <VistaCreaEquipo />
             </ProtectedRoutes>
           }
@@ -190,9 +170,7 @@ function App() {
         <Route
           path="/vistaseleccionarequipo"
           element={
-            <ProtectedRoutes
-              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
-            >
+            <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
               <VistaSeleccionarEquipo />
             </ProtectedRoutes>
           }
@@ -201,9 +179,7 @@ function App() {
           exact
           path="/vistaeliminarequipo"
           element={
-            <ProtectedRoutes
-              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
-            >
+            <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
               <VistaEliminarEquipo />
             </ProtectedRoutes>
           }
@@ -211,9 +187,7 @@ function App() {
         <Route
           path="/vistaeditarequipo"
           element={
-            <ProtectedRoutes
-              allowedRoles={["administrador", "gestorEditor", "gestorIntegral"]}
-            >
+            <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
               <VistaEditarEquipo />
             </ProtectedRoutes>
           }
@@ -221,7 +195,7 @@ function App() {
         <Route
           path="/vistacrearusuarios"
           element={
-            <ProtectedRoutes allowedRoles={["administrador"]}>
+            <ProtectedRoutes allowedRoles={["crearUsuarios"]}>
               <VistaCrearUsuarios />
             </ProtectedRoutes>
           }
@@ -229,7 +203,7 @@ function App() {
         <Route
           path="/vistaeliminarusuario"
           element={
-            <ProtectedRoutes allowedRoles={["administrador"]}>
+            <ProtectedRoutes allowedRoles={["eliminarUsuarios"]}>
               <VistaEliminarUsuario />
             </ProtectedRoutes>
           }
