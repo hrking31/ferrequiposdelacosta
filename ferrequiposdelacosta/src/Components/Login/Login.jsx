@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Box,
   Button,
@@ -12,32 +12,34 @@ import {
   useTheme,
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useSelector } from "react-redux";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { useAuth } from "../../Context/AuthContext";
 
 export default function Login({ onClose }) {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [user, setUser] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";
-
-  const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleChange = ({ target: { name, value } }) =>
     setUser((prev) => ({ ...prev, [name]: value }));
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    onClose();
     setError("");
+    setIsSubmitting(true);
 
     try {
       await login(user.email, user.password);
+
+      if (typeof onClose === "function") {
+        onClose();
+      }
 
       navigate("/adminforms");
     } catch (error) {
@@ -46,10 +48,16 @@ export default function Login({ onClose }) {
       } else if (error.code === "auth/user-not-found") {
         setError("Usuario no registrado");
       } else if (error.code === "auth/invalid-credential") {
+      } else if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/invalid-email"
+      ) {
         setError("Correo o contraseña incorrectos");
       } else {
-        setError("Error al iniciar sesión");
+        setError("Error al iniciar sesión. Inténtalo de nuevo.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

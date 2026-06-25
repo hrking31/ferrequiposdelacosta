@@ -1,7 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialValue = {
-  id: null,
   tipo: "persona",
   empresa: "",
   nit: "",
@@ -23,8 +22,11 @@ const initialValue = {
   subtotal: "$0",
   totalNumero: 0,
   total: "$0",
-  cotizacionId: null,
+  atendidoPor: "",
   status: "pendiente",
+  id: null,
+  cotizacionId: null,
+  createdAt: null,
 };
 
 const getInitialState = () => {
@@ -71,6 +73,14 @@ const cotizacionSlice = createSlice({
         ...state.value,
         ...action.payload,
       };
+      localStorage.setItem(
+        "sesion_trabajo_cotizacion",
+        JSON.stringify(state.value),
+      );
+    },
+
+    setAtendidoPor: (state, action) => {
+      state.value.atendidoPor = action.payload;
       localStorage.setItem(
         "sesion_trabajo_cotizacion",
         JSON.stringify(state.value),
@@ -132,6 +142,7 @@ export const {
   setListaCotizaciones,
   setCotizacionActual,
   setFormCotizacion,
+  setAtendidoPor,
   setItems,
   setSubtotal,
   setSubtotalNumero,

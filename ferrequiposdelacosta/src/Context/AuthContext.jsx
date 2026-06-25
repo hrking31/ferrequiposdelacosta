@@ -2,12 +2,16 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { onValue, ref } from "firebase/database";
+import { database } from "../Components/Firebase/Firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
 import { setUserData, clearUserData } from "../Store/Slices/userSlice";
+import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
+import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
 
 export const authContext = createContext();
 
@@ -31,6 +35,9 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // console.log("AUTH STATE:", currentUser ? currentUser.uid : null);
+      // console.log("AUTH USER:", currentUser?.email);
+      // console.log("REDUX USER:", user);
       setLoading(true);
 
       try {
@@ -50,6 +57,8 @@ export function AuthProvider({ children }) {
               permisos: profile.permisos || [],
               photoURL: profile.photoURL || currentUser.photoURL || null,
             };
+            console.log("currentUser", currentUser);
+            await registrarConexion(currentUser.uid);
 
             setUser(fullUserData);
             dispatch(setUserData(fullUserData));
@@ -66,6 +75,16 @@ export function AuthProvider({ children }) {
       } finally {
         setLoading(false);
       }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
+  useEffect(() => {
+    const usuariosRef = ref(database, "usuariosConectados");
+
+    const unsubscribe = onValue(usuariosRef, (snapshot) => {
+      dispatch(setUsuariosConectados(snapshot.val() || {}));
     });
 
     return () => unsubscribe();

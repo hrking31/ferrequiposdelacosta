@@ -9,7 +9,10 @@ import {
   Divider,
   Stack,
 } from "@mui/material";
-import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
+import {
+  setCotizacionActual,
+  setAtendidoPor,
+} from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import PersonIcon from "@mui/icons-material/Person";
@@ -21,10 +24,10 @@ import BusinessIcon from "@mui/icons-material/Business";
 import { ref, remove, update, get } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
-export default function KioskAdminCotizaciones({ usuario }) {
+export default function KioskAdminCotizaciones() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+  const { name } = useSelector((state) => state.user);
   const cotizaciones = useSelector(
     (state) => state.cotizacion.listaCotizaciones,
   );
@@ -33,12 +36,14 @@ export default function KioskAdminCotizaciones({ usuario }) {
     try {
       await update(ref(database, `cotizaciones/${quotation.id}`), {
         status: "enProceso",
+        atendidoPor: name,
       });
 
       dispatch(
         setCotizacionActual({
           ...quotation,
           status: "enProceso",
+          atendidoPor: name,
         }),
       );
 
@@ -228,19 +233,20 @@ export default function KioskAdminCotizaciones({ usuario }) {
                     }}
                   />
 
-                  {quotation.status === "enProceso" && usuario && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "text.primary",
-                        fontSize: "0.7rem",
-                        fontStyle: "italic",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Atendido por: <strong>{usuario}</strong>
-                    </Typography>
-                  )}
+                  {quotation.status === "enProceso" &&
+                    quotation.atendidoPor && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.primary",
+                          fontSize: "0.7rem",
+                          fontStyle: "italic",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Atendido por: <strong>{quotation.atendidoPor}</strong>
+                      </Typography>
+                    )}
                 </Box>
               </Stack>
 
@@ -310,6 +316,16 @@ export default function KioskAdminCotizaciones({ usuario }) {
                         {
                           texto: "Crear Cotización",
                           accion: () => handleOpenQuotation(quotation),
+                        },
+                      ];
+                    } else if (quotation.status === "enProceso") {
+                      const laTengoYo = quotation.atendidoPor === name;
+                      btnConfig = [
+                        {
+                          texto: laTengoYo
+                            ? "Retomar Cotización"
+                            : "Reclamar Control",
+                          accion: () => handleOpenQuotation(quotation, name),
                         },
                       ];
                     }
