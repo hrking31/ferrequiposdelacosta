@@ -27,9 +27,12 @@ import { database } from "../../Components/Firebase/Firebase.js";
 export default function KioskAdminCotizaciones() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { name } = useSelector((state) => state.user);
+  const { name, uid } = useSelector((state) => state.user);
   const cotizaciones = useSelector(
     (state) => state.cotizacion.listaCotizaciones,
+  );
+  const usuariosConectados = useSelector(
+    (state) => state.presence.usuariosConectados || {},
   );
 
   const handleOpenQuotation = async (quotation) => {
@@ -37,6 +40,7 @@ export default function KioskAdminCotizaciones() {
       await update(ref(database, `cotizaciones/${quotation.id}`), {
         status: "enProceso",
         atendidoPor: name,
+        atendidoPorUid: uid,
       });
 
       dispatch(
@@ -44,6 +48,7 @@ export default function KioskAdminCotizaciones() {
           ...quotation,
           status: "enProceso",
           atendidoPor: name,
+          atendidoPorUid: uid,
         }),
       );
 
@@ -242,9 +247,47 @@ export default function KioskAdminCotizaciones() {
                           fontSize: "0.7rem",
                           fontStyle: "italic",
                           whiteSpace: "nowrap",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.6,
                         }}
                       >
-                        Atendido por: <strong>{quotation.atendidoPor}</strong>
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: usuariosConectados[
+                              quotation.atendidoPorUid
+                            ]?.online
+                              ? "#44b700"
+                              : "#9e9e9e",
+                            display: "inline-block",
+                            position: "relative",
+                            ...(usuariosConectados[quotation.atendidoPorUid]
+                              ?.online && {
+                              "&::after": {
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                borderRadius: "50%",
+                                animation: "pulseDot 1.5s infinite ease-in-out",
+                                border: "1px solid #44b700",
+                                content: '""',
+                              },
+                            }),
+                            "@keyframes pulseDot": {
+                              "0%": { transform: "scale(0.8)", opacity: 1 },
+                              "100%": { transform: "scale(2.5)", opacity: 0 },
+                            },
+                          }}
+                        />
+                        <span>
+                          Atendido por: <strong>{quotation.atendidoPor}</strong>
+                        </span>
                       </Typography>
                     )}
                 </Box>
@@ -320,14 +363,29 @@ export default function KioskAdminCotizaciones() {
                       ];
                     } else if (quotation.status === "enProceso") {
                       const laTengoYo = quotation.atendidoPor === name;
-                      btnConfig = [
-                        {
-                          texto: laTengoYo
-                            ? "Retomar Cotización"
-                            : "Reclamar Control",
-                          accion: () => handleOpenQuotation(quotation, name),
-                        },
-                      ];
+
+                      const asesorAsignadoUid = quotation.atendidoPorUid;
+                      const asesorEstaConectado =
+                        usuariosConectados[asesorAsignadoUid]?.online === true;
+                      if (laTengoYo) {
+                        btnConfig = [
+                          {
+                            texto: "Retomar Cotización",
+                            accion: () => handleOpenQuotation(quotation, name),
+                          },
+                        ];
+                      } else if (!asesorEstaConectado) {
+                        // Si la tiene otra persona y no está conectada, muestra el botón
+                        btnConfig = [
+                          {
+                            texto: "Asumir Gestión",
+                            accion: () => handleOpenQuotation(quotation, name),
+                          },
+                        ];
+                      } else {
+                        // Si la tiene otra persona y está conectada, se oculta el botón
+                        btnConfig = [];
+                      }
                     }
                     if (btnConfig.length === 0) return null;
 

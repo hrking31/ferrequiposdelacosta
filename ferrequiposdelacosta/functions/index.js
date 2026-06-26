@@ -132,6 +132,7 @@ exports.crearCotizacion = onCall(async (request) => {
     const finalData = {
       ...quotationData,
       atendidoPor: "",
+      atendidoPorUid: uid,
       status: "pendiente",
       id: newQuotationRef.key,
       cotizacionId: `COT-${Date.now()}`,

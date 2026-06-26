@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref, set } from "firebase/database";
 import { database } from "../Components/Firebase/Firebase";
 import {
   signInWithEmailAndPassword,
@@ -29,15 +29,29 @@ export function AuthProvider({ children }) {
     signInWithEmailAndPassword(auth, email, password);
 
   const logout = async () => {
-    await signOut(auth);
-    dispatch(clearUserData());
+    setLoading(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const userRef = ref(database, `usuariosConectados/${user.uid}`);
+
+        await set(userRef, {
+          online: false,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error) {
+      console.error("Error al marcar como offline en RTDB:", error);
+    } finally {
+      await signOut(auth);
+      setUser(null);
+      dispatch(clearUserData());
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      // console.log("AUTH STATE:", currentUser ? currentUser.uid : null);
-      // console.log("AUTH USER:", currentUser?.email);
-      // console.log("REDUX USER:", user);
       setLoading(true);
 
       try {
@@ -57,7 +71,7 @@ export function AuthProvider({ children }) {
               permisos: profile.permisos || [],
               photoURL: profile.photoURL || currentUser.photoURL || null,
             };
-            console.log("currentUser", currentUser);
+
             await registrarConexion(currentUser.uid);
 
             setUser(fullUserData);
@@ -81,14 +95,22 @@ export function AuthProvider({ children }) {
   }, [dispatch]);
 
   useEffect(() => {
+    if (!user || !user.uid) {
+      dispatch(setUsuariosConectados({}));
+      return;
+    }
     const usuariosRef = ref(database, "usuariosConectados");
 
     const unsubscribe = onValue(usuariosRef, (snapshot) => {
-      dispatch(setUsuariosConectados(snapshot.val() || {}));
+      if (snapshot.exists()) {
+        dispatch(setUsuariosConectados(snapshot.val()));
+      } else {
+        dispatch(setUsuariosConectados({}));
+      }
     });
 
     return () => unsubscribe();
-  }, [dispatch]);
+  }, [dispatch, user?.uid]);
 
   return (
     <authContext.Provider

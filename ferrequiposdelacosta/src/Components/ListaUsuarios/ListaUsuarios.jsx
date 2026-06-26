@@ -21,12 +21,14 @@ import {
   useTheme,
   Snackbar,
   Alert,
+  Badge,
   CircularProgress,
 } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useEffect, useState } from "react";
-import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
@@ -45,7 +47,9 @@ export default function UsersList() {
     message: "",
     severity: "info",
   });
-
+  const usuariosConectados = useSelector(
+    (state) => state.presence.usuariosConectados || {},
+  );
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
 
   const showMessage = (message, severity = "info") => {
@@ -222,6 +226,48 @@ export default function UsersList() {
                     gap={2}
                     sx={{ width: isMobile ? "100%" : "auto" }}
                   >
+                    <Badge
+                      overlap="circular"
+                      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                      variant="dot"
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          backgroundColor: usuariosConectados[user.id]?.online
+                            ? "#44b700"
+                            : "#9e9e9e",
+                          color: usuariosConectados[user.id]?.online
+                            ? "#44b700"
+                            : "#9e9e9e",
+                          boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          ...(usuariosConectados[user.id]?.online && {
+                            "&::after": {
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: "50%",
+                              animation: "ripple 1.2s infinite ease-in-out",
+                              border: "1px solid currentColor",
+                              content: '""',
+                            },
+                          }),
+                        },
+                        "@keyframes ripple": {
+                          "0%": {
+                            transform: "scale(.8)",
+                            opacity: 1,
+                          },
+                          "100%": {
+                            transform: "scale(2.4)",
+                            opacity: 0,
+                          },
+                        },
+                      }}
+                      >
                     <Avatar
                       src={user.photoURL}
                       alt={user.name}
@@ -229,6 +275,7 @@ export default function UsersList() {
                     >
                       {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                     </Avatar>
+                    </Badge>
 
                     <Box
                       sx={{

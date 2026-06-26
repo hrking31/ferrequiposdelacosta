@@ -46,7 +46,6 @@ const cotizacionSlice = createSlice({
 
   initialState: {
     listaCotizaciones: [],
-    // value: initialValue,
     value: getInitialState(),
   },
 

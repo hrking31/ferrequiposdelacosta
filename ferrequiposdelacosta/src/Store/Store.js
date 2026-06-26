@@ -9,6 +9,7 @@ import userReducer from "./Slices/userSlice";
 import installAppReducer from "./Slices/installAppSlice";
 import cartReducer from "./Slices/cartSlice";
 import clienteReducer from "./Slices/clienteSlice";
+import presenceReducer from "./Slices/presenciaSlice";
 
 export default configureStore({
   reducer: {
@@ -22,5 +23,6 @@ export default configureStore({
     installApp: installAppReducer,
     cart: cartReducer,
     cliente: clienteReducer,
+    presence: presenceReducer,
   },
 });
