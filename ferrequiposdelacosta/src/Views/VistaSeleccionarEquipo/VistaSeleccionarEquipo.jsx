@@ -3,8 +3,6 @@ import {
   Grid,
   Stack,
   Button,
-  Snackbar,
-  Alert,
   Typography,
   useTheme,
   useMediaQuery,
@@ -22,6 +20,8 @@ import Search from "../../Components/Search/Search";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 const VistaSeleccionarEquipo = () => {
   const theme = useTheme();
@@ -36,9 +36,7 @@ const VistaSeleccionarEquipo = () => {
   const loading = useSelector((state) => state.search.loading);
   const error = useSelector((state) => state.search.error);
   const hasSearched = useSelector((state) => state.search.hasSearched);
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("info");
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isMedium = useMediaQuery(theme.breakpoints.down("lg"));
@@ -51,9 +49,7 @@ const VistaSeleccionarEquipo = () => {
     if (equipoSeleccionado) {
       navigate("/vistaeditarequipo", { state: { equipo: equipoSeleccionado } });
     } else {
-      setSnackbarMessage("Debes seleccionar un Equipo para Editar.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
+      showSnackbar("Debes seleccionar un Equipo para Editar.", "warning");
     }
   };
 
@@ -63,14 +59,8 @@ const VistaSeleccionarEquipo = () => {
         state: { equipo: equipoSeleccionado },
       });
     } else {
-      setSnackbarMessage("Debes seleccionar un Equipo para Eliminar.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
+      showSnackbar("Debes seleccionar un Equipo para Eliminar.", "warning");
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   const handleCancelarSeleccion = () => {
@@ -89,17 +79,14 @@ const VistaSeleccionarEquipo = () => {
 
   useEffect(() => {
     if (error) {
-      setSnackbarMessage(
+      showSnackbar(
         "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo.",
+        "error",
       );
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
     } else if (hasSearched && !loading && equipos.length === 0) {
-      setSnackbarMessage("No se encontraron equipos.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
+      showSnackbar("No se encontraron equipos.", "warning");
     }
-  }, [error, equipos, loading, hasSearched]);
+  }, [error, equipos, loading, hasSearched, showSnackbar]);
 
   return (
     <Box
@@ -236,38 +223,7 @@ const VistaSeleccionarEquipo = () => {
         </Stack>
       </Box>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            bgcolor: (theme) =>
-              theme.palette[snackbarSeverity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbarSeverity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 };

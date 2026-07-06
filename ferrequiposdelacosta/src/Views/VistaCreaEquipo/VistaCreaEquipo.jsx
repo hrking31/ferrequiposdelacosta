@@ -5,8 +5,6 @@ import {
   Grid,
   Stack,
   TextField,
-  Snackbar,
-  Alert,
   Divider,
   useTheme,
   useMediaQuery,
@@ -19,6 +17,8 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, setDoc, doc } from "firebase/firestore";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 export default function VistaCreaEquipo() {
   const theme = useTheme();
@@ -31,9 +31,7 @@ export default function VistaCreaEquipo() {
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -80,9 +78,7 @@ export default function VistaCreaEquipo() {
     const { name, description } = formValues;
 
     if (!name || !description || images.length === 0) {
-      setSnackbarMessage("Todos los campos son obligatorios.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      showSnackbar("Todos los campos son obligatorios.", "error");
       return;
     }
     setLoading(true);
@@ -103,17 +99,13 @@ export default function VistaCreaEquipo() {
 
       await setDoc(equipoRef, data);
 
-      setSnackbarMessage("Equipo creado exitosamente.");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      showSnackbar("Equipo creado exitosamente.", "success");
 
       setFormValues({ name: "", description: "" });
       setImages([]);
     } catch (error) {
-      setSnackbarMessage(`Error: ${error.message}`);
-      setSnackbarSeverity("error");
+      showSnackbar(`Error: ${error.message}`, "error");
     } finally {
-      setOpenSnackbar(true);
       setLoading(false);
     }
   };
@@ -121,10 +113,6 @@ export default function VistaCreaEquipo() {
   const handleCancel = () => {
     setFormValues({ name: "", description: "" });
     setImages([]);
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   const handlerLogout = async () => {
@@ -332,38 +320,7 @@ export default function VistaCreaEquipo() {
         </Box>
       </Box>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            bgcolor: (theme) =>
-              theme.palette[snackbarSeverity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbarSeverity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </form>
   );
 }

@@ -2,8 +2,6 @@ import {
   Grid,
   Typography,
   Box,
-  Snackbar,
-  Alert,
   Divider,
   useTheme,
   useMediaQuery,
@@ -17,6 +15,8 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import ButtonContacto from "../../Components/ButtonContacto/ButtonContacto";
 import Footer from "../../Components/Footer/Footer";
 import ProductCardDetail from "../../Components/ProductCardDetail/ProductCardDetail.jsx";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 export default function Detail() {
   const { id } = useParams();
@@ -32,11 +32,7 @@ export default function Detail() {
     error,
   } = useSelector((state) => state.equipoDetail);
 
-  const [snackbarProps, setSnackbarProps] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
     dispatch(fetchDetailData(id));
@@ -44,17 +40,9 @@ export default function Detail() {
 
   useEffect(() => {
     if (error) {
-      setSnackbarProps({
-        open: true,
-        message: error,
-        severity: "error",
-      });
+      showSnackbar(error, "error");
     }
-  }, [error]);
-
-  const handleCloseSnackbar = () => {
-    setSnackbarProps((prev) => ({ ...prev, open: false }));
-  };
+  }, [error, showSnackbar]);
 
   if (loading || !equipo) return <LoadingLogo text="Cargando Equipo..." />;
 
@@ -178,15 +166,7 @@ export default function Detail() {
 
       <Footer />
 
-      <Snackbar
-        open={snackbarProps.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarProps.severity}>
-          {snackbarProps.message}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

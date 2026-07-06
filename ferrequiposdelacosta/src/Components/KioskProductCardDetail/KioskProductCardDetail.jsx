@@ -5,9 +5,7 @@ import {
   Button,
   TextField,
   Stack,
-  Alert,
   Modal,
-  Snackbar,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -16,6 +14,8 @@ import { useDispatch, useSelector  } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
 import { Camion } from "../Camion/Camion.jsx";
 import DatosClienteModal from "../DatosClienteModal/DatosClienteModal.jsx";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function KioskProductCardDetail({ product }) {
   const dispatch = useDispatch();
@@ -29,13 +29,7 @@ export default function KioskProductCardDetail({ product }) {
   const [activeModal, setActiveModal] = useState(null);
   const [valorTemp, setValorTemp] = useState(1);
 
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const handleOpenModal = (type) => {
     setActiveModal(type);
@@ -94,13 +88,9 @@ export default function KioskProductCardDetail({ product }) {
       const updatedItems = [...storedCart.items, newItem];
       localStorage.setItem("cart", JSON.stringify({ items: updatedItems }));
       dispatch(addToCart(newItem));
-      setSnackbarMessage("Producto agregado al carrito");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      showSnackbar("Producto agregado al carrito", "success");
     } else {
-      setSnackbarMessage("El producto ya está en el carrito");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
+      showSnackbar("El producto ya está en el carrito", "warning");
     }
   };
 
@@ -287,38 +277,7 @@ export default function KioskProductCardDetail({ product }) {
         </Box>
       </Modal>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            bgcolor: (theme) =>
-              theme.palette[snackbarSeverity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbarSeverity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

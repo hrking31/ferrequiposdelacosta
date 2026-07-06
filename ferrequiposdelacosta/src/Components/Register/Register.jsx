@@ -6,8 +6,6 @@ import {
   Box,
   TextField,
   Button,
-  Snackbar,
-  Alert,
   Typography,
   MenuItem,
   Select,
@@ -23,6 +21,8 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -30,11 +30,7 @@ export default function Register() {
   const [user, setUser] = useState({ name: "", email: "", password: "" });
   const [roleSeleccionado, setRoleSeleccionado] = useState("");
   const [generoSeleccionado, setGeneroSeleccionado] = useState("");
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "error",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
   const [loading, setLoading] = useState(false);
 
   const passwordVisible = useSelector((state) => state.password);
@@ -47,10 +43,6 @@ export default function Register() {
     setUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
   const isValidEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
@@ -58,43 +50,27 @@ export default function Register() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSnackbar({ open: false, message: "", severity: "error" });
+    closeSnackbar();
 
     const permisos = RolesPermisos[roleSeleccionado];
 
     if (!user.name.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Por favor, ingrese un nombre válido.",
-        severity: "error",
-      });
+      showSnackbar("Por favor, ingrese un nombre válido.");
       return;
     }
 
     if (!isValidEmail(user.email)) {
-      setSnackbar({
-        open: true,
-        message: "Formato de correo no válido",
-        severity: "error",
-      });
+      showSnackbar("Formato de correo no válido");
       return;
     }
 
     if (user.password.length < 6) {
-      setSnackbar({
-        open: true,
-        message: "La contraseña debe tener al menos 6 caracteres",
-        severity: "error",
-      });
+      showSnackbar("La contraseña debe tener al menos 6 caracteres");
       return;
     }
 
     if (!roleSeleccionado) {
-      setSnackbar({
-        open: true,
-        message: "Por favor, selecciona un rol",
-        severity: "error",
-      });
+      showSnackbar("Por favor, selecciona un rol");
       return;
     }
 
@@ -109,29 +85,16 @@ export default function Register() {
         permisos,
       });
 
-      setSnackbar({
-        open: true,
-        message: "Usuario registrado con éxito",
-        severity: "success",
-      });
-      
+      showSnackbar("Usuario registrado con éxito", "success");
+
       setUser({ name: "", email: "", password: "" });
       setRoleSeleccionado("");
       setGeneroSeleccionado("");
-
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
-        setSnackbar({
-          open: true,
-          message: "El correo ya está registrado",
-          severity: "error",
-        });
+        showSnackbar("El correo ya está registrado");
       } else {
-        setSnackbar({
-          open: true,
-          message: "Error al crear la cuenta: " + error.message,
-          severity: "error",
-        });
+        showSnackbar("Error al crear la cuenta: " + error.message);
       }
     } finally {
       setLoading(false);
@@ -261,41 +224,7 @@ export default function Register() {
         Registrar
       </Button>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-            width: { xs: "90%", sm: "auto" },
-            maxWidth: { xs: "none", sm: "md" },
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            minWidth: { xs: "100%", sm: "300px" },
-            bgcolor: (theme) =>
-              theme.palette[snackbar.severity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbar.severity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

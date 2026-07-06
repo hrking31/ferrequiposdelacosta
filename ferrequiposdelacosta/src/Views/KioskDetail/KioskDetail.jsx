@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDetailData } from "../../Store/Slices/detailSlice.js";
@@ -8,14 +8,14 @@ import {
   Grid,
   Typography,
   Box,
-  Snackbar,
-  Alert,
   Divider,
   useTheme,
   useMediaQuery,
   Button,
 } from "@mui/material";
 import KioskProductCardDetail from "../../Components/KioskProductCardDetail/KioskProductCardDetail.jsx";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 export default function KioskDetail() {
   const { id } = useParams();
@@ -31,11 +31,7 @@ export default function KioskDetail() {
     error,
   } = useSelector((state) => state.equipoDetail);
 
-  const [snackbarProps, setSnackbarProps] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
     dispatch(fetchDetailData(id));
@@ -43,17 +39,9 @@ export default function KioskDetail() {
 
   useEffect(() => {
     if (error) {
-      setSnackbarProps({
-        open: true,
-        message: error,
-        severity: "error",
-      });
+      showSnackbar(error, "error");
     }
-  }, [error]);
-
-  const handleCloseSnackbar = () => {
-    setSnackbarProps((prev) => ({ ...prev, open: false }));
-  };
+  }, [error, showSnackbar]);
 
   if (loading || !equipo) return <LoadingLogo />;
 
@@ -149,15 +137,7 @@ export default function KioskDetail() {
         </Grid>
       </Box>
 
-      <Snackbar
-        open={snackbarProps.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarProps.severity}>
-          {snackbarProps.message}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

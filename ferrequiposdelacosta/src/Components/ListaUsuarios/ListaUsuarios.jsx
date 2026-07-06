@@ -19,8 +19,6 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-  Snackbar,
-  Alert,
   Badge,
   CircularProgress,
 } from "@mui/material";
@@ -33,6 +31,8 @@ import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
 import { db, functions, storage, auth } from "../Firebase/Firebase";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function UsersList() {
   const theme = useTheme();
@@ -42,19 +42,11 @@ export default function UsersList() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const usuariosConectados = useSelector(
     (state) => state.presence.usuariosConectados || {},
   );
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
-
-  const showMessage = (message, severity = "info") => {
-    setSnackbar({ open: true, message, severity });
-  };
 
   const fetchUsers = async () => {
     try {
@@ -67,7 +59,7 @@ export default function UsersList() {
       setUsers(usersList);
     } catch (error) {
       console.error("Error al obtener los usuarios:", error);
-      showMessage("Error al cargar la lista de usuarios", "error");
+      showSnackbar("Error al cargar la lista de usuarios", "error");
     } finally {
       setLoading(false);
     }
@@ -103,12 +95,12 @@ export default function UsersList() {
     const permisos = RolesPermisos[selectedUser.role];
 
     if (!selectedUser.name.trim()) {
-      showMessage("El nombre no puede estar vacío", "error");
+      showSnackbar("El nombre no puede estar vacío", "error");
       return;
     }
 
     if (!selectedUser.role) {
-      showMessage("Por favor, selecciona un rol", "error");
+      showSnackbar("Por favor, selecciona un rol", "error");
       return;
     }
 
@@ -124,12 +116,12 @@ export default function UsersList() {
 
       await updateDoc(userRef, updatedData);
 
-      showMessage("Usuario actualizado con éxito", "success");
+      showSnackbar("Usuario actualizado con éxito", "success");
       handleCloseModal();
       fetchUsers();
     } catch (error) {
       console.error(error);
-      showMessage("Error al actualizar el usuario", "error");
+      showSnackbar("Error al actualizar el usuario", "error");
     } finally {
       setLoading(false);
     }
@@ -152,7 +144,7 @@ export default function UsersList() {
 
       // Borrar de Firebase Authentication mediante la Function
       await deleteUserCloud({ email: userEmail });
-      showMessage("Usuario eliminado con éxito", "success");
+      showSnackbar("Usuario eliminado con éxito", "success");
       handleCloseModal();
 
       if (isSelfDeletion) {
@@ -164,7 +156,7 @@ export default function UsersList() {
       }
     } catch (error) {
       console.error(error);
-      showMessage(error.message || "Error al eliminar el usuario", "error");
+      showSnackbar(error.message || "Error al eliminar el usuario", "error");
     } finally {
       setLoading(false);
     }
@@ -555,21 +547,7 @@ export default function UsersList() {
         </DialogActions>
       </Dialog>
 
-      {/* ================= SNACKBAR NOTIFICACIONES ================= */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

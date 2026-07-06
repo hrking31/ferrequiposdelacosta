@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  Snackbar,
-  Alert,
   Box,
   Typography,
   Button,
@@ -19,6 +17,8 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const EditarEquipo = () => {
   const location = useLocation();
@@ -28,9 +28,7 @@ const EditarEquipo = () => {
     () => location.state?.equipo || null
   );
   const theme = useTheme();
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
   // console.log("Estado equipo Seleccionado:", equipoSeleccionado);
   
   const [formData, setFormData] = useState({
@@ -244,9 +242,7 @@ const EditarEquipo = () => {
       const equipoRef = doc(db, "equipos", equipoId);
       await updateDoc(equipoRef, datosActualizados);
 
-      setSnackbarMessage("Equipo actualizado con éxito");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      showSnackbar("Equipo actualizado con éxito", "success");
 
       console.log("✅ Equipo actualizado con éxito.");
     } catch (error) {
@@ -270,11 +266,10 @@ const EditarEquipo = () => {
     const totalImagenes = formData.images.length;
 
     if (indicesActuales.length !== totalImagenes) {
-      setSnackbarMessage(
-        "Debes definir el nuevo índice para todas las imágenes."
+      showSnackbar(
+        "Debes definir el nuevo índice para todas las imágenes.",
+        "warning",
       );
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
       return;
     }
 
@@ -289,13 +284,7 @@ const EditarEquipo = () => {
     }));
 
     setNewIndices({});
-    setSnackbarMessage("Nuevo orden aplicado.");
-    setSnackbarSeverity("success");
-    setOpenSnackbar(true);
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
+    showSnackbar("Nuevo orden aplicado.", "success");
   };
 
   const [originalImageBeforeEdit, setOriginalImageBeforeEdit] = useState(null);
@@ -723,20 +712,7 @@ const EditarEquipo = () => {
           </Grid>
         </Grid>
         
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={4000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbarSeverity}
-            sx={{ width: "100%" }}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
+        <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Box>
     </Box>
   );

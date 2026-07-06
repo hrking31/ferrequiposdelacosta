@@ -17,8 +17,6 @@ import {
   ListItemButton,
   ListItemText,
   Divider,
-  Alert,
-  Snackbar,
   Modal,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -41,6 +39,8 @@ import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { useColorMode } from "../../Theme/ThemeProvider";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function MobileDrawerLayout() {
   const dispatch = useDispatch();
@@ -59,23 +59,18 @@ export default function MobileDrawerLayout() {
     "(min-width:600px) and (max-width:915px)",
   );
 
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("info");
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (error) {
-      setSnackbarMessage(
+      showSnackbar(
         "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo.",
+        "error",
       );
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
     } else if (hasSearched && !loading && equipo.length === 0) {
-      setSnackbarMessage("No se encontraron equipos.");
-      setSnackbarSeverity("warning");
-      setOpenSnackbar(true);
+      showSnackbar("No se encontraron equipos.", "warning");
     }
-  }, [error, equipos, loading, hasSearched]);
+  }, [error, equipos, loading, hasSearched, showSnackbar]);
 
   useEffect(() => {
     return () => {
@@ -85,10 +80,6 @@ export default function MobileDrawerLayout() {
 
   const handleSearch = (searchTerm) => {
     dispatch(fetchEquipos(searchTerm));
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   const handleOpenAccount = () => setOpenAccount(true);
@@ -597,16 +588,7 @@ export default function MobileDrawerLayout() {
           </div>
         </Modal>
 
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={4000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
+        <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Grid>
     </Box>
   );

@@ -9,8 +9,6 @@ import {
   Box,
   useTheme,
   Divider,
-  Snackbar,
-  Alert,
   MenuItem,
   FormControl,
 } from "@mui/material";
@@ -22,6 +20,8 @@ import {
   actualizarDireccion,
   actualizarCliente,
 } from "../../Store/Slices/clienteSlice";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const DatosClienteModal = ({
   open,
@@ -66,11 +66,7 @@ const DatosClienteModal = ({
   const [direccion, setDireccion] = useState(estadoInicialDireccion);
 
   const [errors, setErrors] = useState({});
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const direccionVacia = cliente.direccion
     ? Object.values(cliente.direccion).every((valor) => valor.trim?.() === "")
@@ -263,11 +259,7 @@ const DatosClienteModal = ({
       localStorage.setItem("datosCliente", JSON.stringify(datos));
     }
 
-    setSnackbar({
-      open: true,
-      message: "Datos guardados correctamente",
-      severity: "success",
-    });
+    showSnackbar("Datos guardados correctamente", "success");
 
     if (onSuccess) {
       onSuccess();
@@ -318,17 +310,9 @@ const DatosClienteModal = ({
       setErrors({});
     }
 
-    setSnackbar({
-      open: true,
-      message: "Datos eliminados correctamente",
-      severity: "info",
-    });
+    showSnackbar("Datos eliminados correctamente", "info");
 
     onClose();
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   const getLabelNombre = () => {
@@ -649,20 +633,7 @@ const DatosClienteModal = ({
         </Box>
       </Modal>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </>
   );
 };

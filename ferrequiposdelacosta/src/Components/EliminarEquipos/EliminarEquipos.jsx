@@ -5,23 +5,21 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "../../Components/Firebase/Firebase";
 import {
-  Snackbar,
-  Alert,
   Box,
   Typography,
   Button,
   Grid,
   useTheme,
 } from "@mui/material";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const EliminarEquipo = () => {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const theme = useTheme();
   const equipoSeleccionado = location.state?.equipo;
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const eliminarCarpetaCompleta = async (equipoId) => {
     const storage = getStorage();
@@ -47,22 +45,16 @@ const EliminarEquipo = () => {
       const equipoDocRef = doc(db, "equipos", id);
       await deleteDoc(equipoDocRef);
 
-      setSnackbarMessage(`${mensajeCarpeta} y Equipo ${name} Eliminado.`);
-      setSnackbarSeverity("success");
+      showSnackbar(`${mensajeCarpeta} y Equipo ${name} Eliminado.`, "success");
     } catch (error) {
       // console.error("Error eliminando el equipo: ", error);
-      setSnackbarMessage(
-        error.message || `Error al Eliminar el Equipo ${name}.`
+      showSnackbar(
+        error.message || `Error al Eliminar el Equipo ${name}.`,
+        "error",
       );
-      setSnackbarSeverity("error");
     } finally {
-      setOpenSnackbar(true);
       setLoading(false);
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
   };
 
   if (loading) return <LoadingLogo />;
@@ -144,41 +136,7 @@ const EliminarEquipo = () => {
         Eliminar Equipo
       </Button>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-            width: { xs: "90%", sm: "auto" },
-            maxWidth: { xs: "none", sm: "md" },
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            minWidth: { xs: "100%", sm: "300px" },
-            bgcolor: (theme) =>
-              theme.palette[snackbarSeverity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbarSeverity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 };

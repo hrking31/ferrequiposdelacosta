@@ -9,8 +9,6 @@ import {
   Button,
   IconButton,
   CircularProgress,
-  Snackbar,
-  Alert,
   useMediaQuery,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
@@ -22,6 +20,8 @@ import { auth, db, storage } from "../Firebase/Firebase";
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId }) {
   const theme = useTheme();
@@ -32,11 +32,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "error",
-  });
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
@@ -79,18 +75,10 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
 
       dispatch(setUserData({ photoURL: downloadURL }));
 
-      setSnackbar({
-        open: true,
-        message: "¡Foto de perfil actualizada correctamente!",
-        severity: "success",
-      });
+      showSnackbar("¡Foto de perfil actualizada correctamente!", "success");
       handleCloseModal();
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Hubo un error al subir la imagen: " + error.message,
-        severity: "error",
-      });
+      showSnackbar("Hubo un error al subir la imagen: " + error.message);
     } finally {
       setUploading(false);
     }
@@ -100,10 +88,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
     if (!rolKey) return "Usuario";
     const conEspacios = rolKey.replace(/([A-Z])/g, " $1");
     return conEspacios.charAt(0).toUpperCase() + conEspacios.slice(1);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   return (
@@ -268,41 +252,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
           </Box>
         </Box>
 
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-          sx={{
-            "&.MuiSnackbar-root": {
-              position: "fixed",
-              top: "50% !important",
-              left: "50% !important",
-              transform: "translate(-50%, -50%)",
-              zIndex: 1300,
-              width: { xs: "90%", sm: "auto" },
-              maxWidth: { xs: "none", sm: "md" },
-            },
-          }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbar.severity}
-            variant="filled"
-            sx={{
-              width: "100%",
-              minWidth: { xs: "100%", sm: "300px" },
-              bgcolor: (theme) =>
-                theme.palette[snackbar.severity]?.main ||
-                theme.palette.primary.main,
-              color: (theme) =>
-                theme.palette[snackbar.severity]?.contrastText ||
-                theme.palette.primary.contrastText,
-            }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
+        <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Box>
 
       {/* ================= MODAL ================= */}

@@ -13,8 +13,6 @@ import {
   Grid,
   Modal,
   TextField,
-  Snackbar,
-  Alert,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
@@ -35,6 +33,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 export default function KioskCart() {
   const theme = useTheme();
@@ -52,13 +52,7 @@ export default function KioskCart() {
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
 
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const handleOpenModal = (item, type) => {
     setSelectedItemsModal(item);
@@ -105,9 +99,7 @@ export default function KioskCart() {
   const handleSendQuotation = async () => {
     try {
       if (items.length === 0) {
-        setSnackbarMessage("No hay equipos en el carrito");
-        setSnackbarSeverity("warning");
-        setOpenSnackbar(true);
+        showSnackbar("No hay equipos en el carrito", "warning");
         return;
       }
 
@@ -153,15 +145,11 @@ export default function KioskCart() {
       localStorage.removeItem("datosCliente");
       navigate("/kioskhome");
 
-      setSnackbarMessage("Solicitud enviada correctamente");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+      showSnackbar("Solicitud enviada correctamente", "success");
     } catch (error) {
       console.error(error);
 
-      setSnackbarMessage("Error enviando solicitud");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
+      showSnackbar("Error enviando solicitud", "error");
     }
   };
 
@@ -893,38 +881,7 @@ export default function KioskCart() {
         </Box>
       </Modal>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          "&.MuiSnackbar-root": {
-            position: "fixed",
-            top: "50% !important",
-            left: "50% !important",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1300,
-          },
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{
-            width: "100%",
-            bgcolor: (theme) =>
-              theme.palette[snackbarSeverity]?.main ||
-              theme.palette.primary.main,
-            color: (theme) =>
-              theme.palette[snackbarSeverity]?.contrastText ||
-              theme.palette.primary.contrastText,
-          }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }
