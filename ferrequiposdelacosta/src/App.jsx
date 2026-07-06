@@ -120,7 +120,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, [dispatch]);
+  }, [dispatch, location.pathname]);
 
   return (
     <div>
