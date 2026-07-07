@@ -1,11 +1,4 @@
-import {
-  Box,
-  Grid,
-   Stack,
-  Button,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Grid, Button, useMediaQuery } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/AuthContext";
 import { useSelector } from "react-redux";
@@ -22,7 +15,6 @@ import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function AdminForms() {
-  const theme = useTheme();
   const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
@@ -53,6 +45,67 @@ export default function AdminForms() {
     textAlign: "center",
     // border: "2px solid red",
   };
+
+  const botonesConfig = [
+    {
+      permiso: "cotizacion",
+      to: "/vistacotizacion",
+      icon: <BuildIcon sx={{ fontSize: 40 }} />,
+      label: "COTIZACIÓN",
+    },
+    {
+      permiso: "cuentaCombro",
+      to: "/vistacuentadecobro",
+      icon: <ReceiptIcon sx={{ fontSize: 40 }} />,
+      label: "CUENTA DE COBRO",
+    },
+    {
+      permiso: "crearEquipos",
+      to: "/vistacreaequipo",
+      icon: <AddCircleOutlineIcon sx={{ fontSize: 40 }} />,
+      label: "CREAR EQUIPO",
+    },
+    {
+      permiso: "eliminarEditarEquipos",
+      to: "/vistaseleccionarequipo",
+      icon: <EditIcon sx={{ fontSize: 40 }} />,
+      label: "EDITAR o ELIMINAR EQUIPO",
+    },
+    {
+      permiso: "crearUsuarios",
+      to: "/VistaCrearUsuarios",
+      icon: <PersonAddAlt1Icon sx={{ fontSize: 40 }} />,
+      label: "CREAR USUARIOS",
+    },
+    {
+      permiso: "eliminarUsuarios",
+      to: "/VistaEliminarUsuario",
+      icon: <PersonRemoveIcon sx={{ fontSize: 40 }} />,
+      label: "EDITAR o ELIMINAR USUARIOS",
+    },
+    {
+      permiso: "clientes",
+      to: undefined,
+      icon: <FolderSharedIcon sx={{ fontSize: 40 }} />,
+      label: "CLIENTES",
+    },
+    {
+      permiso: "gestionCartera",
+      to: undefined,
+      icon: <SupportAgentIcon sx={{ fontSize: 40 }} />,
+      label: "CLIENTES POR COBRAR",
+    },
+    {
+      permiso: "solicitudesCotizaciones",
+      to: "/vistacotizacionesAdmin",
+      icon: <ReceiptLongIcon sx={{ fontSize: 40 }} />,
+      label: "SOLICITUDES COTIZACIONES",
+    },
+  ];
+
+  const botonesVisibles = botonesConfig.filter((boton) =>
+    permisos.includes(boton.permiso)
+  );
 
   return (
     <Box
@@ -85,219 +138,39 @@ export default function AdminForms() {
           flex: 1,
           display: "flex",
           justifyContent: "center",
+          alignItems: "center",
           // border: "2px solid red",
         }}
       >
         <Grid
           container
           justifyContent="center"
+          alignItems="center"
           spacing={{ xs: 2, sm: 4, md: 6 }}
         >
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("cotizacion") && (
+          {botonesVisibles.map((boton) => (
+            <Grid
+              key={boton.permiso}
+              item
+              xs={6}
+              md={isMobile ? 6 : 4}
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <Button
                 component={Link}
-                to="/vistacotizacion"
+                to={boton.to}
                 variant="adminSquare"
                 sx={buttonStyle}
               >
-                <BuildIcon sx={{ fontSize: 40 }} />
-                COTIZACIÓN
+                {boton.icon}
+                {boton.label}
               </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("cuentaCombro") && (
-              <Button
-                component={Link}
-                to="/vistacuentadecobro"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <ReceiptIcon sx={{ fontSize: 40 }} />
-                CUENTA DE COBRO
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("crearEquipos") && (
-              <Button
-                component={Link}
-                to="/vistacreaequipo"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <AddCircleOutlineIcon sx={{ fontSize: 40 }} />
-                CREAR EQUIPO
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("eliminarEditarEquipos") && (
-              <Button
-                component={Link}
-                to="/vistaseleccionarequipo"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <EditIcon sx={{ fontSize: 40 }} />
-                EDITAR o ELIMINAR EQUIPO
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("crearUsuarios") && (
-              <Button
-                component={Link}
-                to="/VistaCrearUsuarios"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <PersonAddAlt1Icon sx={{ fontSize: 40 }} />
-                CREAR USUARIOS
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("eliminarUsuarios") && (
-              <Button
-                component={Link}
-                to="/VistaEliminarUsuario"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <PersonRemoveIcon sx={{ fontSize: 40 }} />
-                EDITAR o ELIMINAR USUARIOS
-              </Button>
-            )}
-          </Grid>
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("clientes") && (
-              <Button
-                component={Link}
-                // to="/vistaseleccionarequipo"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <FolderSharedIcon sx={{ fontSize: 40 }} />
-                CLIENTES
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("gestionCartera") && (
-              <Button
-                component={Link}
-                // to="/vistaseleccionarequipo"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <SupportAgentIcon sx={{ fontSize: 40 }} />
-                CLIENTES POR COBRAR
-              </Button>
-            )}
-          </Grid>
-
-          <Grid
-            item
-            xs={6}
-            md={isMobile ? 6 : 4}
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {permisos.includes("solicitudesCotizaciones") && (
-              <Button
-                component={Link}
-                to="/vistacotizacionesAdmin"
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                <ReceiptLongIcon sx={{ fontSize: 40 }} />
-                SOLICITUDES COTIZACIONES
-              </Button>
-            )}
-          </Grid>
+            </Grid>
+          ))}
         </Grid>
       </Box>
 
