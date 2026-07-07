@@ -48,7 +48,6 @@ export default function Login({ onClose }) {
         showSnackbar("Contraseña incorrecta");
       } else if (error.code === "auth/user-not-found") {
         showSnackbar("Usuario no registrado");
-      } else if (error.code === "auth/invalid-credential") {
       } else if (
         error.code === "auth/invalid-credential" ||
         error.code === "auth/invalid-email"

@@ -162,18 +162,6 @@ const EditarEquipo = () => {
     }
   };
 
-  const handleConfirmImageName = () => {
-    if (editingImageIndex !== null) {
-      const updatedImages = [...formData.images];
-      updatedImages[editingImageIndex].name = tempImageName;
-      setFormData((prev) => ({
-        ...prev,
-        images: updatedImages,
-      }));
-      setEditingImageIndex(null);
-    }
-  };
-
   const eliminarImagenStorage = async (path) => {
     try {
       const storage = getStorage();
@@ -555,7 +543,6 @@ const EditarEquipo = () => {
                                 color="primary"
                                 fullWidth
                                 onClick={() => {
-                                  handleConfirmImageName;
                                   setEditingImageIndex(null);
                                   console.log("imagenes guardadas:", formData);
                                 }}
