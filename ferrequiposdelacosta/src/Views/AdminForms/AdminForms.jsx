@@ -18,87 +18,67 @@ export default function AdminForms() {
   const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isShortViewport = useMediaQuery("(max-height:700px)");
+  const isCompact = isFullScreen || isShortViewport;
   const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
 
   const handlerLogout = async () => {
     await logout();
   };
 
-  const buttonStyle = {
-    width: {
-      xs: "100%",
-      sm: 240,
-    },
-    height: {
-      xs: 180,
-      sm: 150,
-    },
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: {
-      xs: 2,
-      sm: 2,
-      md: 4,
-    },
-    textAlign: "center",
-    // border: "2px solid red",
-  };
-
   const botonesConfig = [
     {
       permiso: "cotizacion",
       to: "/vistacotizacion",
-      icon: <BuildIcon sx={{ fontSize: 40 }} />,
+      icon: <BuildIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "COTIZACIÓN",
     },
     {
       permiso: "cuentaCombro",
       to: "/vistacuentadecobro",
-      icon: <ReceiptIcon sx={{ fontSize: 40 }} />,
+      icon: <ReceiptIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CUENTA DE COBRO",
     },
     {
       permiso: "crearEquipos",
       to: "/vistacreaequipo",
-      icon: <AddCircleOutlineIcon sx={{ fontSize: 40 }} />,
+      icon: <AddCircleOutlineIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CREAR EQUIPO",
     },
     {
       permiso: "eliminarEditarEquipos",
       to: "/vistaseleccionarequipo",
-      icon: <EditIcon sx={{ fontSize: 40 }} />,
+      icon: <EditIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "EDITAR o ELIMINAR EQUIPO",
     },
     {
       permiso: "crearUsuarios",
       to: "/VistaCrearUsuarios",
-      icon: <PersonAddAlt1Icon sx={{ fontSize: 40 }} />,
+      icon: <PersonAddAlt1Icon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CREAR USUARIOS",
     },
     {
       permiso: "eliminarUsuarios",
       to: "/VistaEliminarUsuario",
-      icon: <PersonRemoveIcon sx={{ fontSize: 40 }} />,
+      icon: <PersonRemoveIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "EDITAR o ELIMINAR USUARIOS",
     },
     {
       permiso: "clientes",
       to: undefined,
-      icon: <FolderSharedIcon sx={{ fontSize: 40 }} />,
+      icon: <FolderSharedIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CLIENTES",
     },
     {
       permiso: "gestionCartera",
       to: undefined,
-      icon: <SupportAgentIcon sx={{ fontSize: 40 }} />,
+      icon: <SupportAgentIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CLIENTES POR COBRAR",
     },
     {
       permiso: "solicitudesCotizaciones",
       to: "/vistacotizacionesAdmin",
-      icon: <ReceiptLongIcon sx={{ fontSize: 40 }} />,
+      icon: <ReceiptLongIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "SOLICITUDES COTIZACIONES",
     },
   ];
@@ -106,6 +86,27 @@ export default function AdminForms() {
   const botonesVisibles = botonesConfig.filter((boton) =>
     permisos.includes(boton.permiso)
   );
+
+  const columnas = isMobile ? 2 : 3;
+  const filas = Math.ceil(botonesVisibles.length / columnas) || 1;
+  const gapPx = isCompact ? 12 : 32;
+
+  const buttonStyle = {
+    width: `calc((100% - ${(columnas - 1) * gapPx}px) / ${columnas})`,
+    height: `calc((100% - ${(filas - 1) * gapPx}px) / ${filas})`,
+    maxWidth: 240,
+    maxHeight: 150,
+    minHeight: 48,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: isCompact ? 1 : 2,
+    fontSize: isCompact ? "0.7rem" : "0.875rem",
+    overflow: "hidden",
+    textAlign: "center",
+    // border: "2px solid red",
+  };
 
   return (
     <Box
@@ -136,42 +137,28 @@ export default function AdminForms() {
         sx={{
           width: "100%",
           flex: 1,
+          minHeight: 0,
           display: "flex",
+          flexWrap: "wrap",
           justifyContent: "center",
-          alignItems: "center",
+          alignContent: "center",
+          gap: `${gapPx}px`,
+          overflow: "hidden",
           // border: "2px solid red",
         }}
       >
-        <Grid
-          container
-          justifyContent="center"
-          alignItems="center"
-          spacing={{ xs: 2, sm: 4, md: 6 }}
-        >
-          {botonesVisibles.map((boton) => (
-            <Grid
-              key={boton.permiso}
-              item
-              xs={6}
-              md={isMobile ? 6 : 4}
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Button
-                component={Link}
-                to={boton.to}
-                variant="adminSquare"
-                sx={buttonStyle}
-              >
-                {boton.icon}
-                {boton.label}
-              </Button>
-            </Grid>
-          ))}
-        </Grid>
+        {botonesVisibles.map((boton) => (
+          <Button
+            key={boton.permiso}
+            component={Link}
+            to={boton.to}
+            variant="adminSquare"
+            sx={buttonStyle}
+          >
+            {boton.icon}
+            {boton.label}
+          </Button>
+        ))}
       </Box>
 
       <Box
