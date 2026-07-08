@@ -22,8 +22,10 @@ import {
   Badge,
   CircularProgress,
 } from "@mui/material";
-import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useAuth } from "../../Context/AuthContext";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -36,6 +38,8 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 export default function UsersList() {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -48,7 +52,7 @@ export default function UsersList() {
   );
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const querySnapshot = await getDocs(collection(db, "users"));
@@ -63,11 +67,11 @@ export default function UsersList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showSnackbar]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // Abrir modal con datos del usuario
   const handleOpenEdit = (user) => {
@@ -139,7 +143,7 @@ export default function UsersList() {
 
       if (userId) {
         const storageRef = ref(storage, `avatars/${userId}`);
-        deleteObject(storageRef).catch((err) => {});
+        deleteObject(storageRef).catch(() => {});
       }
 
       // Borrar de Firebase Authentication mediante la Function
@@ -148,8 +152,7 @@ export default function UsersList() {
       handleCloseModal();
 
       if (isSelfDeletion) {
-        await auth.signOut();
-        dispatch(clearUserData());
+        await logout();
         navigate("/login");
       } else {
         fetchUsers();

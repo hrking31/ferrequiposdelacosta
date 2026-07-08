@@ -5,7 +5,6 @@ import {
   Typography,
   Grid,
   FormControl,
-  FormLabel,
   InputLabel,
   Select,
   MenuItem,
@@ -14,7 +13,6 @@ import {
   Radio,
   FormControlLabel,
   useTheme,
-  Stack,
 } from "@mui/material";
 import {
   setFormCotizacion,
@@ -25,7 +23,6 @@ import {
   setIvaNumero,
   setTotalNumero,
 } from "../../Store/Slices/cotizacionSlice";
-import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import { useSelector, useDispatch } from "react-redux";
 import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 
@@ -33,15 +30,14 @@ export default function Cotizacion() {
   const dispatch = useDispatch();
   const theme = useTheme();
   const formValues = useSelector((state) => state.cotizacion.value);
-  const { items, subtotal, subtotalNumero, ivaNumero, total, totalNumero } =
-    formValues;
+  const { items, subtotal, ivaNumero, total } = formValues;
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
 
     const updatedFormValues = {
       ...formValues,
-      [name]: value,
+      [name]: name === "nit" ? formatNit(value) : value,
     };
 
     if (name === "transporte" && value === "Sin transporte") {

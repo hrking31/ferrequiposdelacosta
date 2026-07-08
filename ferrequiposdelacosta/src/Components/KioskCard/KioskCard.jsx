@@ -8,6 +8,7 @@ import {
   Box,
   useTheme,
 } from "@mui/material";
+import PropTypes from "prop-types";
 
 export default function KioskCard({ name, url, id }) {
   const theme = useTheme();
@@ -75,3 +76,9 @@ export default function KioskCard({ name, url, id }) {
     </Grid>
   );
 }
+
+KioskCard.propTypes = {
+  name: PropTypes.string.isRequired,
+  url: PropTypes.string.isRequired,
+  id: PropTypes.string.isRequired,
+};

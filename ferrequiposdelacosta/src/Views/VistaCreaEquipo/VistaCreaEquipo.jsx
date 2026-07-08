@@ -6,7 +6,6 @@ import {
   Stack,
   TextField,
   Divider,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -21,11 +20,10 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
 export default function VistaCreaEquipo() {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const [formValues, setFormValues] = useState({ name: "", description: "" });

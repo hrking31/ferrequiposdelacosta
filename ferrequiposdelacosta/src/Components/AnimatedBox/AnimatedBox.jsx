@@ -1,6 +1,7 @@
 import { Box, Typography, useTheme, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { forwardRef } from "react";
+import PropTypes from "prop-types";
 
 const AnimatedBox = forwardRef(function AnimatedBox(
   { isExpanded, isDarkMode, handleInstall, handleClose, hasMounted, showLoop },
@@ -102,5 +103,14 @@ const AnimatedBox = forwardRef(function AnimatedBox(
     </Box>
   );
 });
+
+AnimatedBox.propTypes = {
+  isExpanded: PropTypes.bool.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  handleInstall: PropTypes.func.isRequired,
+  handleClose: PropTypes.func.isRequired,
+  hasMounted: PropTypes.bool.isRequired,
+  showLoop: PropTypes.bool.isRequired,
+};
 
 export default AnimatedBox;

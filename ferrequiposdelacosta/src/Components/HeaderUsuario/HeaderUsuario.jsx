@@ -7,11 +7,11 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  IconButton,
   CircularProgress,
   useMediaQuery,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useDispatch } from "react-redux";
@@ -347,3 +347,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
     </>
   );
 }
+
+HeaderUsuario.propTypes = {
+  name: PropTypes.string,
+  photoURL: PropTypes.string,
+  role: PropTypes.string,
+  genero: PropTypes.string,
+  vista: PropTypes.string,
+  cotId: PropTypes.string,
+};

@@ -1,5 +1,6 @@
 import { useSelector } from "react-redux";
 import { Grid } from "@mui/material";
+import PropTypes from "prop-types";
 import CardSearchEquipos from "../CardSearchEquipos/CardSearchEquipos.jsx";
 
 export default function CardsSearchEquipos({
@@ -22,3 +23,10 @@ export default function CardsSearchEquipos({
     </Grid>
   );
 }
+
+CardsSearchEquipos.propTypes = {
+  onSelectEquipo: PropTypes.func.isRequired,
+  equipoSeleccionado: PropTypes.shape({
+    id: PropTypes.string,
+  }),
+};

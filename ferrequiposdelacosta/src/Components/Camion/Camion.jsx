@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { useSelector } from "react-redux";
+import PropTypes from "prop-types";
 
 export const Camion = ({ size = 64, color = "currentColor" }) => {
   return (
@@ -16,6 +17,11 @@ export const Camion = ({ size = 64, color = "currentColor" }) => {
       </svg>
     </Box>
   );
+};
+
+Camion.propTypes = {
+  size: PropTypes.number,
+  color: PropTypes.string,
 };
 
 export default function CamionContador({ size = 64, color = "currentColor" }) {
@@ -60,3 +66,8 @@ export default function CamionContador({ size = 64, color = "currentColor" }) {
     </Box>
   );
 }
+
+CamionContador.propTypes = {
+  size: PropTypes.number,
+  color: PropTypes.string,
+};

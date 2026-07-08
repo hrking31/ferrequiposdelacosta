@@ -11,6 +11,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import PropTypes from "prop-types";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { useAuth } from "../../Context/AuthContext";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -23,7 +24,7 @@ export default function Login({ onClose }) {
   const { login } = useAuth();
   const [user, setUser] = useState({ email: "", password: "" });
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const passwordVisible = useSelector((state) => state.password);
   const passwordType = passwordVisible ? "text" : "password";
 
@@ -137,3 +138,7 @@ export default function Login({ onClose }) {
     </Box>
   );
 }
+
+Login.propTypes = {
+  onClose: PropTypes.func,
+};

@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState, useEffect, createContext, useContext } from "react";
 import { useLocation } from "react-router-dom";
+import PropTypes from "prop-types";
 
 // Contexto para cambiar el modo del tema
 const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -606,4 +607,8 @@ export const CustomThemeProvider = ({ children }) => {
       </ThemeProvider>
     </ColorModeContext.Provider>
   );
+};
+
+CustomThemeProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

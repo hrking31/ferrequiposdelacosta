@@ -1,4 +1,5 @@
 import { Snackbar, Alert } from "@mui/material";
+import PropTypes from "prop-types";
 
 export default function AppSnackbar({ snackbar, onClose }) {
   return (
@@ -38,3 +39,12 @@ export default function AppSnackbar({ snackbar, onClose }) {
     </Snackbar>
   );
 }
+
+AppSnackbar.propTypes = {
+  snackbar: PropTypes.shape({
+    open: PropTypes.bool.isRequired,
+    severity: PropTypes.string.isRequired,
+    message: PropTypes.string.isRequired,
+  }).isRequired,
+  onClose: PropTypes.func.isRequired,
+};

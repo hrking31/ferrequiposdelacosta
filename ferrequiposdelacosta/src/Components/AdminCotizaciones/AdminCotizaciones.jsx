@@ -9,10 +9,7 @@ import {
   Divider,
   Stack,
 } from "@mui/material";
-import {
-  setCotizacionActual,
-  setAtendidoPor,
-} from "../../Store/Slices/cotizacionSlice.js";
+import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import PersonIcon from "@mui/icons-material/Person";
@@ -21,7 +18,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
-import { ref, remove, update, get } from "firebase/database";
+import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
@@ -61,8 +58,6 @@ export default function KioskAdminCotizaciones() {
   const handleEliminar = async (id) => {
     try {
       await remove(ref(database, `cotizaciones/${id}`));
-
-      console.log("Solicitud eliminada");
     } catch (error) {
       console.error("Error eliminando solicitud:", error);
     }

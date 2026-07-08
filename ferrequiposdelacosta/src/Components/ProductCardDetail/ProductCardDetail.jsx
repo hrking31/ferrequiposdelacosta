@@ -10,6 +10,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
+import PropTypes from "prop-types";
 import { useDispatch, useSelector  } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";
 import { Camion } from "../../Components/Camion/Camion.jsx";
@@ -164,6 +165,12 @@ export default function ProductCardDetail({ product }) {
     </Box>
   );
 
+  ControlBox.propTypes = {
+    type: PropTypes.string.isRequired,
+    value: PropTypes.number.isRequired,
+    setValue: PropTypes.func.isRequired,
+  };
+
   if (!product) return null;
 
   return (
@@ -281,3 +288,7 @@ export default function ProductCardDetail({ product }) {
     </Box>
   );
 }
+
+ProductCardDetail.propTypes = {
+  product: PropTypes.object,
+};

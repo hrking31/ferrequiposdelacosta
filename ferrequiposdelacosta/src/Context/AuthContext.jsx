@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -110,7 +111,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [dispatch, user?.uid]);
+  }, [dispatch, user]);
 
   return (
     <authContext.Provider
@@ -125,3 +126,7 @@ export function AuthProvider({ children }) {
     </authContext.Provider>
   );
 }
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

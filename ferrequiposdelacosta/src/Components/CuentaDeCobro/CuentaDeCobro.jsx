@@ -4,7 +4,6 @@ import {
   TextField,
   Typography,
   Grid,
-  Stack,
   useTheme,
 } from "@mui/material";
 import { useSelector, useDispatch } from "react-redux";
@@ -13,7 +12,6 @@ import {
   setItemsCc,
   setTotalCc,
 } from "../../Store/Slices/cuentacobroSlice";
-import ReceiptIcon from "@mui/icons-material/Receipt";
 
 export default function CuentaCobro() {
   const theme = useTheme();

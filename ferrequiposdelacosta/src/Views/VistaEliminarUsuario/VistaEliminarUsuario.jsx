@@ -1,9 +1,7 @@
 import {
   Box,
-  Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -13,9 +11,8 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 
 export default function VistaEliminarUsuario() {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const { logout } = useAuth();

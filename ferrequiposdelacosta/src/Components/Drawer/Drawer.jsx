@@ -48,7 +48,6 @@ export default function MobileDrawerLayout() {
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const equipos = useSelector((state) => state.equipos.equipos);
   const equipo = useSelector((state) => state.search.results);
   const loading = useSelector((state) => state.equipos.loading);
   const error = useSelector((state) => state.search.error);
@@ -70,7 +69,7 @@ export default function MobileDrawerLayout() {
     } else if (hasSearched && !loading && equipo.length === 0) {
       showSnackbar("No se encontraron equipos.", "warning");
     }
-  }, [error, equipos, loading, hasSearched, showSnackbar]);
+  }, [error, equipo, loading, hasSearched, showSnackbar]);
 
   useEffect(() => {
     return () => {

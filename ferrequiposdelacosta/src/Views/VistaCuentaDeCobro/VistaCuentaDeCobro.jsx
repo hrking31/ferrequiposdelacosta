@@ -3,7 +3,6 @@ import {
   Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useState } from "react";
@@ -21,11 +20,10 @@ import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCuentaDeCobro() {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const values = useSelector((state) => state.cuentacobro);
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const { logout } = useAuth();

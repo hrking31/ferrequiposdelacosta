@@ -3,7 +3,6 @@ import {
   Grid,
   Stack,
   Button,
-  Typography,
   useTheme,
   useMediaQuery,
   Skeleton,
@@ -29,7 +28,7 @@ const VistaSeleccionarEquipo = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const equipos = useSelector((state) => state.search.results);

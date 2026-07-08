@@ -2,6 +2,7 @@ import { Box, Button, IconButton, useMediaQuery } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import PropTypes from "prop-types";
 
   const ActionButton = styled(Button)(({ theme }) => ({
     padding: theme.spacing(1.5, 1.5),
@@ -113,3 +114,8 @@ export default function ButtonContacto({ width, fontSize }) {
     </Box>
   );
 }
+
+ButtonContacto.propTypes = {
+  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  fontSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};

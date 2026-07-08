@@ -9,7 +9,6 @@ import {
   Typography,
   Box,
   Divider,
-  useTheme,
   useMediaQuery,
   Button,
 } from "@mui/material";
@@ -20,7 +19,6 @@ import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 export default function KioskDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
   const navigate = useNavigate();

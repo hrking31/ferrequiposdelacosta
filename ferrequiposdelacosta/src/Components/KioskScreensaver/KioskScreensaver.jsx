@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Box, Typography, Button } from "@mui/material";
+import PropTypes from "prop-types";
 
 export default function KioskScreensaver({ timeout = 60000 }) {
   const equipos = useSelector((state) => state.equipos.equipos || []);
@@ -168,3 +169,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
     </Box>
   );
 }
+
+KioskScreensaver.propTypes = {
+  timeout: PropTypes.number,
+};

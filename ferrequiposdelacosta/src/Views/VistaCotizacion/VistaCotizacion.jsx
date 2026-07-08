@@ -3,7 +3,6 @@ import {
   Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useState } from "react";
@@ -19,11 +18,10 @@ import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const values = useSelector((state) => state.cotizacion.value);
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const { logout } = useAuth();

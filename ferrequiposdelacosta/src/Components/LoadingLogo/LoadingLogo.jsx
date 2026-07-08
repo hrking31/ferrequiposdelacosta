@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
+import PropTypes from "prop-types";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import "./loadingLogo.css";
 
@@ -54,6 +54,11 @@ const LoadingLogo = ({ height = "90vh", text = "Cargando..." }) => {
       </Typography>
     </Box>
   );
+};
+
+LoadingLogo.propTypes = {
+  height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  text: PropTypes.string,
 };
 
 export default LoadingLogo;

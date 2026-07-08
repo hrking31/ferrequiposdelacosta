@@ -1,9 +1,7 @@
 import {
   Box,
-  Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +11,6 @@ import Register from "../../Components/Register/Register";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCrearUsuarios() {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { name, photoURL, role, genero } = useSelector((state) => state.user);
   const { logout } = useAuth();

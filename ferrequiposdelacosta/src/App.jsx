@@ -1,13 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  ref,
-  onValue,
-  query,
-  orderByChild,
-  limitToLast,
-} from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { database } from "./Components/Firebase/Firebase.js";
 import {
   Home,
@@ -54,7 +48,7 @@ function App() {
       }
     }
 
-    const isClienteVacio = Object.entries(cliente).every(([key, value]) => {
+    const isClienteVacio = Object.entries(cliente).every(([, value]) => {
       if (typeof value === "object" && value !== null) {
         return Object.values(value).every((v) => v === "");
       }
@@ -68,6 +62,7 @@ function App() {
         dispatch(setCliente(parsedCliente));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe hidratar una vez al montar la app
   }, [dispatch]);
 
   useEffect(() => {

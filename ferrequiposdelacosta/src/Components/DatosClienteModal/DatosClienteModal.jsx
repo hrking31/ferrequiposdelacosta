@@ -13,6 +13,7 @@ import {
   FormControl,
 } from "@mui/material";
 import { useState } from "react";
+import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
 import {
@@ -636,6 +637,15 @@ const DatosClienteModal = ({
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </>
   );
+};
+
+DatosClienteModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func,
+  modoAdmin: PropTypes.bool,
+  modoCliente: PropTypes.bool,
+  modoDireccion: PropTypes.bool,
 };
 
 export default DatosClienteModal;

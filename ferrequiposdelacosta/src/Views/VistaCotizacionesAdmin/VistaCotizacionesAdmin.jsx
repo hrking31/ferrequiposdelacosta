@@ -1,28 +1,24 @@
 import {
   Box,
-  Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/AuthContext";
 import AdminCotizaciones from "../../Components/AdminCotizaciones/AdminCotizaciones";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
-  const theme = useTheme();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   const handlerLogout = async () => {
     setLoading(true);

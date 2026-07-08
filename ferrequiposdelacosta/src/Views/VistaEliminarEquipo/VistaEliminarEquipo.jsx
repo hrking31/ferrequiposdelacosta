@@ -1,10 +1,7 @@
 import {
   Box,
-  Grid,
   Stack,
   Button,
-  Typography,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +11,11 @@ import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEliminaEquipo = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const handlerLogout = async () => {
     await logout();

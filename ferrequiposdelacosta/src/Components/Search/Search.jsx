@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TextField, Box, Grid, useTheme, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import PropTypes from "prop-types";
 
 const Search = ({ LabelOff = true, onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +49,11 @@ const Search = ({ LabelOff = true, onSearch }) => {
       </Grid>
     </Box>
   );
+};
+
+Search.propTypes = {
+  LabelOff: PropTypes.bool,
+  onSearch: PropTypes.func.isRequired,
 };
 
 export default Search;

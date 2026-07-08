@@ -1,10 +1,7 @@
 import {
-  Typography,
   Box,
-  Grid,
   Stack,
   Button,
-  useTheme,
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -14,10 +11,9 @@ import EditarEquipos from "../../Components/EditarEquipos/EditarEquipos";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEditarEquipo = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { name, photoURL, role, genero, permisos } = useSelector(
+  const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const isFullScreen = useMediaQuery("(max-width:915px)");

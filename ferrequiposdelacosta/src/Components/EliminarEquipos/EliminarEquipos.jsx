@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { deleteDoc, doc } from "firebase/firestore";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
-import { db, storage } from "../../Components/Firebase/Firebase";
+import { db } from "../../Components/Firebase/Firebase";
 import {
   Box,
   Typography,
@@ -47,7 +47,6 @@ const EliminarEquipo = () => {
 
       showSnackbar(`${mensajeCarpeta} y Equipo ${name} Eliminado.`, "success");
     } catch (error) {
-      // console.error("Error eliminando el equipo: ", error);
       showSnackbar(
         error.message || `Error al Eliminar el Equipo ${name}.`,
         "error",

@@ -8,8 +8,9 @@ import {
   FullscreenExit,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import PropTypes from "prop-types";
 
-const GalleryContainer = styled(Box)(({ theme }) => ({
+const GalleryContainer = styled(Box)(() => ({
   position: "relative",
   width: "100%",
   height: "100%",
@@ -186,3 +187,8 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
     </Grid>
   );
 }
+
+DetailGallery.propTypes = {
+  isFullscreen: PropTypes.bool.isRequired,
+  setIsFullscreen: PropTypes.func.isRequired,
+};

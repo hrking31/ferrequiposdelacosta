@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "../../Context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import {
   Box,
@@ -37,7 +35,6 @@ export default function Register() {
   const passwordType = passwordVisible ? "text" : "password";
 
   const createUser = httpsCallable(functions, "createUser");
-  const navigate = useNavigate();
 
   const handleChange = ({ target: { name, value } }) => {
     setUser((prev) => ({ ...prev, [name]: value }));

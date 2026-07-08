@@ -7,6 +7,7 @@ import {
   Box,
   useTheme,
 } from "@mui/material";
+import PropTypes from "prop-types";
 
 export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
   const theme = useTheme();
@@ -54,3 +55,16 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
     </Grid>
   );
 }
+
+CardSearchEquipos.propTypes = {
+  equipo: PropTypes.shape({
+    name: PropTypes.string,
+    images: PropTypes.arrayOf(
+      PropTypes.shape({
+        url: PropTypes.string,
+      }),
+    ),
+  }).isRequired,
+  onSelect: PropTypes.func.isRequired,
+  isSelected: PropTypes.bool,
+};

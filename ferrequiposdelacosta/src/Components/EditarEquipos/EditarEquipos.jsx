@@ -29,8 +29,7 @@ const EditarEquipo = () => {
   );
   const theme = useTheme();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
-  // console.log("Estado equipo Seleccionado:", equipoSeleccionado);
-  
+
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -38,7 +37,6 @@ const EditarEquipo = () => {
     images: [],
   });
 
-  // console.log("Estado Equipo Editado:", formData);
   useEffect(() => {
     if (equipoSeleccionado) {
       setFormData({
@@ -177,10 +175,8 @@ const EditarEquipo = () => {
     const subidas = await Promise.all(
       imagenes.map(async (img) => {
         if (!img.isNew) return img;
-        console.log("🟢 Imagen no modificada:", img);
 
         if (img.path) {
-          console.log("🟢 Imagen path:", img.path);
           await eliminarImagenStorage(img.path);
         }
 
@@ -231,8 +227,6 @@ const EditarEquipo = () => {
       await updateDoc(equipoRef, datosActualizados);
 
       showSnackbar("Equipo actualizado con éxito", "success");
-
-      console.log("✅ Equipo actualizado con éxito.");
     } catch (error) {
       console.error("❌ Error al actualizar el equipo:", error);
     }
@@ -544,7 +538,6 @@ const EditarEquipo = () => {
                                 fullWidth
                                 onClick={() => {
                                   setEditingImageIndex(null);
-                                  console.log("imagenes guardadas:", formData);
                                 }}
                                 sx={{ flex: 1, whiteSpace: "nowrap" }}
                               >
