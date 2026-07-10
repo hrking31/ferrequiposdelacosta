@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
@@ -13,13 +13,7 @@ import {
 import { setUserData, clearUserData } from "../Store/Slices/userSlice";
 import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
 import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
-
-export const authContext = createContext();
-
-export const useAuth = () => {
-  const context = useContext(authContext);
-  return context;
-};
+import { authContext } from "./useAuth";
 
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();

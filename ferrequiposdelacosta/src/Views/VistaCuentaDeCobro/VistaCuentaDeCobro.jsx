@@ -13,7 +13,7 @@ import {
   setItemsCc,
   setTotalCc,
 } from "../../Store/Slices/cuentacobroSlice";
-import { useAuth } from "../../Context/AuthContext";
+import { useAuth } from "../../Context/useAuth";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
 import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";

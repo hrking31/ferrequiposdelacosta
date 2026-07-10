@@ -5,7 +5,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/AuthContext";
+import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import EditarEquipos from "../../Components/EditarEquipos/EditarEquipos";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";

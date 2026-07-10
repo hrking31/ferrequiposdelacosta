@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
-import { useAuth } from "../../Context/AuthContext";
+import { useAuth } from "../../Context/useAuth";
 import Drawer from "../../Components/Drawer/Drawer.jsx";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 

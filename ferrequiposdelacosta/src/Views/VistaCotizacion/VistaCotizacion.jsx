@@ -5,13 +5,16 @@ import {
   Button,
   useMediaQuery,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { ref, update, push } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
-import { useAuth } from "../../Context/AuthContext";
-import { resetCotizacion } from "../../Store/Slices/cotizacionSlice";
+import { useAuth } from "../../Context/useAuth";
+import {
+  resetCotizacion,
+  setFormCotizacion,
+} from "../../Store/Slices/cotizacionSlice";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
@@ -27,7 +30,13 @@ export default function VistaCotizacion() {
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
-  
+
+  useEffect(() => {
+    if (!values.id && !values.cotizacionId) {
+      dispatch(setFormCotizacion({ cotizacionId: `COT-${Date.now()}` }));
+    }
+  }, [values.id, values.cotizacionId, dispatch]);
+
   const cambiarEstadoFirebase = async (
     nuevoEstado,
     guardarCotizacion = false,
@@ -40,7 +49,7 @@ export default function VistaCotizacion() {
 
         await update(ref(database, `cotizaciones/${values.id}`), dataToUpdate);
 
-        return;
+        return { ...values, ...dataToUpdate };
       }
 
       if (guardarCotizacion) {
@@ -50,21 +59,33 @@ export default function VistaCotizacion() {
           ...values,
           id: quotationRef.key,
           status: nuevoEstado,
-          cotizacionId: `COT-${Date.now()}`,
+          cotizacionId: values.cotizacionId || `COT-${Date.now()}`,
           createdAt: Date.now(),
         };
 
         await update(quotationRef, newQuotation);
+
+        return newQuotation;
       }
+
+      return values;
     } catch (error) {
       console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
+      return values;
     }
   };
 
+  const sinEquipos = !values.items.some(
+    (item) =>
+      item.description?.trim() && Number(item.quantity) > 0 && Number(item.price) > 0,
+  );
+
   const handleClick = async () => {
+    if (sinEquipos) return;
+
     setLoading(true);
-    await cambiarEstadoFirebase("creada", true);
-    VistaCotPdf(values);
+    const cotizacionGuardada = await cambiarEstadoFirebase("creada", true);
+    VistaCotPdf(cotizacionGuardada);
     dispatch(resetCotizacion());
     setLoading(false);
     navigate("/adminforms");
@@ -170,9 +191,10 @@ export default function VistaCotizacion() {
               sx={{ flex: 1, whiteSpace: "nowrap" }}
               onClick={handleClick}
               component="a"
-              href={whatsappLink}
+              href={sinEquipos ? undefined : whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
+              disabled={sinEquipos}
             >
               {loading ? "Cargando..." : "Descargar PDF"}
             </Button>

@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useAuth } from "../../Context/AuthContext";
+import { useAuth } from "../../Context/useAuth";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 

@@ -24,7 +24,7 @@ import {
   setTotalNumero,
 } from "../../Store/Slices/cotizacionSlice";
 import { useSelector, useDispatch } from "react-redux";
-import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
+import { departamentosYMunicipios } from "../RolesPermisos/departamentosYMunicipios";
 
 export default function Cotizacion() {
   const dispatch = useDispatch();

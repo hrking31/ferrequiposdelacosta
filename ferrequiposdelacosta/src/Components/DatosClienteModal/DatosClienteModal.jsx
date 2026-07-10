@@ -15,7 +15,7 @@ import {
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
-import { departamentosYMunicipios } from "../RolesPermisos/RolesPermisos";
+import { departamentosYMunicipios } from "../RolesPermisos/departamentosYMunicipios";
 import {
   setCliente,
   actualizarDireccion,

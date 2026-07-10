@@ -8,7 +8,7 @@ import { CustomThemeProvider } from "./Theme/ThemeProvider.jsx";
 import store from "./Store/Store";
 import { registerSW } from "virtual:pwa-register";
 
-const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 registerSW({
   immediate: true,

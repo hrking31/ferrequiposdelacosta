@@ -4,14 +4,10 @@ import {
   CssBaseline,
   responsiveFontSizes,
 } from "@mui/material";
-import { useMemo, useState, useEffect, createContext, useContext } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
-
-// Contexto para cambiar el modo del tema
-const ColorModeContext = createContext({ toggleColorMode: () => {} });
-
-export const useColorMode = () => useContext(ColorModeContext);
+import { ColorModeContext } from "./useColorMode";
 
 // Función para obtener el modo inicial de forma segura
 const getInitialMode = () => {

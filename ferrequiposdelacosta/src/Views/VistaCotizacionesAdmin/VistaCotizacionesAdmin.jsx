@@ -7,7 +7,7 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { useAuth } from "../../Context/AuthContext";
+import { useAuth } from "../../Context/useAuth";
 import AdminCotizaciones from "../../Components/AdminCotizaciones/AdminCotizaciones";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 

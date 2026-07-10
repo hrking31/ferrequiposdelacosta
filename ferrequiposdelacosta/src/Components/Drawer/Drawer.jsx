@@ -36,7 +36,7 @@ import {
 } from "../../Store/Slices/searchSlice";
 import { useDispatch } from "react-redux";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
-import { useColorMode } from "../../Theme/ThemeProvider";
+import { useColorMode } from "../../Theme/useColorMode";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
 import useSnackbar from "../../Hooks/useSnackbar";
