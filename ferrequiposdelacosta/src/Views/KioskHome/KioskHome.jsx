@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice.js";
 import KioskEquipos from "../../Components/KioskEquipos/KioskEquipos.jsx";
-import KioskScreensaver from "../../Components/KioskScreensaver/KioskScreensaver.jsx";
 
 export default function KioskHome() {
   const dispatch = useDispatch();
@@ -14,10 +13,5 @@ export default function KioskHome() {
     }
   }, [dispatch, equipos]);
 
-  return (
-    <>
-      <KioskScreensaver timeout={45000} />
-      <KioskEquipos />;
-    </>
-  );
+  return <KioskEquipos />;
 }

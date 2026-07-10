@@ -116,6 +116,6 @@ export default function ButtonContacto({ width, fontSize }) {
 }
 
 ButtonContacto.propTypes = {
-  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  fontSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.object]),
+  fontSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.object]),
 };

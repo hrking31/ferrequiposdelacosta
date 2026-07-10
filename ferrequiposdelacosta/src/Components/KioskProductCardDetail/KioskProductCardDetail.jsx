@@ -21,6 +21,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 export default function KioskProductCardDetail({ product }) {
   const dispatch = useDispatch();
   const cliente = useSelector((state) => state.cliente);
+  const items = useSelector((state) => state.cart.items);
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -78,16 +79,9 @@ export default function KioskProductCardDetail({ product }) {
 
   const handleAdd = () => {
     const newItem = { ...product, quantity, days };
-
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || {
-      items: [],
-    };
-
-    const exists = storedCart.items.some((item) => item.id === newItem.id);
+    const exists = items.some((item) => item.id === newItem.id);
 
     if (!exists) {
-      const updatedItems = [...storedCart.items, newItem];
-      localStorage.setItem("cart", JSON.stringify({ items: updatedItems }));
       dispatch(addToCart(newItem));
       showSnackbar("Producto agregado al carrito", "success");
     } else {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDetailData } from "../../Store/Slices/detailSlice.js";
@@ -22,6 +22,7 @@ export default function KioskDetail() {
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
   const navigate = useNavigate();
+  const [isGalleryFullscreen, setIsGalleryFullscreen] = useState(false);
 
   const {
     selectedEquipo: equipo,
@@ -74,7 +75,10 @@ export default function KioskDetail() {
               // border: "2px solid red",
             }}
           >
-            <DetailGallery />
+            <DetailGallery
+              isFullscreen={isGalleryFullscreen}
+              setIsFullscreen={setIsGalleryFullscreen}
+            />
           </Grid>
 
           <Grid

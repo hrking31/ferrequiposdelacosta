@@ -25,6 +25,7 @@ import {
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
+import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
 import { addToCart } from "./Store/Slices/cartSlice.js";
 import { setCliente } from "./Store/Slices/clienteSlice";
 import { setListaCotizaciones } from "./Store/Slices/cotizacionSlice";
@@ -36,8 +37,12 @@ function App() {
   const cliente = useSelector((state) => state.cliente);
   const initialized = useRef(false);
   const lastQuotationIdRef = useRef(null);
+  const isKioskRoute = location.pathname.toLowerCase().includes("kiosk");
 
   useEffect(() => {
+    // en modo kiosk el estado vive solo en Redux: no se hidrata desde localStorage
+    if (isKioskRoute) return;
+
     if (items.length === 0) {
       const storedCart = localStorage.getItem("cart");
       if (storedCart) {
@@ -48,12 +53,11 @@ function App() {
       }
     }
 
-    const isClienteVacio = Object.entries(cliente).every(([, value]) => {
-      if (typeof value === "object" && value !== null) {
-        return Object.values(value).every((v) => v === "");
-      }
-      return value === "";
-    });
+    const isClienteVacio =
+      ["tipo", "nombre", "telefono", "identificacion"].every(
+        (campo) => (cliente[campo] ?? "") === "",
+      ) &&
+      Object.values(cliente.direccion || {}).every((v) => v === "");
     if (isClienteVacio) {
       const storedCliente = localStorage.getItem("datosCliente");
 
@@ -66,12 +70,15 @@ function App() {
   }, [dispatch]);
 
   useEffect(() => {
+    // en modo kiosk el carrito no se persiste: es de un solo cliente a la vez
+    if (isKioskRoute) return;
+
     if (items.length > 0) {
       localStorage.setItem("cart", JSON.stringify({ items }));
     } else {
       localStorage.removeItem("cart");
     }
-  }, [items]);
+  }, [items, isKioskRoute]);
 
   useEffect(() => {
     const quotationsRef = ref(database, "cotizaciones");
@@ -94,11 +101,11 @@ function App() {
           if (newest && newest.id !== lastQuotationIdRef.current) {
             lastQuotationIdRef.current = newest.id;
 
-            const isKioskRoute =
-              location.pathname.toLowerCase().includes("kiosk") ||
+            const suppressNotificationSound =
+              isKioskRoute ||
               location.pathname.toLowerCase().includes("vistacart");
 
-            if (!isKioskRoute) {
+            if (!suppressNotificationSound) {
               const audio = new Audio("/notification.mp3");
               audio.play().catch(() => {});
             }
@@ -115,11 +122,13 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, [dispatch, location.pathname]);
+  }, [dispatch, location.pathname, isKioskRoute]);
 
   return (
     <div>
       <NavBar />
+
+      {isKioskRoute && <KioskScreensaver timeout={45000} />}
 
       <Routes>
         <Route

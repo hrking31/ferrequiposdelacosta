@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
 import { departamentosYMunicipios } from "../RolesPermisos/departamentosYMunicipios";
 import {
   setCliente,
@@ -34,7 +35,15 @@ const DatosClienteModal = ({
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const location = useLocation();
   const cliente = useSelector((state) => state.cliente);
+  const isKiosk = location.pathname.toLowerCase().includes("kiosk");
+
+  const guardarEnLocalStorage = (datos) => {
+    if (!isKiosk) {
+      localStorage.setItem("datosCliente", JSON.stringify(datos));
+    }
+  };
 
   const estadoInicialCliente = {
     tipo: "",
@@ -193,10 +202,7 @@ const DatosClienteModal = ({
           ...camposModificados,
         };
 
-        localStorage.setItem(
-          "datosCliente",
-          JSON.stringify(clienteActualizado),
-        );
+        guardarEnLocalStorage(clienteActualizado);
       }
     } else if (modoCliente) {
       const datosCliente = {
@@ -204,7 +210,7 @@ const DatosClienteModal = ({
         ...clienteLocal,
       };
       dispatch(setCliente(datosCliente));
-      localStorage.setItem("datosCliente", JSON.stringify(datosCliente));
+      guardarEnLocalStorage(datosCliente);
     } else if (modoDireccion && !direccionVacia) {
       const direccionAnterior = cliente.direccion || {};
       const camposModificados = {};
@@ -231,10 +237,7 @@ const DatosClienteModal = ({
           direccion: direccionActualizada,
         };
 
-        localStorage.setItem(
-          "datosCliente",
-          JSON.stringify(clienteActualizado),
-        );
+        guardarEnLocalStorage(clienteActualizado);
       }
     } else if (modoDireccion) {
       const datosDireccion = {
@@ -250,14 +253,14 @@ const DatosClienteModal = ({
         direccion: datosDireccion,
       };
       dispatch(setCliente(nuevoCliente));
-      localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+      guardarEnLocalStorage(nuevoCliente);
     } else {
       datos = {
         ...clienteLocal,
         direccion,
       };
       dispatch(setCliente(datos));
-      localStorage.setItem("datosCliente", JSON.stringify(datos));
+      guardarEnLocalStorage(datos);
     }
 
     showSnackbar("Datos guardados correctamente", "success");
@@ -275,37 +278,32 @@ const DatosClienteModal = ({
 
   const handleEliminarDatos = () => {
     if (modoCliente) {
-      const clienteGuardado =
-        JSON.parse(localStorage.getItem("datosCliente")) || {};
-      const direccionActual = clienteGuardado.direccion;
+      const direccionActual = cliente.direccion;
 
       if (!direccionActual || Object.keys(direccionActual).length === 0) {
         dispatch(setCliente(clienteInicial));
-        localStorage.setItem("datosCliente", JSON.stringify(clienteInicial));
+        guardarEnLocalStorage(clienteInicial);
       } else {
         const nuevoCliente = {
           ...clienteInicial,
           direccion: direccionActual,
         };
         dispatch(setCliente(nuevoCliente));
-        localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+        guardarEnLocalStorage(nuevoCliente);
       }
 
       setClienteLocal(estadoInicialCliente);
       setErrors({});
     } else if (modoDireccion) {
-      const clienteGuardado =
-        JSON.parse(localStorage.getItem("datosCliente")) || {};
-
       const nuevoCliente = {
-        nombre: clienteGuardado.nombre || "",
-        identificacion: clienteGuardado.identificacion || "",
-        tipo: clienteGuardado.tipo || "",
+        nombre: cliente.nombre || "",
+        identificacion: cliente.identificacion || "",
+        tipo: cliente.tipo || "",
         direccion: { ...estadoInicialDireccion },
       };
 
       dispatch(setCliente(nuevoCliente));
-      localStorage.setItem("datosCliente", JSON.stringify(nuevoCliente));
+      guardarEnLocalStorage(nuevoCliente);
 
       setDireccion({ ...estadoInicialDireccion });
       setErrors({});

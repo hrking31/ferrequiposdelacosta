@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Box, Typography, Button } from "@mui/material";
 import PropTypes from "prop-types";
+import { clearCart } from "../../Store/Slices/cartSlice.js";
+import { clearCliente } from "../../Store/Slices/clienteSlice.js";
+import { applyPendingUpdate } from "../../pwaUpdate.js";
 
 export default function KioskScreensaver({ timeout = 60000 }) {
+  const dispatch = useDispatch();
   const equipos = useSelector((state) => state.equipos.equipos || []);
   const [isActive, setIsActive] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -15,10 +19,19 @@ export default function KioskScreensaver({ timeout = 60000 }) {
   // Lógica de detección de inactividad
   useEffect(() => {
     let timer;
+    const activarProtector = () => {
+      setIsActive(true);
+      // el cliente se fue sin terminar: deja el estado limpio para el siguiente
+      dispatch(clearCart());
+      dispatch(clearCliente());
+      // sin cliente activo: buen momento para aplicar una actualización pendiente
+      applyPendingUpdate();
+    };
+
     const resetTimer = () => {
       setIsActive(false);
       clearTimeout(timer);
-      timer = setTimeout(() => setIsActive(true), timeout);
+      timer = setTimeout(activarProtector, timeout);
     };
 
     // Eventos que reinician el contador de actividad
@@ -27,7 +40,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
     window.addEventListener("touchstart", resetTimer);
     window.addEventListener("keypress", resetTimer);
 
-    timer = setTimeout(() => setIsActive(true), timeout);
+    timer = setTimeout(activarProtector, timeout);
 
     return () => {
       window.removeEventListener("mousemove", resetTimer);
@@ -36,7 +49,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
       window.removeEventListener("keypress", resetTimer);
       clearTimeout(timer);
     };
-  }, [timeout]);
+  }, [timeout, dispatch]);
 
   // Lógica del Carrusel automático
   useEffect(() => {
