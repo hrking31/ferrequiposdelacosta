@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import { useAuth } from "../../Context/useAuth";
 import Drawer from "../../Components/Drawer/Drawer.jsx";
@@ -9,6 +9,8 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const esVistaHome = searchParams.get("vistahome") === "si";
   const { user, loading } = useAuth();
   const equipos = useSelector((state) => state.equipos.equipos); //solo realiza consulta al cargar la pagina
 
@@ -19,10 +21,10 @@ export default function Home() {
   }, [dispatch, equipos]);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !esVistaHome) {
       navigate("/adminforms", { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, esVistaHome, navigate]);
 
 
   if (loading) {

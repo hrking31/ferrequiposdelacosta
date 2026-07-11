@@ -96,7 +96,7 @@ export default function AdminForms() {
     height: `calc((100% - ${(filas - 1) * gapPx}px) / ${filas})`,
     maxWidth: 240,
     maxHeight: 150,
-    minHeight: 48,
+    minHeight: 90,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -141,9 +141,10 @@ export default function AdminForms() {
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          alignContent: "center",
+          alignContent: "safe center",
           gap: `${gapPx}px`,
-          overflow: "hidden",
+          overflowY: "auto",
+          overflowX: "hidden",
           // border: "2px solid red",
         }}
       >

@@ -10,20 +10,32 @@ import {
 } from "@mui/material";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import Logos from "../../assets/LogoFerrequipos.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../Context/useAuth";
 import CamionContador from "../../Components/Camion/Camion.jsx";
 
 export default function MenuAppBar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery("(max-width:915px)");
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isKioskMode = location.pathname.startsWith("/kiosk");
+  const isEnHome = ["/", "/home"].includes(location.pathname.toLowerCase());
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
-    navigate(isKioskMode ? "/kioskhome" : "/home");
+    if (isKioskMode) {
+      navigate("/kioskhome");
+    } else if (!user) {
+      navigate("/home");
+    } else if (isEnHome) {
+      navigate("/adminforms");
+    } else {
+      navigate("/home?vistahome=si");
+    }
   };
 
   const handlecartClick = () => {

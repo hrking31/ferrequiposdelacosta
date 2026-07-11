@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../Components/Firebase/Firebase";
@@ -19,6 +19,14 @@ export function AuthProvider({ children }) {
   const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const detenerPresenciaRef = useRef(null);
+
+  const detenerPresencia = () => {
+    if (detenerPresenciaRef.current) {
+      detenerPresenciaRef.current();
+      detenerPresenciaRef.current = null;
+    }
+  };
 
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
@@ -28,6 +36,8 @@ export function AuthProvider({ children }) {
     try {
       const currentUser = auth.currentUser;
       if (currentUser) {
+        detenerPresencia();
+
         const userRef = ref(database, `usuariosConectados/${user.uid}`);
 
         await set(userRef, {
@@ -67,7 +77,8 @@ export function AuthProvider({ children }) {
               photoURL: profile.photoURL || currentUser.photoURL || null,
             };
 
-            await registrarConexion(currentUser.uid);
+            detenerPresencia();
+            detenerPresenciaRef.current = registrarConexion(currentUser.uid);
 
             setUser(fullUserData);
             dispatch(setUserData(fullUserData));
@@ -75,6 +86,7 @@ export function AuthProvider({ children }) {
             setUser(currentUser);
           }
         } else {
+          detenerPresencia();
           setUser(null);
           dispatch(clearUserData());
         }
@@ -86,7 +98,10 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      detenerPresencia();
+    };
   }, [dispatch]);
 
   useEffect(() => {

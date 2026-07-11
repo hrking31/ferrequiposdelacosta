@@ -1,24 +1,29 @@
-import { ref, set, onDisconnect } from "firebase/database";
+import { ref, set, onValue, onDisconnect } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
-export const registrarConexion = async (uid) => {
-  try {
-    const userRef = ref(database, `usuariosConectados/${uid}`);
+export const registrarConexion = (uid) => {
+  const userRef = ref(database, `usuariosConectados/${uid}`);
+  const connectedRef = ref(database, ".info/connected");
 
-    await set(userRef, {
-      online: true,
-      timestamp: Date.now(),
-    });
+  return onValue(connectedRef, (snapshot) => {
+    if (!snapshot.val()) return;
 
-    await onDisconnect(userRef).set({
-      online: false,
-      timestamp: Date.now(),
-    });
-
-  } catch (error) {
-    console.error(
-      "Error crítico de seguridad en RTDB (Reglas bloqueadas):",
-      error,
-    );
-  }
+    onDisconnect(userRef)
+      .set({
+        online: false,
+        timestamp: Date.now(),
+      })
+      .then(() =>
+        set(userRef, {
+          online: true,
+          timestamp: Date.now(),
+        }),
+      )
+      .catch((error) => {
+        console.error(
+          "Error crítico de seguridad en RTDB (Reglas bloqueadas):",
+          error,
+        );
+      });
+  });
 };

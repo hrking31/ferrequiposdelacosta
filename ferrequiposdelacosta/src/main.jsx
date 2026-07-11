@@ -7,13 +7,21 @@ import { AuthProvider } from "./Context/AuthContext";
 import { CustomThemeProvider } from "./Theme/ThemeProvider.jsx";
 import store from "./Store/Store";
 import { registerSW } from "virtual:pwa-register";
-import { registerUpdateHandler, markUpdatePending } from "./pwaUpdate.js";
+import {
+  registerUpdateHandler,
+  markUpdatePending,
+  applyUpdateNow,
+} from "./pwaUpdate.js";
 
 const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 const applyUpdate = registerSW({
   immediate: true,
   onNeedRefresh() {
+    // en npm run dev cada guardado genera una "versión nueva" del SW:
+    // aplicar/recargar aquí crearía un bucle. Esta lógica es solo para producción.
+    if (import.meta.env.DEV) return;
+
     const isKiosk = window.location.pathname.toLowerCase().includes("kiosk");
 
     if (isKiosk) {
@@ -21,7 +29,7 @@ const applyUpdate = registerSW({
       // cuando se active el protector de pantalla (KioskScreensaver)
       markUpdatePending();
     } else {
-      applyUpdate(true);
+      applyUpdateNow();
     }
   },
   onRegisteredSW(swUrl, registration) {
