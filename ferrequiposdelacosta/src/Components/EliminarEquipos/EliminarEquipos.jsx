@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { deleteDoc, doc } from "firebase/firestore";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
@@ -17,6 +17,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 const EliminarEquipo = () => {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const theme = useTheme();
   const equipoSeleccionado = location.state?.equipo;
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
@@ -57,6 +58,30 @@ const EliminarEquipo = () => {
   };
 
   if (loading) return <LoadingLogo />;
+
+  if (!equipoSeleccionado) {
+    return (
+      <Box
+        mx="auto"
+        p={2}
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        gap={2}
+        sx={{
+          [theme.breakpoints.up("md")]: { width: "60%" },
+        }}
+      >
+        <Typography variant="h6">No hay ningún equipo seleccionado.</Typography>
+        <Button
+          variant="danger"
+          onClick={() => navigate("/vistaseleccionarequipo")}
+        >
+          Volver a Seleccionar Equipo
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box

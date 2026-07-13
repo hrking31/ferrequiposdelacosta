@@ -567,6 +567,7 @@ const DatosClienteModal = ({
                 fullWidth
                 error={!!errors.departamento}
                 helperText={errors.departamento}
+                InputLabelProps={{ htmlFor: undefined }}
               >
                 {Object.keys(departamentosYMunicipios).map((dep) => (
                   <MenuItem key={dep} value={dep}>
@@ -586,6 +587,7 @@ const DatosClienteModal = ({
                 disabled={!direccion.departamento}
                 error={!!errors.municipio}
                 helperText={errors.municipio}
+                InputLabelProps={{ htmlFor: undefined }}
               >
                 {direccion.departamento &&
                 departamentosYMunicipios[direccion.departamento]?.length > 0 ? (

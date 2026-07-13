@@ -254,11 +254,13 @@ export default function Cotizacion() {
           <Grid item xs={12} sm={6}>
             <TextField
               select
+              id="departamento-select"
               name="departamento"
               label="Departamento"
               value={formValues.departamento}
               onChange={handlerInputChange}
               fullWidth
+              InputLabelProps={{ htmlFor: undefined }}
             >
               {Object.keys(departamentosYMunicipios).map((dep) => (
                 <MenuItem key={dep} value={dep}>
@@ -271,12 +273,14 @@ export default function Cotizacion() {
           <Grid item xs={12} sm={6}>
             <TextField
               select
+              id="municipio-select"
               name="municipio"
               label="Municipio"
               value={formValues.municipio}
               onChange={handlerInputChange}
               fullWidth
               disabled={!formValues.departamento}
+              InputLabelProps={{ htmlFor: undefined }}
             >
               {formValues.departamento &&
               departamentosYMunicipios[formValues.departamento]?.length > 0 ? (
@@ -293,9 +297,10 @@ export default function Cotizacion() {
 
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
-              <InputLabel>Transporte</InputLabel>
+              <InputLabel id="transporte-label">Transporte</InputLabel>
 
               <Select
+                labelId="transporte-label"
                 name="transporte"
                 value={formValues.transporte || ""}
                 label="Transporte"
