@@ -260,7 +260,8 @@ export default function Cotizacion() {
               value={formValues.departamento}
               onChange={handlerInputChange}
               fullWidth
-              InputLabelProps={{ htmlFor: undefined }}
+              inputProps={{ id: "departamento-input" }}
+              InputLabelProps={{ htmlFor: "departamento-input" }}
             >
               {Object.keys(departamentosYMunicipios).map((dep) => (
                 <MenuItem key={dep} value={dep}>
@@ -280,7 +281,8 @@ export default function Cotizacion() {
               onChange={handlerInputChange}
               fullWidth
               disabled={!formValues.departamento}
-              InputLabelProps={{ htmlFor: undefined }}
+              inputProps={{ id: "municipio-input" }}
+              InputLabelProps={{ htmlFor: "municipio-input" }}
             >
               {formValues.departamento &&
               departamentosYMunicipios[formValues.departamento]?.length > 0 ? (
@@ -297,10 +299,13 @@ export default function Cotizacion() {
 
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
-              <InputLabel id="transporte-label">Transporte</InputLabel>
+              <InputLabel id="transporte-label" htmlFor="transporte-input">
+                Transporte
+              </InputLabel>
 
               <Select
                 labelId="transporte-label"
+                inputProps={{ id: "transporte-input" }}
                 name="transporte"
                 value={formValues.transporte || ""}
                 label="Transporte"

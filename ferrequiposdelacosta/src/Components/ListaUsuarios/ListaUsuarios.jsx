@@ -368,9 +368,12 @@ export default function UsersList() {
               />
 
               <FormControl fullWidth>
-                <InputLabel id="genero-label">Género</InputLabel>
+                <InputLabel id="genero-label" htmlFor="genero-input">
+                  Género
+                </InputLabel>
                 <Select
                   labelId="genero-label"
+                  inputProps={{ id: "genero-input" }}
                   label="Género"
                   name="genero"
                   value={selectedUser.genero || ""}
@@ -393,9 +396,12 @@ export default function UsersList() {
               </FormControl>
 
               <FormControl fullWidth>
-                <InputLabel id="rol-label">Rol del Usuario</InputLabel>
+                <InputLabel id="rol-label" htmlFor="rol-input">
+                  Rol del Usuario
+                </InputLabel>
                 <Select
                   labelId="rol-label"
+                  inputProps={{ id: "rol-input" }}
                   label="Rol del Usuario"
                   name="role"
                   value={selectedUser.role || ""}
