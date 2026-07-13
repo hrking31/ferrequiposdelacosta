@@ -26,6 +26,7 @@ import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
+import UpdateBanner from "./Components/UpdateBanner/UpdateBanner.jsx";
 import { addToCart } from "./Store/Slices/cartSlice.js";
 import { setCliente } from "./Store/Slices/clienteSlice";
 import { setListaCotizaciones } from "./Store/Slices/cotizacionSlice";
@@ -129,6 +130,7 @@ function App() {
       <NavBar />
 
       {isKioskRoute && <KioskScreensaver timeout={45000} />}
+      {!isKioskRoute && <UpdateBanner />}
 
       <Routes>
         <Route

@@ -6,12 +6,9 @@ import { Provider } from "react-redux";
 import { AuthProvider } from "./Context/AuthContext";
 import { CustomThemeProvider } from "./Theme/ThemeProvider.jsx";
 import store from "./Store/Store";
+import { setUpdateAvailable } from "./Store/Slices/pwaUpdateSlice";
 import { registerSW } from "virtual:pwa-register";
-import {
-  registerUpdateHandler,
-  markUpdatePending,
-  applyUpdateNow,
-} from "./pwaUpdate.js";
+import { registerUpdateHandler, markUpdatePending } from "./pwaUpdate.js";
 
 const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
@@ -29,7 +26,8 @@ const applyUpdate = registerSW({
       // cuando se active el protector de pantalla (KioskScreensaver)
       markUpdatePending();
     } else {
-      applyUpdateNow();
+      // tienda pública y admin: se avisa (UpdateBanner) en vez de recargar solo
+      store.dispatch(setUpdateAvailable());
     }
   },
   onRegisteredSW(swUrl, registration) {
