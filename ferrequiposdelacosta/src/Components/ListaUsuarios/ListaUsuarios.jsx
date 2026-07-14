@@ -354,6 +354,7 @@ export default function UsersList() {
               <TextField
                 label="Nombre Completo"
                 name="name"
+                autoComplete="off"
                 value={selectedUser.name || ""}
                 onChange={handleInputChange}
                 fullWidth
@@ -500,7 +501,6 @@ export default function UsersList() {
         open={openConfirmDelete}
         onClose={() => setOpenConfirmDelete(false)}
         sx={{ zIndex: 1400 }}
-        disableEnforceFocus
         PaperProps={{
           sx: {
             backgroundColor: (theme) =>

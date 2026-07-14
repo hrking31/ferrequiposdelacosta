@@ -83,6 +83,7 @@ export default function Login({ onClose }) {
             <TextField
               type="email"
               name="email"
+              autoComplete="email"
               label="Dirección de correo electrónico"
               value={user.email}
               onChange={handleChange}
@@ -93,6 +94,7 @@ export default function Login({ onClose }) {
             <TextField
               type={passwordType}
               name="password"
+              autoComplete="current-password"
               label="Contraseña"
               value={user.password}
               onChange={handleChange}

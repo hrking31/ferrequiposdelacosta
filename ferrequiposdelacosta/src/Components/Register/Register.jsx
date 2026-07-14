@@ -120,6 +120,7 @@ export default function Register() {
         label="Nombre"
         name="name"
         type="text"
+        autoComplete="off"
         value={user.name}
         onChange={handleChange}
         fullWidth
@@ -155,6 +156,7 @@ export default function Register() {
         label="Correo"
         name="email"
         type="email"
+        autoComplete="off"
         value={user.email}
         onChange={handleChange}
         fullWidth
@@ -164,6 +166,7 @@ export default function Register() {
         label="Contraseña"
         name="password"
         type={passwordType}
+        autoComplete="new-password"
         value={user.password}
         onChange={handleChange}
         fullWidth

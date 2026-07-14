@@ -140,7 +140,7 @@ export default function CuentaCobro() {
 
         {items.map((item, index) => (
           <Box
-            key={item.id || index}
+            key={index}
             display="flex"
             justifyContent="center"
             sx={{

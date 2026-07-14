@@ -283,6 +283,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
         >
           <input
             type="file"
+            name="fotoPerfil"
             accept="image/*"
             ref={fileInputRef}
             onChange={handleFileChange}

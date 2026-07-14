@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { deleteDoc, doc } from "firebase/firestore";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
@@ -9,47 +9,61 @@ import {
   Typography,
   Button,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const EliminarEquipo = () => {
   const [loading, setLoading] = useState(false);
+  const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const theme = useTheme();
-  const equipoSeleccionado = location.state?.equipo;
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [equipoSeleccionado, setEquipoSeleccionado] = useState(
+    () => location.state?.equipo || null,
+  );
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const eliminarCarpetaCompleta = async (equipoId) => {
     const storage = getStorage();
     const carpetaRef = ref(storage, `${equipoId}/`);
     const resultado = await listAll(carpetaRef);
-    const promesasDeBorrado = resultado.items.map((item) => deleteObject(item));
-
-    try {
-      await Promise.all(promesasDeBorrado);
-      return `Carpeta de Imágenes`;
-    } catch (error) {
-      throw new Error("Error al eliminar la Carpeta de Imágenes");
-    }
+    await Promise.all(resultado.items.map((item) => deleteObject(item)));
   };
 
   const handleDelete = async () => {
+    setOpenConfirmDelete(false);
     if (!equipoSeleccionado) return;
     const { id, name } = equipoSeleccionado;
     setLoading(true);
 
     try {
-      const mensajeCarpeta = await eliminarCarpetaCompleta(id);
-      const equipoDocRef = doc(db, "equipos", id);
-      await deleteDoc(equipoDocRef);
+      // Se borra primero el documento para que el equipo deje de aparecer
+      // en el catálogo de inmediato; si luego falla la limpieza de Storage
+      // solo quedan imágenes huérfanas (invisibles), no un equipo fantasma
+      // con imágenes rotas.
+      await deleteDoc(doc(db, "equipos", id));
 
-      showSnackbar(`${mensajeCarpeta} y Equipo ${name} Eliminado.`, "success");
+      try {
+        await eliminarCarpetaCompleta(id);
+        showSnackbar(`Equipo ${name} eliminado correctamente.`, "success");
+      } catch {
+        showSnackbar(
+          `Equipo ${name} eliminado, pero no se pudieron borrar todas sus imágenes del almacenamiento.`,
+          "warning",
+        );
+      }
+
+      setEquipoSeleccionado(null);
     } catch (error) {
       showSnackbar(
-        error.message || `Error al Eliminar el Equipo ${name}.`,
+        error.message || `Error al eliminar el equipo ${name}.`,
         "error",
       );
     } finally {
@@ -73,12 +87,6 @@ const EliminarEquipo = () => {
         }}
       >
         <Typography variant="h6">No hay ningún equipo seleccionado.</Typography>
-        <Button
-          variant="danger"
-          onClick={() => navigate("/vistaseleccionarequipo")}
-        >
-          Volver a Seleccionar Equipo
-        </Button>
       </Box>
     );
   }
@@ -156,9 +164,73 @@ const EliminarEquipo = () => {
         </Grid>
       </Grid>
 
-      <Button variant="danger" fullWidth onClick={handleDelete}>
+      <Button
+        variant="danger"
+        fullWidth
+        onClick={() => setOpenConfirmDelete(true)}
+      >
         Eliminar Equipo
       </Button>
+
+      <Dialog
+        open={openConfirmDelete}
+        onClose={() => setOpenConfirmDelete(false)}
+        sx={{ zIndex: 1400 }}
+        PaperProps={{
+          sx: {
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light" ? "primary.light" : "primary.main",
+            backgroundImage: "none",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: "bold",
+            bgcolor: "error.main",
+            color: "error.contrastText",
+          }}
+        >
+          ⚠️ Alerta de Confirmación
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            ¿Seguro que quieres eliminar el equipo{" "}
+            <strong>{equipoSeleccionado?.name}</strong>? Esta acción es
+            irreversible y también borra todas sus imágenes.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            p: 2.5,
+            gap: 1.5,
+            flexDirection: { xs: "column", sm: "row" },
+            "& > :not(style)": {
+              margin: "0px !important",
+            },
+          }}
+        >
+          <Button
+            onClick={handleDelete}
+            variant="success"
+            size="medium"
+            fullWidth={isMobile}
+          >
+            Eliminar
+          </Button>
+
+          <Button
+            onClick={() => setOpenConfirmDelete(false)}
+            variant="danger"
+            size="medium"
+            fullWidth={isMobile}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

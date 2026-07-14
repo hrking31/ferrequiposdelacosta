@@ -5,6 +5,7 @@ import {
   Button,
   TextField,
   Stack,
+  Chip,
   Modal,
   useTheme,
   useMediaQuery,
@@ -27,6 +28,9 @@ export default function KioskProductCardDetail({ product }) {
 
   const [quantity, setQuantity] = useState(1);
   const [days, setDays] = useState(1);
+  const [varianteSeleccionada, setVarianteSeleccionada] = useState(
+    () => product?.variantes?.[0] ?? null,
+  );
   const [modalAbierto, setModalAbierto] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [valorTemp, setValorTemp] = useState(1);
@@ -78,8 +82,11 @@ export default function KioskProductCardDetail({ product }) {
   };
 
   const handleAdd = () => {
-    const newItem = { ...product, quantity, days };
-    const exists = items.some((item) => item.id === newItem.id);
+    const lineId = varianteSeleccionada
+      ? `${product.id}-${varianteSeleccionada}`
+      : product.id;
+    const newItem = { ...product, quantity, days, varianteSeleccionada, lineId };
+    const exists = items.some((item) => item.lineId === lineId);
 
     if (!exists) {
       dispatch(addToCart(newItem));
@@ -169,6 +176,54 @@ export default function KioskProductCardDetail({ product }) {
 
   return (
     <Box sx={{ p: 2 }}>
+      {product.variantes && product.variantes.length > 0 && (
+        <Box sx={{ mb: 4, textAlign: "center" }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {product.varianteNombre || "Variante"}
+          </Typography>
+
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="center"
+            flexWrap="wrap"
+            useFlexGap
+          >
+            {product.variantes.map((variante) => (
+              <Chip
+                key={variante}
+                label={variante}
+                clickable
+                onClick={() => setVarianteSeleccionada(variante)}
+                variant={
+                  varianteSeleccionada === variante ? "filled" : "outlined"
+                }
+                sx={{
+                  ...(varianteSeleccionada === variante && {
+                    backgroundColor:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.light,
+                    color:
+                      theme.palette.mode === "light"
+                        ? theme.palette.primary.contrastText
+                        : theme.palette.warning.contrastText,
+                  }),
+                }}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {product.textoExtra && product.textoExtra.trim() !== "" && (
+        <Box sx={{ mb: 4, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            {product.textoExtra}
+          </Typography>
+        </Box>
+      )}
+
       <Stack direction="row" spacing={4} sx={{ mb: 4 }} justifyContent="center">
         <Box display="flex" flexDirection="column" alignItems="center">
           <Typography variant="body2" sx={{ mb: 1 }}>

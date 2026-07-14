@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Box,
@@ -8,6 +8,8 @@ import {
   Grid,
   useTheme,
   Divider,
+  Stack,
+  Chip,
 } from "@mui/material";
 import {
   getStorage,
@@ -22,8 +24,6 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const EditarEquipo = () => {
   const location = useLocation();
-  const nameInputRef = useRef(null);
-  const descriptionInputRef = useRef(null);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(
     () => location.state?.equipo || null
   );
@@ -35,7 +35,12 @@ const EditarEquipo = () => {
     name: "",
     description: "",
     images: [],
+    varianteNombre: "",
+    variantes: [],
+    textoExtra: "",
+    subtitulo: "",
   });
+  const [nuevaVarianteValor, setNuevaVarianteValor] = useState("");
 
   useEffect(() => {
     if (equipoSeleccionado) {
@@ -50,6 +55,10 @@ const EditarEquipo = () => {
           file: null,
           isNew: false,
         })),
+        varianteNombre: equipoSeleccionado.varianteNombre || "",
+        variantes: equipoSeleccionado.variantes || [],
+        textoExtra: equipoSeleccionado.textoExtra || "",
+        subtitulo: equipoSeleccionado.subtitulo || "",
       });
     }
   }, [equipoSeleccionado]);
@@ -62,16 +71,23 @@ const EditarEquipo = () => {
     }));
   };
 
-  const handleImputRestName = () => {
+  const handleAddVariante = () => {
+    const valor = nuevaVarianteValor.trim();
+    if (!valor || formData.variantes.includes(valor)) {
+      setNuevaVarianteValor("");
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
-      name: equipoSeleccionado.name,
+      variantes: [...prev.variantes, valor],
     }));
+    setNuevaVarianteValor("");
   };
-  const handleImputRestDescription = () => {
+
+  const handleRemoveVariante = (indexToRemove) => {
     setFormData((prev) => ({
       ...prev,
-      description: equipoSeleccionado.description,
+      variantes: prev.variantes.filter((_, i) => i !== indexToRemove),
     }));
   };
 
@@ -221,6 +237,10 @@ const EditarEquipo = () => {
         description: formData.description,
         images: imagenesFinalesFiltradas,
         nameLowerCase: formData.name.toLowerCase(),
+        varianteNombre: (formData.varianteNombre || "").trim(),
+        variantes: formData.variantes || [],
+        textoExtra: (formData.textoExtra || "").trim(),
+        subtitulo: (formData.subtitulo || "").trim(),
       };
 
       const equipoRef = doc(db, "equipos", equipoId);
@@ -235,6 +255,10 @@ const EditarEquipo = () => {
       name: "",
       description: "",
       images: [],
+      varianteNombre: "",
+      variantes: [],
+      textoExtra: "",
+      subtitulo: "",
     });
     setEquipoSeleccionado(null);
     setEditingImageIndex(null);
@@ -293,51 +317,18 @@ const EditarEquipo = () => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <TextField
-                inputRef={nameInputRef}
                 name="name"
+                label="Nombre del equipo"
                 value={formData.name}
                 onChange={handleInputChange}
                 fullWidth
               />
             </Grid>
 
-            <Grid item xs={6}>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => {
-                  setFormData({ ...formData, name: "" });
-                  setTimeout(() => {
-                    nameInputRef.current?.focus();
-                  }, 0);
-                }}
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-              >
-                Editar Nombre
-              </Button>
-            </Grid>
-
-            <Grid item xs={6}>
-              <Button
-                variant="danger"
-                fullWidth
-                onClick={handleImputRestName}
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-              >
-                Cancelar Edicion
-              </Button>
-            </Grid>
-
-            <Grid
-              item
-              xs={12}
-              sx={{
-                mt: 2,
-              }}
-            >
+            <Grid item xs={12} sx={{ mt: 2 }}>
               <TextField
-                inputRef={descriptionInputRef}
                 name="description"
+                label="Descripción del equipo"
                 value={formData.description}
                 onChange={handleInputChange}
                 fullWidth
@@ -346,31 +337,74 @@ const EditarEquipo = () => {
               />
             </Grid>
 
-            <Grid item xs={6}>
-              <Button
-                variant="contained"
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <TextField
+                name="varianteNombre"
+                label="Nombre de la variante (opcional, ej. Tamaño, Color)"
+                value={formData.varianteNombre}
+                onChange={handleInputChange}
                 fullWidth
-                onClick={() => {
-                  setFormData({ ...formData, description: "" });
-                  setTimeout(() => {
-                    descriptionInputRef.current?.focus();
-                  }, 0);
-                }}
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-              >
-                Editar Descripción
-              </Button>
+              />
             </Grid>
 
-            <Grid item xs={6}>
-              <Button
-                variant="danger"
+            <Grid item xs={12}>
+              <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
+                <TextField
+                  name="nuevaVarianteValor"
+                  label="Valor de la variante (ej. 1.20m)"
+                  value={nuevaVarianteValor}
+                  onChange={(e) => setNuevaVarianteValor(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddVariante();
+                    }
+                  }}
+                  fullWidth
+                />
+                <Button variant="contained" onClick={handleAddVariante}>
+                  Agregar
+                </Button>
+              </Box>
+
+              {formData.variantes.length > 0 && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  flexWrap="wrap"
+                  useFlexGap
+                  sx={{ width: "100%", mt: 2 }}
+                >
+                  {formData.variantes.map((variante, index) => (
+                    <Chip
+                      key={`${variante}-${index}`}
+                      label={variante}
+                      onDelete={() => handleRemoveVariante(index)}
+                    />
+                  ))}
+                </Stack>
+              )}
+
+              <TextField
+                name="textoExtra"
+                label="Texto extra (opcional)"
+                value={formData.textoExtra}
+                onChange={handleInputChange}
                 fullWidth
-                onClick={handleImputRestDescription}
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-              >
-                Cancelar Edicion
-              </Button>
+                multiline
+                rows={2}
+                sx={{ mt: 2 }}
+              />
+
+              <TextField
+                name="subtitulo"
+                label="Subtítulo para cotización/PDF (opcional, no se muestra al público)"
+                helperText="Se usa en vez del nombre del catálogo al generar la cotización/PDF. Útil cuando el nombre del catálogo es informal (ej. 'RANA' → 'Vibrocompactador tipo rana'). Si se deja vacío, se sigue usando la descripción."
+                value={formData.subtitulo}
+                onChange={handleInputChange}
+                fullWidth
+                sx={{ mt: 2 }}
+              />
             </Grid>
           </Grid>
 
@@ -413,6 +447,7 @@ const EditarEquipo = () => {
                         </Typography>
 
                         <TextField
+                          name={`nuevaPosicion-${index}`}
                           label="Nueva Posición"
                           type="number"
                           fullWidth
@@ -482,6 +517,7 @@ const EditarEquipo = () => {
                             ) : (
                               <>
                                 <TextField
+                                  name={`imagenNombre-${index}`}
                                   label="Nombre de la imagen"
                                   fullWidth
                                   value={formData.images[index]?.name || ""}
@@ -611,6 +647,7 @@ const EditarEquipo = () => {
                 />
 
                 <TextField
+                  name="nombreImagenNueva"
                   label="Nombre de la imagen"
                   value={nombreTemporal}
                   onChange={(e) => setNombreTemporal(e.target.value)}
@@ -677,7 +714,13 @@ const EditarEquipo = () => {
                 fullWidth
                 onClick={() => {
                   if (equipoSeleccionado) {
-                    setFormData(equipoSeleccionado);
+                    setFormData({
+                      ...equipoSeleccionado,
+                      varianteNombre: equipoSeleccionado.varianteNombre || "",
+                      variantes: equipoSeleccionado.variantes || [],
+                      textoExtra: equipoSeleccionado.textoExtra || "",
+                      subtitulo: equipoSeleccionado.subtitulo || "",
+                    });
                   }
                   setOriginalImageBeforeEdit(null);
                   setEditingImageIndex(null);
