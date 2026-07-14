@@ -10,7 +10,6 @@ import installAppReducer from "./Slices/installAppSlice";
 import cartReducer from "./Slices/cartSlice";
 import clienteReducer from "./Slices/clienteSlice";
 import presenceReducer from "./Slices/presenciaSlice";
-import pwaUpdateReducer from "./Slices/pwaUpdateSlice";
 
 export default configureStore({
   reducer: {
@@ -25,6 +24,5 @@ export default configureStore({
     cart: cartReducer,
     cliente: clienteReducer,
     presence: presenceReducer,
-    pwaUpdate: pwaUpdateReducer,
   },
 });

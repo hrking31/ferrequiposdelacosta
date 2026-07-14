@@ -1,5 +1,3 @@
-import store from "./Store/Store";
-
 let applyUpdateFn = null;
 let updatePending = false;
 
@@ -33,13 +31,4 @@ export function applyPendingUpdate() {
   if (!updatePending || !applyUpdateFn || recienRecargada()) return;
   updatePending = false;
   recargarAhora();
-}
-
-// se usa en puntos de corte naturales (ej. justo al iniciar sesión) para
-// aplicar de una una actualización que ya estaba esperando, sin que el
-// usuario tenga que hacer clic en el aviso ni en el ícono de la navbar
-export function applyIfAvailable() {
-  if (store.getState().pwaUpdate?.updateAvailable) {
-    applyUpdateNow();
-  }
 }
