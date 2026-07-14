@@ -68,14 +68,14 @@ export default function VistaCart() {
 
   const handleCloseDireccion = () => setOpenDireccion(false);
 
-  const handleQtyChange = (id, quantity) => {
+  const handleQtyChange = (lineId, quantity) => {
     if (quantity < 1) return;
-    dispatch(updateQty({ id, quantity }));
+    dispatch(updateQty({ lineId, quantity }));
   };
 
-  const handleDaysChange = (id, days) => {
+  const handleDaysChange = (lineId, days) => {
     if (days < 1) return;
-    dispatch(updateDays({ id, days }));
+    dispatch(updateDays({ lineId, days }));
   };
 
   const handleToggleSelect = (id) => {
@@ -117,7 +117,9 @@ export default function VistaCart() {
         fecha: new Date().toISOString().split("T")[0],
         items: items.map((item) => ({
           id: item.id,
-          description: item.description || item.name,
+          description:
+            (item.subtitulo?.trim() || item.description || item.name) +
+            (item.varianteSeleccionada ? ` (${item.varianteSeleccionada})` : ""),
           quantity: item.quantity || 1,
           day: item.days || 1,
           price: item.price || 0,
@@ -178,7 +180,11 @@ export default function VistaCart() {
         items
           .map(
             (item, index) =>
-              `*${index + 1}.* 🛠 *${item.name}*\n` +
+              `*${index + 1}.* 🛠 *${item.name}${
+                item.varianteSeleccionada
+                  ? ` (${item.varianteSeleccionada})`
+                  : ""
+              }*\n` +
               `📦 Cantidad: ${item.quantity}\n` +
               `📅 Días: ${item.days}\n`,
           )
@@ -327,7 +333,7 @@ export default function VistaCart() {
             }
             onChange={(e) => {
               if (e.target.checked) {
-                setSelectedItems(items.map((item) => item.id));
+                setSelectedItems(items.map((item) => item.lineId));
               } else {
                 setSelectedItems([]);
               }
@@ -359,7 +365,7 @@ export default function VistaCart() {
           <>
             {items.map((item) => (
               <Box
-                key={item.id}
+                key={item.lineId}
                 sx={{
                   display: "flex",
                   width: "100%",
@@ -379,10 +385,10 @@ export default function VistaCart() {
                 >
                   {isFullScreen && (
                     <Checkbox
-                      id={`checkbox-${item.id}`}
-                      name={`checkbox-${item.id}`}
-                      checked={selectedItems.includes(item.id)}
-                      onChange={() => handleToggleSelect(item.id)}
+                      id={`checkbox-${item.lineId}`}
+                      name={`checkbox-${item.lineId}`}
+                      checked={selectedItems.includes(item.lineId)}
+                      onChange={() => handleToggleSelect(item.lineId)}
                       icon={<RadioButtonUncheckedIcon fontSize="small" />}
                       checkedIcon={<CheckCircleIcon fontSize="small" />}
                       sx={{
@@ -434,6 +440,9 @@ export default function VistaCart() {
                       }}
                     >
                       {item.name}
+                      {item.varianteSeleccionada
+                        ? ` (${item.varianteSeleccionada})`
+                        : ""}
                     </Typography>
                   </Box>
 
@@ -481,7 +490,7 @@ export default function VistaCart() {
                       >
                         <Button
                           onClick={() =>
-                            handleDaysChange(item.id, item.days - 1)
+                            handleDaysChange(item.lineId, item.days - 1)
                           }
                           disabled={item.days <= 1}
                           sx={{
@@ -520,7 +529,7 @@ export default function VistaCart() {
 
                         <Button
                           onClick={() =>
-                            handleDaysChange(item.id, item.days + 1)
+                            handleDaysChange(item.lineId, item.days + 1)
                           }
                           sx={{
                             minWidth: { xs: 28 },
@@ -577,7 +586,7 @@ export default function VistaCart() {
                       >
                         <Button
                           onClick={() =>
-                            handleQtyChange(item.id, item.quantity - 1)
+                            handleQtyChange(item.lineId, item.quantity - 1)
                           }
                           disabled={item.quantity <= 1}
                           sx={{
@@ -616,7 +625,7 @@ export default function VistaCart() {
 
                         <Button
                           onClick={() =>
-                            handleQtyChange(item.id, item.quantity + 1)
+                            handleQtyChange(item.lineId, item.quantity + 1)
                           }
                           sx={{
                             minWidth: { xs: 28 },
@@ -657,7 +666,7 @@ export default function VistaCart() {
                     >
                       <Button
                         variant="danger"
-                        onClick={() => dispatch(removeFromCart(item.id))}
+                        onClick={() => dispatch(removeFromCart(item.lineId))}
                       >
                         Eliminar
                       </Button>
@@ -718,7 +727,7 @@ export default function VistaCart() {
               {items.map((item) => (
                 <Typography
                   variant="body2"
-                  key={item.id}
+                  key={item.lineId}
                   sx={{
                     pl: 2,
                     fontSize: {
@@ -727,6 +736,9 @@ export default function VistaCart() {
                   }}
                 >
                   {item.quantity} _ {item.name}
+                  {item.varianteSeleccionada
+                    ? ` (${item.varianteSeleccionada})`
+                    : ""}
                 </Typography>
               ))}
             </Box>
@@ -890,9 +902,9 @@ export default function VistaCart() {
               if (isNaN(value) || value < 1) return;
 
               if (activeModal === "days") {
-                handleDaysChange(selectedItemsModal.id, value);
+                handleDaysChange(selectedItemsModal.lineId, value);
               } else if (activeModal === "quantity") {
-                handleQtyChange(selectedItemsModal.id, value);
+                handleQtyChange(selectedItemsModal.lineId, value);
               }
 
               setActiveModal(null);
