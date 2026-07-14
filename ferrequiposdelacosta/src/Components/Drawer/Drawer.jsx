@@ -251,7 +251,7 @@ export default function MobileDrawerLayout() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
+        pt: isFullScreen ? { xs: 7, sm: 8 } : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 0,
         height: isFullScreen ? "auto" : "100vh",
         overflow: isFullScreen ? "visible" : "hidden",
