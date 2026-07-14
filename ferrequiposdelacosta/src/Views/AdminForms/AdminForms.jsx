@@ -65,7 +65,7 @@ export default function AdminForms() {
     },
     {
       permiso: "clientes",
-      to: undefined,
+      to: "/vistaclientes",
       icon: <FolderSharedIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
       label: "CLIENTES",
     },
