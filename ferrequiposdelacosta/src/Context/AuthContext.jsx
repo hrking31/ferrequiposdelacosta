@@ -14,6 +14,7 @@ import { setUserData, clearUserData } from "../Store/Slices/userSlice";
 import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
 import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
 import { authContext } from "./useAuth";
+import { applyIfAvailable } from "../pwaUpdate.js";
 
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();
@@ -28,8 +29,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = (email, password) =>
-    signInWithEmailAndPassword(auth, email, password);
+  const login = async (email, password) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    // punto de corte natural: si ya había una actualización esperando,
+    // se aprovecha el propio login para aplicarla
+    applyIfAvailable();
+    return result;
+  };
 
   const logout = async () => {
     setLoading(true);
