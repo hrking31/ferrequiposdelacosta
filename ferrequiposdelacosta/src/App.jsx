@@ -22,6 +22,7 @@ import {
   KioskCart,
   VistaCotizacionesAdmin,
   VistaClientes,
+  VistaClienteDetalle,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -218,6 +219,14 @@ function App() {
           element={
             <ProtectedRoutes allowedRoles={["clientes"]}>
               <VistaClientes />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistaclientes/:id"
+          element={
+            <ProtectedRoutes allowedRoles={["clientes"]}>
+              <VistaClienteDetalle />
             </ProtectedRoutes>
           }
         />
