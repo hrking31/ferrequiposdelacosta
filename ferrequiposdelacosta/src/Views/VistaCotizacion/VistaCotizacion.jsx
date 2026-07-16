@@ -115,7 +115,9 @@ export default function VistaCotizacion() {
     setLoading(false);
   };
 
-  const telefono = `57${values.telefono}`;
+  const telefonoDigits = String(values.telefono || "").replace(/\D/g, "");
+  const telefono = telefonoDigits.startsWith("57") ? telefonoDigits : `57${telefonoDigits}`;
+  const sinTelefono = telefonoDigits.length === 0;
   const message = encodeURIComponent(`
     Hola 👋
 
@@ -191,7 +193,7 @@ export default function VistaCotizacion() {
               sx={{ flex: 1, whiteSpace: "nowrap" }}
               onClick={handleClick}
               component="a"
-              href={sinEquipos ? undefined : whatsappLink}
+              href={sinEquipos || sinTelefono ? undefined : whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               disabled={sinEquipos}

@@ -37,7 +37,12 @@ export default function Cotizacion() {
 
     const updatedFormValues = {
       ...formValues,
-      [name]: name === "nit" ? formatNit(value) : value,
+      [name]:
+        name === "nit"
+          ? formatNit(value)
+          : name === "telefono"
+            ? formatTelefono(value)
+            : value,
     };
 
     if (name === "transporte" && value === "Sin transporte") {
@@ -119,6 +124,8 @@ export default function Cotizacion() {
     const formattedNit = soloDiez.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     return formattedNit;
   };
+
+  const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
 
   return (
     <Box mx="auto" display="flex" flexDirection="column">

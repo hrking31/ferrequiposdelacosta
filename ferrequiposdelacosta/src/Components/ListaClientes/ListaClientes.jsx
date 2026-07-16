@@ -24,6 +24,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PhoneIcon from "@mui/icons-material/Phone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
@@ -37,6 +38,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import ClienteFormDialog from "./ClienteFormDialog";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
@@ -66,19 +68,11 @@ const obtenerNombreCompleto = (cliente) => {
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
 };
 
-const obtenerIniciales = (nombreCompleto) =>
-  (nombreCompleto || "")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte.charAt(0).toUpperCase())
-    .join("");
-
 const tieneTelefonoValido = (telefono) =>
   telefono && !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
 const TAMANO_PAGINA_MOVIL = 20;
-const TAMANO_PAGINA_PC = 10;
+const TAMANO_PAGINA_PC = 9;
 const ALTO_FILA = 45;
 
 export default function ListaClientes() {
@@ -93,6 +87,7 @@ export default function ListaClientes() {
   const [loading, setLoading] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [cantidadVisible, setCantidadVisible] = useState(TAMANO_PAGINA_MOVIL);
+  const [crearClienteOpen, setCrearClienteOpen] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchClientes = useCallback(async () => {
@@ -179,6 +174,7 @@ export default function ListaClientes() {
     <Button
       variant="contained"
       startIcon={<PersonAddAlt1Icon />}
+      onClick={() => setCrearClienteOpen(true)}
       sx={{
         flexShrink: 0,
         whiteSpace: "nowrap",
@@ -217,23 +213,8 @@ export default function ListaClientes() {
     />
   );
 
-  const renderFiltrosEstado = (direction) => (
-    <Stack
-      direction={direction}
-      spacing={1}
-      sx={
-        direction === "row"
-          ? {
-              overflowX: "auto",
-              pb: 0.5,
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              "&::-webkit-scrollbar": { display: "none" },
-            }
-          : {}
-      }
-    >
-      {FILTROS.map((filtro) => {
+  const chipsEstado = (direction) =>
+      FILTROS.map((filtro) => {
         const seleccionado = filtroEstado === filtro.valor;
         const conteo = conteosPorEstado[filtro.valor] || 0;
         const colorSeleccionado = filtro.color || acento;
@@ -299,21 +280,30 @@ export default function ListaClientes() {
             }}
           />
         );
-      })}
-    </Stack>
-  );
+      });
 
-  const renderFiltrosTipo = (direction) => (
+  const renderFiltrosEstado = (direction) => (
     <Stack
       direction={direction}
       spacing={1}
       sx={
         direction === "row"
-          ? { overflowX: "auto", pb: 0.5, "&::-webkit-scrollbar": { display: "none" } }
+          ? {
+              overflowX: "auto",
+              pb: 0.5,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              "&::-webkit-scrollbar": { display: "none" },
+            }
           : {}
       }
     >
-      {FILTROS_TIPO.map((filtro) => {
+      {chipsEstado(direction)}
+    </Stack>
+  );
+
+  const chipsTipo = (direction) =>
+      FILTROS_TIPO.map((filtro) => {
         const seleccionado = filtroTipo === filtro.valor;
         const IconoFiltro = filtro.icono;
         return (
@@ -336,7 +326,19 @@ export default function ListaClientes() {
             }}
           />
         );
-      })}
+      });
+
+  const renderFiltrosTipo = (direction) => (
+    <Stack
+      direction={direction}
+      spacing={1}
+      sx={
+        direction === "row"
+          ? { overflowX: "auto", pb: 0.5, "&::-webkit-scrollbar": { display: "none" } }
+          : {}
+      }
+    >
+      {chipsTipo(direction)}
     </Stack>
   );
 
@@ -346,13 +348,53 @@ export default function ListaClientes() {
     </Typography>
   );
 
+  const renderFiltrosCombinados = (comportamiento) => (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      sx={
+        comportamiento === "scroll"
+          ? {
+              minWidth: 0,
+              overflowX: "auto",
+              pb: 1,
+              WebkitOverflowScrolling: "touch",
+              transform: "translateZ(0)",
+              scrollbarWidth: "thin",
+              scrollbarColor: `${alpha(acento, 0.4)} transparent`,
+              "&::-webkit-scrollbar": {
+                height: 6,
+              },
+              "&::-webkit-scrollbar-track": {
+                backgroundColor: "transparent",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: alpha(acento, 0.4),
+                borderRadius: 999,
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: alpha(acento, 0.7),
+              },
+              "@media (pointer: coarse)": {
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                "&::-webkit-scrollbar": { display: "none" },
+              },
+            }
+          : { flexWrap: "wrap", rowGap: 1 }
+      }
+    >
+      {chipsEstado("row")}
+      <Divider orientation="vertical" flexItem sx={{ flexShrink: 0, my: 0.5 }} />
+      {chipsTipo("row")}
+    </Stack>
+  );
+
   const buscadorYFiltros = (
     <>
       {buscador}
-      {etiquetaFiltro("Estado")}
-      {renderFiltrosEstado("row")}
-      {etiquetaFiltro("Tipo")}
-      {renderFiltrosTipo("row")}
+      {renderFiltrosCombinados("scroll")}
     </>
   );
 
@@ -422,11 +464,13 @@ export default function ListaClientes() {
                                   bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
                                   width: 40,
                                   height: 40,
-                                  fontSize: 14,
-                                  fontWeight: "bold",
                                 }}
                               >
-                                {obtenerIniciales(nombreCompleto)}
+                                {cliente.tipo === "empresa" ? (
+                                  <BusinessIcon sx={{ fontSize: 20 }} />
+                                ) : (
+                                  <PersonIcon sx={{ fontSize: 20 }} />
+                                )}
                               </Avatar>
                               {necesitaRevisionTipo && (
                                 <Tooltip title={cliente.motivoRevision || "Verificar datos de este cliente"}>
@@ -446,19 +490,9 @@ export default function ListaClientes() {
                             </Box>
 
                             <Box>
-                              <Stack direction="row" spacing={0.5} alignItems="center">
-                                <Typography variant="body2" fontWeight="bold">
-                                  {nombreCompleto}
-                                </Typography>
-                                {cliente.tipo === "empresa" && (
-                                  <Chip
-                                    label="Empresa"
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ height: 16, fontSize: 9 }}
-                                  />
-                                )}
-                              </Stack>
+                              <Typography variant="body2" fontWeight="bold">
+                                {nombreCompleto}
+                              </Typography>
 
                               {telefonoValido ? (
                                 <Stack direction="row" spacing={0.5} alignItems="center">
@@ -529,6 +563,7 @@ export default function ListaClientes() {
               <Button
                 variant="outlined"
                 onClick={() => setCantidadVisible((prev) => prev + TAMANO_PAGINA_MOVIL)}
+                sx={{ color: acento, borderColor: acento }}
               >
                 Cargar más
               </Button>
@@ -537,6 +572,7 @@ export default function ListaClientes() {
         </Stack>
 
         <Fab
+          onClick={() => setCrearClienteOpen(true)}
           sx={{
             position: "fixed",
             bottom: 120,
@@ -548,6 +584,12 @@ export default function ListaClientes() {
         >
           <PersonAddAlt1Icon />
         </Fab>
+
+        <ClienteFormDialog
+          open={crearClienteOpen}
+          onClose={() => setCrearClienteOpen(false)}
+          onGuardado={fetchClientes}
+        />
 
         <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Box>
@@ -611,10 +653,9 @@ export default function ListaClientes() {
           <Stack spacing={1.5} sx={{ mb: 1.5, flexShrink: 0 }}>
             <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" rowGap={1}>
               <Box sx={{ flex: 1, minWidth: 150 }}>{buscador}</Box>
-              {renderFiltrosTipo("row")}
               {botonAgregar}
             </Stack>
-            {renderFiltrosEstado("row")}
+            {renderFiltrosCombinados("wrap")}
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="h6" fontWeight="bold">
                 Lista de Clientes
@@ -694,11 +735,13 @@ export default function ListaClientes() {
                                     avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
                                   width: 32,
                                   height: 32,
-                                  fontSize: 13,
-                                  fontWeight: "bold",
                                 }}
                               >
-                                {obtenerIniciales(nombreCompleto)}
+                                {cliente.tipo === "empresa" ? (
+                                  <BusinessIcon sx={{ fontSize: 16 }} />
+                                ) : (
+                                  <PersonIcon sx={{ fontSize: 16 }} />
+                                )}
                               </Avatar>
                               {necesitaRevisionTipo && (
                                 <Tooltip
@@ -718,19 +761,9 @@ export default function ListaClientes() {
                                 </Tooltip>
                               )}
                             </Box>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <Typography variant="body2" fontWeight="bold">
-                                {nombreCompleto}
-                              </Typography>
-                              {cliente.tipo === "empresa" && (
-                                <Chip
-                                  label="Empresa"
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ height: 16, fontSize: 9 }}
-                                />
-                              )}
-                            </Stack>
+                            <Typography variant="body2" fontWeight="bold">
+                              {nombreCompleto}
+                            </Typography>
                           </Stack>
                         </TableCell>
 
@@ -837,6 +870,12 @@ export default function ListaClientes() {
           </TableContainer>
         )}
       </Box>
+
+      <ClienteFormDialog
+        open={crearClienteOpen}
+        onClose={() => setCrearClienteOpen(false)}
+        onGuardado={fetchClientes}
+      />
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

@@ -324,6 +324,8 @@ const DatosClienteModal = ({
     return tipoActivo === "persona" ? "Cédula" : "NIT";
   };
 
+  const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
+
   return (
     <>
       <Modal open={open} onClose={onClose}>
@@ -468,7 +470,10 @@ const DatosClienteModal = ({
                 label="Teléfono"
                 value={clienteLocal.telefono}
                 onChange={(e) =>
-                  setClienteLocal({ ...clienteLocal, telefono: e.target.value })
+                  setClienteLocal({
+                    ...clienteLocal,
+                    telefono: formatTelefono(e.target.value),
+                  })
                 }
                 error={!!errors.telefono}
                 helperText={errors.telefono}

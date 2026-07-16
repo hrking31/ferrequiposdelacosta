@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
@@ -18,11 +18,15 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PlaceIcon from "@mui/icons-material/Place";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import PersonIcon from "@mui/icons-material/Person";
+import BusinessIcon from "@mui/icons-material/Business";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 
 const ESTADO_CLIENTE_INFO = {
   activo: { label: "Activo", chipColor: "success" },
@@ -48,14 +52,6 @@ const obtenerNombreCompleto = (cliente) => {
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
 };
 
-const obtenerIniciales = (nombreCompleto) =>
-  (nombreCompleto || "")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte.charAt(0).toUpperCase())
-    .join("");
-
 const tieneTelefonoValido = (telefono) =>
   telefono && !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
@@ -74,38 +70,43 @@ export default function ClienteDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const acento =
+    theme.palette.mode === "light"
+      ? theme.palette.primary.main
+      : theme.palette.secondary.light;
   const [cliente, setCliente] = useState(null);
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    const fetchCliente = async () => {
-      try {
-        setLoading(true);
-        const clienteSnap = await getDoc(doc(db, "clientes", id));
-        if (!clienteSnap.exists()) {
-          setNotFound(true);
-          return;
-        }
-        setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
-
-        const facturasSnap = await getDocs(collection(db, "clientes", id, "facturas"));
-        const listaFacturas = facturasSnap.docs
-          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-        setFacturas(listaFacturas);
-      } catch (error) {
-        console.error("Error al obtener el cliente:", error);
-        showSnackbar("Error al cargar el cliente", "error");
-      } finally {
-        setLoading(false);
+  const fetchCliente = useCallback(async () => {
+    try {
+      setLoading(true);
+      const clienteSnap = await getDoc(doc(db, "clientes", id));
+      if (!clienteSnap.exists()) {
+        setNotFound(true);
+        return;
       }
-    };
+      setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
 
-    fetchCliente();
+      const facturasSnap = await getDocs(collection(db, "clientes", id, "facturas"));
+      const listaFacturas = facturasSnap.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+      setFacturas(listaFacturas);
+    } catch (error) {
+      console.error("Error al obtener el cliente:", error);
+      showSnackbar("Error al cargar el cliente", "error");
+    } finally {
+      setLoading(false);
+    }
   }, [id, showSnackbar]);
+
+  useEffect(() => {
+    fetchCliente();
+  }, [fetchCliente]);
 
   if (loading) {
     return (
@@ -138,7 +139,7 @@ export default function ClienteDetalle() {
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate("/vistaclientes")}
-        sx={{ mb: 2 }}
+        sx={{ mb: 2, color: acento }}
       >
         Volver a Clientes
       </Button>
@@ -160,7 +161,6 @@ export default function ClienteDetalle() {
               sx={{
                 width: 56,
                 height: 56,
-                fontWeight: "bold",
                 bgcolor:
                   cliente.estado === "moroso"
                     ? theme.palette.error.main
@@ -169,17 +169,16 @@ export default function ClienteDetalle() {
                       : theme.palette.success.main,
               }}
             >
-              {obtenerIniciales(nombreCompleto)}
+              {cliente.tipo === "empresa" ? (
+                <BusinessIcon sx={{ fontSize: 28 }} />
+              ) : (
+                <PersonIcon sx={{ fontSize: 28 }} />
+              )}
             </Avatar>
             <Box>
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <Typography variant="h6" fontWeight="bold">
-                  {nombreCompleto}
-                </Typography>
-                {cliente.tipo === "empresa" && (
-                  <Chip label="Empresa" size="small" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
-                )}
-              </Stack>
+              <Typography variant="h6" fontWeight="bold">
+                {nombreCompleto}
+              </Typography>
               <Chip
                 label={estadoInfo.label}
                 color={estadoInfo.chipColor}
@@ -188,6 +187,14 @@ export default function ClienteDetalle() {
               />
             </Box>
           </Stack>
+
+          <Button
+            startIcon={<EditIcon />}
+            onClick={() => setEditarOpen(true)}
+            sx={{ flexShrink: 0, color: acento }}
+          >
+            Editar
+          </Button>
         </Stack>
 
         {cliente.revisar && (
@@ -334,6 +341,14 @@ export default function ClienteDetalle() {
           })}
         </Stack>
       )}
+
+      <ClienteFormDialog
+        open={editarOpen}
+        onClose={() => setEditarOpen(false)}
+        onGuardado={fetchCliente}
+        onEliminado={() => navigate("/vistaclientes")}
+        cliente={cliente}
+      />
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

@@ -2,6 +2,7 @@ import {
   Box,
   Typography,
   Avatar,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -182,17 +183,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             alignItems={isMobile ? "center" : "flex-start"}
             // border="2px solid red"
           >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                lineHeight: 1.1,
-                textTransform: "capitalize",
-                color: (theme) =>
-                  theme.palette.mode === "light" ? "#E2E8F0" : "text.secondary",
-              }}
-            >
-              {formatearNombreRol(role)}
-            </Typography>
+            <Chip
+              label={formatearNombreRol(role)}
+              size="small"
+              variant="outlined"
+              sx={{ height: 16, fontSize: 9 }}
+            />
           </Box>
         </Box>
 
