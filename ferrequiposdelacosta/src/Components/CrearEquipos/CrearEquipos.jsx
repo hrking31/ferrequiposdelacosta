@@ -148,7 +148,7 @@ const CrearEquipos = () => {
             justifyContent: "center",
             alignItems: "center",
             flexDirection: "column",
-            mt: 4,
+            mt: { xs: 2, md: 4 },
           }}
         >
           <TextField

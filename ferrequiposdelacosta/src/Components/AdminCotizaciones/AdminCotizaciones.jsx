@@ -68,7 +68,9 @@ export default function KioskAdminCotizaciones() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        p: 3,
+        pt: { xs: 0, md: 3 },
+        pb: 3,
+        px: 3,
         gap: 3,
         backgroundColor: (theme) => theme.palette.background.default,
         transition: "background-color 0.3s ease",

@@ -1,4 +1,12 @@
-import { Box, Grid, Button, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Grid,
+  Button,
+  IconButton,
+  Tooltip,
+  Stack,
+  useMediaQuery,
+} from "@mui/material";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
@@ -118,19 +126,30 @@ export default function AdminForms() {
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
         px: { xs: 2, sm: 3 },
-        overflow: "auto",
+        overflow: "hidden",
         boxSizing: "border-box",
-        //  border: "2px solid red"
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal
-          name={name}
-          photoURL={photoURL}
-          role={role}
-          genero={genero}
-          vista={"Gestión de Operaciones"}
-        />
+      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <HeaderUsuarioConModal
+            name={name}
+            photoURL={photoURL}
+            role={role}
+            genero={genero}
+            vista={"Gestión de Operaciones"}
+          />
+        </Box>
+
+        {!isFullScreen && (
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Tooltip title="Cerrar sesión">
+              <IconButton onClick={handlerLogout} color="error">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
       </Box>
 
       <Box
@@ -162,26 +181,22 @@ export default function AdminForms() {
         ))}
       </Box>
 
-      <Box
-        sx={{
-          pt: 4,
-          pb: 1.5,
-          //  border: "2px solid red"
-        }}
-      >
-        <Grid container justifyContent="center">
-          <Grid item xs={12} sm={5} md={4}>
-            <Button
-              onClick={handlerLogout}
-              variant="danger"
-              fullWidth
-              startIcon={<LogoutIcon />}
-            >
-              CERRAR SESIÓN
-            </Button>
+      {isFullScreen && (
+        <Box sx={{ pt: 4, pb: 1.5 }}>
+          <Grid container justifyContent="center">
+            <Grid item xs={12} sm={5} md={4}>
+              <Button
+                onClick={handlerLogout}
+                variant="danger"
+                fullWidth
+                startIcon={<LogoutIcon />}
+              >
+                CERRAR SESIÓN
+              </Button>
+            </Grid>
           </Grid>
-        </Grid>
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 }

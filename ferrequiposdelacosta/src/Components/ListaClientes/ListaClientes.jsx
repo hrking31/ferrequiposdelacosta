@@ -42,9 +42,9 @@ import ClienteFormDialog from "./ClienteFormDialog";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
-  { valor: "activo", label: "Activos", color: "#81C784" },
+  { valor: "activo", label: "Despachados", color: "#81C784" },
   { valor: "moroso", label: "Morosos", color: "#E57373" },
-  { valor: "inactivo", label: "Inactivos", color: "#9E9E9E" },
+  { valor: "inactivo", label: "Entregados", color: "#9E9E9E" },
   { valor: "revisar", label: "Revisar", color: "#FFB74D" },
 ];
 
@@ -55,9 +55,9 @@ const FILTROS_TIPO = [
 ];
 
 const ESTADO_INFO = {
-  activo: { label: "Activo", chipColor: "success" },
+  activo: { label: "Despachado", chipColor: "success" },
   moroso: { label: "Moroso", chipColor: "error" },
-  inactivo: { label: "Inactivo", chipColor: "default" },
+  inactivo: { label: "Entregado", chipColor: "default" },
   revisar: { label: "Revisar", chipColor: "warning" },
 };
 

@@ -1,4 +1,6 @@
-import { Box, Stack, Button, useMediaQuery } from "@mui/material";
+import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
@@ -27,52 +29,63 @@ export default function VistaClientes() {
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
         px: { xs: 2, sm: 3 },
-        overflow: "auto",
+        overflow: "hidden",
         boxSizing: "border-box",
-        // border: "2px solid red",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal
-          name={name}
-          photoURL={photoURL}
-          role={role}
-          genero={genero}
-          vista={"Clientes"}
-        />
+      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <HeaderUsuarioConModal
+            name={name}
+            photoURL={photoURL}
+            role={role}
+            genero={genero}
+            vista={"Clientes"}
+          />
+        </Box>
+
+        {!isFullScreen && (
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Tooltip title="Menú">
+              <IconButton onClick={() => navigate("/adminforms")}>
+                <DashboardIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Cerrar sesión">
+              <IconButton onClick={handlerLogout} color="error">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
       </Box>
 
-      <Box sx={{ flexGrow: 1, mb: 2 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" /* border: "2px solid red" */ }}>
         <ListaClientes />
       </Box>
 
-      <Box
-        sx={{
-          p: 1.5,
-          flexShrink: 0,
-          // border: "2px solid red",
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          justifyContent="center"
-          alignItems="center"
-          // border="2px solid red"
-        >
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={() => navigate("/adminforms")}
+      {isFullScreen && (
+        <Box sx={{ p: 1.5, flexShrink: 0 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="center"
+            alignItems="stretch"
           >
-            MENU
-          </Button>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => navigate("/adminforms")}
+            >
+              MENU
+            </Button>
 
-          <Button onClick={handlerLogout} variant="danger" fullWidth>
-            CERRAR SESION
-          </Button>
-        </Stack>
-      </Box>
+            <Button onClick={handlerLogout} variant="danger" fullWidth>
+              CERRAR SESION
+            </Button>
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }

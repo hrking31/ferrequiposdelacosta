@@ -19,6 +19,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PlaceIcon from "@mui/icons-material/Place";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -27,16 +28,19 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
+import FacturaFormDialog from "./FacturaFormDialog";
 
 const ESTADO_CLIENTE_INFO = {
-  activo: { label: "Activo", chipColor: "success" },
+  activo: { label: "Despachado", chipColor: "success" },
   moroso: { label: "Moroso", chipColor: "error" },
-  inactivo: { label: "Inactivo", chipColor: "default" },
+  inactivo: { label: "Entregado", chipColor: "default" },
   revisar: { label: "Revisar", chipColor: "warning" },
 };
 
 const ESTADO_FACTURA_INFO = {
   activo: { label: "Activo", chipColor: "success" },
+  despachada: { label: "Despachada", chipColor: "success" },
+  entregada: { label: "Entregada", chipColor: "default" },
   vencida: { label: "Vencida", chipColor: "warning" },
   pendiente: { label: "Pendiente ampliación", chipColor: "info" },
   morosa: { label: "Morosa", chipColor: "error" },
@@ -79,6 +83,7 @@ export default function ClienteDetalle() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
+  const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchCliente = useCallback(async () => {
@@ -243,9 +248,24 @@ export default function ClienteDetalle() {
         </Stack>
       </Box>
 
-      <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-        Historial de Facturas ({facturas.length})
-      </Typography>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <Typography variant="h6" fontWeight="bold">
+          Historial de Facturas ({facturas.length})
+        </Typography>
+
+        <Button
+          startIcon={<ReceiptLongIcon />}
+          onClick={() => setCrearFacturaOpen(true)}
+          sx={{ color: acento, flexShrink: 0 }}
+        >
+          Crear Factura
+        </Button>
+      </Stack>
 
       {facturas.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
@@ -257,11 +277,23 @@ export default function ClienteDetalle() {
             const facturaEstadoInfo =
               ESTADO_FACTURA_INFO[factura.estado] || ESTADO_FACTURA_INFO.revisar;
             const valorTotal = formatearMoneda(factura.valorTotal);
-            const transporte = formatearMoneda(factura.transporte);
+            // Formato viejo (migrado del Excel): transporte es un número.
+            // Formato nuevo (creado en la app): transporte es el tipo
+            // (ej. "Solo ida") y el monto vive aparte en valorTransporte.
+            const equiposSonObjetos =
+              factura.equipos?.length > 0 && typeof factura.equipos[0] === "object";
+            const transporteMonto = formatearMoneda(
+              typeof factura.transporte === "number"
+                ? factura.transporte
+                : factura.valorTransporte,
+            );
+            const transporteTipo =
+              typeof factura.transporte === "string" ? factura.transporte : null;
             const deposito = formatearMoneda(factura.deposito);
             const fecha = formatearFecha(factura.fecha);
-            const fechaVencimiento =
-              formatearFecha(factura.fechaVencimiento) || factura.fechaVencimientoRaw;
+            const fechaVencimiento = equiposSonObjetos
+              ? null
+              : formatearFecha(factura.fechaVencimiento) || factura.fechaVencimientoRaw;
 
             return (
               <Box
@@ -311,22 +343,39 @@ export default function ClienteDetalle() {
 
                 {factura.equipos?.length > 0 && (
                   <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {factura.equipos.join(", ")}
-                    </Typography>
+                    {equiposSonObjetos ? (
+                      <Stack spacing={0.25}>
+                        {factura.equipos.map((equipo, index) => (
+                          <Typography
+                            key={`${equipo.nombre}-${index}`}
+                            variant="body2"
+                            color="text.secondary"
+                          >
+                            {equipo.nombre} — {equipo.cantidad} unidad(es), {equipo.dias} día(s)
+                            {equipo.fechaVencimiento &&
+                              ` (vence ${formatearFecha(equipo.fechaVencimiento)})`}
+                          </Typography>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        {factura.equipos.join(", ")}
+                      </Typography>
+                    )}
                   </Box>
                 )}
 
-                {(valorTotal || transporte || deposito) && (
+                {(valorTotal || transporteMonto || transporteTipo || deposito) && (
                   <Stack direction="row" spacing={2} sx={{ mt: 1 }} flexWrap="wrap">
                     {valorTotal && (
                       <Typography variant="body2">
                         <strong>Total:</strong> {valorTotal}
                       </Typography>
                     )}
-                    {transporte && (
+                    {(transporteTipo || transporteMonto) && (
                       <Typography variant="body2">
-                        <strong>Transporte:</strong> {transporte}
+                        <strong>Transporte:</strong>{" "}
+                        {[transporteTipo, transporteMonto].filter(Boolean).join(" — ")}
                       </Typography>
                     )}
                     {deposito && (
@@ -348,6 +397,18 @@ export default function ClienteDetalle() {
         onGuardado={fetchCliente}
         onEliminado={() => navigate("/vistaclientes")}
         cliente={cliente}
+      />
+
+      <FacturaFormDialog
+        open={crearFacturaOpen}
+        onClose={() => setCrearFacturaOpen(false)}
+        cliente={cliente}
+        onCreada={(nuevaFactura) =>
+          setFacturas((prev) => [
+            { id: `local-${Date.now()}`, ...nuevaFactura },
+            ...prev,
+          ])
+        }
       />
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />

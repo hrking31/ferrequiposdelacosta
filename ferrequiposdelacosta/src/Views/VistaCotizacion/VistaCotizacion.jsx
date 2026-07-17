@@ -3,8 +3,18 @@ import {
   Grid,
   Stack,
   Button,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
   useMediaQuery,
 } from "@mui/material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import LogoutIcon from "@mui/icons-material/Logout";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -30,6 +40,8 @@ export default function VistaCotizacion() {
   const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
+  // null | "salir" | "logout" — qué acción está esperando confirmación
+  const [pendingAction, setPendingAction] = useState(null);
 
   useEffect(() => {
     if (!values.id && !values.cotizacionId) {
@@ -37,41 +49,41 @@ export default function VistaCotizacion() {
     }
   }, [values.id, values.cotizacionId, dispatch]);
 
-  const cambiarEstadoFirebase = async (
-    nuevoEstado,
-    guardarCotizacion = false,
-  ) => {
+  // Único punto de guardado: siempre persiste el formulario completo y decide
+  // crear vs. actualizar según si ya existe values.id.
+  const guardarCotizacion = async (nuevoEstado) => {
     try {
-      if (values?.id) {
-        const dataToUpdate = guardarCotizacion
-          ? { ...values, status: nuevoEstado }
-          : { status: nuevoEstado };
+      const dataToSave = { ...values, status: nuevoEstado };
 
-        await update(ref(database, `cotizaciones/${values.id}`), dataToUpdate);
-
-        return { ...values, ...dataToUpdate };
+      if (values.id) {
+        await update(ref(database, `cotizaciones/${values.id}`), dataToSave);
+        return dataToSave;
       }
 
-      if (guardarCotizacion) {
-        const quotationRef = push(ref(database, "cotizaciones"));
-
-        const newQuotation = {
-          ...values,
-          id: quotationRef.key,
-          status: nuevoEstado,
-          cotizacionId: values.cotizacionId || `COT-${Date.now()}`,
-          createdAt: Date.now(),
-        };
-
-        await update(quotationRef, newQuotation);
-
-        return newQuotation;
-      }
-
-      return values;
+      const quotationRef = push(ref(database, "cotizaciones"));
+      const nuevaCotizacion = {
+        ...dataToSave,
+        id: quotationRef.key,
+        cotizacionId: values.cotizacionId || `COT-${Date.now()}`,
+        createdAt: Date.now(),
+      };
+      await update(quotationRef, nuevaCotizacion);
+      return nuevaCotizacion;
     } catch (error) {
-      console.error(`Error al cambiar estado a ${nuevoEstado}:`, error);
+      console.error(`Error al guardar cotización con estado ${nuevoEstado}:`, error);
       return values;
+    }
+  };
+
+  // Corrige solo el estado (sin tocar los datos) de una cotización que ya
+  // existía en la base. Se usa cuando el staff descarta sus cambios pero la
+  // solicitud quedaría marcada "enProceso" para siempre si no se libera.
+  const actualizarSoloEstado = async (nuevoEstado) => {
+    if (!values.id) return;
+    try {
+      await update(ref(database, `cotizaciones/${values.id}`), { status: nuevoEstado });
+    } catch (error) {
+      console.error(`Error al actualizar el estado a ${nuevoEstado}:`, error);
     }
   };
 
@@ -80,40 +92,20 @@ export default function VistaCotizacion() {
       item.description?.trim() && Number(item.quantity) > 0 && Number(item.price) > 0,
   );
 
-  const handleClick = async () => {
-    if (sinEquipos) return;
+  const hayDatosCliente = Boolean(
+    values.empresa?.trim() ||
+      values.nit?.trim() ||
+      values.telefono?.trim() ||
+      values.direccion?.trim() ||
+      values.barrio?.trim() ||
+      values.otrosDatos?.trim(),
+  );
 
-    setLoading(true);
-    const cotizacionGuardada = await cambiarEstadoFirebase("creada", true);
-    VistaCotPdf(cotizacionGuardada);
-    dispatch(resetCotizacion());
-    setLoading(false);
-    navigate("/adminforms");
-  };
-
-  const clearForm = async () => {
-    setLoading(true);
-    await cambiarEstadoFirebase("pendiente");
-    dispatch(resetCotizacion());
-    setLoading(false);
-    navigate("/adminforms");
-  };
-
-  const handleMenu = async () => {
-    setLoading(true);
-    await cambiarEstadoFirebase("pausada", true);
-    dispatch(resetCotizacion());
-    setLoading(false);
-    navigate("/adminforms");
-  };
-
-  const handleLogout = async () => {
-    setLoading(true);
-    await cambiarEstadoFirebase("pendiente");
-    dispatch(resetCotizacion());
-    await logout();
-    setLoading(false);
-  };
+  // Si ya existe en la base (values.id) hay que guardar el progreso sí o sí.
+  // Si es una cotización nueva (sin id), solo vale la pena guardar si el
+  // staff ya cargó algo (equipos o datos del cliente) — evita crear
+  // solicitudes en blanco en el buzón.
+  const hayContenido = Boolean(values.id) || !sinEquipos || hayDatosCliente;
 
   const telefonoDigits = String(values.telefono || "").replace(/\D/g, "");
   const telefono = telefonoDigits.startsWith("57") ? telefonoDigits : `57${telefonoDigits}`;
@@ -136,6 +128,73 @@ export default function VistaCotizacion() {
 
   const whatsappLink = `https://wa.me/${telefono}?text=${message}`;
 
+  const handleDescargarPdf = async () => {
+    if (sinEquipos) return;
+
+    setLoading(true);
+    const cotizacionGuardada = await guardarCotizacion("creada");
+    VistaCotPdf(cotizacionGuardada);
+    dispatch(resetCotizacion());
+    setLoading(false);
+    navigate("/adminforms");
+  };
+
+  const salirSinGuardar = async () => {
+    setPendingAction(null);
+    setLoading(true);
+    await actualizarSoloEstado("pausada");
+    dispatch(resetCotizacion());
+    setLoading(false);
+    navigate("/adminforms");
+  };
+
+  const guardarYSalir = async () => {
+    setPendingAction(null);
+    setLoading(true);
+    await guardarCotizacion("pausada");
+    dispatch(resetCotizacion());
+    setLoading(false);
+    navigate("/adminforms");
+  };
+
+  const handleGuardarYSalirClick = () => {
+    if (hayContenido) {
+      setPendingAction("salir");
+      return;
+    }
+    salirSinGuardar();
+  };
+
+  const ejecutarLogout = async () => {
+    setLoading(true);
+    await actualizarSoloEstado("pausada");
+    dispatch(resetCotizacion());
+    await logout();
+    setLoading(false);
+  };
+
+  const handleLogoutClick = () => {
+    if (hayContenido) {
+      setPendingAction("logout");
+      return;
+    }
+    ejecutarLogout();
+  };
+
+  const handleGuardarYCerrarSesion = async () => {
+    setPendingAction(null);
+    setLoading(true);
+    await guardarCotizacion("pausada");
+    dispatch(resetCotizacion());
+    await logout();
+    setLoading(false);
+  };
+
+  const handleCerrarSesionSinGuardar = () => {
+    setPendingAction(null);
+    ejecutarLogout();
+  };
+
   return (
     <Box
       sx={{
@@ -146,93 +205,148 @@ export default function VistaCotizacion() {
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
         pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
         px: { xs: 2, sm: 3 },
-        overflow: "auto",
+        overflow: "hidden",
         boxSizing: "border-box",
-        // border: "2px solid red",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0 }}>
-        <HeaderUsuarioConModal
-          name={name}
-          photoURL={photoURL}
-          role={role}
-          genero={genero}
-          vista={"Crea una Cotización"}
-          cotId={values.cotizacionId}
-        />
+      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <HeaderUsuarioConModal
+            name={name}
+            photoURL={photoURL}
+            role={role}
+            genero={genero}
+            vista={"Crea una Cotización"}
+            cotId={values.cotizacionId}
+          />
+        </Box>
+
+        {!isFullScreen && (
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Tooltip title="Descargar PDF">
+              <span>
+                <IconButton
+                  onClick={handleDescargarPdf}
+                  component="a"
+                  href={sinEquipos || sinTelefono ? undefined : whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  disabled={sinEquipos}
+                  color="success"
+                >
+                  <PictureAsPdfIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Guardar y salir">
+              <IconButton onClick={handleGuardarYSalirClick}>
+                <DashboardIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Cerrar sesión">
+              <IconButton onClick={handleLogoutClick} color="error">
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
       </Box>
 
-      <Box
-        sx={{
-          mb: 2,
-          //  border: "2px solid red"
-        }}
-      >
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Cotizacion />
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <Box sx={{ mb: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Cotizacion />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <VistaCotWeb />
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <VistaCotWeb />
-          </Grid>
-        </Grid>
+        </Box>
+
+        {isFullScreen && (
+          <Box sx={{ mb: 2 }}>
+            <Grid container spacing={2} justifyContent="center">
+              <Grid item xs={10} sm={6} md={4}>
+                <Button
+                  variant="success"
+                  fullWidth
+                  sx={{ flex: 1, whiteSpace: "nowrap" }}
+                  onClick={handleDescargarPdf}
+                  component="a"
+                  href={sinEquipos || sinTelefono ? undefined : whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  disabled={sinEquipos}
+                >
+                  {loading ? "Cargando..." : "Descargar PDF"}
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
       </Box>
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          mb: 2,
-          // border: "2px solid red"
-        }}
-      >
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={10} sm={4} md={4}>
-            <Button
-              variant="success"
-              fullWidth
-              sx={{ flex: 1, whiteSpace: "nowrap" }}
-              onClick={handleClick}
-              component="a"
-              href={sinEquipos || sinTelefono ? undefined : whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              disabled={sinEquipos}
-            >
-              {loading ? "Cargando..." : "Descargar PDF"}
+      {isFullScreen && (
+        <Box sx={{ p: 1.5, flexShrink: 0 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="center"
+            alignItems="stretch"
+          >
+            <Button variant="contained" fullWidth onClick={handleGuardarYSalirClick}>
+              Guardar y Salir
             </Button>
-          </Grid>
 
-          <Grid item xs={10} sm={4} md={4}>
-            <Button variant="danger" onClick={clearForm} fullWidth>
-              Cancelar o Pendiente
+            <Button onClick={handleLogoutClick} variant="danger" fullWidth>
+              CERRAR SESION
             </Button>
-          </Grid>
-        </Grid>
-      </Box>
+          </Stack>
+        </Box>
+      )}
 
-      <Box
-        sx={{
-          p: 1.5,
-          flexShrink: 0,
-          // border: "2px solid red",
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          justifyContent="center"
-          alignItems="center"
-          // border="2px solid red"
-        >
-          <Button variant="contained" fullWidth onClick={handleMenu}>
-            Pausar y Salir
+      <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
+        <DialogTitle>Tienes cambios sin guardar</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {values.id
+              ? pendingAction === "logout"
+                ? "¿Quieres guardar los cambios antes de cerrar sesión?"
+                : "¿Quieres guardar los cambios antes de salir?"
+              : pendingAction === "logout"
+                ? "Esta cotización todavía no se ha creado. ¿Qué quieres hacer antes de cerrar sesión?"
+                : "Esta cotización todavía no se ha creado. ¿Quieres guardarla antes de salir?"}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
+          <Button onClick={() => setPendingAction(null)} disabled={loading}>
+            Cancelar
           </Button>
-
-          <Button onClick={handleLogout} variant="danger" fullWidth>
-            CERRAR SESION
+          <Button
+            onClick={
+              pendingAction === "logout"
+                ? handleCerrarSesionSinGuardar
+                : salirSinGuardar
+            }
+            variant="danger"
+            disabled={loading}
+          >
+            {pendingAction === "logout" ? "Cerrar sin Crear" : "Salir sin guardar"}
           </Button>
-        </Stack>
-      </Box>
+          <Button
+            onClick={
+              pendingAction === "logout"
+                ? handleGuardarYCerrarSesion
+                : guardarYSalir
+            }
+            variant="success"
+            disabled={loading}
+          >
+            {pendingAction === "logout" ? "Crear y cerrar sesión" : "Guardar y salir"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

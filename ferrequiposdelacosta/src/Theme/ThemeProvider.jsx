@@ -4,6 +4,7 @@ import {
   CssBaseline,
   responsiveFontSizes,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
@@ -62,6 +63,8 @@ export const CustomThemeProvider = ({ children }) => {
   );
 
   const theme = useMemo(() => {
+    const scrollbarAcento = mode === "light" ? "#3A5169" : "#FFD166";
+
     let newTheme = createTheme({
       palette: {
         mode,
@@ -290,18 +293,30 @@ export const CustomThemeProvider = ({ children }) => {
           styleOverrides: {
             "*": {
               scrollbarWidth: "thin",
-              scrollbarColor: "#c1c1c1 #f5f5f5",
+              scrollbarColor: `${alpha(scrollbarAcento, 0.4)} transparent`,
             },
             "*::-webkit-scrollbar": {
               width: "8px",
               height: "8px",
             },
+            "*::-webkit-scrollbar-track": {
+              backgroundColor: "transparent",
+            },
             "*::-webkit-scrollbar-thumb": {
-              backgroundColor: "#c1c1c1",
+              backgroundColor: alpha(scrollbarAcento, 0.4),
               borderRadius: "10px",
             },
             "*::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: "#a8a8a8",
+              backgroundColor: alpha(scrollbarAcento, 0.7),
+            },
+            "@media (pointer: coarse)": {
+              "*": {
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              },
+              "*::-webkit-scrollbar": {
+                display: "none",
+              },
             },
           },
         },

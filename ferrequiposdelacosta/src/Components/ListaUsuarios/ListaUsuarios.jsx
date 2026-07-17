@@ -172,7 +172,7 @@ export default function UsersList() {
   };
 
   return (
-    <Box p={3} sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%", pt: { xs: 0, md: 3 }, pb: 3, px: 3 }}>
       <Grid container spacing={3}>
         {loading
           ? [...Array(6)].map((_, index) => (

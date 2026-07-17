@@ -130,7 +130,7 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-         <Grid container spacing={2} sx={{ mt: { xs: 0.5, md: 1 }, px: 0.5}}>
+        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 0 }, px: 0.5 }}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <Box display="flex" width="100%">
@@ -332,7 +332,7 @@ export default function Cotizacion() {
               type="text"
               name="valorTransporte"
               label="Valor Transporte"
-              disabled={formValues.transporte === "Sin transporte"}
+              disabled={!formValues.transporte || formValues.transporte === "Sin transporte"}
               value={
                 formValues.valorTransporte
                   ? Number(formValues.valorTransporte).toLocaleString("es-CO")
