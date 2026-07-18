@@ -18,7 +18,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
   TextField,
   Typography,
   useMediaQuery,
@@ -27,10 +26,8 @@ import {
 import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PhoneIcon from "@mui/icons-material/Phone";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ClearIcon from "@mui/icons-material/Clear";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -42,10 +39,11 @@ import ClienteFormDialog from "./ClienteFormDialog";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
-  { valor: "activo", label: "Despachados", color: "#81C784" },
-  { valor: "moroso", label: "Morosos", color: "#E57373" },
-  { valor: "inactivo", label: "Entregados", color: "#9E9E9E" },
-  { valor: "revisar", label: "Revisar", color: "#FFB74D" },
+  { valor: "inactivo", label: "Inactivos" },
+  { valor: "pendienteDespacho", label: "Pendiente de despacho" },
+  { valor: "despachada", label: "Despachadas" },
+  { valor: "devolucionParcial", label: "Devolución parcial" },
+  { valor: "finalizada", label: "Finalizadas" },
 ];
 
 const FILTROS_TIPO = [
@@ -54,11 +52,14 @@ const FILTROS_TIPO = [
   { valor: "empresa", label: "Empresas", icono: BusinessIcon },
 ];
 
+// El color de cada estado sale de avatarBgPorEstado (color propio, no del
+// prop `color` de MUI) para no repetir colores ya usados en otros botones.
 const ESTADO_INFO = {
-  activo: { label: "Despachado", chipColor: "success" },
-  moroso: { label: "Moroso", chipColor: "error" },
-  inactivo: { label: "Entregado", chipColor: "default" },
-  revisar: { label: "Revisar", chipColor: "warning" },
+  inactivo: { label: "Inactivo" },
+  pendienteDespacho: { label: "Pendiente de despacho" },
+  despachada: { label: "Despachada" },
+  devolucionParcial: { label: "Devolución parcial" },
+  finalizada: { label: "Finalizada" },
 };
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
@@ -117,13 +118,16 @@ export default function ListaClientes() {
       : theme.palette.secondary.light;
 
   const avatarBgPorEstado = {
-    activo: theme.palette.success.main,
-    moroso: theme.palette.error.main,
-    revisar: theme.palette.warning.main,
     inactivo:
       theme.palette.mode === "light"
         ? theme.palette.grey[400]
         : theme.palette.grey[700],
+    // Color propio (no reutiliza warning/secondary: esos ya se usan para
+    // montones de botones/íconos/fondos del tema, sobre todo en modo oscuro).
+    pendienteDespacho: "#7E57C2",
+    despachada: theme.palette.success.main,
+    devolucionParcial: theme.palette.info.main,
+    finalizada: theme.palette.secondary.main,
   };
 
   const clientesPorTipoYBusqueda = useMemo(() => {
@@ -217,7 +221,8 @@ export default function ListaClientes() {
       FILTROS.map((filtro) => {
         const seleccionado = filtroEstado === filtro.valor;
         const conteo = conteosPorEstado[filtro.valor] || 0;
-        const colorSeleccionado = filtro.color || acento;
+        const colorFiltro = avatarBgPorEstado[filtro.valor];
+        const colorSeleccionado = colorFiltro || acento;
         const contraste = theme.palette.getContrastText(colorSeleccionado);
         return (
           <Chip
@@ -252,14 +257,14 @@ export default function ListaClientes() {
               )
             }
             icon={
-              filtro.color && !seleccionado ? (
+              colorFiltro && !seleccionado ? (
                 <Box
                   component="span"
                   sx={{
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    bgcolor: filtro.color,
+                    bgcolor: colorFiltro,
                     ml: "10px",
                   }}
                 />
@@ -436,13 +441,9 @@ export default function ListaClientes() {
                 <Stack spacing={1.25}>
                   {clientesVisibles.map((cliente) => {
                     const estadoInfo = ESTADO_INFO[cliente.estado] || ESTADO_INFO.inactivo;
+                    const estadoColor = avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
                     const nombreCompleto = obtenerNombreCompleto(cliente);
                     const telefonoValido = tieneTelefonoValido(cliente.telefono);
-                    const numeroWhatsapp = telefonoValido
-                      ? String(cliente.telefono).replace(/\D/g, "")
-                      : "";
-                    const necesitaRevisionTipo =
-                      cliente.revisar && cliente.estado !== "revisar";
 
                     return (
                       <Box
@@ -458,36 +459,19 @@ export default function ListaClientes() {
                       >
                         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                           <Stack direction="row" spacing={1.5} alignItems="center">
-                            <Box sx={{ position: "relative" }}>
-                              <Avatar
-                                sx={{
-                                  bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
-                                  width: 40,
-                                  height: 40,
-                                }}
-                              >
-                                {cliente.tipo === "empresa" ? (
-                                  <BusinessIcon sx={{ fontSize: 20 }} />
-                                ) : (
-                                  <PersonIcon sx={{ fontSize: 20 }} />
-                                )}
-                              </Avatar>
-                              {necesitaRevisionTipo && (
-                                <Tooltip title={cliente.motivoRevision || "Verificar datos de este cliente"}>
-                                  <ErrorOutlineIcon
-                                    sx={{
-                                      position: "absolute",
-                                      bottom: -2,
-                                      right: -2,
-                                      fontSize: 16,
-                                      color: "warning.main",
-                                      bgcolor: "background.paper",
-                                      borderRadius: "50%",
-                                    }}
-                                  />
-                                </Tooltip>
+                            <Avatar
+                              sx={{
+                                bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+                                width: 40,
+                                height: 40,
+                              }}
+                            >
+                              {cliente.tipo === "empresa" ? (
+                                <BusinessIcon sx={{ fontSize: 20 }} />
+                              ) : (
+                                <PersonIcon sx={{ fontSize: 20 }} />
                               )}
-                            </Box>
+                            </Avatar>
 
                             <Box>
                               <Typography variant="body2" fontWeight="bold">
@@ -500,23 +484,6 @@ export default function ListaClientes() {
                                   <Typography variant="caption" color="text.secondary">
                                     {cliente.telefono}
                                   </Typography>
-                                  <IconButton
-                                    size="small"
-                                    component="a"
-                                    href={`https://wa.me/${numeroWhatsapp}`}
-                                    target="_blank"
-                                    rel="noopener"
-                                    sx={{
-                                      bgcolor: "#25D366",
-                                      color: "#FFFFFF",
-                                      width: 18,
-                                      height: 18,
-                                      ml: 0.5,
-                                      "&:hover": { bgcolor: "#128C7E" },
-                                    }}
-                                  >
-                                    <WhatsAppIcon sx={{ fontSize: 11 }} />
-                                  </IconButton>
                                 </Stack>
                               ) : (
                                 <Typography variant="caption" color="text.secondary">
@@ -534,9 +501,16 @@ export default function ListaClientes() {
 
                           <Chip
                             label={estadoInfo.label}
-                            color={estadoInfo.chipColor}
                             size="small"
-                            sx={{ fontWeight: "bold", textTransform: "uppercase" }}
+                            sx={{
+                              fontWeight: "bold",
+                              textTransform: "uppercase",
+                              width: 190,
+                              fontSize: "0.7rem",
+                              justifyContent: "center",
+                              bgcolor: estadoColor,
+                              color: theme.palette.getContrastText(estadoColor),
+                            }}
                           />
                         </Stack>
 
@@ -716,51 +690,28 @@ export default function ListaClientes() {
                   ) : (
                     clientesVisibles.map((cliente) => {
                     const estadoInfo = ESTADO_INFO[cliente.estado] || ESTADO_INFO.inactivo;
+                    const estadoColor = avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
                     const nombreCompleto = obtenerNombreCompleto(cliente);
                     const telefonoValido = tieneTelefonoValido(cliente.telefono);
-                    const numeroWhatsapp = telefonoValido
-                      ? String(cliente.telefono).replace(/\D/g, "")
-                      : "";
-                    const necesitaRevisionTipo =
-                      cliente.revisar && cliente.estado !== "revisar";
 
                     return (
                       <TableRow key={cliente.id} hover>
                         <TableCell>
                           <Stack direction="row" spacing={1.5} alignItems="center">
-                            <Box sx={{ position: "relative" }}>
-                              <Avatar
-                                sx={{
-                                  bgcolor:
-                                    avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
-                                  width: 32,
-                                  height: 32,
-                                }}
-                              >
-                                {cliente.tipo === "empresa" ? (
-                                  <BusinessIcon sx={{ fontSize: 16 }} />
-                                ) : (
-                                  <PersonIcon sx={{ fontSize: 16 }} />
-                                )}
-                              </Avatar>
-                              {necesitaRevisionTipo && (
-                                <Tooltip
-                                  title={cliente.motivoRevision || "Verificar datos de este cliente"}
-                                >
-                                  <ErrorOutlineIcon
-                                    sx={{
-                                      position: "absolute",
-                                      bottom: -2,
-                                      right: -2,
-                                      fontSize: 14,
-                                      color: "warning.main",
-                                      bgcolor: "background.paper",
-                                      borderRadius: "50%",
-                                    }}
-                                  />
-                                </Tooltip>
+                            <Avatar
+                              sx={{
+                                bgcolor:
+                                  avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+                                width: 32,
+                                height: 32,
+                              }}
+                            >
+                              {cliente.tipo === "empresa" ? (
+                                <BusinessIcon sx={{ fontSize: 16 }} />
+                              ) : (
+                                <PersonIcon sx={{ fontSize: 16 }} />
                               )}
-                            </Box>
+                            </Avatar>
                             <Typography variant="body2" fontWeight="bold">
                               {nombreCompleto}
                             </Typography>
@@ -772,23 +723,6 @@ export default function ListaClientes() {
                             <Stack direction="row" spacing={0.5} alignItems="center">
                               <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
                               <Typography variant="body2">{cliente.telefono}</Typography>
-                              <IconButton
-                                size="small"
-                                component="a"
-                                href={`https://wa.me/${numeroWhatsapp}`}
-                                target="_blank"
-                                rel="noopener"
-                                sx={{
-                                  bgcolor: "#25D366",
-                                  color: "#FFFFFF",
-                                  width: 18,
-                                  height: 18,
-                                  ml: 0.5,
-                                  "&:hover": { bgcolor: "#128C7E" },
-                                }}
-                              >
-                                <WhatsAppIcon sx={{ fontSize: 11 }} />
-                              </IconButton>
                             </Stack>
                           ) : (
                             <Typography variant="body2" color="text.secondary">
@@ -815,9 +749,16 @@ export default function ListaClientes() {
                         <TableCell>
                           <Chip
                             label={estadoInfo.label}
-                            color={estadoInfo.chipColor}
                             size="small"
-                            sx={{ fontWeight: "bold", textTransform: "uppercase" }}
+                            sx={{
+                              fontWeight: "bold",
+                              textTransform: "uppercase",
+                              width: 190,
+                              fontSize: "0.7rem",
+                              justifyContent: "center",
+                              bgcolor: estadoColor,
+                              color: theme.palette.getContrastText(estadoColor),
+                            }}
                           />
                         </TableCell>
 

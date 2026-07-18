@@ -15,13 +15,18 @@ import {
   MenuItem,
   Grid,
   Box,
+  Stack,
   Typography,
   Divider,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
+import BusinessIcon from "@mui/icons-material/Business";
+import { collection, doc, writeBatch } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
+import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -37,17 +42,20 @@ const formatearMonedaInput = (valor) =>
 
 const limpiarMonedaInput = (texto) => texto.replace(/\D/g, "");
 
-// Regla de negocio: antes de las 3pm (hora Colombia) el alquiler arranca el
-// mismo día; a partir de las 3pm arranca al día siguiente.
-const obtenerFechaInicialEfectiva = () => {
-  const ahora = new Date();
-  const horaBogota = Number(
+const obtenerHoraBogota = () =>
+  Number(
     new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Bogota",
       hour: "numeric",
       hour12: false,
-    }).format(ahora),
+    }).format(new Date()),
   );
+
+// Regla de negocio: antes de las 3pm (hora Colombia) el alquiler arranca el
+// mismo día; a partir de las 3pm arranca al día siguiente.
+const obtenerFechaInicialEfectiva = () => {
+  const ahora = new Date();
+  const horaBogota = obtenerHoraBogota();
 
   const [anio, mes, dia] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Bogota",
@@ -84,6 +92,18 @@ const formatearFechaLegible = (fechaIso) => {
   return `${dia}/${mes}/${anio}`;
 };
 
+const obtenerNombreCliente = (cliente) => {
+  if (!cliente) return "";
+  if (cliente.tipo === "empresa") return cliente.razonSocial || cliente.nombreOriginal;
+  return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
+};
+
+// Toda factura nace "pendienteDespacho": se facturó pero los equipos todavía
+// no se le entregaron al cliente. El resto de estados (despachada, devolución
+// parcial, finalizada) se setean a mano después, según lo que pase con el
+// alquiler.
+const ESTADO_INICIAL_FACTURA = "pendienteDespacho";
+
 const obtenerEstadoInicial = () => ({
   numeroFactura: "",
   fecha: obtenerFechaInicialEfectiva(),
@@ -91,7 +111,6 @@ const obtenerEstadoInicial = () => ({
   transporte: "",
   valorTransporte: "",
   deposito: "",
-  estado: "despachada",
 });
 
 export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) {
@@ -103,6 +122,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
   const [equipos, setEquipos] = useState([]);
   const [nuevoItem, setNuevoItem] = useState(ESTADO_INICIAL_ITEM);
   const [errors, setErrors] = useState({});
+  const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
@@ -121,10 +141,13 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
 
   const nombresEquiposCatalogo = equiposCatalogo.map((equipo) => equipo.name);
 
-  // Total = Subtotal + Valor transporte + Depósito. Se calcula solo, no se
-  // digita a mano.
+  const ivaCalculado = (Number(form.subtotal) || 0) * 0.19;
+
+  // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
+  // no se digita a mano.
   const valorTotalCalculado =
     (Number(form.subtotal) || 0) +
+    ivaCalculado +
     (Number(form.valorTransporte) || 0) +
     (Number(form.deposito) || 0);
 
@@ -194,14 +217,13 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
   };
 
   const handleCerrar = () => {
+    if (guardando) return;
     onClose();
   };
 
-  const handleCrear = () => {
+  const handleCrear = async () => {
     if (!validar()) return;
 
-    // TODO: conectar a Firestore (clientes/{cliente.id}/facturas) cuando se
-    // confirme el flujo. Por ahora solo arma el objeto y lo muestra.
     const nuevaFactura = {
       numeroFactura: form.numeroFactura.trim(),
       fecha: form.fecha,
@@ -210,22 +232,32 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
         fechaVencimiento: calcularVencimiento(form.fecha, item.dias),
       })),
       subtotal: Number(form.subtotal) || 0,
+      iva: ivaCalculado,
       valorTotal: valorTotalCalculado,
       transporte: form.transporte || "",
       valorTransporte: Number(form.valorTransporte) || 0,
       deposito: Number(form.deposito) || 0,
-      estado: form.estado,
-      revisar: false,
-      motivoRevision: "",
+      estado: ESTADO_INICIAL_FACTURA,
     };
 
-    console.log("Nueva factura (vista previa, sin guardar):", nuevaFactura);
-    showSnackbar(
-      "Vista previa lista — todavía falta conectar esto a la base de datos.",
-      "info",
-    );
-    onCreada?.(nuevaFactura);
-    onClose();
+    setGuardando(true);
+    try {
+      const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
+      const batch = writeBatch(db);
+      batch.set(facturaRef, nuevaFactura);
+      batch.update(doc(db, "clientes", cliente.id), {
+        estado: nuevaFactura.estado,
+      });
+      await batch.commit();
+
+      showSnackbar("Factura creada correctamente.", "success");
+      onCreada?.({ id: facturaRef.id, ...nuevaFactura });
+      onClose();
+    } catch (error) {
+      showSnackbar(`Error al crear la factura: ${error.message}`, "error");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -238,7 +270,19 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
         fullScreen={pantallaChica}
       >
         <DialogTitle>
-          Crear Factura{cliente ? ` — ${cliente.nombres || cliente.razonSocial || ""}` : ""}
+          Crear Factura
+          {cliente && (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+              {cliente.tipo === "empresa" ? (
+                <BusinessIcon fontSize="small" color="action" />
+              ) : (
+                <PersonIcon fontSize="small" color="action" />
+              )}
+              <Typography variant="body2" color="text.secondary">
+                {obtenerNombreCliente(cliente)}
+              </Typography>
+            </Stack>
+          )}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -256,18 +300,34 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
 
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Fecha"
+                label="Fecha despacho"
                 type="date"
                 value={form.fecha}
                 onChange={handleChange("fecha")}
                 error={!!errors.fecha}
-                helperText={
-                  errors.fecha ||
-                  "Antes de las 3pm arranca hoy, después arranca mañana."
-                }
+                helperText={errors.fecha}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography
+                sx={{
+                  fontSize: "0.65rem",
+                  color: (theme) =>
+                    theme.palette.mode === "light"
+                      ? "rgba(0,0,0,0.35)"
+                      : "rgba(255,255,255,0.25)",
+                  textShadow: (theme) =>
+                    theme.palette.mode === "light"
+                      ? "0px 1px 0px rgba(255,255,255,0.7)"
+                      : "0px 1px 0px rgba(255,255,255,0.12)",
+                }}
+              >
+                Los pedidos realizados antes de las 3:00 p.m. se procesan el mismo día. Los
+                realizados después, se procesan al día siguiente.
+              </Typography>
             </Grid>
 
             <Grid item xs={12}>
@@ -301,7 +361,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                     inputProps={{ min: 1 }}
                     value={nuevoItem.cantidad}
                     onChange={(e) =>
-                      setNuevoItem((prev) => ({ ...prev, cantidad: e.target.value }))
+                      setNuevoItem((prev) => ({
+                        ...prev,
+                        cantidad: e.target.value,
+                      }))
                     }
                     error={!!errors.cantidadEquipo}
                     helperText={errors.cantidadEquipo}
@@ -315,7 +378,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                     inputProps={{ min: 1 }}
                     value={nuevoItem.dias}
                     onChange={(e) =>
-                      setNuevoItem((prev) => ({ ...prev, dias: e.target.value }))
+                      setNuevoItem((prev) => ({
+                        ...prev,
+                        dias: e.target.value,
+                      }))
                     }
                     error={!!errors.diasEquipo}
                     helperText={errors.diasEquipo}
@@ -323,14 +389,22 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <Button variant="contained" onClick={handleAgregarEquipo} fullWidth>
+                  <Button
+                    variant="contained"
+                    onClick={handleAgregarEquipo}
+                    fullWidth
+                  >
                     Agregar equipo
                   </Button>
                 </Grid>
               </Grid>
 
               {errors.equipos && (
-                <Typography variant="caption" color="error" sx={{ display: "block", mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ display: "block", mt: 1 }}
+                >
                   {errors.equipos}
                 </Typography>
               )}
@@ -338,7 +412,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
               {equipos.length > 0 && (
                 <Grid container spacing={1} sx={{ mt: 0.5 }}>
                   {equipos.map((item, index) => {
-                    const vencimiento = calcularVencimiento(form.fecha, item.dias);
+                    const vencimiento = calcularVencimiento(
+                      form.fecha,
+                      item.dias,
+                    );
                     return (
                       <Grid item xs={12} sm={6} key={`${item.nombre}-${index}`}>
                         <Box
@@ -357,12 +434,19 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                             <Typography variant="body2" fontWeight="bold">
                               {item.nombre}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {item.cantidad} unidad(es) · {item.dias} día(s)
-                              {vencimiento && ` · vence ${formatearFechaLegible(vencimiento)}`}
+                              {vencimiento &&
+                                ` · vence ${formatearFechaLegible(vencimiento)}`}
                             </Typography>
                           </Box>
-                          <IconButton size="small" onClick={() => handleQuitarEquipo(index)}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleQuitarEquipo(index)}
+                          >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Box>
@@ -378,88 +462,96 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                label="Subtotal"
-                value={formatearMonedaInput(form.subtotal)}
-                onChange={handleChangeMoneda("subtotal")}
-                error={!!errors.subtotal}
-                helperText={errors.subtotal}
-                fullWidth
-              />
+              <Stack spacing={2}>
+                <TextField
+                  label="Subtotal"
+                  value={formatearMonedaInput(form.subtotal)}
+                  onChange={handleChangeMoneda("subtotal")}
+                  error={!!errors.subtotal}
+                  helperText={errors.subtotal}
+                  fullWidth
+                />
+
+                <Box display="flex" justifyContent="space-between">
+                  <Typography variant="subtitle1">IVA (19%)</Typography>
+                  <Typography variant="subtitle1">
+                    {ivaCalculado.toLocaleString("es-CO", {
+                      style: "currency",
+                      currency: "COP",
+                    })}
+                  </Typography>
+                </Box>
+
+                <FormControl fullWidth size="small">
+                  <InputLabel
+                    id="factura-transporte-label"
+                    htmlFor="factura-transporte-input"
+                  >
+                    Transporte
+                  </InputLabel>
+                  <Select
+                    labelId="factura-transporte-label"
+                    inputProps={{ id: "factura-transporte-input" }}
+                    label="Transporte"
+                    value={form.transporte}
+                    onChange={handleChangeTransporte}
+                  >
+                    <MenuItem value="Solo ida">Solo ida</MenuItem>
+                    <MenuItem value="Solo vuelta">Solo vuelta</MenuItem>
+                    <MenuItem value="Ida y vuelta">Ida y vuelta</MenuItem>
+                    <MenuItem value="Sin transporte">Sin transporte</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  label="Valor transporte"
+                  value={formatearMonedaInput(form.valorTransporte)}
+                  onChange={handleChangeMoneda("valorTransporte")}
+                  disabled={
+                    !form.transporte || form.transporte === "Sin transporte"
+                  }
+                  fullWidth
+                />
+
+                <TextField
+                  label="Depósito (opcional)"
+                  value={formatearMonedaInput(form.deposito)}
+                  onChange={handleChangeMoneda("deposito")}
+                  fullWidth
+                />
+              </Stack>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="factura-transporte-label" htmlFor="factura-transporte-input">
-                  Transporte
-                </InputLabel>
-                <Select
-                  labelId="factura-transporte-label"
-                  inputProps={{ id: "factura-transporte-input" }}
-                  label="Transporte"
-                  value={form.transporte}
-                  onChange={handleChangeTransporte}
-                >
-                  <MenuItem value="Solo ida">Solo ida</MenuItem>
-                  <MenuItem value="Solo vuelta">Solo vuelta</MenuItem>
-                  <MenuItem value="Ida y vuelta">Ida y vuelta</MenuItem>
-                  <MenuItem value="Sin transporte">Sin transporte</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Valor transporte"
-                value={formatearMonedaInput(form.valorTransporte)}
-                onChange={handleChangeMoneda("valorTransporte")}
-                disabled={!form.transporte || form.transporte === "Sin transporte"}
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Depósito (opcional)"
-                value={formatearMonedaInput(form.deposito)}
-                onChange={handleChangeMoneda("deposito")}
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Valor total"
-                value={formatearMonedaInput(valorTotalCalculado)}
-                helperText="Se calcula solo: Subtotal + Transporte + Depósito."
-                InputProps={{ readOnly: true }}
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="factura-estado-label" htmlFor="factura-estado-input">
-                  Estado
-                </InputLabel>
-                <Select
-                  labelId="factura-estado-label"
-                  inputProps={{ id: "factura-estado-input" }}
-                  label="Estado"
-                  value={form.estado}
-                  onChange={handleChange("estado")}
-                >
-                  <MenuItem value="despachada">Despachada</MenuItem>
-                  <MenuItem value="entregada">Entregada</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={6} sx={{ display: "flex" }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  py: { xs: 2, sm: 0 },
+                }}
+              >
+                <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                  TOTAL
+                </Typography>
+                <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                  {valorTotalCalculado.toLocaleString("es-CO", {
+                    style: "currency",
+                    currency: "COP",
+                  })}
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCerrar}>Cancelar</Button>
-          <Button variant="contained" onClick={handleCrear}>
-            Crear Factura
+          <Button onClick={handleCerrar} disabled={guardando}>
+            Cancelar
+          </Button>
+          <Button variant="contained" onClick={handleCrear} disabled={guardando}>
+            {guardando ? "Creando..." : "Crear Factura"}
           </Button>
         </DialogActions>
       </Dialog>

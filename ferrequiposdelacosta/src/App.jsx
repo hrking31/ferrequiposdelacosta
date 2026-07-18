@@ -23,6 +23,7 @@ import {
   VistaCotizacionesAdmin,
   VistaClientes,
   VistaClienteDetalle,
+  VistaSeguimientoClientes,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -227,6 +228,14 @@ function App() {
           element={
             <ProtectedRoutes allowedRoles={["clientes"]}>
               <VistaClienteDetalle />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistaseguimientoclientes"
+          element={
+            <ProtectedRoutes allowedRoles={["gestionCartera"]}>
+              <VistaSeguimientoClientes />
             </ProtectedRoutes>
           }
         />

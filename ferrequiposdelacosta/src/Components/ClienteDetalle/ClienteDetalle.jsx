@@ -1,51 +1,55 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Alert,
   Avatar,
   Box,
   Button,
   Chip,
   CircularProgress,
   Divider,
-  IconButton,
+  Menu,
+  MenuItem,
   Stack,
-  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PlaceIcon from "@mui/icons-material/Place";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 
+// El estado del cliente es el mismo vocabulario que el de sus facturas
+// (el cliente toma el estado de la factura que se le crea/edita), más
+// "inactivo" para cuando todavía no tiene ninguna factura.
 const ESTADO_CLIENTE_INFO = {
-  activo: { label: "Despachado", chipColor: "success" },
-  moroso: { label: "Moroso", chipColor: "error" },
-  inactivo: { label: "Entregado", chipColor: "default" },
-  revisar: { label: "Revisar", chipColor: "warning" },
+  inactivo: { label: "Inactivo" },
+  pendienteDespacho: { label: "Pendiente de despacho" },
+  despachada: { label: "Despachada" },
+  devolucionParcial: { label: "Devolución parcial" },
+  finalizada: { label: "Finalizada" },
 };
 
+// Ciclo de vida de una factura creada desde la app:
+// pendienteDespacho (se facturó, equipos aún no entregados)
+//   -> despachada (todos los equipos entregados al cliente)
+//   -> devolucionParcial (devolvió algunos equipos, se quedó con otros)
+//   -> finalizada (devolvió todo, no queda nada pendiente)
+// El color de cada estado sale de avatarBgPorEstado (color propio, no del
+// prop `color` de MUI) para no repetir colores ya usados en otros botones.
 const ESTADO_FACTURA_INFO = {
-  activo: { label: "Activo", chipColor: "success" },
-  despachada: { label: "Despachada", chipColor: "success" },
-  entregada: { label: "Entregada", chipColor: "default" },
-  vencida: { label: "Vencida", chipColor: "warning" },
-  pendiente: { label: "Pendiente ampliación", chipColor: "info" },
-  morosa: { label: "Morosa", chipColor: "error" },
-  cerrada: { label: "Cerrada", chipColor: "default" },
-  revisar: { label: "Revisar", chipColor: "warning" },
+  pendienteDespacho: { label: "Pendiente de despacho" },
+  despachada: { label: "Despachada" },
+  devolucionParcial: { label: "Devolución parcial" },
+  finalizada: { label: "Finalizada" },
 };
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
@@ -78,36 +82,83 @@ export default function ClienteDetalle() {
     theme.palette.mode === "light"
       ? theme.palette.primary.main
       : theme.palette.secondary.light;
+  const avatarBgPorEstado = {
+    inactivo:
+      theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700],
+    // Color propio (no reutiliza warning/secondary: esos ya se usan para
+    // montones de botones/íconos/fondos del tema, sobre todo en modo oscuro).
+    pendienteDespacho: "#7E57C2",
+    despachada: theme.palette.success.main,
+    devolucionParcial: theme.palette.info.main,
+    finalizada: theme.palette.secondary.main,
+  };
   const [cliente, setCliente] = useState(null);
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
   const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
+  const [menuEstadoAnchor, setMenuEstadoAnchor] = useState(null);
+  const [facturaMenuId, setFacturaMenuId] = useState(null);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
-  const fetchCliente = useCallback(async () => {
-    try {
-      setLoading(true);
-      const clienteSnap = await getDoc(doc(db, "clientes", id));
-      if (!clienteSnap.exists()) {
-        setNotFound(true);
-        return;
-      }
-      setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
+  const handleAbrirMenuEstado = (event, facturaId) => {
+    setMenuEstadoAnchor(event.currentTarget);
+    setFacturaMenuId(facturaId);
+  };
 
-      const facturasSnap = await getDocs(collection(db, "clientes", id, "facturas"));
-      const listaFacturas = facturasSnap.docs
-        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-        .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-      setFacturas(listaFacturas);
+  const handleCerrarMenuEstado = () => {
+    setMenuEstadoAnchor(null);
+    setFacturaMenuId(null);
+  };
+
+  const handleCambiarEstadoFactura = async (nuevoEstado) => {
+    const facturaId = facturaMenuId;
+    handleCerrarMenuEstado();
+    try {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "clientes", id, "facturas", facturaId), {
+        estado: nuevoEstado,
+      });
+      batch.update(doc(db, "clientes", id), {
+        estado: nuevoEstado,
+      });
+      await batch.commit();
+      await fetchCliente(true);
+      showSnackbar("Estado de la factura actualizado.", "success");
     } catch (error) {
-      console.error("Error al obtener el cliente:", error);
-      showSnackbar("Error al cargar el cliente", "error");
-    } finally {
-      setLoading(false);
+      showSnackbar(`Error al actualizar el estado: ${error.message}`, "error");
     }
-  }, [id, showSnackbar]);
+  };
+
+  // silencioso=true evita el spinner de pantalla completa: se usa para
+  // refrescar datos después de una edición puntual (crear factura, cambiar
+  // estado) sin desmontar toda la vista y perder el scroll.
+  const fetchCliente = useCallback(
+    async (silencioso = false) => {
+      try {
+        if (!silencioso) setLoading(true);
+        const clienteSnap = await getDoc(doc(db, "clientes", id));
+        if (!clienteSnap.exists()) {
+          setNotFound(true);
+          return;
+        }
+        setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
+
+        const facturasSnap = await getDocs(collection(db, "clientes", id, "facturas"));
+        const listaFacturas = facturasSnap.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+        setFacturas(listaFacturas);
+      } catch (error) {
+        console.error("Error al obtener el cliente:", error);
+        showSnackbar("Error al cargar el cliente", "error");
+      } finally {
+        if (!silencioso) setLoading(false);
+      }
+    },
+    [id, showSnackbar],
+  );
 
   useEffect(() => {
     fetchCliente();
@@ -136,8 +187,8 @@ export default function ClienteDetalle() {
 
   const nombreCompleto = obtenerNombreCompleto(cliente);
   const estadoInfo = ESTADO_CLIENTE_INFO[cliente.estado] || ESTADO_CLIENTE_INFO.inactivo;
+  const estadoColor = avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
-  const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
 
   return (
     <Box sx={{ width: "100%", mx: "auto", [theme.breakpoints.up("md")]: { width: "60%" } }}>
@@ -166,12 +217,7 @@ export default function ClienteDetalle() {
               sx={{
                 width: 56,
                 height: 56,
-                bgcolor:
-                  cliente.estado === "moroso"
-                    ? theme.palette.error.main
-                    : cliente.estado === "revisar"
-                      ? theme.palette.warning.main
-                      : theme.palette.success.main,
+                bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
               }}
             >
               {cliente.tipo === "empresa" ? (
@@ -186,9 +232,17 @@ export default function ClienteDetalle() {
               </Typography>
               <Chip
                 label={estadoInfo.label}
-                color={estadoInfo.chipColor}
                 size="small"
-                sx={{ fontWeight: "bold", textTransform: "uppercase", mt: 0.5 }}
+                sx={{
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  mt: 0.5,
+                  width: 190,
+                  fontSize: "0.7rem",
+                  justifyContent: "center",
+                  bgcolor: estadoColor,
+                  color: theme.palette.getContrastText(estadoColor),
+                }}
               />
             </Box>
           </Stack>
@@ -202,12 +256,6 @@ export default function ClienteDetalle() {
           </Button>
         </Stack>
 
-        {cliente.revisar && (
-          <Alert severity="warning" icon={<ErrorOutlineIcon />} sx={{ mt: 2 }}>
-            {cliente.motivoRevision || "Este cliente tiene datos migrados que deben revisarse manualmente."}
-          </Alert>
-        )}
-
         <Divider sx={{ my: 2 }} />
 
         <Stack spacing={1}>
@@ -215,23 +263,6 @@ export default function ClienteDetalle() {
             <Stack direction="row" spacing={0.5} alignItems="center">
               <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
               <Typography variant="body2">{cliente.telefono}</Typography>
-              <IconButton
-                size="small"
-                component="a"
-                href={`https://wa.me/${numeroWhatsapp}`}
-                target="_blank"
-                rel="noopener"
-                sx={{
-                  bgcolor: "#25D366",
-                  color: "#FFFFFF",
-                  width: 22,
-                  height: 22,
-                  ml: 0.5,
-                  "&:hover": { bgcolor: "#128C7E" },
-                }}
-              >
-                <WhatsAppIcon sx={{ fontSize: 14 }} />
-              </IconButton>
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary">
@@ -275,8 +306,11 @@ export default function ClienteDetalle() {
         <Stack spacing={2}>
           {facturas.map((factura) => {
             const facturaEstadoInfo =
-              ESTADO_FACTURA_INFO[factura.estado] || ESTADO_FACTURA_INFO.revisar;
-            const valorTotal = formatearMoneda(factura.valorTotal);
+              ESTADO_FACTURA_INFO[factura.estado] ||
+              (factura.estado ? { label: factura.estado } : { label: "Sin estado" });
+            const facturaEstadoColor =
+              avatarBgPorEstado[factura.estado] ||
+              (theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700]);
             // Formato viejo (migrado del Excel): transporte es un número.
             // Formato nuevo (creado en la app): transporte es el tipo
             // (ej. "Solo ida") y el monto vive aparte en valorTransporte.
@@ -289,7 +323,9 @@ export default function ClienteDetalle() {
             );
             const transporteTipo =
               typeof factura.transporte === "string" ? factura.transporte : null;
+            const subtotal = formatearMoneda(factura.subtotal);
             const deposito = formatearMoneda(factura.deposito);
+            const valorTotal = formatearMoneda(factura.valorTotal);
             const fecha = formatearFecha(factura.fecha);
             const fechaVencimiento = equiposSonObjetos
               ? null
@@ -313,7 +349,7 @@ export default function ClienteDetalle() {
                     </Typography>
                     {fecha && (
                       <Typography variant="body2" color="text.secondary">
-                        Fecha: {fecha}
+                        Fecha despacho: {fecha}
                       </Typography>
                     )}
                     {fechaVencimiento && (
@@ -323,20 +359,20 @@ export default function ClienteDetalle() {
                     )}
                   </Box>
                   <Stack direction="row" spacing={0.5} alignItems="center">
-                    {factura.revisar && (
-                      <Tooltip
-                        title={
-                          factura.motivoRevision ||
-                          `Original: pago="${factura.estadoPagoRaw ?? "—"}", entrega="${factura.estadoEntregaRaw ?? "—"}"`
-                        }
-                      >
-                        <ErrorOutlineIcon sx={{ fontSize: 18, color: "warning.main" }} />
-                      </Tooltip>
-                    )}
                     <Chip
                       label={facturaEstadoInfo.label}
-                      color={facturaEstadoInfo.chipColor}
                       size="small"
+                      onClick={(e) => handleAbrirMenuEstado(e, factura.id)}
+                      sx={{
+                        fontWeight: "bold",
+                        textTransform: "uppercase",
+                        width: 190,
+                        fontSize: "0.7rem",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        bgcolor: facturaEstadoColor,
+                        color: theme.palette.getContrastText(facturaEstadoColor),
+                      }}
                     />
                   </Stack>
                 </Stack>
@@ -344,17 +380,28 @@ export default function ClienteDetalle() {
                 {factura.equipos?.length > 0 && (
                   <Box sx={{ mt: 1 }}>
                     {equiposSonObjetos ? (
-                      <Stack spacing={0.25}>
+                      <Stack spacing={0.5}>
                         {factura.equipos.map((equipo, index) => (
-                          <Typography
+                          <Stack
                             key={`${equipo.nombre}-${index}`}
-                            variant="body2"
-                            color="text.secondary"
+                            direction="row"
+                            flexWrap="wrap"
+                            alignItems="baseline"
+                            columnGap={2}
+                            rowGap={0}
                           >
-                            {equipo.nombre} — {equipo.cantidad} unidad(es), {equipo.dias} día(s)
-                            {equipo.fechaVencimiento &&
-                              ` (vence ${formatearFecha(equipo.fechaVencimiento)})`}
-                          </Typography>
+                            <Typography variant="body2">
+                              <strong>
+                                {equipo.cantidad} {equipo.nombre}
+                              </strong>{" "}
+                              x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
+                            </Typography>
+                            {equipo.fechaVencimiento && (
+                              <Typography variant="body2" sx={{ color: "secondary.light" }}>
+                                Fecha devolución: {formatearFecha(equipo.fechaVencimiento)}
+                              </Typography>
+                            )}
+                          </Stack>
                         ))}
                       </Stack>
                     ) : (
@@ -365,22 +412,30 @@ export default function ClienteDetalle() {
                   </Box>
                 )}
 
-                {(valorTotal || transporteMonto || transporteTipo || deposito) && (
-                  <Stack direction="row" spacing={2} sx={{ mt: 1 }} flexWrap="wrap">
-                    {valorTotal && (
-                      <Typography variant="body2">
-                        <strong>Total:</strong> {valorTotal}
-                      </Typography>
+                {(subtotal || transporteTipo || transporteMonto || deposito || valorTotal) && (
+                  <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mt: 1 }}>
+                    {subtotal && (
+                      <Typography variant="body2">Subtotal {subtotal}</Typography>
+                    )}
+                    {deposito && (
+                      <Typography variant="body2">Depósito {deposito}</Typography>
                     )}
                     {(transporteTipo || transporteMonto) && (
                       <Typography variant="body2">
-                        <strong>Transporte:</strong>{" "}
-                        {[transporteTipo, transporteMonto].filter(Boolean).join(" — ")}
+                        {transporteTipo === "Sin transporte"
+                          ? "Sin transporte"
+                          : ["Transporte", transporteTipo, transporteMonto]
+                              .filter(Boolean)
+                              .join(" ")}
                       </Typography>
                     )}
-                    {deposito && (
-                      <Typography variant="body2">
-                        <strong>Depósito:</strong> {deposito}
+                    {valorTotal && (
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="bold"
+                        sx={{ color: "secondary.dark" }}
+                      >
+                        Total {valorTotal}
                       </Typography>
                     )}
                   </Stack>
@@ -403,13 +458,27 @@ export default function ClienteDetalle() {
         open={crearFacturaOpen}
         onClose={() => setCrearFacturaOpen(false)}
         cliente={cliente}
-        onCreada={(nuevaFactura) =>
-          setFacturas((prev) => [
-            { id: `local-${Date.now()}`, ...nuevaFactura },
-            ...prev,
-          ])
-        }
+        onCreada={() => fetchCliente(true)}
       />
+
+      <Menu
+        anchorEl={menuEstadoAnchor}
+        open={Boolean(menuEstadoAnchor)}
+        onClose={handleCerrarMenuEstado}
+      >
+        <MenuItem onClick={() => handleCambiarEstadoFactura("pendienteDespacho")}>
+          Pendiente de despacho
+        </MenuItem>
+        <MenuItem onClick={() => handleCambiarEstadoFactura("despachada")}>
+          Despachada
+        </MenuItem>
+        <MenuItem onClick={() => handleCambiarEstadoFactura("devolucionParcial")}>
+          Devolución parcial
+        </MenuItem>
+        <MenuItem onClick={() => handleCambiarEstadoFactura("finalizada")}>
+          Finalizada
+        </MenuItem>
+      </Menu>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

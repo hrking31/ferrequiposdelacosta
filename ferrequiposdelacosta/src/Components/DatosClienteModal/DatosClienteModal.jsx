@@ -1,5 +1,7 @@
 import {
-  Modal,
+  Dialog,
+  DialogContent,
+  DialogActions,
   TextField,
   Button,
   Radio,
@@ -328,24 +330,12 @@ const DatosClienteModal = ({
 
   return (
     <>
-      <Modal open={open} onClose={onClose}>
-        <Box
+      <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+        <DialogContent
           sx={{
             display: "flex",
             flexDirection: "column",
-            overflowY: "auto",
-            bgcolor: "background.default",
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "90%",
-            maxWidth: 400,
-            maxHeight: "90vh",
-            boxShadow: 24,
-            p: 4,
             gap: 2,
-            // border: "2px solid blue",
           }}
         >
           {modoAdmin && (
@@ -611,35 +601,33 @@ const DatosClienteModal = ({
               </TextField>
             </Box>
           )}
+        </DialogContent>
 
-          <Box
-            sx={{ display: "flex", justifyContent: "center", gap: 2, pt: 2 }}
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
+          <Button
+            variant="danger"
+            onClick={() => {
+              setDireccion(estadoInicialDireccion);
+              setClienteLocal(estadoInicialCliente);
+              setErrors({});
+              onClose();
+              onSuccess();
+            }}
           >
-            <Button
-              variant="danger"
-              onClick={() => {
-                setDireccion(estadoInicialDireccion);
-                setClienteLocal(estadoInicialCliente);
-                setErrors({});
-                onClose();
-                onSuccess();
-              }}
-            >
-              Cancelar
-            </Button>
+            Cancelar
+          </Button>
 
-            <Button variant="success" onClick={handleGuardar}>
-              Guardar
-            </Button>
+          <Button variant="success" onClick={handleGuardar}>
+            Guardar
+          </Button>
 
-            {!modoAdmin && (
-              <Button variant="danger" onClick={handleEliminarDatos}>
-                Eliminar
-              </Button>
-            )}
-          </Box>
-        </Box>
-      </Modal>
+          {!modoAdmin && (
+            <Button variant="danger" onClick={handleEliminarDatos}>
+              Eliminar
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </>

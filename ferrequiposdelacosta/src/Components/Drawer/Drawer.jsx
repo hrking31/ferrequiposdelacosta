@@ -17,7 +17,7 @@ import {
   ListItemButton,
   ListItemText,
   Divider,
-  Modal,
+  Dialog,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
@@ -569,23 +569,9 @@ export default function MobileDrawerLayout() {
           )}
         </Box>
 
-        <Modal open={openAccount} onClose={handleCloseAccount}>
-          <div
-            style={{
-              bgcolor: "background.default",
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              padding: "0px",
-              borderRadius: "8px",
-              maxWidth: "400px",
-              width: "90%",
-            }}
-          >
-            <Login onClose={handleCloseAccount} />
-          </div>
-        </Modal>
+        <Dialog open={openAccount} onClose={handleCloseAccount} maxWidth="xs" fullWidth>
+          <Login onClose={handleCloseAccount} />
+        </Dialog>
 
         <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Grid>

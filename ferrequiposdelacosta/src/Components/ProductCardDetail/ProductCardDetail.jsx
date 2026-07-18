@@ -6,7 +6,10 @@ import {
   TextField,
   Stack,
   Chip,
-  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -308,22 +311,11 @@ export default function ProductCardDetail({ product }) {
         </>
       </Box>
 
-      <Modal open={Boolean(activeModal)} onClose={handleCloseModal}>
-        <Box
-          sx={{
-            bgcolor: "background.default",
-            p: 4,
-            width: { xs: 350, sm: 400 },
-            borderRadius: 2,
-            mx: "auto",
-            mt: "20vh",
-            boxShadow: 24,
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Editar {activeModal === "days" ? "dias" : "cantidad"}
-          </Typography>
-
+      <Dialog open={Boolean(activeModal)} onClose={handleCloseModal} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          Editar {activeModal === "days" ? "dias" : "cantidad"}
+        </DialogTitle>
+        <DialogContent>
           <TextField
             type="number"
             inputProps={{ min: 1 }}
@@ -331,13 +323,16 @@ export default function ProductCardDetail({ product }) {
             onChange={(e) => setValorTemp(Number(e.target.value))}
             label={activeModal === "days" ? "Dias" : "Cantidad"}
             variant="outlined"
-            sx={{ mb: 2 }}
+            fullWidth
+            sx={{ mt: 1 }}
           />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button variant="success" onClick={handleSaveModal} fullWidth>
             Guardar
           </Button>
-        </Box>
-      </Modal>
+        </DialogActions>
+      </Dialog>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

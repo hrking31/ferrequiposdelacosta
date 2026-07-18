@@ -11,7 +11,10 @@ import {
   RadioGroup,
   FormControlLabel,
   Grid,
-  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   TextField,
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
@@ -861,22 +864,11 @@ export default function VistaCart() {
         </Button>
       </Box>
 
-      <Modal open={Boolean(activeModal)} onClose={() => setActiveModal(null)}>
-        <Box
-          sx={{
-            bgcolor: "background.default",
-            p: 4,
-            width: { xs: 350, sm: 400 },
-            borderRadius: 2,
-            mx: "auto",
-            mt: "20vh",
-            boxShadow: 24,
-          }}
-        >
-          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
-            {activeModal === "days" ? "Editar días" : "Editar cantidad"}
-          </Typography>
-
+      <Dialog open={Boolean(activeModal)} onClose={() => setActiveModal(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          {activeModal === "days" ? "Editar días" : "Editar cantidad"}
+        </DialogTitle>
+        <DialogContent>
           <TextField
             type="number"
             inputProps={{ min: 1 }}
@@ -889,9 +881,11 @@ export default function VistaCart() {
             }
             label={activeModal === "days" ? "Días" : "Cantidad"}
             variant="outlined"
-            sx={{ mb: 2 }}
+            fullWidth
+            sx={{ mt: 1 }}
           />
-
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
             variant="contained"
             color="success"
@@ -913,8 +907,8 @@ export default function VistaCart() {
           >
             Guardar
           </Button>
-        </Box>
-      </Modal>
+        </DialogActions>
+      </Dialog>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

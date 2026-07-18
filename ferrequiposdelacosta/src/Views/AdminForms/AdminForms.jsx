@@ -79,9 +79,9 @@ export default function AdminForms() {
     },
     {
       permiso: "gestionCartera",
-      to: undefined,
+      to: "/vistaseguimientoclientes",
       icon: <SupportAgentIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
-      label: "CLIENTES POR COBRAR",
+      label: "SEGUIMIENTO de CLIENTES",
     },
     {
       permiso: "solicitudesCotizaciones",

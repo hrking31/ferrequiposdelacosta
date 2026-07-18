@@ -126,8 +126,6 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         await setDoc(clienteRef, {
           ...data,
           estado: "inactivo",
-          revisar: false,
-          motivoRevision: "",
         });
         showSnackbar("Cliente creado correctamente.", "success");
       }
