@@ -35,6 +35,7 @@ import { httpsCallable } from "firebase/functions";
 import { db, functions, storage, auth } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import LoadingLogo from "../LoadingLogo/LoadingLogo";
 
 export default function UsersList() {
   const theme = useTheme();
@@ -42,6 +43,8 @@ export default function UsersList() {
   const { logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingGuardar, setLoadingGuardar] = useState(false);
+  const [loadingEliminar, setLoadingEliminar] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
@@ -82,7 +85,7 @@ export default function UsersList() {
   };
 
   const handleCloseModal = () => {
-    if (!loading) {
+    if (!loadingGuardar) {
       setOpenModal(false);
       setSelectedUser(null);
     }
@@ -108,7 +111,7 @@ export default function UsersList() {
       return;
     }
 
-    setLoading(true);
+    setLoadingGuardar(true);
     try {
       const userRef = doc(db, "users", selectedUser.id);
       const updatedData = {
@@ -127,14 +130,17 @@ export default function UsersList() {
       console.error(error);
       showSnackbar("Error al actualizar el usuario", "error");
     } finally {
-      setLoading(false);
+      setLoadingGuardar(false);
     }
   };
 
   // Elimina Usuario de Auth y Firestore
   const handleDeleteUser = async () => {
     setOpenConfirmDelete(false);
-    setLoading(true);
+    // Se cierra el modal de edición de inmediato: esto no es un guardado,
+    // así que no debe compartir el spinner del botón "Guardar".
+    setOpenModal(false);
+    setLoadingEliminar(true);
 
     try {
       const userId = selectedUser?.id;
@@ -149,7 +155,6 @@ export default function UsersList() {
       // Borrar de Firebase Authentication mediante la Function
       await deleteUserCloud({ email: userEmail });
       showSnackbar("Usuario eliminado con éxito", "success");
-      handleCloseModal();
 
       if (isSelfDeletion) {
         await logout();
@@ -161,7 +166,8 @@ export default function UsersList() {
       console.error(error);
       showSnackbar(error.message || "Error al eliminar el usuario", "error");
     } finally {
-      setLoading(false);
+      setSelectedUser(null);
+      setLoadingEliminar(false);
     }
   };
 
@@ -171,8 +177,10 @@ export default function UsersList() {
     return conEspacios.charAt(0).toUpperCase() + conEspacios.slice(1);
   };
 
+  if (loadingEliminar) return <LoadingLogo text="Eliminando usuario..." />;
+
   return (
-    <Box sx={{ width: "100%", pt: { xs: 0, md: 3 }, pb: 3, px: 3 }}>
+    <Box sx={{ width: "100%", pt: { xs: 0, md: 3 }, pb: 3 }}>
       <Grid container spacing={3}>
         {loading
           ? [...Array(6)].map((_, index) => (
@@ -358,7 +366,7 @@ export default function UsersList() {
                 value={selectedUser.name || ""}
                 onChange={handleInputChange}
                 fullWidth
-                disabled={loading}
+                disabled={loadingGuardar}
               />
 
               <TextField
@@ -380,7 +388,7 @@ export default function UsersList() {
                   value={selectedUser.genero || ""}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={loading}
+                  disabled={loadingGuardar}
                 >
                   <MenuItem value="" disabled>
                     Selecciona un Género
@@ -408,7 +416,7 @@ export default function UsersList() {
                   value={selectedUser.role || ""}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={loading}
+                  disabled={loadingGuardar}
                 >
                   <MenuItem value="" disabled>
                     Selecciona un Rol
@@ -466,7 +474,7 @@ export default function UsersList() {
             color="error"
             startIcon={<DeleteIcon />}
             onClick={() => setOpenConfirmDelete(true)}
-            disabled={loading}
+            disabled={loadingGuardar}
           >
             Eliminar Usuario
           </Button>
@@ -476,7 +484,7 @@ export default function UsersList() {
             variant="danger"
             size="medium"
             fullWidth={isMobile}
-            disabled={loading}
+            disabled={loadingGuardar}
           >
             Cancelar
           </Button>
@@ -486,9 +494,9 @@ export default function UsersList() {
             variant="success"
             size="medium"
             fullWidth={isMobile}
-            disabled={loading}
+            disabled={loadingGuardar}
             startIcon={
-              loading && <CircularProgress size={16} color="inherit" />
+              loadingGuardar && <CircularProgress size={16} color="inherit" />
             }
           >
             Guardar

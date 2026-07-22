@@ -75,8 +75,8 @@ export default function VistaCotizacion() {
         sx={{
           flex: 1,
           minHeight: 0,
-          overflowY: "auto",
-          // border: "2px solid red",
+          overflow: "hidden",
+          mx: isFullScreen ? 0 : 2,
         }}
       >
         <AdminCotizaciones />

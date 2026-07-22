@@ -73,7 +73,7 @@ export default function CuentaCobro() {
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
 
-        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 1 }, px: 0.5 }}>
+        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 1 } }}>
           <Grid item xs={7} sm={6}>
             <TextField
               fullWidth

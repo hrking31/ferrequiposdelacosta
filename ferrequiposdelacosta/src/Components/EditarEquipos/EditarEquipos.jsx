@@ -23,6 +23,7 @@ import { getFirestore, doc, updateDoc } from "firebase/firestore";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import LoadingLogo from "../LoadingLogo/LoadingLogo";
 
 const EditarEquipo = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const EditarEquipo = () => {
     () => location.state?.equipo || null
   );
   const theme = useTheme();
+  const [loading, setLoading] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const [formData, setFormData] = useState({
@@ -216,6 +218,7 @@ const EditarEquipo = () => {
   };
 
   const actualizarEquipoConCambios = async (formData, equipoId) => {
+    setLoading(true);
     try {
       const db = getFirestore();
       await Promise.all(
@@ -257,6 +260,8 @@ const EditarEquipo = () => {
       showSnackbar("Equipo actualizado con éxito", "success");
     } catch (error) {
       console.error("❌ Error al actualizar el equipo:", error);
+    } finally {
+      setLoading(false);
     }
     setFormData({
       id: "",
@@ -323,6 +328,8 @@ const EditarEquipo = () => {
   const [nuevaImagenTemporal, setNuevaImagenTemporal] = useState(null);
   const [nombreTemporal, setNombreTemporal] = useState("");
   const [newIndices, setNewIndices] = useState({});
+
+  if (loading) return <LoadingLogo text="Actualizando equipo..." />;
 
   return (
     <Box sx={{ padding: 2 }}>

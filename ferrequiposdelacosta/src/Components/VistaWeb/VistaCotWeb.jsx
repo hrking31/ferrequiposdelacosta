@@ -15,8 +15,8 @@ export default function VistaCotWeb() {
       sx={{
         fontFamily: "Arial, sans-serif",
         padding: isSmallScreen ? "20px" : "40px",
-        maxWidth: "800px",
-        margin: "0 auto",
+        width: "100%",
+        boxSizing: "border-box",
         backgroundColor: "white",
         boxShadow: "0px 0px 20px rgba(0, 0, 0, 0.1)",
         borderRadius: "10px",

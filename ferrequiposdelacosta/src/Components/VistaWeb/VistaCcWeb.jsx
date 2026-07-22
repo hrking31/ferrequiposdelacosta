@@ -21,7 +21,7 @@ export default function VistaCcWeb() {
     <Container
       sx={{
         padding: isSmallScreen ? "20px" : "40px",
-        maxWidth: "800px",
+        maxWidth: "100%",
         backgroundColor: "white",
         boxShadow: "0px 0px 20px rgba(0, 0, 0, 0.1)",
         borderRadius: "10px",

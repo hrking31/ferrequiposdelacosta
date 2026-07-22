@@ -1,6 +1,7 @@
 import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
@@ -46,6 +47,11 @@ export default function VistaClienteDetalle() {
 
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Tooltip title="Volver a Clientes">
+              <IconButton onClick={() => navigate("/vistaclientes")}>
+                <FolderSharedIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Menú">
               <IconButton onClick={() => navigate("/adminforms")}>
                 <DashboardIcon />
@@ -60,7 +66,7 @@ export default function VistaClienteDetalle() {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" /* border: "2px solid red" */ }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
         <ClienteDetalle />
       </Box>
 

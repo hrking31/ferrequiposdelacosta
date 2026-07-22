@@ -71,7 +71,7 @@ const EliminarEquipo = () => {
     }
   };
 
-  if (loading) return <LoadingLogo />;
+  if (loading) return <LoadingLogo text="Eliminando equipo..." />;
 
   if (!equipoSeleccionado) {
     return (

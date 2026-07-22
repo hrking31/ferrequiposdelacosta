@@ -37,7 +37,7 @@ export default function KioskDetail() {
     }
   }, [error, showSnackbar]);
 
-  if (loading || !equipo) return <LoadingLogo />;
+  if (loading || !equipo) return <LoadingLogo text="Cargando datos del equipo..." />;
 
   return (
     <Box

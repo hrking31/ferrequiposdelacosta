@@ -31,12 +31,13 @@ import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import { obtenerFechaInicialEfectiva, calcularVencimiento } from "./facturaUtils";
+import { obtenerFechaInicialEfectiva, calcularFechaDevolucion } from "./facturaUtils";
 
 const ESTADO_INICIAL_ITEM = {
   nombre: "",
   cantidad: "",
   dias: "",
+  valor: "",
   fechaDespacho: "",
 };
 
@@ -68,7 +69,6 @@ const ESTADO_INICIAL_FACTURA = "pendienteDespacho";
 const obtenerEstadoInicial = (factura) => ({
   numeroFactura: factura?.numeroFactura ?? "",
   fecha: factura?.fecha ?? obtenerFechaInicialEfectiva(),
-  subtotal: factura?.subtotal ? String(factura.subtotal) : "",
   transporte: factura?.transporte ?? "",
   valorTransporte: factura?.valorTransporte ? String(factura.valorTransporte) : "",
   deposito: factura?.deposito ? String(factura.deposito) : "",
@@ -118,12 +118,21 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
 
   const nombresEquiposCatalogo = equiposCatalogo.map((equipo) => equipo.name);
 
-  const ivaCalculado = form.aplicaIva ? (Number(form.subtotal) || 0) * 0.19 : 0;
+  // Subtotal = suma de (cantidad × días × precio por día) de cada equipo
+  // agregado. Ya no se digita a mano: se recalcula solo cada vez que la
+  // lista de equipos cambia.
+  const subtotalCalculado = equipos.reduce(
+    (total, item) =>
+      total + (Number(item.cantidad) || 0) * (Number(item.dias) || 0) * (Number(item.valor) || 0),
+    0,
+  );
+
+  const ivaCalculado = form.aplicaIva ? subtotalCalculado * 0.19 : 0;
 
   // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
   // no se digita a mano.
   const valorTotalCalculado =
-    (Number(form.subtotal) || 0) +
+    subtotalCalculado +
     ivaCalculado +
     (Number(form.valorTransporte) || 0) +
     (Number(form.deposito) || 0);
@@ -160,15 +169,21 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     }));
   };
 
+  const handleChangeValorItem = (e) => {
+    setNuevoItem((prev) => ({ ...prev, valor: limpiarMonedaInput(e.target.value) }));
+  };
+
   const handleAgregarEquipo = () => {
     const nombre = nuevoItem.nombre.trim();
     const cantidad = Number(nuevoItem.cantidad);
     const dias = Number(nuevoItem.dias);
+    const valor = Number(nuevoItem.valor);
 
     const erroresItem = {};
     if (!nombre) erroresItem.nombreEquipo = "Elegí o escribí un equipo.";
     if (!cantidad || cantidad <= 0) erroresItem.cantidadEquipo = "Cantidad inválida.";
     if (!dias || dias <= 0) erroresItem.diasEquipo = "Días inválidos.";
+    if (!valor || valor <= 0) erroresItem.valorEquipo = "Precio inválido.";
     if (!nuevoItem.fechaDespacho) erroresItem.fechaDespachoEquipo = "Este campo es obligatorio.";
 
     if (Object.keys(erroresItem).length > 0) {
@@ -178,7 +193,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
 
     setEquipos((prev) => [
       ...prev,
-      { nombre, cantidad, dias, fechaDespacho: nuevoItem.fechaDespacho },
+      { nombre, cantidad, dias, valor, fechaDespacho: nuevoItem.fechaDespacho },
     ]);
     setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: form.fecha });
     setErrors((prev) => ({
@@ -186,6 +201,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       nombreEquipo: undefined,
       cantidadEquipo: undefined,
       diasEquipo: undefined,
+      valorEquipo: undefined,
       fechaDespachoEquipo: undefined,
       equipos: undefined,
     }));
@@ -205,9 +221,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     }
     if (equipos.length === 0) {
       errores.equipos = "Agregá al menos un equipo.";
-    }
-    if (!form.subtotal || Number(form.subtotal) <= 0) {
-      errores.subtotal = "El subtotal debe ser mayor a 0.";
     }
     setErrors((prev) => ({ ...prev, ...errores }));
     return Object.keys(errores).length === 0;
@@ -232,9 +245,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
         fechaDespacho: item.fechaDespacho || form.fecha,
         fechaVencimiento:
           item.fechaVencimiento ??
-          calcularVencimiento(item.fechaDespacho || form.fecha, item.dias),
+          calcularFechaDevolucion(item.fechaDespacho || form.fecha, item.dias),
       })),
-      subtotal: Number(form.subtotal) || 0,
+      subtotal: subtotalCalculado,
       iva: ivaCalculado,
       aplicaIva: form.aplicaIva,
       valorTotal: valorTotalCalculado,
@@ -361,7 +374,17 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                     )}
                   />
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Precio por día"
+                    value={formatearMonedaInput(nuevoItem.valor)}
+                    onChange={handleChangeValorItem}
+                    error={!!errors.valorEquipo}
+                    helperText={errors.valorEquipo || "Precio de 1 unidad, por 1 día."}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={6} sm={4}>
                   <TextField
                     label="Cantidad"
                     type="number"
@@ -378,7 +401,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid item xs={6} sm={4}>
                   <TextField
                     label="Días"
                     type="number"
@@ -395,7 +418,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={4}>
                   <TextField
                     label="Fecha despacho de este equipo"
                     type="date"
@@ -438,7 +461,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   {equipos.map((item, index) => {
                     const despacho = item.fechaDespacho || form.fecha;
                     const vencimiento =
-                      item.fechaVencimiento || calcularVencimiento(despacho, item.dias);
+                      item.fechaVencimiento || calcularFechaDevolucion(despacho, item.dias);
+                    const subtotalItem =
+                      (Number(item.cantidad) || 0) *
+                      (Number(item.dias) || 0) *
+                      (Number(item.valor) || 0);
                     return (
                       <Grid item xs={12} sm={6} key={`${item.nombre}-${index}`}>
                         <Box
@@ -460,12 +487,28 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                             <Typography
                               variant="caption"
                               color="text.secondary"
+                              sx={{ display: "block" }}
                             >
                               {item.cantidad} unidad(es) · {item.dias} día(s)
+                              {item.valor
+                                ? ` · ${Number(item.valor).toLocaleString("es-CO", {
+                                    style: "currency",
+                                    currency: "COP",
+                                  })}/día c/u`
+                                : ""}
                               {despacho && ` · despacho ${formatearFechaLegible(despacho)}`}
                               {vencimiento &&
                                 ` · vence ${formatearFechaLegible(vencimiento)}`}
                             </Typography>
+                            {subtotalItem > 0 && (
+                              <Typography variant="caption" fontWeight="bold">
+                                Subtotal:{" "}
+                                {subtotalItem.toLocaleString("es-CO", {
+                                  style: "currency",
+                                  currency: "COP",
+                                })}
+                              </Typography>
+                            )}
                           </Box>
                           <IconButton
                             size="small"
@@ -489,10 +532,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
               <Stack spacing={2}>
                 <TextField
                   label="Subtotal"
-                  value={formatearMonedaInput(form.subtotal)}
-                  onChange={handleChangeMoneda("subtotal")}
-                  error={!!errors.subtotal}
-                  helperText={errors.subtotal}
+                  value={formatearMonedaInput(subtotalCalculado)}
+                  disabled
+                  helperText="Se calcula solo: cantidad × días × precio por día, de cada equipo."
                   fullWidth
                 />
 

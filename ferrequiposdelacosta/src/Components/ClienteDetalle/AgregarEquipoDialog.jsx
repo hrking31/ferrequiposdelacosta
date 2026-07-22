@@ -26,7 +26,7 @@ import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import { obtenerFechaInicialEfectiva, calcularVencimiento } from "./facturaUtils";
+import { obtenerFechaInicialEfectiva, calcularFechaDevolucion } from "./facturaUtils";
 
 const ESTADO_INICIAL = {
   nombre: "",
@@ -133,7 +133,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
       cantidad: Number(form.cantidad),
       dias: Number(form.dias),
       fechaDespacho: form.fechaEntrega,
-      fechaVencimiento: calcularVencimiento(form.fechaEntrega, form.dias),
+      fechaVencimiento: calcularFechaDevolucion(form.fechaEntrega, form.dias),
     };
 
     setGuardando(true);

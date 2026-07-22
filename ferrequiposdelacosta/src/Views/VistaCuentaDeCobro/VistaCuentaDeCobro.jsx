@@ -102,7 +102,7 @@ export default function VistaCuentaDeCobro() {
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto",
-        //  border: "2px solid red"
+        mx: isFullScreen ? 0 : 2
           }}>
         <Box sx={{ mb: 2 }}>
           <Grid container spacing={2}>

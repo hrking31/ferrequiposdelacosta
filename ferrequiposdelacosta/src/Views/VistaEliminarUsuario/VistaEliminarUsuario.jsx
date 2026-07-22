@@ -76,7 +76,7 @@ export default function VistaEliminarUsuario() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: { xs: "flex-start", md: "center" },
-          // border: "2px solid red",
+          mx: isFullScreen ? 0 : 2,
         }}
       >
         <UsersList />

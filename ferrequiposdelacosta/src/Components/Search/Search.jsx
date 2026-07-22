@@ -14,7 +14,7 @@ const Search = ({ LabelOff = true, onSearch }) => {
   };
 
   return (
-    <Box display="flex" flexDirection="column">
+    <Box display="flex" flexDirection="column" sx={{ mt: "6px" }}>
       <Grid container spacing={2} justifyContent="center">
         <Grid item xs={12}>
           <TextField

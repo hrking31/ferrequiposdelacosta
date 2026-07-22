@@ -36,6 +36,7 @@ import { Camion } from "../../Components/Camion/Camion.jsx";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -48,6 +49,7 @@ export default function VistaCart() {
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
   const [openCliente, setOpenCliente] = useState(false);
   const [openDireccion, setOpenDireccion] = useState(false);
+  const [loading, setLoading] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -201,9 +203,16 @@ export default function VistaCart() {
 
   const handleProcesarSolicitud = async () => {
     if (!validarCarrito()) return;
-    await handleSendQuotation();
-    handleEnviarPedido();
+    setLoading(true);
+    try {
+      await handleSendQuotation();
+      handleEnviarPedido();
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) return <LoadingLogo text="Enviando solicitud..." />;
 
   return (
     <Box

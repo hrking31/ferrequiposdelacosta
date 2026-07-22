@@ -154,7 +154,6 @@ export default function AdminForms() {
 
       <Box
         sx={{
-          width: "100%",
           flex: 1,
           minHeight: 0,
           display: "flex",
@@ -164,7 +163,7 @@ export default function AdminForms() {
           gap: `${gapPx}px`,
           overflowY: "auto",
           overflowX: "hidden",
-          // border: "2px solid red",
+          mx: isFullScreen ? 0 : 2,
         }}
       >
         {botonesVisibles.map((boton) => (

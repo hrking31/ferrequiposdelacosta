@@ -98,7 +98,7 @@ export default function Register() {
     }
   };
 
-  if (loading) return <LoadingLogo />;
+  if (loading) return <LoadingLogo text="Creando usuario..." />;
 
   return (
     <Box

@@ -60,7 +60,7 @@ export default function VistaSeguimientoClientes() {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", mx: isFullScreen ? 0 : 2 }}>
         <SeguimientoClientes />
       </Box>
 

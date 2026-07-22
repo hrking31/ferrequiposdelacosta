@@ -130,7 +130,7 @@ export default function Cotizacion() {
   return (
     <Box mx="auto" display="flex" flexDirection="column">
       <Box component="form">
-        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 0 }, px: 0.5 }}>
+        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 0 } }}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <Box display="flex" width="100%">

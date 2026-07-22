@@ -136,7 +136,7 @@ const CrearEquipos = () => {
     setSubtitulo("");
   };
 
-  if (loading) return <LoadingLogo />;
+  if (loading) return <LoadingLogo text="Creando equipo..." />;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -148,7 +148,7 @@ const CrearEquipos = () => {
             justifyContent: "center",
             alignItems: "center",
             flexDirection: "column",
-            mt: { xs: 2, md: 4 },
+            mt: 3,
           }}
         >
           <TextField

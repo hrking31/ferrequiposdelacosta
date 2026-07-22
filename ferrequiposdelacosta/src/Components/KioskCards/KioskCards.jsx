@@ -20,7 +20,7 @@ export default function KioskCards() {
       
       <Grid container spacing={1}>
         {loading ? (
-          <LoadingLogo />
+          <LoadingLogo text="Cargando Equipos..." />
         ) : (
           equiposToDisplay &&
           equiposToDisplay.map((equipo, index) => {

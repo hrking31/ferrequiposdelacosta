@@ -43,7 +43,7 @@ export default function Detail() {
     }
   }, [error, showSnackbar]);
 
-  if (loading || !equipo) return <LoadingLogo text="Cargando Equipo..." />;
+  if (loading || !equipo) return <LoadingLogo text="Cargando datos del equipo..." />;
 
   return (
     <Box

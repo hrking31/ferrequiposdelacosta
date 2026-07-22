@@ -153,7 +153,6 @@ const VistaSeleccionarEquipo = () => {
           mx: "auto",
           width: "100%",
           [theme.breakpoints.up("md")]: { width: "60%" },
-          // border: "2px solid red",
         }}
       >
         <Grid container spacing={2}>
@@ -168,7 +167,7 @@ const VistaSeleccionarEquipo = () => {
                 equipoSeleccionado={equipoSeleccionado}
               />
             ) : loading ? (
-              <LoadingLogo height="40vh" />
+              <LoadingLogo height="40vh" text="Buscando equipos..." />
             ) : (
               <Grid container spacing={2}>
                 {[...Array(isMobile ? 1 : isMedium ? 2 : 3)].map((_, index) => (

@@ -38,6 +38,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
+import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
 export default function KioskCart() {
   const theme = useTheme();
@@ -51,6 +52,7 @@ export default function KioskCart() {
   const [selectedItemsModal, setSelectedItemsModal] = useState(null);
   const [openCliente, setOpenCliente] = useState(false);
   const [openDireccion, setOpenDireccion] = useState(false);
+  const [loading, setLoading] = useState(false);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -100,12 +102,13 @@ export default function KioskCart() {
   };
 
   const handleSendQuotation = async () => {
-    try {
-      if (items.length === 0) {
-        showSnackbar("No hay equipos en el carrito", "warning");
-        return;
-      }
+    if (items.length === 0) {
+      showSnackbar("No hay equipos en el carrito", "warning");
+      return;
+    }
 
+    setLoading(true);
+    try {
       const quotationData = {
         tipo: cliente.tipo || "persona",
         empresa: cliente.nombre || "",
@@ -155,6 +158,8 @@ export default function KioskCart() {
       console.error(error);
 
       showSnackbar("Error enviando solicitud", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,6 +178,8 @@ export default function KioskCart() {
   };
 
   const transporte = transporteLabel[tipoTransporte || "no"];
+
+  if (loading) return <LoadingLogo text="Enviando solicitud..." />;
 
   return (
     <Box

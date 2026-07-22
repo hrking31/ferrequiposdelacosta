@@ -252,7 +252,7 @@ export default function VistaCotizacion() {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
         <Box sx={{ mb: 2 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>

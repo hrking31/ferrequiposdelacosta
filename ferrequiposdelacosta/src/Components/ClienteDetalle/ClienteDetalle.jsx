@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -39,6 +38,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
+import LoadingLogo from "../LoadingLogo/LoadingLogo";
 
 // El estado del cliente es el mismo vocabulario que el de sus facturas
 // (el cliente toma el estado de la factura que se le crea/edita), más
@@ -97,6 +97,7 @@ export default function ClienteDetalle() {
   const navigate = useNavigate();
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const acento =
     theme.palette.mode === "light"
       ? theme.palette.primary.main
@@ -207,11 +208,7 @@ export default function ClienteDetalle() {
   }, [fetchCliente]);
 
   if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingLogo height="40vh" text="Cargando cliente..." />;
   }
 
   if (notFound) {
@@ -233,14 +230,16 @@ export default function ClienteDetalle() {
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", [theme.breakpoints.up("md")]: { width: "60%" } }}>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/vistaclientes")}
-        sx={{ mb: 2, color: acento }}
-      >
-        Volver a Clientes
-      </Button>
+    <Box sx={{ width: "100%" }}>
+      {isFullScreen && (
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate("/vistaclientes")}
+          sx={{ mb: 2, color: acento }}
+        >
+          Volver a Clientes
+        </Button>
+      )}
 
       <Box
         sx={{

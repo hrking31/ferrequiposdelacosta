@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Divider,
   Fab,
   IconButton,
@@ -36,6 +35,7 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "./ClienteFormDialog";
+import LoadingLogo from "../LoadingLogo/LoadingLogo";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
@@ -409,11 +409,7 @@ export default function ListaClientes() {
     </Typography>
   );
 
-  const listaCargando = (
-    <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-      <CircularProgress />
-    </Box>
-  );
+  const listaCargando = <LoadingLogo height="40vh" text="Cargando clientes..." />;
 
   if (esMovil) {
     return (
@@ -575,7 +571,7 @@ export default function ListaClientes() {
   }
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", gap: 3, p: 1.5 }}>
+    <Box sx={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", gap: 3, py: 1.5 }}>
       {!ocultarSidebar && (
         <Box
           sx={{

@@ -66,7 +66,7 @@ const VistaEditarEquipo = () => {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" /* border: "2px solid red" */ }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
         <EditarEquipos />
       </Box>
 

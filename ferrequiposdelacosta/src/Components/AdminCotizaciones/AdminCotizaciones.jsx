@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   Box,
   Card,
@@ -8,6 +9,10 @@ import {
   Avatar,
   Divider,
   Stack,
+  TextField,
+  InputAdornment,
+  IconButton,
+  useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,10 +23,15 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
+  const theme = useTheme();
+  const acento =
+    theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { name, uid } = useSelector((state) => state.user);
@@ -30,6 +40,22 @@ export default function KioskAdminCotizaciones() {
   );
   const usuariosConectados = useSelector(
     (state) => state.presence.usuariosConectados || {},
+  );
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+
+  const busquedaLower = busqueda.trim().toLowerCase();
+
+  const cotizacionesFiltradas = useMemo(
+    () =>
+      cotizaciones.filter((quotation) => {
+        if (filtroTipo !== "todos" && quotation.tipo !== filtroTipo) return false;
+        if (!busquedaLower) return true;
+        const nombre = (quotation.empresa || "").toLowerCase();
+        const telefono = (quotation.telefono || "").toLowerCase();
+        return nombre.includes(busquedaLower) || telefono.includes(busquedaLower);
+      }),
+    [cotizaciones, filtroTipo, busquedaLower],
   );
 
   const handleOpenQuotation = async (quotation) => {
@@ -68,14 +94,101 @@ export default function KioskAdminCotizaciones() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        pt: { xs: 0, md: 3 },
-        pb: 3,
-        px: 3,
+        height: "100%",
+        minHeight: 0,
         gap: 3,
         backgroundColor: (theme) => theme.palette.background.default,
         transition: "background-color 0.3s ease",
       }}
     >
+      {cotizaciones.length > 0 && (
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          sx={{ flexShrink: 0 }}
+        >
+          <TextField
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar cliente..."
+            size="small"
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+              endAdornment: busqueda && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setBusqueda("")} edge="end">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+              sx: { borderRadius: 999 },
+            }}
+          />
+
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <Chip
+              label="Todos"
+              clickable
+              onClick={() => setFiltroTipo("todos")}
+              variant={filtroTipo === "todos" ? "filled" : "outlined"}
+              sx={
+                filtroTipo === "todos"
+                  ? { bgcolor: acento, color: theme.palette.getContrastText(acento) }
+                  : undefined
+              }
+            />
+            <Chip
+              icon={<PersonIcon sx={{ fontSize: 16 }} />}
+              label="Personas"
+              clickable
+              onClick={() => setFiltroTipo("persona")}
+              variant={filtroTipo === "persona" ? "filled" : "outlined"}
+              sx={
+                filtroTipo === "persona"
+                  ? {
+                      bgcolor: acento,
+                      color: theme.palette.getContrastText(acento),
+                      "& .MuiChip-icon": { color: "inherit" },
+                    }
+                  : undefined
+              }
+            />
+            <Chip
+              icon={<BusinessIcon sx={{ fontSize: 16 }} />}
+              label="Empresas"
+              clickable
+              onClick={() => setFiltroTipo("empresa")}
+              variant={filtroTipo === "empresa" ? "filled" : "outlined"}
+              sx={
+                filtroTipo === "empresa"
+                  ? {
+                      bgcolor: acento,
+                      color: theme.palette.getContrastText(acento),
+                      "& .MuiChip-icon": { color: "inherit" },
+                    }
+                  : undefined
+              }
+            />
+          </Stack>
+        </Stack>
+      )}
+
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+        }}
+      >
       {cotizaciones.length === 0 ? (
         <Typography
           variant="body1"
@@ -83,8 +196,15 @@ export default function KioskAdminCotizaciones() {
         >
           No hay solicitudes de cotización pendientes...
         </Typography>
+      ) : cotizacionesFiltradas.length === 0 ? (
+        <Typography
+          variant="body1"
+          sx={{ textAlign: "center", mt: 4, color: "text.secondary" }}
+        >
+          No se encontraron cotizaciones con esos filtros.
+        </Typography>
       ) : (
-        cotizaciones.map((quotation) => (
+        cotizacionesFiltradas.map((quotation) => (
           <Card
             key={quotation.id}
             sx={{
@@ -421,6 +541,7 @@ export default function KioskAdminCotizaciones() {
           </Card>
         ))
       )}
+      </Box>
     </Box>
   );
 }

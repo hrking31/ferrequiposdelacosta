@@ -32,7 +32,22 @@ export const obtenerFechaInicialEfectiva = () => {
   return `${fechaBase.getUTCFullYear()}-${pad(fechaBase.getUTCMonth() + 1)}-${pad(fechaBase.getUTCDate())}`;
 };
 
-// Vencimiento por equipo = fecha de inicio de la factura + sus propios días.
+// Fecha de devolución = fecha de despacho + días de alquiler, contando el
+// propio día de despacho como el primer día (ej: despacho 23, 2 días →
+// devolución 24, no 25).
+export const calcularFechaDevolucion = (fechaIso, dias) => {
+  if (!fechaIso || !dias) return null;
+  const [anio, mes, dia] = fechaIso.split("-").map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  fecha.setUTCDate(fecha.getUTCDate() + Number(dias) - 1);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${fecha.getUTCFullYear()}-${pad(fecha.getUTCMonth() + 1)}-${pad(fecha.getUTCDate())}`;
+};
+
+// Extiende una fecha de vencimiento ya existente sumándole días adicionales
+// (usado al "ampliar vencimiento" de un equipo ya despachado: esos días se
+// suman completos, sin restar 1, porque el día de vencimiento actual ya
+// está contado).
 export const calcularVencimiento = (fechaIso, dias) => {
   if (!fechaIso || !dias) return null;
   const [anio, mes, dia] = fechaIso.split("-").map(Number);
