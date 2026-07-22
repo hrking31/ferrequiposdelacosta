@@ -15,7 +15,6 @@ import {
   FormLabel,
   Stack,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import {
@@ -49,7 +48,7 @@ const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15
 
 export default function ClienteFormDialog({ open, onClose, onGuardado, onEliminado, cliente }) {
   const theme = useTheme();
-  const pantallaChica = useMediaQuery(theme.breakpoints.down("sm"));
+  const acento = theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
   const esEdicion = Boolean(cliente);
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errors, setErrors] = useState({});
@@ -182,14 +181,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
 
   return (
     <>
-      <Dialog
-        open={open}
-        onClose={handleCerrar}
-        fullWidth
-        maxWidth="xs"
-        fullScreen={pantallaChica}
-      >
-        <DialogTitle>{esEdicion ? "Editar Cliente" : "Nuevo Cliente"}</DialogTitle>
+      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ color: acento }}>
+          {esEdicion ? "Editar Cliente" : "Nuevo Cliente"}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl>
@@ -254,28 +249,29 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           {esEdicion && (
             <Button
               variant="danger"
               onClick={handleAbrirConfirmacion}
               disabled={guardando}
+              size="small"
               sx={{ mr: "auto" }}
             >
-              Eliminar Cliente
+              Eliminar
             </Button>
           )}
-          <Button onClick={handleCerrar} disabled={guardando}>
+          <Button variant="danger" onClick={handleCerrar} disabled={guardando} size="small">
             Cancelar
           </Button>
-          <Button variant="contained" onClick={handleGuardar} disabled={guardando}>
-            {guardando ? "Guardando..." : esEdicion ? "Guardar Cambios" : "Crear Cliente"}
+          <Button variant="success" onClick={handleGuardar} disabled={guardando} size="small">
+            {guardando ? "Guardando..." : "Guardar"}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={confirmarOpen} onClose={handleCerrarConfirmacion} maxWidth="xs" fullWidth>
-        <DialogTitle>Eliminar Cliente</DialogTitle>
+        <DialogTitle sx={{ color: acento }}>Eliminar Cliente</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
             ¿Seguro que querés eliminar a <strong>{obtenerNombreCliente(cliente)}</strong>? Esta
@@ -289,7 +285,7 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
                 : "Este cliente no tiene facturas registradas."}
           </Alert>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button onClick={handleCerrarConfirmacion} disabled={eliminando}>
             Cancelar
           </Button>

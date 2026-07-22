@@ -10,6 +10,8 @@ import {
   TextField,
   Autocomplete,
   FormControl,
+  FormControlLabel,
+  Checkbox,
   InputLabel,
   Select,
   MenuItem,
@@ -18,73 +20,30 @@ import {
   Stack,
   Typography,
   Divider,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
-import { collection, doc, writeBatch } from "firebase/firestore";
+import { collection, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import { obtenerFechaInicialEfectiva, calcularVencimiento } from "./facturaUtils";
 
 const ESTADO_INICIAL_ITEM = {
   nombre: "",
   cantidad: "",
   dias: "",
+  fechaDespacho: "",
 };
 
 const formatearMonedaInput = (valor) =>
   valor ? Number(valor).toLocaleString("es-CO") : "";
 
 const limpiarMonedaInput = (texto) => texto.replace(/\D/g, "");
-
-const obtenerHoraBogota = () =>
-  Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Bogota",
-      hour: "numeric",
-      hour12: false,
-    }).format(new Date()),
-  );
-
-// Regla de negocio: antes de las 3pm (hora Colombia) el alquiler arranca el
-// mismo día; a partir de las 3pm arranca al día siguiente.
-const obtenerFechaInicialEfectiva = () => {
-  const ahora = new Date();
-  const horaBogota = obtenerHoraBogota();
-
-  const [anio, mes, dia] = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(ahora)
-    .split("-")
-    .map(Number);
-
-  const fechaBase = new Date(Date.UTC(anio, mes - 1, dia));
-  if (horaBogota >= 15) {
-    fechaBase.setUTCDate(fechaBase.getUTCDate() + 1);
-  }
-
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${fechaBase.getUTCFullYear()}-${pad(fechaBase.getUTCMonth() + 1)}-${pad(fechaBase.getUTCDate())}`;
-};
-
-// Vencimiento por equipo = fecha de inicio de la factura + sus propios días.
-const calcularVencimiento = (fechaIso, dias) => {
-  if (!fechaIso || !dias) return null;
-  const [anio, mes, dia] = fechaIso.split("-").map(Number);
-  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
-  fecha.setUTCDate(fecha.getUTCDate() + Number(dias));
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${fecha.getUTCFullYear()}-${pad(fecha.getUTCMonth() + 1)}-${pad(fecha.getUTCDate())}`;
-};
 
 const formatearFechaLegible = (fechaIso) => {
   if (!fechaIso) return "";
@@ -104,21 +63,34 @@ const obtenerNombreCliente = (cliente) => {
 // alquiler.
 const ESTADO_INICIAL_FACTURA = "pendienteDespacho";
 
-const obtenerEstadoInicial = () => ({
-  numeroFactura: "",
-  fecha: obtenerFechaInicialEfectiva(),
-  subtotal: "",
-  transporte: "",
-  valorTransporte: "",
-  deposito: "",
+// Si se pasa `factura`, precarga sus valores (modo edición); si no, arranca
+// en blanco (modo creación).
+const obtenerEstadoInicial = (factura) => ({
+  numeroFactura: factura?.numeroFactura ?? "",
+  fecha: factura?.fecha ?? obtenerFechaInicialEfectiva(),
+  subtotal: factura?.subtotal ? String(factura.subtotal) : "",
+  transporte: factura?.transporte ?? "",
+  valorTransporte: factura?.valorTransporte ? String(factura.valorTransporte) : "",
+  deposito: factura?.deposito ? String(factura.deposito) : "",
+  aplicaIva: factura?.aplicaIva ?? true,
+  tipoPago: factura?.tipoPago ?? "total",
+  montoPagado:
+    factura && factura.tipoPago !== "total" && factura.montoPagado
+      ? String(factura.montoPagado)
+      : "",
 });
 
-export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) {
+const TIPO_PAGO_INFO = {
+  total: { label: "Pago total" },
+  parcial: { label: "Parcial" },
+};
+
+export default function FacturaFormDialog({ open, onClose, cliente, factura, onGuardado }) {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const pantallaChica = useMediaQuery(theme.breakpoints.down("sm"));
+  const acento = theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
   const equiposCatalogo = useSelector((state) => state.equipos.equipos);
-  const [form, setForm] = useState(obtenerEstadoInicial);
+  const [form, setForm] = useState(() => obtenerEstadoInicial());
   const [equipos, setEquipos] = useState([]);
   const [nuevoItem, setNuevoItem] = useState(ESTADO_INICIAL_ITEM);
   const [errors, setErrors] = useState({});
@@ -133,15 +105,20 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
 
   useEffect(() => {
     if (!open) return;
-    setForm(obtenerEstadoInicial());
-    setEquipos([]);
-    setNuevoItem(ESTADO_INICIAL_ITEM);
+    const estadoInicial = obtenerEstadoInicial(factura);
+    setForm(estadoInicial);
+    setEquipos(
+      factura?.equipos?.length > 0 && typeof factura.equipos[0] === "object"
+        ? factura.equipos
+        : [],
+    );
+    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: estadoInicial.fecha });
     setErrors({});
-  }, [open]);
+  }, [open, factura]);
 
   const nombresEquiposCatalogo = equiposCatalogo.map((equipo) => equipo.name);
 
-  const ivaCalculado = (Number(form.subtotal) || 0) * 0.19;
+  const ivaCalculado = form.aplicaIva ? (Number(form.subtotal) || 0) * 0.19 : 0;
 
   // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
   // no se digita a mano.
@@ -150,6 +127,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
     ivaCalculado +
     (Number(form.valorTransporte) || 0) +
     (Number(form.deposito) || 0);
+
+  // Si el pago es total, lo pagado es el total calculado (no se digita a
+  // mano); si es parcial, lo pagado es lo que se escriba en el campo.
+  const montoPagadoCalculado =
+    form.tipoPago === "total" ? valorTotalCalculado : Number(form.montoPagado) || 0;
+  const saldoPendienteCalculado = Math.max(0, valorTotalCalculado - montoPagadoCalculado);
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -168,6 +151,15 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
     }));
   };
 
+  const handleChangeTipoPago = (e) => {
+    const valor = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      tipoPago: valor,
+      montoPagado: valor === "total" ? "" : prev.montoPagado,
+    }));
+  };
+
   const handleAgregarEquipo = () => {
     const nombre = nuevoItem.nombre.trim();
     const cantidad = Number(nuevoItem.cantidad);
@@ -177,19 +169,24 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
     if (!nombre) erroresItem.nombreEquipo = "Elegí o escribí un equipo.";
     if (!cantidad || cantidad <= 0) erroresItem.cantidadEquipo = "Cantidad inválida.";
     if (!dias || dias <= 0) erroresItem.diasEquipo = "Días inválidos.";
+    if (!nuevoItem.fechaDespacho) erroresItem.fechaDespachoEquipo = "Este campo es obligatorio.";
 
     if (Object.keys(erroresItem).length > 0) {
       setErrors((prev) => ({ ...prev, ...erroresItem, equipos: undefined }));
       return;
     }
 
-    setEquipos((prev) => [...prev, { nombre, cantidad, dias }]);
-    setNuevoItem(ESTADO_INICIAL_ITEM);
+    setEquipos((prev) => [
+      ...prev,
+      { nombre, cantidad, dias, fechaDespacho: nuevoItem.fechaDespacho },
+    ]);
+    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: form.fecha });
     setErrors((prev) => ({
       ...prev,
       nombreEquipo: undefined,
       cantidadEquipo: undefined,
       diasEquipo: undefined,
+      fechaDespachoEquipo: undefined,
       equipos: undefined,
     }));
   };
@@ -221,40 +218,56 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
     onClose();
   };
 
-  const handleCrear = async () => {
+  const handleGuardar = async () => {
     if (!validar()) return;
 
-    const nuevaFactura = {
+    const datosFactura = {
       numeroFactura: form.numeroFactura.trim(),
       fecha: form.fecha,
+      // Cada equipo tiene su propia fecha de despacho (pudo agregarse en un
+      // día distinto al de la factura); el vencimiento ya calculado se
+      // conserva, y solo se recalcula para los que todavía no lo tienen.
       equipos: equipos.map((item) => ({
         ...item,
-        fechaVencimiento: calcularVencimiento(form.fecha, item.dias),
+        fechaDespacho: item.fechaDespacho || form.fecha,
+        fechaVencimiento:
+          item.fechaVencimiento ??
+          calcularVencimiento(item.fechaDespacho || form.fecha, item.dias),
       })),
       subtotal: Number(form.subtotal) || 0,
       iva: ivaCalculado,
+      aplicaIva: form.aplicaIva,
       valorTotal: valorTotalCalculado,
       transporte: form.transporte || "",
       valorTransporte: Number(form.valorTransporte) || 0,
       deposito: Number(form.deposito) || 0,
-      estado: ESTADO_INICIAL_FACTURA,
+      tipoPago: form.tipoPago,
+      montoPagado: montoPagadoCalculado,
+      saldoPendiente: saldoPendienteCalculado,
     };
 
     setGuardando(true);
     try {
-      const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
-      const batch = writeBatch(db);
-      batch.set(facturaRef, nuevaFactura);
-      batch.update(doc(db, "clientes", cliente.id), {
-        estado: nuevaFactura.estado,
-      });
-      await batch.commit();
+      if (factura) {
+        await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), datosFactura);
+        showSnackbar("Factura actualizada correctamente.", "success");
+        onGuardado?.({ id: factura.id, ...factura, ...datosFactura });
+      } else {
+        const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
+        const nuevaFactura = { ...datosFactura, estado: ESTADO_INICIAL_FACTURA };
+        const batch = writeBatch(db);
+        batch.set(facturaRef, nuevaFactura);
+        batch.update(doc(db, "clientes", cliente.id), {
+          estado: nuevaFactura.estado,
+        });
+        await batch.commit();
 
-      showSnackbar("Factura creada correctamente.", "success");
-      onCreada?.({ id: facturaRef.id, ...nuevaFactura });
+        showSnackbar("Factura creada correctamente.", "success");
+        onGuardado?.({ id: facturaRef.id, ...nuevaFactura });
+      }
       onClose();
     } catch (error) {
-      showSnackbar(`Error al crear la factura: ${error.message}`, "error");
+      showSnackbar(`Error al guardar la factura: ${error.message}`, "error");
     } finally {
       setGuardando(false);
     }
@@ -262,15 +275,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
 
   return (
     <>
-      <Dialog
-        open={open}
-        onClose={handleCerrar}
-        fullWidth
-        maxWidth="sm"
-        fullScreen={pantallaChica}
-      >
-        <DialogTitle>
-          Crear Factura
+      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ color: acento }}>
+          {factura ? "Editar Factura" : "Crear Factura"}
           {cliente && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
               {cliente.tipo === "empresa" ? (
@@ -388,6 +395,23 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                     fullWidth
                   />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Fecha despacho de este equipo"
+                    type="date"
+                    value={nuevoItem.fechaDespacho}
+                    onChange={(e) =>
+                      setNuevoItem((prev) => ({
+                        ...prev,
+                        fechaDespacho: e.target.value,
+                      }))
+                    }
+                    error={!!errors.fechaDespachoEquipo}
+                    helperText={errors.fechaDespachoEquipo}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
                 <Grid item xs={12}>
                   <Button
                     variant="contained"
@@ -412,10 +436,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
               {equipos.length > 0 && (
                 <Grid container spacing={1} sx={{ mt: 0.5 }}>
                   {equipos.map((item, index) => {
-                    const vencimiento = calcularVencimiento(
-                      form.fecha,
-                      item.dias,
-                    );
+                    const despacho = item.fechaDespacho || form.fecha;
+                    const vencimiento =
+                      item.fechaVencimiento || calcularVencimiento(despacho, item.dias);
                     return (
                       <Grid item xs={12} sm={6} key={`${item.nombre}-${index}`}>
                         <Box
@@ -439,6 +462,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                               color="text.secondary"
                             >
                               {item.cantidad} unidad(es) · {item.dias} día(s)
+                              {despacho && ` · despacho ${formatearFechaLegible(despacho)}`}
                               {vencimiento &&
                                 ` · vence ${formatearFechaLegible(vencimiento)}`}
                             </Typography>
@@ -472,8 +496,18 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
                   fullWidth
                 />
 
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="subtitle1">IVA (19%)</Typography>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <FormControlLabel
+                    label="IVA (19%)"
+                    control={
+                      <Checkbox
+                        checked={form.aplicaIva}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, aplicaIva: e.target.checked }))
+                        }
+                      />
+                    }
+                  />
                   <Typography variant="subtitle1">
                     {ivaCalculado.toLocaleString("es-CO", {
                       style: "currency",
@@ -526,32 +560,100 @@ export default function FacturaFormDialog({ open, onClose, cliente, onCreada }) 
               <Box
                 sx={{
                   flex: 1,
+                  p: 2,
+                  borderRadius: 2,
+                  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                  bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 1,
-                  py: { xs: 2, sm: 0 },
+                  gap: 0.5,
                 }}
               >
-                <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
-                  TOTAL
-                </Typography>
-                <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
-                  {valorTotalCalculado.toLocaleString("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                  })}
-                </Typography>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                    TOTAL
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                    {valorTotalCalculado.toLocaleString("es-CO", {
+                      style: "currency",
+                      currency: "COP",
+                    })}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    sx={{ color: saldoPendienteCalculado > 0 ? "warning.main" : "text.secondary" }}
+                  >
+                    Saldo pendiente
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    sx={{ color: saldoPendienteCalculado > 0 ? "warning.main" : "text.secondary" }}
+                  >
+                    {saldoPendienteCalculado.toLocaleString("es-CO", {
+                      style: "currency",
+                      currency: "COP",
+                    })}
+                  </Typography>
+                </Box>
               </Box>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="factura-tipopago-label" htmlFor="factura-tipopago-input">
+                  Tipo de pago
+                </InputLabel>
+                <Select
+                  labelId="factura-tipopago-label"
+                  inputProps={{ id: "factura-tipopago-input" }}
+                  label="Tipo de pago"
+                  value={form.tipoPago}
+                  onChange={handleChangeTipoPago}
+                >
+                  {Object.entries(TIPO_PAGO_INFO).map(([valor, info]) => (
+                    <MenuItem key={valor} value={valor}>
+                      {info.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Monto pagado"
+                value={
+                  form.tipoPago === "total"
+                    ? formatearMonedaInput(montoPagadoCalculado)
+                    : formatearMonedaInput(form.montoPagado)
+                }
+                onChange={handleChangeMoneda("montoPagado")}
+                disabled={form.tipoPago === "total"}
+                fullWidth
+              />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCerrar} disabled={guardando}>
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
+          <Button variant="danger" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          <Button variant="contained" onClick={handleCrear} disabled={guardando}>
-            {guardando ? "Creando..." : "Crear Factura"}
+          <Button variant="success" onClick={handleGuardar} disabled={guardando}>
+            {guardando
+              ? "Guardando..."
+              : factura
+                ? "Guardar Cambios"
+                : "Crear Factura"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -565,5 +667,6 @@ FacturaFormDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   cliente: PropTypes.object,
-  onCreada: PropTypes.func,
+  factura: PropTypes.object,
+  onGuardado: PropTypes.func,
 };

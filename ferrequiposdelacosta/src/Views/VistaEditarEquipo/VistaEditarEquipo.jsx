@@ -81,12 +81,18 @@ const VistaEditarEquipo = () => {
             <Button
               variant="contained"
               fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.7rem" }}
               onClick={() => navigate("/vistaseleccionarequipo")}
             >
               SELECCIONA OTRO EQUIPO
             </Button>
 
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
+            <Button
+              onClick={handlerLogout}
+              variant="danger"
+              fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+            >
               CERRAR SESION
             </Button>
           </Stack>

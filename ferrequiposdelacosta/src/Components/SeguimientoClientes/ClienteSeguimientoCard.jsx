@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   IconButton,
   Menu,
@@ -15,11 +16,14 @@ import {
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import PhoneIcon from "@mui/icons-material/Phone";
+import UpdateIcon from "@mui/icons-material/Update";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
 const ESTADO_FACTURA_INFO = {
-  pendienteDespacho: { label: "Pendiente de despacho" },
+  pendienteDespacho: { label: "Pendiente despacho" },
   despachada: { label: "Despachada" },
   devolucionParcial: { label: "Devolución parcial" },
   finalizada: { label: "Finalizada" },
@@ -47,12 +51,21 @@ const formatearFecha = (isoDate) => {
   return `${dia}/${mes}/${anio}`;
 };
 
-export default function ClienteSeguimientoCard({ cliente, facturas, onCambiarEstado }) {
+export default function ClienteSeguimientoCard({
+  cliente,
+  facturas,
+  hoy,
+  onCambiarEstado,
+  onEquiposActualizados,
+}) {
   const theme = useTheme();
+  const acento =
+    theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const [tabFactura, setTabFactura] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [detalleAbierto, setDetalleAbierto] = useState(false);
+  const [ampliarOpen, setAmpliarOpen] = useState(false);
 
   const avatarBgPorEstado = {
     pendienteDespacho: "#7E57C2",
@@ -122,23 +135,40 @@ export default function ClienteSeguimientoCard({ cliente, facturas, onCambiarEst
               <Typography variant="caption" color="text.secondary">
                 {cliente.telefono}
               </Typography>
-              <IconButton
-                size="small"
-                component="a"
-                href={`https://wa.me/${numeroWhatsapp}`}
-                target="_blank"
-                rel="noopener"
-                sx={{
-                  bgcolor: "#25D366",
-                  color: "#FFFFFF",
-                  width: 18,
-                  height: 18,
-                  ml: 0.5,
-                  "&:hover": { bgcolor: "#128C7E" },
-                }}
-              >
-                <WhatsAppIcon sx={{ fontSize: 11 }} />
-              </IconButton>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ ml: 0.5 }}>
+                <IconButton
+                  size="small"
+                  component="a"
+                  href={`https://wa.me/${numeroWhatsapp}`}
+                  target="_blank"
+                  rel="noopener"
+                  sx={{
+                    bgcolor: "#25D366",
+                    color: "#FFFFFF",
+                    width: 18,
+                    height: 18,
+                    "&:hover": { bgcolor: "#128C7E" },
+                  }}
+                >
+                  <WhatsAppIcon sx={{ fontSize: 11 }} />
+                </IconButton>
+                {esMovil && (
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={`tel:${cliente.telefono}`}
+                    sx={{
+                      bgcolor: "#34B7F1",
+                      color: "#FFFFFF",
+                      width: 18,
+                      height: 18,
+                      "&:hover": { bgcolor: "#269BD1" },
+                    }}
+                  >
+                    <PhoneIcon sx={{ fontSize: 11 }} />
+                  </IconButton>
+                )}
+              </Stack>
             </Stack>
           ) : (
             cliente.telefono && (
@@ -279,35 +309,74 @@ export default function ClienteSeguimientoCard({ cliente, facturas, onCambiarEst
                       </strong>{" "}
                       x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
                     </Typography>
-                    {equipo.fechaVencimiento && (
-                      <Typography variant="body2" sx={{ color: "secondary.light" }}>
-                        Vence hoy: {formatearFecha(equipo.fechaVencimiento)}
+                    {equipo.fechaDespacho && (
+                      <Typography variant="body2" color="text.secondary">
+                        Despacho: {formatearFecha(equipo.fechaDespacho)}
                       </Typography>
+                    )}
+                    {equipo.vencimientoIndefinido ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Entrega indefinida — cliente debe avisar
+                      </Typography>
+                    ) : (
+                      <>
+                        {equipo.fechaVencimientoOriginal && (
+                          <Typography variant="body2" sx={{ color: "error.main", fontWeight: "bold" }}>
+                            Vencido: {formatearFecha(equipo.fechaVencimientoOriginal)}
+                          </Typography>
+                        )}
+                        {equipo.fechaVencimiento && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color:
+                                hoy && equipo.fechaVencimiento < hoy
+                                  ? "error.main"
+                                  : "secondary.light",
+                              fontWeight: hoy && equipo.fechaVencimiento < hoy ? "bold" : "normal",
+                            }}
+                          >
+                            {hoy && equipo.fechaVencimiento < hoy
+                              ? "Venció"
+                              : hoy && equipo.fechaVencimiento === hoy
+                                ? "Vence hoy"
+                                : "Vence"}
+                            : {formatearFecha(equipo.fechaVencimiento)}
+                          </Typography>
+                        )}
+                      </>
                     )}
                   </Stack>
                 ))}
               </Stack>
             )}
 
+            {!esMovil && (
+              <Button
+                size="small"
+                startIcon={<UpdateIcon />}
+                onClick={() => setAmpliarOpen(true)}
+                sx={{ mb: 0.5, color: acento }}
+              >
+                Ampliar vencimiento
+              </Button>
+            )}
+
             {esMovil ? (
               <Box>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  onClick={() => setDetalleAbierto((prev) => !prev)}
-                  sx={{ cursor: "pointer" }}
-                >
-                  {valorTotal && (
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight="bold"
-                      sx={{ color: "secondary.dark" }}
-                    >
-                      Total {valorTotal}
-                    </Typography>
-                  )}
-                  <IconButton size="small">
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Button
+                    size="small"
+                    startIcon={<UpdateIcon />}
+                    onClick={() => setAmpliarOpen(true)}
+                    sx={{ color: acento }}
+                  >
+                    Ampliar vencimiento
+                  </Button>
+                  <IconButton
+                    size="small"
+                    onClick={() => setDetalleAbierto((prev) => !prev)}
+                  >
                     {detalleAbierto ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -323,37 +392,85 @@ export default function ClienteSeguimientoCard({ cliente, facturas, onCambiarEst
                     {(transporteTipo || transporteMonto) && (
                       <Typography variant="body2">{textoTransporte}</Typography>
                     )}
+                    {valorTotal && (
+                      <Box
+                        sx={{
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: 2,
+                          boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                          bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight="bold"
+                          sx={{ color: "secondary.dark" }}
+                        >
+                          Total {valorTotal}
+                        </Typography>
+                      </Box>
+                    )}
                   </Stack>
                 )}
               </Box>
             ) : (
-              <Stack direction="row" spacing={2} flexWrap="wrap">
-                {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
-                {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
-                {(transporteTipo || transporteMonto) && (
-                  <Typography variant="body2">{textoTransporte}</Typography>
-                )}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                  gap: 2,
+                }}
+              >
+                <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
+                  {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
+                  {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
+                  {(transporteTipo || transporteMonto) && (
+                    <Typography variant="body2">{textoTransporte}</Typography>
+                  )}
+                </Stack>
+
                 {valorTotal && (
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                    sx={{ color: "secondary.dark" }}
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 2,
+                      boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                      bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                    }}
                   >
-                    Total {valorTotal}
-                  </Typography>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight="bold"
+                      sx={{ color: "secondary.dark" }}
+                    >
+                      Total {valorTotal}
+                    </Typography>
+                  </Box>
                 )}
-              </Stack>
+              </Box>
             )}
           </Box>
         </Box>
       </Box>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-        <MenuItem onClick={() => handleCambiar("pendienteDespacho")}>Pendiente de despacho</MenuItem>
+        <MenuItem onClick={() => handleCambiar("pendienteDespacho")}>Pendiente despacho</MenuItem>
         <MenuItem onClick={() => handleCambiar("despachada")}>Despachada</MenuItem>
         <MenuItem onClick={() => handleCambiar("devolucionParcial")}>Devolución parcial</MenuItem>
         <MenuItem onClick={() => handleCambiar("finalizada")}>Finalizada</MenuItem>
       </Menu>
+
+      <AmpliarVencimientoDialog
+        open={ampliarOpen}
+        onClose={() => setAmpliarOpen(false)}
+        cliente={cliente}
+        factura={factura}
+        onActualizado={onEquiposActualizados}
+      />
     </Box>
   );
 }
@@ -361,5 +478,7 @@ export default function ClienteSeguimientoCard({ cliente, facturas, onCambiarEst
 ClienteSeguimientoCard.propTypes = {
   cliente: PropTypes.object.isRequired,
   facturas: PropTypes.array.isRequired,
+  hoy: PropTypes.string,
   onCambiarEstado: PropTypes.func.isRequired,
+  onEquiposActualizados: PropTypes.func,
 };

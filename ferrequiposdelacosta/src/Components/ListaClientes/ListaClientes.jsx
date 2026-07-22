@@ -40,7 +40,7 @@ import ClienteFormDialog from "./ClienteFormDialog";
 const FILTROS = [
   { valor: "todos", label: "Todos" },
   { valor: "inactivo", label: "Inactivos" },
-  { valor: "pendienteDespacho", label: "Pendiente de despacho" },
+  { valor: "pendienteDespacho", label: "Pendiente despacho" },
   { valor: "despachada", label: "Despachadas" },
   { valor: "devolucionParcial", label: "Devolución parcial" },
   { valor: "finalizada", label: "Finalizadas" },
@@ -56,7 +56,7 @@ const FILTROS_TIPO = [
 // prop `color` de MUI) para no repetir colores ya usados en otros botones.
 const ESTADO_INFO = {
   inactivo: { label: "Inactivo" },
-  pendienteDespacho: { label: "Pendiente de despacho" },
+  pendienteDespacho: { label: "Pendiente despacho" },
   despachada: { label: "Despachada" },
   devolucionParcial: { label: "Devolución parcial" },
   finalizada: { label: "Finalizada" },
@@ -457,7 +457,7 @@ export default function ListaClientes() {
                           boxShadow: 1,
                         }}
                       >
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Stack direction="row" spacing={1.5} alignItems="center">
                             <Avatar
                               sx={{
@@ -490,12 +490,6 @@ export default function ListaClientes() {
                                   Sin teléfono registrado
                                 </Typography>
                               )}
-
-                              {cliente.direccion && (
-                                <Typography variant="caption" color="text.secondary" component="div">
-                                  {cliente.direccion}
-                                </Typography>
-                              )}
                             </Box>
                           </Stack>
 
@@ -513,6 +507,16 @@ export default function ListaClientes() {
                             }}
                           />
                         </Stack>
+
+                        {cliente.direccion && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.75, pl: "52px" }}
+                          >
+                            {cliente.direccion}
+                          </Typography>
+                        )}
 
                         <Divider sx={{ my: 0.75 }} />
 

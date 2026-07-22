@@ -295,11 +295,21 @@ export default function VistaCotizacion() {
             justifyContent="center"
             alignItems="stretch"
           >
-            <Button variant="contained" fullWidth onClick={handleGuardarYSalirClick}>
+            <Button
+              variant="contained"
+              fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+              onClick={handleGuardarYSalirClick}
+            >
               Guardar y Salir
             </Button>
 
-            <Button onClick={handleLogoutClick} variant="danger" fullWidth>
+            <Button
+              onClick={handleLogoutClick}
+              variant="danger"
+              fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+            >
               CERRAR SESION
             </Button>
           </Stack>

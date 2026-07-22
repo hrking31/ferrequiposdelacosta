@@ -230,12 +230,18 @@ const VistaSeleccionarEquipo = () => {
             <Button
               variant="contained"
               fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
               onClick={() => navigate("/adminforms")}
             >
               MENU
             </Button>
 
-            <Button onClick={handlerLogout} variant="danger" fullWidth>
+            <Button
+              onClick={handlerLogout}
+              variant="danger"
+              fullWidth
+              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+            >
               CERRAR SESIÓN
             </Button>
           </Stack>

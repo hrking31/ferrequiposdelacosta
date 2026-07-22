@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   Box,
   Typography,
@@ -19,11 +20,13 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 const EditarEquipo = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(
     () => location.state?.equipo || null
   );
@@ -246,6 +249,11 @@ const EditarEquipo = () => {
       const equipoRef = doc(db, "equipos", equipoId);
       await updateDoc(equipoRef, datosActualizados);
 
+      // El catálogo de equipos vive en Redux y solo se carga una vez por
+      // sesión; sin este refresh, el resto de la app (kiosco, selector de
+      // equipos, etc.) seguiría mostrando las imágenes viejas hasta recargar.
+      dispatch(fetchEquiposData());
+
       showSnackbar("Equipo actualizado con éxito", "success");
     } catch (error) {
       console.error("❌ Error al actualizar el equipo:", error);
@@ -266,8 +274,6 @@ const EditarEquipo = () => {
   };
 
   const cambiarOrden = () => {
-    const nuevaLista = [];
-
     const indicesActuales = Object.keys(newIndices);
     const totalImagenes = formData.images.length;
 
@@ -279,6 +285,23 @@ const EditarEquipo = () => {
       return;
     }
 
+    // Si dos imágenes quedan con la misma posición nueva, una pisaría a la
+    // otra y la perderíamos en silencio: se valida antes de aplicar.
+    const nuevosValores = Object.values(newIndices);
+    const posicionesUnicas = new Set(nuevosValores);
+    const posicionesValidas = nuevosValores.every(
+      (valor) => Number.isInteger(valor) && valor >= 0 && valor < totalImagenes,
+    );
+
+    if (!posicionesValidas || posicionesUnicas.size !== nuevosValores.length) {
+      showSnackbar(
+        `Cada imagen debe tener una posición distinta, entre 1 y ${totalImagenes}.`,
+        "warning",
+      );
+      return;
+    }
+
+    const nuevaLista = [];
     const copiaImagenes = [...formData.images];
     Object.entries(newIndices).forEach(([indexOriginal, nuevoIndex]) => {
       nuevaLista[nuevoIndex] = copiaImagenes[indexOriginal];
@@ -443,7 +466,7 @@ const EditarEquipo = () => {
                         <Typography variant="body2">{image.name}</Typography>
 
                         <Typography variant="body2" sx={{ mb: 2 }}>
-                          Posición: {index}
+                          Posición: {index + 1}
                         </Typography>
 
                         <TextField
@@ -451,16 +474,16 @@ const EditarEquipo = () => {
                           label="Nueva Posición"
                           type="number"
                           fullWidth
-                          value={newIndices[index] ?? ""}
+                          value={newIndices[index] !== undefined ? newIndices[index] + 1 : ""}
                           onChange={(e) =>
                             setNewIndices({
                               ...newIndices,
-                              [index]: Number(e.target.value),
+                              [index]: Number(e.target.value) - 1,
                             })
                           }
                           inputProps={{
-                            min: 0,
-                            max: formData.images.length - 1,
+                            min: 1,
+                            max: formData.images.length,
                           }}
                         />
 

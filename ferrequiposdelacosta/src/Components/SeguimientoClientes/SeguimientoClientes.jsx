@@ -19,13 +19,19 @@ const obtenerFechaHoyBogota = () => {
 };
 
 // Una factura entra a seguimiento cuando no está Finalizada y al menos un
-// equipo ya llegó (o pasó) su fecha de vencimiento.
+// equipo ya llegó (o pasó) su fecha de vencimiento — o ya se le amplió el
+// vencimiento o quedó indefinido: una vez que un equipo necesitó
+// seguimiento, se queda en la lista hasta que la factura se finalice, no
+// desaparece solo porque se le corrió la fecha.
 const facturaEnSeguimiento = (factura, hoyIso) => {
   if (factura.estado === "finalizada") return false;
   if (!Array.isArray(factura.equipos)) return false;
   return factura.equipos.some(
     (equipo) =>
-      typeof equipo === "object" && equipo.fechaVencimiento && equipo.fechaVencimiento <= hoyIso,
+      typeof equipo === "object" &&
+      ((equipo.fechaVencimiento && equipo.fechaVencimiento <= hoyIso) ||
+        equipo.vencimientoIndefinido ||
+        equipo.fechaVencimientoOriginal),
   );
 };
 
@@ -137,7 +143,9 @@ export default function SeguimientoClientes() {
               key={cliente.id}
               cliente={cliente}
               facturas={facturas}
+              hoy={obtenerFechaHoyBogota()}
               onCambiarEstado={handleCambiarEstadoFactura}
+              onEquiposActualizados={() => fetchSeguimiento(true)}
             />
           ))}
         </Stack>
