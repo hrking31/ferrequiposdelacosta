@@ -1,16 +1,56 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 
-const admin = require("firebase-admin");
+const {initializeApp} = require("firebase-admin/app");
+const {getFirestore, FieldValue} = require("firebase-admin/firestore");
+const {getAuth} = require("firebase-admin/auth");
+const {getDatabase, ServerValue} = require("firebase-admin/database");
 
-admin.initializeApp();
+initializeApp();
 
 setGlobalOptions({
   maxInstances: 10,
   cors: true,
 });
 
+// Mismo mapeo que src/Components/RolesPermisos/RolesPermisos.jsx: solo estos
+// roles tienen los permisos "crearUsuarios"/"eliminarUsuarios". Si se agrega
+// ahí otro rol con esos permisos, agregarlo también acá.
+const ROLES_CON_PERMISO_USUARIOS = ["administrador"];
+
+/**
+ * Verifica que quien llama esté logueado y tenga rol con permiso para
+ * gestionar usuarios. createUser/deleteUser crean o borran cuentas reales
+ * de Firebase Auth: sin esta verificación, cualquiera en internet podía
+ * llamarlas sin loguearse.
+ * @param {Object} request Request recibido por la Cloud Function onCall.
+ * @return {Promise} Promesa vacía; lanza HttpsError si no autoriza.
+ */
+async function verificarPermisoUsuarios(request) {
+  if (!request.auth) {
+    throw new HttpsError(
+        "unauthenticated",
+        "Tenés que iniciar sesión para hacer esto.",
+    );
+  }
+
+  const perfilSnap = await getFirestore()
+      .collection("users")
+      .doc(request.auth.uid)
+      .get();
+  const role = perfilSnap.exists ? perfilSnap.data().role : null;
+
+  if (!ROLES_CON_PERMISO_USUARIOS.includes(role)) {
+    throw new HttpsError(
+        "permission-denied",
+        "No tenés permiso para gestionar usuarios.",
+    );
+  }
+}
+
 exports.createUser = onCall(async (request) => {
+  await verificarPermisoUsuarios(request);
+
   try {
     const {email, password, name, genero, role, permisos} = request.data;
 
@@ -21,18 +61,18 @@ exports.createUser = onCall(async (request) => {
       );
     }
 
-    const userRecord = await admin.auth().createUser({
+    const userRecord = await getAuth().createUser({
       email,
       password,
     });
 
-    await admin.firestore().collection("users").doc(userRecord.uid).set({
+    await getFirestore().collection("users").doc(userRecord.uid).set({
       name,
       genero,
       email,
       role,
       permisos,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     return {
@@ -69,6 +109,8 @@ exports.createUser = onCall(async (request) => {
 });
 
 exports.deleteUser = onCall(async (request) => {
+  await verificarPermisoUsuarios(request);
+
   try {
     const {email} = request.data;
 
@@ -79,12 +121,12 @@ exports.deleteUser = onCall(async (request) => {
       );
     }
 
-    const userRecord = await admin.auth().getUserByEmail(email);
+    const userRecord = await getAuth().getUserByEmail(email);
     const uid = userRecord.uid;
 
-    await admin.firestore().collection("users").doc(uid).delete();
+    await getFirestore().collection("users").doc(uid).delete();
 
-    await admin.auth().deleteUser(uid);
+    await getAuth().deleteUser(uid);
 
     return {
       success: true,
@@ -124,7 +166,7 @@ exports.crearCotizacion = onCall(async (request) => {
   }
 
   try {
-    const db = admin.database();
+    const db = getDatabase();
     const cotizacionesRef = db.ref("cotizaciones");
 
     const newQuotationRef = cotizacionesRef.push();
@@ -132,11 +174,11 @@ exports.crearCotizacion = onCall(async (request) => {
     const finalData = {
       ...quotationData,
       atendidoPor: "",
-      atendidoPorUid: uid,
+      atendidoPorUid: "",
       status: "pendiente",
       id: newQuotationRef.key,
       cotizacionId: `COT-${Date.now()}`,
-      createdAt: admin.database.ServerValue.TIMESTAMP,
+      createdAt: ServerValue.TIMESTAMP,
     };
 
     await newQuotationRef.set(finalData);
