@@ -22,7 +22,16 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
           boxShadow: isSelected
             ? "0 4px 12px rgba(102, 155, 188, 0.3)"
             : "0 2px 8px rgba(0, 0, 0, 0.08)",
-          border: isSelected ? "2px solid #669BBC" : undefined,
+          border: "1px solid",
+          borderColor: isSelected ? "#669BBC" : "divider",
+          borderTop: (theme) =>
+            isSelected
+              ? "2px solid #669BBC"
+              : `4px solid ${
+                  theme.palette.mode === "light"
+                    ? theme.palette.secondary.main
+                    : theme.palette.secondary.light
+                }`,
         }}
       >
         <CardActionArea>
@@ -38,13 +47,25 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
             }}
           />
 
-          <Box p={2}>
+          <Box
+            p={2}
+            sx={{
+              bgcolor: (theme) =>
+                !isSelected && theme.palette.mode === "light"
+                  ? "secondary.main"
+                  : undefined,
+            }}
+          >
             <Typography
               variant="body1"
               title={name}
               sx={{
                 fontWeight: isSelected ? 700 : undefined,
-                color: isSelected ? "#669BBC" : theme.palette.custom.primary,
+                color: isSelected
+                  ? "#669BBC"
+                  : theme.palette.mode === "light"
+                    ? "#F7F7F7"
+                    : theme.palette.custom.primary,
               }}
             >
               {name}

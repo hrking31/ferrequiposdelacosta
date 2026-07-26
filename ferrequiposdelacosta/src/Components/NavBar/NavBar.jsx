@@ -77,9 +77,11 @@ export default function MenuAppBar() {
               cursor: "pointer",
               p: 0.5,
               borderRadius: 50,
+              // El círculo del logo siempre es blanco (marca fija): no debe
+              // seguir el color de "primary.light", que cambia según el tema.
               backgroundColor:
                 theme.palette.mode === "light"
-                  ? theme.palette.primary.light
+                  ? "#FFFFFF"
                   : theme.palette.secondary.light,
               display: "flex",
               alignItems: "center",
@@ -117,10 +119,9 @@ export default function MenuAppBar() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.light
-                  : theme.palette.secondary.light,
+              // Mismo color que el título del NavBar (h1), no "primary.light"
+              // (ese token cambia de tema en tema y no está pensado para esto).
+              color: theme.palette.mode === "light" ? "#FFFFFF" : theme.palette.secondary.light,
               "&:hover": {
                 backgroundColor: "transparent",
               },

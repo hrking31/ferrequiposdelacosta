@@ -105,6 +105,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
           maxWidth: isMobile ? 500 : 800,
           borderRadius: isMobile ? "40px 40px 40px 40px" : "8px 40px 40px 8px",
           bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
           boxShadow: "0 4px 20px 0 rgba(0,0,0,0.04)",
           flexShrink: 0,
           boxSizing: "border-box",
@@ -134,7 +136,9 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                   lineHeight: 1.2,
                   textTransform: "capitalize",
                   color: (theme) =>
-                    theme.palette.mode === "light" ? "#E2E8F0" : "#A0AEC0",
+                    theme.palette.mode === "light"
+                      ? theme.palette.text.secondary
+                      : "#A0AEC0",
                 }}
               >
                 {saludo || ""}

@@ -37,7 +37,7 @@ export default function Footer() {
           gap: 1,
           color:
             theme.palette.mode === "light"
-              ? theme.palette.primary.light
+              ? theme.palette.primary.main
               : theme.palette.secondary.light,
         }}
       >
@@ -130,7 +130,7 @@ export default function Footer() {
         sx={{
           color:
             theme.palette.mode === "light"
-              ? theme.palette.primary.light
+              ? theme.palette.primary.main
               : theme.palette.secondary.light,
           mt: { xs: 0.5, md: 1 },
           fontSize: {

@@ -32,6 +32,14 @@ export default function KioskAdminCotizaciones() {
   const theme = useTheme();
   const acento =
     theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+  // Mismo criterio que ClienteSeguimientoCard: el color va en el estado
+  // puntual (el Chip), no en toda la tarjeta.
+  const coloresEstado = {
+    creada: theme.palette.grey[500],
+    pendiente: theme.palette.warning.main,
+    enProceso: theme.palette.info.main,
+    pausada: theme.palette.grey[600],
+  };
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { name, uid } = useSelector((state) => state.user);
@@ -210,10 +218,9 @@ export default function KioskAdminCotizaciones() {
             sx={{
               position: "relative",
               overflow: "visible",
-              backgroundColor: (theme) =>
-                theme.palette.mode === "light"
-                  ? "secondary.main"
-                  : "primary.main",
+              backgroundColor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: "8px 8px 0 0",
               outline: "1px solid transparent",
               willChange: "transform, box-shadow",
@@ -342,16 +349,18 @@ export default function KioskAdminCotizaciones() {
                     }
                     sx={{
                       fontWeight: "bold",
-                      color: "text.secondary",
                       borderRadius: "6px",
                       fontSize: "0.75rem",
                       height: "26px",
                       border: "none",
-
-                      boxShadow: (theme) =>
-                        theme.palette.mode === "light"
-                          ? "inset 1px 2px 4px rgba(0, 0, 0, 0.12), inset -1px -1px 2px rgba(255, 255, 255, 0.5)"
-                          : "inset 1px 2px 4px rgba(0, 0, 0, 0.5), inset -1px -1px 1px rgba(255, 255, 255, 0.05)",
+                      boxShadow: 2,
+                      bgcolor:
+                        coloresEstado[quotation.status] ||
+                        theme.palette.grey[500],
+                      color: theme.palette.getContrastText(
+                        coloresEstado[quotation.status] ||
+                          theme.palette.grey[500],
+                      ),
                     }}
                   />
 

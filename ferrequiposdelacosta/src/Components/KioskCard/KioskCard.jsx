@@ -23,6 +23,14 @@ export default function KioskCard({ name, url, id }) {
             flexDirection: "column",
             height: "100%",
             borderRadius: 4,
+            border: "1px solid",
+            borderColor: "divider",
+            borderTop: (theme) =>
+              `4px solid ${
+                theme.palette.mode === "light"
+                  ? theme.palette.secondary.main
+                  : theme.palette.secondary.light
+              }`,
             transition: "transform 0.2s",
             "&:active": { transform: "scale(0.95)" },
           }}
@@ -49,14 +57,18 @@ export default function KioskCard({ name, url, id }) {
                 height: { xs: 55, sm: 50, md: 70 },
                 alignItems: "center",
                 justifyContent: "center",
-                // border: "2px solid #000",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "light" ? "secondary.main" : undefined,
               }}
             >
               <Typography
                 variant="body1"
                 title={name}
                 sx={{
-                  color: theme.palette.custom.primary,
+                  color:
+                    theme.palette.mode === "light"
+                      ? "#F7F7F7"
+                      : theme.palette.custom.primary,
                   display: "-webkit-box",
                   WebkitBoxOrient: "vertical",
                   WebkitLineClamp: 3,

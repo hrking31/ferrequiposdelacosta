@@ -99,21 +99,18 @@ export default function AdminForms() {
   const filas = Math.ceil(botonesVisibles.length / columnas) || 1;
   const gapPx = isCompact ? 12 : 32;
 
+  // La forma del botón (ícono arriba, texto abajo, etc.) ya vive en el
+  // tema como variant="adminSquare". Acá solo queda lo que de verdad
+  // depende de esta pantalla: cuántos botones entran y el tamaño de
+  // pantalla, algo que el tema no puede saber de antemano.
   const buttonStyle = {
     width: `calc((100% - ${(columnas - 1) * gapPx}px) / ${columnas})`,
     height: `calc((100% - ${(filas - 1) * gapPx}px) / ${filas})`,
     maxWidth: 240,
     maxHeight: 150,
     minHeight: 90,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
     gap: isCompact ? 1 : 2,
     fontSize: isCompact ? "0.7rem" : "0.875rem",
-    overflow: "hidden",
-    textAlign: "center",
-    // border: "2px solid red",
   };
 
   return (
@@ -186,8 +183,7 @@ export default function AdminForms() {
             <Grid item xs={12} sm={5} md={4}>
               <Button
                 onClick={handlerLogout}
-                variant="danger"
-                fullWidth
+                variant="menuLogout"
                 startIcon={<LogoutIcon />}
               >
                 CERRAR SESIÓN

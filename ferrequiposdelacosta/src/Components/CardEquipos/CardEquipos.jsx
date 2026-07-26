@@ -21,7 +21,14 @@ export default function CardEquipos({ name, url, id }) {
             display: "flex",
             flexDirection: "column",
             height: { xs: 235, sm: 330, md: 470 },
-            // border: "2px solid #000",
+            border: "1px solid",
+            borderColor: "divider",
+            borderTop: (theme) =>
+              `4px solid ${
+                theme.palette.mode === "light"
+                  ? theme.palette.secondary.main
+                  : theme.palette.secondary.light
+              }`,
           }}
         >
           <CardActionArea sx={{ flexDirection: "column" }}>
@@ -46,14 +53,18 @@ export default function CardEquipos({ name, url, id }) {
                 height: { xs: 55, sm: 50, md: 70 },
                 alignItems: "center",
                 justifyContent: "center",
-                // border: "2px solid #000",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "light" ? "secondary.main" : undefined,
               }}
             >
               <Typography
                 variant="body1"
                 title={name}
                 sx={{
-                  color: theme.palette.custom.primary,
+                  color:
+                    theme.palette.mode === "light"
+                      ? "#F7F7F7"
+                      : theme.palette.custom.primary,
                   display: "-webkit-box",
                   WebkitBoxOrient: "vertical",
                   WebkitLineClamp: 3,

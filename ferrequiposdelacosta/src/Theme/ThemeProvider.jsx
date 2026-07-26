@@ -29,9 +29,11 @@ export const CustomThemeProvider = ({ children }) => {
     if (isKioskRoute) {
       setMode("dark"); // Oscuro si esta en el visor
     } else {
-      //Restaurar el modo guardado si sale del kiosco
-      const stored = localStorage.getItem("theme");
-      if (stored) setMode(stored);
+      // Restaurar el modo guardado si sale del kiosco; si nunca guardó
+      // ninguno, usar la misma preferencia del sistema que en la carga
+      // inicial (antes se quedaba pegado en oscuro si no había nada
+      // guardado).
+      setMode(getInitialMode());
     }
   }, [location.pathname]); // Se dispara cada vez que cambias de página
 
@@ -63,51 +65,52 @@ export const CustomThemeProvider = ({ children }) => {
   );
 
   const theme = useMemo(() => {
-    const scrollbarAcento = mode === "light" ? "#3A5169" : "#FFD166";
+    // Scrollbar amarillo en modo oscuro y azul acero en modo claro
+    const scrollbarAcento = mode === "light" ? "#1E293B" : "#FFB800";
 
     let newTheme = createTheme({
       palette: {
         mode,
         primary: {
-          light: "#F7F7F7", // Blaco
-          main: "#3A5169", // Azul industrial más claro
-          dark: "#1E2A3A", // Versión oscura más suave
-          contrastText: "#FFFFFF",
+          main: mode === "light" ? "#1E293B" : "#FFB800", // Azul Acero / Amarillo Maquinaria
+          light: mode === "light" ? "#334155" : "#FFC72C",
+          dark: mode === "light" ? "#0F172A" : "#D97706",
+          contrastText: mode === "light" ? "#FFFFFF" : "#0F172A",
         },
         secondary: {
-          light: "#FFD166", // Amarillo alerta claro
-          main: "#FF6B35", // Naranja seguridad
-          dark: "#D64045", // Rojo maquinaria
+          main: "#EA580C", // Naranja Seguridad Viento/Obra
+          light: "#FFB800", // Amarillo Alerta
+          dark: "#C2410C",
           contrastText: "#FFFFFF",
         },
         success: {
-          main: "#4CB944",
+          main: "#16A34A", // Verde para disponible / en buen estado
           contrastText: "#FFFFFF",
         },
         warning: {
-          main: "#FFD166",
-          contrastText: "#1A1A1A",
+          main: "#F59E0B", // Amarillo prevención
+          contrastText: "#0F172A",
         },
         error: {
-          main: "#D64045",
+          main: "#DC2626", // Rojo fuera de servicio
           contrastText: "#FFFFFF",
         },
         info: {
-          main: "#0288d1",
+          main: "#0284C7",
           contrastText: "#FFFFFF",
         },
 
         background: {
-          default: mode === "light" ? "#F5F7FA" : "#313D4A",
-          paper: mode === "light" ? "#FF6B35" : "#3A5169",
+          default: mode === "light" ? "#F1F5F9" : "#0F172A", // Gris concreto claro / Azul noche oscuro
+          paper: mode === "light" ? "#FFFFFF" : "#1E293B",
         },
         text: {
-          primary: mode === "light" ? "#1A1A1A" : "#F7F7F7",
-          secondary: mode === "light" ? "#5C6B73" : "#A0AEC0",
+          primary: mode === "light" ? "#0F172A" : "#F8FAFC",
+          secondary: mode === "light" ? "#475569" : "#94A3B8",
         },
         custom: {
-          primary: mode === "light" ? "#F7F7F7" : "#FFD166",
-          secondary: mode === "light" ? "#3A5169" : "#FFD166",
+          primary: mode === "light" ? "#1E293B" : "#FFB800",
+          secondary: mode === "light" ? "#EA580C" : "#F8FAFC",
         },
       },
       typography: {
@@ -115,11 +118,13 @@ export const CustomThemeProvider = ({ children }) => {
 
         h1: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 700,
+          fontWeight: 800,
           fontSize: "2.5rem",
           lineHeight: 1.2,
-          letterSpacing: "-0.01562em",
-          color: mode === "light" ? "#F7F7F7" : "#FFD166",
+          letterSpacing: "-0.02em",
+          // h1 solo se usa hoy en el título del NavBar, que siempre va
+          // sobre una barra oscura (ver MuiAppBar) — necesita texto claro.
+          color: mode === "light" ? "#FFFFFF" : "#FFB800",
 
           "@media (max-width:1200px)": {
             fontSize: "2.5rem",
@@ -139,10 +144,10 @@ export const CustomThemeProvider = ({ children }) => {
 
         h2: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: "2.25rem", // 36px base
           lineHeight: 1.3,
-          color: mode === "light" ? "#F7F7F7" : "#FFD166",
+          color: mode === "light" ? "#1E293B" : "#FFB800",
 
           "@media (max-width:1200px)": {
             fontSize: "2rem", // 32px
@@ -160,9 +165,9 @@ export const CustomThemeProvider = ({ children }) => {
 
         h5: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: "1.2rem",
-          color: mode === "light" ? "#3A5169" : "#FFD166",
+          color: mode === "light" ? "#1E293B" : "#FFB800",
 
           "@media (max-width:1200px)": {
             fontSize: "1.1rem", // lg
@@ -182,7 +187,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "1rem",
-          color: mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: mode === "light" ? "#475569" : "#94A3B8",
 
           "@media (max-width:1200px)": {
             fontSize: "0.95rem", // lg
@@ -202,7 +207,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
-          color: mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: mode === "light" ? "#475569" : "#94A3B8",
 
           "@media (max-width:1200px)": {
             fontSize: "0.85rem", // lg
@@ -223,7 +228,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 400,
           fontSize: "1rem", // >= md
           lineHeight: 1.5,
-          color: mode === "light" ? "#1E2A3A" : "#F7F7F7",
+          color: mode === "light" ? "#0F172A" : "#F8FAFC",
 
           "@media (max-width:1200px)": {
             fontSize: "0.95rem", // lg
@@ -244,7 +249,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 400,
           fontSize: "0.875rem",
           lineHeight: 1.43,
-          color: mode === "light" ? "#1E2A3A" : "#F7F7F7",
+          color: mode === "light" ? "#0F172A" : "#F8FAFC",
 
           "@media (max-width:1200px)": {
             fontSize: "0.85rem", // lg
@@ -262,9 +267,10 @@ export const CustomThemeProvider = ({ children }) => {
 
         button: {
           fontFamily: '"Montserrat", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: "0.875rem",
-          textTransform: "none",
+          textTransform: "uppercase", // Estilo técnico e industrial
+          letterSpacing: "0.05em",
         },
 
         lineHeight: 1.75,
@@ -272,20 +278,21 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
           fontSize: "0.75rem",
-          color: mode === "light" ? "#5C6B73" : "#A0AEC0",
+          color: mode === "light" ? "#64748B" : "#94A3B8",
         },
 
         overline: {
           fontFamily: '"Open Sans", sans-serif',
-          fontWeight: 400,
+          fontWeight: 600,
           fontSize: "0.625rem",
           textTransform: "uppercase",
-          color: mode === "light" ? "#5C6B73" : "#A0AEC0",
+          letterSpacing: "0.1em",
+          color: mode === "light" ? "#64748B" : "#94A3B8",
         },
       },
 
       shape: {
-        borderRadius: 8,
+        borderRadius: 6, // Esquinas un poco más rectas para estética industrial
       },
 
       components: {
@@ -304,7 +311,7 @@ export const CustomThemeProvider = ({ children }) => {
             },
             "*::-webkit-scrollbar-thumb": {
               backgroundColor: alpha(scrollbarAcento, 0.4),
-              borderRadius: "10px",
+              borderRadius: "4px",
             },
             "*::-webkit-scrollbar-thumb:hover": {
               backgroundColor: alpha(scrollbarAcento, 0.7),
@@ -323,29 +330,30 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiAppBar: {
           styleOverrides: {
-            root: ({ theme }) => ({
-              backgroundColor:
-                theme.palette.mode === "light"
-                  ? theme.palette.secondary.main
-                  : theme.palette.primary.main,
-              color: mode === "light" ? "#F7F7F7" : "#FFD166",
+            root: () => ({
+              backgroundColor: mode === "light" ? "#1E293B" : "#0F172A", // Navbar oscuro/profundo para dar soporte
+              color: "#FFB800",
+              borderBottom: `3px solid #EA580C`, // Detalle en naranja de seguridad
             }),
           },
         },
         MuiCard: {
           styleOverrides: {
             root: {
-              borderRadius: 4,
+              borderRadius: 8,
+              border: mode === "light" ? "1px solid #E2E8F0" : "1px solid #334155",
               boxShadow:
                 mode === "dark"
-                  ? "0 2px 4px rgba(0,0,0,0.1)"
-                  : "0 2px 4px rgba(0,0,0,0.3)",
-              transition: "all 0.3s ease-in-out",
+                  ? "0 4px 6px -1px rgba(0, 0, 0, 0.4)"
+                  : "0 4px 6px -1px rgba(15, 23, 42, 0.06)",
+              transition: "all 0.2s ease-in-out",
               "&:hover": {
+                transform: "translateY(-3px)",
+                borderColor: mode === "light" ? "#EA580C" : "#FFB800",
                 boxShadow:
                   mode === "dark"
-                    ? "0 4px 8px rgba(0,0,0,0.15)"
-                    : "0 4px 8px rgba(0,0,0,0.4)",
+                    ? "0 10px 15px -3px rgba(0, 0, 0, 0.6)"
+                    : "0 10px 15px -3px rgba(15, 23, 42, 0.12)",
               },
             },
           },
@@ -353,12 +361,11 @@ export const CustomThemeProvider = ({ children }) => {
         MuiButton: {
           styleOverrides: {
             root: {
-              borderRadius: 8,
-              padding: "8px 20px",
-              fontWeight: 600,
+              borderRadius: 6,
+              padding: "8px 22px",
               boxShadow: "none",
               "&:hover": {
-                boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               },
             },
           },
@@ -366,21 +373,32 @@ export const CustomThemeProvider = ({ children }) => {
             {
               props: { variant: "danger" },
               style: {
-                backgroundColor: "#D64045",
+                backgroundColor: "#DC2626",
                 color: "#FFFFFF",
-                "&:hover": {
-                  backgroundColor: "#B03A3A",
-                },
+                "&:hover": { backgroundColor: "#B91C1C" },
+              },
+            },
+            {
+              // Mismo color que "danger", pero pensado para el botón de
+              // cerrar sesión: ocupa todo el ancho y acomoda el ícono a la
+              // izquierda del texto (antes esto se armaba a mano con
+              // variant="danger" + fullWidth + startIcon en cada pantalla).
+              props: { variant: "menuLogout" },
+              style: {
+                backgroundColor: "#DC2626",
+                color: "#FFFFFF",
+                width: "100%",
+                justifyContent: "center",
+                gap: 1,
+                "&:hover": { backgroundColor: "#B91C1C" },
               },
             },
             {
               props: { variant: "success" },
               style: {
-                backgroundColor: "#4CB944",
+                backgroundColor: "#16A34A",
                 color: "#FFFFFF",
-                "&:hover": {
-                  backgroundColor: "#3CA33C",
-                },
+                "&:hover": { backgroundColor: "#15803D" },
               },
             },
             {
@@ -388,74 +406,50 @@ export const CustomThemeProvider = ({ children }) => {
               style: {
                 backgroundColor: "#25D366",
                 color: "#FFFFFF",
-                "&:hover": {
-                  backgroundColor: "#128C7E",
-                },
+                "&:hover": { backgroundColor: "#128C7E" },
               },
             },
             {
               props: { variant: "call" },
               style: {
-                backgroundColor: "#34B7F1",
+                backgroundColor: "#0284C7",
                 color: "#FFFFFF",
-                "&:hover": {
-                  backgroundColor: "#269BD1",
-                },
+                "&:hover": { backgroundColor: "#0369A1" },
               },
             },
             {
+              // Botón cuadrado del menú de AdminForms: ícono arriba, texto
+              // abajo. La forma vive acá; el componente solo aporta el
+              // ancho/alto (dependen de cuántos botones hay y del tamaño
+              // de pantalla, algo que el tema no puede saber de antemano).
               props: { variant: "adminSquare" },
               style: ({ theme }) => ({
-                backgroundColor:
-                  theme.palette.mode === "light"
-                    ? theme.palette.secondary.main
-                    : theme.palette.primary.main,
-                color:
-                  theme.palette.mode === "light"
-                    ? theme.palette.primary.main
-                    : theme.palette.secondary.light,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+                overflow: "hidden",
+                backgroundColor: theme.palette.mode === "light" ? "#1E293B" : "#FFB800",
+                color: theme.palette.mode === "light" ? "#FFB800" : "#0F172A",
                 boxShadow: "none",
-                transition:
-                  "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
-                transform: "translateY(0)",
+                transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                  backgroundColor:
-                    theme.palette.mode === "light"
-                      ? theme.palette.secondary.main
-                      : theme.palette.primary.main,
-                  transform: "translateY(-4px)",
-                  boxShadow:
-                    theme.palette.mode === "light"
-                      ? `0 10px 20px ${theme.palette.primary.main}80`
-                      : `0 8px 20px ${theme.palette.secondary.light}35`,
+                  backgroundColor: theme.palette.mode === "light" ? "#0F172A" : "#F59E0B",
+                  transform: "translateY(-3px)",
                 },
               }),
             },
             {
               props: { variant: "quotationSquare" },
-              style: ({ theme }) => ({
-                backgroundColor:
-                  theme.palette.mode === "light"
-                    ? "#fa5012"
-                    : theme.palette.primary.main,
-                color:
-                  theme.palette.mode === "light"
-                    ? theme.palette.primary.light
-                    : theme.palette.secondary.light,
+              style: () => ({
+                backgroundColor: "#EA580C", // Naranja acción rápida
+                color: "#FFFFFF",
                 boxShadow: "none",
-                transition:
-                  "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
-                transform: "translateY(0)",
+                transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                  backgroundColor:
-                    theme.palette.mode === "light"
-                      ? "#fa5012"
-                      : theme.palette.primary.main,
-                  transform: "translateY(-4px)",
-                  boxShadow:
-                    theme.palette.mode === "light"
-                      ? `0 10px 20px ${theme.palette.primary.main}80`
-                      : `0 8px 20px ${theme.palette.secondary.light}35`,
+                  backgroundColor: "#C2410C",
+                  transform: "translateY(-3px)",
                 },
               }),
             },
@@ -465,21 +459,16 @@ export const CustomThemeProvider = ({ children }) => {
         MuiOutlinedInput: {
           styleOverrides: {
             root: ({ theme }) => ({
-              borderRadius: 4,
+              borderRadius: 6,
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor:
-                  theme.palette.mode === "light"
-                    ? theme.palette.secondary.main
-                    : theme.palette.secondary.light,
+                borderColor: theme.palette.mode === "light" ? "#CBD5E1" : "#475569",
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor:
-                  theme.palette.mode === "light"
-                    ? theme.palette.primary.main
-                    : theme.palette.primary.light,
+                borderColor: theme.palette.mode === "light" ? "#1E293B" : "#FFB800",
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.palette.secondary.dark,
+                borderColor: "#EA580C", // Foco en Naranja Seguridad
+                borderWidth: "2px",
               },
             }),
             input: ({ theme }) => ({
@@ -550,7 +539,7 @@ export const CustomThemeProvider = ({ children }) => {
         MuiDivider: {
           styleOverrides: {
             root: {
-              borderColor: mode === "light" ? "#5C6B73" : "#A0AEC0",
+              borderColor: mode === "light" ? "#E2E8F0" : "#334155",
             },
           },
         },
@@ -558,9 +547,9 @@ export const CustomThemeProvider = ({ children }) => {
         MuiCheckbox: {
           styleOverrides: {
             root: {
-              color: mode === "light" ? "#3A5169" : "#FFD166",
+              color: mode === "light" ? "#1E293B" : "#FFB800",
               "&.Mui-checked": {
-                color: mode === "light" ? "#3A5169" : "#FFD166",
+                color: mode === "light" ? "#EA580C" : "#FFB800",
               },
             },
           },
@@ -572,9 +561,9 @@ export const CustomThemeProvider = ({ children }) => {
         MuiRadio: {
           styleOverrides: {
             root: {
-              color: mode === "light" ? "#3A5169" : "#FFD166",
+              color: mode === "light" ? "#1E293B" : "#FFB800",
               "&.Mui-checked": {
-                color: mode === "light" ? "#3A5169" : "#FFD166",
+                color: mode === "light" ? "#EA580C" : "#FFB800",
               },
             },
           },
