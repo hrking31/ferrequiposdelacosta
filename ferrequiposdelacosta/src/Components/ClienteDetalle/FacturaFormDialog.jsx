@@ -31,7 +31,15 @@ import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import { obtenerFechaInicialEfectiva, calcularFechaDevolucion } from "./facturaUtils";
+import {
+  obtenerFechaInicialEfectiva,
+  calcularFechaDevolucion,
+  formatearMonedaInput,
+  limpiarMonedaInput,
+  formatearFechaLegible,
+  normalizarPagos,
+} from "./facturaUtils";
+import PagosMediosField from "./PagosMediosField";
 
 const ESTADO_INICIAL_ITEM = {
   nombre: "",
@@ -39,17 +47,6 @@ const ESTADO_INICIAL_ITEM = {
   dias: "",
   valor: "",
   fechaDespacho: "",
-};
-
-const formatearMonedaInput = (valor) =>
-  valor ? Number(valor).toLocaleString("es-CO") : "";
-
-const limpiarMonedaInput = (texto) => texto.replace(/\D/g, "");
-
-const formatearFechaLegible = (fechaIso) => {
-  if (!fechaIso) return "";
-  const [anio, mes, dia] = fechaIso.split("-");
-  return `${dia}/${mes}/${anio}`;
 };
 
 const obtenerNombreCliente = (cliente) => {
@@ -74,10 +71,7 @@ const obtenerEstadoInicial = (factura) => ({
   deposito: factura?.deposito ? String(factura.deposito) : "",
   aplicaIva: factura?.aplicaIva ?? true,
   tipoPago: factura?.tipoPago ?? "total",
-  montoPagado:
-    factura && factura.tipoPago !== "total" && factura.montoPagado
-      ? String(factura.montoPagado)
-      : "",
+  pagos: normalizarPagos(factura?.pagos, factura?.modoPago, factura?.montoPagado),
 });
 
 const TIPO_PAGO_INFO = {
@@ -137,10 +131,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     (Number(form.valorTransporte) || 0) +
     (Number(form.deposito) || 0);
 
-  // Si el pago es total, lo pagado es el total calculado (no se digita a
-  // mano); si es parcial, lo pagado es lo que se escriba en el campo.
-  const montoPagadoCalculado =
-    form.tipoPago === "total" ? valorTotalCalculado : Number(form.montoPagado) || 0;
+  // Lo pagado ya no se digita aparte: es la suma de los medios de pago
+  // cargados (uno o varios, ej. parte por Bancolombia y parte en efectivo).
+  const montoPagadoCalculado = form.pagos.reduce(
+    (total, pago) => total + (Number(pago.monto) || 0),
+    0,
+  );
   const saldoPendienteCalculado = Math.max(0, valorTotalCalculado - montoPagadoCalculado);
 
   const handleChange = (campo) => (e) => {
@@ -160,13 +156,8 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     }));
   };
 
-  const handleChangeTipoPago = (e) => {
-    const valor = e.target.value;
-    setForm((prev) => ({
-      ...prev,
-      tipoPago: valor,
-      montoPagado: valor === "total" ? "" : prev.montoPagado,
-    }));
+  const handleChangePagos = (nuevosPagos) => {
+    setForm((prev) => ({ ...prev, pagos: nuevosPagos }));
   };
 
   const handleChangeValorItem = (e) => {
@@ -257,6 +248,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       tipoPago: form.tipoPago,
       montoPagado: montoPagadoCalculado,
       saldoPendiente: saldoPendienteCalculado,
+      pagos: form.pagos
+        .filter((pago) => pago.medio && Number(pago.monto) > 0)
+        .map((pago) => ({ medio: pago.medio, monto: Number(pago.monto) })),
     };
 
     setGuardando(true);
@@ -329,6 +323,54 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider />
+            </Grid>
+
+            {/* Tipo/medios de pago: van arriba, antes de la lista de equipos. */}
+            <Grid item xs={12} sm={5}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="factura-tipopago-label" htmlFor="factura-tipopago-input">
+                  Tipo de pago
+                </InputLabel>
+                <Select
+                  labelId="factura-tipopago-label"
+                  inputProps={{ id: "factura-tipopago-input" }}
+                  label="Tipo de pago"
+                  value={form.tipoPago}
+                  onChange={handleChange("tipoPago")}
+                >
+                  {Object.entries(TIPO_PAGO_INFO).map(([valor, info]) => (
+                    <MenuItem key={valor} value={valor}>
+                      {info.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={7} sx={{ display: "flex", alignItems: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                Pagado hasta ahora:{" "}
+                <strong>
+                  {montoPagadoCalculado.toLocaleString("es-CO", {
+                    style: "currency",
+                    currency: "COP",
+                  })}
+                </strong>
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <PagosMediosField
+                pagos={form.pagos}
+                onChange={handleChangePagos}
+                idPrefix="factura-pago"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider />
             </Grid>
 
             <Grid item xs={12}>
@@ -644,45 +686,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   </Typography>
                 </Box>
               </Box>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Divider />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="factura-tipopago-label" htmlFor="factura-tipopago-input">
-                  Tipo de pago
-                </InputLabel>
-                <Select
-                  labelId="factura-tipopago-label"
-                  inputProps={{ id: "factura-tipopago-input" }}
-                  label="Tipo de pago"
-                  value={form.tipoPago}
-                  onChange={handleChangeTipoPago}
-                >
-                  {Object.entries(TIPO_PAGO_INFO).map(([valor, info]) => (
-                    <MenuItem key={valor} value={valor}>
-                      {info.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Monto pagado"
-                value={
-                  form.tipoPago === "total"
-                    ? formatearMonedaInput(montoPagadoCalculado)
-                    : formatearMonedaInput(form.montoPagado)
-                }
-                onChange={handleChangeMoneda("montoPagado")}
-                disabled={form.tipoPago === "total"}
-                fullWidth
-              />
             </Grid>
           </Grid>
         </DialogContent>

@@ -1,3 +1,27 @@
+// Medios de pago que maneja la empresa (Nequi y Nequi A son cuentas Nequi
+// distintas, de dos personas diferentes).
+export const MODOS_PAGO = ["Nequi", "Nequi A", "Bancolombia", "Daviplata", "Efectivo"];
+
+export const formatearMonedaInput = (valor) => (valor ? Number(valor).toLocaleString("es-CO") : "");
+
+export const limpiarMonedaInput = (texto) => texto.replace(/\D/g, "");
+
+export const formatearFechaLegible = (fechaIso) => {
+  if (!fechaIso) return "";
+  const [anio, mes, dia] = fechaIso.split("-");
+  return `${dia}/${mes}/${anio}`;
+};
+
+// Un pago puede repartirse en más de un medio (ej. parte por Bancolombia,
+// parte en efectivo). Las facturas/equipos viejos solo tenían un campo
+// `modoPago` de texto: esto lo convierte a la misma forma de lista para que
+// la UI no tenga que distinguir formato viejo/nuevo.
+export const normalizarPagos = (pagos, modoPagoLegado, montoLegado) => {
+  if (Array.isArray(pagos) && pagos.length > 0) return pagos;
+  if (modoPagoLegado) return [{ medio: modoPagoLegado, monto: Number(montoLegado) || 0 }];
+  return [];
+};
+
 const obtenerHoraBogota = () =>
   Number(
     new Intl.DateTimeFormat("en-US", {

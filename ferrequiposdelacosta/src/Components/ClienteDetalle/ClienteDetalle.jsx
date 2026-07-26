@@ -20,6 +20,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -39,6 +40,7 @@ import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import { normalizarPagos } from "./facturaUtils";
 
 // El estado del cliente es el mismo vocabulario que el de sus facturas
 // (el cliente toma el estado de la factura que se le crea/edita), más
@@ -102,6 +104,10 @@ export default function ClienteDetalle() {
     theme.palette.mode === "light"
       ? theme.palette.primary.main
       : theme.palette.secondary.light;
+  // Mismo fondo neutro que ya usaba el cuadro de "Total": se reutiliza acá
+  // para los renglones de equipo y de pago, así no compiten visualmente con
+  // el fondo de color de la tarjeta de la factura.
+  const panelBg = theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e";
   const avatarBgPorEstado = {
     inactivo:
       theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700],
@@ -124,7 +130,10 @@ export default function ClienteDetalle() {
   const [eliminando, setEliminando] = useState(false);
   const [menuEstadoAnchor, setMenuEstadoAnchor] = useState(null);
   const [facturaMenuId, setFacturaMenuId] = useState(null);
-  const [facturasAbiertas, setFacturasAbiertas] = useState({});
+  // Cada factura tiene 4 secciones que se muestran/ocultan por separado en
+  // móvil (pagoGeneral, equiposFactura, equiposAgregados, pagoTotal) — la
+  // clave es "{facturaId}:{seccion}". En PC todas están siempre visibles.
+  const [seccionesAbiertas, setSeccionesAbiertas] = useState({});
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const handleEliminarFactura = async () => {
@@ -142,8 +151,12 @@ export default function ClienteDetalle() {
     }
   };
 
-  const toggleFacturaAbierta = (facturaId) =>
-    setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
+  const toggleSeccion = (facturaId, seccion) => {
+    const clave = `${facturaId}:${seccion}`;
+    setSeccionesAbiertas((prev) => ({ ...prev, [clave]: !prev[clave] }));
+  };
+  const seccionAbierta = (facturaId, seccion) =>
+    Boolean(seccionesAbiertas[`${facturaId}:${seccion}`]);
 
   const handleAbrirMenuEstado = (event, facturaId) => {
     setMenuEstadoAnchor(event.currentTarget);
@@ -206,6 +219,246 @@ export default function ClienteDetalle() {
   useEffect(() => {
     fetchCliente();
   }, [fetchCliente]);
+
+  // En móvil se dejan ovaladas (el look "pill" normal de un Chip). En PC se
+  // ven más cuadradas, con el dorado del tema (secondary.light, el mismo
+  // valor en claro y oscuro) pero muy tenue — "sombra" del amarillo, no un
+  // gris genérico ni el amarillo sólido de golpe.
+  const pillBg = alpha(theme.palette.secondary.light, theme.palette.mode === "light" ? 0.18 : 0.22);
+  const formaChipSx = esMovil ? {} : { borderRadius: 1 };
+  const metaPillSx = {
+    height: 22,
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    borderColor: "divider",
+    ...formaChipSx,
+    ...(esMovil ? {} : { bgcolor: pillBg, border: "none" }),
+  };
+
+  // Tarjeta de un equipo dentro de una factura: cantidad/nombre/subtotal
+  // arriba, días/precio/fechas como pills abajo. La misma tarjeta sirve para
+  // un equipo original o uno agregado después.
+  const renderEquipoRow = (equipo, key) => {
+    const despacho = formatearFecha(equipo.fechaDespacho);
+    const subtotalEquipo =
+      (Number(equipo.cantidad) || 0) * (Number(equipo.dias) || 0) * (Number(equipo.valor) || 0);
+    return (
+      <Box
+        key={key}
+        sx={{
+          p: 1,
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Chip
+            variant={esMovil ? "outlined" : "filled"}
+            label={`×${equipo.cantidad}`}
+            size="small"
+            sx={{
+              ...metaPillSx,
+              fontWeight: "bold",
+              flexShrink: 0,
+              color: theme.palette.secondary.light,
+            }}
+          />
+          <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
+            {equipo.nombre}
+          </Typography>
+          {subtotalEquipo > 0 && (
+            <Typography variant="body2" fontWeight="bold" sx={{ flexShrink: 0 }}>
+              {formatearMoneda(subtotalEquipo)}
+            </Typography>
+          )}
+        </Stack>
+        {(() => {
+          const chipsDiasValor = [
+            <Chip
+              key="dias"
+              variant={esMovil ? "outlined" : "filled"}
+              size="small"
+              sx={metaPillSx}
+              label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
+            />,
+          ];
+          if (Number(equipo.valor) > 0) {
+            chipsDiasValor.push(
+              <Chip
+                key="valor"
+                variant={esMovil ? "outlined" : "filled"}
+                size="small"
+                sx={metaPillSx}
+                label={`${formatearMoneda(Number(equipo.valor))}/día`}
+              />,
+            );
+          }
+
+          const chipsFechas = [];
+          if (despacho) {
+            chipsFechas.push(
+              <Chip
+                key="despacho"
+                variant={esMovil ? "outlined" : "filled"}
+                size="small"
+                sx={metaPillSx}
+                label={`Despacho ${despacho}`}
+              />,
+            );
+          }
+          if (equipo.vencimientoIndefinido) {
+            chipsFechas.push(
+              <Chip
+                key="indefinida"
+                variant={esMovil ? "outlined" : "filled"}
+                size="small"
+                sx={metaPillSx}
+                label="Entrega indefinida — cliente debe avisar"
+              />,
+            );
+          } else {
+            if (equipo.fechaVencimientoOriginal) {
+              chipsFechas.push(
+                <Chip
+                  key="vencido"
+                  size="small"
+                  color="error"
+                  sx={{ height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }}
+                  label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
+                />,
+              );
+            }
+            if (equipo.fechaVencimiento) {
+              chipsFechas.push(
+                <Chip
+                  key="devuelve"
+                  variant={esMovil ? "outlined" : "filled"}
+                  size="small"
+                  sx={metaPillSx}
+                  label={`Devuelve ${formatearFecha(equipo.fechaVencimiento)}`}
+                />,
+              );
+            }
+          }
+
+          // En móvil, días/precio en una columna y fechas en otra (prolijo).
+          // En PC, todos los chips sueltos en una sola fila, como estaba.
+          return esMovil ? (
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 1, rowGap: 0.5, mt: 0.75 }}>
+              <Stack spacing={0.5}>{chipsDiasValor}</Stack>
+              <Stack spacing={0.5}>{chipsFechas}</Stack>
+            </Box>
+          ) : (
+            <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
+              {chipsDiasValor}
+              {chipsFechas}
+            </Stack>
+          );
+        })()}
+      </Box>
+    );
+  };
+
+  // Cuadro de pago de un lote de equipos (el original de la factura, o cada
+  // equipo agregado después): tipo de pago, medio(s) de pago, depósito y
+  // transporte de ESE lote puntual — no de toda la factura.
+  const renderInfoPago = ({
+    pagos,
+    tipoPago,
+    deposito,
+    transporteTipo,
+    transporteMonto,
+    fechaCreacion,
+    key,
+  }) => {
+    const tipoPagoLabel = TIPO_PAGO_LABELS[tipoPago] || null;
+    const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
+    // El transporte siempre se muestra (aunque sea "Sin transporte"), por
+    // eso este cuadro ya no se oculta nunca.
+
+    const etiqueta = (texto) => (
+      <Typography
+        component="span"
+        sx={{
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          color: "text.secondary",
+          mr: 0.5,
+        }}
+      >
+        {texto}
+      </Typography>
+    );
+
+    // El valor va en negrita y con el color normal del texto (no el gris
+    // apagado que hereda por default un <Typography variant="caption">).
+    const valor = (texto) => (
+      <Typography component="span" variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+        {texto}
+      </Typography>
+    );
+
+    return (
+      <Box
+        key={key}
+        sx={{
+          p: 1,
+          borderRadius: 1,
+          border: "1px dashed",
+          borderColor: "divider",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          flexWrap="wrap"
+          columnGap={2}
+          rowGap={{ xs: 0.6, sm: 0.4 }}
+          alignItems={{ xs: "flex-start", sm: "center" }}
+        >
+          {tipoPagoLabel && (
+            <Box>
+              {etiqueta("Pago")} {valor(tipoPagoLabel)}
+            </Box>
+          )}
+          {pagos.length > 0 && (
+            <Box>
+              {etiqueta("Medio")}{" "}
+              {valor(pagos.map((pago) => pago.medio).filter(Boolean).join(" + "))}
+            </Box>
+          )}
+          {pagos.length > 0 && (
+            <Box>
+              {etiqueta("Valor")}{" "}
+              {valor(
+                pagos.map((pago) => formatearMoneda(Number(pago.monto))).filter(Boolean).join(" + "),
+              )}
+            </Box>
+          )}
+          {deposito > 0 && (
+            <Box>
+              {etiqueta("Depósito")} {valor(formatearMoneda(deposito))}
+            </Box>
+          )}
+          <Box>
+            {etiqueta("Transporte")}{" "}
+            {valor(
+              hayTransporte
+                ? `${transporteTipo}${transporteMonto > 0 ? ` · ${formatearMoneda(transporteMonto)}` : ""}`
+                : "Sin transporte",
+            )}
+          </Box>
+          {fechaCreacion && (
+            <Box sx={{ ml: { xs: 0, sm: "auto" } }}>
+              {etiqueta("Fecha creación")} {valor(fechaCreacion)}
+            </Box>
+          )}
+        </Stack>
+      </Box>
+    );
+  };
 
   if (loading) {
     return <LoadingLogo height="40vh" text="Cargando cliente..." />;
@@ -325,7 +578,7 @@ export default function ClienteDetalle() {
         sx={{ mb: 2 }}
       >
         <Typography variant="h6" fontWeight="bold">
-          Historial de Facturas {facturas.length}
+          Facturas {facturas.length}
         </Typography>
 
         <Button
@@ -368,13 +621,109 @@ export default function ClienteDetalle() {
             const valorTotal = formatearMoneda(factura.valorTotal);
             const saldoPendiente = formatearMoneda(factura.saldoPendiente ?? 0);
             const hayColorAlerta = (factura.saldoPendiente ?? 0) > 0;
-            const montoPagado = formatearMoneda(factura.montoPagado ?? 0);
-            const tipoPagoLabel = TIPO_PAGO_LABELS[factura.tipoPago] || null;
             const fecha = formatearFecha(factura.fecha);
-            const abierta = Boolean(facturasAbiertas[factura.id]);
+            // Solo importa en móvil (en PC siempre se muestra todo).
+            const mostrar = (seccion) => !esMovil || seccionAbierta(factura.id, seccion);
+            const renderToggle = (seccion) =>
+              esMovil && (
+                <IconButton
+                  size="small"
+                  onClick={() => toggleSeccion(factura.id, seccion)}
+                  sx={{ color: acento }}
+                >
+                  {seccionAbierta(factura.id, seccion) ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
+                </IconButton>
+              );
             const fechaVencimiento = equiposSonObjetos
               ? null
               : formatearFecha(factura.fechaVencimiento) || factura.fechaVencimientoRaw;
+
+            // Equipos originales (creados con la factura) vs. agregados
+            // después con el botón "Agregar equipo" — cada lote muestra su
+            // propio pago.
+            const equiposOriginales = equiposSonObjetos
+              ? factura.equipos.filter((equipo) => !equipo.agregadoPosteriormente)
+              : [];
+            const equiposAgregados = equiposSonObjetos
+              ? factura.equipos.filter((equipo) => equipo.agregadoPosteriormente)
+              : [];
+            const pagosOriginales = normalizarPagos(
+              factura.pagos,
+              factura.modoPago,
+              factura.montoPagado,
+            );
+
+            // Depósito/transporte de TODA la factura = lo del lote original
+            // (fijo, no crece) + lo que haya traído cada equipo agregado.
+            const depositoAgregadosTotal = equiposAgregados.reduce(
+              (total, equipo) => total + (Number(equipo.deposito) || 0),
+              0,
+            );
+            const transporteAgregadosTotal = equiposAgregados.reduce(
+              (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
+              0,
+            );
+            const depositoTotalFactura = (Number(factura.deposito) || 0) + depositoAgregadosTotal;
+            const transporteTotalFactura =
+              (Number(factura.valorTransporte) || 0) + transporteAgregadosTotal;
+
+            // Se separan en dos grupos (izquierda: subtotal/iva, derecha:
+            // depósito/transporte) para poder acomodarlos en 2 columnas
+            // prolijas en móvil, en vez de dejarlos ajustar solos.
+            const lineasTotalesIzq = [];
+            const lineasTotalesDer = [];
+            if (subtotal) {
+              lineasTotalesIzq.push(
+                <Typography key="subtotal" variant="body2">
+                  Subtotal {subtotal}
+                </Typography>,
+              );
+            }
+            if (iva) {
+              lineasTotalesIzq.push(
+                <Typography key="iva" variant="body2">
+                  IVA (19%) {iva}
+                </Typography>,
+              );
+            }
+            if (equiposSonObjetos) {
+              if (depositoTotalFactura > 0) {
+                lineasTotalesDer.push(
+                  <Typography key="deposito" variant="body2">
+                    Depósito {formatearMoneda(depositoTotalFactura)}
+                  </Typography>,
+                );
+              }
+              if (transporteTotalFactura > 0) {
+                lineasTotalesDer.push(
+                  <Typography key="transporte" variant="body2">
+                    Transporte {formatearMoneda(transporteTotalFactura)}
+                  </Typography>,
+                );
+              }
+            } else {
+              if (deposito) {
+                lineasTotalesDer.push(
+                  <Typography key="deposito" variant="body2">
+                    Depósito {deposito}
+                  </Typography>,
+                );
+              }
+              if (transporteTipo || transporteMonto) {
+                lineasTotalesDer.push(
+                  <Typography key="transporte" variant="body2">
+                    {transporteTipo === "Sin transporte"
+                      ? "Sin transporte"
+                      : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ")}
+                  </Typography>,
+                );
+              }
+            }
+            const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
 
             const chipEstado = (
               <Chip
@@ -394,13 +743,31 @@ export default function ClienteDetalle() {
               />
             );
 
+            const iconBtnSx = {
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              p: 0.5,
+            };
+
             const iconosFactura = (
-              <Stack direction="row" spacing={esMovil ? 3 : 0.5} alignItems="center">
+              <Stack direction="row" spacing={esMovil ? 1.5 : 0.75} alignItems="center">
+                {equiposSonObjetos && (
+                  <Tooltip title="Agregar equipo">
+                    <IconButton
+                      size="small"
+                      onClick={() => setFacturaAgregarEquipo(factura)}
+                      sx={{ ...iconBtnSx, color: acento }}
+                    >
+                      <AddIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <Tooltip title="Editar factura">
                   <IconButton
                     size="small"
                     onClick={() => setFacturaEditando(factura)}
-                    sx={{ p: 0.25 }}
+                    sx={iconBtnSx}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -410,7 +777,7 @@ export default function ClienteDetalle() {
                     size="small"
                     color="error"
                     onClick={() => setFacturaEliminando(factura)}
-                    sx={{ p: 0.25 }}
+                    sx={iconBtnSx}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -429,244 +796,201 @@ export default function ClienteDetalle() {
                   borderColor: "divider",
                 }}
               >
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+                <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" rowGap={1}>
                   <Typography fontWeight="bold">
                     Factura {factura.numeroFactura ?? "s/n"}
                   </Typography>
-                  <Stack direction="row" spacing={4} alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
                     {!esMovil && iconosFactura}
                     {chipEstado}
                   </Stack>
                 </Stack>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mt: 1 }}
-                >
-                  {tipoPagoLabel && (
-                    <Typography variant="body2" color="text.secondary">
-                      {tipoPagoLabel}: {montoPagado}
-                    </Typography>
-                  )}
-                  {esMovil && iconosFactura}
-                </Stack>
 
-                {fecha && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Fecha despacho: {fecha}
-                  </Typography>
+                {esMovil && (
+                  <Stack direction="row" alignItems="center" sx={{ mt: 1 }}>
+                    {iconosFactura}
+                  </Stack>
                 )}
 
                 {fechaVencimiento && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     Vencimiento: {fechaVencimiento}
                   </Typography>
                 )}
 
-                {factura.equipos?.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    {equiposSonObjetos ? (
-                      <Stack spacing={0.5}>
-                        {factura.equipos.map((equipo, index) => (
-                          <Stack
-                            key={`${equipo.nombre}-${index}`}
-                            direction="row"
-                            flexWrap="wrap"
-                            alignItems="baseline"
-                            columnGap={2}
-                            rowGap={0}
+                {equiposSonObjetos ? (
+                  <>
+                    {equiposOriginales.length > 0 && (
+                      <Box sx={{ mt: 1.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                            Información de pago
+                          </Typography>
+                          {renderToggle("pagoGeneral")}
+                        </Stack>
+                        {mostrar("pagoGeneral") &&
+                          renderInfoPago({
+                            key: "pago-original",
+                            pagos: pagosOriginales,
+                            tipoPago: factura.tipoPago,
+                            deposito: Number(factura.deposito) || 0,
+                            transporteTipo,
+                            transporteMonto: Number(factura.valorTransporte) || 0,
+                            fechaCreacion: fecha,
+                          })}
+
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          sx={{ mt: 1 }}
+                        >
+                          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                            Equipos {equiposOriginales.length}
+                          </Typography>
+                          {renderToggle("equiposFactura")}
+                        </Stack>
+                        {mostrar("equiposFactura") && (
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                              gap: 1,
+                              mt: 1,
+                            }}
                           >
-                            <Typography variant="body2">
-                              <strong>
-                                {equipo.cantidad} {equipo.nombre}
-                              </strong>{" "}
-                              x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
-                            </Typography>
-                            {equipo.fechaDespacho && (
-                              <Typography variant="body2" color="text.secondary">
-                                Despacho: {formatearFecha(equipo.fechaDespacho)}
-                              </Typography>
+                            {equiposOriginales.map((equipo, index) =>
+                              renderEquipoRow(equipo, `original-${index}`),
                             )}
-                            {equipo.vencimientoIndefinido ? (
-                              <Typography variant="body2" color="text.secondary">
-                                Entrega indefinida — cliente debe avisar
-                              </Typography>
-                            ) : (
-                              <>
-                                {equipo.fechaVencimientoOriginal && (
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "error.main", fontWeight: "bold" }}
-                                  >
-                                    Vencido: {formatearFecha(equipo.fechaVencimientoOriginal)}
-                                  </Typography>
-                                )}
-                                {equipo.fechaVencimiento && (
-                                  <Typography variant="body2" sx={{ color: "secondary.light" }}>
-                                    Devolución: {formatearFecha(equipo.fechaVencimiento)}
-                                  </Typography>
-                                )}
-                              </>
-                            )}
-                          </Stack>
-                        ))}
-                      </Stack>
-                    ) : (
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+
+                    {equiposAgregados.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography
+                            variant="overline"
+                            color="text.secondary"
+                            sx={{ lineHeight: 1.6 }}
+                          >
+                            Equipos agregados {equiposAgregados.length}
+                          </Typography>
+                          {renderToggle("equiposAgregados")}
+                        </Stack>
+                        {mostrar("equiposAgregados") && (
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                              gap: 1,
+                              mt: 1,
+                            }}
+                          >
+                            {equiposAgregados.map((equipo, index) => (
+                              <Stack key={`agregado-${index}`} spacing={0.5}>
+                                {renderEquipoRow(equipo, `agregado-row-${index}`)}
+                                {renderInfoPago({
+                                  key: `agregado-pago-${index}`,
+                                  pagos: normalizarPagos(equipo.pagos, equipo.modoPago, null),
+                                  tipoPago: equipo.tipoPago,
+                                  deposito: Number(equipo.deposito) || 0,
+                                  transporteTipo: equipo.transporte || null,
+                                  transporteMonto: Number(equipo.valorTransporte) || 0,
+                                })}
+                              </Stack>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  factura.equipos?.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
                       <Typography variant="body2" color="text.secondary">
                         {factura.equipos.join(", ")}
                       </Typography>
+                    </Box>
+                  )
+                )}
+
+                {(lineasTotales.length > 0 || valorTotal) && (
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      pt: 1.5,
+                      borderTop: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                        Total factura
+                      </Typography>
+                      {renderToggle("pagoTotal")}
+                    </Stack>
+                    {mostrar("pagoTotal") && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: { xs: "column", sm: "row" },
+                          flexWrap: { sm: "wrap" },
+                          justifyContent: "space-between",
+                          alignItems: { xs: "stretch", sm: "flex-end" },
+                          gap: 2,
+                        }}
+                      >
+                        {esMovil ? (
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              columnGap: 2,
+                              rowGap: 0.5,
+                            }}
+                          >
+                            <Stack spacing={0.5}>{lineasTotalesIzq}</Stack>
+                            <Stack spacing={0.5}>{lineasTotalesDer}</Stack>
+                          </Box>
+                        ) : (
+                          <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
+                            {lineasTotales}
+                          </Stack>
+                        )}
+
+                        <Box
+                          sx={{
+                            px: 1.5,
+                            py: 1,
+                            borderRadius: 2,
+                            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                            bgcolor: panelBg,
+                            width: { xs: "100%", sm: "auto" },
+                          }}
+                        >
+                          {valorTotal && (
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight="bold"
+                              sx={{ color: "secondary.dark" }}
+                            >
+                              Total {valorTotal}
+                            </Typography>
+                          )}
+                          <Typography
+                            variant="body2"
+                            fontWeight="bold"
+                            sx={{ color: hayColorAlerta ? "warning.main" : "text.secondary" }}
+                          >
+                            Saldo pendiente {saldoPendiente}
+                          </Typography>
+                        </Box>
+                      </Box>
                     )}
                   </Box>
                 )}
-
-                {equiposSonObjetos && !esMovil && (
-                  <Button
-                    size="small"
-                    startIcon={<AddIcon />}
-                    onClick={() => setFacturaAgregarEquipo(factura)}
-                    sx={{ mt: 0.5, mb: -1, color: acento }}
-                  >
-                    Agregar equipo
-                  </Button>
-                )}
-
-                {(subtotal || iva || transporteTipo || transporteMonto || deposito || valorTotal) &&
-                  (esMovil ? (
-                    <Box sx={{ mt: 1 }}>
-                      <Stack
-                        direction="row"
-                        justifyContent={equiposSonObjetos ? "space-between" : "flex-end"}
-                        alignItems="center"
-                      >
-                        {equiposSonObjetos && (
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => setFacturaAgregarEquipo(factura)}
-                            sx={{ color: acento }}
-                          >
-                            Agregar equipo
-                          </Button>
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => toggleFacturaAbierta(factura.id)}
-                          sx={{ color: acento }}
-                        >
-                          {abierta ? (
-                            <ExpandLessIcon fontSize="small" />
-                          ) : (
-                            <ExpandMoreIcon fontSize="small" />
-                          )}
-                        </IconButton>
-                      </Stack>
-                      {abierta && (
-                        <Stack spacing={1} sx={{ mt: 1 }}>
-                          {subtotal && (
-                            <Typography variant="body2">Subtotal {subtotal}</Typography>
-                          )}
-                          {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
-                          {deposito && (
-                            <Typography variant="body2">Depósito {deposito}</Typography>
-                          )}
-                          {(transporteTipo || transporteMonto) && (
-                            <Typography variant="body2">
-                              {transporteTipo === "Sin transporte"
-                                ? "Sin transporte"
-                                : ["Transporte", transporteTipo, transporteMonto]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                            </Typography>
-                          )}
-                          <Box
-                            sx={{
-                              px: 1.5,
-                              py: 1,
-                              borderRadius: 2,
-                              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                              bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
-                            }}
-                          >
-                            {valorTotal && (
-                              <Typography
-                                variant="subtitle1"
-                                fontWeight="bold"
-                                sx={{ color: "secondary.dark" }}
-                              >
-                                Total {valorTotal}
-                              </Typography>
-                            )}
-                            <Typography
-                              variant="body2"
-                              fontWeight="bold"
-                              sx={{ color: hayColorAlerta ? "warning.main" : "text.secondary" }}
-                            >
-                              Saldo pendiente {saldoPendiente}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      )}
-                    </Box>
-                  ) : (
-                    <Box
-                      sx={{
-                        mt: 0,
-                        display: "flex",
-                        flexWrap: "wrap",
-                        justifyContent: "space-between",
-                        alignItems: "flex-end",
-                        gap: 2,
-                      }}
-                    >
-                      <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
-                        {subtotal && (
-                          <Typography variant="body2">Subtotal {subtotal}</Typography>
-                        )}
-                        {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
-                        {deposito && (
-                          <Typography variant="body2">Depósito {deposito}</Typography>
-                        )}
-                        {(transporteTipo || transporteMonto) && (
-                          <Typography variant="body2">
-                            {transporteTipo === "Sin transporte"
-                              ? "Sin transporte"
-                              : ["Transporte", transporteTipo, transporteMonto]
-                                  .filter(Boolean)
-                                  .join(" ")}
-                          </Typography>
-                        )}
-                      </Stack>
-
-                      <Box
-                        sx={{
-                          mt: -4,
-                          px: 1.5,
-                          py: 1,
-                          borderRadius: 2,
-                          boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                          bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
-                        }}
-                      >
-                        {valorTotal && (
-                          <Typography
-                            variant="subtitle1"
-                            fontWeight="bold"
-                            sx={{ color: "secondary.dark" }}
-                          >
-                            Total {valorTotal}
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="body2"
-                          fontWeight="bold"
-                          sx={{ color: hayColorAlerta ? "warning.main" : "text.secondary" }}
-                        >
-                          Saldo pendiente {saldoPendiente}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
               </Box>
             );
           })}
