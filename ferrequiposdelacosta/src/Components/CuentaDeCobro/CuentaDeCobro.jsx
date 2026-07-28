@@ -87,7 +87,7 @@ export default function CuentaCobro() {
               }}
               InputProps={{
                 sx: {
-                  color: theme.palette.mode === "light" ? "#1A1A1A" : "#A0AEC0",
+                  color: theme.palette.text.primary,
                 },
               }}
             />

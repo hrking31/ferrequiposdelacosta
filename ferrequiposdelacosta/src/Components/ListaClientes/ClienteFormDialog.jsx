@@ -48,7 +48,7 @@ const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15
 
 export default function ClienteFormDialog({ open, onClose, onGuardado, onEliminado, cliente }) {
   const theme = useTheme();
-  const acento = theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+  const acento = theme.palette.custom.accent;
   const esEdicion = Boolean(cliente);
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errors, setErrors] = useState({});

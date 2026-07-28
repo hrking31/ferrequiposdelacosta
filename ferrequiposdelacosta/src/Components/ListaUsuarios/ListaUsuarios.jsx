@@ -215,10 +215,7 @@ export default function UsersList() {
                     gap: isMobile ? 1.5 : 2,
                     borderRadius: 2,
                     borderLeft: "5px solid",
-                    borderColor: (theme) =>
-                      theme.palette.mode === "light"
-                        ? "primary.main"
-                        : "secondary.light",
+                    borderColor: "custom.accent",
                   }}
                 >
                   {/* Avatar, Nombre y Correo */}
@@ -236,11 +233,11 @@ export default function UsersList() {
                       sx={{
                         "& .MuiBadge-badge": {
                           backgroundColor: usuariosConectados[user.id]?.online
-                            ? "#44b700"
-                            : "#9e9e9e",
+                            ? theme.palette.custom.online
+                            : theme.palette.grey[500],
                           color: usuariosConectados[user.id]?.online
-                            ? "#44b700"
-                            : "#9e9e9e",
+                            ? theme.palette.custom.online
+                            : theme.palette.grey[500],
                           boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
                           width: 12,
                           height: 12,

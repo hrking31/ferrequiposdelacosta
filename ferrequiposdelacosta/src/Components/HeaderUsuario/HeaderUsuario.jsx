@@ -135,10 +135,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                 sx={{
                   lineHeight: 1.2,
                   textTransform: "capitalize",
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? theme.palette.text.secondary
-                      : "#A0AEC0",
+                  color: "text.secondary",
                 }}
               >
                 {saludo || ""}
@@ -241,10 +238,10 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#fff",
+              color: "common.white",
               opacity: 0,
               transition: "opacity 0.2s ease",
-              border: "2px solid #fff",
+              border: (theme) => `2px solid ${theme.palette.common.white}`,
               boxSizing: "border-box",
             }}
           >

@@ -31,7 +31,7 @@ const ESTADO_INICIAL_CAMBIO = { dias: "", indefinida: false };
 export default function AmpliarVencimientoDialog({ open, onClose, cliente, factura, onActualizado }) {
   const theme = useTheme();
   const acento =
-    theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+    theme.palette.custom.accent;
   const [cambios, setCambios] = useState({});
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");

@@ -20,10 +20,9 @@ export default function Footer() {
         // mt: 6,
         pt: 4,
         pb: 1,
-        backgroundColor: theme.palette.background.paper,
-        borderTop: `1px solid ${
-          theme.palette.mode === "light" ? "#5C6B73" : "#A0AEC0"
-        }`,
+        backgroundColor: theme.palette.footer.background,
+        color: theme.palette.footer.text,
+        borderTop: `1px solid ${theme.palette.divider}`,
 
         px: 2,
       }}
@@ -36,9 +35,7 @@ export default function Footer() {
           alignItems: "center",
           gap: 1,
           color:
-            theme.palette.mode === "light"
-              ? theme.palette.primary.main
-              : theme.palette.secondary.light,
+            theme.palette.custom.accent,
         }}
       >
         <Business
@@ -129,9 +126,7 @@ export default function Footer() {
       <Typography
         sx={{
           color:
-            theme.palette.mode === "light"
-              ? theme.palette.primary.main
-              : theme.palette.secondary.light,
+            theme.palette.custom.accent,
           mt: { xs: 0.5, md: 1 },
           fontSize: {
             xs: "0.5rem",

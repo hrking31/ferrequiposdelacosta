@@ -146,9 +146,7 @@ export default function KioskDetail() {
               mt: 2,
               mb: 3,
               color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light,
+                theme.palette.custom.accent,
             }}
           >
             Contáctenos para consultar disponibilidad, tiempos de alquiler,

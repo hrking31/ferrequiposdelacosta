@@ -44,7 +44,9 @@ export default function KioskCard({ name, url, id }) {
                 display: "flex",
                 height: { xs: 180, sm: 280, md: 400 },
                 objectFit: "contain",
-                backgroundColor: "#fff",
+                // Blanco fijo en ambos modos, a propósito: "superficie de
+                // producto" (ver CardEquipos), no una superficie de la UI.
+                backgroundColor: theme.palette.common.white,
                 justifyContent: "flex-start",
                 // border: "2px solid #000",
               }}
@@ -57,18 +59,13 @@ export default function KioskCard({ name, url, id }) {
                 height: { xs: 55, sm: 50, md: 70 },
                 alignItems: "center",
                 justifyContent: "center",
-                bgcolor: (theme) =>
-                  theme.palette.mode === "light" ? "secondary.main" : undefined,
               }}
             >
               <Typography
                 variant="body1"
                 title={name}
                 sx={{
-                  color:
-                    theme.palette.mode === "light"
-                      ? "#F7F7F7"
-                      : theme.palette.custom.primary,
+                  color: theme.palette.text.primary,
                   display: "-webkit-box",
                   WebkitBoxOrient: "vertical",
                   WebkitLineClamp: 3,

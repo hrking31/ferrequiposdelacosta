@@ -113,18 +113,14 @@ export default function ListaClientes() {
   }, [fetchClientes]);
 
   const acento =
-    theme.palette.mode === "light"
-      ? theme.palette.primary.main
-      : theme.palette.secondary.light;
+    theme.palette.custom.accent;
 
   const avatarBgPorEstado = {
     inactivo:
       theme.palette.mode === "light"
         ? theme.palette.grey[400]
         : theme.palette.grey[700],
-    // Color propio (no reutiliza warning/secondary: esos ya se usan para
-    // montones de botones/íconos/fondos del tema, sobre todo en modo oscuro).
-    pendienteDespacho: "#7E57C2",
+    pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
     finalizada: theme.palette.secondary.main,

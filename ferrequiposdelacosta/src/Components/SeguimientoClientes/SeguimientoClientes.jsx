@@ -58,7 +58,7 @@ const facturaEnSeguimiento = (factura, hoyIso) => {
 export default function SeguimientoClientes() {
   const theme = useTheme();
   const acento =
-    theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+    theme.palette.custom.accent;
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [clientesConSeguimiento, setClientesConSeguimiento] = useState([]);
   const [loading, setLoading] = useState(true);

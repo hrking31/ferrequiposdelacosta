@@ -10,12 +10,15 @@ import {
 import { styled } from "@mui/material/styles";
 import PropTypes from "prop-types";
 
-const GalleryContainer = styled(Box)(() => ({
+const GalleryContainer = styled(Box)(({ theme }) => ({
   position: "relative",
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  backgroundColor: "#fff",
+  // Blanco fijo en ambos modos, a propósito: las fotos de los equipos vienen
+  // recortadas sobre fondo blanco, así que esta es una "superficie de
+  // producto", no una superficie de la UI.
+  backgroundColor: theme.palette.common.white,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -47,7 +50,10 @@ const ThumbnailImage = styled("img")(({ theme, selected }) => ({
     : `1px solid ${theme.palette.secondary.light}`,
   opacity: selected ? 1 : 0.6,
   transition: "all 0.25s ease",
-  backgroundColor: "#f5f5f5",
+  // Misma "superficie de producto" que la imagen principal: las miniaturas son
+  // esas mismas fotos, así que comparten el fondo blanco fijo en vez de seguir
+  // el modo (si no, quedarían oscuras debajo de una imagen principal blanca).
+  backgroundColor: theme.palette.common.white,
   "&:hover": {
     opacity: 1,
   },

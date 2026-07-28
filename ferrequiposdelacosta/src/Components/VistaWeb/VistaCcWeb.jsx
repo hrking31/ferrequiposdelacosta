@@ -81,7 +81,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -92,7 +92,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           textAlign: "center",
           m: "20px",
         }}
@@ -103,7 +103,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -114,7 +114,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -125,7 +125,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -136,7 +136,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           textAlign: "center",
           m: "20px",
         }}
@@ -147,7 +147,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           textAlign: "center",
           m: "20px ",
         }}
@@ -158,7 +158,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -169,7 +169,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           mb: "10px",
           textAlign: "center",
         }}
@@ -183,7 +183,7 @@ export default function VistaCcWeb() {
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            borderBottom: "1px solid #ccc",
+            borderBottom: `1px solid ${theme.palette.divider}`,
             padding: "5px 0",
           }}
         >

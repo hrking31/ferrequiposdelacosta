@@ -122,7 +122,7 @@ export default function VistaCotWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.mode === "light" ? "#3A5169" : "#A0AEC0",
+          color: theme.palette.text.secondary,
           textAlign: "center",
           margin: "20px 0",
         }}
@@ -134,7 +134,10 @@ export default function VistaCotWeb() {
         <Grid
           container
           key={index}
-          sx={{ borderBottom: "1px solid #ccc", padding: "10px 0" }}
+          sx={{
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            padding: "10px 0",
+          }}
         >
           <Grid item xs={6}>
             <Typography
@@ -169,7 +172,7 @@ export default function VistaCotWeb() {
         <Grid
           container
           sx={{
-            borderBottom: "1px solid #ccc",
+            borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Grid item xs={6}>
@@ -191,7 +194,7 @@ export default function VistaCotWeb() {
         <Grid
           container
           sx={{
-            borderBottom: "1px solid #ccc",
+            borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Grid item xs={6}>
@@ -213,7 +216,7 @@ export default function VistaCotWeb() {
         <Grid
           container
           sx={{
-            borderBottom: "1px solid #ccc",
+            borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Grid item xs={6}>

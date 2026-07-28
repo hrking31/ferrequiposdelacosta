@@ -27,7 +27,8 @@ export const WhatsAppButton = () => {
         zIndex: 1300,
         bottom: 75,
         right: 12,
-        background: "linear-gradient(135deg, #25D366, #128C7E)",
+        background: (theme) =>
+          `linear-gradient(135deg, ${theme.palette.custom.whatsapp.main}, ${theme.palette.custom.whatsapp.dark})`,
         color: "white",
         width: 60,
         height: 60,
@@ -86,8 +87,10 @@ export default function ButtonContacto({ width, fontSize }) {
             sx={{
               width,
               fontSize,
-              backgroundColor: "#34B7F1",
-              "&:hover": { backgroundColor: "#269BD1" },
+              backgroundColor: (theme) => theme.palette.custom.call.main,
+              "&:hover": {
+                backgroundColor: (theme) => theme.palette.custom.call.dark,
+              },
             }}
           >
             Llama ahora
@@ -99,9 +102,9 @@ export default function ButtonContacto({ width, fontSize }) {
           href="https://wa.me/+573116576633"
           target="_blank"
           sx={{
-            backgroundColor: "#25D366",
+            backgroundColor: (theme) => theme.palette.custom.whatsapp.main,
             "&:hover": {
-              backgroundColor: "#128C7E",
+              backgroundColor: (theme) => theme.palette.custom.whatsapp.dark,
             },
             width,
             fontSize,

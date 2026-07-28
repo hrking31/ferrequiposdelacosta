@@ -1,3 +1,10 @@
+/* Este archivo NO define colores propios.
+   Todos salen de las variables que publica el theme en MuiCssBaseline
+   (--ff-texto, --ff-texto-suave, --ff-acento, --ff-resplandor, --ff-sombra),
+   que ya cambian solas con el modo claro/oscuro.
+   Antes tenía una paleta paralela a mano (#3a5169, #ff6b35, #ffd166...) que no
+   existía en la marca y no seguía al theme. */
+
 .logo-container-industrial {
   position: relative;
   display: flex;
@@ -13,88 +20,55 @@
   height: 100px;
   object-fit: contain;
   z-index: 2;
+  animation: flotarYResplandecer 3.5s ease-in-out infinite;
 }
 
-/* ==========================================
-                MODO CLARO
-   ========================================== */
-.light-glow .industrial-logo {
-  animation: floatAndLightGlow 3.5s ease-in-out infinite;
-}
-
-.shimmer-text-light {
-  background: linear-gradient(
-    90deg,
-    #1e2a3a 0%,
-    #3a5169 30%,
-    #ff6b35 50%,
-    #3a5169 70%,
-    #1e2a3a 100%
-  );
-  background-size: 200% auto;
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: industrialShine 2.5s linear infinite;
-}
-
-@keyframes floatAndLightGlow {
-  0% {
-    transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px rgba(58, 81, 105, 0.15));
-  }
-  50% {
-    transform: translateY(-10px) scale(1.04);
-    filter: drop-shadow(0px 0px 12px rgba(255, 140, 0, 0.7))
-  }
-  100% {
-    transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px rgba(58, 81, 105, 0.15));
-  }
-}
-
-/* ==========================================
-              MODO OSCURO
-   ========================================== */
-.dark-glow .industrial-logo {
-  animation: floatAndDarkGlow 3.5s ease-in-out infinite;
-}
-
+/* El texto con brillo: del color de texto al acento y de vuelta.
+   Sirve igual en los dos modos porque las variables ya cambian. */
+.shimmer-text-light,
 .shimmer-text-dark {
   background: linear-gradient(
     90deg,
-    #ffffff 0%,
-    #ffd166 30%,
-    #ff6b35 50%,
-    #ffd166 70%,
-    #ffffff 100%
+    var(--ff-texto) 0%,
+    var(--ff-texto-suave) 30%,
+    var(--ff-acento) 50%,
+    var(--ff-texto-suave) 70%,
+    var(--ff-texto) 100%
   );
   background-size: 200% auto;
   color: transparent;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: industrialShine 2.5s linear infinite;
+  animation: brilloIndustrial 2.5s linear infinite;
 }
 
-@keyframes floatAndDarkGlow {
+@keyframes flotarYResplandecer {
   0% {
     transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px rgba(30, 42, 58, 0.4));
+    filter: drop-shadow(0px 8px 15px var(--ff-sombra));
   }
   50% {
     transform: translateY(-10px) scale(1.04);
-    filter: drop-shadow(0px 15px 30px rgba(255, 209, 102, 0.6));
+    filter: drop-shadow(0px 0px 12px var(--ff-resplandor));
   }
   100% {
     transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px rgba(30, 42, 58, 0.4));
+    filter: drop-shadow(0px 8px 15px var(--ff-sombra));
   }
 }
 
-@keyframes industrialShine {
+@keyframes brilloIndustrial {
   to {
     background-position: 200% center;
+  }
+}
+
+/* Respeta a quien pidió menos movimiento en el sistema. */
+@media (prefers-reduced-motion: reduce) {
+  .industrial-logo,
+  .shimmer-text-light,
+  .shimmer-text-dark {
+    animation: none;
   }
 }

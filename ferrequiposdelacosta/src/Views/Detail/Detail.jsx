@@ -150,9 +150,7 @@ export default function Detail() {
               display: "block",
               textAlign: "center",
               color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light,
+                theme.palette.custom.accent,
             }}
           >
             Contáctenos para consultar disponibilidad, tiempos de alquiler,

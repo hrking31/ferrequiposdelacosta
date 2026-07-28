@@ -97,7 +97,9 @@ export default function EquipoImageCarousel() {
                 height: "100%",
                 objectFit: "contain",
                 display: "block",
-                backgroundColor: "#fff",
+                // Blanco fijo en ambos modos, a propósito: "superficie de
+                // producto" (ver CardEquipos), no una superficie de la UI.
+                backgroundColor: theme.palette.common.white,
                 p: theme.spacing(1),
               }}
             />

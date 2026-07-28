@@ -19,6 +19,7 @@ import {
   Divider,
   Dialog,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -136,14 +137,16 @@ export default function MobileDrawerLayout() {
               target="_blank"
               sx={{
                 "&:hover": {
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(37, 211, 102, 0.08)"
-                      : "rgba(37, 211, 102, 0.12)",
+                  backgroundColor: alpha(
+                    theme.palette.custom.whatsapp.main,
+                    theme.palette.mode === "dark" ? 0.08 : 0.12,
+                  ),
                 },
               }}
             >
-              <ListItemIcon sx={{ color: "#25D366" }}>
+              <ListItemIcon
+                sx={{ color: (theme) => theme.palette.custom.whatsapp.main }}
+              >
                 <WhatsApp />
               </ListItemIcon>
               <ListItemText
@@ -161,14 +164,16 @@ export default function MobileDrawerLayout() {
               href="tel:+573116576633"
               sx={{
                 "&:hover": {
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(52, 183, 241, 0.08)"
-                      : "rgba(52, 183, 241, 0.12)",
+                  backgroundColor: alpha(
+                    theme.palette.custom.call.main,
+                    theme.palette.mode === "dark" ? 0.08 : 0.12,
+                  ),
                 },
               }}
             >
-              <ListItemIcon sx={{ color: "#34B7F1" }}>
+              <ListItemIcon
+                sx={{ color: (theme) => theme.palette.custom.call.main }}
+              >
                 <LocalPhone />
               </ListItemIcon>
               <ListItemText
@@ -190,11 +195,9 @@ export default function MobileDrawerLayout() {
           <ListItem disablePadding>
             <ListItemButton onClick={toggleColorMode}>
               <ListItemIcon>
-                {theme.palette.mode === "dark" ? (
-                  <Brightness7 sx={{ color: "warning.main" }} />
-                ) : (
-                  <Brightness4 sx={{ color: "primary.main" }} />
-                )}
+                {/* El ÍCONO cambia con el modo (sol / luna); el color lo pone
+                    el tema en MuiListItemIcon. */}
+                {theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
               </ListItemIcon>
               <ListItemText
                 primary={theme.palette.mode === "dark" ? " Claro" : "Oscuro"}
@@ -208,11 +211,7 @@ export default function MobileDrawerLayout() {
           <ListItem disablePadding>
             <ListItemButton onClick={handleOpenAccount}>
               <ListItemIcon>
-                {theme.palette.mode === "dark" ? (
-                  <AccountCircle sx={{ color: "secondary.light" }} />
-                ) : (
-                  <AccountCircle sx={{ color: "primary.light" }} />
-                )}
+                <AccountCircle />
               </ListItemIcon>
               <ListItemText
                 primary="Mi cuenta"
@@ -277,12 +276,8 @@ export default function MobileDrawerLayout() {
               },
             }}
           >
-            <IconButton edge="start" onClick={toggleDrawer}>
-              {theme.palette.mode === "light" ? (
-                <MenuIcon sx={{ color: "secondary.main" }} />
-              ) : (
-                <MenuIcon sx={{ color: "secondary.light" }} />
-              )}
+            <IconButton edge="start" onClick={toggleDrawer} sx={{ color: "custom.accent" }}>
+              <MenuIcon />
             </IconButton>
             <Box sx={{ flexGrow: 1 }}>
               <Search onSearch={handleSearch} LabelOff={false} />
@@ -366,9 +361,7 @@ export default function MobileDrawerLayout() {
                     fontWeight: "bold",
                     letterSpacing: "0.5px",
                     color:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.main
-                        : theme.palette.secondary.light,
+                      theme.palette.custom.accent,
                   }}
                 >
                   Alquiler de equipos para la Construcción
@@ -429,9 +422,7 @@ export default function MobileDrawerLayout() {
                     fontWeight: "bold",
                     letterSpacing: "0.5px",
                     color:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.main
-                        : theme.palette.secondary.light,
+                      theme.palette.custom.accent,
                   }}
                 >
                   Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
@@ -461,9 +452,7 @@ export default function MobileDrawerLayout() {
                 <LocalPhone
                   sx={{
                     color:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.main
-                        : theme.palette.secondary.light,
+                      theme.palette.custom.accent,
                   }}
                 />
                 <Typography variant="body1">
@@ -493,23 +482,24 @@ export default function MobileDrawerLayout() {
                 },
               }}
             >
-              <IconButton onClick={toggleColorMode} disableRipple>
-                {theme.palette.mode === "dark" ? (
-                  <Brightness7 sx={{ color: "warning.main", mr: 2 }} />
-                ) : (
-                  <Brightness4 sx={{ color: "primary.main", mr: 2 }} />
-                )}
+              <IconButton
+                onClick={toggleColorMode}
+                disableRipple
+                sx={{ "& .MuiSvgIcon-root": { color: "custom.accent", mr: 2 } }}
+              >
+                {/* El ÍCONO cambia con el modo (sol / luna), el color no. */}
+                {theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
                 <Typography variant="subtitle1">
                   {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
                 </Typography>
               </IconButton>
 
-              <IconButton onClick={handleOpenAccount} disableRipple>
-                {theme.palette.mode === "dark" ? (
-                  <AccountCircle sx={{ color: "secondary.light", mr: 2 }} />
-                ) : (
-                  <AccountCircle sx={{ color: "primary.main", mr: 2 }} />
-                )}
+              <IconButton
+                onClick={handleOpenAccount}
+                disableRipple
+                sx={{ "& .MuiSvgIcon-root": { color: "custom.accent", mr: 2 } }}
+              >
+                <AccountCircle />
                 <Typography variant="subtitle1">Mi cuenta</Typography>
               </IconButton>
             </Box>
@@ -518,9 +508,7 @@ export default function MobileDrawerLayout() {
               sx={{
                 width: "100%",
                 color:
-                  theme.palette.mode === "light"
-                    ? theme.palette.primary.main
-                    : theme.palette.secondary.light,
+                  theme.palette.custom.accent,
                 fontSize: {
                   md: "0.675rem",
                 },

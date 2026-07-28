@@ -60,7 +60,7 @@ export default function ClienteSeguimientoCard({
 }) {
   const theme = useTheme();
   const acento =
-    theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+    theme.palette.custom.accent;
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const [tabFactura, setTabFactura] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState(null);
@@ -68,7 +68,7 @@ export default function ClienteSeguimientoCard({
   const [ampliarOpen, setAmpliarOpen] = useState(false);
 
   const avatarBgPorEstado = {
-    pendienteDespacho: "#7E57C2",
+    pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
     finalizada: theme.palette.secondary.main,
@@ -143,11 +143,11 @@ export default function ClienteSeguimientoCard({
                   target="_blank"
                   rel="noopener"
                   sx={{
-                    bgcolor: "#25D366",
-                    color: "#FFFFFF",
+                    bgcolor: theme.palette.custom.whatsapp.main,
+                    color: theme.palette.common.white,
                     width: 18,
                     height: 18,
-                    "&:hover": { bgcolor: "#128C7E" },
+                    "&:hover": { bgcolor: theme.palette.custom.whatsapp.dark },
                   }}
                 >
                   <WhatsAppIcon sx={{ fontSize: 11 }} />
@@ -158,11 +158,11 @@ export default function ClienteSeguimientoCard({
                     component="a"
                     href={`tel:${cliente.telefono}`}
                     sx={{
-                      bgcolor: "#34B7F1",
-                      color: "#FFFFFF",
+                      bgcolor: theme.palette.custom.call.main,
+                      color: theme.palette.common.white,
                       width: 18,
                       height: 18,
-                      "&:hover": { bgcolor: "#269BD1" },
+                      "&:hover": { bgcolor: theme.palette.custom.call.dark },
                     }}
                   >
                     <PhoneIcon sx={{ fontSize: 11 }} />
@@ -190,7 +190,7 @@ export default function ClienteSeguimientoCard({
               inset: 0,
               top: (i + 1) * 7,
               borderRadius: 3,
-              bgcolor: theme.palette.mode === "light" ? "#EDE6D6" : "#242424",
+              bgcolor: theme.palette.custom.tabStripBackground,
               border: "1px solid",
               borderColor: "divider",
               transform: `scale(${1 - (i + 1) * 0.03})`,
@@ -233,7 +233,12 @@ export default function ClienteSeguimientoCard({
                       border: "1px solid",
                       borderColor: activo ? "secondary.light" : "divider",
                       bgcolor: activo ? "secondary.light" : gradosGrisPestana,
-                      color: activo ? "#1A1A1A" : "text.secondary",
+                      // La pestaña activa va sobre "secondary.light": el color
+                      // del texto lo decide el contraste con ese fondo, no el
+                      // modo claro/oscuro.
+                      color: activo
+                        ? theme.palette.getContrastText(theme.palette.secondary.light)
+                        : "text.secondary",
                       position: "relative",
                       zIndex: activo ? facturas.length + 1 : facturas.length - idx,
                       mb: 0,
@@ -399,7 +404,7 @@ export default function ClienteSeguimientoCard({
                           py: 1,
                           borderRadius: 2,
                           boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                          bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                          bgcolor: theme.palette.custom.panelBackground,
                         }}
                       >
                         <Typography
@@ -439,7 +444,7 @@ export default function ClienteSeguimientoCard({
                       py: 1,
                       borderRadius: 2,
                       boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                      bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                      bgcolor: theme.palette.custom.panelBackground,
                     }}
                   >
                     <Typography

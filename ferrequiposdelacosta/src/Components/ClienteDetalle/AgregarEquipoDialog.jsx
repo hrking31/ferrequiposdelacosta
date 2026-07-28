@@ -55,7 +55,7 @@ const ESTADO_INICIAL = {
 export default function AgregarEquipoDialog({ open, onClose, cliente, factura, onAgregado }) {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const acento = theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+  const acento = theme.palette.custom.accent;
   const equiposCatalogo = useSelector((state) => state.equipos.equipos);
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errors, setErrors] = useState({});

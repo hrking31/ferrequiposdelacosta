@@ -78,7 +78,7 @@ const AnimatedBox = forwardRef(function AnimatedBox(
               position: "absolute",
               top: 4,
               right: 4,
-              color: isDarkMode ? "#fff" : "#000",
+              color: "text.primary",
             }}
           >
             <CloseIcon />

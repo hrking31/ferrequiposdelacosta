@@ -126,9 +126,7 @@ export default function KioskProductCardDetail({ product }) {
           <Remove
             sx={{
               color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light,
+                theme.palette.custom.accent,
             }}
           />
         </Button>
@@ -159,9 +157,7 @@ export default function KioskProductCardDetail({ product }) {
           <Add
             sx={{
               color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light,
+                theme.palette.custom.accent,
             }}
           />
         </Button>
@@ -204,9 +200,7 @@ export default function KioskProductCardDetail({ product }) {
                 sx={{
                   ...(varianteSeleccionada === variante && {
                     backgroundColor:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.main
-                        : theme.palette.secondary.light,
+                      theme.palette.custom.accent,
                     color:
                       theme.palette.mode === "light"
                         ? theme.palette.primary.contrastText
@@ -285,9 +279,7 @@ export default function KioskProductCardDetail({ product }) {
               <Camion
                 size={isXs ? 28 : 38}
                 color={
-                  theme.palette.mode === "light"
-                    ? theme.palette.primary.main
-                    : theme.palette.secondary.light
+                  theme.palette.custom.accent
                 }
               />
             </Box>

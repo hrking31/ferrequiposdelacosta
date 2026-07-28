@@ -4,7 +4,7 @@ import {
   CssBaseline,
   responsiveFontSizes,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, darken, lighten } from "@mui/material/styles";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
@@ -65,54 +65,218 @@ export const CustomThemeProvider = ({ children }) => {
   );
 
   const theme = useMemo(() => {
-    // Scrollbar amarillo en modo oscuro y azul acero en modo claro
-    const scrollbarAcento = mode === "light" ? "#1E293B" : "#FFB800";
+    // ── Colores de marca ───────────────────────────────────────────────
+    // Estos son los ÚNICOS códigos de color literales de la app. La paleta
+    // de abajo los combina según el modo, y la tipografía y los estilos de
+    // componentes leen SIEMPRE de la paleta — nunca de un hex suelto.
+    // Para recolorear la app, cambiar acá.
+    const AZUL_ACERO = "#1E293B";
+    const AZUL_ACERO_CLARO = "#334155";
+    const AZUL_NOCHE = "#0F172A";
+    const AMARILLO = "#FFB800";
+    const AMARILLO_CLARO = "#FFC72C";
+    const AMBAR = "#D97706";
+    const AMBAR_PREVENCION = "#F59E0B";
+    const NARANJA = "#EA580C";
+    const NARANJA_OSCURO = "#C2410C";
+    const VERDE = "#16A34A";
+    const VERDE_OSCURO = "#15803D";
+    const ROJO = "#DC2626";
+    const ROJO_OSCURO = "#B91C1C";
+    const AZUL_LLAMADA = "#0284C7";
+    const AZUL_LLAMADA_OSCURO = "#0369A1";
+    const BLANCO = "#FFFFFF";
+    const NIEVE = "#F8FAFC";
+    const CONCRETO = "#F1F5F9";
+    const GRIS_TEXTO = "#475569";
+    const GRIS_SUAVE = "#94A3B8";
+    const GRIS_CAPTION = "#64748B";
+    const BORDE_CLARO = "#E2E8F0";
+    const BORDE_INPUT = "#CBD5E1";
 
-    let newTheme = createTheme({
+    const esClaro = mode === "light";
+
+    // Paso 1: la paleta. Es la única fuente de verdad de color.
+    const base = createTheme({
       palette: {
         mode,
         primary: {
-          main: mode === "light" ? "#1E293B" : "#FFB800", // Azul Acero / Amarillo Maquinaria
-          light: mode === "light" ? "#334155" : "#FFC72C",
-          dark: mode === "light" ? "#0F172A" : "#D97706",
-          contrastText: mode === "light" ? "#FFFFFF" : "#0F172A",
+          main: esClaro ? AZUL_ACERO : AMARILLO, // Azul Acero / Amarillo Maquinaria
+          light: esClaro ? AZUL_ACERO_CLARO : AMARILLO_CLARO,
+          dark: esClaro ? AZUL_NOCHE : AMBAR,
+          contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
         secondary: {
-          main: "#EA580C", // Naranja Seguridad Viento/Obra
-          light: "#FFB800", // Amarillo Alerta
-          dark: "#C2410C",
-          contrastText: "#FFFFFF",
+          main: NARANJA, // Naranja Seguridad Viento/Obra
+          light: AMARILLO, // Amarillo Alerta
+          dark: NARANJA_OSCURO,
+          // Texto oscuro sobre el naranja: da 5.0:1. El blanco solo daba 3.6:1
+          // y no llegaba al mínimo AA.
+          contrastText: AZUL_NOCHE,
         },
+        // Semánticos. Sobre el azul oscuro del modo nocturno, el tono de marca
+        // de success/error/info NO llega al mínimo WCAG AA (4.5:1) cuando se
+        // usa como TEXTO. Por eso ".light" lo aclara partiendo del propio hex
+        // de marca — no es un color nuevo, es el mismo aclarado.
+        //   Regla de uso: ".main" para fondos rellenos (con contrastText),
+        //   ".light" para texto o íconos sueltos en modo oscuro.
         success: {
-          main: "#16A34A", // Verde para disponible / en buen estado
-          contrastText: "#FFFFFF",
+          main: VERDE, // Verde para disponible / en buen estado
+          light: lighten(VERDE, 0.35), // 6.4:1 sobre AZUL_ACERO
+          dark: VERDE_OSCURO,
+          // Texto oscuro sobre el verde: da 5.4:1. El blanco solo daba 3.3:1.
+          contrastText: AZUL_NOCHE,
         },
         warning: {
-          main: "#F59E0B", // Amarillo prevención
-          contrastText: "#0F172A",
+          main: AMBAR_PREVENCION, // Amarillo prevención — ya da 6.8:1
+          contrastText: AZUL_NOCHE,
         },
         error: {
-          main: "#DC2626", // Rojo fuera de servicio
-          contrastText: "#FFFFFF",
+          main: ROJO, // Rojo fuera de servicio
+          light: lighten(ROJO, 0.35), // 4.9:1 sobre AZUL_ACERO
+          dark: ROJO_OSCURO,
+          contrastText: BLANCO,
         },
         info: {
-          main: "#0284C7",
-          contrastText: "#FFFFFF",
+          main: AZUL_LLAMADA,
+          light: lighten(AZUL_LLAMADA, 0.35), // 6.0:1 sobre AZUL_ACERO
+          dark: AZUL_LLAMADA_OSCURO,
+          contrastText: BLANCO,
         },
 
+        // Tres niveles de superficie, en espejo con el oscuro. En claro la
+        // elevación SUBE hacia el blanco; en oscuro sube hacia el gris azulado.
+        // Que la tarjeta no sea blanca es a propósito: las fotos de los equipos
+        // son blancas fijas, así que quedan por encima y se despegan solas.
         background: {
-          default: mode === "light" ? "#F1F5F9" : "#0F172A", // Gris concreto claro / Azul noche oscuro
-          paper: mode === "light" ? "#FFFFFF" : "#1E293B",
+          default: esClaro ? BORDE_CLARO : AZUL_NOCHE,
+          paper: esClaro ? CONCRETO : AZUL_ACERO,
+          elevated: esClaro ? BLANCO : AZUL_ACERO_CLARO,
         },
         text: {
-          primary: mode === "light" ? "#0F172A" : "#F8FAFC",
-          secondary: mode === "light" ? "#475569" : "#94A3B8",
+          primary: esClaro ? AZUL_ACERO : "rgba(255, 255, 255, 0.87)",
+          secondary: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
+          // Escala de énfasis de Material: 87% principal, 60% secundario,
+          // 38% deshabilitado. El texto deshabilitado está exento del mínimo
+          // de contraste justamente porque tiene que leerse como inactivo.
+          disabled: esClaro
+            ? alpha(AZUL_ACERO, 0.38)
+            : "rgba(255, 255, 255, 0.38)",
         },
+
+        // Estados de interacción. Antes usaban el gris genérico de MUI; ahora
+        // son tintes del acento de la marca, distintos por modo (sobre fondo
+        // oscuro hace falta más opacidad para que el tinte se perciba).
+        action: {
+          // De acá sale el color por defecto de los IconButton y de los íconos
+          // sueltos de MUI. Definirlo evita tener que pintarlos uno por uno.
+          active: esClaro ? alpha(AZUL_ACERO, 0.72) : "rgba(255, 255, 255, 0.7)",
+          hover: esClaro ? alpha(AZUL_ACERO, 0.05) : alpha(BLANCO, 0.07),
+          hoverOpacity: esClaro ? 0.05 : 0.07,
+          selected: esClaro ? alpha(NARANJA, 0.12) : alpha(AMARILLO, 0.16),
+          selectedOpacity: esClaro ? 0.12 : 0.16,
+          focus: esClaro ? alpha(NARANJA, 0.18) : alpha(AMARILLO, 0.2),
+          focusOpacity: esClaro ? 0.18 : 0.2,
+          disabled: esClaro ? alpha(AZUL_ACERO, 0.3) : alpha(BLANCO, 0.3),
+          disabledBackground: esClaro
+            ? alpha(AZUL_ACERO, 0.1)
+            : alpha(BLANCO, 0.1),
+          disabledOpacity: 0.38,
+        },
+
+        // Footer: tokens propios porque es un componente a medida, no un
+        // Paper de MUI. El fondo es la superficie (un escalón por encima del
+        // fondo de página), así se despega sin necesitar sombra.
+        footer: {
+          background: esClaro ? CONCRETO : AZUL_ACERO,
+          text: esClaro ? GRIS_TEXTO : GRIS_SUAVE,
+        },
+        // Bordes y separadores. En claro va un paso más oscuro que el fondo
+        // de página: si usara BORDE_CLARO se confundiría con él.
+        divider: esClaro ? BORDE_INPUT : AZUL_ACERO_CLARO,
         custom: {
-          primary: mode === "light" ? "#1E293B" : "#FFB800",
-          secondary: mode === "light" ? "#EA580C" : "#F8FAFC",
+          primary: esClaro ? AZUL_ACERO : AMARILLO,
+          secondary: esClaro ? NARANJA : NIEVE,
+          // ── El acento ────────────────────────────────────────────────
+          // Regla: el acento lo decide LA SUPERFICIE sobre la que va, no el
+          // modo. Sobre superficie oscura funciona el amarillo; sobre
+          // superficie clara hay que ir al naranja (el amarillo sobre claro
+          // es ilegible).
+          // El mínimo de contraste depende del TAMAÑO: un título de 36px
+          // necesita 3:1, un texto de 14px necesita 4.5:1. El naranja de marca
+          // da 3.6:1, así que sirve arriba pero no abajo. De ahí los dos:
+          //   accent      → el naranja de marca. Íconos, rellenos, bordes y
+          //                 todo texto grande (títulos h2 a h5).
+          //   accentSmall → solo para letra chica (h6, captions, textos de
+          //                 14px o menos), donde 3.6:1 no alcanza. Es un
+          //                 naranja más oscuro; a ese tamaño la diferencia
+          //                 casi no se percibe.
+          // En oscuro los dos son AMARILLO: da 8.4:1 y sirve para todo.
+          accent: esClaro ? NARANJA : AMARILLO,
+          accentSmall: esClaro ? NARANJA_OSCURO : AMARILLO,
+          // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
+          // para que se distinga de la página.
+          // Ojo: antes esto era el mismo color que el fondo y en oscuro igual
+          // se veía distinto. No era el tema: MUI le mete al Paper un degradado
+          // de elevación que SOLO aplica en modo oscuro, y el AppBar es un
+          // Paper. Ese degradado está desactivado abajo (backgroundImage:
+          // "none"), así que ahora el color es exactamente el declarado acá y
+          // la diferencia es intencional en los dos modos.
+          navbarBackground: esClaro ? CONCRETO : AZUL_ACERO,
+          navbarText: esClaro ? NARANJA : AMARILLO,
+          // Contorno de los campos de formulario (los bordes generales de
+          // tarjetas y separadores usan "palette.divider").
+          inputBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
+          captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
+          // Fondo de recuadros/paneles (totales, resúmenes): el nivel elevado,
+          // para que sobresalgan de la tarjeta que los contiene.
+          panelBackground: esClaro ? BLANCO : AZUL_ACERO_CLARO,
+          // Franja de pestañas de facturas (ClienteSeguimientoCard).
+          tabStripBackground: esClaro ? BORDE_CLARO : AZUL_NOCHE,
+          // Estado de cliente "pendiente de despacho". ÚNICO color fuera de la
+          // paleta de marca, a propósito: los otros 4 estados ya ocupan
+          // success/info/secondary/grey y necesita distinguirse de todos.
+          pendienteDespacho: "#7E57C2",
+          // Indicador de usuario conectado.
+          online: VERDE,
+          // Colores de marca fijos: iguales en ambos modos.
+          whatsapp: { main: "#25D366", dark: "#128C7E" },
+          call: { main: AZUL_LLAMADA, dark: AZUL_LLAMADA_OSCURO },
         },
       },
+      shape: {
+        borderRadius: 6, // Esquinas un poco más rectas para estética industrial
+      },
+      // Unidad base de espaciado: theme.spacing(2) = 16px. Explícito para que
+      // se vea que es una decisión y no el valor por defecto de MUI.
+      spacing: 8,
+      // Escala de sombras (theme.shadows[0..24]). MUI exige exactamente 25.
+      //
+      // En CLARO las tiñe de azul noche en vez del negro puro de MUI: sobre
+      // superficies frías el gris neutro se ve sucio.
+      //
+      // En OSCURO son todas "none" a propósito. Una sombra sobre fondo oscuro
+      // no se percibe; la elevación la dan los tres tonos de azul. Así, poner
+      // elevation={n} en modo oscuro no ensucia nada.
+      shadows: esClaro
+        ? Array.from({ length: 25 }, (_, i) => {
+            if (i === 0) return "none";
+            const y = Math.max(1, Math.round(i * 0.8));
+            const desenfoque = Math.round(i * 1.6) + 2;
+            const recogido = Math.round(i * 0.4);
+            const opacidad = Math.min(0.04 + i * 0.006, 0.16);
+            return `0px ${y}px ${desenfoque}px -${recogido}px ${alpha(
+              AZUL_NOCHE,
+              opacidad,
+            )}`;
+          })
+        : Array.from({ length: 25 }, () => "none"),
+    });
+
+    const p = base.palette;
+
+    // Paso 2: tipografía y componentes, construidos SOBRE la paleta anterior.
+    let newTheme = createTheme(base, {
       typography: {
         fontFamily: '"Open Sans", "Roboto", "Arial", sans-serif',
 
@@ -124,7 +288,7 @@ export const CustomThemeProvider = ({ children }) => {
           letterSpacing: "-0.02em",
           // h1 solo se usa hoy en el título del NavBar, que siempre va
           // sobre una barra oscura (ver MuiAppBar) — necesita texto claro.
-          color: mode === "light" ? "#FFFFFF" : "#FFB800",
+          color: p.custom.navbarText,
 
           "@media (max-width:1200px)": {
             fontSize: "2.5rem",
@@ -147,7 +311,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 700,
           fontSize: "2.25rem", // 36px base
           lineHeight: 1.3,
-          color: mode === "light" ? "#1E293B" : "#FFB800",
+          color: p.custom.accent,
 
           "@media (max-width:1200px)": {
             fontSize: "2rem", // 32px
@@ -163,11 +327,53 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        h3: {
+          fontFamily: '"Montserrat", sans-serif',
+          fontWeight: 700,
+          fontSize: "1.875rem", // 30px
+          lineHeight: 1.35,
+          color: p.custom.accent,
+
+          "@media (max-width:1200px)": {
+            fontSize: "1.75rem", // 28px
+          },
+          "@media (max-width:900px)": {
+            fontSize: "1.5rem", // 24px
+          },
+          "@media (max-width:600px)": {
+            fontSize: "1.375rem", // 22px
+          },
+          "@media (max-width:400px)": {
+            fontSize: "1.25rem", // 20px
+          },
+        },
+
+        h4: {
+          fontFamily: '"Montserrat", sans-serif',
+          fontWeight: 700,
+          fontSize: "1.5rem", // 24px
+          lineHeight: 1.4,
+          color: p.custom.accent,
+
+          "@media (max-width:1200px)": {
+            fontSize: "1.4rem",
+          },
+          "@media (max-width:900px)": {
+            fontSize: "1.3rem",
+          },
+          "@media (max-width:600px)": {
+            fontSize: "1.2rem",
+          },
+          "@media (max-width:400px)": {
+            fontSize: "1.15rem",
+          },
+        },
+
         h5: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 700,
           fontSize: "1.2rem",
-          color: mode === "light" ? "#1E293B" : "#FFB800",
+          color: p.custom.accent,
 
           "@media (max-width:1200px)": {
             fontSize: "1.1rem", // lg
@@ -183,11 +389,37 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        // h6 se usa como título de sección en varias pantallas (ClienteDetalle,
+        // ListaClientes, EliminarEquipos y el Footer en móvil). Antes no estaba
+        // definido y caía al default de MUI: Roboto, peso 500 y 1.25rem — o sea
+        // otra fuente y MÁS GRANDE que h5, invirtiendo la jerarquía.
+        h6: {
+          fontFamily: '"Montserrat", sans-serif',
+          fontWeight: 700,
+          fontSize: "1.1rem",
+          // 17.6px queda justo por debajo del umbral de "texto grande" de WCAG
+          // (18.66px en negrita), así que necesita el acento oscuro.
+          color: p.custom.accentSmall,
+
+          "@media (max-width:1200px)": {
+            fontSize: "1.05rem", // lg
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.95rem", // md
+          },
+          "@media (max-width:600px)": {
+            fontSize: "0.9rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.85rem", // xs
+          },
+        },
+
         subtitle1: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "1rem",
-          color: mode === "light" ? "#475569" : "#94A3B8",
+          color: p.text.secondary,
 
           "@media (max-width:1200px)": {
             fontSize: "0.95rem", // lg
@@ -207,7 +439,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 600,
           fontSize: "0.875rem",
-          color: mode === "light" ? "#475569" : "#94A3B8",
+          color: p.text.secondary,
 
           "@media (max-width:1200px)": {
             fontSize: "0.85rem", // lg
@@ -228,7 +460,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 400,
           fontSize: "1rem", // >= md
           lineHeight: 1.5,
-          color: mode === "light" ? "#0F172A" : "#F8FAFC",
+          color: p.text.primary,
 
           "@media (max-width:1200px)": {
             fontSize: "0.95rem", // lg
@@ -249,7 +481,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontWeight: 400,
           fontSize: "0.875rem",
           lineHeight: 1.43,
-          color: mode === "light" ? "#0F172A" : "#F8FAFC",
+          color: p.text.primary,
 
           "@media (max-width:1200px)": {
             fontSize: "0.85rem", // lg
@@ -273,12 +505,12 @@ export const CustomThemeProvider = ({ children }) => {
           letterSpacing: "0.05em",
         },
 
-        lineHeight: 1.75,
         caption: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
           fontSize: "0.75rem",
-          color: mode === "light" ? "#64748B" : "#94A3B8",
+          color: p.custom.captionText,
+
         },
 
         overline: {
@@ -287,75 +519,179 @@ export const CustomThemeProvider = ({ children }) => {
           fontSize: "0.625rem",
           textTransform: "uppercase",
           letterSpacing: "0.1em",
-          color: mode === "light" ? "#64748B" : "#94A3B8",
-        },
-      },
+          color: p.custom.captionText,
 
-      shape: {
-        borderRadius: 6, // Esquinas un poco más rectas para estética industrial
+        },
       },
 
       components: {
         MuiCssBaseline: {
-          styleOverrides: {
-            "*": {
-              scrollbarWidth: "thin",
-              scrollbarColor: `${alpha(scrollbarAcento, 0.4)} transparent`,
-            },
-            "*::-webkit-scrollbar": {
-              width: "8px",
-              height: "8px",
-            },
-            "*::-webkit-scrollbar-track": {
-              backgroundColor: "transparent",
-            },
-            "*::-webkit-scrollbar-thumb": {
-              backgroundColor: alpha(scrollbarAcento, 0.4),
-              borderRadius: "4px",
-            },
-            "*::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: alpha(scrollbarAcento, 0.7),
-            },
-            "@media (pointer: coarse)": {
+          // El scroll de toda la app: toma su color de "custom.primary" (azul
+          // acero en claro, amarillo en oscuro) en vez de repetir los hex, así
+          // cambiar la paleta cambia también la barra de scroll.
+          //
+          // OJO: MuiCssBaseline es la excepción — su "styleOverrides" recibe el
+          // tema DIRECTO, no un objeto { theme } como el resto de componentes.
+          styleOverrides: (temaActual) => {
+            const scrollbarAcento = temaActual.palette.custom.accent;
+
+            const esModoClaro = temaActual.palette.mode === "light";
+
+            return {
+              // Variables CSS: el puente para las hojas de estilo planas, que
+              // no pueden leer el theme de MUI. Cambiar la paleta acá arriba
+              // también las cambia a ellas.
+              ":root": {
+                "--ff-texto": temaActual.palette.text.primary,
+                "--ff-texto-suave": temaActual.palette.text.secondary,
+                "--ff-acento": scrollbarAcento,
+                "--ff-resplandor": alpha(scrollbarAcento, 0.7),
+                "--ff-sombra": alpha(AZUL_NOCHE, esModoClaro ? 0.15 : 0.4),
+              },
+
+              body: {
+                backgroundColor: temaActual.palette.background.default,
+                color: temaActual.palette.text.primary,
+              },
+
+              // Selección de texto: acento translúcido, para que lo
+              // seleccionado se siga leyendo.
+              "::selection": {
+                backgroundColor: alpha(scrollbarAcento, 0.3),
+              },
+
               "*": {
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
+                scrollbarWidth: "thin",
+                scrollbarColor: `${alpha(scrollbarAcento, 0.4)} transparent`,
               },
               "*::-webkit-scrollbar": {
-                display: "none",
+                width: "8px",
+                height: "8px",
               },
+              "*::-webkit-scrollbar-track": {
+                backgroundColor: "transparent",
+              },
+              "*::-webkit-scrollbar-thumb": {
+                backgroundColor: alpha(scrollbarAcento, 0.4),
+                borderRadius: "4px",
+              },
+              "*::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: alpha(scrollbarAcento, 0.7),
+              },
+              "@media (pointer: coarse)": {
+                "*": {
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                },
+                "*::-webkit-scrollbar": {
+                  display: "none",
+                },
+              },
+            };
+          },
+        },
+
+        // Paper es la base de Card, Dialog, Menu, Drawer, Accordion y varios
+        // más: lo que se defina acá lo heredan todos.
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              // MUI le superpone al Paper un degradado que aclara el fondo
+              // según la elevación, y SOLO en modo oscuro. Eso hacía que el
+              // color renderizado no fuera el declarado. La elevación en
+              // oscuro se resuelve con los tonos de superficie, no con esto.
+              backgroundImage: "none",
             },
+            outlined: ({ theme }) => ({
+              border: `1px solid ${theme.palette.divider}`,
+            }),
           },
         },
 
         MuiAppBar: {
           styleOverrides: {
-            root: () => ({
-              backgroundColor: mode === "light" ? "#1E293B" : "#0F172A", // Navbar oscuro/profundo para dar soporte
-              color: "#FFB800",
-              borderBottom: `3px solid #EA580C`, // Detalle en naranja de seguridad
+            root: ({ theme }) => ({
+              // Navbar oscuro/profundo para dar soporte
+              backgroundColor: theme.palette.custom.navbarBackground,
+              // Desactiva el degradado de elevación que MUI le aplica al Paper
+              // en modo oscuro: si no, el color renderizado no es el declarado.
+              backgroundImage: "none",
+              color: theme.palette.custom.navbarText,
+              // La línea usa el mismo acento que el texto del navbar.
+              borderBottom: `3px solid ${theme.palette.custom.navbarText}`,
             }),
           },
         },
         MuiCard: {
           styleOverrides: {
-            root: {
-              borderRadius: 8,
-              border: mode === "light" ? "1px solid #E2E8F0" : "1px solid #334155",
-              boxShadow:
-                mode === "dark"
-                  ? "0 4px 6px -1px rgba(0, 0, 0, 0.4)"
+            root: ({ theme }) => {
+              const esOscuro = theme.palette.mode === "dark";
+
+              return {
+                borderRadius: 8,
+                border: `1px solid ${theme.palette.divider}`,
+                // Sobre el fondo azul oscuro una sombra no se percibe, así que
+                // en modo oscuro la elevación la marca el borde (y el borde de
+                // acento al pasar el mouse), no un box-shadow.
+                boxShadow: esOscuro
+                  ? "none"
                   : "0 4px 6px -1px rgba(15, 23, 42, 0.06)",
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                transform: "translateY(-3px)",
-                borderColor: mode === "light" ? "#EA580C" : "#FFB800",
-                boxShadow:
-                  mode === "dark"
-                    ? "0 10px 15px -3px rgba(0, 0, 0, 0.6)"
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  transform: "translateY(-3px)",
+                  borderColor: theme.palette.custom.accent,
+                  boxShadow: esOscuro
+                    ? "none"
                     : "0 10px 15px -3px rgba(15, 23, 42, 0.12)",
-              },
+                },
+              };
             },
+          },
+        },
+
+        // Superficies elevadas (diálogos, menús, popovers). En modo oscuro usan
+        // el tercer tono de azul, más claro que "background.paper", para
+        // despegarse del fondo sin depender de sombras. En modo claro
+        // "background.elevated" es blanco, así que no cambia nada.
+        // "backgroundImage: none" desactiva el degradado que MUI le aplica al
+        // Paper en modo oscuro, que si no se sumaría al color y lo aclararía de
+        // más.
+        MuiDialog: {
+          styleOverrides: {
+            paper: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              backgroundImage: "none",
+            }),
+          },
+        },
+
+        MuiMenu: {
+          styleOverrides: {
+            paper: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              backgroundImage: "none",
+            }),
+          },
+        },
+
+        MuiPopover: {
+          styleOverrides: {
+            paper: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              backgroundImage: "none",
+            }),
+          },
+        },
+
+        // Íconos de listas y menús (Drawer, menú de cuenta, cambio de tema).
+        // Toman el acento desde acá, así no hay que pintarlos uno por uno en
+        // cada componente. Los que tienen color de marca propio —WhatsApp,
+        // llamar— lo siguen declarando ellos.
+        MuiListItemIcon: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              color: theme.palette.custom.accent,
+            }),
           },
         },
         MuiButton: {
@@ -372,11 +708,11 @@ export const CustomThemeProvider = ({ children }) => {
           variants: [
             {
               props: { variant: "danger" },
-              style: {
-                backgroundColor: "#DC2626",
-                color: "#FFFFFF",
-                "&:hover": { backgroundColor: "#B91C1C" },
-              },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.error.main,
+                color: theme.palette.error.contrastText,
+                "&:hover": { backgroundColor: theme.palette.error.dark },
+              }),
             },
             {
               // Mismo color que "danger", pero pensado para el botón de
@@ -384,38 +720,50 @@ export const CustomThemeProvider = ({ children }) => {
               // izquierda del texto (antes esto se armaba a mano con
               // variant="danger" + fullWidth + startIcon en cada pantalla).
               props: { variant: "menuLogout" },
-              style: {
-                backgroundColor: "#DC2626",
-                color: "#FFFFFF",
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.error.main,
+                color: theme.palette.error.contrastText,
                 width: "100%",
                 justifyContent: "center",
                 gap: 1,
-                "&:hover": { backgroundColor: "#B91C1C" },
-              },
+                "&:hover": { backgroundColor: theme.palette.error.dark },
+              }),
             },
             {
+              // Usa el verde OSCURO, no el "main": el verde de marca con texto
+              // blanco da 3.3:1 y no llega al mínimo AA. El oscuro da 5.0:1.
               props: { variant: "success" },
-              style: {
-                backgroundColor: "#16A34A",
-                color: "#FFFFFF",
-                "&:hover": { backgroundColor: "#15803D" },
-              },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.success.dark,
+                color: theme.palette.common.white,
+                "&:hover": {
+                  backgroundColor: darken(theme.palette.success.dark, 0.15),
+                },
+              }),
             },
             {
+              // EXCEPCIÓN CONSCIENTE: el verde oficial de WhatsApp con texto
+              // blanco da 2.0:1 y no cumple AA, pero es el botón reconocible de
+              // una marca de terceros — cambiarlo lo haría irreconocible. Se
+              // mantiene a propósito. No aplicar acá la regla de contraste.
               props: { variant: "whatsapp" },
-              style: {
-                backgroundColor: "#25D366",
-                color: "#FFFFFF",
-                "&:hover": { backgroundColor: "#128C7E" },
-              },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.custom.whatsapp.main,
+                color: theme.palette.common.white,
+                "&:hover": { backgroundColor: theme.palette.custom.whatsapp.dark },
+              }),
             },
             {
+              // Usa el azul OSCURO: el azul de llamada con texto blanco da
+              // 4.1:1, justo por debajo del mínimo. El oscuro da 5.9:1.
               props: { variant: "call" },
-              style: {
-                backgroundColor: "#0284C7",
-                color: "#FFFFFF",
-                "&:hover": { backgroundColor: "#0369A1" },
-              },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.custom.call.dark,
+                color: theme.palette.common.white,
+                "&:hover": {
+                  backgroundColor: darken(theme.palette.custom.call.dark, 0.15),
+                },
+              }),
             },
             {
               // Botón cuadrado del menú de AdminForms: ícono arriba, texto
@@ -423,32 +771,54 @@ export const CustomThemeProvider = ({ children }) => {
               // ancho/alto (dependen de cuántos botones hay y del tamaño
               // de pantalla, algo que el tema no puede saber de antemano).
               props: { variant: "adminSquare" },
-              style: ({ theme }) => ({
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                textAlign: "center",
-                overflow: "hidden",
-                backgroundColor: theme.palette.mode === "light" ? "#1E293B" : "#FFB800",
-                color: theme.palette.mode === "light" ? "#FFB800" : "#0F172A",
-                boxShadow: "none",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  backgroundColor: theme.palette.mode === "light" ? "#0F172A" : "#F59E0B",
-                  transform: "translateY(-3px)",
-                },
-              }),
+              style: ({ theme }) => {
+                const esOscuro = theme.palette.mode === "dark";
+
+                return {
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center",
+                  overflow: "hidden",
+                  // Estos tiles ocupan casi toda la pantalla: son SUPERFICIES,
+                  // no acentos. Pintarlos con el color de marca saturado hacía
+                  // que el modo claro se viera oscuro (9 bloques azules) y el
+                  // oscuro se viera claro (9 bloques amarillos), contradiciendo
+                  // el modo en ambos casos.
+                  // Patrón estándar de Material 3 para áreas grandes: fondo de
+                  // "surface" + el color de marca reservado al ícono y al borde.
+                  backgroundColor: esOscuro
+                    ? theme.palette.background.elevated
+                    : theme.palette.background.paper,
+                  color: theme.palette.text.primary,
+                  border: `1px solid ${theme.palette.divider}`,
+                  boxShadow: "none",
+                  transition: "all 0.2s ease-in-out",
+                  // El ícono es el que lleva el color de marca.
+                  "& .MuiSvgIcon-root": {
+                    color: theme.palette.custom.accent,
+                  },
+                  "&:hover": {
+                    backgroundColor: esOscuro
+                      ? theme.palette.background.paper
+                      : alpha(theme.palette.primary.main, 0.06),
+                    borderColor: theme.palette.custom.accent,
+                    transform: "translateY(-3px)",
+                  },
+                };
+              },
             },
             {
               props: { variant: "quotationSquare" },
-              style: () => ({
-                backgroundColor: "#EA580C", // Naranja acción rápida
-                color: "#FFFFFF",
+              style: ({ theme }) => ({
+                // Naranja acción rápida
+                backgroundColor: theme.palette.secondary.main,
+                color: theme.palette.secondary.contrastText,
                 boxShadow: "none",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                  backgroundColor: "#C2410C",
+                  backgroundColor: theme.palette.secondary.dark,
                   transform: "translateY(-3px)",
                 },
               }),
@@ -461,13 +831,16 @@ export const CustomThemeProvider = ({ children }) => {
             root: ({ theme }) => ({
               borderRadius: 6,
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.palette.mode === "light" ? "#CBD5E1" : "#475569",
+                borderColor: theme.palette.custom.inputBorder,
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.palette.mode === "light" ? "#1E293B" : "#FFB800",
+                borderColor: theme.palette.custom.accent,
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#EA580C", // Foco en Naranja Seguridad
+                // Foco en Naranja Seguridad: es naranja en ambos modos, por eso
+                // usa "secondary.main" y no "custom.accent" (que vira a amarillo
+                // en modo oscuro).
+                borderColor: theme.palette.secondary.main,
                 borderWidth: "2px",
               },
             }),
@@ -538,20 +911,20 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiDivider: {
           styleOverrides: {
-            root: {
-              borderColor: mode === "light" ? "#E2E8F0" : "#334155",
-            },
+            root: ({ theme }) => ({
+              borderColor: theme.palette.divider,
+            }),
           },
         },
 
         MuiCheckbox: {
           styleOverrides: {
-            root: {
-              color: mode === "light" ? "#1E293B" : "#FFB800",
+            root: ({ theme }) => ({
+              color: theme.palette.custom.accent,
               "&.Mui-checked": {
-                color: mode === "light" ? "#EA580C" : "#FFB800",
+                color: theme.palette.custom.accent,
               },
-            },
+            }),
           },
           defaultProps: {
             size: "small",
@@ -560,15 +933,124 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiRadio: {
           styleOverrides: {
-            root: {
-              color: mode === "light" ? "#1E293B" : "#FFB800",
+            root: ({ theme }) => ({
+              color: theme.palette.custom.accent,
               "&.Mui-checked": {
-                color: mode === "light" ? "#EA580C" : "#FFB800",
+                color: theme.palette.custom.accent,
               },
-            },
+            }),
           },
           defaultProps: {
             size: "small",
+          },
+        },
+
+        // Drawer: superficie elevada, igual que diálogos y menús.
+        MuiDrawer: {
+          styleOverrides: {
+            paper: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              backgroundImage: "none",
+              borderColor: theme.palette.divider,
+            }),
+          },
+        },
+
+        // Chip: solo forma y borde. Los colores semánticos (success, error…)
+        // ya salen del palette, así que NO se tocan acá — pisarlos rompería
+        // los <Chip color="..."> de las vistas de facturas.
+        MuiChip: {
+          styleOverrides: {
+            root: {
+              fontWeight: 600,
+            },
+            outlined: ({ theme }) => ({
+              borderColor: theme.palette.divider,
+            }),
+          },
+        },
+
+        MuiAlert: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              borderRadius: theme.shape.borderRadius,
+            }),
+          },
+        },
+
+        MuiSnackbarContent: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              color: theme.palette.text.primary,
+              borderRadius: theme.shape.borderRadius,
+            }),
+          },
+        },
+
+        // Tooltip: tiene que contrastar contra la página, así que va al revés
+        // del modo — oscuro sobre fondo claro, y un escalón más claro sobre
+        // fondo oscuro.
+        MuiTooltip: {
+          styleOverrides: {
+            tooltip: ({ theme }) => ({
+              backgroundColor:
+                theme.palette.mode === "light"
+                  ? theme.palette.custom.primary
+                  : theme.palette.background.elevated,
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.common.white
+                  : theme.palette.text.primary,
+              fontSize: "0.75rem",
+              borderRadius: theme.shape.borderRadius,
+            }),
+            arrow: ({ theme }) => ({
+              color:
+                theme.palette.mode === "light"
+                  ? theme.palette.custom.primary
+                  : theme.palette.background.elevated,
+            }),
+          },
+        },
+
+        MuiSkeleton: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              backgroundColor: theme.palette.action.hover,
+            }),
+          },
+        },
+
+        MuiTableCell: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              borderBottomColor: theme.palette.divider,
+            }),
+            head: ({ theme }) => ({
+              backgroundColor: theme.palette.background.elevated,
+              color: theme.palette.text.primary,
+              fontWeight: 700,
+            }),
+          },
+        },
+
+        MuiTableRow: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              "&:hover": {
+                backgroundColor: theme.palette.action.hover,
+              },
+            }),
+          },
+        },
+
+        // Los íconos toman su color del contexto. El de por defecto sale de
+        // "palette.action.active"; los que necesitan color propio lo piden con
+        // la prop "color", nunca con un hex.
+        MuiSvgIcon: {
+          defaultProps: {
+            fontSize: "medium",
           },
         },
 
@@ -577,7 +1059,10 @@ export const CustomThemeProvider = ({ children }) => {
             variantMapping: {
               h1: "h1",
               h2: "h2",
+              h3: "h3",
+              h4: "h4",
               h5: "h5",
+              h6: "h6",
               subtitle1: "p",
               subtitle2: "p",
               body1: "p",

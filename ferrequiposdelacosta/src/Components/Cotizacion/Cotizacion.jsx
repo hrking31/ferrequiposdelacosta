@@ -188,7 +188,7 @@ export default function Cotizacion() {
               }}
               InputProps={{
                 sx: {
-                  color: theme.palette.mode === "light" ? "#1A1A1A" : "#A0AEC0",
+                  color: theme.palette.text.primary,
                 },
               }}
             />
@@ -526,8 +526,7 @@ export default function Cotizacion() {
                 p: 2,
                 borderRadius: 2,
                 boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                backgroundColor:
-                  theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                backgroundColor: theme.palette.custom.panelBackground,
               }}
             >
               <Box display="flex" justifyContent="space-between" mb={1}>
@@ -581,7 +580,7 @@ export default function Cotizacion() {
                 mt={2}
                 pt={2}
                 sx={{
-                  borderTop: "1px dashed #999",
+                  borderTop: `1px dashed ${theme.palette.divider}`,
                 }}
               >
                 <Typography variant="h5" fontWeight="bold">

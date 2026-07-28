@@ -7,6 +7,7 @@ import {
   Box,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import PropTypes from "prop-types";
 
 export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
@@ -20,13 +21,13 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
         onClick={onSelect}
         sx={{
           boxShadow: isSelected
-            ? "0 4px 12px rgba(102, 155, 188, 0.3)"
+            ? `0 4px 12px ${alpha(theme.palette.secondary.main, 0.3)}`
             : "0 2px 8px rgba(0, 0, 0, 0.08)",
           border: "1px solid",
-          borderColor: isSelected ? "#669BBC" : "divider",
+          borderColor: isSelected ? theme.palette.secondary.main : "divider",
           borderTop: (theme) =>
             isSelected
-              ? "2px solid #669BBC"
+              ? `2px solid ${theme.palette.secondary.main}`
               : `4px solid ${
                   theme.palette.mode === "light"
                     ? theme.palette.secondary.main
@@ -47,25 +48,17 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
             }}
           />
 
-          <Box
-            p={2}
-            sx={{
-              bgcolor: (theme) =>
-                !isSelected && theme.palette.mode === "light"
-                  ? "secondary.main"
-                  : undefined,
-            }}
-          >
+          <Box p={2}>
             <Typography
               variant="body1"
               title={name}
               sx={{
                 fontWeight: isSelected ? 700 : undefined,
+                // Seleccionada: color de marca (14.6:1 en claro, 8.4:1 en
+                // oscuro). El naranja sobre fondo claro daba solo 3.6:1.
                 color: isSelected
-                  ? "#669BBC"
-                  : theme.palette.mode === "light"
-                    ? "#F7F7F7"
-                    : theme.palette.custom.primary,
+                  ? theme.palette.primary.main
+                  : theme.palette.text.primary,
               }}
             >
               {name}

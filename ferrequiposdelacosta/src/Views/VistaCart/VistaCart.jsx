@@ -254,9 +254,7 @@ export default function VistaCart() {
               cantidad={items.length}
               size={isXs ? 28 : 38}
               color={
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.light
+                theme.palette.custom.accent
               }
             />
             <Typography
@@ -284,9 +282,7 @@ export default function VistaCart() {
                   fontSize="small"
                   sx={{
                     color:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.main
-                        : theme.palette.secondary.light,
+                      theme.palette.custom.accent,
                   }}
                 />{" "}
                 {cliente.direccion?.detalle || ""}{" "}
@@ -305,9 +301,7 @@ export default function VistaCart() {
                 fontSize="small"
                 sx={{
                   color:
-                    theme.palette.mode === "light"
-                      ? theme.palette.primary.main
-                      : theme.palette.secondary.light,
+                    theme.palette.custom.accent,
                 }}
               />
             </IconButton>
@@ -520,9 +514,7 @@ export default function VistaCart() {
                           <Remove
                             sx={{
                               color:
-                                theme.palette.mode === "light"
-                                  ? theme.palette.primary.main
-                                  : theme.palette.secondary.light,
+                                theme.palette.custom.accent,
                             }}
                           />
                         </Button>
@@ -558,9 +550,7 @@ export default function VistaCart() {
                           <Add
                             sx={{
                               color:
-                                theme.palette.mode === "light"
-                                  ? theme.palette.primary.main
-                                  : theme.palette.secondary.light,
+                                theme.palette.custom.accent,
                             }}
                           />
                         </Button>
@@ -616,9 +606,7 @@ export default function VistaCart() {
                           <Remove
                             sx={{
                               color:
-                                theme.palette.mode === "light"
-                                  ? theme.palette.primary.main
-                                  : theme.palette.secondary.light,
+                                theme.palette.custom.accent,
                             }}
                           />
                         </Button>
@@ -654,9 +642,7 @@ export default function VistaCart() {
                           <Add
                             sx={{
                               color:
-                                theme.palette.mode === "light"
-                                  ? theme.palette.primary.main
-                                  : theme.palette.secondary.light,
+                                theme.palette.custom.accent,
                             }}
                           />
                         </Button>
@@ -708,14 +694,7 @@ export default function VistaCart() {
           // border: "2px solid red",
         }}
       >
-        <Typography
-          variant="h5"
-          sx={{
-            color: theme.palette.custom.primary,
-          }}
-        >
-          Resumen del Pedido
-        </Typography>
+        <Typography variant="h5">Resumen del Pedido</Typography>
 
         <Box
           sx={{

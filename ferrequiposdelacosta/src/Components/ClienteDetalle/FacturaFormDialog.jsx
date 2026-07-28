@@ -82,7 +82,7 @@ const TIPO_PAGO_INFO = {
 export default function FacturaFormDialog({ open, onClose, cliente, factura, onGuardado }) {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const acento = theme.palette.mode === "light" ? theme.palette.primary.main : theme.palette.secondary.light;
+  const acento = theme.palette.custom.accent;
   const equiposCatalogo = useSelector((state) => state.equipos.equipos);
   const [form, setForm] = useState(() => obtenerEstadoInicial());
   const [equipos, setEquipos] = useState([]);
@@ -647,7 +647,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   p: 2,
                   borderRadius: 2,
                   boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-                  bgcolor: theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e",
+                  bgcolor: theme.palette.custom.panelBackground,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",

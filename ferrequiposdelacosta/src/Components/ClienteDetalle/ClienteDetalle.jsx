@@ -101,19 +101,15 @@ export default function ClienteDetalle() {
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const acento =
-    theme.palette.mode === "light"
-      ? theme.palette.primary.main
-      : theme.palette.secondary.light;
+    theme.palette.custom.accent;
   // Mismo fondo neutro que ya usaba el cuadro de "Total": se reutiliza acá
   // para los renglones de equipo y de pago, así no compiten visualmente con
   // el fondo de color de la tarjeta de la factura.
-  const panelBg = theme.palette.mode === "light" ? "#f8f9fa" : "#1e1e1e";
+  const panelBg = theme.palette.custom.panelBackground;
   const avatarBgPorEstado = {
     inactivo:
       theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700],
-    // Color propio (no reutiliza warning/secondary: esos ya se usan para
-    // montones de botones/íconos/fondos del tema, sobre todo en modo oscuro).
-    pendienteDespacho: "#7E57C2",
+    pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
     finalizada: theme.palette.secondary.main,

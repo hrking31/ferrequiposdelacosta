@@ -9,7 +9,6 @@ import {
   FormControlLabel,
   Typography,
   Box,
-  useTheme,
   Divider,
   MenuItem,
   FormControl,
@@ -35,7 +34,6 @@ const DatosClienteModal = ({
   modoCliente = false,
   modoDireccion = false,
 }) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const location = useLocation();
   const cliente = useSelector((state) => state.cliente);
@@ -392,14 +390,7 @@ const DatosClienteModal = ({
                   <FormControlLabel
                     value="persona"
                     control={
-                      <Radio
-                        sx={{
-                          color: theme.palette.custom.secondary,
-                          "&.Mui-checked": {
-                            color: theme.palette.custom.secondary,
-                          },
-                        }}
-                      />
+                      <Radio />
                     }
                     label="Persona"
                   />
@@ -407,14 +398,7 @@ const DatosClienteModal = ({
                   <FormControlLabel
                     value="empresa"
                     control={
-                      <Radio
-                        sx={{
-                          color: theme.palette.custom.secondary,
-                          "&.Mui-checked": {
-                            color: theme.palette.custom.secondary,
-                          },
-                        }}
-                      />
+                      <Radio />
                     }
                     label="Empresa"
                   />
