@@ -101,3 +101,15 @@ export const etiquetaVencimiento = (indice) => {
   const ordinales = ["1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
   return `${ordinales[indice] || `${indice + 1}º`} vencimiento`;
 };
+
+// Días calendario entre dos fechas ISO. Positivo si "hasta" es posterior.
+// Se usa para saber cuántos días lleva vencido un equipo y cuántos días se
+// le agregaron al ampliarle el plazo.
+export const diferenciaEnDias = (desdeIso, hastaIso) => {
+  if (!desdeIso || !hastaIso) return 0;
+  const [a1, m1, d1] = desdeIso.split("-").map(Number);
+  const [a2, m2, d2] = hastaIso.split("-").map(Number);
+  const desde = Date.UTC(a1, m1 - 1, d1);
+  const hasta = Date.UTC(a2, m2 - 1, d2);
+  return Math.round((hasta - desde) / 86400000);
+};

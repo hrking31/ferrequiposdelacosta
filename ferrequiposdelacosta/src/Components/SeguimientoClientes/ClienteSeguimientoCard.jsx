@@ -23,6 +23,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
   obtenerHistorialVencimientos,
   etiquetaVencimiento,
+  diferenciaEnDias,
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
@@ -140,6 +141,24 @@ export default function ClienteSeguimientoCard({
   const renderEquipo = (equipo, key, situacion) => {
     const historial = obtenerHistorialVencimientos(equipo);
 
+    // Lo que cuesta un día de este equipo: el precio diario por la cantidad
+    // alquilada. Sirve para valorizar tanto los días vencidos como los que se
+    // le agregaron al ampliar.
+    const valorPorDia =
+      (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
+
+    // Días que lleva vencido: desde que venció hasta hoy.
+    const diasVencidos =
+      situacion === "vencido" ? diferenciaEnDias(equipo.fechaVencimiento, hoy) : 0;
+
+    // Días que se le agregaron: desde el primer vencimiento hasta el vigente.
+    const diasAgregados = historial.length
+      ? diferenciaEnDias(historial[0], equipo.fechaVencimiento)
+      : 0;
+
+    const conValor = (dias) =>
+      valorPorDia > 0 ? ` · ${formatearMoneda(dias * valorPorDia)}` : "";
+
     return (
       <Box
         key={key}
@@ -186,6 +205,18 @@ export default function ClienteSeguimientoCard({
             />
           ))}
 
+          {/* Días que se le sumaron al plazo, con lo que cuestan. */}
+          {diasAgregados > 0 && (
+            <Chip
+              variant={esMovil ? "outlined" : "filled"}
+              size="small"
+              sx={{ ...metaPillSx, color: "custom.accentSmall" }}
+              label={`+${diasAgregados} día${diasAgregados === 1 ? "" : "s"}${conValor(
+                diasAgregados,
+              )}`}
+            />
+          )}
+
           {situacion === "indefinido" ? (
             <Chip
               variant={esMovil ? "outlined" : "filled"}
@@ -213,6 +244,20 @@ export default function ClienteSeguimientoCard({
                 } ${formatearFecha(equipo.fechaVencimiento)}`}
               />
             )
+          )}
+
+          {/* Lo que se acumuló desde que venció: cuántos días lleva y cuánto
+              representa a precio de este equipo. */}
+          {diasVencidos > 0 && (
+            <Chip
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }}
+              label={`${diasVencidos} día${diasVencidos === 1 ? "" : "s"} vencido${
+                diasVencidos === 1 ? "" : "s"
+              }${conValor(diasVencidos)}`}
+            />
           )}
         </Stack>
       </Box>
