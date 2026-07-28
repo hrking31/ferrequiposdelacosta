@@ -606,6 +606,34 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        // El texto del resumen del carrito: la lista de equipos pedidos y las
+        // opciones de transporte. Es "body2" pero más chico de 900px para
+        // arriba, porque ahí el resumen se va a una columna angosta al costado
+        // y con el tamaño normal no entraba.
+        //
+        // Antes estaba escrito como `fontSize: { md: "0.675rem" }` suelto en
+        // los 5 renglones de VistaCart y otra vez en los 5 de KioskCart.
+        resumenCarrito: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: "0.875rem",
+          lineHeight: 1.43,
+          color: p.text.primary,
+
+          "@media (min-width:900px)": {
+            fontSize: "0.675rem",
+          },
+          "@media (max-width:900px)": {
+            fontSize: "0.825rem", // md
+          },
+          "@media (max-width:600px)": {
+            fontSize: "0.8rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.75rem", // xs
+          },
+        },
+
         button: {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 700,
@@ -1357,6 +1385,9 @@ export const CustomThemeProvider = ({ children }) => {
               subtitle2: "p",
               body1: "p",
               body2: "p",
+              // Variante propia (ver typography.resumenCarrito): sin esta
+              // línea MUI la sacaría como <span> en vez de párrafo.
+              resumenCarrito: "p",
             },
           },
         },

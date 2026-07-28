@@ -717,14 +717,9 @@ export default function VistaCart() {
 
               {items.map((item) => (
                 <Typography
-                  variant="body2"
+                  variant="resumenCarrito"
                   key={item.lineId}
-                  sx={{
-                    pl: 2,
-                    fontSize: {
-                      md: "0.675rem",
-                    },
-                  }}
+                  sx={{ pl: 2 }}
                 >
                   {item.quantity} _ {item.name}
                   {item.varianteSeleccionada
@@ -772,12 +767,7 @@ export default function VistaCart() {
                   control={<Radio />}
                   label={
                     <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: {
-                          md: "0.675rem",
-                        },
-                      }}
+                      variant="resumenCarrito"
                     >
                       Solo ida
                     </Typography>
@@ -790,12 +780,7 @@ export default function VistaCart() {
                   control={<Radio />}
                   label={
                     <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: {
-                          md: "0.675rem",
-                        },
-                      }}
+                      variant="resumenCarrito"
                     >
                       Solo vuelta
                     </Typography>
@@ -808,12 +793,7 @@ export default function VistaCart() {
                   control={<Radio />}
                   label={
                     <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: {
-                          md: "0.675rem",
-                        },
-                      }}
+                      variant="resumenCarrito"
                     >
                       Ida y vuelta
                     </Typography>
@@ -826,12 +806,7 @@ export default function VistaCart() {
                   control={<Radio />}
                   label={
                     <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: {
-                          md: "0.675rem",
-                        },
-                      }}
+                      variant="resumenCarrito"
                     >
                       Sin transporte
                     </Typography>
