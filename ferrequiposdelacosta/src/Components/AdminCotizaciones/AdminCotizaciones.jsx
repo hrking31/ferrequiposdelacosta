@@ -351,13 +351,10 @@ export default function KioskAdminCotizaciones() {
                                 quotation.status.slice(1)
                               : ""
                     }
+                    variant="estadoCompacto"
                     sx={{
-                      fontWeight: "bold",
-                      borderRadius: 1,
-                      fontSize: "0.75rem",
                       height: "26px",
                       border: "none",
-                      boxShadow: 2,
                       bgcolor:
                         coloresEstado[quotation.status] ||
                         theme.palette.grey[500],
@@ -374,7 +371,6 @@ export default function KioskAdminCotizaciones() {
                         variant="caption"
                         sx={{
                           color: "text.primary",
-                          fontSize: "0.7rem",
                           fontStyle: "italic",
                           whiteSpace: "nowrap",
                           display: "flex",
@@ -434,23 +430,21 @@ export default function KioskAdminCotizaciones() {
               >
                 <Stack spacing={1.5} sx={{ width: "100%" }}>
                   <Stack direction="row" alignItems="center" gap={1.5}>
-                    <BadgeIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    <BadgeIcon fontSize="small" sx={{ color: "text.secondary" }} />
                     <Typography variant="body2">
                       <b>Identificación:</b> {quotation.nit}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" alignItems="center" gap={1.5}>
-                    <PhoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    <PhoneIcon fontSize="small" sx={{ color: "text.secondary" }} />
                     <Typography variant="body2">
                       <b>Teléfono:</b> {quotation.telefono}
                     </Typography>
                   </Stack>
 
                   <Stack direction="row" alignItems="center" gap={1.5}>
-                    <LocationOnIcon
-                      sx={{ color: "text.secondary", fontSize: 20 }}
-                    />
+                    <LocationOnIcon fontSize="small" sx={{ color: "text.secondary" }} />
                     <Typography variant="body2">
                       <b>Dirección:</b> {quotation.direccion}
                     </Typography>

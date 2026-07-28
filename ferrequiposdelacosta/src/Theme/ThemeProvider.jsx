@@ -1223,6 +1223,21 @@ export const CustomThemeProvider = ({ children }) => {
                 justifyContent: "center",
               },
             },
+            // La misma etiqueta donde no hay lista que alinear: se ajusta al
+            // texto y va con sombra, porque ahí se apoya sobre una tarjeta.
+            // La usan el buzón de cotizaciones y las tarjetas de seguimiento,
+            // que antes tenían cada una su propio tamaño (0,75 y 0,65) y una
+            // iba en mayúsculas y la otra no.
+            {
+              props: { variant: "estadoCompacto" },
+              style: ({ theme }) => ({
+                fontSize: "0.7rem",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                borderRadius: theme.shape.borderRadius,
+                boxShadow: theme.shadows[2],
+              }),
+            },
             // La misma ficha, pero para las que llevan color propio: el rojo
             // de "vencido", el verde de "descuento". Sale en contorno, que es
             // lo discreto; la que necesite ir rellena (la de "Venció", que

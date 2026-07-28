@@ -576,12 +576,9 @@ export default function ClienteSeguimientoCard({
                   label={facturaEstadoInfo.label}
                   size="small"
                   onClick={(e) => setMenuAnchor(e.currentTarget)}
+                  variant="estadoCompacto"
                   sx={{
-                    fontWeight: "bold",
-                    textTransform: "uppercase",
-                    fontSize: "0.65rem",
                     cursor: "pointer",
-                    boxShadow: 2,
                     bgcolor: facturaEstadoColor,
                     color: theme.palette.getContrastText(facturaEstadoColor),
                   }}
