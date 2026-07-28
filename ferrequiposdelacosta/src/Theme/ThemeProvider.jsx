@@ -31,8 +31,7 @@ export const CustomThemeProvider = ({ children }) => {
     } else {
       // Restaurar el modo guardado si sale del kiosco; si nunca guardó
       // ninguno, usar la misma preferencia del sistema que en la carga
-      // inicial (antes se quedaba pegado en oscuro si no había nada
-      // guardado).
+      // inicial.
       setMode(getInitialMode());
     }
   }, [location.pathname]); // Se dispara cada vez que cambias de página
@@ -96,7 +95,7 @@ export const CustomThemeProvider = ({ children }) => {
 
     const esClaro = mode === "light";
 
-    // Paso 1: la paleta. Es la única fuente de verdad de color.
+    // la paleta. Es la única fuente de verdad de color.
     const base = createTheme({
       palette: {
         mode,
@@ -110,14 +109,13 @@ export const CustomThemeProvider = ({ children }) => {
           main: NARANJA, // Naranja Seguridad Viento/Obra
           light: AMARILLO, // Amarillo Alerta
           dark: NARANJA_OSCURO,
-          // Texto oscuro sobre el naranja: da 5.0:1. El blanco solo daba 3.6:1
-          // y no llegaba al mínimo AA.
+          // Texto oscuro sobre el naranja: da 5.0:1.
           contrastText: AZUL_NOCHE,
         },
         // Semánticos. Sobre el azul oscuro del modo nocturno, el tono de marca
         // de success/error/info NO llega al mínimo WCAG AA (4.5:1) cuando se
         // usa como TEXTO. Por eso ".light" lo aclara partiendo del propio hex
-        // de marca — no es un color nuevo, es el mismo aclarado.
+        // de marca.
         //   Regla de uso: ".main" para fondos rellenos (con contrastText),
         //   ".light" para texto o íconos sueltos en modo oscuro.
         success: {

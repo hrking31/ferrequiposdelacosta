@@ -139,6 +139,14 @@ export default function KioskAdminCotizaciones() {
             }}
           />
 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+          >
+            {cotizacionesFiltradas.length} de {cotizaciones.length} solicitudes
+          </Typography>
+
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Chip
               label="Todos"

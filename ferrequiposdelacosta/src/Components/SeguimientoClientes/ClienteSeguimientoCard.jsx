@@ -3,12 +3,12 @@ import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
-  Button,
   Chip,
   IconButton,
   Menu,
   MenuItem,
   Stack,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -27,6 +27,48 @@ const ESTADO_FACTURA_INFO = {
   despachada: { label: "Despachada" },
   devolucionParcial: { label: "Devolución parcial" },
   finalizada: { label: "Finalizada" },
+};
+
+// Una factura entra a Seguimiento cuando vence, pero adentro puede tener
+// equipos en distinta situación: unos ya vencidos, otros que vencen hoy y
+// otros que todavía no. Se agrupan en ese orden, con lo urgente arriba.
+const GRUPOS_VENCIMIENTO = [
+  { clave: "hoy", titulo: "Vence hoy" },
+  { clave: "vencido", titulo: "Vencido" },
+  { clave: "vence", titulo: "Vence" },
+  { clave: "indefinido", titulo: "Entrega indefinida" },
+];
+
+const clasificarVencimiento = (equipo, hoy) => {
+  if (equipo.vencimientoIndefinido || !equipo.fechaVencimiento) return "indefinido";
+  if (!hoy) return "vence";
+  if (equipo.fechaVencimiento === hoy) return "hoy";
+  if (equipo.fechaVencimiento < hoy) return "vencido";
+  return "vence";
+};
+
+// Devuelve los equipos repartidos por grupo y ordenados por fecha dentro de
+// cada uno. Los grupos que quedan vacíos no aparecen.
+const agruparPorVencimiento = (equipos = [], hoy) => {
+  const porGrupo = {};
+  equipos.forEach((equipo, index) => {
+    const clave = clasificarVencimiento(equipo, hoy);
+    if (!porGrupo[clave]) porGrupo[clave] = [];
+    porGrupo[clave].push({ equipo, index });
+  });
+
+  Object.values(porGrupo).forEach((lista) =>
+    lista.sort((a, b) =>
+      String(a.equipo.fechaVencimiento || "").localeCompare(
+        String(b.equipo.fechaVencimiento || ""),
+      ),
+    ),
+  );
+
+  return GRUPOS_VENCIMIENTO.map((grupo) => ({
+    ...grupo,
+    items: porGrupo[grupo.clave] || [],
+  })).filter((grupo) => grupo.items.length > 0);
 };
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
@@ -278,103 +320,130 @@ export default function ClienteSeguimientoCard({
                   Fecha despacho: {fecha}
                 </Typography>
               )}
-              <Chip
-                label={facturaEstadoInfo.label}
-                size="small"
-                onClick={(e) => setMenuAnchor(e.currentTarget)}
-                sx={{
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  fontSize: "0.65rem",
-                  cursor: "pointer",
-                  boxShadow: 2,
-                  bgcolor: facturaEstadoColor,
-                  color: theme.palette.getContrastText(facturaEstadoColor),
-                }}
-              />
+
+              {/* Acciones de la factura arriba a la derecha, junto al chip de
+                  estado — mismo patrón que las facturas de ClienteDetalle. */}
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Tooltip title="Ampliar vencimiento">
+                  <IconButton
+                    size="small"
+                    onClick={() => setAmpliarOpen(true)}
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 0.5,
+                      color: acento,
+                    }}
+                  >
+                    <UpdateIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                <Chip
+                  label={facturaEstadoInfo.label}
+                  size="small"
+                  onClick={(e) => setMenuAnchor(e.currentTarget)}
+                  sx={{
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    fontSize: "0.65rem",
+                    cursor: "pointer",
+                    boxShadow: 2,
+                    bgcolor: facturaEstadoColor,
+                    color: theme.palette.getContrastText(facturaEstadoColor),
+                  }}
+                />
+              </Stack>
             </Stack>
 
             {factura.equipos?.length > 0 && (
-              <Stack spacing={0.5} sx={{ mb: 1 }}>
-                {factura.equipos.map((equipo, index) => (
-                  <Stack
-                    key={`${equipo.nombre}-${index}`}
-                    direction="row"
-                    flexWrap="wrap"
-                    alignItems="baseline"
-                    columnGap={2}
-                    rowGap={0}
-                  >
-                    <Typography variant="body2">
-                      <strong>
-                        {equipo.cantidad} {equipo.nombre}
-                      </strong>{" "}
-                      x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
+              <Stack spacing={1} sx={{ mb: 1 }}>
+                {agruparPorVencimiento(factura.equipos, hoy).map((grupo) => (
+                  <Box key={grupo.clave}>
+                    {/* El encabezado dice en qué situación está el grupo, así
+                        cada renglón solo necesita mostrar la fecha. */}
+                    <Typography
+                      variant="overline"
+                      sx={{
+                        display: "block",
+                        lineHeight: 1.6,
+                        color:
+                          grupo.clave === "vencido"
+                            ? "error.main"
+                            : grupo.clave === "hoy"
+                              ? "custom.accentSmall"
+                              : "text.secondary",
+                      }}
+                    >
+                      {grupo.titulo}
                     </Typography>
-                    {equipo.fechaDespacho && (
-                      <Typography variant="body2" color="text.secondary">
-                        Despacho: {formatearFecha(equipo.fechaDespacho)}
-                      </Typography>
-                    )}
-                    {equipo.vencimientoIndefinido ? (
-                      <Typography variant="body2" color="text.secondary">
-                        Entrega indefinida — cliente debe avisar
-                      </Typography>
-                    ) : (
-                      <>
-                        {equipo.fechaVencimientoOriginal && (
-                          <Typography variant="body2" sx={{ color: "error.main", fontWeight: "bold" }}>
-                            Vencido: {formatearFecha(equipo.fechaVencimientoOriginal)}
+
+                    <Stack spacing={0.5}>
+                      {grupo.items.map(({ equipo, index }) => (
+                        <Stack
+                          key={`${equipo.nombre}-${index}`}
+                          direction="row"
+                          flexWrap="wrap"
+                          alignItems="baseline"
+                          columnGap={2}
+                          rowGap={0}
+                        >
+                          <Typography variant="body2">
+                            <strong>
+                              {equipo.cantidad} {equipo.nombre}
+                            </strong>{" "}
+                            x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
                           </Typography>
-                        )}
-                        {equipo.fechaVencimiento && (
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color:
-                                hoy && equipo.fechaVencimiento < hoy
-                                  ? "error.main"
-                                  : "custom.accentSmall",
-                              fontWeight: hoy && equipo.fechaVencimiento < hoy ? "bold" : "normal",
-                            }}
-                          >
-                            {hoy && equipo.fechaVencimiento < hoy
-                              ? "Venció"
-                              : hoy && equipo.fechaVencimiento === hoy
-                                ? "Vence hoy"
-                                : "Vence"}
-                            : {formatearFecha(equipo.fechaVencimiento)}
-                          </Typography>
-                        )}
-                      </>
-                    )}
-                  </Stack>
+
+                          {equipo.fechaDespacho && (
+                            <Typography variant="body2" color="text.secondary">
+                              Despacho: {formatearFecha(equipo.fechaDespacho)}
+                            </Typography>
+                          )}
+
+                          {grupo.clave === "indefinido" ? (
+                            <Typography variant="body2" color="text.secondary">
+                              El cliente debe avisar
+                            </Typography>
+                          ) : (
+                            <>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color:
+                                    grupo.clave === "vencido"
+                                      ? "error.main"
+                                      : "custom.accentSmall",
+                                  fontWeight:
+                                    grupo.clave === "vencido" ? "bold" : "normal",
+                                }}
+                              >
+                                {formatearFecha(equipo.fechaVencimiento)}
+                              </Typography>
+
+                              {/* Si se amplió el plazo, se conserva la fecha en
+                                  que vencía antes, para poder hacerle
+                                  seguimiento al alquiler. */}
+                              {equipo.fechaVencimientoOriginal && (
+                                <Typography variant="body2" color="text.secondary">
+                                  Antes vencía:{" "}
+                                  {formatearFecha(equipo.fechaVencimientoOriginal)}
+                                </Typography>
+                              )}
+                            </>
+                          )}
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Box>
                 ))}
               </Stack>
             )}
 
-            {!esMovil && (
-              <Button
-                size="small"
-                startIcon={<UpdateIcon />}
-                onClick={() => setAmpliarOpen(true)}
-                sx={{ mb: 0.5, color: acento }}
-              >
-                Ampliar vencimiento
-              </Button>
-            )}
-
             {esMovil ? (
               <Box>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Button
-                    size="small"
-                    startIcon={<UpdateIcon />}
-                    onClick={() => setAmpliarOpen(true)}
-                    sx={{ color: acento }}
-                  >
-                    Ampliar vencimiento
-                  </Button>
+                <Stack direction="row" justifyContent="flex-end" alignItems="center">
                   <IconButton
                     size="small"
                     onClick={() => setDetalleAbierto((prev) => !prev)}

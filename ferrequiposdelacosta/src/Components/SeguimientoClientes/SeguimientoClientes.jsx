@@ -178,6 +178,14 @@ export default function SeguimientoClientes() {
             }}
           />
 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+          >
+            {visibles.length} de {clientesConSeguimiento.length} clientes
+          </Typography>
+
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Chip
               label="Todos"
