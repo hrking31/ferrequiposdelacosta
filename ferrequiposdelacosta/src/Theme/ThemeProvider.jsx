@@ -86,6 +86,7 @@ export const CustomThemeProvider = ({ children }) => {
     const AZUL_LLAMADA = "#0284C7";
     const AZUL_LLAMADA_OSCURO = "#0369A1";
     const BLANCO = "#FFFFFF";
+    const NIEVE = "#F8FAFC";
     const CONCRETO = "#F1F5F9";
     const GRIS_TEXTO = "#475569";
     const GRIS_SUAVE = "#94A3B8";
@@ -258,15 +259,11 @@ export const CustomThemeProvider = ({ children }) => {
           documentBackground: BLANCO,
           documentText: GRIS_TEXTO,
 
-          // El color de los importes "Total". Es siempre el mismo naranja
-          // oscuro, de día y de noche, porque así se decidió que se vea.
+          // El amarillo del importe total, el número grande de la pizarra.
+          // Igual en ambos modos, porque el pizarrón también lo es.
           // Se usa en: ClienteDetalle, ClienteSeguimientoCard,
           // FacturaFormDialog, AgregarEquipoDialog, AmpliarVencimientoDialog.
-          //
-          // Nota: de noche este naranja sobre el recuadro gris queda con poco
-          // contraste. Si algún día cuesta leerlo, se le sube el tono acá y
-          // se arregla en los cinco lugares de una vez.
-          totalText: NARANJA_OSCURO,
+          totalText: AMARILLO,
 
           // ── La barra de arriba ───────────────────────────────────────
           //
@@ -289,17 +286,27 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: el estilo general de "caption" y "overline".
           captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
 
-          // El fondo del recuadro del total, ese que va DENTRO de una tarjeta.
-          // Casi blanco de día y casi negro de noche, con una sombra suave
-          // alrededor: así el recuadro se despega y se lee como una cosa
-          // aparte de la tarjeta que lo contiene.
-          // Estos dos grises son los únicos neutros que no salen de la paleta
-          // de marca. Se mantienen porque son el aspecto que el total ya tenía
-          // y que se quiere conservar.
-          // Se usan en: ClienteDetalle, ClienteSeguimientoCard, Cotizacion,
-          // FacturaFormDialog.
-          panelBackground: esClaro ? "#f8f9fa" : "#1e1e1e",
+          // ── El recuadro de totales: una PIZARRA ──────────────────────
+          //
+          // La idea es esa: una pizarra donde se anotan los importes. Fondo
+          // negro en LOS DOS modos, tiza blanca para los renglones comunes,
+          // amarillo para el total y rojo para lo que hay que mirar (un saldo
+          // pendiente, un vencimiento). Se lee igual de día que de noche.
+          //
+          // El aspecto completo de la caja (bordes, espaciado, la línea
+          // punteada antes del total) está armado abajo como la variante
+          // "totales" de Paper, para que cualquier pantalla la use sin
+          // repetir estilos.
+          //
+          // Sobre el negro: la tiza blanca da 15.9:1 y el amarillo 9.6:1.
+          // Para el rojo hay que usar "error.light", no "error.main": el rojo
+          // pleno sobre negro se queda en 3.4:1 y no llega al mínimo.
+
+          // El pizarrón.
+          panelBackground: "#1e1e1e",
           panelShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+          // La tiza blanca: etiquetas e importes comunes.
+          panelText: NIEVE,
 
           // El fondo de la tira de pestañas de facturas, esa que simula
           // carpetas apiladas una detrás de otra.
@@ -691,6 +698,66 @@ export const CustomThemeProvider = ({ children }) => {
               border: `1px solid ${theme.palette.divider}`,
             }),
           },
+          variants: [
+            {
+              // LA PIZARRA DE TOTALES.
+              //
+              // Se usa así, y cada pantalla pone adentro las filas que
+              // necesite (Cotización lista subtotal, IVA, depósito y
+              // transporte; Seguimiento solo total y saldo):
+              //
+              //   <Paper variant="totales">
+              //     <Box className="fila">
+              //       <Typography>Subtotal</Typography>
+              //       <Typography>$ 100</Typography>
+              //     </Box>
+              //     <Box className="fila total">
+              //       <Typography>TOTAL</Typography>
+              //       <Typography>$ 119</Typography>
+              //     </Box>
+              //   </Paper>
+              //
+              // "fila" acomoda etiqueta a la izquierda e importe a la derecha.
+              // "total" agrega la línea punteada y pinta el renglón de
+              // amarillo. Para un renglón de alerta (saldo pendiente,
+              // vencido) se agrega "alerta" y sale en rojo legible.
+              props: { variant: "totales" },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.custom.panelBackground,
+                boxShadow: theme.palette.custom.panelShadow,
+                borderRadius: theme.shape.borderRadius * 2,
+                padding: theme.spacing(2),
+                color: theme.palette.custom.panelText,
+
+                "& .MuiTypography-root": { color: "inherit" },
+
+                "& .fila": {
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: theme.spacing(2),
+                  marginBottom: theme.spacing(1),
+                },
+
+                "& .fila.total": {
+                  color: theme.palette.custom.totalText,
+                  borderTop: `1px dashed ${alpha(
+                    theme.palette.custom.panelText,
+                    0.35,
+                  )}`,
+                  marginTop: theme.spacing(2),
+                  marginBottom: 0,
+                  paddingTop: theme.spacing(2),
+                },
+
+                "& .fila.alerta": {
+                  // El rojo aclarado, no el pleno: sobre el negro el pleno se
+                  // queda en 3.4:1.
+                  color: theme.palette.error.light,
+                },
+              }),
+            },
+          ],
         },
 
         MuiAppBar: {

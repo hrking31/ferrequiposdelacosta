@@ -12,6 +12,7 @@ import {
   RadioGroup,
   Radio,
   FormControlLabel,
+  Paper,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -525,23 +526,16 @@ export default function Cotizacion() {
           </Grid>
 
           <Grid item xs={12}>
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                boxShadow: (theme) => theme.palette.custom.panelShadow,
-                backgroundColor: theme.palette.custom.panelBackground,
-              }}
-            >
-              <Box display="flex" justifyContent="space-between" mb={1}>
+            {/* La pizarra de totales. El aspecto vive en el tema como la
+                variante "totales"; acá solo van las filas. */}
+            <Paper variant="totales">
+              <Box className="fila">
                 <Typography variant="subtitle1">Subtotal</Typography>
-
                 <Typography variant="subtitle1">{subtotal}</Typography>
               </Box>
 
-              <Box display="flex" justifyContent="space-between" mb={1}>
+              <Box className="fila">
                 <Typography variant="subtitle1">IVA (19%)</Typography>
-
                 <Typography variant="subtitle1">
                   {(ivaNumero || 0).toLocaleString("es-CO", {
                     style: "currency",
@@ -550,9 +544,8 @@ export default function Cotizacion() {
                 </Typography>
               </Box>
 
-              <Box display="flex" justifyContent="space-between" mb={1}>
+              <Box className="fila">
                 <Typography variant="subtitle1">Depósito</Typography>
-
                 <Typography variant="subtitle1">
                   {Number(formValues.valorDeposito || 0).toLocaleString(
                     "es-CO",
@@ -564,9 +557,8 @@ export default function Cotizacion() {
                 </Typography>
               </Box>
 
-              <Box display="flex" justifyContent="space-between" mb={1}>
+              <Box className="fila">
                 <Typography variant="subtitle1">Transporte</Typography>
-
                 <Typography variant="subtitle1">
                   {Number(formValues.valorTransporte || 0).toLocaleString(
                     "es-CO",
@@ -578,24 +570,15 @@ export default function Cotizacion() {
                 </Typography>
               </Box>
 
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                mt={2}
-                pt={2}
-                sx={{
-                  borderTop: `1px dashed ${theme.palette.divider}`,
-                }}
-              >
+              <Box className="fila total">
                 <Typography variant="h5" fontWeight="bold">
                   TOTAL
                 </Typography>
-
                 <Typography variant="h5" fontWeight="bold">
                   {total}
                 </Typography>
               </Box>
-            </Box>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
