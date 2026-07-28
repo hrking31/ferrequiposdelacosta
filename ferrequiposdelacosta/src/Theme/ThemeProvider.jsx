@@ -290,11 +290,12 @@ export const CustomThemeProvider = ({ children }) => {
           captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
 
           // El fondo de los recuadros que van DENTRO de una tarjeta, como el
-          // cuadrito del total. Es un tono que sobresale de la tarjeta que lo
-          // contiene, para que se note que es una cosa aparte.
+          // cuadrito del total. Se separa de la tarjeta yendo al extremo de la
+          // escala: blanco de día, casi negro de noche. Así el recuadro se lee
+          // como una cosa aparte y no como parte de la tarjeta.
           // Se usa en: ClienteDetalle, ClienteSeguimientoCard, Cotizacion,
           // FacturaFormDialog.
-          panelBackground: esClaro ? BLANCO : AZUL_ACERO_CLARO,
+          panelBackground: esClaro ? BLANCO : AZUL_NOCHE,
 
           // El fondo de la tira de pestañas de facturas, esa que simula
           // carpetas apiladas una detrás de otra.
