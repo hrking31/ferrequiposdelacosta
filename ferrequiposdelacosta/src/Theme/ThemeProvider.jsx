@@ -86,7 +86,6 @@ export const CustomThemeProvider = ({ children }) => {
     const AZUL_LLAMADA = "#0284C7";
     const AZUL_LLAMADA_OSCURO = "#0369A1";
     const BLANCO = "#FFFFFF";
-    const NIEVE = "#F8FAFC";
     const CONCRETO = "#F1F5F9";
     const GRIS_TEXTO = "#475569";
     const GRIS_SUAVE = "#94A3B8";
@@ -194,68 +193,129 @@ export const CustomThemeProvider = ({ children }) => {
         // Bordes y separadores. En claro va un paso más oscuro que el fondo
         // de página: si usara BORDE_CLARO se confundiría con él.
         divider: esClaro ? BORDE_INPUT : AZUL_ACERO_CLARO,
+        // ╔══════════════════════════════════════════════════════════════╗
+        // ║  TOKENS PROPIOS DE LA APP                                    ║
+        // ╚══════════════════════════════════════════════════════════════╝
+        //
+        // Un token es un color con NOMBRE DE TRABAJO en vez de un código.
+        // En vez de escribir "#EA580C" en cada pantalla, se escribe "el color
+        // de acento", y acá se decide qué color es eso en cada modo.
+        //
+        // La ventaja: para recolorear la app se cambia acá y cambia en todos
+        // lados. Y si un color se lee distinto en claro que en oscuro, el
+        // token se encarga; la pantalla no se entera.
+        //
+        // Regla: si un componente necesita un color que no está en esta lista,
+        // se agrega acá primero con un nombre que diga PARA QUÉ es, y recién
+        // después se usa. Nunca un código de color suelto en la pantalla.
         custom: {
+          // El color de la marca en cada modo: azul oscuro de día, amarillo
+          // de noche. Hoy solo lo usa el globo de ayuda (el textito que
+          // aparece al dejar el mouse encima de un botón).
           primary: esClaro ? AZUL_ACERO : AMARILLO,
-          secondary: esClaro ? NARANJA : NIEVE,
-          // ── El acento ────────────────────────────────────────────────
-          // Regla: el acento lo decide LA SUPERFICIE sobre la que va, no el
-          // modo. Sobre superficie oscura funciona el amarillo; sobre
-          // superficie clara hay que ir al naranja (el amarillo sobre claro
-          // es ilegible).
-          // El mínimo de contraste depende del TAMAÑO: un título de 36px
-          // necesita 3:1, un texto de 14px necesita 4.5:1. El naranja de marca
-          // da 3.6:1, así que sirve arriba pero no abajo. De ahí los dos:
-          //   accent      → el naranja de marca. Íconos, rellenos, bordes y
-          //                 todo texto grande (títulos h2 a h5).
-          //   accentSmall → solo para letra chica (h6, captions, textos de
-          //                 14px o menos), donde 3.6:1 no alcanza. Es un
-          //                 naranja más oscuro; a ese tamaño la diferencia
-          //                 casi no se percibe.
-          // En oscuro los dos son AMARILLO: da 8.4:1 y sirve para todo.
+
+          // ── El acento: el color que "resalta" cosas ──────────────────
+          //
+          // Es naranja de día y amarillo de noche. Se usa para todo lo que
+          // tiene que llamar la atención: títulos, íconos, bordes de algo
+          // seleccionado, el relleno de los botones de acción.
+          //
+          // Hay DOS versiones porque el color tiene que contrastar contra el
+          // fondo, y cuánto contraste hace falta depende del tamaño de la
+          // letra: un título grande se lee bien con menos contraste que un
+          // texto chiquito. El naranja normal alcanza para lo grande pero
+          // no para lo chico, así que la letra chica usa un naranja más
+          // oscuro. A ese tamaño casi no se nota la diferencia de tono.
+          // De noche no hace falta distinguir: el amarillo sirve para todo.
+
+          // Para íconos, bordes, rellenos y títulos grandes (h2 a h5).
+          // Se usa en: NavBar, Drawer, Footer, AdminCotizaciones,
+          // ClienteDetalle, ClienteSeguimientoCard, HeaderUsuario, Search,
+          // FacturaFormDialog, AgregarEquipoDialog, KioskProductCardDetail.
           accent: esClaro ? NARANJA : AMARILLO,
+
+          // Para letra chica: subtítulos h6, epígrafes y textos de 14px o
+          // menos, donde el naranja normal no se leería bien.
+          // Se usa en: ClienteDetalle (el chip de cantidad ×N),
+          // ClienteSeguimientoCard (las fechas de vencimiento).
           accentSmall: esClaro ? NARANJA_OSCURO : AMARILLO,
-          // Texto e íconos que van ENCIMA de un relleno de acento (botones,
-          // barras, chips activos). Oscuro en ambos modos: da 5.0:1 sobre el
-          // naranja y 10.3:1 sobre el amarillo.
+
+          // El color del texto y los íconos que van ENCIMA de algo pintado
+          // con el acento (un botón naranja, una pestaña amarilla). Siempre
+          // oscuro, porque tanto el naranja como el amarillo son claros.
+          // Se usa en: el botón de acción rápida y ClienteSeguimientoCard
+          // (la pestaña de factura abierta).
           onAccent: AZUL_NOCHE,
-          // Vista previa de documentos (cotización y cuenta de cobro): simula
-          // una hoja impresa, así que es blanca en LOS DOS modos y su texto
-          // tiene que ser siempre oscuro. Si siguiera al tema, en modo oscuro
-          // quedaría gris claro sobre blanco (2.6:1, ilegible).
+
+          // ── La hoja de los documentos ────────────────────────────────
+          //
+          // La vista previa de una cotización o una cuenta de cobro imita una
+          // hoja impresa. Una hoja siempre es blanca con letra oscura, de día
+          // y de noche — no puede volverse oscura cuando se cambia el modo.
+          // Sin esto, de noche quedaba letra gris clarita sobre papel blanco
+          // y no se leía nada.
+          // Se usan en: VistaCotWeb y VistaCcWeb.
           documentBackground: BLANCO,
           documentText: GRIS_TEXTO,
-          // Texto de los importes "Total" en facturas y resúmenes. Naranja
-          // oscuro fijo en los dos modos, por decisión de diseño.
-          // Ojo: sobre el panel de modo oscuro da 2.0:1, por debajo del mínimo
-          // AA. Si en algún momento cuesta leerlo, es este token el que hay
-          // que subir de tono, y cambia en todos los lugares a la vez.
+
+          // El color de los importes "Total". Es siempre el mismo naranja
+          // oscuro, de día y de noche, porque así se decidió que se vea.
+          // Se usa en: ClienteDetalle, ClienteSeguimientoCard,
+          // FacturaFormDialog, AgregarEquipoDialog, AmpliarVencimientoDialog.
+          //
+          // Nota: de noche este naranja sobre el recuadro gris queda con poco
+          // contraste. Si algún día cuesta leerlo, se le sube el tono acá y
+          // se arregla en los cinco lugares de una vez.
           totalText: NARANJA_OSCURO,
-          // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
-          // para que se distinga de la página.
-          // Ojo: antes esto era el mismo color que el fondo y en oscuro igual
-          // se veía distinto. No era el tema: MUI le mete al Paper un degradado
-          // de elevación que SOLO aplica en modo oscuro, y el AppBar es un
-          // Paper. Ese degradado está desactivado abajo (backgroundImage:
-          // "none"), así que ahora el color es exactamente el declarado acá y
-          // la diferencia es intencional en los dos modos.
+
+          // ── La barra de arriba ───────────────────────────────────────
+          //
+          // El fondo de la barra es un tono más claro que el de la página,
+          // para que se despegue y no parezca parte del fondo.
+          // El texto, el ícono del carrito y la línea de abajo comparten el
+          // mismo color: el acento del modo.
+          // Se usan en: NavBar (y el fondo, en el estilo del AppBar).
           navbarBackground: esClaro ? CONCRETO : AZUL_ACERO,
           navbarText: esClaro ? NARANJA : AMARILLO,
-          // Contorno de los campos de formulario (los bordes generales de
-          // tarjetas y separadores usan "palette.divider").
+
+          // El contorno de los campos de formulario (las cajitas donde se
+          // escribe). Los bordes de tarjetas y las líneas divisorias NO usan
+          // esto: usan "divider".
+          // Se usa en: el estilo general de los campos de texto.
           inputBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
+
+          // El gris de los textos chiquitos de apoyo: epígrafes de fotos,
+          // aclaraciones, etiquetas en minúscula.
+          // Se usa en: el estilo general de "caption" y "overline".
           captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
-          // Fondo de recuadros/paneles (totales, resúmenes): el nivel elevado,
-          // para que sobresalgan de la tarjeta que los contiene.
+
+          // El fondo de los recuadros que van DENTRO de una tarjeta, como el
+          // cuadrito del total. Es un tono que sobresale de la tarjeta que lo
+          // contiene, para que se note que es una cosa aparte.
+          // Se usa en: ClienteDetalle, ClienteSeguimientoCard, Cotizacion,
+          // FacturaFormDialog.
           panelBackground: esClaro ? BLANCO : AZUL_ACERO_CLARO,
-          // Franja de pestañas de facturas (ClienteSeguimientoCard).
+
+          // El fondo de la tira de pestañas de facturas, esa que simula
+          // carpetas apiladas una detrás de otra.
+          // Se usa en: ClienteSeguimientoCard.
           tabStripBackground: esClaro ? BORDE_CLARO : AZUL_NOCHE,
-          // Estado de cliente "pendiente de despacho". ÚNICO color fuera de la
-          // paleta de marca, a propósito: los otros 4 estados ya ocupan
-          // success/info/secondary/grey y necesita distinguirse de todos.
+
+          // El violeta del estado "pendiente de despacho" de un cliente.
+          // Es el único color que no sale de la paleta de la marca, y es a
+          // propósito: los otros cuatro estados ya se llevaron el verde, el
+          // azul, el naranja y el gris, y este necesita distinguirse de todos.
+          // Se usa en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
           pendienteDespacho: "#7E57C2",
-          // Indicador de usuario conectado.
+
+          // El puntito verde que indica que un usuario está conectado.
+          // Se usa en: ListaUsuarios y AdminCotizaciones.
           online: VERDE,
-          // Colores de marca fijos: iguales en ambos modos.
+
+          // Los colores oficiales de WhatsApp y del botón de llamar. Son de
+          // marcas ajenas, así que son siempre los mismos y no cambian con el
+          // modo: si se tocaran, dejarían de reconocerse.
+          // Se usan en: ButtonContacto, Drawer, ClienteSeguimientoCard.
           whatsapp: { main: "#25D366", dark: "#128C7E" },
           call: { main: AZUL_LLAMADA, dark: AZUL_LLAMADA_OSCURO },
         },
