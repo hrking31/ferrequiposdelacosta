@@ -17,11 +17,19 @@ export default function VistaCotWeb() {
         padding: isSmallScreen ? "20px" : "40px",
         width: "100%",
         boxSizing: "border-box",
-        backgroundColor: "white",
+        backgroundColor: theme.palette.custom.documentBackground,
         boxShadow: 4,
         borderRadius: 1.5,
         position: "relative",
         zIndex: 10,
+        // La hoja es blanca en los dos modos, así que su texto no puede seguir
+        // al tema: las variantes de tipografía traen color propio y en modo
+        // oscuro dejaban gris claro sobre blanco. Los colores del membrete
+        // (azul, rojo y la marca de agua) se declaran con "&&" para sobrevivir
+        // a esta regla.
+        "& .MuiTypography-root": {
+          color: theme.palette.custom.documentText,
+        },
       }}
     >
       <Grid
@@ -53,7 +61,7 @@ export default function VistaCotWeb() {
             right: { xs: 10, sm: 20 },
             fontSize: { xs: "8px", sm: "10px", md: "12px" },
             fontWeight: 700,
-            color: "rgba(0,0,0,0.15)",
+            "&&": { color: "rgba(0,0,0,0.15)" },
             letterSpacing: { xs: 0.5, sm: 1.5 },
             textTransform: "uppercase",
             userSelect: "none",
@@ -68,7 +76,7 @@ export default function VistaCotWeb() {
             variant="h5"
             component="div"
             sx={{
-              color: "blue",
+              "&&": { color: "blue" },
               textAlign: "center",
               lineHeight: "1.2",
             }}
@@ -80,7 +88,7 @@ export default function VistaCotWeb() {
             variant="subtitle2"
             component="div"
             sx={{
-              color: "red",
+              "&&": { color: "red" },
               textAlign: "center",
             }}
           >
@@ -122,7 +130,7 @@ export default function VistaCotWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           textAlign: "center",
           margin: "20px 0",
         }}
@@ -254,7 +262,7 @@ export default function VistaCotWeb() {
           variant="caption"
           sx={{
             fontSize: isSmallScreen ? "0.625rem" : "0.75rem",
-            color: "blue",
+            "&&": { color: "blue" },
             lineHeight: "1.2",
           }}
         >

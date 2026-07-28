@@ -22,10 +22,17 @@ export default function VistaCcWeb() {
       sx={{
         padding: isSmallScreen ? "20px" : "40px",
         maxWidth: "100%",
-        backgroundColor: "white",
+        backgroundColor: theme.palette.custom.documentBackground,
         boxShadow: 4,
         borderRadius: 1.5,
         margin: "0 auto",
+        // La hoja es blanca en los dos modos, así que su texto no puede seguir
+        // al tema: las variantes de tipografía traen color propio y en modo
+        // oscuro dejaban gris claro sobre blanco. Los colores del membrete
+        // (azul y rojo) se declaran con "&&" para sobrevivir a esta regla.
+        "& .MuiTypography-root": {
+          color: theme.palette.custom.documentText,
+        },
       }}
     >
       <Grid
@@ -55,7 +62,7 @@ export default function VistaCcWeb() {
             variant="h5"
             component="div"
             sx={{
-              color: "blue",
+              "&&": { color: "blue" },
               textAlign: "center",
               lineHeight: "1.2",
             }}
@@ -67,7 +74,7 @@ export default function VistaCcWeb() {
             variant="subtitle2"
             component="div"
             sx={{
-              color: "red",
+              "&&": { color: "red" },
               textAlign: "center",
             }}
           >
@@ -81,7 +88,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -92,7 +99,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           textAlign: "center",
           m: "20px",
         }}
@@ -103,7 +110,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -114,7 +121,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -125,7 +132,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -136,7 +143,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           textAlign: "center",
           m: "20px",
         }}
@@ -147,7 +154,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="h5"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           textAlign: "center",
           m: "20px ",
         }}
@@ -158,7 +165,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -169,7 +176,7 @@ export default function VistaCcWeb() {
       <Typography
         variant="body1"
         sx={{
-          color: theme.palette.text.secondary,
+          color: theme.palette.custom.documentText,
           mb: "10px",
           textAlign: "center",
         }}
@@ -216,7 +223,7 @@ export default function VistaCcWeb() {
           variant="caption"
           sx={{
             fontSize: isSmallScreen ? "0.625rem" : "0.75rem",
-            color: "blue",
+            "&&": { color: "blue" },
             lineHeight: "1.2",
           }}
         >

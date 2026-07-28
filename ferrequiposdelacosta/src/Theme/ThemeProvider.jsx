@@ -218,6 +218,12 @@ export const CustomThemeProvider = ({ children }) => {
           // barras, chips activos). Oscuro en ambos modos: da 5.0:1 sobre el
           // naranja y 10.3:1 sobre el amarillo.
           onAccent: AZUL_NOCHE,
+          // Vista previa de documentos (cotización y cuenta de cobro): simula
+          // una hoja impresa, así que es blanca en LOS DOS modos y su texto
+          // tiene que ser siempre oscuro. Si siguiera al tema, en modo oscuro
+          // quedaría gris claro sobre blanco (2.6:1, ilegible).
+          documentBackground: BLANCO,
+          documentText: GRIS_TEXTO,
           // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
           // para que se distinga de la página.
           // Ojo: antes esto era el mismo color que el fondo y en oscuro igual
