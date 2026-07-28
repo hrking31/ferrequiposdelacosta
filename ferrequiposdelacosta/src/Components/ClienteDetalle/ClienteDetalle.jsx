@@ -39,7 +39,11 @@ import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
-import { normalizarPagos } from "./facturaUtils";
+import {
+  normalizarPagos,
+  obtenerHistorialVencimientos,
+  diferenciaEnDias,
+} from "./facturaUtils";
 
 // El estado del cliente es el mismo vocabulario que el de sus facturas
 // (el cliente toma el estado de la factura que se le crea/edita), más
@@ -338,6 +342,35 @@ export default function ClienteDetalle() {
                   label={`Devuelve ${formatearFecha(equipo.fechaVencimiento)}`}
                 />,
               );
+            }
+
+            // Si al equipo se le amplió el plazo, cuántos días se le sumaron y
+            // cuánto representan a precio de este equipo. Solo aparece cuando
+            // hubo ampliación.
+            const historial = obtenerHistorialVencimientos(equipo);
+            if (historial.length > 0) {
+              const diasAgregados = diferenciaEnDias(
+                historial[0],
+                equipo.fechaVencimiento,
+              );
+              const valorPorDia =
+                (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
+
+              if (diasAgregados > 0) {
+                chipsFechas.push(
+                  <Chip
+                    key="agregados"
+                    variant={esMovil ? "outlined" : "filled"}
+                    size="small"
+                    sx={{ ...metaPillSx, color: "custom.accentSmall" }}
+                    label={`+${diasAgregados} día${diasAgregados === 1 ? "" : "s"}${
+                      valorPorDia > 0
+                        ? ` · ${formatearMoneda(diasAgregados * valorPorDia)}`
+                        : ""
+                    }`}
+                  />,
+                );
+              }
             }
           }
 
