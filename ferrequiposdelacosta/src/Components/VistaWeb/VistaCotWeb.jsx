@@ -19,7 +19,7 @@ export default function VistaCotWeb() {
         boxSizing: "border-box",
         backgroundColor: "white",
         boxShadow: 4,
-        borderRadius: "10px",
+        borderRadius: 1.5,
         position: "relative",
         zIndex: 10,
       }}

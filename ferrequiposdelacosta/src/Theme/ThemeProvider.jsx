@@ -246,6 +246,10 @@ export const CustomThemeProvider = ({ children }) => {
       },
       shape: {
         borderRadius: 6, // Esquinas un poco más rectas para estética industrial
+        // Forma de píldora (bordes completamente redondeados). Antes se escribía
+        // como 999 o 50 sueltos en cada componente, que en sx se multiplican por
+        // borderRadius y daban números sin sentido.
+        pill: "999px",
       },
       // Unidad base de espaciado: theme.spacing(2) = 16px. Explícito para que
       // se vea que es una decisión y no el valor por defecto de MUI.
@@ -573,7 +577,7 @@ export const CustomThemeProvider = ({ children }) => {
               },
               "*::-webkit-scrollbar-thumb": {
                 backgroundColor: alpha(scrollbarAcento, 0.4),
-                borderRadius: "4px",
+                borderRadius: `${temaActual.shape.borderRadius}px`,
               },
               "*::-webkit-scrollbar-thumb:hover": {
                 backgroundColor: alpha(scrollbarAcento, 0.7),

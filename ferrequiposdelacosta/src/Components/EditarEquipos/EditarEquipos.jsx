@@ -458,7 +458,7 @@ const EditarEquipo = () => {
                         style={{
                           width: "100px",
                           height: "100px",
-                          borderRadius: 12,
+                          borderRadius: theme.shape.borderRadius * 2,
                           border: `1px solid ${theme.palette.divider}`,
                         }}
                       />

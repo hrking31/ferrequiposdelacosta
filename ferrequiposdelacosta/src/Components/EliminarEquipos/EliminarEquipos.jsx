@@ -140,7 +140,7 @@ const EliminarEquipo = () => {
                         width: "100px",
                         height: "100px",
                         objectFit: "cover",
-                        borderRadius: 12,
+                        borderRadius: theme.shape.borderRadius * 2,
                         border: `1px solid ${theme.palette.divider}`,
                       }}
                     />

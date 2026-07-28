@@ -174,7 +174,7 @@ export default function SeguimientoClientes() {
                   </IconButton>
                 </InputAdornment>
               ),
-              sx: { borderRadius: 999 },
+              sx: { borderRadius: (theme) => theme.shape.pill },
             }}
           />
 

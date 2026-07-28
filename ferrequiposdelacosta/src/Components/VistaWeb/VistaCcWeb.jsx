@@ -24,7 +24,7 @@ export default function VistaCcWeb() {
         maxWidth: "100%",
         backgroundColor: "white",
         boxShadow: 4,
-        borderRadius: "10px",
+        borderRadius: 1.5,
         margin: "0 auto",
       }}
     >

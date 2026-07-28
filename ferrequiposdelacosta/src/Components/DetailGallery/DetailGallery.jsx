@@ -43,7 +43,7 @@ const ThumbnailImage = styled("img")(({ theme, selected }) => ({
   width: "60px",
   height: "60px",
   objectFit: "cover",
-  borderRadius: "14px",
+  borderRadius: theme.shape.borderRadius * 2.5,
   cursor: "pointer",
   border: selected
     ? `2px solid ${theme.palette.secondary.dark}`

@@ -181,7 +181,7 @@ export default function ListaClientes() {
         bgcolor: acento,
         color: theme.palette.getContrastText(acento),
         "&:hover": { bgcolor: acento, opacity: 0.9 },
-        borderRadius: 999,
+        borderRadius: (theme) => theme.shape.pill,
       }}
     >
       Nuevo Cliente
@@ -208,7 +208,7 @@ export default function ListaClientes() {
             </IconButton>
           </InputAdornment>
         ),
-        sx: { borderRadius: 999 },
+        sx: { borderRadius: (theme) => theme.shape.pill },
       }}
     />
   );
@@ -237,7 +237,7 @@ export default function ListaClientes() {
                       minWidth: 20,
                       height: 20,
                       px: 0.75,
-                      borderRadius: 999,
+                      borderRadius: (theme) => theme.shape.pill,
                       fontSize: 11,
                       fontWeight: 700,
                       display: "flex",
@@ -372,7 +372,7 @@ export default function ListaClientes() {
               },
               "&::-webkit-scrollbar-thumb": {
                 backgroundColor: alpha(acento, 0.4),
-                borderRadius: 999,
+                borderRadius: (theme) => theme.shape.pill,
               },
               "&::-webkit-scrollbar-thumb:hover": {
                 backgroundColor: alpha(acento, 0.7),

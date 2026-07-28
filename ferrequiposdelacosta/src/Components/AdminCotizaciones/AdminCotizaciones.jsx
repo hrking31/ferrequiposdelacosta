@@ -135,7 +135,7 @@ export default function KioskAdminCotizaciones() {
                   </IconButton>
                 </InputAdornment>
               ),
-              sx: { borderRadius: 999 },
+              sx: { borderRadius: (theme) => theme.shape.pill },
             }}
           />
 
@@ -221,7 +221,8 @@ export default function KioskAdminCotizaciones() {
               backgroundColor: "background.paper",
               border: "1px solid",
               borderColor: "divider",
-              borderRadius: "8px 8px 0 0",
+              borderRadius: (theme) =>
+                `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
               outline: "1px solid transparent",
               willChange: "transform, box-shadow",
               transition:
@@ -245,7 +246,8 @@ export default function KioskAdminCotizaciones() {
               sx={{
                 height: 6,
                 backgroundColor: "custom.accent",
-                borderRadius: "8px 8px 0 0",
+                borderRadius: (theme) =>
+                `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
               }}
             />
 
@@ -343,7 +345,7 @@ export default function KioskAdminCotizaciones() {
                     }
                     sx={{
                       fontWeight: "bold",
-                      borderRadius: "6px",
+                      borderRadius: 1,
                       fontSize: "0.75rem",
                       height: "26px",
                       border: "none",

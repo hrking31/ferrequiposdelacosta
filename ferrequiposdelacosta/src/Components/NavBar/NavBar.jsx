@@ -76,7 +76,7 @@ export default function MenuAppBar() {
             sx={{
               cursor: "pointer",
               p: 0.5,
-              borderRadius: 50,
+              borderRadius: (theme) => theme.shape.pill,
               // El círculo del logo NO sigue el acento ni el modo: es el
               // respaldo del logotipo, que es rojo y azul, y necesita blanco
               // siempre. Sobre naranja el rojo se pierde (se probó y se

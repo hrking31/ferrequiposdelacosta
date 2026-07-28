@@ -155,7 +155,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
           size="large"
           sx={{
             py: 2,
-            borderRadius: 50,
+            borderRadius: (theme) => theme.shape.pill,
             fontSize: "1.5rem",
             fontWeight: "bold",
             backgroundColor: (theme) => theme.palette.secondary.main,
