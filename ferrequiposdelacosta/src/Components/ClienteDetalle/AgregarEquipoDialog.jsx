@@ -18,6 +18,7 @@ import {
   Grid,
   Box,
   Stack,
+  Paper,
   Typography,
   Divider,
   useTheme,
@@ -38,11 +39,9 @@ import {
 } from "./facturaUtils";
 import PagosMediosField from "./PagosMediosField";
 
+// Datos que comparten todos los equipos que se agregan juntos: la fecha, el
+// IVA, y un único transporte, depósito y pago para todo el lote.
 const ESTADO_INICIAL = {
-  nombre: "",
-  cantidad: "",
-  dias: "",
-  valor: "",
   fechaEntrega: "",
   transporte: "",
   valorTransporte: "",
@@ -52,12 +51,23 @@ const ESTADO_INICIAL = {
   pagos: [],
 };
 
+// Lo que se escribe para cada equipo antes de sumarlo a la lista.
+const ESTADO_INICIAL_ITEM = { nombre: "", cantidad: "", dias: "", valor: "" };
+
+const formatearMoneda = (valor) =>
+  Number(valor || 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
+
+const subtotalDeItem = (item) =>
+  (Number(item?.cantidad) || 0) * (Number(item?.dias) || 0) * (Number(item?.valor) || 0);
+
 export default function AgregarEquipoDialog({ open, onClose, cliente, factura, onAgregado }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const acento = theme.palette.custom.accent;
   const equiposCatalogo = useSelector((state) => state.equipos.equipos);
   const [form, setForm] = useState(ESTADO_INICIAL);
+  const [nuevoItem, setNuevoItem] = useState(ESTADO_INICIAL_ITEM);
+  const [equiposNuevos, setEquiposNuevos] = useState([]);
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
@@ -76,31 +86,36 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
       // Si la factura ya tenía IVA, se sigue aplicando por defecto al agregar.
       aplicaIva: factura?.aplicaIva ?? true,
     });
+    setNuevoItem(ESTADO_INICIAL_ITEM);
+    setEquiposNuevos([]);
     setErrors({});
   }, [open, factura]);
 
   const nombresEquiposCatalogo = equiposCatalogo.map((equipo) => equipo.name);
 
-  const cantidadNueva = Number(form.cantidad) || 0;
-  const diasNuevo = Number(form.dias) || 0;
-  const precioPorDiaNuevo = Number(form.valor) || 0;
-  // Subtotal de este equipo = cantidad × días × precio por día (igual que en Crear Factura).
-  const subtotalNuevoEquipo = cantidadNueva * diasNuevo * precioPorDiaNuevo;
+  // Subtotal de cada equipo = cantidad × días × precio por día (igual que en
+  // Crear Factura); el del lote es la suma de todos los que estén en la lista.
+  const subtotalNuevoEquipo = equiposNuevos.reduce(
+    (total, item) => total + subtotalDeItem(item),
+    0,
+  );
   const ivaNuevoEquipo = form.aplicaIva ? subtotalNuevoEquipo * 0.19 : 0;
   const valorTransporteNuevo = Number(form.valorTransporte) || 0;
   const depositoNuevo = Number(form.deposito) || 0;
-  const fechaVencimientoNueva = calcularFechaDevolucion(form.fechaEntrega, form.dias);
-  const hayDatosEquipo =
-    Boolean(form.nombre.trim()) &&
-    cantidadNueva > 0 &&
-    diasNuevo > 0 &&
-    precioPorDiaNuevo > 0 &&
-    Boolean(form.fechaEntrega);
-  // Lo que cuesta agregar este equipo puntual (antes de sumarlo a la factura).
+  // Lo que cuesta agregar estos equipos (antes de sumarlos a la factura).
   const totalEsteEquipo = subtotalNuevoEquipo + ivaNuevoEquipo + valorTransporteNuevo + depositoNuevo;
 
   const nuevoSubtotal = (Number(factura?.subtotal) || 0) + subtotalNuevoEquipo;
-  const nuevoIva = form.aplicaIva ? nuevoSubtotal * 0.19 : 0;
+  // El IVA se ACUMULA: al que la factura ya tenía se le suma solo el de este
+  // equipo. Antes se recalculaba sobre el subtotal completo con la casilla de
+  // acá, así que destildarla le borraba el IVA a los equipos que sí lo
+  // llevaban (y marcarla se lo cobraba a los que no).
+  const ivaFacturaActual = Number(factura?.iva) || 0;
+  const nuevoIva = ivaFacturaActual + ivaNuevoEquipo;
+  // La factura queda marcada "con IVA" si ya lo llevaba o si este equipo lo
+  // lleva: agregar un equipo sin IVA no convierte a toda la factura en exenta.
+  const facturaLlevaIva = factura?.aplicaIva ?? ivaFacturaActual > 0;
+  const nuevoAplicaIva = facturaLlevaIva || form.aplicaIva;
 
   // Depósito/transporte del lote original (factura.deposito/valorTransporte
   // ya no crecen acá: quedan fijos como el pago original) + lo que ya traían
@@ -122,12 +137,35 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
   const nuevoTransporteTotal = transporteTotalExistente + valorTransporteNuevo;
   const nuevoValorTotal = nuevoSubtotal + nuevoIva + nuevoTransporteTotal + nuevoDepositoTotal;
 
-  // Lo pagado por este equipo puntual es la suma de sus medios de pago (uno
-  // o varios). Se acumula sobre lo que la factura ya tenía pagado — no lo
+  // Solo cuenta como pago el renglón que tenga medio Y monto: son los mismos
+  // que se guardan, así lo que muestra el diálogo no puede diferir de lo que
+  // termina en la factura.
+  const pagosValidos = form.pagos.filter((pago) => pago.medio && Number(pago.monto) > 0);
+  // Lo pagado por estos equipos es la suma de sus medios de pago (uno o
+  // varios). Se acumula sobre lo que la factura ya tenía pagado — no lo
   // reemplaza, para no perder pagos previos registrados.
-  const pagoEsteEquipo = form.pagos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
+  const pagoEsteEquipo = pagosValidos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
   const nuevoMontoPagado = (Number(factura?.montoPagado) || 0) + pagoEsteEquipo;
   const nuevoSaldoPendiente = Math.max(0, nuevoValorTotal - nuevoMontoPagado);
+
+  // Con "Total de estos equipos" el monto se completa solo: es todo lo que
+  // hay que cobrar (subtotal + IVA + transporte + depósito). Si el pago se
+  // reparte en varios medios, el primero toma lo que falte para llegar al
+  // total y los demás quedan como se escribieron.
+  useEffect(() => {
+    if (form.tipoPago !== "total") return;
+    setForm((prev) => {
+      if (prev.tipoPago !== "total") return prev;
+      const otrosMedios = prev.pagos
+        .slice(1)
+        .reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
+      const restante = Math.max(0, Math.round(totalEsteEquipo - otrosMedios));
+      const primero = prev.pagos[0] || { medio: "", monto: "" };
+      // Sin esta guarda el estado se volvería a escribir en cada render.
+      if (Number(primero.monto) === restante) return prev;
+      return { ...prev, pagos: [{ ...primero, monto: restante }, ...prev.pagos.slice(1)] };
+    });
+  }, [form.tipoPago, form.pagos, totalEsteEquipo]);
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -146,14 +184,105 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     }));
   };
 
-  const handleChangePagos = (nuevosPagos) => {
-    setForm((prev) => ({ ...prev, pagos: nuevosPagos }));
+  // Al pasar a "Parcial" los montos se borran para que el usuario escriba lo
+  // que realmente se está pagando. Al volver a "Total" se vuelven a llenar
+  // solos (lo hace el efecto de más abajo).
+  const handleCambiarTipoPago = (e) => {
+    const tipoPago = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      tipoPago,
+      pagos:
+        tipoPago === "parcial" ? prev.pagos.map((pago) => ({ ...pago, monto: "" })) : prev.pagos,
+    }));
   };
 
-  // Limpia solo los datos del equipo cargado para que el usuario pueda
-  // volver a escribirlo (el dialog solo admite un equipo por vez).
-  const handleQuitarEquipoCargado = () => {
-    setForm((prev) => ({ ...prev, nombre: "", cantidad: "", dias: "", valor: "" }));
+  const handleChangePagos = (nuevosPagos) => {
+    setForm((prev) => {
+      const anteriores = prev.pagos.length > 0 ? prev.pagos : [{ medio: "", monto: "" }];
+      const sumar = (pagos) =>
+        pagos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
+
+      // Se borró un medio de pago y quedó uno solo: se le pasa todo lo que
+      // había repartido, para no perder plata por el camino.
+      if (nuevosPagos.length === 1 && anteriores.length > 1) {
+        return {
+          ...prev,
+          pagos: [{ ...nuevosPagos[0], monto: Math.round(sumar(anteriores)) }],
+        };
+      }
+
+      // Se sumó otro medio de pago: arranca con lo que falte para el total.
+      if (nuevosPagos.length > anteriores.length) {
+        const faltante = Math.max(0, Math.round(totalEsteEquipo - sumar(anteriores)));
+        return {
+          ...prev,
+          pagos: nuevosPagos.map((pago, i) =>
+            i === nuevosPagos.length - 1 ? { ...pago, monto: faltante } : pago,
+          ),
+        };
+      }
+
+      // Se cambió un monto y hay más de un medio: otro absorbe la diferencia
+      // para que entre todos siempre sumen el total. Se recalcula en cada
+      // tecla, si no el reparto quedaría fijado con el primer dígito escrito.
+      const indiceEditado = nuevosPagos.findIndex(
+        (pago, i) => String(pago.monto ?? "") !== String(anteriores[i]?.monto ?? ""),
+      );
+      if (indiceEditado >= 0 && nuevosPagos.length > 1) {
+        const indiceAbsorbe = indiceEditado === nuevosPagos.length - 1 ? 0 : nuevosPagos.length - 1;
+        const otros = nuevosPagos.reduce(
+          (total, pago, i) =>
+            i === indiceEditado || i === indiceAbsorbe ? total : total + (Number(pago.monto) || 0),
+          0,
+        );
+        const restante = Math.max(
+          0,
+          Math.round(totalEsteEquipo - (Number(nuevosPagos[indiceEditado].monto) || 0) - otros),
+        );
+        return {
+          ...prev,
+          pagos: nuevosPagos.map((pago, i) =>
+            i === indiceAbsorbe ? { ...pago, monto: restante } : pago,
+          ),
+        };
+      }
+
+      return { ...prev, pagos: nuevosPagos };
+    });
+  };
+
+  const handleChangeItem = (campo) => (e) => {
+    setNuevoItem((prev) => ({ ...prev, [campo]: e.target.value }));
+  };
+
+  // Suma el equipo escrito arriba a la lista del lote y deja los campos
+  // limpios para cargar el siguiente.
+  const handleAgregarItem = () => {
+    const nombre = nuevoItem.nombre.trim();
+    const errores = {};
+    if (!nombre) errores.nombre = "Elegí o escribí un equipo.";
+    if (!Number(nuevoItem.cantidad)) errores.cantidad = "Cantidad inválida.";
+    if (!Number(nuevoItem.dias)) errores.dias = "Días inválidos.";
+    if (!Number(nuevoItem.valor)) errores.valor = "El valor debe ser mayor a 0.";
+
+    setErrors(errores);
+    if (Object.keys(errores).length > 0) return;
+
+    setEquiposNuevos((prev) => [
+      ...prev,
+      {
+        nombre,
+        cantidad: Number(nuevoItem.cantidad),
+        dias: Number(nuevoItem.dias),
+        valor: Number(nuevoItem.valor),
+      },
+    ]);
+    setNuevoItem(ESTADO_INICIAL_ITEM);
+  };
+
+  const handleQuitarItem = (index) => {
+    setEquiposNuevos((prev) => prev.filter((_item, i) => i !== index));
   };
 
   const handleCerrar = () => {
@@ -163,15 +292,10 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
   const validar = () => {
     const errores = {};
-    const nombre = form.nombre.trim();
-    const cantidad = Number(form.cantidad);
-    const dias = Number(form.dias);
-
-    if (!nombre) errores.nombre = "Elegí o escribí un equipo.";
-    if (!cantidad || cantidad <= 0) errores.cantidad = "Cantidad inválida.";
-    if (!dias || dias <= 0) errores.dias = "Días inválidos.";
+    if (equiposNuevos.length === 0) {
+      errores.equipos = "Agregá al menos un equipo a la lista.";
+    }
     if (!form.fechaEntrega) errores.fechaEntrega = "Este campo es obligatorio.";
-    if (!form.valor || Number(form.valor) <= 0) errores.valor = "El valor debe ser mayor a 0.";
 
     setErrors(errores);
     return Object.keys(errores).length === 0;
@@ -180,36 +304,50 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
   const handleAgregar = async () => {
     if (!validar()) return;
 
-    const nuevoEquipo = {
-      nombre: form.nombre.trim(),
-      cantidad: cantidadNueva,
-      dias: diasNuevo,
-      valor: precioPorDiaNuevo,
-      fechaDespacho: form.fechaEntrega,
-      fechaVencimiento: calcularFechaDevolucion(form.fechaEntrega, form.dias),
-      // Marca que este equipo se sumó después de crear la factura (no en el
-      // alta original), para poder diferenciarlo en el historial.
-      agregadoPosteriormente: true,
-      tipoPago: form.tipoPago,
-      pagos: form.pagos
-        .filter((pago) => pago.medio && Number(pago.monto) > 0)
-        .map((pago) => ({ medio: pago.medio, monto: Number(pago.monto) })),
-    };
-    if (form.transporte && form.transporte !== "Sin transporte") {
-      nuevoEquipo.transporte = form.transporte;
-      nuevoEquipo.valorTransporte = valorTransporteNuevo;
-    }
-    if (depositoNuevo > 0) {
-      nuevoEquipo.deposito = depositoNuevo;
-    }
+    // El transporte, el depósito y el pago son del lote completo, así que se
+    // guardan una sola vez, en el primer equipo. Los demás quedan sin esos
+    // campos para no contar el mismo monto varias veces al sumar la factura.
+    const nuevosEquipos = equiposNuevos.map((item, index) => {
+      const equipo = {
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        dias: item.dias,
+        valor: item.valor,
+        fechaDespacho: form.fechaEntrega,
+        fechaVencimiento: calcularFechaDevolucion(form.fechaEntrega, item.dias),
+        // Marca que este equipo se sumó después de crear la factura (no en el
+        // alta original), para poder diferenciarlo en el historial.
+        agregadoPosteriormente: true,
+        // Cada equipo guarda si lleva IVA o no. Así una factura puede tener
+        // equipos con IVA y sin IVA sin que uno le pise el cálculo al otro.
+        aplicaIva: form.aplicaIva,
+      };
+
+      if (index === 0) {
+        equipo.tipoPago = form.tipoPago;
+        equipo.pagos = pagosValidos.map((pago) => ({
+          medio: pago.medio,
+          monto: Number(pago.monto),
+        }));
+        if (form.transporte && form.transporte !== "Sin transporte") {
+          equipo.transporte = form.transporte;
+          equipo.valorTransporte = valorTransporteNuevo;
+        }
+        if (depositoNuevo > 0) {
+          equipo.deposito = depositoNuevo;
+        }
+      }
+
+      return equipo;
+    });
 
     setGuardando(true);
     try {
       await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-        equipos: [...(factura.equipos || []), nuevoEquipo],
+        equipos: [...(factura.equipos || []), ...nuevosEquipos],
         subtotal: nuevoSubtotal,
         iva: nuevoIva,
-        aplicaIva: form.aplicaIva,
+        aplicaIva: nuevoAplicaIva,
         valorTotal: nuevoValorTotal,
         saldoPendiente: nuevoSaldoPendiente,
         montoPagado: nuevoMontoPagado,
@@ -218,7 +356,12 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         tipoPago: nuevoSaldoPendiente > 0 ? "parcial" : "total",
       });
 
-      showSnackbar("Equipo agregado a la factura.", "success");
+      showSnackbar(
+        nuevosEquipos.length === 1
+          ? "Equipo agregado a la factura."
+          : `${nuevosEquipos.length} equipos agregados a la factura.`,
+        "success",
+      );
       onAgregado?.();
       onClose();
     } catch (error) {
@@ -230,24 +373,54 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
   return (
     <>
-      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="xs">
+      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="sm">
         <DialogTitle sx={{ color: acento }}>
-          Agregar equipo
-          {factura && (
-            <Typography variant="body2" color="text.secondary">
-              Factura {factura.numeroFactura ?? "s/n"}
-            </Typography>
-          )}
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+            <span>Agregar equipo</span>
+            {factura && (
+              // Marca de agua: se lee si se busca, pero no compite con el
+              // título ni con los campos. La transparencia funciona igual en
+              // modo claro y oscuro porque hereda el color del texto.
+              <Typography
+                variant="h6"
+                color="text.secondary"
+                sx={{
+                  opacity: 0.35,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Factura {factura.numeroFactura ?? "s/n"}
+              </Typography>
+            )}
+          </Stack>
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField
+                label="Fecha de creación"
+                type="date"
+                value={form.fechaEntrega}
+                onChange={handleChange("fechaEntrega")}
+                error={!!errors.fechaEntrega}
+                helperText={errors.fechaEntrega}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+
             <Grid item xs={12}>
               <Autocomplete
                 freeSolo
                 fullWidth
                 options={nombresEquiposCatalogo}
-                inputValue={form.nombre}
-                onInputChange={(_e, valor) => setForm((prev) => ({ ...prev, nombre: valor }))}
+                inputValue={nuevoItem.nombre}
+                onInputChange={(_e, valor) =>
+                  setNuevoItem((prev) => ({ ...prev, nombre: valor }))
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -265,8 +438,8 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 label="Cantidad"
                 type="number"
                 inputProps={{ min: 1 }}
-                value={form.cantidad}
-                onChange={handleChange("cantidad")}
+                value={nuevoItem.cantidad}
+                onChange={handleChangeItem("cantidad")}
                 error={!!errors.cantidad}
                 helperText={errors.cantidad}
                 fullWidth
@@ -277,8 +450,8 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 label="Días"
                 type="number"
                 inputProps={{ min: 1 }}
-                value={form.dias}
-                onChange={handleChange("dias")}
+                value={nuevoItem.dias}
+                onChange={handleChangeItem("dias")}
                 error={!!errors.dias}
                 helperText={errors.dias}
                 fullWidth
@@ -287,73 +460,80 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
             <Grid item xs={12}>
               <TextField
-                label="Fecha de entrega"
-                type="date"
-                value={form.fechaEntrega}
-                onChange={handleChange("fechaEntrega")}
-                error={!!errors.fechaEntrega}
-                helperText={errors.fechaEntrega}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
                 label="Precio por día"
-                value={formatearMonedaInput(form.valor)}
-                onChange={handleChangeMoneda("valor")}
+                value={formatearMonedaInput(nuevoItem.valor)}
+                onChange={(e) =>
+                  setNuevoItem((prev) => ({ ...prev, valor: limpiarMonedaInput(e.target.value) }))
+                }
                 error={!!errors.valor}
                 helperText={errors.valor || "Precio de 1 unidad, por 1 día."}
                 fullWidth
               />
             </Grid>
 
-            {hayDatosEquipo && (
+            <Grid item xs={12}>
+              <Button variant="contained" fullWidth onClick={handleAgregarItem}>
+                Agregar equipo
+              </Button>
+            </Grid>
+
+            {errors.equipos && (
               <Grid item xs={12}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    p: 1,
-                    borderRadius: 1,
-                    border: "1px solid",
-                    borderColor: "divider",
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body2" fontWeight="bold">
-                      {form.nombre.trim()}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block" }}
-                    >
-                      {cantidadNueva} unidad(es) · {diasNuevo} día(s) ·{" "}
-                      {precioPorDiaNuevo.toLocaleString("es-CO", {
-                        style: "currency",
-                        currency: "COP",
-                      })}
-                      /día c/u · despacho {formatearFechaLegible(form.fechaEntrega)}
-                      {fechaVencimientoNueva &&
-                        ` · vence ${formatearFechaLegible(fechaVencimientoNueva)}`}
-                    </Typography>
-                    <Typography variant="caption" fontWeight="bold">
-                      Subtotal:{" "}
-                      {subtotalNuevoEquipo.toLocaleString("es-CO", {
-                        style: "currency",
-                        currency: "COP",
-                      })}
-                    </Typography>
-                  </Box>
-                  <IconButton size="small" onClick={handleQuitarEquipoCargado}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+                <Typography variant="caption" color="error">
+                  {errors.equipos}
+                </Typography>
               </Grid>
             )}
+
+            {/* Los equipos ya cargados en este lote. Cada uno en su recuadro,
+                con el bote para sacarlo si se cargó por error. */}
+            {equiposNuevos.map((item, index) => {
+              const vencimiento = calcularFechaDevolucion(form.fechaEntrega, item.dias);
+              return (
+                <Grid item xs={12} key={`${item.nombre}-${index}`}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      p: 1,
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "custom.itemBorder",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {item.nombre}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block" }}
+                      >
+                        {item.cantidad} unidad(es) · {item.dias} día(s) ·{" "}
+                        {item.valor.toLocaleString("es-CO", {
+                          style: "currency",
+                          currency: "COP",
+                        })}
+                        /día c/u · despacho {formatearFechaLegible(form.fechaEntrega)}
+                        {vencimiento && ` · vence ${formatearFechaLegible(vencimiento)}`}
+                      </Typography>
+                      <Typography variant="caption" fontWeight="bold">
+                        Subtotal:{" "}
+                        {subtotalDeItem(item).toLocaleString("es-CO", {
+                          style: "currency",
+                          currency: "COP",
+                        })}
+                      </Typography>
+                    </Box>
+                    <IconButton size="small" onClick={() => handleQuitarItem(index)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Grid>
+              );
+            })}
 
             <Grid item xs={12}>
               <Divider />
@@ -371,30 +551,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                   />
                 }
               />
-              <Stack spacing={0.25} sx={{ mt: 0.5 }}>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    IVA de este equipo
-                  </Typography>
-                  <Typography variant="body2">
-                    {ivaNuevoEquipo.toLocaleString("es-CO", {
-                      style: "currency",
-                      currency: "COP",
-                    })}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    IVA total de la factura
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {nuevoIva.toLocaleString("es-CO", {
-                      style: "currency",
-                      currency: "COP",
-                    })}
-                  </Typography>
-                </Box>
-              </Stack>
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -439,87 +595,191 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
               />
             </Grid>
 
+            {/* La pizarra con lo que se está agregando, para saber cuánto se
+                le va a cobrar al cliente antes de registrar el pago. El
+                aspecto lo pone el tema (variant "totales"); acá solo van las
+                filas. */}
+            {equiposNuevos.length > 0 && (
+              <Grid item xs={12}>
+                <Typography
+                  variant="overline"
+                  color="text.secondary"
+                  sx={{ display: "block", lineHeight: 1.6 }}
+                >
+                  Total equipos agregados
+                </Typography>
+                <Paper variant="totales">
+                  <Box className="fila">
+                    <Typography variant="body2">Subtotal</Typography>
+                    <Typography variant="body2">
+                      {formatearMoneda(subtotalNuevoEquipo)}
+                    </Typography>
+                  </Box>
+
+                  {form.aplicaIva && (
+                    <Box className="fila">
+                      <Typography variant="body2">IVA (19%)</Typography>
+                      <Typography variant="body2">{formatearMoneda(ivaNuevoEquipo)}</Typography>
+                    </Box>
+                  )}
+
+                  {depositoNuevo > 0 && (
+                    <Box className="fila">
+                      <Typography variant="body2">Depósito</Typography>
+                      <Typography variant="body2">{formatearMoneda(depositoNuevo)}</Typography>
+                    </Box>
+                  )}
+
+                  {valorTransporteNuevo > 0 && (
+                    <Box className="fila">
+                      <Typography variant="body2">Transporte</Typography>
+                      <Typography variant="body2">
+                        {formatearMoneda(valorTransporteNuevo)}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Box className="fila total">
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Total
+                    </Typography>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {formatearMoneda(totalEsteEquipo)}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            )}
+
             <Grid item xs={12}>
               <Divider />
             </Grid>
 
-            {/* Pago de este equipo puntual: va después de sus datos, como en el diseño 3. */}
+            {/* Izquierda: cómo se paga. Derecha: el resultado de esa carga,
+                para que se vea de inmediato qué se está registrando. */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
                 <InputLabel id="agregar-equipo-tipopago-label" htmlFor="agregar-equipo-tipopago-input">
-                  Pago de este equipo
+                  Pago de estos equipos
                 </InputLabel>
                 <Select
                   labelId="agregar-equipo-tipopago-label"
                   inputProps={{ id: "agregar-equipo-tipopago-input" }}
-                  label="Pago de este equipo"
+                  label="Pago de estos equipos"
                   value={form.tipoPago}
-                  onChange={handleChange("tipoPago")}
+                  onChange={handleCambiarTipoPago}
                 >
-                  <MenuItem value="total">Total de este equipo</MenuItem>
-                  <MenuItem value="parcial">Parcial de este equipo</MenuItem>
+                  <MenuItem value="total">Total de estos equipos</MenuItem>
+                  <MenuItem value="parcial">Parcial de estos equipos</MenuItem>
                 </Select>
               </FormControl>
+
+              <Box sx={{ mt: 2 }}>
+                <PagosMediosField
+                  pagos={form.pagos}
+                  onChange={handleChangePagos}
+                  idPrefix="agregar-equipo-pago"
+                  apilado
+                />
+              </Box>
             </Grid>
-            <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="body2" color="text.secondary">
-                Pagado por este equipo:{" "}
-                <strong>
-                  {pagoEsteEquipo.toLocaleString("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                  })}
-                </strong>
+
+            <Grid item xs={12} sm={6}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ display: "block", lineHeight: 1.6 }}
+              >
+                {form.tipoPago === "total" ? "Pago total" : "Pago parcial"}
               </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <PagosMediosField
-                pagos={form.pagos}
-                onChange={handleChangePagos}
-                idPrefix="agregar-equipo-pago"
-              />
+              <Paper variant="totales">
+                {pagosValidos.length === 0 ? (
+                  <Box className="fila">
+                    <Typography variant="body2">Sin pago cargado</Typography>
+                    <Typography variant="body2">{formatearMoneda(0)}</Typography>
+                  </Box>
+                ) : (
+                  pagosValidos.map((pago, index) => (
+                    <Box className="fila" key={`${pago.medio}-${index}`}>
+                      <Typography variant="body2">{pago.medio}</Typography>
+                      <Typography variant="body2">{formatearMoneda(pago.monto)}</Typography>
+                    </Box>
+                  ))
+                )}
+
+                <Box className="fila total">
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Pagado
+                  </Typography>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {formatearMoneda(pagoEsteEquipo)}
+                  </Typography>
+                </Box>
+
+                {/* Lo que falta para cubrir estos equipos: verde si ya está
+                    todo pagado, rojo si queda algo debiendo. */}
+                <Box
+                  className={totalEsteEquipo - pagoEsteEquipo > 0 ? "fila alerta" : "fila ok"}
+                  sx={{ mt: 1 }}
+                >
+                  <Typography variant="body2" fontWeight="bold">
+                    Queda debiendo
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatearMoneda(Math.max(0, totalEsteEquipo - pagoEsteEquipo))}
+                  </Typography>
+                </Box>
+              </Paper>
             </Grid>
 
             <Grid item xs={12}>
               <Divider />
             </Grid>
 
+            {/* Cómo queda la factura una vez guardados estos equipos. Se
+                muestra como una suma —lo que ya tenía + lo que se agrega=
+                para que no se confunda un valor viejo con uno nuevo. */}
             <Grid item xs={12}>
-              <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  Total de este equipo
-                </Typography>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  {totalEsteEquipo.toLocaleString("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                  })}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2" color="text.secondary">
-                  Nuevo total de la factura
-                </Typography>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "custom.totalText" }}>
-                  {nuevoValorTotal.toLocaleString("es-CO", {
-                    style: "currency",
-                    currency: "COP",
-                  })}
-                </Typography>
-              </Box>
-              {nuevoSaldoPendiente > 0 && (
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" sx={{ color: "warning.main" }}>
-                    Saldo pendiente de la factura
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold" sx={{ color: "warning.main" }}>
-                    {nuevoSaldoPendiente.toLocaleString("es-CO", {
-                      style: "currency",
-                      currency: "COP",
-                    })}
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ display: "block", lineHeight: 1.6 }}
+              >
+                Total factura
+              </Typography>
+              <Paper variant="totales">
+                <Box className="fila">
+                  <Typography variant="body2">Total actual</Typography>
+                  <Typography variant="body2">
+                    {formatearMoneda(factura?.valorTotal)}
                   </Typography>
                 </Box>
-              )}
+
+                <Box className="fila">
+                  <Typography variant="body2">+ Equipos agregados</Typography>
+                  <Typography variant="body2">{formatearMoneda(totalEsteEquipo)}</Typography>
+                </Box>
+
+                <Box className="fila total">
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Nuevo total
+                  </Typography>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {formatearMoneda(nuevoValorTotal)}
+                  </Typography>
+                </Box>
+
+                {/* Rojo si queda algo por cobrar, verde si la factura queda
+                    saldada: se lee de un vistazo antes de guardar. */}
+                <Box className={nuevoSaldoPendiente > 0 ? "fila alerta" : "fila ok"} sx={{ mt: 1 }}>
+                  <Typography variant="body2" fontWeight="bold">
+                    Saldo pendiente
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatearMoneda(nuevoSaldoPendiente)}
+                  </Typography>
+                </Box>
+              </Paper>
             </Grid>
           </Grid>
         </DialogContent>
@@ -528,7 +788,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
             Cancelar
           </Button>
           <Button variant="success" onClick={handleAgregar} disabled={guardando}>
-            {guardando ? "Agregando..." : "Agregar"}
+            {guardando ? "Guardando..." : "Guardar en la factura"}
           </Button>
         </DialogActions>
       </Dialog>

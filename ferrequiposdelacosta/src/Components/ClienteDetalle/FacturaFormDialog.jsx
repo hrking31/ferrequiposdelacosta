@@ -121,7 +121,34 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     0,
   );
 
-  const ivaCalculado = form.aplicaIva ? subtotalCalculado * 0.19 : 0;
+  // El IVA se calcula equipo por equipo: cada uno respeta la marca con la que
+  // se cargó, y los que no la traen (los del alta original) siguen la casilla
+  // de esta pantalla. Así una factura puede tener equipos con IVA y sin IVA
+  // sin que uno le pise el cálculo al otro.
+  const ivaCalculado = equipos.reduce((total, item) => {
+    const subtotalItem =
+      (Number(item.cantidad) || 0) * (Number(item.dias) || 0) * (Number(item.valor) || 0);
+    const llevaIva = item?.aplicaIva ?? form.aplicaIva;
+    return total + (llevaIva ? subtotalItem * 0.19 : 0);
+  }, 0);
+
+  // Los equipos que se sumaron después traen su propio depósito, transporte y
+  // pago. Si no se cuentan acá, guardar esta pantalla los borra del total y
+  // hace reaparecer un saldo que el cliente ya había pagado.
+  const equiposAgregados = equipos.filter((item) => item?.agregadoPosteriormente);
+  const sumarDeAgregados = (campo) =>
+    equiposAgregados.reduce((total, item) => total + (Number(item[campo]) || 0), 0);
+  const depositoAgregados = sumarDeAgregados("deposito");
+  const transporteAgregados = sumarDeAgregados("valorTransporte");
+  const pagosAgregados = equiposAgregados.reduce(
+    (total, item) =>
+      total +
+      normalizarPagos(item.pagos, item.modoPago, item.montoPagado).reduce(
+        (suma, pago) => suma + (Number(pago.monto) || 0),
+        0,
+      ),
+    0,
+  );
 
   // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
   // no se digita a mano.
@@ -129,14 +156,15 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     subtotalCalculado +
     ivaCalculado +
     (Number(form.valorTransporte) || 0) +
-    (Number(form.deposito) || 0);
+    (Number(form.deposito) || 0) +
+    transporteAgregados +
+    depositoAgregados;
 
   // Lo pagado ya no se digita aparte: es la suma de los medios de pago
-  // cargados (uno o varios, ej. parte por Bancolombia y parte en efectivo).
-  const montoPagadoCalculado = form.pagos.reduce(
-    (total, pago) => total + (Number(pago.monto) || 0),
-    0,
-  );
+  // cargados (uno o varios, ej. parte por Bancolombia y parte en efectivo)
+  // más lo que ya se pagó por cada equipo agregado después.
+  const montoPagadoCalculado =
+    form.pagos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0) + pagosAgregados;
   const saldoPendienteCalculado = Math.max(0, valorTotalCalculado - montoPagadoCalculado);
 
   const handleChange = (campo) => (e) => {
@@ -518,7 +546,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                             p: 1,
                             borderRadius: 1,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: "custom.itemBorder",
                             height: "100%",
                           }}
                         >

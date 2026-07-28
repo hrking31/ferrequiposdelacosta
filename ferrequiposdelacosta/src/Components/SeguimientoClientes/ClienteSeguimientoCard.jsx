@@ -7,6 +7,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Paper,
   Stack,
   Tooltip,
   Typography,
@@ -24,6 +25,8 @@ import {
   obtenerHistorialVencimientos,
   etiquetaVencimiento,
   diferenciaEnDias,
+  calcularAmpliacionEquipo,
+  calcularAmpliacionFactura,
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
@@ -151,10 +154,10 @@ export default function ClienteSeguimientoCard({
     const diasVencidos =
       situacion === "vencido" ? diferenciaEnDias(equipo.fechaVencimiento, hoy) : 0;
 
-    // Días que se le agregaron: desde el primer vencimiento hasta el vigente.
-    const diasAgregados = historial.length
-      ? diferenciaEnDias(historial[0], equipo.fechaVencimiento)
-      : 0;
+    // Días agregados y lo que valen ya con el descuento aplicado. Si el equipo
+    // quedó con entrega indefinida, acá ya vienen sumados los días que lleva
+    // sin devolver.
+    const ampliacionEquipo = calcularAmpliacionEquipo(equipo, hoy);
 
     const conValor = (dias) =>
       valorPorDia > 0 ? ` · ${formatearMoneda(dias * valorPorDia)}` : "";
@@ -205,15 +208,30 @@ export default function ClienteSeguimientoCard({
             />
           ))}
 
-          {/* Días que se le sumaron al plazo, con lo que cuestan. */}
-          {diasAgregados > 0 && (
+          {/* Días que se le sumaron al plazo, con lo que cuestan ya
+              descontado, y el descuento aparte para que no quede escondido. */}
+          {ampliacionEquipo.dias > 0 && (
             <Chip
               variant={esMovil ? "outlined" : "filled"}
               size="small"
               sx={{ ...metaPillSx, color: "custom.accentSmall" }}
-              label={`+${diasAgregados} día${diasAgregados === 1 ? "" : "s"}${conValor(
-                diasAgregados,
-              )}`}
+              label={`+${ampliacionEquipo.dias} día${
+                ampliacionEquipo.dias === 1 ? "" : "s"
+              }${
+                ampliacionEquipo.bruto > 0
+                  ? ` · ${formatearMoneda(ampliacionEquipo.neto)}`
+                  : ""
+              }`}
+            />
+          )}
+
+          {ampliacionEquipo.descuento > 0 && (
+            <Chip
+              variant="outlined"
+              size="small"
+              color="success"
+              sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, ...formaChipSx }}
+              label={`Descuento ${formatearMoneda(ampliacionEquipo.descuento)}`}
             />
           )}
 
@@ -275,8 +293,21 @@ export default function ClienteSeguimientoCard({
     avatarBgPorEstado[factura.estado] ||
     (theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700]);
 
-  const subtotal = formatearMoneda(factura.subtotal);
-  const iva = formatearMoneda(factura.iva);
+  // El cálculo de las ampliaciones vive en facturaUtils, compartido con
+  // ClienteDetalle y con el diálogo que las guarda: así las tres pantallas
+  // no pueden dar números distintos.
+  const ampliacion = calcularAmpliacionFactura(factura, hoy);
+
+  // Subtotal e IVA se muestran ya con los días ampliados sumados (menos el
+  // descuento): son lo que hoy se le cobraría al cliente, no lo que decía la
+  // factura el día que se emitió. Si la factura no traía el dato, se deja
+  // vacío como antes en vez de mostrar un cero.
+  const subtotal = formatearMoneda(
+    typeof factura.subtotal === "number" ? ampliacion.nuevoSubtotal : factura.subtotal,
+  );
+  const iva = formatearMoneda(
+    typeof factura.iva === "number" ? ampliacion.nuevoIva : factura.iva,
+  );
   const deposito = formatearMoneda(factura.deposito);
   const valorTotal = formatearMoneda(factura.valorTotal);
   const transporteMonto = formatearMoneda(factura.valorTransporte);
@@ -286,8 +317,80 @@ export default function ClienteSeguimientoCard({
       ? "Sin transporte"
       : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ");
   const fecha = formatearFecha(factura.fecha);
+
+  const saldoPendienteNumero = Number(factura.saldoPendiente) || 0;
+  const saldoPendiente = formatearMoneda(saldoPendienteNumero);
+
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
   const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
+
+  // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
+  // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
+  const cuadroTotales = valorTotal && (
+    <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
+      <Box className="fila total">
+        <Typography variant="subtitle1" fontWeight="bold">
+          Total
+        </Typography>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {valorTotal}
+        </Typography>
+      </Box>
+
+      {/* Siempre visible: rojo si queda algo por cobrar, verde si la factura
+          ya está saldada. Así se lee de un vistazo en qué situación está. */}
+      <Box
+        className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
+        sx={{ mt: 1 }}
+      >
+        <Typography variant="body2" fontWeight="bold">
+          Saldo pendiente
+        </Typography>
+        <Typography variant="body2" fontWeight="bold">
+          {saldoPendiente}
+        </Typography>
+      </Box>
+
+      {ampliacion.hay && (
+        <>
+          <Box className="fila" sx={{ mt: 1 }}>
+            <Typography variant="body2">
+              +{ampliacion.dias} día{ampliacion.dias === 1 ? "" : "s"} ampliado
+              {ampliacion.dias === 1 ? "" : "s"}
+            </Typography>
+            <Typography variant="body2">{formatearMoneda(ampliacion.bruto)}</Typography>
+          </Box>
+
+          {ampliacion.descuento > 0 && (
+            <Box className="fila ok">
+              <Typography variant="body2">Descuento</Typography>
+              <Typography variant="body2">
+                −{formatearMoneda(ampliacion.descuento)}
+              </Typography>
+            </Box>
+          )}
+
+          <Box className="fila total">
+            <Typography variant="subtitle1" fontWeight="bold">
+              Nuevo total
+            </Typography>
+            <Typography variant="subtitle1" fontWeight="bold">
+              {formatearMoneda(ampliacion.nuevoTotal)}
+            </Typography>
+          </Box>
+
+          <Box className="fila alerta" sx={{ mt: 1 }}>
+            <Typography variant="body2" fontWeight="bold">
+              Nuevo saldo pendiente
+            </Typography>
+            <Typography variant="body2" fontWeight="bold">
+              {formatearMoneda(ampliacion.nuevoSaldo)}
+            </Typography>
+          </Box>
+        </>
+      )}
+    </Paper>
+  );
 
   const handleCambiar = (nuevoEstado) => {
     setMenuAnchor(null);
@@ -539,7 +642,10 @@ export default function ClienteSeguimientoCard({
 
             {esMovil ? (
               <Box>
-                <Stack direction="row" justifyContent="flex-end" alignItems="center">
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    Total factura
+                  </Typography>
                   <IconButton
                     size="small"
                     onClick={() => setDetalleAbierto((prev) => !prev)}
@@ -559,65 +665,35 @@ export default function ClienteSeguimientoCard({
                     {(transporteTipo || transporteMonto) && (
                       <Typography variant="body2">{textoTransporte}</Typography>
                     )}
-                    {valorTotal && (
-                      <Box
-                        sx={{
-                          px: 1.5,
-                          py: 1,
-                          borderRadius: 2,
-                          boxShadow: (theme) => theme.palette.custom.panelShadow,
-                          bgcolor: theme.palette.custom.panelBackground,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight="bold"
-                          sx={{ color: "custom.totalText" }}
-                        >
-                          Total {valorTotal}
-                        </Typography>
-                      </Box>
-                    )}
+                    {cuadroTotales}
                   </Stack>
                 )}
               </Box>
             ) : (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  gap: 2,
-                }}
-              >
-                <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
-                  {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
-                  {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
-                  {(transporteTipo || transporteMonto) && (
-                    <Typography variant="body2">{textoTransporte}</Typography>
-                  )}
-                </Stack>
+              <Box>
+                <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  Total factura
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                    gap: 2,
+                  }}
+                >
+                  <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
+                    {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
+                    {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
+                    {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
+                    {(transporteTipo || transporteMonto) && (
+                      <Typography variant="body2">{textoTransporte}</Typography>
+                    )}
+                  </Stack>
 
-                {valorTotal && (
-                  <Box
-                    sx={{
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: 2,
-                      boxShadow: (theme) => theme.palette.custom.panelShadow,
-                      bgcolor: theme.palette.custom.panelBackground,
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight="bold"
-                      sx={{ color: "custom.totalText" }}
-                    >
-                      Total {valorTotal}
-                    </Typography>
-                  </Box>
-                )}
+                  {cuadroTotales}
+                </Box>
               </Box>
             )}
           </Box>

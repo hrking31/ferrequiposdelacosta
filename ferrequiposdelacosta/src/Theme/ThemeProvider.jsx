@@ -263,6 +263,17 @@ export const CustomThemeProvider = ({ children }) => {
           // FacturaFormDialog, AgregarEquipoDialog, AmpliarVencimientoDialog.
           totalText: AMARILLO,
 
+          // El rojo de lo que queda debiendo: saldos pendientes y renglones
+          // de alerta dentro de la pizarra. Es el rojo de marca aclarado,
+          // porque el pleno sobre el negro se queda en 3.4:1 y no se lee.
+          // Se usa a través de la clase "alerta" de la pizarra de totales.
+          saldoText: lighten(ROJO, 0.35),
+
+          // El verde de lo que ya está saldado. Sobre el negro de la pizarra
+          // el verde de marca da 5.1:1, así que no hace falta aclararlo.
+          // Se usa a través de la clase "ok" de la pizarra de totales.
+          saldadoText: VERDE,
+
           // ── La barra de arriba ───────────────────────────────────────
           //
           // El fondo de la barra es un tono más claro que el de la página,
@@ -278,6 +289,14 @@ export const CustomThemeProvider = ({ children }) => {
           // esto: usan "divider".
           // Se usa en: el estilo general de los campos de texto.
           inputBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
+
+          // El contorno de los recuadros que envuelven cada equipo cargado en
+          // los diálogos, para que se vean como fichas separadas. Es un paso
+          // más marcado que "divider", que ahí quedaba casi invisible sobre el
+          // fondo del diálogo.
+          // Se usa en: Agregar equipo y Crear/Editar factura, en la lista de
+          // equipos que se están cargando.
+          itemBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
 
           // El gris de los textos chiquitos de apoyo: epígrafes de fotos,
           // aclaraciones, etiquetas en minúscula.
@@ -748,10 +767,22 @@ export const CustomThemeProvider = ({ children }) => {
                   paddingTop: theme.spacing(2),
                 },
 
+                // Si el total es lo PRIMERO de la pizarra no hay nada arriba
+                // que separar, así que no lleva línea. La línea solo aparece
+                // cuando divide un desglose de su total, como en Cotización.
+                "& .fila.total:first-of-type": {
+                  borderTop: "none",
+                  marginTop: 0,
+                  paddingTop: 0,
+                },
+
                 "& .fila.alerta": {
-                  // El rojo aclarado, no el pleno: sobre el negro el pleno se
-                  // queda en 3.4:1.
-                  color: theme.palette.error.light,
+                  color: theme.palette.custom.saldoText,
+                },
+
+                // Para lo que ya está saldado o en orden.
+                "& .fila.ok": {
+                  color: theme.palette.custom.saldadoText,
                 },
               }),
             },

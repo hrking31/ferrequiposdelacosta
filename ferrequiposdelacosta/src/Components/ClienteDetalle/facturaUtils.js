@@ -31,6 +31,21 @@ const obtenerHoraBogota = () =>
     }).format(new Date()),
   );
 
+// La fecha de hoy en Colombia, en formato AAAA-MM-DD. Se usa como referencia
+// para saber si un equipo está vencido y para contar los días de los equipos
+// que quedaron con devolución indefinida.
+export const obtenerFechaHoyBogota = () => {
+  const [anio, mes, dia] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .split("-");
+  return `${anio}-${mes}-${dia}`;
+};
+
 // Regla de negocio: antes de las 3pm (hora Colombia) el alquiler arranca el
 // mismo día; a partir de las 3pm arranca al día siguiente.
 export const obtenerFechaInicialEfectiva = () => {
@@ -81,18 +96,127 @@ export const calcularVencimiento = (fechaIso, dias) => {
   return `${fecha.getUTCFullYear()}-${pad(fecha.getUTCMonth() + 1)}-${pad(fecha.getUTCDate())}`;
 };
 
-// Historial de vencimientos de un equipo: todas las fechas por las que pasó
-// ANTES de la vigente. Cada vez que se amplía el plazo se le agrega la fecha
-// que estaba rigiendo hasta ese momento.
+// ── Ampliaciones de plazo ──────────────────────────────────────────────
 //
-// Las facturas creadas antes de que existiera este historial solo guardaban
-// "fechaVencimientoOriginal" (una sola fecha, la primera). Para esas se
-// devuelve esa única fecha, así siguen mostrándose bien sin migrar datos.
-export const obtenerHistorialVencimientos = (equipo) => {
-  if (Array.isArray(equipo?.vencimientos)) {
-    return equipo.vencimientos.filter(Boolean);
+// Cada vez que se le amplía el vencimiento a un equipo queda registrado
+// desde qué fecha, hasta cuál, cuántos días se sumaron y qué descuento se
+// le hizo a esos días. Se guarda en el equipo como:
+//
+//   ampliaciones: [{ fechaAnterior, fechaNueva, dias, descuento }]
+//
+// Hay dos formatos anteriores que se siguen leyendo para no migrar datos:
+//   - "vencimientos": lista de fechas sin datos comerciales.
+//   - "fechaVencimientoOriginal": una sola fecha, el formato más viejo.
+// En ambos casos el descuento se asume en cero, que es lo que pasaba.
+export const obtenerAmpliaciones = (equipo) => {
+  if (Array.isArray(equipo?.ampliaciones)) {
+    return equipo.ampliaciones.filter(Boolean);
   }
-  return equipo?.fechaVencimientoOriginal ? [equipo.fechaVencimientoOriginal] : [];
+
+  // Formato intermedio: solo fechas. Se reconstruyen los tramos encadenando
+  // cada fecha con la siguiente, y la última con el vencimiento vigente.
+  const fechas = Array.isArray(equipo?.vencimientos)
+    ? equipo.vencimientos.filter(Boolean)
+    : equipo?.fechaVencimientoOriginal
+      ? [equipo.fechaVencimientoOriginal]
+      : [];
+
+  return fechas.map((fecha, i) => {
+    const fechaNueva = fechas[i + 1] || equipo?.fechaVencimiento;
+    return {
+      fechaAnterior: fecha,
+      fechaNueva,
+      dias: diferenciaEnDias(fecha, fechaNueva),
+      descuento: 0,
+    };
+  });
+};
+
+// Las fechas por las que pasó el equipo antes de la vigente, para mostrarlas
+// numeradas ("1er vencimiento", "2do vencimiento"...).
+export const obtenerHistorialVencimientos = (equipo) =>
+  obtenerAmpliaciones(equipo)
+    .map((ampliacion) => ampliacion.fechaAnterior)
+    .filter(Boolean);
+
+// Lo que suma una ampliación en un equipo: días agregados, cuánto valen a
+// precio de lista, cuánto se descontó y el neto que se cobraría.
+// El descuento se resta ANTES del IVA.
+//
+// Además de las ampliaciones pactadas, se cuentan los días de los equipos que
+// quedaron con devolución indefinida: mientras el cliente no devuelva, cada
+// día que pasa desde su vencimiento se cobra igual que un día ampliado (sin
+// descuento, porque no se pactó ninguno). Se cuenta desde el día siguiente al
+// vencimiento: si venció el 25 y hoy es 28, son 3 días.
+export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const porDia = (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
+
+  const resumen = obtenerAmpliaciones(equipo).reduce(
+    (acumulado, ampliacion) => {
+      const dias = Number(ampliacion.dias) || 0;
+      const descuento = Number(ampliacion.descuento) || 0;
+      return {
+        dias: acumulado.dias + dias,
+        bruto: acumulado.bruto + dias * porDia,
+        descuento: acumulado.descuento + descuento,
+        neto: acumulado.neto + Math.max(0, dias * porDia - descuento),
+      };
+    },
+    { dias: 0, bruto: 0, descuento: 0, neto: 0 },
+  );
+
+  const diasAbiertos = equipo?.vencimientoIndefinido
+    ? Math.max(0, diferenciaEnDias(equipo.fechaVencimiento, hoyIso))
+    : 0;
+
+  return {
+    dias: resumen.dias + diasAbiertos,
+    bruto: resumen.bruto + diasAbiertos * porDia,
+    descuento: resumen.descuento,
+    neto: resumen.neto + diasAbiertos * porDia,
+    // Se expone aparte por si una vista necesita distinguir los días que
+    // corren solos de los que se pactaron.
+    diasAbiertos,
+  };
+};
+
+// Lo mismo pero sumando todos los equipos de una factura, y proyectando cómo
+// quedaría la factura si esas ampliaciones se cobraran.
+//
+// El IVA de la ampliación sigue lo que se marcó en la factura: si se emitió
+// con IVA los días extra también lo llevan, y si no, no. Las facturas viejas
+// no guardaban ese dato, así que se deduce de si tienen IVA cargado.
+export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogota()) => {
+  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
+
+  const resumen = equipos.reduce(
+    (acumulado, equipo) => {
+      const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
+      return {
+        dias: acumulado.dias + ampliacion.dias,
+        bruto: acumulado.bruto + ampliacion.bruto,
+        descuento: acumulado.descuento + ampliacion.descuento,
+        neto: acumulado.neto + ampliacion.neto,
+      };
+    },
+    { dias: 0, bruto: 0, descuento: 0, neto: 0 },
+  );
+
+  const llevaIva = factura?.aplicaIva ?? Number(factura?.iva) > 0;
+  const iva = llevaIva ? resumen.neto * 0.19 : 0;
+  const total = resumen.neto + iva;
+
+  return {
+    ...resumen,
+    llevaIva,
+    iva,
+    total,
+    hay: total > 0,
+    nuevoSubtotal: (Number(factura?.subtotal) || 0) + resumen.neto,
+    nuevoIva: (Number(factura?.iva) || 0) + iva,
+    nuevoTotal: (Number(factura?.valorTotal) || 0) + total,
+    nuevoSaldo: (Number(factura?.saldoPendiente) || 0) + total,
+  };
 };
 
 // Etiqueta ordinal para cada fecha del historial: "1er vencimiento",

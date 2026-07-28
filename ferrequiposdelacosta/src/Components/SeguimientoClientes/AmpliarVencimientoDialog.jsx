@@ -20,7 +20,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
   calcularVencimiento,
-  obtenerHistorialVencimientos,
+  obtenerAmpliaciones,
 } from "../ClienteDetalle/facturaUtils";
 
 const formatearFechaLegible = (fechaIso) => {
@@ -29,7 +29,13 @@ const formatearFechaLegible = (fechaIso) => {
   return `${dia}/${mes}/${anio}`;
 };
 
-const ESTADO_INICIAL_CAMBIO = { dias: "", indefinida: false };
+const ESTADO_INICIAL_CAMBIO = { dias: "", descuento: "", indefinida: false };
+
+const formatearMoneda = (valor) =>
+  Number(valor || 0).toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+  });
 
 export default function AmpliarVencimientoDialog({ open, onClose, cliente, factura, onActualizado }) {
   const theme = useTheme();
@@ -65,6 +71,13 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
     }));
   };
 
+  const handleCambiarDescuento = (index, valor) => {
+    setCambios((prev) => ({
+      ...prev,
+      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], descuento: valor },
+    }));
+  };
+
   const handleGuardar = async () => {
     const huboCambios = equipos.some((_, index) => {
       const cambio = cambios[index];
@@ -88,19 +101,28 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         const extra = Number(cambio.dias) || 0;
         if (extra <= 0) return equipo;
 
+        const fechaNueva = calcularVencimiento(equipo.fechaVencimiento, extra);
+        const descuento = Math.max(0, Number(cambio.descuento) || 0);
+
         return {
           ...equipo,
           vencimientoIndefinido: false,
           // Se conserva por compatibilidad con las facturas viejas y con
           // cualquier vista que todavía lo lea. Solo se escribe la primera vez.
           fechaVencimientoOriginal: equipo.fechaVencimientoOriginal || equipo.fechaVencimiento,
-          // El historial completo: se le suma la fecha que regía hasta ahora,
-          // así quedan registradas TODAS las ampliaciones y no solo la primera.
-          vencimientos: [
-            ...obtenerHistorialVencimientos(equipo),
-            equipo.fechaVencimiento,
-          ].filter(Boolean),
-          fechaVencimiento: calcularVencimiento(equipo.fechaVencimiento, extra),
+          // El registro completo de la ampliación: desde qué fecha, hasta
+          // cuál, cuántos días se sumaron y qué descuento se les hizo. Se
+          // acumulan todas, no solo la primera.
+          ampliaciones: [
+            ...obtenerAmpliaciones(equipo),
+            {
+              fechaAnterior: equipo.fechaVencimiento,
+              fechaNueva,
+              dias: extra,
+              descuento,
+            },
+          ],
+          fechaVencimiento: fechaNueva,
         };
       });
 
@@ -134,6 +156,15 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
             {equipos.map((equipo, index) => {
               const cambio = cambios[index] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
+              const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
+              // Lo que valen los días que se están agregando, para poder ver
+              // sobre qué monto se está haciendo el descuento.
+              const valorDias =
+                diasNumero > 0
+                  ? diasNumero *
+                    (Number(equipo.cantidad) || 0) *
+                    (Number(equipo.valor) || 0)
+                  : 0;
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0
                   ? calcularVencimiento(equipo.fechaVencimiento, diasNumero)
@@ -159,6 +190,30 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                     fullWidth
                     size="small"
                   />
+
+                  {diasNumero > 0 && !cambio.indefinida && (
+                    <TextField
+                      label="Descuento sobre esos días"
+                      type="number"
+                      inputProps={{ min: 0 }}
+                      value={cambio.descuento}
+                      onChange={(e) => handleCambiarDescuento(index, e.target.value)}
+                      fullWidth
+                      size="small"
+                      sx={{ mt: 1 }}
+                      helperText={
+                        valorDias > 0
+                          ? `${diasNumero} día${diasNumero === 1 ? "" : "s"} = ${formatearMoneda(
+                              valorDias,
+                            )}${
+                              descuentoNumero > 0
+                                ? ` · queda en ${formatearMoneda(valorDias - descuentoNumero)}`
+                                : ""
+                            }`
+                          : "Este equipo no tiene precio cargado"
+                      }
+                    />
+                  )}
 
                   {nuevaFecha && (
                     <Typography

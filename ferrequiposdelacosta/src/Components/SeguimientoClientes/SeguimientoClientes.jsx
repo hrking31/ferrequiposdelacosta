@@ -19,23 +19,12 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import { obtenerFechaHoyBogota } from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
   if (!cliente) return "";
   if (cliente.tipo === "empresa") return cliente.razonSocial || cliente.nombreOriginal;
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
-};
-
-const obtenerFechaHoyBogota = () => {
-  const [anio, mes, dia] = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(new Date())
-    .split("-");
-  return `${anio}-${mes}-${dia}`;
 };
 
 // Una factura entra a seguimiento cuando no está Finalizada y al menos un
