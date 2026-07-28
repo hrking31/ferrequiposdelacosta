@@ -696,14 +696,16 @@ export const CustomThemeProvider = ({ children }) => {
         },
         MuiButton: {
           styleOverrides: {
-            root: {
-              borderRadius: 6,
+            // Callback y no objeto plano: adentro hace falta "theme", y el de
+            // afuera todavía se está construyendo en este punto.
+            root: ({ theme }) => ({
+              borderRadius: theme.shape.borderRadius,
               padding: "8px 22px",
               boxShadow: "none",
               "&:hover": {
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                boxShadow: theme.shadows[4],
               },
-            },
+            }),
           },
           variants: [
             {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Box, Typography, Button } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import PropTypes from "prop-types";
 import { clearCart } from "../../Store/Slices/cartSlice.js";
 import { clearCliente } from "../../Store/Slices/clienteSlice.js";
@@ -158,7 +159,11 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             fontSize: "1.5rem",
             fontWeight: "bold",
             backgroundColor: (theme) => theme.palette.secondary.main,
-            boxShadow: "0px 10px 30px rgba(0,0,0,0.5)",
+            // No usa theme.shadows: el kiosco fuerza modo oscuro, y ahí la
+            // escala es "none" a propósito. Acá sí hace falta la sombra porque
+            // es una pieza flotante a pantalla completa, no una superficie.
+            boxShadow: (theme) =>
+              `0px 10px 30px ${alpha(theme.palette.common.black, 0.5)}`,
             animation: "pulse 2s infinite",
             "@keyframes pulse": {
               "0%": {

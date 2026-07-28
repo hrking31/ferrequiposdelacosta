@@ -646,7 +646,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   flex: 1,
                   p: 2,
                   borderRadius: 2,
-                  boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                  boxShadow: 2,
                   bgcolor: theme.palette.custom.panelBackground,
                   display: "flex",
                   flexDirection: "column",

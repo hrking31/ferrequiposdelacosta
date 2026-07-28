@@ -6,6 +6,7 @@ import {
   Grid,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setFormCuentaCobro,
@@ -148,7 +149,10 @@ export default function CuentaCobro() {
               pb: 1,
               pt: 1,
               px: 1,
-              boxShadow: "0 0 20px rgba(102, 155, 188, 0.4)",
+              // Resplandor de acento. Antes usaba un azul (#669BBC) que ya no
+              // existe en la paleta; ahora se deriva del acento del tema.
+              boxShadow: (theme) =>
+                `0 0 20px ${alpha(theme.palette.secondary.main, 0.4)}`,
               borderRadius: 0.5,
             }}
           >

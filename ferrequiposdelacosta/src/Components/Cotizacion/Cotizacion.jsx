@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
   setFormCotizacion,
   setItems,
@@ -429,7 +430,10 @@ export default function Cotizacion() {
               pb: 1,
               pt: 1,
               px: 1,
-              boxShadow: "0 0 20px rgba(102, 155, 188, 0.4)",
+              // Resplandor de acento. Antes usaba un azul (#669BBC) que ya no
+              // existe en la paleta; ahora se deriva del acento del tema.
+              boxShadow: (theme) =>
+                `0 0 20px ${alpha(theme.palette.secondary.main, 0.4)}`,
               borderRadius: 0.5,
             }}
           >
@@ -525,7 +529,7 @@ export default function Cotizacion() {
               sx={{
                 p: 2,
                 borderRadius: 2,
-                boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                boxShadow: 2,
                 backgroundColor: theme.palette.custom.panelBackground,
               }}
             >

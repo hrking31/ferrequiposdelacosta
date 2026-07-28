@@ -961,7 +961,7 @@ export default function ClienteDetalle() {
                             px: 1.5,
                             py: 1,
                             borderRadius: 2,
-                            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                            boxShadow: 2,
                             bgcolor: panelBg,
                             width: { xs: "100%", sm: "auto" },
                           }}

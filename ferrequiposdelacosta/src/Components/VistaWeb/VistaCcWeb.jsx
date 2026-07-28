@@ -23,7 +23,7 @@ export default function VistaCcWeb() {
         padding: isSmallScreen ? "20px" : "40px",
         maxWidth: "100%",
         backgroundColor: "white",
-        boxShadow: "0px 0px 20px rgba(0, 0, 0, 0.1)",
+        boxShadow: 4,
         borderRadius: "10px",
         margin: "0 auto",
       }}

@@ -403,7 +403,7 @@ export default function ClienteSeguimientoCard({
                           px: 1.5,
                           py: 1,
                           borderRadius: 2,
-                          boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                          boxShadow: 2,
                           bgcolor: theme.palette.custom.panelBackground,
                         }}
                       >
@@ -443,7 +443,7 @@ export default function ClienteSeguimientoCard({
                       px: 1.5,
                       py: 1,
                       borderRadius: 2,
-                      boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+                      boxShadow: 2,
                       bgcolor: theme.palette.custom.panelBackground,
                     }}
                   >

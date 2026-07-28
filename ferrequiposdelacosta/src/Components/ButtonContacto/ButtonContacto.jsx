@@ -35,7 +35,7 @@ export const WhatsAppButton = () => {
         transition: "all 0.3s ease",
         "&:hover": {
           transform: "translateY(-2px)",
-          boxShadow: "0 6px 8px rgba(0, 0, 0, 0.15)",
+          boxShadow: 6,
         },
         boxShadow: 3,
       }}
