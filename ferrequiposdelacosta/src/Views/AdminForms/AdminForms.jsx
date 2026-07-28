@@ -38,55 +38,55 @@ export default function AdminForms() {
     {
       permiso: "cotizacion",
       to: "/vistacotizacion",
-      icon: <BuildIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <BuildIcon />,
       label: "COTIZACIÓN",
     },
     {
       permiso: "cuentaCombro",
       to: "/vistacuentadecobro",
-      icon: <ReceiptIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <ReceiptIcon />,
       label: "CUENTA DE COBRO",
     },
     {
       permiso: "crearEquipos",
       to: "/vistacreaequipo",
-      icon: <AddCircleOutlineIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <AddCircleOutlineIcon />,
       label: "CREAR EQUIPO",
     },
     {
       permiso: "eliminarEditarEquipos",
       to: "/vistaseleccionarequipo",
-      icon: <EditIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <EditIcon />,
       label: "EDITAR o ELIMINAR EQUIPO",
     },
     {
       permiso: "crearUsuarios",
       to: "/VistaCrearUsuarios",
-      icon: <PersonAddAlt1Icon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <PersonAddAlt1Icon />,
       label: "CREAR USUARIOS",
     },
     {
       permiso: "eliminarUsuarios",
       to: "/VistaEliminarUsuario",
-      icon: <PersonRemoveIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <PersonRemoveIcon />,
       label: "EDITAR o ELIMINAR USUARIOS",
     },
     {
       permiso: "clientes",
       to: "/vistaclientes",
-      icon: <FolderSharedIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <FolderSharedIcon />,
       label: "CLIENTES",
     },
     {
       permiso: "gestionCartera",
       to: "/vistaseguimientoclientes",
-      icon: <SupportAgentIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <SupportAgentIcon />,
       label: "SEGUIMIENTO de CLIENTES",
     },
     {
       permiso: "solicitudesCotizaciones",
       to: "/vistacotizacionesAdmin",
-      icon: <ReceiptLongIcon sx={{ fontSize: isCompact ? 28 : 40 }} />,
+      icon: <ReceiptLongIcon />,
       label: "SOLICITUDES COTIZACIONES",
     },
   ];
@@ -109,8 +109,6 @@ export default function AdminForms() {
     maxWidth: 240,
     maxHeight: 150,
     minHeight: 90,
-    gap: isCompact ? 1 : 2,
-    fontSize: isCompact ? "0.7rem" : "0.875rem",
   };
 
   return (

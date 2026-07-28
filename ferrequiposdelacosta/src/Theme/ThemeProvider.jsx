@@ -985,9 +985,25 @@ export const CustomThemeProvider = ({ children }) => {
                   border: `1px solid ${theme.palette.divider}`,
                   boxShadow: "none",
                   transition: "all 0.2s ease-in-out",
-                  // El ícono es el que lleva el color de marca.
+                  // Tamaños del tile: el ícono grande arriba y el rótulo
+                  // abajo. En pantallas chicas —o bajitas, como un portátil
+                  // con la ventana a media altura— todo encoge para que los
+                  // 9 botones sigan entrando sin scroll.
+                  //
+                  // Antes esto se armaba en AdminForms: el mismo
+                  // `fontSize: isCompact ? 28 : 40` escrito en los 9 íconos,
+                  // uno por uno.
+                  fontSize: "0.875rem",
+                  gap: theme.spacing(2),
                   "& .MuiSvgIcon-root": {
+                    // El ícono es el que lleva el color de marca.
                     color: theme.palette.custom.accent,
+                    fontSize: 40,
+                  },
+                  "@media (max-width:915px), (max-height:700px)": {
+                    fontSize: "0.7rem",
+                    gap: theme.spacing(1),
+                    "& .MuiSvgIcon-root": { fontSize: 28 },
                   },
                   "&:hover": {
                     backgroundColor: esOscuro
@@ -1187,6 +1203,25 @@ export const CustomThemeProvider = ({ children }) => {
                   border: `1px solid ${theme.palette.divider}`,
                 },
               }),
+            },
+            // ── La etiqueta de estado ───────────────────────────────────
+            //
+            // El rótulo en mayúsculas que dice en qué anda un cliente o una
+            // factura: PENDIENTE DESPACHO, DESPACHADA, FINALIZADA. Va con
+            // ancho fijo para que en una lista todas queden alineadas aunque
+            // el texto sea más corto o más largo.
+            //
+            // El color de fondo NO va acá: lo pone cada pantalla según el
+            // estado, que es lo único que cambia entre una y otra.
+            {
+              props: { variant: "estado" },
+              style: {
+                fontSize: "0.7rem",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                width: 190,
+                justifyContent: "center",
+              },
             },
             // La misma ficha, pero para las que llevan color propio: el rojo
             // de "vencido", el verde de "descuento". Sale en contorno, que es

@@ -562,14 +562,10 @@ export default function ClienteDetalle() {
             </Typography>
             <Chip
               label={estadoInfo.label}
+              variant="estado"
               size="small"
               sx={{
-                fontWeight: "bold",
-                textTransform: "uppercase",
                 mt: 0.5,
-                width: 190,
-                fontSize: "0.7rem",
-                justifyContent: "center",
                 bgcolor: estadoColor,
                 color: theme.palette.getContrastText(estadoColor),
               }}
@@ -769,14 +765,10 @@ export default function ClienteDetalle() {
             const chipEstado = (
               <Chip
                 label={facturaEstadoInfo.label}
+                variant="estado"
                 size="small"
                 onClick={(e) => handleAbrirMenuEstado(e, factura.id)}
                 sx={{
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  width: 190,
-                  fontSize: "0.7rem",
-                  justifyContent: "center",
                   cursor: "pointer",
                   bgcolor: facturaEstadoColor,
                   color: theme.palette.getContrastText(facturaEstadoColor),

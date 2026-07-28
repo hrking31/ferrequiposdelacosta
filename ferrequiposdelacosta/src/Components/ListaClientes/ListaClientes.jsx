@@ -487,13 +487,9 @@ export default function ListaClientes() {
 
                           <Chip
                             label={estadoInfo.label}
+                            variant="estado"
                             size="small"
                             sx={{
-                              fontWeight: "bold",
-                              textTransform: "uppercase",
-                              width: 190,
-                              fontSize: "0.7rem",
-                              justifyContent: "center",
                               bgcolor: estadoColor,
                               color: theme.palette.getContrastText(estadoColor),
                             }}
@@ -745,13 +741,9 @@ export default function ListaClientes() {
                         <TableCell>
                           <Chip
                             label={estadoInfo.label}
+                            variant="estado"
                             size="small"
                             sx={{
-                              fontWeight: "bold",
-                              textTransform: "uppercase",
-                              width: 190,
-                              fontSize: "0.7rem",
-                              justifyContent: "center",
                               bgcolor: estadoColor,
                               color: theme.palette.getContrastText(estadoColor),
                             }}
