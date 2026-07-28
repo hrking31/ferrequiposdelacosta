@@ -75,7 +75,7 @@ export default function VistaClientes() {
             <Button
               variant="contained"
               fullWidth
-              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+              size="small"
               onClick={() => navigate("/adminforms")}
             >
               MENU
@@ -85,7 +85,7 @@ export default function VistaClientes() {
               onClick={handlerLogout}
               variant="danger"
               fullWidth
-              sx={{ py: 0.75, px: 1, fontSize: "0.75rem" }}
+              size="small"
             >
               CERRAR SESION
             </Button>

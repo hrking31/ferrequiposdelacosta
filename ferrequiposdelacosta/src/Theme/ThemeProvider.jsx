@@ -887,6 +887,13 @@ export const CustomThemeProvider = ({ children }) => {
                 boxShadow: theme.shadows[4],
               },
             }),
+            // El botón compacto: el que va en la barra de acciones del pie en
+            // celular (MENU / CERRAR SESION) y en los botones de los diálogos.
+            // Antes cada pantalla repetía el mismo sx con estos tres números.
+            sizeSmall: ({ theme }) => ({
+              padding: theme.spacing(0.75, 1),
+              fontSize: "0.75rem",
+            }),
           },
           variants: [
             {
