@@ -30,9 +30,8 @@ import { database } from "../../Components/Firebase/Firebase.js";
 
 export default function KioskAdminCotizaciones() {
   const theme = useTheme();
-  // Acento de relleno: la barra de la tarjeta y los chips activos son
-  // superficies pintadas, no texto, así que usan el tono cálido.
-  const acento = theme.palette.custom.accentFill;
+  // Acento del modo: naranja en claro, amarillo en oscuro.
+  const acento = theme.palette.custom.accent;
   // Mismo criterio que ClienteSeguimientoCard: el color va en el estado
   // puntual (el Chip), no en toda la tarjeta.
   const coloresEstado = {
@@ -230,7 +229,7 @@ export default function KioskAdminCotizaciones() {
                 "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
               "&:hover": {
                 transform: "translateY(0)",
-                outlineColor: "custom.accentFill",
+                outlineColor: "custom.accent",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 12px 20px -5px rgba(0,0,0,0.4), 0 4px 12px -2px rgba(0,0,0,0.2)"
@@ -246,7 +245,7 @@ export default function KioskAdminCotizaciones() {
             <Box
               sx={{
                 height: 6,
-                backgroundColor: "custom.accentFill",
+                backgroundColor: "custom.accent",
                 borderRadius: (theme) =>
                 `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
               }}

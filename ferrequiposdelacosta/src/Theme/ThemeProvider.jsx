@@ -214,15 +214,10 @@ export const CustomThemeProvider = ({ children }) => {
           // En oscuro los dos son AMARILLO: da 8.4:1 y sirve para todo.
           accent: esClaro ? NARANJA : AMARILLO,
           accentSmall: esClaro ? NARANJA_OSCURO : AMARILLO,
-          // Acento de RELLENO: fondos de botón, barras y chips activos, con
-          // texto oscuro encima. Acá sí se puede usar el tono cálido, igual que
-          // en oscuro — el texto oscuro sobre ámbar da 8.3:1.
-          // Es lo que evita que el modo claro se lea "rojo": el naranja
-          // #EA580C sobre superficie clara es bermellón, mientras que en
-          // oscuro el mismo rol lo cumple el amarillo.
-          accentFill: esClaro ? AMBAR_PREVENCION : AMARILLO,
-          // Texto e íconos que van ENCIMA de accentFill.
-          onAccentFill: AZUL_NOCHE,
+          // Texto e íconos que van ENCIMA de un relleno de acento (botones,
+          // barras, chips activos). Oscuro en ambos modos: da 5.0:1 sobre el
+          // naranja y 10.3:1 sobre el amarillo.
+          onAccent: AZUL_NOCHE,
           // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
           // para que se distinga de la página.
           // Ojo: antes esto era el mismo color que el fondo y en oscuro igual
@@ -827,14 +822,14 @@ export const CustomThemeProvider = ({ children }) => {
             {
               props: { variant: "quotationSquare" },
               style: ({ theme }) => ({
-                // Relleno cálido con texto oscuro: ámbar en claro, amarillo en
-                // oscuro. Mismo rol en los dos modos.
-                backgroundColor: theme.palette.custom.accentFill,
-                color: theme.palette.custom.onAccentFill,
+                // Relleno de acento con texto oscuro: naranja en claro,
+                // amarillo en oscuro.
+                backgroundColor: theme.palette.custom.accent,
+                color: theme.palette.custom.onAccent,
                 boxShadow: "none",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                  backgroundColor: darken(theme.palette.custom.accentFill, 0.12),
+                  backgroundColor: darken(theme.palette.custom.accent, 0.12),
                   transform: "translateY(-3px)",
                 },
               }),

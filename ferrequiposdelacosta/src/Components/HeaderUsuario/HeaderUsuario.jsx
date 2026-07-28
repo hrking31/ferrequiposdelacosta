@@ -216,7 +216,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               // El aro sigue el acento del modo: naranja en claro, amarillo en
               // oscuro. Antes era azul en claro, porque estaba escrito con
               // plantillas anidadas y se escapó de la migración a tokens.
-              boxShadow: (theme) => `0 0 0 4px ${theme.palette.custom.accentFill}`,
+              boxShadow: (theme) => `0 0 0 4px ${theme.palette.custom.accent}`,
               border: (theme) => `2px solid ${theme.palette.primary.light}`,
             }}
           >
