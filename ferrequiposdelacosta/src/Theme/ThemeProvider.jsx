@@ -214,6 +214,15 @@ export const CustomThemeProvider = ({ children }) => {
           // En oscuro los dos son AMARILLO: da 8.4:1 y sirve para todo.
           accent: esClaro ? NARANJA : AMARILLO,
           accentSmall: esClaro ? NARANJA_OSCURO : AMARILLO,
+          // Acento de RELLENO: fondos de botón, barras y chips activos, con
+          // texto oscuro encima. Acá sí se puede usar el tono cálido, igual que
+          // en oscuro — el texto oscuro sobre ámbar da 8.3:1.
+          // Es lo que evita que el modo claro se lea "rojo": el naranja
+          // #EA580C sobre superficie clara es bermellón, mientras que en
+          // oscuro el mismo rol lo cumple el amarillo.
+          accentFill: esClaro ? AMBAR_PREVENCION : AMARILLO,
+          // Texto e íconos que van ENCIMA de accentFill.
+          onAccentFill: AZUL_NOCHE,
           // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
           // para que se distinga de la página.
           // Ojo: antes esto era el mismo color que el fondo y en oscuro igual
@@ -818,13 +827,14 @@ export const CustomThemeProvider = ({ children }) => {
             {
               props: { variant: "quotationSquare" },
               style: ({ theme }) => ({
-                // Naranja acción rápida
-                backgroundColor: theme.palette.secondary.main,
-                color: theme.palette.secondary.contrastText,
+                // Relleno cálido con texto oscuro: ámbar en claro, amarillo en
+                // oscuro. Mismo rol en los dos modos.
+                backgroundColor: theme.palette.custom.accentFill,
+                color: theme.palette.custom.onAccentFill,
                 boxShadow: "none",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
-                  backgroundColor: theme.palette.secondary.dark,
+                  backgroundColor: darken(theme.palette.custom.accentFill, 0.12),
                   transform: "translateY(-3px)",
                 },
               }),

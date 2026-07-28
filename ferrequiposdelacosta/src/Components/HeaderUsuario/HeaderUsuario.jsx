@@ -213,12 +213,10 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               fontWeight: "bold",
               color: (theme) => theme.palette.primary.contrastText,
               bgcolor: (theme) => theme.palette.primary.main,
-              boxShadow: (theme) =>
-                `0 0 0 4px ${
-                  theme.palette.mode === "light"
-                    ? `${theme.palette.primary.main}`
-                    : `${theme.palette.secondary.light}`
-                }`,
+              // El aro sigue el acento del modo: naranja en claro, amarillo en
+              // oscuro. Antes era azul en claro, porque estaba escrito con
+              // plantillas anidadas y se escapó de la migración a tokens.
+              boxShadow: (theme) => `0 0 0 4px ${theme.palette.custom.accentFill}`,
               border: (theme) => `2px solid ${theme.palette.primary.light}`,
             }}
           >
