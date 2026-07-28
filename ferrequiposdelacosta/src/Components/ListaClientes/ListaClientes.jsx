@@ -414,7 +414,7 @@ export default function ListaClientes() {
           {buscadorYFiltros}
 
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6">
               Lista de Clientes
             </Typography>
             {!loading && (
@@ -606,7 +606,7 @@ export default function ListaClientes() {
             rowGap={1}
             sx={{ mb: 1.5, flexShrink: 0 }}
           >
-            <Typography variant="h6" fontWeight="bold" sx={{ flexShrink: 0 }}>
+            <Typography variant="h6" sx={{ flexShrink: 0 }}>
               Lista de Clientes
             </Typography>
             <Box sx={{ flex: 1, minWidth: 150 }}>{buscador}</Box>
@@ -627,7 +627,7 @@ export default function ListaClientes() {
             </Stack>
             {renderFiltrosCombinados("wrap")}
             <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="h6" fontWeight="bold">
+              <Typography variant="h6">
                 Lista de Clientes
               </Typography>
               {!loading && (

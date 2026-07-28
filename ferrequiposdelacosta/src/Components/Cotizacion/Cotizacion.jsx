@@ -571,10 +571,10 @@ export default function Cotizacion() {
               </Box>
 
               <Box className="fila total">
-                <Typography variant="h5" fontWeight="bold">
+                <Typography variant="h5">
                   TOTAL
                 </Typography>
-                <Typography variant="h5" fontWeight="bold">
+                <Typography variant="h5">
                   {total}
                 </Typography>
               </Box>

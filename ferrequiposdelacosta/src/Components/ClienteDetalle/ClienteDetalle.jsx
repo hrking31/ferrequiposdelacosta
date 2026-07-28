@@ -557,7 +557,7 @@ export default function ClienteDetalle() {
             )}
           </Avatar>
           <Box>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6">
               {nombreCompleto}
             </Typography>
             <Chip
@@ -606,7 +606,7 @@ export default function ClienteDetalle() {
         justifyContent="space-between"
         sx={{ mb: 2 }}
       >
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6">
           Facturas {facturas.length}
         </Typography>
 
