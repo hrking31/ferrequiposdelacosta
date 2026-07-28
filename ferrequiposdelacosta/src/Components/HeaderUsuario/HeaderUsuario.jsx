@@ -217,7 +217,9 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               // oscuro. Antes era azul en claro, porque estaba escrito con
               // plantillas anidadas y se escapó de la migración a tokens.
               boxShadow: (theme) => `0 0 0 4px ${theme.palette.custom.accent}`,
-              border: (theme) => `2px solid ${theme.palette.primary.light}`,
+              // Filo blanco entre la foto y el aro de acento, fijo en ambos
+              // modos: separa la imagen del color sin depender del tema.
+              border: (theme) => `2px solid ${theme.palette.common.white}`,
             }}
           >
             {name ? name.charAt(0).toUpperCase() : "A"}

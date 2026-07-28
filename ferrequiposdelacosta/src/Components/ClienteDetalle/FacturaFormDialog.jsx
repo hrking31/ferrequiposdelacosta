@@ -656,10 +656,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 }}
               >
                 <Box display="flex" alignItems="center" gap={1}>
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: "custom.accentSmall" }}>
                     TOTAL
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: "custom.accentSmall" }}>
                     {valorTotalCalculado.toLocaleString("es-CO", {
                       style: "currency",
                       currency: "COP",

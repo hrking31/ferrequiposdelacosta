@@ -154,7 +154,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                   {nuevaFecha && (
                     <Typography
                       variant="caption"
-                      sx={{ display: "block", mt: 0.5, color: "secondary.dark" }}
+                      sx={{ display: "block", mt: 0.5, color: "custom.accentSmall" }}
                     >
                       Nueva fecha de vencimiento: {formatearFechaLegible(nuevaFecha)}
                     </Typography>

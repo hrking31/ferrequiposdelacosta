@@ -500,7 +500,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 <Typography variant="body2" color="text.secondary">
                   Nuevo total de la factura
                 </Typography>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "secondary.dark" }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "custom.accentSmall" }}>
                   {nuevoValorTotal.toLocaleString("es-CO", {
                     style: "currency",
                     currency: "COP",

@@ -970,7 +970,7 @@ export default function ClienteDetalle() {
                             <Typography
                               variant="subtitle1"
                               fontWeight="bold"
-                              sx={{ color: "secondary.dark" }}
+                              sx={{ color: "custom.accentSmall" }}
                             >
                               Total {valorTotal}
                             </Typography>

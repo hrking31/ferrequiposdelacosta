@@ -231,14 +231,11 @@ export default function ClienteSeguimientoCard({
                       borderTopLeftRadius: 10,
                       borderTopRightRadius: 10,
                       border: "1px solid",
-                      borderColor: activo ? "secondary.light" : "divider",
-                      bgcolor: activo ? "secondary.light" : gradosGrisPestana,
-                      // La pestaña activa va sobre "secondary.light": el color
-                      // del texto lo decide el contraste con ese fondo, no el
-                      // modo claro/oscuro.
-                      color: activo
-                        ? theme.palette.getContrastText(theme.palette.secondary.light)
-                        : "text.secondary",
+                      borderColor: activo ? "custom.accent" : "divider",
+                      bgcolor: activo ? "custom.accent" : gradosGrisPestana,
+                      // La pestaña activa va rellena con el acento, así que su
+                      // texto usa el token pensado para ir encima.
+                      color: activo ? "custom.onAccent" : "text.secondary",
                       position: "relative",
                       zIndex: activo ? facturas.length + 1 : facturas.length - idx,
                       mb: 0,
@@ -260,7 +257,7 @@ export default function ClienteSeguimientoCard({
               position: "relative",
               bgcolor: "background.paper",
               border: "1px solid",
-              borderColor: "secondary.light",
+              borderColor: "custom.accent",
               borderTopLeftRadius: 0,
               borderTopRightRadius: 0,
               borderBottomLeftRadius: 8,
@@ -337,7 +334,7 @@ export default function ClienteSeguimientoCard({
                               color:
                                 hoy && equipo.fechaVencimiento < hoy
                                   ? "error.main"
-                                  : "secondary.light",
+                                  : "custom.accentSmall",
                               fontWeight: hoy && equipo.fechaVencimiento < hoy ? "bold" : "normal",
                             }}
                           >
@@ -410,7 +407,7 @@ export default function ClienteSeguimientoCard({
                         <Typography
                           variant="subtitle1"
                           fontWeight="bold"
-                          sx={{ color: "secondary.dark" }}
+                          sx={{ color: "custom.accentSmall" }}
                         >
                           Total {valorTotal}
                         </Typography>
@@ -450,7 +447,7 @@ export default function ClienteSeguimientoCard({
                     <Typography
                       variant="subtitle1"
                       fontWeight="bold"
-                      sx={{ color: "secondary.dark" }}
+                      sx={{ color: "custom.accentSmall" }}
                     >
                       Total {valorTotal}
                     </Typography>
