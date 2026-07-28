@@ -529,7 +529,7 @@ export default function Cotizacion() {
               sx={{
                 p: 2,
                 borderRadius: 2,
-                boxShadow: 2,
+                boxShadow: (theme) => theme.palette.custom.panelShadow,
                 backgroundColor: theme.palette.custom.panelBackground,
               }}
             >

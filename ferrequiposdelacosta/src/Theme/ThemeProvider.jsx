@@ -289,13 +289,17 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: el estilo general de "caption" y "overline".
           captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
 
-          // El fondo de los recuadros que van DENTRO de una tarjeta, como el
-          // cuadrito del total. Se separa de la tarjeta yendo al extremo de la
-          // escala: blanco de día, casi negro de noche. Así el recuadro se lee
-          // como una cosa aparte y no como parte de la tarjeta.
-          // Se usa en: ClienteDetalle, ClienteSeguimientoCard, Cotizacion,
+          // El fondo del recuadro del total, ese que va DENTRO de una tarjeta.
+          // Casi blanco de día y casi negro de noche, con una sombra suave
+          // alrededor: así el recuadro se despega y se lee como una cosa
+          // aparte de la tarjeta que lo contiene.
+          // Estos dos grises son los únicos neutros que no salen de la paleta
+          // de marca. Se mantienen porque son el aspecto que el total ya tenía
+          // y que se quiere conservar.
+          // Se usan en: ClienteDetalle, ClienteSeguimientoCard, Cotizacion,
           // FacturaFormDialog.
-          panelBackground: esClaro ? BLANCO : AZUL_NOCHE,
+          panelBackground: esClaro ? "#f8f9fa" : "#1e1e1e",
+          panelShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
 
           // El fondo de la tira de pestañas de facturas, esa que simula
           // carpetas apiladas una detrás de otra.

@@ -400,7 +400,7 @@ export default function ClienteSeguimientoCard({
                           px: 1.5,
                           py: 1,
                           borderRadius: 2,
-                          boxShadow: 2,
+                          boxShadow: (theme) => theme.palette.custom.panelShadow,
                           bgcolor: theme.palette.custom.panelBackground,
                         }}
                       >
@@ -440,7 +440,7 @@ export default function ClienteSeguimientoCard({
                       px: 1.5,
                       py: 1,
                       borderRadius: 2,
-                      boxShadow: 2,
+                      boxShadow: (theme) => theme.palette.custom.panelShadow,
                       bgcolor: theme.palette.custom.panelBackground,
                     }}
                   >
