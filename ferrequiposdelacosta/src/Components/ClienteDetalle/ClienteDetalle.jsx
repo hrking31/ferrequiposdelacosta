@@ -257,7 +257,10 @@ export default function ClienteDetalle() {
               ...metaPillSx,
               fontWeight: "bold",
               flexShrink: 0,
-              color: theme.palette.secondary.light,
+              // Antes era amarillo fijo, que en modo claro quedaba casi
+              // invisible sobre el chip. Es letra chica, así que va el acento
+              // en su versión oscura.
+              color: theme.palette.custom.accentSmall,
             }}
           />
           <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
@@ -970,7 +973,7 @@ export default function ClienteDetalle() {
                             <Typography
                               variant="subtitle1"
                               fontWeight="bold"
-                              sx={{ color: "custom.accentSmall" }}
+                              sx={{ color: "custom.totalText" }}
                             >
                               Total {valorTotal}
                             </Typography>

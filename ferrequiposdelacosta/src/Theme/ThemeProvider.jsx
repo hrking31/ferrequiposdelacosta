@@ -224,6 +224,12 @@ export const CustomThemeProvider = ({ children }) => {
           // quedaría gris claro sobre blanco (2.6:1, ilegible).
           documentBackground: BLANCO,
           documentText: GRIS_TEXTO,
+          // Texto de los importes "Total" en facturas y resúmenes. Naranja
+          // oscuro fijo en los dos modos, por decisión de diseño.
+          // Ojo: sobre el panel de modo oscuro da 2.0:1, por debajo del mínimo
+          // AA. Si en algún momento cuesta leerlo, es este token el que hay
+          // que subir de tono, y cambia en todos los lugares a la vez.
+          totalText: NARANJA_OSCURO,
           // NavBar: un escalón POR ENCIMA del fondo de página, en ambos modos,
           // para que se distinga de la página.
           // Ojo: antes esto era el mismo color que el fondo y en oscuro igual

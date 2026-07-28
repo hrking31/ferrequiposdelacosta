@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { TextField, Box, Grid, useTheme, InputAdornment } from "@mui/material";
+import { TextField, Box, Grid, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PropTypes from "prop-types";
 
 const Search = ({ LabelOff = true, onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const theme = useTheme();
 
   const handleSearch = () => {
     if (!searchTerm.trim()) return;
@@ -30,17 +29,13 @@ const Search = ({ LabelOff = true, onSearch }) => {
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  {theme.palette.mode === "light" ? (
-                    <SearchIcon
-                      onClick={handleSearch}
-                      sx={{ color: "secondary.main" }}
-                    />
-                  ) : (
-                    <SearchIcon
-                      onClick={handleSearch}
-                      sx={{ color: "secondary.light" }}
-                    />
-                  )}
+                  {/* Antes eran dos íconos idénticos en un condicional, solo
+                      para cambiar el color según el modo: eso ya lo resuelve
+                      el token del acento. */}
+                  <SearchIcon
+                    onClick={handleSearch}
+                    sx={{ color: "custom.accent" }}
+                  />
                 </InputAdornment>
               ),
             }}

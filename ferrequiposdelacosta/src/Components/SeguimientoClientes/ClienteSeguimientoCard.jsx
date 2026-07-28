@@ -407,7 +407,7 @@ export default function ClienteSeguimientoCard({
                         <Typography
                           variant="subtitle1"
                           fontWeight="bold"
-                          sx={{ color: "custom.accentSmall" }}
+                          sx={{ color: "custom.totalText" }}
                         >
                           Total {valorTotal}
                         </Typography>
@@ -447,7 +447,7 @@ export default function ClienteSeguimientoCard({
                     <Typography
                       variant="subtitle1"
                       fontWeight="bold"
-                      sx={{ color: "custom.accentSmall" }}
+                      sx={{ color: "custom.totalText" }}
                     >
                       Total {valorTotal}
                     </Typography>
