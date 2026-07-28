@@ -361,34 +361,37 @@ export default function ClienteDetalle() {
               );
             }
 
-            // Si al equipo se le amplió el plazo: los días sumados con su
-            // valor ya descontado, y el descuento aparte.
-            const ampliacion = calcularAmpliacionEquipo(equipo);
-            if (ampliacion.dias > 0) {
-              chipsFechas.push(
-                <Chip
-                  key="agregados"
-                  variant={esMovil ? "outlined" : "filled"}
-                  size="small"
-                  sx={{ ...metaPillSx, color: "custom.accentSmall" }}
-                  label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
-                    ampliacion.bruto > 0 ? ` · ${formatearMoneda(ampliacion.neto)}` : ""
-                  }`}
-                />,
-              );
-            }
-            if (ampliacion.descuento > 0) {
-              chipsFechas.push(
-                <Chip
-                  key="descuento"
-                  variant="outlined"
-                  size="small"
-                  color="success"
-                  sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, ...formaChipSx }}
-                  label={`Descuento ${formatearMoneda(ampliacion.descuento)}`}
-                />,
-              );
-            }
+          }
+
+          // Los días que se le sumaron al plazo, con su valor ya descontado, y
+          // el descuento aparte. Va fuera del if de arriba porque los equipos
+          // con entrega indefinida también acumulan días (los que llevan sin
+          // devolverse), y antes ese chip no se les mostraba nunca.
+          const ampliacion = calcularAmpliacionEquipo(equipo);
+          if (ampliacion.dias > 0) {
+            chipsFechas.push(
+              <Chip
+                key="agregados"
+                variant={esMovil ? "outlined" : "filled"}
+                size="small"
+                sx={{ ...metaPillSx, color: "custom.accentSmall" }}
+                label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
+                  ampliacion.bruto > 0 ? ` · ${formatearMoneda(ampliacion.neto)}` : ""
+                }`}
+              />,
+            );
+          }
+          if (ampliacion.descuento > 0) {
+            chipsFechas.push(
+              <Chip
+                key="descuento"
+                variant="outlined"
+                size="small"
+                color="success"
+                sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, ...formaChipSx }}
+                label={`Descuento ${formatearMoneda(ampliacion.descuento)}`}
+              />,
+            );
           }
 
           // En móvil, días/precio en una columna y fechas en otra (prolijo).
