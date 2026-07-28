@@ -124,20 +124,6 @@ export default function ClienteSeguimientoCard({
     finalizada: theme.palette.secondary.main,
   };
 
-  // Mismo lenguaje visual que las facturas de ClienteDetalle: en móvil los
-  // chips quedan ovalados y en PC más cuadrados, sobre el tono de superficie
-  // elevada del tema, que ya cambia solo con el modo.
-  const pillBg = theme.palette.background.elevated;
-  const formaChipSx = esMovil ? {} : { borderRadius: 1 };
-  const metaPillSx = {
-    height: 22,
-    fontSize: "0.7rem",
-    fontWeight: 600,
-    borderColor: "divider",
-    ...formaChipSx,
-    ...(esMovil ? {} : { bgcolor: pillBg, border: "none" }),
-  };
-
   // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como
   // chips. El historial de vencimientos aparece numerado (1er, 2do…) y el
   // vigente va aparte, marcado según en qué situación está.
@@ -169,10 +155,10 @@ export default function ClienteSeguimientoCard({
       >
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip
-            variant={esMovil ? "outlined" : "filled"}
+            variant="meta"
             label={equipo.cantidad}
             size="small"
-            sx={{ ...metaPillSx, fontWeight: "bold", flexShrink: 0, color: "custom.accentSmall" }}
+            sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accentSmall" }}
           />
           <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
             {equipo.nombre}
@@ -181,29 +167,28 @@ export default function ClienteSeguimientoCard({
 
         <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
           <Chip
-            variant={esMovil ? "outlined" : "filled"}
+            variant="meta"
             size="small"
-            sx={metaPillSx}
             label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
           />
 
           {equipo.fechaDespacho && (
             <Chip
-              variant={esMovil ? "outlined" : "filled"}
+              variant="meta"
               size="small"
-              sx={metaPillSx}
               label={`Despacho ${formatearFecha(equipo.fechaDespacho)}`}
             />
           )}
 
           {/* Cada ampliación dejó una fecha atrás: se listan numeradas para
-              poder seguir la historia del alquiler. */}
+              poder seguir la historia del alquiler. Van siempre en contorno,
+              para que se distingan de la fecha vigente. */}
           {historial.map((fecha, i) => (
             <Chip
               key={`vto-${i}`}
-              variant="outlined"
+              variant="meta"
               size="small"
-              sx={{ ...metaPillSx, bgcolor: "transparent", border: "1px solid", borderColor: "divider" }}
+              sx={{ bgcolor: "transparent", border: "1px solid", borderColor: "divider" }}
               label={`${etiquetaVencimiento(i)} ${formatearFecha(fecha)}`}
             />
           ))}
@@ -212,9 +197,9 @@ export default function ClienteSeguimientoCard({
               descontado, y el descuento aparte para que no quede escondido. */}
           {ampliacionEquipo.dias > 0 && (
             <Chip
-              variant={esMovil ? "outlined" : "filled"}
+              variant="meta"
               size="small"
-              sx={{ ...metaPillSx, color: "custom.accentSmall" }}
+              sx={{ color: "custom.accentSmall" }}
               label={`+${ampliacionEquipo.dias} día${
                 ampliacionEquipo.dias === 1 ? "" : "s"
               }${
@@ -227,31 +212,28 @@ export default function ClienteSeguimientoCard({
 
           {ampliacionEquipo.descuento > 0 && (
             <Chip
-              variant="outlined"
+              variant="metaEstado"
               size="small"
-              color="success"
-              sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, ...formaChipSx }}
+              sx={{ fontWeight: 600, color: "success.main" }}
               label={`Descuento ${formatearMoneda(ampliacionEquipo.descuento)}`}
             />
           )}
 
           {situacion === "indefinido" ? (
             <Chip
-              variant={esMovil ? "outlined" : "filled"}
+              variant="meta"
               size="small"
-              sx={metaPillSx}
               label="Entrega indefinida — el cliente debe avisar"
             />
           ) : (
             equipo.fechaVencimiento && (
               <Chip
                 size="small"
-                color={situacion === "vencido" ? "error" : undefined}
-                variant={situacion === "vencido" ? "filled" : esMovil ? "outlined" : "filled"}
+                variant={situacion === "vencido" ? "metaEstado" : "meta"}
                 sx={
                   situacion === "vencido"
-                    ? { height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }
-                    : { ...metaPillSx, fontWeight: "bold" }
+                    ? { bgcolor: "error.main", color: "error.contrastText", border: "none" }
+                    : { fontWeight: "bold" }
                 }
                 label={`${
                   situacion === "vencido"
@@ -269,9 +251,8 @@ export default function ClienteSeguimientoCard({
           {diasVencidos > 0 && (
             <Chip
               size="small"
-              color="error"
-              variant="outlined"
-              sx={{ height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }}
+              variant="metaEstado"
+              sx={{ color: "error.main" }}
               label={`${diasVencidos} día${diasVencidos === 1 ? "" : "s"} vencido${
                 diasVencidos === 1 ? "" : "s"
               }${conValor(diasVencidos)}`}

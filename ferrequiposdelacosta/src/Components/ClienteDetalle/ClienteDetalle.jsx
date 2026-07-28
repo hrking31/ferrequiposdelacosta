@@ -216,22 +216,6 @@ export default function ClienteDetalle() {
     fetchCliente();
   }, [fetchCliente]);
 
-  // En móvil se dejan ovaladas (el look "pill" normal de un Chip). En PC se
-  // ven más cuadradas y sobre el tono de superficie elevada del tema, que ya
-  // cambia solo con el modo: casi blanco sobre la tarjeta clara, azul más
-  // claro sobre la oscura. Antes llevaban un tinte amarillo fijo que no
-  // acompañaba al modo.
-  const pillBg = theme.palette.background.elevated;
-  const formaChipSx = esMovil ? {} : { borderRadius: 1 };
-  const metaPillSx = {
-    height: 22,
-    fontSize: "0.7rem",
-    fontWeight: 600,
-    borderColor: "divider",
-    ...formaChipSx,
-    ...(esMovil ? {} : { bgcolor: pillBg, border: "none" }),
-  };
-
   // Tarjeta de un equipo dentro de una factura: cantidad/nombre/subtotal
   // arriba, días/precio/fechas como pills abajo. La misma tarjeta sirve para
   // un equipo original o uno agregado después.
@@ -260,11 +244,10 @@ export default function ClienteDetalle() {
       >
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip
-            variant={esMovil ? "outlined" : "filled"}
+            variant="meta"
             label={equipo.cantidad}
             size="small"
             sx={{
-              ...metaPillSx,
               fontWeight: "bold",
               flexShrink: 0,
               // Antes era amarillo fijo, que en modo claro quedaba casi
@@ -297,9 +280,8 @@ export default function ClienteDetalle() {
           const chipsDiasValor = [
             <Chip
               key="dias"
-              variant={esMovil ? "outlined" : "filled"}
+              variant="meta"
               size="small"
-              sx={metaPillSx}
               label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
             />,
           ];
@@ -307,9 +289,8 @@ export default function ClienteDetalle() {
             chipsDiasValor.push(
               <Chip
                 key="valor"
-                variant={esMovil ? "outlined" : "filled"}
+                variant="meta"
                 size="small"
-                sx={metaPillSx}
                 label={`${formatearMoneda(Number(equipo.valor))}/día`}
               />,
             );
@@ -320,9 +301,8 @@ export default function ClienteDetalle() {
             chipsFechas.push(
               <Chip
                 key="despacho"
-                variant={esMovil ? "outlined" : "filled"}
+                variant="meta"
                 size="small"
-                sx={metaPillSx}
                 label={`Despacho ${despacho}`}
               />,
             );
@@ -331,9 +311,8 @@ export default function ClienteDetalle() {
             chipsFechas.push(
               <Chip
                 key="indefinida"
-                variant={esMovil ? "outlined" : "filled"}
+                variant="meta"
                 size="small"
-                sx={metaPillSx}
                 label="Entrega indefinida — cliente debe avisar"
               />,
             );
@@ -343,8 +322,8 @@ export default function ClienteDetalle() {
                 <Chip
                   key="vencido"
                   size="small"
-                  color="error"
-                  sx={{ height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }}
+                  variant="metaEstado"
+                  sx={{ bgcolor: "error.main", color: "error.contrastText", border: "none" }}
                   label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
                 />,
               );
@@ -353,9 +332,8 @@ export default function ClienteDetalle() {
               chipsFechas.push(
                 <Chip
                   key="devuelve"
-                  variant={esMovil ? "outlined" : "filled"}
+                  variant="meta"
                   size="small"
-                  sx={metaPillSx}
                   label={`Devuelve ${formatearFecha(equipo.fechaVencimiento)}`}
                 />,
               );
@@ -372,9 +350,9 @@ export default function ClienteDetalle() {
             chipsFechas.push(
               <Chip
                 key="agregados"
-                variant={esMovil ? "outlined" : "filled"}
+                variant="meta"
                 size="small"
-                sx={{ ...metaPillSx, color: "custom.accentSmall" }}
+                sx={{ color: "custom.accentSmall" }}
                 label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
                   ampliacion.bruto > 0 ? ` · ${formatearMoneda(ampliacion.neto)}` : ""
                 }`}
@@ -385,10 +363,9 @@ export default function ClienteDetalle() {
             chipsFechas.push(
               <Chip
                 key="descuento"
-                variant="outlined"
+                variant="metaEstado"
                 size="small"
-                color="success"
-                sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, ...formaChipSx }}
+                sx={{ fontWeight: 600, color: "success.main" }}
                 label={`Descuento ${formatearMoneda(ampliacion.descuento)}`}
               />,
             );

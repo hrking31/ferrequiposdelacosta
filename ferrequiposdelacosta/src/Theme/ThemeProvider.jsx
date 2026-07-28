@@ -1152,6 +1152,55 @@ export const CustomThemeProvider = ({ children }) => {
               borderColor: theme.palette.divider,
             }),
           },
+          variants: [
+            // ── Fichas de datos de un equipo ────────────────────────────
+            //
+            // Los chiquitos que acompañan a cada equipo con sus datos:
+            // días, precio por día, fechas, días ampliados. Antes cada
+            // pantalla los armaba con un objeto "metaPillSx" propio,
+            // copiado igual en ClienteDetalle y en Seguimiento.
+            //
+            // Cambian de piel según la pantalla, y eso lo resuelve el CSS
+            // (no hace falta preguntar por el ancho desde el componente):
+            //   - En computador: ficha rellena, esquinas rectas.
+            //   - En celular: solo contorno y forma de píldora, para que
+            //     varias juntas no ensucien la tarjeta.
+            {
+              props: { variant: "meta" },
+              style: ({ theme }) => ({
+                height: 22,
+                fontSize: "0.7rem",
+                fontWeight: 600,
+                borderRadius: theme.shape.borderRadius,
+                backgroundColor: theme.palette.background.elevated,
+                border: "none",
+                [theme.breakpoints.down("sm")]: {
+                  borderRadius: theme.shape.pill,
+                  backgroundColor: "transparent",
+                  border: `1px solid ${theme.palette.divider}`,
+                },
+              }),
+            },
+            // La misma ficha, pero para las que llevan color propio: el rojo
+            // de "vencido", el verde de "descuento". Sale en contorno, que es
+            // lo discreto; la que necesite ir rellena (la de "Venció", que
+            // tiene que saltar a la vista) lo pide con su propio color de
+            // fondo desde el componente.
+            {
+              props: { variant: "metaEstado" },
+              style: ({ theme }) => ({
+                height: 22,
+                fontSize: "0.7rem",
+                fontWeight: "bold",
+                borderRadius: theme.shape.borderRadius,
+                backgroundColor: "transparent",
+                border: "1px solid currentColor",
+                [theme.breakpoints.down("sm")]: {
+                  borderRadius: theme.shape.pill,
+                },
+              }),
+            },
+          ],
         },
 
         MuiAlert: {
