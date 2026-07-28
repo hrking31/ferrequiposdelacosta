@@ -20,7 +20,6 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import UpdateIcon from "@mui/icons-material/Update";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { alpha } from "@mui/material/styles";
 import {
   obtenerHistorialVencimientos,
   etiquetaVencimiento,
@@ -122,12 +121,9 @@ export default function ClienteSeguimientoCard({
   };
 
   // Mismo lenguaje visual que las facturas de ClienteDetalle: en móvil los
-  // chips quedan ovalados, en PC más cuadrados y con el dorado del tema muy
-  // tenue de fondo.
-  const pillBg = alpha(
-    theme.palette.secondary.light,
-    theme.palette.mode === "light" ? 0.18 : 0.22,
-  );
+  // chips quedan ovalados y en PC más cuadrados, sobre el tono de superficie
+  // elevada del tema, que ya cambia solo con el modo.
+  const pillBg = theme.palette.background.elevated;
   const formaChipSx = esMovil ? {} : { borderRadius: 1 };
   const metaPillSx = {
     height: 22,

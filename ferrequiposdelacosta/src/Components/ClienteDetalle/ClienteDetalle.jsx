@@ -20,7 +20,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -217,10 +216,11 @@ export default function ClienteDetalle() {
   }, [fetchCliente]);
 
   // En móvil se dejan ovaladas (el look "pill" normal de un Chip). En PC se
-  // ven más cuadradas, con el dorado del tema (secondary.light, el mismo
-  // valor en claro y oscuro) pero muy tenue — "sombra" del amarillo, no un
-  // gris genérico ni el amarillo sólido de golpe.
-  const pillBg = alpha(theme.palette.secondary.light, theme.palette.mode === "light" ? 0.18 : 0.22);
+  // ven más cuadradas y sobre el tono de superficie elevada del tema, que ya
+  // cambia solo con el modo: casi blanco sobre la tarjeta clara, azul más
+  // claro sobre la oscura. Antes llevaban un tinte amarillo fijo que no
+  // acompañaba al modo.
+  const pillBg = theme.palette.background.elevated;
   const formaChipSx = esMovil ? {} : { borderRadius: 1 };
   const metaPillSx = {
     height: 22,
