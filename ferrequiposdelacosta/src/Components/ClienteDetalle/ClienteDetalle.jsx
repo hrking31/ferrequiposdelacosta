@@ -251,7 +251,7 @@ export default function ClienteDetalle() {
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip
             variant={esMovil ? "outlined" : "filled"}
-            label={`×${equipo.cantidad}`}
+            label={equipo.cantidad}
             size="small"
             sx={{
               ...metaPillSx,

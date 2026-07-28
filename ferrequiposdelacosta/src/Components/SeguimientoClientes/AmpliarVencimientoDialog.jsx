@@ -18,7 +18,10 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import { calcularVencimiento } from "../ClienteDetalle/facturaUtils";
+import {
+  calcularVencimiento,
+  obtenerHistorialVencimientos,
+} from "../ClienteDetalle/facturaUtils";
 
 const formatearFechaLegible = (fechaIso) => {
   if (!fechaIso) return "";
@@ -88,9 +91,15 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         return {
           ...equipo,
           vencimientoIndefinido: false,
-          // La fecha original solo se guarda la primera vez que se amplía;
-          // si ya existe, no se vuelve a pisar en ampliaciones siguientes.
+          // Se conserva por compatibilidad con las facturas viejas y con
+          // cualquier vista que todavía lo lea. Solo se escribe la primera vez.
           fechaVencimientoOriginal: equipo.fechaVencimientoOriginal || equipo.fechaVencimiento,
+          // El historial completo: se le suma la fecha que regía hasta ahora,
+          // así quedan registradas TODAS las ampliaciones y no solo la primera.
+          vencimientos: [
+            ...obtenerHistorialVencimientos(equipo),
+            equipo.fechaVencimiento,
+          ].filter(Boolean),
           fechaVencimiento: calcularVencimiento(equipo.fechaVencimiento, extra),
         };
       });

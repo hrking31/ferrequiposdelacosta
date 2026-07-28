@@ -20,6 +20,11 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import UpdateIcon from "@mui/icons-material/Update";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { alpha } from "@mui/material/styles";
+import {
+  obtenerHistorialVencimientos,
+  etiquetaVencimiento,
+} from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
 const ESTADO_FACTURA_INFO = {
@@ -114,6 +119,108 @@ export default function ClienteSeguimientoCard({
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
     finalizada: theme.palette.secondary.main,
+  };
+
+  // Mismo lenguaje visual que las facturas de ClienteDetalle: en móvil los
+  // chips quedan ovalados, en PC más cuadrados y con el dorado del tema muy
+  // tenue de fondo.
+  const pillBg = alpha(
+    theme.palette.secondary.light,
+    theme.palette.mode === "light" ? 0.18 : 0.22,
+  );
+  const formaChipSx = esMovil ? {} : { borderRadius: 1 };
+  const metaPillSx = {
+    height: 22,
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    borderColor: "divider",
+    ...formaChipSx,
+    ...(esMovil ? {} : { bgcolor: pillBg, border: "none" }),
+  };
+
+  // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como
+  // chips. El historial de vencimientos aparece numerado (1er, 2do…) y el
+  // vigente va aparte, marcado según en qué situación está.
+  const renderEquipo = (equipo, key, situacion) => {
+    const historial = obtenerHistorialVencimientos(equipo);
+
+    return (
+      <Box
+        key={key}
+        sx={{ p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
+      >
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Chip
+            variant={esMovil ? "outlined" : "filled"}
+            label={equipo.cantidad}
+            size="small"
+            sx={{ ...metaPillSx, fontWeight: "bold", flexShrink: 0, color: "custom.accentSmall" }}
+          />
+          <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
+            {equipo.nombre}
+          </Typography>
+        </Stack>
+
+        <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
+          <Chip
+            variant={esMovil ? "outlined" : "filled"}
+            size="small"
+            sx={metaPillSx}
+            label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
+          />
+
+          {equipo.fechaDespacho && (
+            <Chip
+              variant={esMovil ? "outlined" : "filled"}
+              size="small"
+              sx={metaPillSx}
+              label={`Despacho ${formatearFecha(equipo.fechaDespacho)}`}
+            />
+          )}
+
+          {/* Cada ampliación dejó una fecha atrás: se listan numeradas para
+              poder seguir la historia del alquiler. */}
+          {historial.map((fecha, i) => (
+            <Chip
+              key={`vto-${i}`}
+              variant="outlined"
+              size="small"
+              sx={{ ...metaPillSx, bgcolor: "transparent", border: "1px solid", borderColor: "divider" }}
+              label={`${etiquetaVencimiento(i)} ${formatearFecha(fecha)}`}
+            />
+          ))}
+
+          {situacion === "indefinido" ? (
+            <Chip
+              variant={esMovil ? "outlined" : "filled"}
+              size="small"
+              sx={metaPillSx}
+              label="Entrega indefinida — el cliente debe avisar"
+            />
+          ) : (
+            equipo.fechaVencimiento && (
+              <Chip
+                size="small"
+                color={situacion === "vencido" ? "error" : undefined}
+                variant={situacion === "vencido" ? "filled" : esMovil ? "outlined" : "filled"}
+                sx={
+                  situacion === "vencido"
+                    ? { height: 22, fontSize: "0.7rem", fontWeight: "bold", ...formaChipSx }
+                    : { ...metaPillSx, fontWeight: "bold" }
+                }
+                label={`${
+                  situacion === "vencido"
+                    ? "Venció"
+                    : situacion === "hoy"
+                      ? "Vence hoy"
+                      : "Vence"
+                } ${formatearFecha(equipo.fechaVencimiento)}`}
+              />
+            )
+          )}
+        </Stack>
+      </Box>
+    );
   };
 
   const gradosGrisPestana =
@@ -380,61 +487,9 @@ export default function ClienteSeguimientoCard({
                     </Typography>
 
                     <Stack spacing={0.5}>
-                      {grupo.items.map(({ equipo, index }) => (
-                        <Stack
-                          key={`${equipo.nombre}-${index}`}
-                          direction="row"
-                          flexWrap="wrap"
-                          alignItems="baseline"
-                          columnGap={2}
-                          rowGap={0}
-                        >
-                          <Typography variant="body2">
-                            <strong>
-                              {equipo.cantidad} {equipo.nombre}
-                            </strong>{" "}
-                            x {equipo.dias} día{Number(equipo.dias) === 1 ? "" : "s"}
-                          </Typography>
-
-                          {equipo.fechaDespacho && (
-                            <Typography variant="body2" color="text.secondary">
-                              Despacho: {formatearFecha(equipo.fechaDespacho)}
-                            </Typography>
-                          )}
-
-                          {grupo.clave === "indefinido" ? (
-                            <Typography variant="body2" color="text.secondary">
-                              El cliente debe avisar
-                            </Typography>
-                          ) : (
-                            <>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color:
-                                    grupo.clave === "vencido"
-                                      ? "error.main"
-                                      : "custom.accentSmall",
-                                  fontWeight:
-                                    grupo.clave === "vencido" ? "bold" : "normal",
-                                }}
-                              >
-                                {formatearFecha(equipo.fechaVencimiento)}
-                              </Typography>
-
-                              {/* Si se amplió el plazo, se conserva la fecha en
-                                  que vencía antes, para poder hacerle
-                                  seguimiento al alquiler. */}
-                              {equipo.fechaVencimientoOriginal && (
-                                <Typography variant="body2" color="text.secondary">
-                                  Antes vencía:{" "}
-                                  {formatearFecha(equipo.fechaVencimientoOriginal)}
-                                </Typography>
-                              )}
-                            </>
-                          )}
-                        </Stack>
-                      ))}
+                      {grupo.items.map(({ equipo, index }) =>
+                        renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
+                      )}
                     </Stack>
                   </Box>
                 ))}

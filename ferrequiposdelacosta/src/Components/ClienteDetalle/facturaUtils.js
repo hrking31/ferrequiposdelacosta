@@ -80,3 +80,24 @@ export const calcularVencimiento = (fechaIso, dias) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${fecha.getUTCFullYear()}-${pad(fecha.getUTCMonth() + 1)}-${pad(fecha.getUTCDate())}`;
 };
+
+// Historial de vencimientos de un equipo: todas las fechas por las que pasó
+// ANTES de la vigente. Cada vez que se amplía el plazo se le agrega la fecha
+// que estaba rigiendo hasta ese momento.
+//
+// Las facturas creadas antes de que existiera este historial solo guardaban
+// "fechaVencimientoOriginal" (una sola fecha, la primera). Para esas se
+// devuelve esa única fecha, así siguen mostrándose bien sin migrar datos.
+export const obtenerHistorialVencimientos = (equipo) => {
+  if (Array.isArray(equipo?.vencimientos)) {
+    return equipo.vencimientos.filter(Boolean);
+  }
+  return equipo?.fechaVencimientoOriginal ? [equipo.fechaVencimientoOriginal] : [];
+};
+
+// Etiqueta ordinal para cada fecha del historial: "1er vencimiento",
+// "2do vencimiento", etc.
+export const etiquetaVencimiento = (indice) => {
+  const ordinales = ["1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
+  return `${ordinales[indice] || `${indice + 1}º`} vencimiento`;
+};
