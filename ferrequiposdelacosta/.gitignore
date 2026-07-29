@@ -12,6 +12,9 @@ node_modules
 
 dist
 dist-ssr
+# El service worker que Vite genera al correr "npm run dev". Se regenera
+# solo en cada arranque, asi que versionarlo solo ensucia el git status.
+dev-dist
 *.local
 
 # Editor directories and files
