@@ -290,7 +290,9 @@ export default function ClienteSeguimientoCard({
     typeof factura.iva === "number" ? ampliacion.nuevoIva : factura.iva,
   );
   const deposito = formatearMoneda(factura.deposito);
-  const valorTotal = formatearMoneda(factura.valorTotal);
+  const valorTotal = formatearMoneda(
+    ampliacion.hay ? ampliacion.nuevoTotal : Number(factura.valorTotal) || 0,
+  );
   const transporteMonto = formatearMoneda(factura.valorTransporte);
   const transporteTipo = typeof factura.transporte === "string" ? factura.transporte : null;
   const textoTransporte =
@@ -299,7 +301,10 @@ export default function ClienteSeguimientoCard({
       : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ");
   const fecha = formatearFecha(factura.fecha);
 
-  const saldoPendienteNumero = Number(factura.saldoPendiente) || 0;
+  // Con los días ampliados incluidos, igual que el subtotal y el IVA.
+  const saldoPendienteNumero = ampliacion.hay
+    ? ampliacion.nuevoSaldo
+    : Number(factura.saldoPendiente) || 0;
   const saldoPendiente = formatearMoneda(saldoPendienteNumero);
 
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
@@ -308,15 +313,34 @@ export default function ClienteSeguimientoCard({
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
   const cuadroTotales = valorTotal && (
-    <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
+    <Box>
+      <Typography
+        variant="overline"
+        color="text.secondary"
+        sx={{ display: "block", lineHeight: 1.6 }}
+      >
+        Estado de cuenta
+      </Typography>
+      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
       <Box className="fila total">
         <Typography variant="subtitle1" fontWeight="bold">
-          Total
+          Total factura
         </Typography>
         <Typography variant="subtitle1" fontWeight="bold">
           {valorTotal}
         </Typography>
       </Box>
+
+      {/* Lo ya cobrado. Solo aparece cuando queda saldo: con la factura
+          saldada sería el mismo número del total, repetido. */}
+      {saldoPendienteNumero > 0 && (
+        <Box className="fila">
+          <Typography variant="body2">Pagado</Typography>
+          <Typography variant="body2">
+            {formatearMoneda(Number(factura.montoPagado) || 0)}
+          </Typography>
+        </Box>
+      )}
 
       {/* Siempre visible: rojo si queda algo por cobrar, verde si la factura
           ya está saldada. Así se lee de un vistazo en qué situación está. */}
@@ -332,45 +356,8 @@ export default function ClienteSeguimientoCard({
         </Typography>
       </Box>
 
-      {ampliacion.hay && (
-        <>
-          <Box className="fila" sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              +{ampliacion.dias} día{ampliacion.dias === 1 ? "" : "s"} ampliado
-              {ampliacion.dias === 1 ? "" : "s"}
-            </Typography>
-            <Typography variant="body2">{formatearMoneda(ampliacion.bruto)}</Typography>
-          </Box>
-
-          {ampliacion.descuento > 0 && (
-            <Box className="fila ok">
-              <Typography variant="body2">Descuento</Typography>
-              <Typography variant="body2">
-                −{formatearMoneda(ampliacion.descuento)}
-              </Typography>
-            </Box>
-          )}
-
-          <Box className="fila total">
-            <Typography variant="subtitle1" fontWeight="bold">
-              Nuevo total
-            </Typography>
-            <Typography variant="subtitle1" fontWeight="bold">
-              {formatearMoneda(ampliacion.nuevoTotal)}
-            </Typography>
-          </Box>
-
-          <Box className="fila alerta" sx={{ mt: 1 }}>
-            <Typography variant="body2" fontWeight="bold">
-              Nuevo saldo pendiente
-            </Typography>
-            <Typography variant="body2" fontWeight="bold">
-              {formatearMoneda(ampliacion.nuevoSaldo)}
-            </Typography>
-          </Box>
-        </>
-      )}
-    </Paper>
+      </Paper>
+    </Box>
   );
 
   const handleCambiar = (nuevoEstado) => {

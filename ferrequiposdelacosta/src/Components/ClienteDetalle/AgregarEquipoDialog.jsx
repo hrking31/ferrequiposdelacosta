@@ -36,6 +36,7 @@ import {
   formatearMonedaInput,
   limpiarMonedaInput,
   formatearFechaLegible,
+  calcularAmpliacionFactura,
 } from "./facturaUtils";
 import PagosMediosField from "./PagosMediosField";
 
@@ -147,6 +148,23 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
   const pagoEsteEquipo = pagosValidos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
   const nuevoMontoPagado = (Number(factura?.montoPagado) || 0) + pagoEsteEquipo;
   const nuevoSaldoPendiente = Math.max(0, nuevoValorTotal - nuevoMontoPagado);
+
+  // ── Lo que se MUESTRA vs. lo que se GUARDA ─────────────────────────────
+  //
+  // Los valores de arriba son los que se escriben en la factura, y NO llevan
+  // los días ampliados: esos días todavía no están facturados, así que si se
+  // guardaran acá quedarían cobrados y el cálculo de ampliaciones los volvería
+  // a sumar encima.
+  //
+  // Pero para mostrar hay que partir del total que hoy se ve en la factura,
+  // que sí los incluye; si no, este diálogo diría un total y la pantalla de
+  // atrás otro distinto.
+  const ampliacionFactura = calcularAmpliacionFactura(factura);
+  const totalActualMostrado = ampliacionFactura.hay
+    ? ampliacionFactura.nuevoTotal
+    : Number(factura?.valorTotal) || 0;
+  const totalConEstosEquipos = totalActualMostrado + totalEsteEquipo;
+  const saldoMostrado = Math.max(0, totalConEstosEquipos - nuevoMontoPagado);
 
   // Con "Total de estos equipos" el monto se completa solo: es todo lo que
   // hay que cobrar (subtotal + IVA + transporte + depósito). Si el pago se
@@ -307,6 +325,10 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     // El transporte, el depósito y el pago son del lote completo, así que se
     // guardan una sola vez, en el primer equipo. Los demás quedan sin esos
     // campos para no contar el mismo monto varias veces al sumar la factura.
+    // Marca a los equipos que se guardan juntos, para poder mostrarlos
+    // después como un solo grupo con su pago y sus adicionales.
+    const loteId = `lote-${Date.now()}`;
+
     const nuevosEquipos = equiposNuevos.map((item, index) => {
       const equipo = {
         nombre: item.nombre,
@@ -318,6 +340,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         // Marca que este equipo se sumó después de crear la factura (no en el
         // alta original), para poder diferenciarlo en el historial.
         agregadoPosteriormente: true,
+        loteId,
         // Cada equipo guarda si lleva IVA o no. Así una factura puede tener
         // equipos con IVA y sin IVA sin que uno le pise el cálculo al otro.
         aplicaIva: form.aplicaIva,
@@ -751,7 +774,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 <Box className="fila">
                   <Typography variant="body2">Total actual</Typography>
                   <Typography variant="body2">
-                    {formatearMoneda(factura?.valorTotal)}
+                    {formatearMoneda(totalActualMostrado)}
                   </Typography>
                 </Box>
 
@@ -765,18 +788,18 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                     Nuevo total
                   </Typography>
                   <Typography variant="subtitle1" fontWeight="bold">
-                    {formatearMoneda(nuevoValorTotal)}
+                    {formatearMoneda(totalConEstosEquipos)}
                   </Typography>
                 </Box>
 
                 {/* Rojo si queda algo por cobrar, verde si la factura queda
                     saldada: se lee de un vistazo antes de guardar. */}
-                <Box className={nuevoSaldoPendiente > 0 ? "fila alerta" : "fila ok"} sx={{ mt: 1 }}>
+                <Box className={saldoMostrado > 0 ? "fila alerta" : "fila ok"} sx={{ mt: 1 }}>
                   <Typography variant="body2" fontWeight="bold">
                     Saldo pendiente
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {formatearMoneda(nuevoSaldoPendiente)}
+                    {formatearMoneda(saldoMostrado)}
                   </Typography>
                 </Box>
               </Paper>

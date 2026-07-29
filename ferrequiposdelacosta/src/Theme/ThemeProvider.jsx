@@ -804,6 +804,19 @@ export const CustomThemeProvider = ({ children }) => {
                   paddingTop: 0,
                 },
 
+                // Separa dos bloques de la pizarra sin darle al de abajo
+                // el color del total: se usa entre lo ya facturado y la
+                // proyección de los días ampliados, que si van pegados
+                // parecen una suma en columna.
+                "& .fila.separada": {
+                  borderTop: `1px dashed ${alpha(
+                    theme.palette.custom.panelText,
+                    0.35,
+                  )}`,
+                  marginTop: theme.spacing(2),
+                  paddingTop: theme.spacing(2),
+                },
+
                 "& .fila.alerta": {
                   color: theme.palette.custom.saldoText,
                 },
