@@ -219,6 +219,83 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
   };
 };
 
+// ── Abonos y estado de cuenta ──────────────────────────────────────────
+//
+// Un abono es plata que el cliente entrega DESPUÉS de emitida la factura,
+// para bajar lo que quedó debiendo. Se guardan en la factura como:
+//
+//   abonos: [{ fecha, medio, monto }]
+//
+// Son independientes de los pagos del alta (factura.pagos) y de los que trae
+// cada equipo agregado: aquellos dicen cómo se pagó en su momento, estos
+// cuánto se fue abonando después.
+export const sumarAbonos = (abonos) =>
+  (Array.isArray(abonos) ? abonos : []).reduce(
+    (total, abono) => total + (Number(abono?.monto) || 0),
+    0,
+  );
+
+// Cuando el cliente entrega MÁS de lo que dice la factura, ese sobrante no se
+// guarda como pago —quedaría cobrado de más y el saldo no cerraría— sino como
+// un abono aparte, que es lo que realmente es: plata suya a cuenta de la deuda.
+//
+// Devuelve los pagos recortados hasta cubrir justo el total, cuánto sobró y
+// por qué medio entró ese sobrante. El recorte empieza por el último medio
+// cargado, que es el que se estaba completando cuando se pasó del total.
+export const separarExcedentePago = (pagos, total) => {
+  const validos = (Array.isArray(pagos) ? pagos : [])
+    .filter((pago) => pago?.medio && Number(pago.monto) > 0)
+    .map((pago) => ({ medio: pago.medio, monto: Number(pago.monto) }));
+
+  const suma = validos.reduce((acumulado, pago) => acumulado + pago.monto, 0);
+  const excedente = Math.max(0, Math.round(suma - total));
+  if (excedente === 0 || validos.length === 0) {
+    return { pagos: validos, excedente: 0, medio: null };
+  }
+
+  const medio = validos[validos.length - 1].medio;
+
+  let porDescontar = excedente;
+  const recortados = [...validos].reverse().map((pago) => {
+    if (porDescontar <= 0) return pago;
+    const quita = Math.min(porDescontar, pago.monto);
+    porDescontar -= quita;
+    return { ...pago, monto: pago.monto - quita };
+  });
+
+  return {
+    pagos: recortados.reverse().filter((pago) => pago.monto > 0),
+    excedente,
+    medio,
+  };
+};
+
+// La cuenta de una factura en un solo lugar, para que todas las pantallas
+// digan lo mismo.
+//
+// `totalMostrado` es opcional y sirve para la regla de siempre: lo que se
+// MUESTRA lleva los días ampliados, lo que se GUARDA no. Quien pinta la
+// pantalla le pasa el total con ampliación; quien guarda no le pasa nada y
+// usa el valorTotal tal cual está en la base.
+//
+// Si el cliente pagó de más, el sobrante NO se resta del saldo (que nunca
+// baja de cero): sale por separado como saldo a favor.
+export const calcularEstadoCuenta = (factura, totalMostrado) => {
+  const total = totalMostrado ?? (Number(factura?.valorTotal) || 0);
+  const abonos = sumarAbonos(factura?.abonos);
+  const pagado = (Number(factura?.montoPagado) || 0) + abonos;
+
+  return {
+    total,
+    abonos,
+    pagado,
+    // Lo que se pagó al emitir la factura, sin contar los abonos.
+    pagadoInicial: Number(factura?.montoPagado) || 0,
+    saldoPendiente: Math.max(0, total - pagado),
+    saldoAFavor: Math.max(0, pagado - total),
+  };
+};
+
 // Etiqueta ordinal para cada fecha del historial: "1er vencimiento",
 // "2do vencimiento", etc.
 export const etiquetaVencimiento = (indice) => {

@@ -37,13 +37,16 @@ import {
   limpiarMonedaInput,
   formatearFechaLegible,
   calcularAmpliacionFactura,
+  sumarAbonos,
+  separarExcedentePago,
 } from "./facturaUtils";
 import PagosMediosField from "./PagosMediosField";
 
-// Datos que comparten todos los equipos que se agregan juntos: la fecha, el
-// IVA, y un único transporte, depósito y pago para todo el lote.
+// Datos que comparten todos los equipos que se agregan juntos: la fecha en que
+// el cliente pidió los equipos, el IVA, y un único transporte, depósito y pago
+// para todo el lote.
 const ESTADO_INICIAL = {
-  fechaEntrega: "",
+  fechaSolicitud: "",
   transporte: "",
   valorTransporte: "",
   deposito: "",
@@ -52,8 +55,16 @@ const ESTADO_INICIAL = {
   pagos: [],
 };
 
-// Lo que se escribe para cada equipo antes de sumarlo a la lista.
-const ESTADO_INICIAL_ITEM = { nombre: "", cantidad: "", dias: "", valor: "" };
+// Lo que se escribe para cada equipo antes de sumarlo a la lista. Cada uno
+// lleva su propia fecha de despacho: pueden salir en días distintos aunque se
+// hayan pedido todos juntos.
+const ESTADO_INICIAL_ITEM = {
+  nombre: "",
+  cantidad: "",
+  dias: "",
+  valor: "",
+  fechaDespacho: "",
+};
 
 const formatearMoneda = (valor) =>
   Number(valor || 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
@@ -81,18 +92,28 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
   useEffect(() => {
     if (!open) return;
+    const fechaSolicitud = obtenerFechaInicialEfectiva();
     setForm({
       ...ESTADO_INICIAL,
-      fechaEntrega: obtenerFechaInicialEfectiva(),
+      fechaSolicitud,
       // Si la factura ya tenía IVA, se sigue aplicando por defecto al agregar.
       aplicaIva: factura?.aplicaIva ?? true,
     });
-    setNuevoItem(ESTADO_INICIAL_ITEM);
+    // El despacho arranca en la misma fecha de la solicitud; se cambia solo si
+    // ese equipo sale otro día.
+    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: fechaSolicitud });
     setEquiposNuevos([]);
     setErrors({});
   }, [open, factura]);
 
   const nombresEquiposCatalogo = equiposCatalogo.map((equipo) => equipo.name);
+
+  // Cuándo tiene que devolver el equipo que se está cargando: sale sola de la
+  // fecha de despacho más los días. No se digita.
+  const fechaEntregaNuevoItem =
+    nuevoItem.fechaDespacho && Number(nuevoItem.dias) > 0
+      ? calcularFechaDevolucion(nuevoItem.fechaDespacho, Number(nuevoItem.dias))
+      : "";
 
   // Subtotal de cada equipo = cantidad × días × precio por día (igual que en
   // Crear Factura); el del lote es la suma de todos los que estén en la lista.
@@ -147,7 +168,11 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
   // reemplaza, para no perder pagos previos registrados.
   const pagoEsteEquipo = pagosValidos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
   const nuevoMontoPagado = (Number(factura?.montoPagado) || 0) + pagoEsteEquipo;
-  const nuevoSaldoPendiente = Math.max(0, nuevoValorTotal - nuevoMontoPagado);
+  // Los abonos ya registrados también cuentan para el saldo: sin esto, agregar
+  // un equipo los borraría de la cuenta y reaparecería una deuda ya pagada.
+  // (El saldo definitivo se calcula al guardar, porque ahí puede sumarse un
+  // abono nuevo con lo que se haya pagado de más.)
+  const totalAbonos = sumarAbonos(factura?.abonos);
 
   // ── Lo que se MUESTRA vs. lo que se GUARDA ─────────────────────────────
   //
@@ -164,7 +189,10 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     ? ampliacionFactura.nuevoTotal
     : Number(factura?.valorTotal) || 0;
   const totalConEstosEquipos = totalActualMostrado + totalEsteEquipo;
-  const saldoMostrado = Math.max(0, totalConEstosEquipos - nuevoMontoPagado);
+  const saldoMostrado = Math.max(
+    0,
+    totalConEstosEquipos - nuevoMontoPagado - totalAbonos,
+  );
 
   // Con "Total de estos equipos" el monto se completa solo: es todo lo que
   // hay que cobrar (subtotal + IVA + transporte + depósito). Si el pago se
@@ -207,16 +235,29 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
   // solos (lo hace el efecto de más abajo).
   const handleCambiarTipoPago = (e) => {
     const tipoPago = e.target.value;
-    setForm((prev) => ({
-      ...prev,
-      tipoPago,
-      pagos:
-        tipoPago === "parcial" ? prev.pagos.map((pago) => ({ ...pago, monto: "" })) : prev.pagos,
-    }));
+    setForm((prev) => {
+      // "Sin pago" borra los medios cargados: si quedaran, se seguirían
+      // sumando aunque el desplegable diga que no se pagó nada.
+      if (tipoPago === "sinPago") return { ...prev, tipoPago, pagos: [] };
+      // "Parcial" y "Pago con abono" arrancan con el monto en blanco: en los
+      // dos casos el valor lo escribe el usuario, no sale del total.
+      const seEscribeAMano = tipoPago === "parcial" || tipoPago === "conAbono";
+      return {
+        ...prev,
+        tipoPago,
+        pagos: seEscribeAMano
+          ? prev.pagos.map((pago) => ({ ...pago, monto: "" }))
+          : prev.pagos,
+      };
+    });
   };
 
   const handleChangePagos = (nuevosPagos) => {
     setForm((prev) => {
+      // Con "Pago con abono" los montos se escriben libres: no se reparten
+      // para cuadrar con el total, justamente porque van por encima de él.
+      if (prev.tipoPago === "conAbono") return { ...prev, pagos: nuevosPagos };
+
       const anteriores = prev.pagos.length > 0 ? prev.pagos : [{ medio: "", monto: "" }];
       const sumar = (pagos) =>
         pagos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
@@ -283,6 +324,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     if (!Number(nuevoItem.cantidad)) errores.cantidad = "Cantidad inválida.";
     if (!Number(nuevoItem.dias)) errores.dias = "Días inválidos.";
     if (!Number(nuevoItem.valor)) errores.valor = "El valor debe ser mayor a 0.";
+    if (!nuevoItem.fechaDespacho) errores.fechaDespacho = "Este campo es obligatorio.";
 
     setErrors(errores);
     if (Object.keys(errores).length > 0) return;
@@ -294,9 +336,12 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         cantidad: Number(nuevoItem.cantidad),
         dias: Number(nuevoItem.dias),
         valor: Number(nuevoItem.valor),
+        fechaDespacho: nuevoItem.fechaDespacho,
       },
     ]);
-    setNuevoItem(ESTADO_INICIAL_ITEM);
+    // El siguiente equipo arranca con la misma fecha de despacho: lo normal es
+    // que salgan juntos, y si no se cambia a mano.
+    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: nuevoItem.fechaDespacho });
   };
 
   const handleQuitarItem = (index) => {
@@ -313,7 +358,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     if (equiposNuevos.length === 0) {
       errores.equipos = "Agregá al menos un equipo a la lista.";
     }
-    if (!form.fechaEntrega) errores.fechaEntrega = "Este campo es obligatorio.";
+    if (!form.fechaSolicitud) errores.fechaSolicitud = "Este campo es obligatorio.";
 
     setErrors(errores);
     return Object.keys(errores).length === 0;
@@ -329,14 +374,38 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     // después como un solo grupo con su pago y sus adicionales.
     const loteId = `lote-${Date.now()}`;
 
+    // Lo que se entregó de más no se guarda como pago del lote: se convierte
+    // en un abono de la factura, con la fecha de solicitud de estos equipos.
+    const { pagos: pagosGuardados, excedente, medio: medioExcedente } =
+      separarExcedentePago(form.pagos, totalEsteEquipo);
+
+    const abonos =
+      excedente > 0
+        ? [
+            ...(factura?.abonos || []),
+            { fecha: form.fechaSolicitud, medio: medioExcedente, monto: excedente },
+          ]
+        : factura?.abonos || [];
+
+    const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
+    const montoPagadoFinal = (Number(factura?.montoPagado) || 0) + pagadoEnLote;
+    const saldoFinal = Math.max(
+      0,
+      nuevoValorTotal - montoPagadoFinal - sumarAbonos(abonos),
+    );
+
     const nuevosEquipos = equiposNuevos.map((item, index) => {
       const equipo = {
         nombre: item.nombre,
         cantidad: item.cantidad,
         dias: item.dias,
         valor: item.valor,
-        fechaDespacho: form.fechaEntrega,
-        fechaVencimiento: calcularFechaDevolucion(form.fechaEntrega, item.dias),
+        fechaDespacho: item.fechaDespacho,
+        fechaVencimiento: calcularFechaDevolucion(item.fechaDespacho, item.dias),
+        // Cuándo se pidió el equipo. Es del lote entero y se muestra en la
+        // factura al lado del nombre ("agregado el ..."), para distinguirlo de
+        // la fecha en que salió despachado.
+        fechaAgregado: form.fechaSolicitud,
         // Marca que este equipo se sumó después de crear la factura (no en el
         // alta original), para poder diferenciarlo en el historial.
         agregadoPosteriormente: true,
@@ -348,10 +417,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
       if (index === 0) {
         equipo.tipoPago = form.tipoPago;
-        equipo.pagos = pagosValidos.map((pago) => ({
-          medio: pago.medio,
-          monto: Number(pago.monto),
-        }));
+        equipo.pagos = pagosGuardados;
         if (form.transporte && form.transporte !== "Sin transporte") {
           equipo.transporte = form.transporte;
           equipo.valorTransporte = valorTransporteNuevo;
@@ -372,11 +438,12 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         iva: nuevoIva,
         aplicaIva: nuevoAplicaIva,
         valorTotal: nuevoValorTotal,
-        saldoPendiente: nuevoSaldoPendiente,
-        montoPagado: nuevoMontoPagado,
+        saldoPendiente: saldoFinal,
+        montoPagado: montoPagadoFinal,
+        abonos,
         // El estado de pago de la factura sale de si queda saldo pendiente o no,
         // ya no de lo que se elija acá (eso es solo el pago de este equipo puntual).
-        tipoPago: nuevoSaldoPendiente > 0 ? "parcial" : "total",
+        tipoPago: saldoFinal > 0 ? "parcial" : "total",
       });
 
       showSnackbar(
@@ -422,20 +489,21 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
+            {/* La fecha en que se pidió y el equipo, en el mismo renglón. */}
+            <Grid item xs={12} sm={6}>
               <TextField
-                label="Fecha de creación"
+                label="Fecha de solicitud"
                 type="date"
-                value={form.fechaEntrega}
-                onChange={handleChange("fechaEntrega")}
-                error={!!errors.fechaEntrega}
-                helperText={errors.fechaEntrega}
+                value={form.fechaSolicitud}
+                onChange={handleChange("fechaSolicitud")}
+                error={!!errors.fechaSolicitud}
+                helperText={errors.fechaSolicitud}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Autocomplete
                 freeSolo
                 fullWidth
@@ -481,7 +549,9 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
               />
             </Grid>
 
-            <Grid item xs={12}>
+            {/* El precio y la fecha en que sale ESTE equipo. La de despacho es
+                la que manda para calcular el vencimiento. */}
+            <Grid item xs={12} sm={6}>
               <TextField
                 label="Precio por día"
                 value={formatearMonedaInput(nuevoItem.valor)}
@@ -489,9 +559,49 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                   setNuevoItem((prev) => ({ ...prev, valor: limpiarMonedaInput(e.target.value) }))
                 }
                 error={!!errors.valor}
-                helperText={errors.valor || "Precio de 1 unidad, por 1 día."}
+                helperText={errors.valor}
                 fullWidth
               />
+            </Grid>
+
+            <Grid item xs={8} sm={4}>
+              <TextField
+                label="Fecha despacho"
+                type="date"
+                value={nuevoItem.fechaDespacho}
+                onChange={handleChangeItem("fechaDespacho")}
+                error={!!errors.fechaDespacho}
+                helperText={errors.fechaDespacho}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+
+            {/* La entrega no se digita: sale de la fecha de despacho más los
+                días. Va como marca de agua —se lee si se busca, pero no
+                parece un campo más para llenar. */}
+            <Grid
+              item
+              xs={4}
+              sm={2}
+              sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}
+            >
+              {fechaEntregaNuevoItem && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    opacity: 0.35,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    userSelect: "none",
+                    lineHeight: 1.3,
+                    textAlign: "right",
+                  }}
+                >
+                  Entrega {formatearFechaLegible(fechaEntregaNuevoItem)}
+                </Typography>
+              )}
             </Grid>
 
             <Grid item xs={12}>
@@ -511,7 +621,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
             {/* Los equipos ya cargados en este lote. Cada uno en su recuadro,
                 con el bote para sacarlo si se cargó por error. */}
             {equiposNuevos.map((item, index) => {
-              const vencimiento = calcularFechaDevolucion(form.fechaEntrega, item.dias);
+              const vencimiento = calcularFechaDevolucion(item.fechaDespacho, item.dias);
               return (
                 <Grid item xs={12} key={`${item.nombre}-${index}`}>
                   <Box
@@ -535,19 +645,12 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                         sx={{ display: "block" }}
                       >
                         {item.cantidad} unidad(es) · {item.dias} día(s) ·{" "}
-                        {item.valor.toLocaleString("es-CO", {
-                          style: "currency",
-                          currency: "COP",
-                        })}
-                        /día c/u · despacho {formatearFechaLegible(form.fechaEntrega)}
+                        {formatearMoneda(item.valor)}/día c/u · despacho{" "}
+                        {formatearFechaLegible(item.fechaDespacho)}
                         {vencimiento && ` · vence ${formatearFechaLegible(vencimiento)}`}
                       </Typography>
                       <Typography variant="caption" fontWeight="bold">
-                        Subtotal:{" "}
-                        {subtotalDeItem(item).toLocaleString("es-CO", {
-                          style: "currency",
-                          currency: "COP",
-                        })}
+                        Subtotal: {formatearMoneda(subtotalDeItem(item))}
                       </Typography>
                     </Box>
                     <IconButton size="small" onClick={() => handleQuitarItem(index)}>
@@ -611,7 +714,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
             <Grid item xs={12}>
               <TextField
-                label="Depósito adicional (opcional)"
+                label="Depósito adicional"
                 value={formatearMonedaInput(form.deposito)}
                 onChange={handleChangeMoneda("deposito")}
                 fullWidth
@@ -622,57 +725,55 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 le va a cobrar al cliente antes de registrar el pago. El
                 aspecto lo pone el tema (variant "totales"); acá solo van las
                 filas. */}
-            {equiposNuevos.length > 0 && (
-              <Grid item xs={12}>
-                <Typography
-                  variant="overline"
-                  color="text.secondary"
-                  sx={{ display: "block", lineHeight: 1.6 }}
-                >
-                  Total equipos agregados
-                </Typography>
-                <Paper variant="totales">
+            <Grid item xs={12}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ display: "block", lineHeight: 1.6 }}
+              >
+                Total equipos agregados
+              </Typography>
+              <Paper variant="totales">
+                <Box className="fila">
+                  <Typography variant="body2">Subtotal</Typography>
+                  <Typography variant="body2">
+                    {formatearMoneda(subtotalNuevoEquipo)}
+                  </Typography>
+                </Box>
+
+                {form.aplicaIva && (
                   <Box className="fila">
-                    <Typography variant="body2">Subtotal</Typography>
+                    <Typography variant="body2">IVA (19%)</Typography>
+                    <Typography variant="body2">{formatearMoneda(ivaNuevoEquipo)}</Typography>
+                  </Box>
+                )}
+
+                {depositoNuevo > 0 && (
+                  <Box className="fila">
+                    <Typography variant="body2">Depósito</Typography>
+                    <Typography variant="body2">{formatearMoneda(depositoNuevo)}</Typography>
+                  </Box>
+                )}
+
+                {valorTransporteNuevo > 0 && (
+                  <Box className="fila">
+                    <Typography variant="body2">Transporte</Typography>
                     <Typography variant="body2">
-                      {formatearMoneda(subtotalNuevoEquipo)}
+                      {formatearMoneda(valorTransporteNuevo)}
                     </Typography>
                   </Box>
+                )}
 
-                  {form.aplicaIva && (
-                    <Box className="fila">
-                      <Typography variant="body2">IVA (19%)</Typography>
-                      <Typography variant="body2">{formatearMoneda(ivaNuevoEquipo)}</Typography>
-                    </Box>
-                  )}
-
-                  {depositoNuevo > 0 && (
-                    <Box className="fila">
-                      <Typography variant="body2">Depósito</Typography>
-                      <Typography variant="body2">{formatearMoneda(depositoNuevo)}</Typography>
-                    </Box>
-                  )}
-
-                  {valorTransporteNuevo > 0 && (
-                    <Box className="fila">
-                      <Typography variant="body2">Transporte</Typography>
-                      <Typography variant="body2">
-                        {formatearMoneda(valorTransporteNuevo)}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  <Box className="fila total">
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      Total
-                    </Typography>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {formatearMoneda(totalEsteEquipo)}
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
-            )}
+                <Box className="fila total">
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Total
+                  </Typography>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {formatearMoneda(totalEsteEquipo)}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
 
             <Grid item xs={12}>
               <Divider />
@@ -694,17 +795,21 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 >
                   <MenuItem value="total">Total de estos equipos</MenuItem>
                   <MenuItem value="parcial">Parcial de estos equipos</MenuItem>
+                  <MenuItem value="conAbono">Pago con abono</MenuItem>
+                  <MenuItem value="sinPago">Sin pago</MenuItem>
                 </Select>
               </FormControl>
 
-              <Box sx={{ mt: 2 }}>
-                <PagosMediosField
-                  pagos={form.pagos}
-                  onChange={handleChangePagos}
-                  idPrefix="agregar-equipo-pago"
-                  apilado
-                />
-              </Box>
+              {form.tipoPago !== "sinPago" && (
+                <Box sx={{ mt: 2 }}>
+                  <PagosMediosField
+                    pagos={form.pagos}
+                    onChange={handleChangePagos}
+                    idPrefix="agregar-equipo-pago"
+                    apilado
+                  />
+                </Box>
+              )}
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -713,7 +818,13 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                 color="text.secondary"
                 sx={{ display: "block", lineHeight: 1.6 }}
               >
-                {form.tipoPago === "total" ? "Pago total" : "Pago parcial"}
+                {form.tipoPago === "total"
+                  ? "Pago total"
+                  : form.tipoPago === "parcial"
+                    ? "Pago parcial"
+                    : form.tipoPago === "conAbono"
+                      ? "Pago con abono"
+                      : "Sin pago"}
               </Typography>
               <Paper variant="totales">
                 {pagosValidos.length === 0 ? (
@@ -738,6 +849,23 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                     {formatearMoneda(pagoEsteEquipo)}
                   </Typography>
                 </Box>
+
+                {/* Cuando se recibió de más, se separa lo que cubre estos
+                    equipos de lo que se va a guardar como abono. */}
+                {pagoEsteEquipo > totalEsteEquipo && (
+                  <>
+                    <Box className="fila">
+                      <Typography variant="body2">Cubre estos equipos</Typography>
+                      <Typography variant="body2">{formatearMoneda(totalEsteEquipo)}</Typography>
+                    </Box>
+                    <Box className="fila">
+                      <Typography variant="body2">Pasa a abono</Typography>
+                      <Typography variant="body2">
+                        {formatearMoneda(pagoEsteEquipo - totalEsteEquipo)}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
 
                 {/* Lo que falta para cubrir estos equipos: verde si ya está
                     todo pagado, rojo si queda algo debiendo. */}

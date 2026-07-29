@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Avatar,
@@ -32,19 +32,96 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
-import { collection, deleteDoc, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
+import AbonoDialog from "./AbonoDialog";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import nequiLogo from "../../assets/mediosPago/nequi.png";
+import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
+import daviplataLogo from "../../assets/mediosPago/daviplata.png";
 import {
   normalizarPagos,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  sumarAbonos,
 } from "./facturaUtils";
+
+// Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
+// y "Nequi A" son dos cuentas de personas distintas —Yaz y Armando— con el
+// mismo logo, por eso la primera lleva el nombre escrito al lado. Lo guardado
+// en Firestore no cambia: acá solo se traduce lo que se ve.
+const LOGOS_PAGO = {
+  Nequi: nequiLogo,
+  "Nequi A": nequiLogo,
+  Bancolombia: bancolombiaLogo,
+  Daviplata: daviplataLogo,
+};
+
+// Los cuatro logos miden lo mismo, así el renglón queda parejo.
+const TAMANO_LOGO_PAGO = { xs: 20, sm: 26 };
+
+const renderMedioPago = (medio) => {
+  const logo = LOGOS_PAGO[medio];
+
+  return (
+    // El `title` muestra de qué medio se trata al parar el mouse encima.
+    <Box
+      component="span"
+      title={medio}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.5,
+        verticalAlign: "middle",
+      }}
+    >
+      {logo ? (
+        <Box
+          component="img"
+          src={logo}
+          alt={medio}
+          // "contain" porque el de Nequi es más alto que ancho: así entra
+          // entero en vez de recortarse o deformarse.
+          sx={{
+            height: TAMANO_LOGO_PAGO,
+            width: TAMANO_LOGO_PAGO,
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+      ) : (
+        <PaymentsIcon
+          sx={{ fontSize: TAMANO_LOGO_PAGO, color: "custom.pagoEfectivo" }}
+        />
+      )}
+
+      {medio === "Nequi" && (
+        <Typography
+          component="span"
+          variant="caption"
+          fontWeight="bold"
+          sx={{ color: "text.primary", lineHeight: 1 }}
+        >
+          Yaz
+        </Typography>
+      )}
+    </Box>
+  );
+};
 
 // El estado del cliente es el mismo vocabulario que el de sus facturas
 // (el cliente toma el estado de la factura que se le crea/edita), más
@@ -72,20 +149,30 @@ const ESTADO_FACTURA_INFO = {
 };
 
 const TIPO_PAGO_LABELS = {
-  total: "Pago total",
+  total: "Total",
   parcial: "Parcial",
+  // "Pago con abono" es solo la forma de cargarlo: el cliente entregó de más y
+  // el sobrante quedó como abono, así que lo facturado se cubrió completo. Acá
+  // se lee como lo que es, un pago total.
+  conAbono: "Total",
+  sinPago: "Sin pago",
 };
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
 
 const obtenerNombreCompleto = (cliente) => {
   if (!cliente) return "";
-  if (cliente.tipo === "empresa") return cliente.razonSocial || cliente.nombreOriginal;
-  return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
+  if (cliente.tipo === "empresa")
+    return cliente.razonSocial || cliente.nombreOriginal;
+  return (
+    [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") ||
+    cliente.nombreOriginal
+  );
 };
 
 const tieneTelefonoValido = (telefono) =>
-  telefono && !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
+  telefono &&
+  !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
 const formatearMoneda = (valor) =>
   typeof valor === "number"
@@ -143,11 +230,12 @@ export default function ClienteDetalle() {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const acento =
-    theme.palette.custom.accent;
+  const acento = theme.palette.custom.accent;
   const avatarBgPorEstado = {
     inactivo:
-      theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700],
+      theme.palette.mode === "light"
+        ? theme.palette.grey[400]
+        : theme.palette.grey[700],
     pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
@@ -160,6 +248,7 @@ export default function ClienteDetalle() {
   const [editarOpen, setEditarOpen] = useState(false);
   const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
   const [facturaAgregarEquipo, setFacturaAgregarEquipo] = useState(null);
+  const [facturaAbonando, setFacturaAbonando] = useState(null);
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
@@ -175,7 +264,9 @@ export default function ClienteDetalle() {
     if (!facturaEliminando) return;
     setEliminando(true);
     try {
-      await deleteDoc(doc(db, "clientes", id, "facturas", facturaEliminando.id));
+      await deleteDoc(
+        doc(db, "clientes", id, "facturas", facturaEliminando.id),
+      );
       setFacturaEliminando(null);
       await fetchCliente(true);
       showSnackbar("Factura eliminada.", "success");
@@ -192,6 +283,14 @@ export default function ClienteDetalle() {
   };
   const seccionAbierta = (facturaId, seccion) =>
     Boolean(seccionesAbiertas[`${facturaId}:${seccion}`]);
+
+  // Plegar una factura entera. Todas arrancan plegadas —de un cliente con
+  // muchas facturas se ve la lista completa de un vistazo— así que lo que se
+  // guarda es cuáles se fueron abriendo.
+  const [facturasAbiertas, setFacturasAbiertas] = useState({});
+  const toggleFacturaColapsada = (facturaId) =>
+    setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
+  const facturaColapsada = (facturaId) => !facturasAbiertas[facturaId];
 
   const handleAbrirMenuEstado = (event, facturaId) => {
     setMenuEstadoAnchor(event.currentTarget);
@@ -236,7 +335,9 @@ export default function ClienteDetalle() {
         }
         setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
 
-        const facturasSnap = await getDocs(collection(db, "clientes", id, "facturas"));
+        const facturasSnap = await getDocs(
+          collection(db, "clientes", id, "facturas"),
+        );
         const listaFacturas = facturasSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
@@ -295,9 +396,24 @@ export default function ClienteDetalle() {
               color: theme.palette.custom.accentSmall,
             }}
           />
-          <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
-            {equipo.nombre}
-          </Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography component="span" variant="body2" fontWeight="bold">
+              {equipo.nombre}
+            </Typography>
+            {/* Cuándo se pidió este equipo, que no es lo mismo que cuándo
+                salió despachado. Solo lo traen los que se sumaron después de
+                crear la factura. */}
+            {equipo.fechaAgregado && (
+              <Typography
+                component="span"
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: 0.75, whiteSpace: "nowrap" }}
+              >
+                agregado {formatearFecha(equipo.fechaAgregado)}
+              </Typography>
+            )}
+          </Box>
           {subtotalEquipo > 0 && (
             <Stack sx={{ flexShrink: 0, textAlign: "right" }}>
               <Typography variant="body2" fontWeight="bold">
@@ -362,7 +478,11 @@ export default function ClienteDetalle() {
                   key="vencido"
                   size="small"
                   variant="metaEstado"
-                  sx={{ bgcolor: "error.main", color: "error.contrastText", border: "none" }}
+                  sx={{
+                    bgcolor: "error.main",
+                    color: "error.contrastText",
+                    border: "none",
+                  }}
                   label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
                 />,
               );
@@ -382,7 +502,9 @@ export default function ClienteDetalle() {
                 size="small"
                 sx={{ color: "custom.accentSmall" }}
                 label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
-                  ampliacion.bruto > 0 ? ` · ${formatearMoneda(ampliacion.neto)}` : ""
+                  ampliacion.bruto > 0
+                    ? ` · ${formatearMoneda(ampliacion.neto)}`
+                    : ""
                 }`}
               />,
             );
@@ -416,7 +538,15 @@ export default function ClienteDetalle() {
           // En móvil, días/precio en una columna y fechas en otra (prolijo).
           // En PC, todos los chips sueltos en una sola fila, como estaba.
           return esMovil ? (
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 1, rowGap: 0.5, mt: 0.75 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                columnGap: 1,
+                rowGap: 0.5,
+                mt: 0.75,
+              }}
+            >
               <Stack spacing={0.5}>{chipsDiasValor}</Stack>
               <Stack spacing={0.5}>{chipsFechas}</Stack>
             </Box>
@@ -468,7 +598,11 @@ export default function ClienteDetalle() {
   // El valor va en negrita y con el color normal del texto (no el gris
   // apagado que hereda por default un <Typography variant="caption">).
   const valorDato = (texto) => (
-    <Typography component="span" variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+    <Typography
+      component="span"
+      variant="body2"
+      sx={{ fontWeight: 700, color: "text.primary" }}
+    >
       {texto}
     </Typography>
   );
@@ -476,19 +610,29 @@ export default function ClienteDetalle() {
   // Lo que se cobra aparte del alquiler: depósito y transporte. Antes iban
   // dentro del cuadro de pago, mezclados con el medio y el monto; ahora van
   // en su propio recuadro, debajo de los equipos.
-  const renderAdicionales = ({ deposito, transporteTipo, transporteMonto, iva, key }) => {
+  const renderAdicionales = ({
+    deposito,
+    transporteTipo,
+    transporteMonto,
+    iva,
+    key,
+  }) => {
     const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
     const hayIva = Number(iva) > 0;
     if (deposito <= 0 && !hayTransporte && !hayIva) return null;
 
-    const total = (hayIva ? Number(iva) : 0) + deposito + (hayTransporte ? transporteMonto : 0);
+    const total =
+      (hayIva ? Number(iva) : 0) +
+      deposito +
+      (hayTransporte ? transporteMonto : 0);
 
     return (
       <Box key={key} sx={cuadroPunteadoSx}>
         <Stack {...filaDatosProps}>
           {hayIva && (
             <Box>
-              {etiquetaDato("IVA (19%)")} {valorDato(formatearMoneda(Number(iva)))}
+              {etiquetaDato("IVA (19%)")}{" "}
+              {valorDato(formatearMoneda(Number(iva)))}
             </Box>
           )}
           {deposito > 0 && (
@@ -520,29 +664,56 @@ export default function ClienteDetalle() {
   // Cuadro de pago de un lote de equipos (el original de la factura, o cada
   // equipo agregado después): tipo de pago, medio(s) de pago, depósito y
   // transporte de ESE lote puntual — no de toda la factura.
-  const renderInfoPago = ({ pagos, tipoPago, key }) => {
+  const renderInfoPago = ({ pagos, tipoPago, fecha, key }) => {
     const tipoPagoLabel = TIPO_PAGO_LABELS[tipoPago] || null;
     if (pagos.length === 0 && !tipoPagoLabel) return null;
 
     return (
       <Box key={key} sx={cuadroPunteadoSx}>
         <Stack {...filaDatosProps}>
+          {/* Cuándo se recibió esta plata: la fecha de creación en la factura,
+              y la de solicitud en cada lote de equipos agregados. */}
+          {fecha && (
+            <Box>
+              {etiquetaDato("Fecha")} {valorDato(formatearFecha(fecha))}
+            </Box>
+          )}
           {tipoPagoLabel && (
             <Box>
               {etiquetaDato("Pago")} {valorDato(tipoPagoLabel)}
             </Box>
           )}
+          {/* El medio va con el logo de la marca en vez del nombre escrito.
+              Cuando el pago se repartió entre varios, siguen separados por "+",
+              igual que la fila de valores de abajo. */}
           {pagos.length > 0 && (
-            <Box>
-              {etiquetaDato("Medio")}{" "}
-              {valorDato(pagos.map((pago) => pago.medio).filter(Boolean).join(" + "))}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 0.5,
+              }}
+            >
+              {etiquetaDato("Medio")}
+              {pagos
+                .filter((pago) => pago.medio)
+                .map((pago, indice) => (
+                  <Fragment key={`${pago.medio}-${indice}`}>
+                    {indice > 0 && valorDato("+")}
+                    {renderMedioPago(pago.medio)}
+                  </Fragment>
+                ))}
             </Box>
           )}
           {pagos.length > 0 && (
             <Box>
               {etiquetaDato("Valor")}{" "}
               {valorDato(
-                pagos.map((pago) => formatearMoneda(Number(pago.monto))).filter(Boolean).join(" + "),
+                pagos
+                  .map((pago) => formatearMoneda(Number(pago.monto)))
+                  .filter(Boolean)
+                  .join(" + "),
               )}
             </Box>
           )}
@@ -554,11 +725,42 @@ export default function ClienteDetalle() {
               {etiquetaDato("Total")}{" "}
               {valorDato(
                 formatearMoneda(
-                  pagos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0),
+                  pagos.reduce(
+                    (total, pago) => total + (Number(pago.monto) || 0),
+                    0,
+                  ),
                 ),
               )}
             </Box>
           )}
+        </Stack>
+      </Box>
+    );
+  };
+
+  // Los abonos que se registraron después de emitida la factura. Van en el
+  // mismo recuadro que la información de pago, porque son lo mismo: plata que
+  // entró, con su fecha y su medio.
+  const renderAbonos = (abonos) => {
+    if (!abonos || abonos.length === 0) return null;
+
+    return (
+      <Box sx={cuadroPunteadoSx}>
+        <Stack spacing={0.5}>
+          {abonos.map((abono, indice) => (
+            <Stack key={`abono-${indice}`} {...filaDatosProps}>
+              <Box>
+                {etiquetaDato("Abono")} {valorDato(formatearFecha(abono.fecha))}
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                {etiquetaDato("Medio")} {renderMedioPago(abono.medio)}
+              </Box>
+              <Box>
+                {etiquetaDato("Valor")}{" "}
+                {valorDato(formatearMoneda(Number(abono.monto) || 0))}
+              </Box>
+            </Stack>
+          ))}
         </Stack>
       </Box>
     );
@@ -582,8 +784,10 @@ export default function ClienteDetalle() {
   }
 
   const nombreCompleto = obtenerNombreCompleto(cliente);
-  const estadoInfo = ESTADO_CLIENTE_INFO[cliente.estado] || ESTADO_CLIENTE_INFO.inactivo;
-  const estadoColor = avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
+  const estadoInfo =
+    ESTADO_CLIENTE_INFO[cliente.estado] || ESTADO_CLIENTE_INFO.inactivo;
+  const estadoColor =
+    avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
 
   return (
@@ -622,7 +826,8 @@ export default function ClienteDetalle() {
             sx={{
               width: 56,
               height: 56,
-              bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+              bgcolor:
+                avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
             }}
           >
             {cliente.tipo === "empresa" ? (
@@ -632,9 +837,7 @@ export default function ClienteDetalle() {
             )}
           </Avatar>
           <Box>
-            <Typography variant="h6">
-              {nombreCompleto}
-            </Typography>
+            <Typography variant="h6">{nombreCompleto}</Typography>
             <Chip
               label={estadoInfo.label}
               variant="estado"
@@ -677,9 +880,7 @@ export default function ClienteDetalle() {
         justifyContent="space-between"
         sx={{ mb: 2 }}
       >
-        <Typography variant="h6">
-          Facturas {facturas.length}
-        </Typography>
+        <Typography variant="h6">Facturas {facturas.length}</Typography>
 
         <Button
           startIcon={<ReceiptLongIcon />}
@@ -699,22 +900,29 @@ export default function ClienteDetalle() {
           {facturas.map((factura) => {
             const facturaEstadoInfo =
               ESTADO_FACTURA_INFO[factura.estado] ||
-              (factura.estado ? { label: factura.estado } : { label: "Sin estado" });
+              (factura.estado
+                ? { label: factura.estado }
+                : { label: "Sin estado" });
             const facturaEstadoColor =
               avatarBgPorEstado[factura.estado] ||
-              (theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700]);
+              (theme.palette.mode === "light"
+                ? theme.palette.grey[400]
+                : theme.palette.grey[700]);
             // Formato viejo (migrado del Excel): transporte es un número.
             // Formato nuevo (creado en la app): transporte es el tipo
             // (ej. "Solo ida") y el monto vive aparte en valorTransporte.
             const equiposSonObjetos =
-              factura.equipos?.length > 0 && typeof factura.equipos[0] === "object";
+              factura.equipos?.length > 0 &&
+              typeof factura.equipos[0] === "object";
             const transporteMonto = formatearMoneda(
               typeof factura.transporte === "number"
                 ? factura.transporte
                 : factura.valorTransporte,
             );
             const transporteTipo =
-              typeof factura.transporte === "string" ? factura.transporte : null;
+              typeof factura.transporte === "string"
+                ? factura.transporte
+                : null;
             // Mismo cálculo compartido que usa Seguimiento de Clientes.
             const ampliacionFactura = calcularAmpliacionFactura(factura);
             // Subtotal e IVA se muestran ya con los días ampliados sumados
@@ -727,26 +935,23 @@ export default function ClienteDetalle() {
                 : factura.subtotal,
             );
             const iva = formatearMoneda(
-              typeof factura.iva === "number" ? ampliacionFactura.nuevoIva : factura.iva,
+              typeof factura.iva === "number"
+                ? ampliacionFactura.nuevoIva
+                : factura.iva,
             );
             const deposito = formatearMoneda(factura.deposito);
             // El total y el saldo se muestran con los días ampliados ya
             // sumados, igual que el subtotal y el IVA de más arriba. Si no,
             // los renglones de la izquierda no cuadrarían con este total: el
             // guardado en la factura es de antes de la ampliación.
-            const valorTotal = formatearMoneda(
-              ampliacionFactura.hay
-                ? ampliacionFactura.nuevoTotal
-                : Number(factura.valorTotal) || 0,
-            );
-            const saldoPendienteNumero = ampliacionFactura.hay
-              ? ampliacionFactura.nuevoSaldo
-              : Number(factura.saldoPendiente) || 0;
-            const saldoPendiente = formatearMoneda(saldoPendienteNumero);
-            const hayColorAlerta = saldoPendienteNumero > 0;
+            const totalFacturaNumero = ampliacionFactura.hay
+              ? ampliacionFactura.nuevoTotal
+              : Number(factura.valorTotal) || 0;
+            const valorTotal = formatearMoneda(totalFacturaNumero);
             const fecha = formatearFecha(factura.fecha);
             // Solo importa en móvil (en PC siempre se muestra todo).
-            const mostrar = (seccion) => !esMovil || seccionAbierta(factura.id, seccion);
+            const mostrar = (seccion) =>
+              !esMovil || seccionAbierta(factura.id, seccion);
             const renderToggle = (seccion) =>
               esMovil && (
                 <IconButton
@@ -763,17 +968,29 @@ export default function ClienteDetalle() {
               );
             const fechaVencimiento = equiposSonObjetos
               ? null
-              : formatearFecha(factura.fechaVencimiento) || factura.fechaVencimientoRaw;
+              : formatearFecha(factura.fechaVencimiento) ||
+                factura.fechaVencimientoRaw;
 
             // Equipos originales (creados con la factura) vs. agregados
             // después con el botón "Agregar equipo" — cada lote muestra su
             // propio pago.
             const equiposOriginales = equiposSonObjetos
-              ? factura.equipos.filter((equipo) => !equipo.agregadoPosteriormente)
+              ? factura.equipos.filter(
+                  (equipo) => !equipo.agregadoPosteriormente,
+                )
               : [];
             const equiposAgregados = equiposSonObjetos
-              ? factura.equipos.filter((equipo) => equipo.agregadoPosteriormente)
+              ? factura.equipos.filter(
+                  (equipo) => equipo.agregadoPosteriormente,
+                )
               : [];
+            // Misma regla que los lotes agregados: con un solo equipo el bloque
+            // ocupa media grilla, con dos o más se va a todo el ancho. El "|| 1"
+            // evita un repeat(0, 1fr) inválido cuando la lista viene vacía.
+            const columnasOriginales = Math.min(
+              equiposOriginales.length || 1,
+              2,
+            );
             const pagosOriginales = normalizarPagos(
               factura.pagos,
               factura.modoPago,
@@ -790,14 +1007,18 @@ export default function ClienteDetalle() {
               (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
               0,
             );
-            const depositoTotalFactura = (Number(factura.deposito) || 0) + depositoAgregadosTotal;
+            const depositoTotalFactura =
+              (Number(factura.deposito) || 0) + depositoAgregadosTotal;
             const transporteTotalFactura =
               (Number(factura.valorTransporte) || 0) + transporteAgregadosTotal;
 
             // Lo cobrado hasta ahora: el pago inicial más el de cada equipo
             // que se agregó después.
             const totalPagadoFactura =
-              pagosOriginales.reduce((total, pago) => total + (Number(pago.monto) || 0), 0) +
+              pagosOriginales.reduce(
+                (total, pago) => total + (Number(pago.monto) || 0),
+                0,
+              ) +
               equiposAgregados.reduce(
                 (total, equipo) =>
                   total +
@@ -807,6 +1028,22 @@ export default function ClienteDetalle() {
                   ),
                 0,
               );
+
+            // Lo que el cliente fue abonando después de emitida la factura.
+            const totalAbonos = sumarAbonos(factura.abonos);
+            const totalRecibido = totalPagadoFactura + totalAbonos;
+            // Si pagó de más, el sobrante NO baja el saldo (que nunca es
+            // negativo): sale aparte como saldo a favor.
+            const saldoPendienteNumero = Math.max(
+              0,
+              totalFacturaNumero - totalRecibido,
+            );
+            const saldoAFavorNumero = Math.max(
+              0,
+              totalRecibido - totalFacturaNumero,
+            );
+            const saldoPendiente = formatearMoneda(saldoPendienteNumero);
+            const hayColorAlerta = saldoPendienteNumero > 0;
 
             // Adicionales del lote original: los de la factura, sin sumar
             // los de los equipos agregados (cada lote muestra los suyos).
@@ -885,7 +1122,9 @@ export default function ClienteDetalle() {
                   <Typography key="transporte" variant="body2">
                     {transporteTipo === "Sin transporte"
                       ? "Sin transporte"
-                      : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ")}
+                      : ["Transporte", transporteTipo, transporteMonto]
+                          .filter(Boolean)
+                          .join(" ")}
                   </Typography>,
                 );
               }
@@ -914,7 +1153,23 @@ export default function ClienteDetalle() {
             };
 
             const iconosFactura = (
-              <Stack direction="row" spacing={esMovil ? 1.5 : 0.75} alignItems="center">
+              <Stack
+                direction="row"
+                spacing={esMovil ? 1.5 : 0.75}
+                alignItems="center"
+              >
+                {/* Registrar un pago posterior. Siempre disponible: también
+                    se abona sobre una factura ya saldada. */}
+                <Tooltip title="Registrar abono">
+                  <IconButton
+                    size="small"
+                    onClick={() => setFacturaAbonando(factura)}
+                    sx={{ ...iconBtnSx, color: acento }}
+                  >
+                    <AttachMoneyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
                 {equiposSonObjetos && (
                   <Tooltip title="Agregar equipo">
                     <IconButton
@@ -930,7 +1185,7 @@ export default function ClienteDetalle() {
                   <IconButton
                     size="small"
                     onClick={() => setFacturaEditando(factura)}
-                    sx={iconBtnSx}
+                    sx={{ ...iconBtnSx, color: acento }}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -959,7 +1214,13 @@ export default function ClienteDetalle() {
                   borderColor: "divider",
                 }}
               >
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" rowGap={1}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  flexWrap="wrap"
+                  rowGap={1}
+                >
                   <Box>
                     <Typography fontWeight="bold">
                       Factura {factura.numeroFactura ?? "s/n"}
@@ -978,6 +1239,27 @@ export default function ClienteDetalle() {
                   <Stack direction="row" spacing={1} alignItems="center">
                     {!esMovil && iconosFactura}
                     {chipEstado}
+                    {/* Pliega la factura completa, dejando a la vista solo el
+                        encabezado. Visible siempre, no solo en celular. */}
+                    <Tooltip
+                      title={
+                        facturaColapsada(factura.id)
+                          ? "Mostrar factura"
+                          : "Ocultar factura"
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleFacturaColapsada(factura.id)}
+                        sx={{ ...iconBtnSx, color: acento }}
+                      >
+                        {facturaColapsada(factura.id) ? (
+                          <ExpandMoreIcon fontSize="small" />
+                        ) : (
+                          <ExpandLessIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
                 </Stack>
 
@@ -987,8 +1269,17 @@ export default function ClienteDetalle() {
                   </Stack>
                 )}
 
+                {/* Todo lo que va debajo del encabezado se pliega con la
+                    flecha de arriba, para poder recorrer varias facturas sin
+                    scrollear cada una entera. */}
+                {!facturaColapsada(factura.id) && (
+                  <>
                 {fechaVencimiento && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}
+                  >
                     Vencimiento: {fechaVencimiento}
                   </Typography>
                 )}
@@ -996,9 +1287,33 @@ export default function ClienteDetalle() {
                 {equiposSonObjetos ? (
                   <>
                     {equiposOriginales.length > 0 && (
-                      <Box sx={{ mt: 1.5 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          // El ancho se le pone al bloque ENTERO de la factura
+                          // —información de pago, equipos y cargos adicionales—
+                          // para que todo quede en la misma columna. Puesto más
+                          // adentro, los rótulos y sus flechas de plegado se
+                          // iban al extremo derecho de la pantalla mientras el
+                          // contenido quedaba a media grilla.
+                          width: {
+                            sm:
+                              columnasOriginales === 1
+                                ? "calc(50% - 4px)"
+                                : "100%",
+                          },
+                        }}
+                      >
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <Typography
+                            variant="overline"
+                            color="text.secondary"
+                            sx={{ lineHeight: 1.6 }}
+                          >
                             Información de pago
                           </Typography>
                           {renderToggle("pagoGeneral")}
@@ -1008,6 +1323,7 @@ export default function ClienteDetalle() {
                             key: "pago-original",
                             pagos: pagosOriginales,
                             tipoPago: factura.tipoPago,
+                            fecha: factura.fecha,
                           })}
 
                         <Stack
@@ -1016,36 +1332,45 @@ export default function ClienteDetalle() {
                           alignItems="center"
                           sx={{ mt: 1 }}
                         >
-                          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                          <Typography
+                            variant="overline"
+                            color="text.secondary"
+                            sx={{ lineHeight: 1.6 }}
+                          >
                             Equipos {equiposOriginales.length}
                           </Typography>
                           {renderToggle("equiposFactura")}
                         </Stack>
                         {mostrar("equiposFactura") && (
-                          <Box
-                            sx={{
-                              display: "grid",
-                              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                              gap: 1,
-                              mt: 1,
-                            }}
-                          >
-                            {equiposOriginales.map((equipo, index) =>
-                              renderEquipoRow(equipo, `original-${index}`),
-                            )}
-                          </Box>
-                        )}
-
-                        {mostrar("equiposFactura") && adicionalesFactura && (
-                          <Box sx={{ mt: 1 }}>
-                            <Typography
-                              variant="overline"
-                              color="text.secondary"
-                              sx={{ display: "block", lineHeight: 1.6 }}
+                          <Box>
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: {
+                                  xs: "1fr",
+                                  sm: `repeat(${columnasOriginales}, 1fr)`,
+                                },
+                                gap: 1,
+                                mt: 1,
+                              }}
                             >
-                              Cargos adicionales
-                            </Typography>
-                            <Box sx={{ mt: 0.5 }}>{adicionalesFactura}</Box>
+                              {equiposOriginales.map((equipo, index) =>
+                                renderEquipoRow(equipo, `original-${index}`),
+                              )}
+                            </Box>
+
+                            {adicionalesFactura && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography
+                                  variant="overline"
+                                  color="text.secondary"
+                                  sx={{ display: "block", lineHeight: 1.6 }}
+                                >
+                                  Cargos adicionales
+                                </Typography>
+                                <Box sx={{ mt: 0.5 }}>{adicionalesFactura}</Box>
+                              </Box>
+                            )}
                           </Box>
                         )}
                       </Box>
@@ -1053,7 +1378,11 @@ export default function ClienteDetalle() {
 
                     {equiposAgregados.length > 0 && (
                       <Box sx={{ mt: 2 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
                           <Typography
                             variant="overline"
                             color="text.secondary"
@@ -1073,60 +1402,113 @@ export default function ClienteDetalle() {
                               iva: ivaDeEquipos(lote.equipos),
                               deposito: Number(lote.cabecera.deposito) || 0,
                               transporteTipo: lote.cabecera.transporte || null,
-                              transporteMonto: Number(lote.cabecera.valorTransporte) || 0,
+                              transporteMonto:
+                                Number(lote.cabecera.valorTransporte) || 0,
                             });
 
+                            // Cuántas columnas ocupa este lote: una sola si
+                            // trae un equipo, dos si trae dos o más. El ancho
+                            // se le pone al lote COMPLETO —no solo a la fila de
+                            // equipos— para que su información de pago y sus
+                            // cargos adicionales queden en la misma columna que
+                            // el equipo. Sueltos se iban a todo lo ancho y el
+                            // equipo quedaba a media pantalla con los datos
+                            // desalineados debajo.
+                            const columnasLote = Math.min(
+                              lote.equipos.length,
+                              2,
+                            );
+
                             return (
-                            <Box key={`lote-${indiceLote}`} sx={{ mt: 1 }}>
                               <Box
+                                key={`lote-${indiceLote}`}
                                 sx={{
-                                  display: "grid",
-                                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                                  gap: 1,
+                                  mt: 1,
+                                  // gap 1 = 8px, así que media pantalla es 50%
+                                  // menos la mitad de esa separación.
+                                  width: {
+                                    sm:
+                                      columnasLote === 1
+                                        ? "calc(50% - 4px)"
+                                        : "100%",
+                                  },
                                 }}
                               >
-                                {lote.equipos.map((equipo, index) =>
-                                  renderEquipoRow(equipo, `agregado-${indiceLote}-${index}`),
-                                )}
-                              </Box>
-
-                              <Box sx={{ mt: 1 }}>
-                                <Typography
-                                  variant="overline"
-                                  color="text.secondary"
-                                  sx={{ display: "block", lineHeight: 1.6 }}
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gridTemplateColumns: {
+                                      xs: "1fr",
+                                      sm: `repeat(${columnasLote}, 1fr)`,
+                                    },
+                                    gap: 1,
+                                  }}
                                 >
-                                  Información de pago
-                                </Typography>
-                                {renderInfoPago({
-                                  key: `lote-pago-${indiceLote}`,
-                                  pagos: normalizarPagos(
-                                    lote.cabecera.pagos,
-                                    lote.cabecera.modoPago,
-                                    null,
-                                  ),
-                                  tipoPago: lote.cabecera.tipoPago,
-                                })}
-                              </Box>
+                                  {lote.equipos.map((equipo, index) =>
+                                    renderEquipoRow(
+                                      equipo,
+                                      `agregado-${indiceLote}-${index}`,
+                                    ),
+                                  )}
+                                </Box>
 
-                              {adicionalesLote && (
                                 <Box sx={{ mt: 1 }}>
                                   <Typography
-                                  variant="overline"
-                                  color="text.secondary"
-                                  sx={{ display: "block", lineHeight: 1.6 }}
-                                >
-                                    Cargos adicionales
+                                    variant="overline"
+                                    color="text.secondary"
+                                    sx={{ display: "block", lineHeight: 1.6 }}
+                                  >
+                                    Información de pago
                                   </Typography>
-                                  <Box sx={{ mt: 0.5 }}>{adicionalesLote}</Box>
+                                  {renderInfoPago({
+                                    key: `lote-pago-${indiceLote}`,
+                                    pagos: normalizarPagos(
+                                      lote.cabecera.pagos,
+                                      lote.cabecera.modoPago,
+                                      null,
+                                    ),
+                                    tipoPago: lote.cabecera.tipoPago,
+                                    fecha: lote.cabecera.fechaAgregado,
+                                  })}
                                 </Box>
-                              )}
-                            </Box>
+
+                                {adicionalesLote && (
+                                  <Box sx={{ mt: 1 }}>
+                                    <Typography
+                                      variant="overline"
+                                      color="text.secondary"
+                                      sx={{ display: "block", lineHeight: 1.6 }}
+                                    >
+                                      Cargos adicionales
+                                    </Typography>
+                                    <Box sx={{ mt: 0.5 }}>
+                                      {adicionalesLote}
+                                    </Box>
+                                  </Box>
+                                )}
+                              </Box>
                             );
                           })}
                       </Box>
                     )}
 
+                    {/* Los abonos van al final de todo lo que se despachó:
+                        después de los equipos agregados si los hay, y si no,
+                        después de los equipos de la factura. */}
+                    {(factura.abonos || []).length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography
+                          variant="overline"
+                          color="text.secondary"
+                          sx={{ display: "block", lineHeight: 1.6 }}
+                        >
+                          Información de pago
+                        </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          {renderAbonos(factura.abonos)}
+                        </Box>
+                      </Box>
+                    )}
                   </>
                 ) : (
                   factura.equipos?.length > 0 && (
@@ -1147,8 +1529,16 @@ export default function ClienteDetalle() {
                       borderColor: "divider",
                     }}
                   >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography
+                        variant="overline"
+                        color="text.secondary"
+                        sx={{ lineHeight: 1.6 }}
+                      >
                         Total factura
                       </Typography>
                       {renderToggle("pagoTotal")}
@@ -1181,7 +1571,12 @@ export default function ClienteDetalle() {
                             <Stack spacing={0.5}>{lineasTotalesDer}</Stack>
                           </Box>
                         ) : (
-                          <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
+                          <Stack
+                            direction="row"
+                            spacing={2}
+                            flexWrap="wrap"
+                            alignItems="flex-end"
+                          >
                             {lineasTotales}
                           </Stack>
                         )}
@@ -1213,47 +1608,84 @@ export default function ClienteDetalle() {
                           </Typography>
                           <Paper
                             variant="totales"
-                            sx={{ width: { xs: "100%", sm: "auto" }, minWidth: { sm: 240 } }}
+                            sx={{
+                              width: { xs: "100%", sm: "auto" },
+                              minWidth: { sm: 240 },
+                            }}
                           >
-                          {valorTotal && (
-                            <Box className="fila total">
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                Total factura
-                              </Typography>
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                {valorTotal}
-                              </Typography>
-                            </Box>
-                          )}
-                          {/* Lo ya cobrado. Solo aparece cuando queda saldo:
-                              con la factura saldada sería el mismo número del
-                              total, repetido dos veces. */}
-                          {hayColorAlerta && (
-                            <Box className="fila">
-                              <Typography variant="body2">Pagado</Typography>
-                              <Typography variant="body2">
-                                {formatearMoneda(totalPagadoFactura)}
-                              </Typography>
-                            </Box>
-                          )}
+                            {valorTotal && (
+                              <Box className="fila total">
+                                <Typography
+                                  variant="subtitle1"
+                                  fontWeight="bold"
+                                >
+                                  Total factura
+                                </Typography>
+                                <Typography
+                                  variant="subtitle1"
+                                  fontWeight="bold"
+                                >
+                                  {valorTotal}
+                                </Typography>
+                              </Box>
+                            )}
+                            {/* Lo ya cobrado. Solo aparece cuando queda saldo
+                              o cuando hubo abonos: con la factura saldada de
+                              una sola vez sería repetir el total. */}
+                            {(hayColorAlerta || totalAbonos > 0) && (
+                              <Box className="fila">
+                                <Typography variant="body2">Pagado</Typography>
+                                <Typography variant="body2">
+                                  {formatearMoneda(totalPagadoFactura)}
+                                </Typography>
+                              </Box>
+                            )}
 
-                          <Box
-                            className={hayColorAlerta ? "fila alerta" : "fila ok"}
-                            sx={{ mt: 1, mb: 0 }}
-                          >
-                            <Typography variant="body2" fontWeight="bold">
-                              Saldo pendiente
-                            </Typography>
-                            <Typography variant="body2" fontWeight="bold">
-                              {saldoPendiente}
-                            </Typography>
-                          </Box>
+                            {/* Solo el total de lo abonado: el detalle de cada
+                              abono, con su fecha y su medio, va arriba en su
+                              propia información de pago. */}
+                            {totalAbonos > 0 && (
+                              <Box className="fila">
+                                <Typography variant="body2">Abonos</Typography>
+                                <Typography variant="body2">
+                                  {formatearMoneda(totalAbonos)}
+                                </Typography>
+                              </Box>
+                            )}
 
+                            {/* Si el cliente pagó de más, el sobrante queda a
+                              su favor en vez de mostrarse como saldo. */}
+                            {saldoAFavorNumero > 0 ? (
+                              <Box className="fila ok" sx={{ mt: 1, mb: 0 }}>
+                                <Typography variant="body2" fontWeight="bold">
+                                  Saldo a favor
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {formatearMoneda(saldoAFavorNumero)}
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Box
+                                className={
+                                  hayColorAlerta ? "fila alerta" : "fila ok"
+                                }
+                                sx={{ mt: 1, mb: 0 }}
+                              >
+                                <Typography variant="body2" fontWeight="bold">
+                                  Saldo pendiente
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {saldoPendiente}
+                                </Typography>
+                              </Box>
+                            )}
                           </Paper>
                         </Box>
                       </Box>
                     )}
                   </Box>
+                )}
+                  </>
                 )}
               </Box>
             );
@@ -1292,19 +1724,38 @@ export default function ClienteDetalle() {
         onAgregado={() => fetchCliente(true)}
       />
 
-      <Dialog open={Boolean(facturaEliminando)} onClose={() => setFacturaEliminando(null)}>
+      <AbonoDialog
+        open={Boolean(facturaAbonando)}
+        onClose={() => setFacturaAbonando(null)}
+        cliente={cliente}
+        factura={facturaAbonando}
+        onAbonado={() => fetchCliente(true)}
+      />
+
+      <Dialog
+        open={Boolean(facturaEliminando)}
+        onClose={() => setFacturaEliminando(null)}
+      >
         <DialogTitle sx={{ color: acento }}>Eliminar factura</DialogTitle>
         <DialogContent>
           <DialogContentText>
             ¿Seguro que querés eliminar la factura{" "}
-            {facturaEliminando?.numeroFactura ?? "s/n"}? Esta acción no se puede deshacer.
+            {facturaEliminando?.numeroFactura ?? "s/n"}? Esta acción no se puede
+            deshacer.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
-          <Button onClick={() => setFacturaEliminando(null)} disabled={eliminando}>
+          <Button
+            onClick={() => setFacturaEliminando(null)}
+            disabled={eliminando}
+          >
             Cancelar
           </Button>
-          <Button variant="danger" onClick={handleEliminarFactura} disabled={eliminando}>
+          <Button
+            variant="danger"
+            onClick={handleEliminarFactura}
+            disabled={eliminando}
+          >
             {eliminando ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogActions>
@@ -1315,13 +1766,17 @@ export default function ClienteDetalle() {
         open={Boolean(menuEstadoAnchor)}
         onClose={handleCerrarMenuEstado}
       >
-        <MenuItem onClick={() => handleCambiarEstadoFactura("pendienteDespacho")}>
+        <MenuItem
+          onClick={() => handleCambiarEstadoFactura("pendienteDespacho")}
+        >
           Pendiente despacho
         </MenuItem>
         <MenuItem onClick={() => handleCambiarEstadoFactura("despachada")}>
           Despachada
         </MenuItem>
-        <MenuItem onClick={() => handleCambiarEstadoFactura("devolucionParcial")}>
+        <MenuItem
+          onClick={() => handleCambiarEstadoFactura("devolucionParcial")}
+        >
           Devolución parcial
         </MenuItem>
         <MenuItem onClick={() => handleCambiarEstadoFactura("finalizada")}>
