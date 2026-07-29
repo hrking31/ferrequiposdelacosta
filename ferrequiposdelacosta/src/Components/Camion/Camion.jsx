@@ -56,7 +56,6 @@ export default function CamionContador({ size = 64, color = "currentColor" }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 12,
             fontWeight: "bold",
           }}
         >

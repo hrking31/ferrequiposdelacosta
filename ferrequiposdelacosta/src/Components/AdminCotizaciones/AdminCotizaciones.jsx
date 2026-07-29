@@ -160,7 +160,7 @@ export default function KioskAdminCotizaciones() {
               }
             />
             <Chip
-              icon={<PersonIcon sx={{ fontSize: 16 }} />}
+              icon={<PersonIcon />}
               label="Personas"
               clickable
               onClick={() => setFiltroTipo("persona")}
@@ -176,7 +176,7 @@ export default function KioskAdminCotizaciones() {
               }
             />
             <Chip
-              icon={<BusinessIcon sx={{ fontSize: 16 }} />}
+              icon={<BusinessIcon />}
               label="Empresas"
               clickable
               onClick={() => setFiltroTipo("empresa")}
@@ -312,7 +312,6 @@ export default function KioskAdminCotizaciones() {
                       variant="h5"
                       noWrap
                       sx={{
-                        fontWeight: "bold",
                         color: (theme) => theme.palette.text.primary,
                         textOverflow: "ellipsis",
                       }}
@@ -530,8 +529,6 @@ export default function KioskAdminCotizaciones() {
                             onClick={() => btn.accion()}
                             endIcon={<ReceiptLongIcon />}
                             sx={{
-                              fontWeight: "bold",
-                              textTransform: "uppercase",
                               letterSpacing: 0.5,
                               py: 1.5,
                             }}

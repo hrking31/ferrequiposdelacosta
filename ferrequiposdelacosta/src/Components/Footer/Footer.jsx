@@ -49,21 +49,15 @@ export default function Footer() {
         Ferrequipos de la Costa
       </Typography>
 
-      <Typography
-        variant="subtitle2"
-        sx={{
-          fontSize: isSmall ? "0.8rem" : "1rem",
-          mt: 0.5,
-        }}
-      >
+      <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
         Alquiler de Equipos para Construcción
       </Typography>
 
       <Box sx={{ mt: 1 }}>
-        <Typography variant="subtitle3">
+        <Typography variant="subtitle2">
           📍 Cra. 38 # 108-23, Barranquilla, Colombia
         </Typography>
-        <Typography variant="subtitle3">
+        <Typography variant="subtitle2">
           🕒 Lunes: 7:30 AM - 5:30 PM | Sábado: 8:00 AM - 12:00 PM
         </Typography>
       </Box>
@@ -124,15 +118,11 @@ export default function Footer() {
       </Box>
 
       <Typography
+        variant="copyright"
         sx={{
           color:
             theme.palette.custom.accent,
           mt: { xs: 0.5, md: 1 },
-          fontSize: {
-            xs: "0.5rem",
-            sm: "0.6rem",
-            md: "0.7rem",
-          },
         }}
       >
         © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los derechos

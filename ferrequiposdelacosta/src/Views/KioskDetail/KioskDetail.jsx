@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchDetailData } from "../../Store/Slices/detailSlice.js";
 import DetailGallery from "../../Components/DetailGallery/DetailGallery.jsx";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
-import { Typography, Box, Divider, useTheme, useMediaQuery, Button } from "@mui/material";
+import { Typography, Box, Divider, useMediaQuery, Button } from "@mui/material";
 import KioskProductCardDetail from "../../Components/KioskProductCardDetail/KioskProductCardDetail.jsx";
 import Footer from "../../Components/Footer/Footer.jsx";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -13,7 +13,6 @@ import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 export default function KioskDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
   const navigate = useNavigate();
@@ -138,15 +137,12 @@ export default function KioskDetail() {
           </Box>
 
           <Typography
+            variant="h5"
             sx={{
-              fontSize: "1.2rem",
-              fontWeight: "bold",
               display: "block",
               textAlign: "center",
               mt: 2,
               mb: 3,
-              color:
-                theme.palette.custom.accent,
             }}
           >
             Contáctenos para consultar disponibilidad, tiempos de alquiler,

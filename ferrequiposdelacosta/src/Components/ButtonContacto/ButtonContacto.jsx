@@ -45,7 +45,7 @@ export const WhatsAppButton = () => {
   );
 };
 
-export default function ButtonContacto({ width, fontSize }) {
+export default function ButtonContacto({ width }) {
   const isMobile = useMediaQuery("(max-width:915px)");
   const bounce = isMobile
     ? keyframes`
@@ -86,7 +86,6 @@ export default function ButtonContacto({ width, fontSize }) {
             href="tel:+573116576633"
             sx={{
               width,
-              fontSize,
               backgroundColor: (theme) => theme.palette.custom.call.main,
               "&:hover": {
                 backgroundColor: (theme) => theme.palette.custom.call.dark,
@@ -107,7 +106,6 @@ export default function ButtonContacto({ width, fontSize }) {
               backgroundColor: (theme) => theme.palette.custom.whatsapp.dark,
             },
             width,
-            fontSize,
             animation: `${bounce} 2s infinite`,
           }}
         >
@@ -120,5 +118,4 @@ export default function ButtonContacto({ width, fontSize }) {
 
 ButtonContacto.propTypes = {
   width: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.object]),
-  fontSize: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.object]),
 };

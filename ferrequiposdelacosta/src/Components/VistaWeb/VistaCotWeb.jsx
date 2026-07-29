@@ -259,11 +259,9 @@ export default function VistaCotWeb() {
 
       <Box sx={{ mt: "40px", textAlign: "center" }}>
         <Typography
-          variant="caption"
+          variant="documentoPie"
           sx={{
-            fontSize: isSmallScreen ? "0.625rem" : "0.75rem",
             "&&": { color: "blue" },
-            lineHeight: "1.2",
           }}
         >
           www.ferrequiposdelacosta.com

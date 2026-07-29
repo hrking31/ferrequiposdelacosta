@@ -245,7 +245,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               boxSizing: "border-box",
             }}
           >
-            <PhotoCameraIcon sx={{ fontSize: "1.2rem" }} />
+            <PhotoCameraIcon fontSize="small" />
           </Box>
         </Box>
 

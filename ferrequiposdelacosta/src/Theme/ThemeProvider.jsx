@@ -347,6 +347,13 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usan en: ButtonContacto, Drawer, ClienteSeguimientoCard.
           whatsapp: { main: "#25D366", dark: "#128C7E" },
           call: { main: AZUL_LLAMADA, dark: AZUL_LLAMADA_OSCURO },
+
+          // Los medios de pago que maneja la empresa (ver MODOS_PAGO en
+          // facturaUtils.js). Nequi, Bancolombia y Daviplata se muestran con su
+          // logo de verdad, así que no necesitan color acá. El efectivo no es
+          // una marca: va con un ícono verde.
+          // Se usa en: ClienteDetalle (renderMedioPago).
+          pagoEfectivo: VERDE,
         },
       },
       shape: {
@@ -631,6 +638,47 @@ export const CustomThemeProvider = ({ children }) => {
           },
           "@media (max-width:400px)": {
             fontSize: "0.75rem", // xs
+          },
+        },
+
+        // El renglón de "© 2026 Ferrequipos de la Costa…" que cierra el menú
+        // lateral (tanto el de celular como la columna de computador) y el pie
+        // de página. Es la MISMA frase en los tres lugares, pero cada uno
+        // traía su propia escala escrita a mano —0,5 / 0,6 / 0,675 / 0,7 /
+        // 0,8 rem—, así que se veía de un tamaño distinto según dónde
+        // apareciera. Acá queda una sola escala: chiquita, y un punto más
+        // chica todavía en celular.
+        //
+        // El COLOR no va acá a propósito: el del menú usa el acento y el del
+        // pie usa el gris del footer, y eso lo sigue poniendo cada pantalla.
+        copyright: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: "0.7rem",
+          lineHeight: 1.4,
+
+          "@media (max-width:600px)": {
+            fontSize: "0.6rem",
+          },
+        },
+
+        // El pie de las hojas de cotización y cuenta de cobro: la página web,
+        // el correo, la dirección y los teléfonos, en letra chica al final de
+        // la hoja. Es el mismo bloque repetido en las dos vistas, y cada una
+        // preguntaba por su cuenta si la pantalla era chica para achicarlo.
+        // Ahora lo decide el tema con la misma medida (600px) que usaban las
+        // dos, así que se ve exactamente igual que antes.
+        //
+        // El color azul lo sigue poniendo cada vista: la hoja es blanca en los
+        // dos modos y necesita el truco de "&&" para no dejarse pisar.
+        documentoPie: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: "0.75rem",
+          lineHeight: 1.2,
+
+          "@media (max-width:600px)": {
+            fontSize: "0.625rem",
           },
         },
 
@@ -1212,6 +1260,15 @@ export const CustomThemeProvider = ({ children }) => {
             root: {
               fontWeight: 600,
             },
+            // El dibujito que algunos chips llevan a la izquierda del texto
+            // (los de filtrar por Personas / Empresas). MUI se lo pone a 20px
+            // y al lado de una etiqueta chica se ve grande; 16px lo deja a
+            // tono. Antes este número estaba escrito a mano en los cuatro
+            // chips: dos en el buzón de cotizaciones y dos en el seguimiento
+            // de clientes. Hoy son los únicos chips con ícono de la app.
+            icon: {
+              fontSize: 16,
+            },
             outlined: ({ theme }) => ({
               borderColor: theme.palette.divider,
             }),
@@ -1401,6 +1458,11 @@ export const CustomThemeProvider = ({ children }) => {
               // Variante propia (ver typography.resumenCarrito): sin esta
               // línea MUI la sacaría como <span> en vez de párrafo.
               resumenCarrito: "p",
+              // Ídem: el renglón de copyright es un párrafo.
+              copyright: "p",
+              // Este en cambio sí va como <span>, que es lo que era antes
+              // (usaba "caption"): así el pie de la hoja no cambia de forma.
+              documentoPie: "span",
             },
           },
         },

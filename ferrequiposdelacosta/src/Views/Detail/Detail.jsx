@@ -1,10 +1,4 @@
-import {
-  Typography,
-  Box,
-  Divider,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Typography, Box, Divider, useMediaQuery } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,7 +14,6 @@ import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 export default function Detail() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const theme = useTheme();
   const [isGalleryFullscreen, setIsGalleryFullscreen] = useState(false);
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isMobile = useMediaQuery("(max-width:1024px)");
@@ -135,22 +128,14 @@ export default function Detail() {
           <ProductCardDetail product={equipo} />
 
           <Box sx={{ textAlign: "center", pb: 4 }}>
-            <ButtonContacto
-              width={250}
-              fontSize={{
-                md: "1rem",
-              }}
-            />
+            <ButtonContacto width={250} />
           </Box>
 
           <Typography
+            variant="h5"
             sx={{
-              fontSize: "1.2rem",
-              fontWeight: "bold",
               display: "block",
               textAlign: "center",
-              color:
-                theme.palette.custom.accent,
             }}
           >
             Contáctenos para consultar disponibilidad, tiempos de alquiler,

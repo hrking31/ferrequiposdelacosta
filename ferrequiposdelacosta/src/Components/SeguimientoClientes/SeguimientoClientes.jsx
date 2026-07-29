@@ -188,7 +188,7 @@ export default function SeguimientoClientes() {
               }
             />
             <Chip
-              icon={<PersonIcon sx={{ fontSize: 16 }} />}
+              icon={<PersonIcon />}
               label="Personas"
               clickable
               onClick={() => setFiltroTipo("persona")}
@@ -204,7 +204,7 @@ export default function SeguimientoClientes() {
               }
             />
             <Chip
-              icon={<BusinessIcon sx={{ fontSize: 16 }} />}
+              icon={<BusinessIcon />}
               label="Empresas"
               clickable
               onClick={() => setFiltroTipo("empresa")}

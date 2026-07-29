@@ -222,16 +222,12 @@ export default function MobileDrawerLayout() {
         </List>
 
         <Typography
+          variant="copyright"
           sx={{
             color:
               theme.palette.mode === "light"
                 ? theme.palette.primary.light
                 : theme.palette.secondary.light,
-            fontSize: {
-              xs: "0.6rem",
-              sm: "0.7rem",
-              md: "0.8rem",
-            },
             textAlign: "center",
             display: "block",
           }}
@@ -355,15 +351,7 @@ export default function MobileDrawerLayout() {
                   pb: 6,
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: "1.75rem",
-                    fontWeight: "bold",
-                    letterSpacing: "0.5px",
-                    color:
-                      theme.palette.custom.accent,
-                  }}
-                >
+                <Typography variant="h3" sx={{ letterSpacing: "0.5px" }}>
                   Alquiler de equipos para la Construcción
                 </Typography>
               </Box>
@@ -377,10 +365,6 @@ export default function MobileDrawerLayout() {
                   width={{
                     md: 180,
                     lg: 250,
-                  }}
-                  fontSize={{
-                    md: "0.8rem",
-                    lg: "1rem",
                   }}
                 />
               </Box>
@@ -416,15 +400,7 @@ export default function MobileDrawerLayout() {
                   pb: 6,
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: "1.5rem",
-                    fontWeight: "bold",
-                    letterSpacing: "0.5px",
-                    color:
-                      theme.palette.custom.accent,
-                  }}
-                >
+                <Typography variant="h4" sx={{ letterSpacing: "0.5px" }}>
                   Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
                 </Typography>
               </Box>
@@ -505,13 +481,11 @@ export default function MobileDrawerLayout() {
             </Box>
 
             <Typography
+              variant="copyright"
               sx={{
                 width: "100%",
                 color:
                   theme.palette.custom.accent,
-                fontSize: {
-                  md: "0.675rem",
-                },
                 pt: 2,
                 display: "block",
                 textAlign: "center",
