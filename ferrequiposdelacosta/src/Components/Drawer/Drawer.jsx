@@ -25,6 +25,7 @@ import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
+import Footer from "../../Components/Footer/Footer";
 import Search from "../../Components/Search/Search";
 import InstallApp from "../../Components/InstallApp/InstallApp.jsx";
 import ButtonContacto, {
@@ -526,6 +527,13 @@ export default function MobileDrawerLayout() {
           ) : (
             <CardsEquipos />
           )}
+
+          {/* Va acá adentro, después de las tarjetas, porque esta columna es
+              la que tiene el scroll: puesto afuera quedaría fijo tapando la
+              lista. Mismo lugar que en el listado del kiosco. */}
+          <Box component="footer" sx={{ width: "100%", mt: 2 }}>
+            <Footer />
+          </Box>
         </Box>
 
         <Dialog open={openAccount} onClose={handleCloseAccount} maxWidth="xs" fullWidth>
