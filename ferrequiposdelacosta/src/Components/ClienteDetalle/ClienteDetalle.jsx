@@ -465,7 +465,7 @@ export default function ClienteDetalle() {
               // Antes era amarillo fijo, que en modo claro quedaba casi
               // invisible sobre el chip. Es letra chica, así que va el acento
               // en su versión oscura.
-              color: theme.palette.custom.accentSmall,
+              color: theme.palette.custom.accent,
             }}
           />
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -495,7 +495,7 @@ export default function ClienteDetalle() {
                 <Typography
                   variant="caption"
                   fontWeight="bold"
-                  sx={{ color: "custom.accentSmall", lineHeight: 1.2 }}
+                  sx={{ color: "custom.accent", lineHeight: 1.2 }}
                 >
                   {formatearMoneda(valorConAmpliacion)}
                 </Typography>
@@ -579,7 +579,7 @@ export default function ClienteDetalle() {
                 key="agregados"
                 variant="meta"
                 size="small"
-                sx={{ color: "custom.accentSmall" }}
+                sx={{ color: "custom.accent" }}
                 label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
                   ampliacion.bruto > 0
                     ? ` · ${formatearMoneda(ampliacion.neto)}`

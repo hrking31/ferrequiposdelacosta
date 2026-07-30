@@ -206,8 +206,10 @@ const VistaSeleccionarEquipo = () => {
               </Button>
             </Grid>
             <Grid item xs={8} sm={4} md={4}>
+              {/* Va en contorno, no en rojo: solo suelta la selección. Con el
+                  mismo rojo de ELIMINAR parecía igual de peligroso. */}
               <Button
-                variant="danger"
+                variant="outlined"
                 onClick={handleCancelarSeleccion}
                 fullWidth
               >

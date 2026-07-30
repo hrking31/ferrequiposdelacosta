@@ -82,6 +82,23 @@ export const CustomThemeProvider = ({ children }) => {
     const AMBAR_PREVENCION = "#F59E0B";
     const NARANJA = "#EA580C";
     const NARANJA_OSCURO = "#C2410C";
+    // EL acento del modo claro: el azul del logo de la empresa, el mismo de
+    // la "E" del isotipo. Salió de muestrear el PNG del logo — es el tono que
+    // ocupa la mayor parte de sus píxeles.
+    //
+    // Sirve para todos los usos del acento a la vez (medido el 2026-07-30):
+    //   - como texto sobre una tarjeta ........... 9.31:1
+    //   - como texto sobre el fondo de página .... 8.27:1
+    //   - con letra BLANCA encima ................ 10.2:1
+    //
+    // OJO: es SOLO para el modo claro. Sobre el azul noche del modo oscuro
+    // se queda en 1.75:1, o sea invisible; de noche el acento es el amarillo.
+    //
+    // El naranja de marca (NARANJA) dejó de ser el acento el 2026-07-30 y
+    // quedó reservado para la barra de arriba — ver "navbarText" — y para
+    // "secondary", que es otro rol: el foco de los campos y los botones
+    // naranjas, que son naranjas en los dos modos.
+    const AZUL_LOGO = "#283890";
     const VERDE = "#16A34A";
     const VERDE_OSCURO = "#15803D";
     const ROJO = "#DC2626";
@@ -94,7 +111,10 @@ export const CustomThemeProvider = ({ children }) => {
     const GRIS_TEXTO = "#475569";
     const GRIS_SUAVE = "#94A3B8";
     const GRIS_CAPTION = "#64748B";
-    const BORDE_CLARO = "#E2E8F0";
+    // Un gris claro, el escalón que sigue después de CONCRETO. Se llamaba
+    // BORDE_CLARO, pero de bordes ya no se ocupa —de eso se encarga
+    // BORDE_INPUT— así que el nombre mentía.
+    const CEMENTO = "#E2E8F0";
     const BORDE_INPUT = "#CBD5E1";
 
     const esClaro = mode === "light";
@@ -150,9 +170,14 @@ export const CustomThemeProvider = ({ children }) => {
         // elevación SUBE hacia el blanco; en oscuro sube hacia el gris azulado.
         // Que la tarjeta no sea blanca es a propósito: las fotos de los equipos
         // son blancas fijas, así que quedan por encima y se despegan solas.
+        // El 2026-07-30 los tres niveles del modo claro subieron un escalón
+        // hacia el blanco: el fondo era CEMENTO (#E2E8F0) y la app se veía
+        // apagada. No se fue directo al blanco para no perder lo del párrafo
+        // de arriba: la tarjeta sigue siendo un punto más oscura que la foto
+        // que lleva encima.
         background: {
-          default: esClaro ? BORDE_CLARO : AZUL_NOCHE,
-          paper: esClaro ? CONCRETO : AZUL_ACERO,
+          default: esClaro ? CONCRETO : AZUL_NOCHE,
+          paper: esClaro ? NIEVE : AZUL_ACERO,
           elevated: esClaro ? BLANCO : AZUL_ACERO_CLARO,
         },
         text: {
@@ -190,11 +215,11 @@ export const CustomThemeProvider = ({ children }) => {
         // Paper de MUI. El fondo es la superficie (un escalón por encima del
         // fondo de página), así se despega sin necesitar sombra.
         footer: {
-          background: esClaro ? CONCRETO : AZUL_ACERO,
+          background: esClaro ? NIEVE : AZUL_ACERO,
           text: esClaro ? GRIS_TEXTO : GRIS_SUAVE,
         },
-        // Bordes y separadores. En claro va un paso más oscuro que el fondo
-        // de página: si usara BORDE_CLARO se confundiría con él.
+        // Bordes y separadores. En claro va dos pasos más oscuro que el fondo
+        // de página: con un gris más suave se confundiría con él.
         divider: esClaro ? BORDE_INPUT : AZUL_ACERO_CLARO,
         // ╔══════════════════════════════════════════════════════════════╗
         // ║  TOKENS PROPIOS DE LA APP                                    ║
@@ -223,32 +248,29 @@ export const CustomThemeProvider = ({ children }) => {
           // tiene que llamar la atención: títulos, íconos, bordes de algo
           // seleccionado, el relleno de los botones de acción.
           //
-          // Hay DOS versiones porque el color tiene que contrastar contra el
-          // fondo, y cuánto contraste hace falta depende del tamaño de la
-          // letra: un título grande se lee bien con menos contraste que un
-          // texto chiquito. El naranja normal alcanza para lo grande pero
-          // no para lo chico, así que la letra chica usa un naranja más
-          // oscuro. A ese tamaño casi no se nota la diferencia de tono.
-          // De noche no hace falta distinguir: el amarillo sirve para todo.
-
-          // Para íconos, bordes, rellenos y títulos grandes (h2 a h5).
+          // Es UNO SOLO para toda la app, en los dos modos. Hasta el
+          // 2026-07-30 hubo dos versiones en modo claro —una para texto
+          // grande y otra para letra chica— y se unificaron: el azul del logo
+          // cumple de sobra en los dos tamaños, así que la distinción dejó de
+          // tener sentido. Si aparece `accentSmall`, es código viejo.
+          //
+          // Para íconos, bordes, rellenos, títulos y letra chica.
           // Se usa en: NavBar, Drawer, Footer, AdminCotizaciones,
           // ClienteDetalle, ClienteSeguimientoCard, HeaderUsuario, Search,
           // FacturaFormDialog, AgregarEquipoDialog, KioskProductCardDetail.
-          accent: esClaro ? NARANJA : AMARILLO,
-
-          // Para letra chica: subtítulos h6, epígrafes y textos de 14px o
-          // menos, donde el naranja normal no se leería bien.
-          // Se usa en: ClienteDetalle (el chip de cantidad ×N),
-          // ClienteSeguimientoCard (las fechas de vencimiento).
-          accentSmall: esClaro ? NARANJA_OSCURO : AMARILLO,
+          accent: esClaro ? AZUL_LOGO : AMARILLO,
 
           // El color del texto y los íconos que van ENCIMA de algo pintado
-          // con el acento (un botón naranja, una pestaña amarilla). Siempre
-          // oscuro, porque tanto el naranja como el amarillo son claros.
+          // con el acento (un botón naranja, una pestaña amarilla).
+          //
+          // Cambia con el modo, y no es un capricho: el amarillo de noche es
+          // clarísimo y pide letra oscura (da 12.4:1), pero el naranja de día
+          // es oscuro y pide letra BLANCA — con la letra oscura de antes se
+          // quedaba en 3.15:1, y así llega a 5.68:1.
+          //
           // Se usa en: el botón de acción rápida y ClienteSeguimientoCard
           // (la pestaña de factura abierta).
-          onAccent: AZUL_NOCHE,
+          onAccent: esClaro ? BLANCO : AZUL_NOCHE,
 
           // ── La hoja de los documentos ────────────────────────────────
           //
@@ -287,7 +309,7 @@ export const CustomThemeProvider = ({ children }) => {
           // El texto, el ícono del carrito y la línea de abajo comparten el
           // mismo color: el acento del modo.
           // Se usan en: NavBar (y el fondo, en el estilo del AppBar).
-          navbarBackground: esClaro ? CONCRETO : AZUL_ACERO,
+          navbarBackground: esClaro ? NIEVE : AZUL_ACERO,
           navbarText: esClaro ? NARANJA : AMARILLO,
 
           // El contorno de los campos de formulario (las cajitas donde se
@@ -341,7 +363,7 @@ export const CustomThemeProvider = ({ children }) => {
           // El fondo de la tira de pestañas de facturas, esa que simula
           // carpetas apiladas una detrás de otra.
           // Se usa en: ClienteSeguimientoCard.
-          tabStripBackground: esClaro ? BORDE_CLARO : AZUL_NOCHE,
+          tabStripBackground: esClaro ? CEMENTO : AZUL_NOCHE,
 
           // El violeta del estado "pendiente de despacho" de un cliente.
           // Es el único color que no sale de la paleta de la marca, y es a
@@ -537,9 +559,7 @@ export const CustomThemeProvider = ({ children }) => {
           fontFamily: '"Montserrat", sans-serif',
           fontWeight: 700,
           fontSize: "1.1rem",
-          // 17.6px queda justo por debajo del umbral de "texto grande" de WCAG
-          // (18.66px en negrita), así que necesita el acento oscuro.
-          color: p.custom.accentSmall,
+          color: p.custom.accent,
 
           "@media (max-width:1200px)": {
             fontSize: "1.05rem", // lg

@@ -158,7 +158,7 @@ export default function ClienteSeguimientoCard({
             variant="meta"
             label={equipo.cantidad}
             size="small"
-            sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accentSmall" }}
+            sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accent" }}
           />
           <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
             {equipo.nombre}
@@ -199,7 +199,7 @@ export default function ClienteSeguimientoCard({
             <Chip
               variant="meta"
               size="small"
-              sx={{ color: "custom.accentSmall" }}
+              sx={{ color: "custom.accent" }}
               label={`+${ampliacionEquipo.dias} día${
                 ampliacionEquipo.dias === 1 ? "" : "s"
               }${
@@ -588,7 +588,7 @@ export default function ClienteSeguimientoCard({
                           grupo.clave === "vencido"
                             ? "error.main"
                             : grupo.clave === "hoy"
-                              ? "custom.accentSmall"
+                              ? "custom.accent"
                               : "text.secondary",
                       }}
                     >
