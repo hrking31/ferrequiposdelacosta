@@ -1,4 +1,4 @@
-import { Box, Typography, useTheme, IconButton } from "@mui/material";
+import { Box, Button, Typography, useTheme, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { forwardRef } from "react";
 import PropTypes from "prop-types";
@@ -85,19 +85,52 @@ const AnimatedBox = forwardRef(function AnimatedBox(
             <CloseIcon />
           </IconButton>
           
-          <Typography
-            variant="h5"
+          <Box
             sx={{
-              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1.5,
               p: 2,
-              // El h5 del tema sale con el color del acento, que es justo el
-              // fondo de este cartel: quedaría del mismo color que la caja.
-              color: "custom.onAccent",
+              width: "100%",
             }}
           >
-            ¡Lleva la experiencia a otro nivel! Instala nuestra app ahora y
-            disfruta al instante en tu dispositivo.
-          </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                textAlign: "center",
+                // El h5 del tema sale con el color del acento, que es justo el
+                // fondo de este cartel: quedaría del mismo color que la caja.
+                color: "custom.onAccent",
+              }}
+            >
+              ¡Lleva la experiencia a otro nivel! Instala nuestra app ahora y
+              disfruta al instante en tu dispositivo.
+            </Typography>
+
+            {/* El botón dice qué hay que hacer. Antes había que volver a tocar
+                el cartel entero, sin nada que lo indicara. Corta la
+                propagación porque el clic del cartel llama a lo mismo, y sin
+                esto se dispararía dos veces. */}
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleInstall();
+              }}
+              sx={{
+                // Invertido: el fondo es el color que va ENCIMA del acento y
+                // la letra es el acento. Así se despega de la caja en los dos
+                // modos sin inventar colores nuevos.
+                bgcolor: "custom.onAccent",
+                color: "custom.accent",
+                fontWeight: 700,
+                px: 3,
+                "&:hover": { bgcolor: "custom.onAccent", opacity: 0.9 },
+              }}
+            >
+              Instalar
+            </Button>
+          </Box>
         </>
       ) : (
         <Box sx={{ width: "100%", textAlign: "center", fontSize: 24, p: 0.5 }}>
