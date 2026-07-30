@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Paper,
   TextField,
   Typography,
   Grid,
@@ -221,14 +222,23 @@ export default function CuentaCobro() {
           </Box>
         ))}
         <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={6}>
+          <Grid item xs={12}>
             <Button variant="success" onClick={addNewItem} fullWidth>
               Agregar Ítem
             </Button>
           </Grid>
 
-          <Grid item xs={6}>
-            <Typography variant="h5">Total: {total}</Typography>
+          <Grid item xs={12}>
+            {/* La pizarra de totales, igual que en Cotización. El aspecto vive
+                en el tema como la variante "totales"; acá solo va la fila.
+                Una cuenta de cobro no desglosa IVA ni depósito, así que lleva
+                un solo renglón: el total. */}
+            <Paper variant="totales">
+              <Box className="fila total">
+                <Typography variant="h5">TOTAL</Typography>
+                <Typography variant="h5">{total}</Typography>
+              </Box>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
