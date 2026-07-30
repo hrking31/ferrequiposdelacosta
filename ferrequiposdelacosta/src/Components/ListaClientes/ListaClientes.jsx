@@ -582,6 +582,10 @@ export default function ListaClientes() {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          // Aire arriba para que quepa el hover: el botón "Nuevo Cliente" se
+          // levanta 3px al pasar el mouse y, como este contenedor recorta lo
+          // que se sale, se le cortaba el borde de arriba.
+          pt: "6px",
         }}
       >
         {!ocultarSidebar && (

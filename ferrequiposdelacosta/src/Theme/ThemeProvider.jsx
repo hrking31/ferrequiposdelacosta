@@ -73,7 +73,6 @@ export const CustomThemeProvider = ({ children }) => {
     const AZUL_ACERO_CLARO = "#334155";
     const AZUL_NOCHE = "#0F172A";
     const AMARILLO = "#FFB800";
-    const AMARILLO_CLARO = "#FFC72C";
     // El amarillo de los importes. Es aparte del amarillo de marca —que tira a
     // dorado y vive en los acentos y el navbar— porque acá se necesita un
     // amarillo limpio, que se lea como cifra y no como adorno.
@@ -81,14 +80,20 @@ export const CustomThemeProvider = ({ children }) => {
     const AMBAR = "#D97706";
     const AMBAR_PREVENCION = "#F59E0B";
     const NARANJA = "#EA580C";
-    const NARANJA_OSCURO = "#C2410C";
-    // EL acento del modo claro: el azul del logo de la empresa, el mismo de
-    // la "E" del isotipo. Salió de muestrear el PNG del logo — es el tono que
-    // ocupa la mayor parte de sus píxeles.
+    // EL acento del modo claro: el azul del LOGO de la empresa, EXACTO.
+    // Salió de muestrear el PNG del isotipo — es el tono que ocupa la mayor
+    // parte de sus píxeles.
     //
-    // Sirve para todos los usos del acento a la vez (medido el 2026-07-30):
-    //   - como texto sobre una tarjeta ........... 9.31:1
-    //   - como texto sobre el fondo de página .... 8.27:1
+    // **Este valor es una decisión del dueño: tiene que ser el hex del logo,
+    // no un azul parecido.** El 2026-07-30 se probaron dos versiones más
+    // luminosas —#2563EB y #384EC7— porque con el azul del isotipo el menú se
+    // ve sobrio: tiene 5.3 de luminosidad relativa contra 24.5 del naranja al
+    // que reemplazó, y el acento pinta los nueve íconos. Las dos se
+    // descartaron y se volvió a este. **No “mejorarlo” otra vez.**
+    //
+    // Contraste de sobra (medido el 2026-07-30):
+    //   - como texto sobre una tarjeta ........... 9.75:1  (mínimo 4.5)
+    //   - como texto sobre el fondo de página .... 9.31:1
     //   - con letra BLANCA encima ................ 10.2:1
     //
     // OJO: es SOLO para el modo claro. Sobre el azul noche del modo oscuro
@@ -103,6 +108,41 @@ export const CustomThemeProvider = ({ children }) => {
     const VERDE_OSCURO = "#15803D";
     const ROJO = "#DC2626";
     const ROJO_OSCURO = "#B91C1C";
+
+    // ── Colores de ACCIÓN ──────────────────────────────────────────────
+    // Sistema definido por el dueño el 2026-07-30. Cada acción tiene su
+    // color, y el color dice qué va a pasar al tocar el botón:
+    //
+    //   AZUL      navegación y acciones principales (crear, guardar, confirmar)
+    //   VERDE     confirmar, crear, cobrar
+    //   AMARILLO  agregar, editar, advertencia
+    //   ROJO      eliminar, cancelar, deuda
+    //   GRIS      acciones secundarias
+    //
+    // Cada uno tiene DOS versiones: la de día y una más luminosa para la
+    // noche, porque sobre el fondo azul noche los tonos oscuros desaparecen.
+    // De noche todos los rellenos llevan letra OSCURA; de día, blanca —salvo
+    // el verde, que con blanca se queda en 3.3:1 y necesita letra oscura.
+    const AZUL_ACCION = "#2563EB";
+    const AZUL_ACCION_NOCHE = "#3B82F6";
+    // El "amarillo" de las acciones secundarias es ámbar tostado de día: un
+    // amarillo de verdad sobre fondo claro no se lee. De noche sí es amarillo.
+    const AMBAR_ACCION = "#B45309";
+    const AMBAR_ACCION_NOCHE = "#FBBF24";
+    const VERDE_NOCHE = "#22C55E";
+    const ROJO_NOCHE = "#EF4444";
+    // El borde de la acción neutra en modo claro (el botón de contorno).
+    const BORDE_NEUTRO = "#CBD5E1";
+
+    // El ROJO del logo, el de la "C" del isotipo. Salió de muestrear el PNG,
+    // igual que el azul. Marca el campo que tiene el foco, y es el único lugar
+    // de la app donde se usa.
+    //
+    // De noche va una versión aclarada: el rojo del isotipo sobre el azul
+    // noche se queda en 2.43:1 y un borde necesita 3:1. El aclarado da 4.03:1
+    // sobre la tarjeta oscura, y el exacto da 5.75:1 sobre la clara.
+    const ROJO_LOGO = "#C02030";
+    const ROJO_LOGO_NOCHE = "#D3636E";
     const AZUL_LLAMADA = "#0284C7";
     const AZUL_LLAMADA_OSCURO = "#0369A1";
     const BLANCO = "#FFFFFF";
@@ -123,18 +163,22 @@ export const CustomThemeProvider = ({ children }) => {
     const base = createTheme({
       palette: {
         mode,
+        // AZUL: navegación y acciones principales. Con letra blanca da 5.17:1
+        // de día; de noche el azul es más claro y pide letra oscura (4.85:1).
         primary: {
-          main: esClaro ? AZUL_ACERO : AMARILLO, // Azul Acero / Amarillo Maquinaria
-          light: esClaro ? AZUL_ACERO_CLARO : AMARILLO_CLARO,
-          dark: esClaro ? AZUL_NOCHE : AMBAR,
+          main: esClaro ? AZUL_ACCION : AZUL_ACCION_NOCHE,
+          light: esClaro ? AZUL_ACCION_NOCHE : lighten(AZUL_ACCION_NOCHE, 0.25),
+          dark: esClaro ? darken(AZUL_ACCION, 0.15) : AZUL_ACCION,
           contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
+        // AMARILLO: agregar, editar, advertencia. De día es ámbar tostado
+        // (5.02:1 con letra blanca); de noche, amarillo con letra oscura
+        // (10.69:1).
         secondary: {
-          main: NARANJA, // Naranja Seguridad Viento/Obra
-          light: AMARILLO, // Amarillo Alerta
-          dark: NARANJA_OSCURO,
-          // Texto oscuro sobre el naranja: da 5.0:1.
-          contrastText: AZUL_NOCHE,
+          main: esClaro ? AMBAR_ACCION : AMBAR_ACCION_NOCHE,
+          light: AMARILLO, // el dorado de marca: navbar y acentos de noche
+          dark: esClaro ? darken(AMBAR_ACCION, 0.15) : AMBAR,
+          contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
         // Semánticos. Sobre el azul oscuro del modo nocturno, el tono de marca
         // de success/error/info NO llega al mínimo WCAG AA (4.5:1) cuando se
@@ -142,22 +186,41 @@ export const CustomThemeProvider = ({ children }) => {
         // de marca.
         //   Regla de uso: ".main" para fondos rellenos (con contrastText),
         //   ".light" para texto o íconos sueltos en modo oscuro.
+        // El ACENTO como color de MUI, para poder escribir color="accent" en
+        // un botón igual que se escribe color="error".
+        //
+        // Es el mismo valor que custom.accent —el azul del logo de día, el
+        // amarillo de noche—; existe acá arriba además de en "custom" porque
+        // MUI solo reconoce como color de componente lo que está en la raíz de
+        // la paleta. Si se cambia uno, cambiar el otro.
+        //
+        // Se usa en: los botones de agregar y seleccionar (Crear y Editar
+        // Equipo, y los diálogos de Agregar equipo y Crear Factura).
+        accent: {
+          main: esClaro ? AZUL_LOGO : AMARILLO,
+          contrastText: esClaro ? BLANCO : AZUL_NOCHE,
+        },
+        // VERDE: confirmar, crear, cobrar.
         success: {
-          main: VERDE, // Verde para disponible / en buen estado
+          main: esClaro ? VERDE : VERDE_NOCHE,
           light: lighten(VERDE, 0.35), // 6.4:1 sobre AZUL_ACERO
           dark: VERDE_OSCURO,
-          // Texto oscuro sobre el verde: da 5.4:1. El blanco solo daba 3.3:1.
+          // Letra OSCURA en los dos modos: sobre el verde de día da 5.4:1 y la
+          // blanca solo 3.3:1; sobre el verde de noche, 7.83:1.
           contrastText: AZUL_NOCHE,
         },
         warning: {
           main: AMBAR_PREVENCION, // Amarillo prevención — ya da 6.8:1
           contrastText: AZUL_NOCHE,
         },
+        // ROJO: eliminar, cancelar, deuda.
         error: {
-          main: ROJO, // Rojo fuera de servicio
+          main: esClaro ? ROJO : ROJO_NOCHE,
           light: lighten(ROJO, 0.35), // 4.9:1 sobre AZUL_ACERO
           dark: ROJO_OSCURO,
-          contrastText: BLANCO,
+          // De día, letra blanca (4.83:1). De noche el rojo es más claro y
+          // pide letra oscura.
+          contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
         info: {
           main: AZUL_LLAMADA,
@@ -317,6 +380,11 @@ export const CustomThemeProvider = ({ children }) => {
           // esto: usan "divider".
           // Se usa en: el estilo general de los campos de texto.
           inputBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
+
+          // El rojo del logo, que marca el campo enfocado. Ver la constante
+          // ROJO_LOGO para el porqué de las dos versiones.
+          // Se usa en: el estilo general de los campos de texto.
+          rojoLogo: esClaro ? ROJO_LOGO : ROJO_LOGO_NOCHE,
 
           // El contorno de los recuadros que envuelven cada equipo cargado en
           // los diálogos, para que se vean como fichas separadas. Es un paso
@@ -1106,7 +1174,11 @@ export const CustomThemeProvider = ({ children }) => {
             // Callback y no objeto plano: adentro hace falta "theme", y el de
             // afuera todavía se está construyendo en este punto.
             root: ({ theme }) => ({
-              borderRadius: theme.shape.borderRadius,
+              // El doble que el resto de la app: con el radio general de 6 los
+              // botones se veían cuadrados. Es a propósito que no siga a
+              // shape.borderRadius — las tarjetas, los campos y los diálogos
+              // se quedan en 6, que es la "estética industrial" del tema.
+              borderRadius: theme.shape.borderRadius * 2,
               padding: "8px 22px",
               boxShadow: "none",
               transition: "all 0.2s ease-in-out",
@@ -1126,18 +1198,17 @@ export const CustomThemeProvider = ({ children }) => {
               fontSize: "0.75rem",
             }),
 
-            // El botón verde usa el tono OSCURO y no el "main" que MUI toma
-            // por defecto: el verde de marca con letra blanca da 3.3:1 y no
-            // llega al mínimo AA; el oscuro da 5.0:1.
-            //
-            // Esto era la variante propia "success" hasta el 2026-07-30,
-            // cuando los botones pasaron a usar el sistema de MUI
-            // (variant="contained" + color). El motivo del tono sobrevive, así
-            // que vive acá, donde MUI lo aplica solo.
-            containedSuccess: ({ theme }) => ({
-              backgroundColor: theme.palette.success.dark,
+            // La acción NEUTRA del sistema de colores: el botón de contorno.
+            // De día es blanco con borde gris; de noche, la superficie de la
+            // tarjeta. Sin esto, el "outlined" de MUI sale transparente y
+            // sobre el fondo de página no se distingue de lo que tiene detrás.
+            outlined: ({ theme }) => ({
+              backgroundColor: esClaro ? BLANCO : AZUL_ACERO,
+              borderColor: esClaro ? BORDE_NEUTRO : theme.palette.divider,
+              color: theme.palette.text.primary,
               "&:hover": {
-                backgroundColor: darken(theme.palette.success.dark, 0.15),
+                backgroundColor: esClaro ? BLANCO : AZUL_ACERO,
+                borderColor: theme.palette.text.secondary,
               },
             }),
           },
@@ -1251,19 +1322,48 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiOutlinedInput: {
           styleOverrides: {
+            // El borde del campo tiene DOS estados y dos colores, nada más
+            // (definido por el dueño el 2026-07-30):
+            //
+            //   quieto → el acento del modo: azul del logo de día, amarillo
+            //            de noche.
+            //   foco   → el ROJO DEL LOGO, y el borde al doble de grueso.
+            //
+            // Se probó con un tercer color para el mouse encima y se descartó:
+            // de día quedaba pegado al rojo del foco y de noche al amarillo
+            // del estado quieto, así que eran tres estados con dos señales.
+            // Pasar el mouse ahora no cambia nada — pero la regla de :hover
+            // tiene que estar igual, porque si no MUI la pinta por su cuenta.
             root: ({ theme }) => ({
               borderRadius: 6,
+
+              // El botón que se mete DENTRO del campo —el ojo de la
+              // contraseña— venía con el relleno normal de un IconButton y
+              // estiraba el campo a 40px, contra los 37 de los que no llevan
+              // ícono. Se achican el relleno y el dibujo para que el campo con
+              // botón mida lo mismo que el resto.
+              //
+              // Va acá y no en "MuiInputAdornment" porque esos botones no
+              // siempre están envueltos en uno, y el ícono no siempre es de
+              // MUI: el del ojo viene de react-icons, así que se apunta al
+              // <svg> pelado en vez de a "MuiSvgIcon-root".
+              "& .MuiIconButton-root": {
+                padding: 4,
+                "& svg": {
+                  width: 18,
+                  height: 18,
+                },
+              },
+
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: theme.palette.custom.inputBorder,
+                borderColor: theme.palette.custom.accent,
+                transition: "border-color 0.15s ease",
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.palette.custom.accent,
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                // Foco en Naranja Seguridad: es naranja en ambos modos, por eso
-                // usa "secondary.main" y no "custom.accent" (que vira a amarillo
-                // en modo oscuro).
-                borderColor: theme.palette.secondary.main,
+                borderColor: theme.palette.custom.rojoLogo,
                 borderWidth: "2px",
               },
             }),
@@ -1288,6 +1388,27 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        // Los selectores armados a mano —FormControl + InputLabel + Select, en
+        // vez de un TextField— no heredaban el "small" de arriba y se quedaban
+        // en el tamaño mediano de MUI: 16.5px de relleno vertical contra 8.5,
+        // o sea 53px de alto contra 37. En un formulario con campos y
+        // selectores mezclados se veía disparejo (Crear Usuarios era el caso
+        // más visible, con Género y Rol más altos que el resto).
+        //
+        // Va como defaultProp y no como estilo para que cualquier pantalla
+        // pueda pedir "medium" si algún día lo necesita.
+        MuiFormControl: {
+          defaultProps: {
+            size: "small",
+          },
+        },
+
+        MuiSelect: {
+          defaultProps: {
+            size: "small",
+          },
+        },
+
         MuiInputAdornment: {
           styleOverrides: {
             positionEnd: {
@@ -1297,6 +1418,11 @@ export const CustomThemeProvider = ({ children }) => {
         },
 
         MuiInputLabel: {
+          // Acompaña al "small" de los campos: si la etiqueta se queda en
+          // mediano, arranca desplazada respecto del recuadro.
+          defaultProps: {
+            size: "small",
+          },
           styleOverrides: {
             // Estilos para la etiqueta flotante (label)
             root: ({ theme }) => ({

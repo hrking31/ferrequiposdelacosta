@@ -392,7 +392,11 @@ const EditarEquipo = () => {
                   }}
                   fullWidth
                 />
-                <Button variant="contained" onClick={handleAddVariante}>
+                <Button
+                  variant="contained"
+                  color="accent"
+                  onClick={handleAddVariante}
+                >
                   Agregar
                 </Button>
               </Box>
@@ -498,6 +502,7 @@ const EditarEquipo = () => {
                           <Box sx={{ width: "100%", mt: 2 }}>
                             <Button
                               variant="contained"
+                              color="accent"
                               fullWidth
                               onClick={() => {
                                 setEditingImageIndex(index);
@@ -536,6 +541,7 @@ const EditarEquipo = () => {
                                 <Box sx={{ width: "100%", mt: 2 }}>
                                   <Button
                                     variant="contained"
+                                    color="accent"
                                     component="span"
                                     sx={{ flex: 1, whiteSpace: "nowrap", p: 1 }}
                                   >
@@ -648,7 +654,12 @@ const EditarEquipo = () => {
                 />
 
                 <Box sx={{ textAlign: "center", mt: 4 }}>
-                  <Button variant="contained" component="span" fullWidth>
+                  <Button
+                    variant="contained"
+                    color="accent"
+                    component="span"
+                    fullWidth
+                  >
                     Selecciona Nueva Imagen
                   </Button>
                 </Box>

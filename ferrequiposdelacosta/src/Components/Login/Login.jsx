@@ -105,22 +105,13 @@ export default function Login({ onClose }) {
                   <IconButton
                     onClick={() => dispatch(togglePasswordVisibility())}
                   >
+                    {/* Mismo ojo que en Crear Usuario, mismo color: el acento
+                        del modo. Antes acá resolvía el color a mano con un
+                        condicional de claro/oscuro. */}
                     {passwordVisible ? (
-                      <FaEyeSlash
-                        color={
-                          theme.palette.mode === "light"
-                            ? theme.palette.text.primary
-                            : theme.palette.text.secondary
-                        }
-                      />
+                      <FaEyeSlash color={theme.palette.custom.accent} />
                     ) : (
-                      <FaEye
-                        color={
-                          theme.palette.mode === "light"
-                            ? theme.palette.text.primary
-                            : theme.palette.text.secondary
-                        }
-                      />
+                      <FaEye color={theme.palette.custom.accent} />
                     )}
                   </IconButton>
                 ),

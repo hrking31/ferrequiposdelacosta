@@ -174,10 +174,11 @@ export default function Register() {
           style: { color: theme.palette.text.primary },
           endAdornment: (
             <IconButton onClick={() => dispatch(togglePasswordVisibility())}>
+              {/* El acento del modo: azul del logo de día, amarillo de noche. */}
               {passwordVisible ? (
-                <FaEyeSlash color={theme.palette.primary.main} />
+                <FaEyeSlash color={theme.palette.custom.accent} />
               ) : (
-                <FaEye color={theme.palette.primary.main} />
+                <FaEye color={theme.palette.custom.accent} />
               )}
             </IconButton>
           ),

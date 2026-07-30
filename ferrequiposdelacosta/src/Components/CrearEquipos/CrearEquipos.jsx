@@ -193,7 +193,11 @@ const CrearEquipos = () => {
               }}
               fullWidth
             />
-            <Button variant="contained" onClick={handleAddVariante}>
+            <Button
+              variant="contained"
+              color="accent"
+              onClick={handleAddVariante}
+            >
               Agregar
             </Button>
           </Box>
@@ -301,6 +305,7 @@ const CrearEquipos = () => {
               <Grid container spacing={2} justifyContent="center">
                 <Button
                   variant="contained"
+                  color="accent"
                   component="span"
                   fullWidth
                   sx={{

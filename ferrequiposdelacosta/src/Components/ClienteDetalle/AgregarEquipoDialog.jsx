@@ -606,7 +606,12 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
             </Grid>
 
             <Grid item xs={12}>
-              <Button variant="contained" fullWidth onClick={handleAgregarItem}>
+              <Button
+                variant="contained"
+                color="accent"
+                fullWidth
+                onClick={handleAgregarItem}
+              >
                 Agregar equipo
               </Button>
             </Grid>

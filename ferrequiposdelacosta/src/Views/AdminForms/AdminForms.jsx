@@ -159,6 +159,11 @@ export default function AdminForms() {
           overflowY: "auto",
           overflowX: "hidden",
           mx: isFullScreen ? 0 : 2,
+          // Aire arriba para que quepa el hover. Los botones se levantan 3px
+          // al pasar el mouse, y como este contenedor recorta lo que se sale
+          // —tiene overflow para poder hacer scroll—, a los de la primera fila
+          // se les cortaba el borde de arriba justo debajo del encabezado.
+          pt: "6px",
         }}
       >
         {botonesVisibles.map((boton) => (

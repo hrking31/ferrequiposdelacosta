@@ -613,7 +613,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
             </Grid>
 
             <Grid item xs={12}>
-              <Button variant="contained" fullWidth onClick={handleAgregarEquipo}>
+              <Button
+                variant="contained"
+                color="accent"
+                fullWidth
+                onClick={handleAgregarEquipo}
+              >
                 Agregar equipo
               </Button>
             </Grid>

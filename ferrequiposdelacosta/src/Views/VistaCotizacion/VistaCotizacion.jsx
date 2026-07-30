@@ -298,6 +298,7 @@ export default function VistaCotizacion() {
           >
             <Button
               variant="contained"
+              color="success"
               fullWidth
               size="small"
               onClick={handleGuardarYSalirClick}
