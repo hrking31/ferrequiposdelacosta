@@ -45,9 +45,13 @@ const ThumbnailImage = styled("img")(({ theme, selected }) => ({
   objectFit: "cover",
   borderRadius: theme.shape.borderRadius * 2.5,
   cursor: "pointer",
+  // La elegida se marca con el acento del tema —azul de día, amarillo de
+  // noche— y las demás con la línea gris de siempre. Antes eran naranja y
+  // amarillo fijos: el amarillo sobre el blanco de la miniatura casi no se
+  // veía, y el naranja quedó reservado para la barra de arriba.
   border: selected
-    ? `2px solid ${theme.palette.secondary.dark}`
-    : `1px solid ${theme.palette.secondary.light}`,
+    ? `2px solid ${theme.palette.custom.accent}`
+    : `1px solid ${theme.palette.divider}`,
   opacity: selected ? 1 : 0.6,
   transition: "all 0.25s ease",
   // Misma "superficie de producto" que la imagen principal: las miniaturas son
