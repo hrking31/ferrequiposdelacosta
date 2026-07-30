@@ -58,6 +58,8 @@ import EventIcon from "@mui/icons-material/Event";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
 import AddCardIcon from "@mui/icons-material/AddCard";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -65,6 +67,7 @@ import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
 import daviplataLogo from "../../assets/mediosPago/daviplata.png";
 import {
+  agruparLotesAgregados,
   normalizarPagos,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
@@ -190,44 +193,6 @@ const formatearMoneda = (valor) =>
     ? valor.toLocaleString("es-CO", { style: "currency", currency: "COP" })
     : null;
 
-// Los equipos que se agregaron juntos forman un lote: comparten un solo
-// pago y unos solos adicionales, que quedan guardados en el primero de
-// ellos. Los lotes nuevos traen "loteId"; en los guardados antes de que
-// existiera ese campo se deduce, porque solo el primero del grupo lleva los
-// datos de pago y los que le siguen sin datos son del mismo lote.
-const agruparLotesAgregados = (equipos) => {
-  const lotes = [];
-
-  equipos.forEach((equipo) => {
-    const ultimo = lotes[lotes.length - 1];
-    const traeDatosDeLote =
-      (Array.isArray(equipo.pagos) && equipo.pagos.length > 0) ||
-      Boolean(equipo.tipoPago) ||
-      Number(equipo.deposito) > 0 ||
-      Boolean(equipo.transporte);
-
-    const sigueElMismo =
-      ultimo &&
-      (equipo.loteId
-        ? equipo.loteId === ultimo.loteId
-        : !ultimo.loteId && !traeDatosDeLote);
-
-    if (sigueElMismo) {
-      ultimo.equipos.push(equipo);
-      return;
-    }
-
-    lotes.push({
-      loteId: equipo.loteId || null,
-      // El primero del lote es el que carga el pago, el depósito y el
-      // transporte de todo el grupo.
-      cabecera: equipo,
-      equipos: [equipo],
-    });
-  });
-
-  return lotes;
-};
 
 const formatearFecha = (isoDate) => {
   if (!isoDate) return null;
@@ -1419,6 +1384,15 @@ export default function ClienteDetalle() {
                     </IconButton>
                   </Tooltip>
                 )}
+                <Tooltip title="Descargar PDF">
+                  <IconButton
+                    size="small"
+                    onClick={() => generarFacturaPdf({ factura, cliente })}
+                    sx={{ ...iconBtnSx, color: acento }}
+                  >
+                    <PictureAsPdfIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Editar factura">
                   <IconButton
                     size="small"
