@@ -25,12 +25,9 @@ export default function KioskCard({ name, url, id }) {
             borderRadius: 4,
             border: "1px solid",
             borderColor: "divider",
-            borderTop: (theme) =>
-              `4px solid ${
-                theme.palette.mode === "light"
-                  ? theme.palette.secondary.main
-                  : theme.palette.secondary.light
-              }`,
+            // El acento ya cambia con el modo, y el kiosco siempre va en
+            // oscuro, así que acá sale amarillo igual que antes.
+            borderTop: (theme) => `4px solid ${theme.palette.custom.accent}`,
             transition: "transform 0.2s",
             "&:active": { transform: "scale(0.95)" },
           }}

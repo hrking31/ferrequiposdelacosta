@@ -23,12 +23,9 @@ export default function CardEquipos({ name, url, id }) {
             height: { xs: 235, sm: 330, md: 470 },
             border: "1px solid",
             borderColor: "divider",
-            borderTop: (theme) =>
-              `4px solid ${
-                theme.palette.mode === "light"
-                  ? theme.palette.secondary.main
-                  : theme.palette.secondary.light
-              }`,
+            // El acento ya cambia con el modo (azul de día, amarillo de
+            // noche), así que la tarjeta no tiene que preguntar en cuál está.
+            borderTop: (theme) => `4px solid ${theme.palette.custom.accent}`,
           }}
         >
           <CardActionArea sx={{ flexDirection: "column" }}>

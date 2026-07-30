@@ -20,19 +20,18 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
       <Card
         onClick={onSelect}
         sx={{
+          // El acento ya cambia con el modo, así que la tarjeta no pregunta
+          // en cuál está. Elegida y sin elegir comparten color: lo que las
+          // distingue es que la elegida se rodea entera y levanta sombra.
           boxShadow: isSelected
-            ? `0 4px 12px ${alpha(theme.palette.secondary.main, 0.3)}`
+            ? `0 4px 12px ${alpha(theme.palette.custom.accent, 0.3)}`
             : "0 2px 8px rgba(0, 0, 0, 0.08)",
           border: "1px solid",
-          borderColor: isSelected ? theme.palette.secondary.main : "divider",
+          borderColor: isSelected ? theme.palette.custom.accent : "divider",
           borderTop: (theme) =>
             isSelected
-              ? `2px solid ${theme.palette.secondary.main}`
-              : `4px solid ${
-                  theme.palette.mode === "light"
-                    ? theme.palette.secondary.main
-                    : theme.palette.secondary.light
-                }`,
+              ? `2px solid ${theme.palette.custom.accent}`
+              : `4px solid ${theme.palette.custom.accent}`,
         }}
       >
         <CardActionArea>
