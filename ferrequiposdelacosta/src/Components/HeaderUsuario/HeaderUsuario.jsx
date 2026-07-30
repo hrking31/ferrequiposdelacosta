@@ -323,7 +323,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
         >
           <Button
             onClick={handleCloseModal}
-            variant="danger"
+            variant="contained"
+            color="error"
             disabled={uploading}
             fullWidth
           >
@@ -331,7 +332,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
           </Button>
           <Button
             onClick={handleUploadAndSave}
-            variant="success"
+            variant="contained"
+            color="success"
             disabled={!selectedFile || uploading}
             startIcon={
               uploading ? <CircularProgress size={20} color="inherit" /> : null

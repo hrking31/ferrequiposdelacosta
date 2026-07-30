@@ -589,7 +589,8 @@ const DatosClienteModal = ({
 
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button
-            variant="danger"
+            variant="contained"
+            color="error"
             onClick={() => {
               setDireccion(estadoInicialDireccion);
               setClienteLocal(estadoInicialCliente);
@@ -601,12 +602,12 @@ const DatosClienteModal = ({
             Cancelar
           </Button>
 
-          <Button variant="success" onClick={handleGuardar}>
+          <Button variant="contained" color="success" onClick={handleGuardar}>
             Guardar
           </Button>
 
           {!modoAdmin && (
-            <Button variant="danger" onClick={handleEliminarDatos}>
+            <Button variant="contained" color="error" onClick={handleEliminarDatos}>
               Eliminar
             </Button>
           )}

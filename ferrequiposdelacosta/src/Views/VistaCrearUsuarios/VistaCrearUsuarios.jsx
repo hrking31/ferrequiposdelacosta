@@ -100,7 +100,8 @@ export default function VistaCrearUsuarios() {
 
             <Button
               onClick={handlerLogout}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >

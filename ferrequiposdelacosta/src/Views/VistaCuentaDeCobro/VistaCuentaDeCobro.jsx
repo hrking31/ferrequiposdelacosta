@@ -119,7 +119,8 @@ export default function VistaCuentaDeCobro() {
           <Grid container spacing={2} justifyContent="center">
             <Grid item xs={10} sm={4} md={4}>
               <Button
-                variant="success"
+                variant="contained"
+                color="success"
                 fullWidth
                 sx={{ flex: 1, whiteSpace: "nowrap" }}
                 onClick={handleClick}
@@ -129,7 +130,7 @@ export default function VistaCuentaDeCobro() {
             </Grid>
 
             <Grid item xs={10} sm={4} md={4}>
-              <Button variant="danger" onClick={clearForm} fullWidth>
+              <Button variant="contained" color="error" onClick={clearForm} fullWidth>
                 Cancelar
               </Button>
             </Grid>
@@ -156,7 +157,8 @@ export default function VistaCuentaDeCobro() {
 
             <Button
               onClick={handlerLogout}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >

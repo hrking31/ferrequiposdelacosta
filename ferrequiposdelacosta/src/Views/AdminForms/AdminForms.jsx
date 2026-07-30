@@ -181,7 +181,9 @@ export default function AdminForms() {
             <Grid item xs={12} sm={5} md={4}>
               <Button
                 onClick={handlerLogout}
-                variant="menuLogout"
+                variant="contained"
+                color="error"
+                fullWidth
                 startIcon={<LogoutIcon />}
               >
                 CERRAR SESIÓN

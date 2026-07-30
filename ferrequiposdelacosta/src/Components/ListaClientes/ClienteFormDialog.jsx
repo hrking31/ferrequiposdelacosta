@@ -252,7 +252,8 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           {esEdicion && (
             <Button
-              variant="danger"
+              variant="contained"
+              color="error"
               onClick={handleAbrirConfirmacion}
               disabled={guardando}
               size="small"
@@ -261,10 +262,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
               Eliminar
             </Button>
           )}
-          <Button variant="danger" onClick={handleCerrar} disabled={guardando} size="small">
+          <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando} size="small">
             Cancelar
           </Button>
-          <Button variant="success" onClick={handleGuardar} disabled={guardando} size="small">
+          <Button variant="contained" color="success" onClick={handleGuardar} disabled={guardando} size="small">
             {guardando ? "Guardando..." : "Guardar"}
           </Button>
         </DialogActions>
@@ -290,7 +291,8 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
             Cancelar
           </Button>
           <Button
-            variant="danger"
+            variant="contained"
+            color="error"
             onClick={handleEliminarDefinitivo}
             disabled={eliminando || cargandoConteo}
           >

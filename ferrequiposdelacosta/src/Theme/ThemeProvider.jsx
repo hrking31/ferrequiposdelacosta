@@ -1109,8 +1109,13 @@ export const CustomThemeProvider = ({ children }) => {
               borderRadius: theme.shape.borderRadius,
               padding: "8px 22px",
               boxShadow: "none",
+              transition: "all 0.2s ease-in-out",
+              // UN SOLO gesto de hover para todos los botones: se levantan.
+              // Antes convivían dos lenguajes —los tiles del menú y el botón
+              // de acción rápida se levantaban, y el resto sacaba sombra—, y
+              // cada variante lo repetía por su cuenta.
               "&:hover": {
-                boxShadow: theme.shadows[4],
+                transform: "translateY(-3px)",
               },
             }),
             // El botón compacto: el que va en la barra de acciones del pie en
@@ -1120,43 +1125,28 @@ export const CustomThemeProvider = ({ children }) => {
               padding: theme.spacing(0.75, 1),
               fontSize: "0.75rem",
             }),
+
+            // El botón verde usa el tono OSCURO y no el "main" que MUI toma
+            // por defecto: el verde de marca con letra blanca da 3.3:1 y no
+            // llega al mínimo AA; el oscuro da 5.0:1.
+            //
+            // Esto era la variante propia "success" hasta el 2026-07-30,
+            // cuando los botones pasaron a usar el sistema de MUI
+            // (variant="contained" + color). El motivo del tono sobrevive, así
+            // que vive acá, donde MUI lo aplica solo.
+            containedSuccess: ({ theme }) => ({
+              backgroundColor: theme.palette.success.dark,
+              "&:hover": {
+                backgroundColor: darken(theme.palette.success.dark, 0.15),
+              },
+            }),
           },
+          // Acá vivían "danger", "success" y "menuLogout". El 2026-07-30
+          // pasaron a ser el sistema de MUI —variant="contained" con
+          // color="error" / "success"— porque eran exactamente eso: el mismo
+          // botón relleno con distinto color. Las que quedan son las que MUI
+          // no sabe hacer: colores de marca ajena y formas propias.
           variants: [
-            {
-              props: { variant: "danger" },
-              style: ({ theme }) => ({
-                backgroundColor: theme.palette.error.main,
-                color: theme.palette.error.contrastText,
-                "&:hover": { backgroundColor: theme.palette.error.dark },
-              }),
-            },
-            {
-              // Mismo color que "danger", pero pensado para el botón de
-              // cerrar sesión: ocupa todo el ancho y acomoda el ícono a la
-              // izquierda del texto (antes esto se armaba a mano con
-              // variant="danger" + fullWidth + startIcon en cada pantalla).
-              props: { variant: "menuLogout" },
-              style: ({ theme }) => ({
-                backgroundColor: theme.palette.error.main,
-                color: theme.palette.error.contrastText,
-                width: "100%",
-                justifyContent: "center",
-                gap: 1,
-                "&:hover": { backgroundColor: theme.palette.error.dark },
-              }),
-            },
-            {
-              // Usa el verde OSCURO, no el "main": el verde de marca con texto
-              // blanco da 3.3:1 y no llega al mínimo AA. El oscuro da 5.0:1.
-              props: { variant: "success" },
-              style: ({ theme }) => ({
-                backgroundColor: theme.palette.success.dark,
-                color: theme.palette.common.white,
-                "&:hover": {
-                  backgroundColor: darken(theme.palette.success.dark, 0.15),
-                },
-              }),
-            },
             {
               // EXCEPCIÓN CONSCIENTE: el verde oficial de WhatsApp con texto
               // blanco da 2.0:1 y no cumple AA, pero es el botón reconocible de
@@ -1231,12 +1221,13 @@ export const CustomThemeProvider = ({ children }) => {
                     gap: theme.spacing(1),
                     "& .MuiSvgIcon-root": { fontSize: 28 },
                   },
+                  // El levantarse lo pone "root", igual que en todos los
+                  // botones; acá solo va lo propio del tile.
                   "&:hover": {
                     backgroundColor: esOscuro
                       ? theme.palette.background.paper
                       : alpha(theme.palette.primary.main, 0.06),
                     borderColor: theme.palette.custom.accent,
-                    transform: "translateY(-3px)",
                   },
                 };
               },
@@ -1249,10 +1240,9 @@ export const CustomThemeProvider = ({ children }) => {
                 backgroundColor: theme.palette.custom.accent,
                 color: theme.palette.custom.onAccent,
                 boxShadow: "none",
-                transition: "all 0.2s ease-in-out",
+                // El levantarse y la transición los pone "root".
                 "&:hover": {
                   backgroundColor: darken(theme.palette.custom.accent, 0.12),
-                  transform: "translateY(-3px)",
                 },
               }),
             },

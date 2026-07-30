@@ -226,7 +226,7 @@ export default function Register() {
         </Select>
       </FormControl>
 
-      <Button variant="success" type="submit" fullWidth>
+      <Button variant="contained" color="success" type="submit" fullWidth>
         Registrar
       </Button>
 

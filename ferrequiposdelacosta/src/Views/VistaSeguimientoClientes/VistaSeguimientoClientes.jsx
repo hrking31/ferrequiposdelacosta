@@ -83,7 +83,8 @@ export default function VistaSeguimientoClientes() {
 
             <Button
               onClick={handlerLogout}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >

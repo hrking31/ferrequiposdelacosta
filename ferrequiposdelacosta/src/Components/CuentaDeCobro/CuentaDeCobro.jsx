@@ -210,7 +210,7 @@ export default function CuentaCobro() {
 
               <Grid item xs={6} md={6}>
                 <Button
-                  variant="danger"
+                  variant="contained"
                   color="error"
                   onClick={() => removeItem(index)}
                   fullWidth
@@ -223,7 +223,7 @@ export default function CuentaCobro() {
         ))}
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={12}>
-            <Button variant="success" onClick={addNewItem} fullWidth>
+            <Button variant="contained" color="success" onClick={addNewItem} fullWidth>
               Agregar Ítem
             </Button>
           </Grid>

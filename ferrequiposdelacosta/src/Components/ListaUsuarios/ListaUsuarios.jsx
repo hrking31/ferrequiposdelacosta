@@ -478,7 +478,8 @@ export default function UsersList() {
 
           <Button
             onClick={handleCloseModal}
-            variant="danger"
+            variant="contained"
+            color="error"
             size="medium"
             fullWidth={isMobile}
             disabled={loadingGuardar}
@@ -488,7 +489,8 @@ export default function UsersList() {
 
           <Button
             onClick={handleSaveChanges}
-            variant="success"
+            variant="contained"
+            color="success"
             size="medium"
             fullWidth={isMobile}
             disabled={loadingGuardar}
@@ -543,7 +545,8 @@ export default function UsersList() {
         >
           <Button
             onClick={handleDeleteUser}
-            variant="success"
+            variant="contained"
+            color="success"
             size="medium"
             fullWidth={isMobile}
           >
@@ -552,7 +555,8 @@ export default function UsersList() {
 
           <Button
             onClick={() => setOpenConfirmDelete(false)}
-            variant="danger"
+            variant="contained"
+            color="error"
             size="medium"
             fullWidth={isMobile}
           >

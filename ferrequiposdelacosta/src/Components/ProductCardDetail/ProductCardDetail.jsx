@@ -279,7 +279,7 @@ export default function ProductCardDetail({ product }) {
 
       <Box sx={{ textAlign: "center", pb: 2 }}>
         <>
-          <Button variant="success" onClick={handleAgregarAlCarrito}>
+          <Button variant="contained" color="success" onClick={handleAgregarAlCarrito}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="button">Agregar al</Typography>
               <Camion
@@ -320,7 +320,7 @@ export default function ProductCardDetail({ product }) {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="success" onClick={handleSaveModal} fullWidth>
+          <Button variant="contained" color="success" onClick={handleSaveModal} fullWidth>
             Guardar
           </Button>
         </DialogActions>

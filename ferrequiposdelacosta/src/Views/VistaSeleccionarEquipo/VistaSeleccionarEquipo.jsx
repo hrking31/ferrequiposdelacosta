@@ -201,7 +201,7 @@ const VistaSeleccionarEquipo = () => {
               </Button>
             </Grid>
             <Grid item xs={8} sm={4} md={4}>
-              <Button variant="danger" onClick={handleEliminar} fullWidth>
+              <Button variant="contained" color="error" onClick={handleEliminar} fullWidth>
                 ELIMINAR
               </Button>
             </Grid>
@@ -239,7 +239,8 @@ const VistaSeleccionarEquipo = () => {
 
             <Button
               onClick={handlerLogout}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >

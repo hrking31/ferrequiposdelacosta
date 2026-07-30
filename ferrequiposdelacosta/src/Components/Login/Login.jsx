@@ -130,7 +130,7 @@ export default function Login({ onClose }) {
         </Grid>
 
         <Box sx={{ textAlign: "center", mt: 3 }}>
-          <Button type="submit" variant="success">
+          <Button type="submit" variant="contained" color="success">
             ACCESO
           </Button>
         </Box>

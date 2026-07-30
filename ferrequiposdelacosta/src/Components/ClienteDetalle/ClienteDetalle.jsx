@@ -2039,7 +2039,8 @@ export default function ClienteDetalle() {
             Cancelar
           </Button>
           <Button
-            variant="danger"
+            variant="contained"
+            color="error"
             onClick={handleEliminarFactura}
             disabled={eliminando}
           >

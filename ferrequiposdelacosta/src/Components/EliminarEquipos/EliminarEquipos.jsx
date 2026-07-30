@@ -165,7 +165,8 @@ const EliminarEquipo = () => {
       </Grid>
 
       <Button
-        variant="danger"
+        variant="contained"
+        color="error"
         fullWidth
         onClick={() => setOpenConfirmDelete(true)}
       >
@@ -214,7 +215,8 @@ const EliminarEquipo = () => {
         >
           <Button
             onClick={handleDelete}
-            variant="success"
+            variant="contained"
+            color="success"
             size="medium"
             fullWidth={isMobile}
           >
@@ -223,7 +225,8 @@ const EliminarEquipo = () => {
 
           <Button
             onClick={() => setOpenConfirmDelete(false)}
-            variant="danger"
+            variant="contained"
+            color="error"
             size="medium"
             fullWidth={isMobile}
           >

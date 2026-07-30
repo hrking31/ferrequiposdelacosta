@@ -563,7 +563,8 @@ const EditarEquipo = () => {
 
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
-                                variant="danger"
+                                variant="contained"
+                                color="error"
                                 fullWidth
                                 onClick={() => handleDeleteImageByIndex(index)}
                                 sx={{ flex: 1, whiteSpace: "nowrap" }}
@@ -574,7 +575,8 @@ const EditarEquipo = () => {
                             
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
-                                variant="danger"
+                                variant="contained"
+                                color="error"
                                 fullWidth
                                 onClick={() => {
                                   const updatedImages = [...formData.images];
@@ -599,8 +601,8 @@ const EditarEquipo = () => {
 
                             <Box sx={{ width: "100%", mt: 2 }}>
                               <Button
-                                variant="success"
-                                color="primary"
+                                variant="contained"
+                                color="success"
                                 fullWidth
                                 onClick={() => {
                                   setEditingImageIndex(null);
@@ -686,7 +688,8 @@ const EditarEquipo = () => {
 
                 <Box sx={{ width: "100%", mt: 2 }}>
                   <Button
-                    variant="success"
+                    variant="contained"
+                    color="success"
                     onClick={guardarImagenConNombre}
                     fullWidth
                   >
@@ -696,7 +699,8 @@ const EditarEquipo = () => {
 
                 <Box sx={{ width: "100%", mt: 2 }}>
                   <Button
-                    variant="danger"
+                    variant="contained"
+                    color="error"
                     fullWidth
                     onClick={() => {
                       setNuevaImagenTemporal(null);
@@ -721,14 +725,15 @@ const EditarEquipo = () => {
 
           <Grid container spacing={2} sx={{ mt: 2, p: 1 }}>
             <Grid item xs={12} md={4}>
-              <Button variant="success" onClick={cambiarOrden} fullWidth>
+              <Button variant="contained" color="success" onClick={cambiarOrden} fullWidth>
                 Aplicar Orden
               </Button>
             </Grid>
 
             <Grid item xs={12} md={4}>
               <Button
-                variant="success"
+                variant="contained"
+                color="success"
                 fullWidth
                 onClick={() => {
                   actualizarEquipoConCambios(formData, equipoSeleccionado.id);
@@ -740,7 +745,8 @@ const EditarEquipo = () => {
 
             <Grid item xs={12} md={4}>
               <Button
-                variant="danger"
+                variant="contained"
+                color="error"
                 fullWidth
                 onClick={() => {
                   if (equipoSeleccionado) {

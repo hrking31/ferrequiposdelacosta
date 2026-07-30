@@ -258,10 +258,10 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
           </Grid>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
-          <Button variant="danger" onClick={handleCerrar} disabled={guardando}>
+          <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          <Button variant="success" onClick={handleGuardar} disabled={guardando}>
+          <Button variant="contained" color="success" onClick={handleGuardar} disabled={guardando}>
             {guardando ? "Guardando..." : "Registrar abono"}
           </Button>
         </DialogActions>

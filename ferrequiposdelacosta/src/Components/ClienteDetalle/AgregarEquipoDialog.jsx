@@ -942,10 +942,10 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
           </Grid>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
-          <Button variant="danger" onClick={handleCerrar} disabled={guardando}>
+          <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          <Button variant="success" onClick={handleAgregar} disabled={guardando}>
+          <Button variant="contained" color="success" onClick={handleAgregar} disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar en la factura"}
           </Button>
         </DialogActions>

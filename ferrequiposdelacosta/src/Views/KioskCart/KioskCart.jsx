@@ -630,7 +630,8 @@ export default function KioskCart() {
                       }}
                     >
                       <Button
-                        variant="danger"
+                        variant="contained"
+                        color="error"
                         onClick={() => dispatch(removeFromCart(item.lineId))}
                       >
                         Eliminar

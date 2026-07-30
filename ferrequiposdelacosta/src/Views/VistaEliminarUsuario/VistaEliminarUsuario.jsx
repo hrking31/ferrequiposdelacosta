@@ -101,7 +101,8 @@ export default function VistaEliminarUsuario() {
 
             <Button
               onClick={handlerLogout}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >

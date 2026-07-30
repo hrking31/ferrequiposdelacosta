@@ -663,7 +663,8 @@ export default function VistaCart() {
                       }}
                     >
                       <Button
-                        variant="danger"
+                        variant="contained"
+                        color="error"
                         onClick={() => dispatch(removeFromCart(item.lineId))}
                       >
                         Eliminar

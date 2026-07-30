@@ -499,7 +499,8 @@ export default function Cotizacion() {
 
               <Grid item xs={6} md={6}>
                 <Button
-                  variant="danger"
+                  variant="contained"
+                  color="error"
                   onClick={() => removeItem(index)}
                   fullWidth
                   sx={{ flex: 1, whiteSpace: "nowrap" }}
@@ -514,7 +515,8 @@ export default function Cotizacion() {
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12}>
             <Button
-              variant="success"
+              variant="contained"
+              color="success"
               onClick={addNewItem}
               fullWidth
               sx={{

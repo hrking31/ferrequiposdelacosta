@@ -17,7 +17,7 @@ const VistaNoAutorizada = () => {
         No tienes permiso para ver esta página.
       </Typography>
 
-      <Button variant="danger" onClick={() => navigate("/")}>
+      <Button variant="contained" color="error" onClick={() => navigate("/")}>
         Volver al inicio
       </Button>
     </Container>

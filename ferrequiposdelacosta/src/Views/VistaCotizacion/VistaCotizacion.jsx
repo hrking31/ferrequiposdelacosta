@@ -269,7 +269,8 @@ export default function VistaCotizacion() {
             <Grid container spacing={2} justifyContent="center">
               <Grid item xs={10} sm={6} md={4}>
                 <Button
-                  variant="success"
+                  variant="contained"
+                  color="success"
                   fullWidth
                   sx={{ flex: 1, whiteSpace: "nowrap" }}
                   onClick={handleDescargarPdf}
@@ -306,7 +307,8 @@ export default function VistaCotizacion() {
 
             <Button
               onClick={handleLogoutClick}
-              variant="danger"
+              variant="contained"
+              color="error"
               fullWidth
               size="small"
             >
@@ -339,7 +341,8 @@ export default function VistaCotizacion() {
                 ? handleCerrarSesionSinGuardar
                 : salirSinGuardar
             }
-            variant="danger"
+            variant="contained"
+            color="error"
             disabled={loading}
           >
             {pendingAction === "logout" ? "Cerrar sin Crear" : "Salir sin guardar"}
@@ -350,7 +353,8 @@ export default function VistaCotizacion() {
                 ? handleGuardarYCerrarSesion
                 : guardarYSalir
             }
-            variant="success"
+            variant="contained"
+            color="success"
             disabled={loading}
           >
             {pendingAction === "logout" ? "Crear y cerrar sesión" : "Guardar y salir"}

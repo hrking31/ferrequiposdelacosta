@@ -333,12 +333,12 @@ const CrearEquipos = () => {
         />
         <Grid container spacing={2} justifyContent="center">
           <Grid item xs={10} sm={4} md={4}>
-            <Button type="submit" variant="success" disabled={loading} fullWidth>
+            <Button type="submit" variant="contained" color="success" disabled={loading} fullWidth>
               CREAR EQUIPO
             </Button>
           </Grid>
           <Grid item xs={10} sm={4} md={4}>
-            <Button onClick={handleCancel} variant="danger" fullWidth>
+            <Button onClick={handleCancel} variant="contained" color="error" fullWidth>
               CANCELAR
             </Button>
           </Grid>
