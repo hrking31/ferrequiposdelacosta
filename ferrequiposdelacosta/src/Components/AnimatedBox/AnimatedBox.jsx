@@ -1,5 +1,6 @@
 import { Box, Button, Typography, useTheme, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import InstallMobileIcon from "@mui/icons-material/InstallMobile";
 import { forwardRef } from "react";
 import PropTypes from "prop-types";
 
@@ -113,6 +114,7 @@ const AnimatedBox = forwardRef(function AnimatedBox(
                 propagación porque el clic del cartel llama a lo mismo, y sin
                 esto se dispararía dos veces. */}
             <Button
+              startIcon={<InstallMobileIcon />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleInstall();
@@ -125,10 +127,18 @@ const AnimatedBox = forwardRef(function AnimatedBox(
                 color: "custom.accent",
                 fontWeight: 700,
                 px: 3,
-                "&:hover": { bgcolor: "custom.onAccent", opacity: 0.9 },
+                py: 1,
+                borderRadius: (theme) => theme.shape.pill,
+                boxShadow: 3,
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  bgcolor: "custom.onAccent",
+                  transform: "translateY(-2px)",
+                  boxShadow: 6,
+                },
               }}
             >
-              Instalar
+              Instalar app
             </Button>
           </Box>
         </>
