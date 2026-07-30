@@ -665,6 +665,69 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        // El par de renglones con el que se anota cada dato dentro de los
+        // recuadros de una factura: arriba el rótulo en mayúsculas
+        // ("DEPÓSITO", "MEDIO", "SALDO") y abajo su valor en negrita. Nunca
+        // van uno sin el otro, así que son dos variantes hermanas.
+        //
+        // Lo raro de estas dos es que achican de 900px PARA ARRIBA, al revés
+        // que el resto: en computador los recuadros se acomodan en columnas
+        // angostas al lado de los equipos, y ahí un importe de siete cifras
+        // se monta sobre el de al lado. En celular cada dato ocupa el ancho
+        // completo y el texto va del tamaño normal.
+        //
+        // El COLOR no va acá a propósito: el rótulo lleva el color del bloque
+        // al que pertenece (pago, adicionales, abonos) y se lo pasa cada
+        // pantalla; dentro de la pizarra de totales lo hereda del renglón.
+        //
+        // Antes estaban escritos como `fontSize: { md: …, lg: … }` sueltos, y
+        // repetidos en los cuatro recuadros de ClienteDetalle.
+        rotuloDato: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: "0.925rem", // hasta 900px: el tamaño normal del texto
+          display: "block",
+          lineHeight: 1.1,
+          textTransform: "uppercase",
+          letterSpacing: "0.4px",
+          color: p.text.primary,
+
+          "@media (max-width:600px)": {
+            fontSize: "0.875rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.8rem", // xs
+          },
+          // De acá para arriba el rótulo se vuelve una etiqueta chiquita.
+          "@media (min-width:900px)": {
+            fontSize: "0.6rem",
+          },
+          "@media (min-width:1200px)": {
+            fontSize: "0.7rem",
+          },
+        },
+
+        valorDato: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 700,
+          fontSize: "0.925rem", // hasta 900px: el tamaño normal del texto
+          lineHeight: 1.25,
+          color: p.text.primary,
+
+          "@media (max-width:600px)": {
+            fontSize: "0.875rem", // sm
+          },
+          "@media (max-width:400px)": {
+            fontSize: "0.8rem", // xs
+          },
+          "@media (min-width:900px)": {
+            fontSize: "0.75rem",
+          },
+          "@media (min-width:1200px)": {
+            fontSize: "0.9rem",
+          },
+        },
+
         // El renglón de "© 2026 Ferrequipos de la Costa…" que cierra el menú
         // lateral (tanto el de celular como la columna de computador) y el pie
         // de página. Es la MISMA frase en los tres lugares, pero cada uno
@@ -1501,6 +1564,10 @@ export const CustomThemeProvider = ({ children }) => {
               resumenCarrito: "p",
               // Ídem: el renglón de copyright es un párrafo.
               copyright: "p",
+              // Ídem: el rótulo y el valor de cada dato de una factura eran
+              // párrafos (salían por "body1") y tienen que seguir siéndolo.
+              rotuloDato: "p",
+              valorDato: "p",
               // Este en cambio sí va como <span>, que es lo que era antes
               // (usaba "caption"): así el pie de la hoja no cambia de forma.
               documentoPie: "span",

@@ -137,6 +137,77 @@ const renderMedioPago = (medio) => {
   );
 };
 
+// El recuadro de color que envuelve cada bloque de una factura: la
+// informacion de pago, los cargos adicionales y los abonos. Todo su aspecto
+// —el borde, el resplandor y el degradado— sale del color que se le pase,
+// que es el del bloque al que pertenece.
+const renderRecuadroBloque = (color, contenido, key) => (
+  <Box
+    key={key}
+    sx={{
+      p: 1.5,
+      borderRadius: 1,
+      bgcolor: "background.paper",
+      border: "1px solid",
+      // Todo el recuadro se tiñe del color del bloque: el borde, un
+      // resplandor difuso alrededor y un degradado por encima.
+      borderColor: color,
+      // El resplandor va hacia ADENTRO: como sombra externa se derramaba
+      // por fuera del borde y manchaba lo que tenía al lado.
+      boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
+      position: "relative",
+      // Recorta el degradado al radio del borde: con inset 0 las esquinas
+      // se le salían por encima.
+      overflow: "hidden",
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        // El degradado cubre el recuadro completo: entra fuerte por la
+        // esquina de arriba y se va aclarando en diagonal, pero sin llegar
+        // nunca a transparente.
+        background: `linear-gradient(135deg, ${alpha(color, 0.16)}, ${alpha(color, 0.04)})`,
+        pointerEvents: "none",
+      },
+    }}
+  >
+    {contenido}
+  </Box>
+);
+
+// Los datos de adentro de un recuadro: cada uno es una columna con el rotulo
+// arriba y el valor abajo, separadas por una linea vertical. En celular no
+// entran cuatro columnas, asi que se apilan y la linea desaparece.
+//
+// Un dato puede traer `contenido` en vez de `valor` cuando lo que va abajo no
+// es texto sino algo dibujado, como el logo del medio de pago.
+const renderFilaDatos = (color, datos) => (
+  <Stack
+    direction={{ xs: "column", sm: "row" }}
+    rowGap={1}
+    sx={{ minWidth: 0 }}
+    divider={
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
+      />
+    }
+  >
+    {datos.map(({ clave, rotulo, valor, contenido }) => (
+      <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
+        {/* El rótulo lleva el color del bloque; el valor va en el color
+            normal del texto, que es donde se lee la cifra. */}
+        <Typography variant="rotuloDato" sx={{ color }}>
+          {rotulo}
+        </Typography>
+        {contenido || <Typography variant="valorDato">{valor}</Typography>}
+      </Box>
+    ))}
+  </Stack>
+);
+
 // El estado del cliente es el mismo vocabulario que el de sus facturas
 // (el cliente toma el estado de la factura que se le crea/edita), más
 // "inactivo" para cuando todavía no tiene ninguna factura.
@@ -630,70 +701,7 @@ export default function ClienteDetalle() {
       valor: formatearMoneda(total),
     });
 
-    return (
-      <Box
-        key={key}
-        sx={{
-          p: 1.5,
-          borderRadius: 1,
-          bgcolor: "background.paper",
-          border: "1px solid",
-          borderColor: color,
-          boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
-          position: "relative",
-          overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            borderRadius: "inherit",
-            background: `linear-gradient(135deg, ${alpha(color, 0.16)}, ${alpha(color, 0.04)})`,
-            pointerEvents: "none",
-          },
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          rowGap={1}
-          sx={{ minWidth: 0 }}
-          divider={
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
-            />
-          }
-        >
-          {datos.map(({ clave, rotulo, valor }) => (
-            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
-              <Typography
-                sx={{
-                  display: "block",
-                  lineHeight: 1.1,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                  // El rótulo lleva el color del bloque; el valor va en el
-                  // color normal del texto, que es donde se lee la cifra.
-                  color,
-                  fontSize: { md: "0.6rem", lg: "0.7rem" },
-                }}
-              >
-                {rotulo}
-              </Typography>
-              <Typography
-                fontWeight="bold"
-                sx={{
-                  lineHeight: 1.25,
-                  fontSize: { md: "0.75rem", lg: "0.9rem" },
-                }}
-              >
-                {valor}
-              </Typography>
-            </Box>
-          ))}
-        </Stack>
-      </Box>
-    );
+    return renderRecuadroBloque(color, renderFilaDatos(color, datos), key);
   };
 
   // Cuadro de pago de un lote de equipos (el original de la factura, o cada
@@ -769,80 +777,10 @@ export default function ClienteDetalle() {
       });
     }
 
-    return (
-      <Box
-        key={key}
-        sx={{
-          p: 1.5,
-          borderRadius: 1,
-          bgcolor: "background.paper",
-          border: "1px solid",
-          // Todo el recuadro se tiñe del color del estado de la factura: el
-          // borde, un resplandor difuso alrededor y un degradado por encima.
-          borderColor: colorEstado,
-          // El resplandor va hacia ADENTRO: como sombra externa se derramaba
-          // por fuera del borde y manchaba lo que tenía al lado.
-          boxShadow: `inset 0 0 12px ${alpha(colorEstado, 0.2)}`,
-          position: "relative",
-          // Recorta el degradado al radio del borde: con inset 0 las esquinas
-          // se le salían por encima.
-          overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            borderRadius: "inherit",
-            // El degradado cubre el recuadro completo: entra fuerte por la
-            // esquina de arriba y se va aclarando en diagonal, pero sin llegar
-            // nunca a transparente.
-            background: `linear-gradient(135deg, ${alpha(colorEstado, 0.16)}, ${alpha(colorEstado, 0.04)})`,
-            pointerEvents: "none",
-          },
-        }}
-      >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          rowGap={1}
-          sx={{ minWidth: 0 }}
-          divider={
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
-            />
-          }
-        >
-          {datos.map(({ clave, rotulo, valor, contenido }) => (
-            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
-              <Typography
-                sx={{
-                  display: "block",
-                  lineHeight: 1.1,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                  // El rótulo lleva el color del bloque; el valor va en el
-                  // color normal del texto, que es donde se lee la cifra.
-                  color: colorEstado,
-                  fontSize: { md: "0.6rem", lg: "0.7rem" },
-                }}
-              >
-                {rotulo}
-              </Typography>
-              {contenido || (
-                <Typography
-                  fontWeight="bold"
-                  sx={{
-                    lineHeight: 1.25,
-                    fontSize: { md: "0.75rem", lg: "0.9rem" },
-                  }}
-                >
-                  {valor}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Stack>
-      </Box>
+    return renderRecuadroBloque(
+      colorEstado,
+      renderFilaDatos(colorEstado, datos),
+      key,
     );
   };
 
@@ -852,105 +790,36 @@ export default function ClienteDetalle() {
   const renderAbonos = (abonos, colorEstado) => {
     if (!abonos || abonos.length === 0) return null;
 
-    return (
-      <Box
-        sx={{
-          p: 1.5,
-          borderRadius: 1,
-          bgcolor: "background.paper",
-          border: "1px solid",
-          // Todo el recuadro se tiñe del color del estado de la factura: el
-          // borde, un resplandor difuso alrededor y un degradado por encima.
-          borderColor: colorEstado,
-          // El resplandor va hacia ADENTRO: como sombra externa se derramaba
-          // por fuera del borde y manchaba lo que tenía al lado.
-          boxShadow: `inset 0 0 12px ${alpha(colorEstado, 0.2)}`,
-          position: "relative",
-          // Recorta el degradado al radio del borde: con inset 0 las esquinas
-          // se le salían por encima.
-          overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            borderRadius: "inherit",
-            // El degradado cubre el recuadro completo: entra fuerte por la
-            // esquina de arriba y se va aclarando en diagonal, pero sin llegar
-            // nunca a transparente.
-            background: `linear-gradient(135deg, ${alpha(colorEstado, 0.16)}, ${alpha(colorEstado, 0.04)})`,
-            pointerEvents: "none",
-          },
-        }}
-      >
-        <Stack spacing={1} divider={<Divider />}>
-          {abonos.map((abono, indice) => {
-            const datos = [
-              {
-                clave: "fecha",
-                rotulo: "Abono",
-                valor: formatearFecha(abono.fecha),
-              },
-              {
-                clave: "medio",
-                rotulo: "Medio",
-                contenido: renderMedioPago(abono.medio),
-              },
-              {
-                clave: "valor",
-                rotulo: "Valor",
-                valor: formatearMoneda(Number(abono.monto) || 0),
-              },
-            ];
-            return (
-              <Box key={`abono-${indice}`}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          rowGap={1}
-          sx={{ minWidth: 0 }}
-          divider={
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
-            />
-          }
-        >
-          {datos.map(({ clave, rotulo, valor, contenido }) => (
-            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
-              <Typography
-                sx={{
-                  display: "block",
-                  lineHeight: 1.1,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                  // El rótulo lleva el color del bloque; el valor va en el
-                  // color normal del texto, que es donde se lee la cifra.
-                  color: colorEstado,
-                  fontSize: { md: "0.6rem", lg: "0.7rem" },
-                }}
-              >
-                {rotulo}
-              </Typography>
-              {contenido || (
-                <Typography
-                  fontWeight="bold"
-                  sx={{
-                    lineHeight: 1.25,
-                    fontSize: { md: "0.75rem", lg: "0.9rem" },
-                  }}
-                >
-                  {valor}
-                </Typography>
-              )}
+    const renglones = (
+      <Stack spacing={1} divider={<Divider />}>
+        {abonos.map((abono, indice) => {
+          const datos = [
+            {
+              clave: "fecha",
+              rotulo: "Abono",
+              valor: formatearFecha(abono.fecha),
+            },
+            {
+              clave: "medio",
+              rotulo: "Medio",
+              contenido: renderMedioPago(abono.medio),
+            },
+            {
+              clave: "valor",
+              rotulo: "Valor",
+              valor: formatearMoneda(Number(abono.monto) || 0),
+            },
+          ];
+          return (
+            <Box key={`abono-${indice}`}>
+              {renderFilaDatos(colorEstado, datos)}
             </Box>
-          ))}
-        </Stack>
-              </Box>
-            );
-          })}
-        </Stack>
-      </Box>
+          );
+        })}
+      </Stack>
     );
+
+    return renderRecuadroBloque(colorEstado, renglones);
   };
 
   if (loading) {
@@ -1551,28 +1420,24 @@ export default function ClienteDetalle() {
                               gap={0.75}
                               sx={{ minWidth: 0 }}
                             >
-                              <Icono sx={{ fontSize: 20, flexShrink: 0 }} />
+                              <Icono
+                                fontSize="small"
+                                sx={{ flexShrink: 0 }}
+                              />
                               <Box sx={{ minWidth: 0 }}>
-                                <Typography
-                                  sx={{
-                                    display: "block",
-                                    lineHeight: 1.1,
-                                    textTransform: "uppercase",
-                                    letterSpacing: 0.4,
-                                    fontSize: { md: "0.6rem", lg: "0.7rem" },
-                                  }}
-                                >
+                                <Typography variant="rotuloDato">
                                   {rotulo}
                                 </Typography>
                                 {/* Un valor de siete cifras no entra en un
                                     cuarto del hueco y se montaba sobre el de al
-                                    lado: achica en pantallas medianas. */}
+                                    lado: achica en pantallas medianas. Estas
+                                    son las cifras principales de la cuenta, un
+                                    punto más grandes que las de un recuadro. */}
                                 <Typography
-                                  fontWeight="bold"
+                                  variant="valorDato"
                                   sx={{
-                                    lineHeight: 1.25,
                                     whiteSpace: "nowrap",
-                                    fontSize: { md: "0.75rem", lg: "1rem" },
+                                    fontSize: { lg: "1rem" },
                                   }}
                                 >
                                   {valor}
