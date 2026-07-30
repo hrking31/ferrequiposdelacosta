@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import PropTypes from "prop-types";
 
 const AnimatedBox = forwardRef(function AnimatedBox(
-  { isExpanded, isDarkMode, handleInstall, handleClose, hasMounted, showLoop },
+  { isExpanded, handleInstall, handleClose, hasMounted, showLoop },
   ref
 ) {
   const theme = useTheme();
@@ -14,9 +14,10 @@ const AnimatedBox = forwardRef(function AnimatedBox(
     top: "15%",
     right: 0,
     zIndex: 1500,
-    bgcolor: isDarkMode
-      ? theme.palette.primary.main
-      : theme.palette.secondary.main,
+    // El acento del tema: azul de día, amarillo de noche. El texto y la cruz
+    // van con "onAccent", que es el color pensado para ir encima.
+    bgcolor: theme.palette.custom.accent,
+    color: theme.palette.custom.onAccent,
     width: isExpanded ? { xs: 280, sm: 360 } : 35,
     height: isExpanded ? "auto" : 48,
     borderTopLeftRadius: 24,
@@ -78,7 +79,7 @@ const AnimatedBox = forwardRef(function AnimatedBox(
               position: "absolute",
               top: 4,
               right: 4,
-              color: "text.primary",
+              color: "custom.onAccent",
             }}
           >
             <CloseIcon />
@@ -88,7 +89,10 @@ const AnimatedBox = forwardRef(function AnimatedBox(
             variant="h5"
             sx={{
               textAlign: "center",
-               p: 2,
+              p: 2,
+              // El h5 del tema sale con el color del acento, que es justo el
+              // fondo de este cartel: quedaría del mismo color que la caja.
+              color: "custom.onAccent",
             }}
           >
             ¡Lleva la experiencia a otro nivel! Instala nuestra app ahora y
@@ -106,7 +110,6 @@ const AnimatedBox = forwardRef(function AnimatedBox(
 
 AnimatedBox.propTypes = {
   isExpanded: PropTypes.bool.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
   handleInstall: PropTypes.func.isRequired,
   handleClose: PropTypes.func.isRequired,
   hasMounted: PropTypes.bool.isRequired,

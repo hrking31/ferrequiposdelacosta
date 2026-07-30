@@ -365,12 +365,18 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: ClienteSeguimientoCard.
           tabStripBackground: esClaro ? CEMENTO : AZUL_NOCHE,
 
-          // El violeta del estado "pendiente de despacho" de un cliente.
-          // Es el único color que no sale de la paleta de la marca, y es a
-          // propósito: los otros cuatro estados ya se llevaron el verde, el
-          // azul, el naranja y el gris, y este necesita distinguirse de todos.
-          // Se usa en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
+          // Los dos estados de factura que no salen de la paleta de la marca,
+          // y es a propósito: los otros ya se llevaron el verde (despachada),
+          // el azul (devolución parcial) y el gris (inactiva), y estos dos
+          // tienen que distinguirse de todos ellos.
+          //
+          // "finalizada" usaba el naranja de la marca hasta el 2026-07-30,
+          // cuando ese naranja quedó reservado para la barra de arriba. El
+          // verde azulado se despega del verde de "despachada" —que es otra
+          // etapa, no el cierre— sin repetir ningún otro estado.
+          // Se usan en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
           pendienteDespacho: "#7E57C2",
+          facturaFinalizada: "#0F766E",
 
           // Cada bloque de la factura tiene su propio color, para poder
           // distinguir de un vistazo qué se está mirando: el pago, los equipos

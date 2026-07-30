@@ -434,7 +434,7 @@ export default function Cotizacion() {
               // Resplandor de acento. Antes usaba un azul (#669BBC) que ya no
               // existe en la paleta; ahora se deriva del acento del tema.
               boxShadow: (theme) =>
-                `0 0 20px ${alpha(theme.palette.secondary.main, 0.4)}`,
+                `0 0 20px ${alpha(theme.palette.custom.accent, 0.4)}`,
               borderRadius: 0.5,
             }}
           >

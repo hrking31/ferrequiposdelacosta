@@ -224,10 +224,7 @@ export default function MobileDrawerLayout() {
         <Typography
           variant="copyright"
           sx={{
-            color:
-              theme.palette.mode === "light"
-                ? theme.palette.primary.light
-                : theme.palette.secondary.light,
+            color: theme.palette.custom.accent,
             textAlign: "center",
             display: "block",
           }}

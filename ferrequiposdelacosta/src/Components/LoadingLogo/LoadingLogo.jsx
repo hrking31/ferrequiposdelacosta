@@ -27,7 +27,8 @@ const LoadingLogo = ({ height = "90vh", text = "Cargando..." }) => {
           size={160}
           thickness={2.5}
           sx={{
-            color: isDarkMode ? "secondary.light" : "secondary.main",
+            // El acento ya cambia con el modo, no hace falta preguntarlo acá.
+            color: "custom.accent",
             position: "absolute",
             animationDuration: "2.8s",
           }}

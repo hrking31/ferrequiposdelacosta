@@ -297,7 +297,7 @@ export default function ClienteDetalle() {
     pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
-    finalizada: theme.palette.secondary.main,
+    finalizada: theme.palette.custom.facturaFinalizada,
   };
   const [cliente, setCliente] = useState(null);
   const [facturas, setFacturas] = useState([]);

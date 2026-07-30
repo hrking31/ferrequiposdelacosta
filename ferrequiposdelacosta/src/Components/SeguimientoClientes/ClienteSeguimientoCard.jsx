@@ -121,7 +121,7 @@ export default function ClienteSeguimientoCard({
     pendienteDespacho: theme.palette.custom.pendienteDespacho,
     despachada: theme.palette.success.main,
     devolucionParcial: theme.palette.info.main,
-    finalizada: theme.palette.secondary.main,
+    finalizada: theme.palette.custom.facturaFinalizada,
   };
 
   // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como

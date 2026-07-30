@@ -4,13 +4,11 @@ import {
   showInstallApp,
   hideInstallApp,
 } from "../../Store/Slices/installAppSlice";
-import { ClickAwayListener, Slide, useTheme } from "@mui/material";
+import { ClickAwayListener, Slide } from "@mui/material";
 import AnimatedBox from "../AnimatedBox/AnimatedBox.jsx";
 
 export default function InstallApp() {
   const dispatch = useDispatch();
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === "dark";
 
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -79,7 +77,6 @@ export default function InstallApp() {
       <Slide direction="left" in={showApp} mountOnEnter unmountOnExit>
         <AnimatedBox
           isExpanded={isExpanded}
-          isDarkMode={isDarkMode}
           handleInstall={handleInstallClick}
           handleClose={() => setIsExpanded(false)}
           hasMounted={hasMounted}

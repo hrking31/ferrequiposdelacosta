@@ -40,10 +40,7 @@ export default function Footer() {
       >
         <Business
           sx={{
-            color:
-              theme.palette.mode === "light"
-                ? theme.palette.primary.light
-                : theme.palette.secondary.light,
+            color: theme.palette.custom.accent,
           }}
         />
         Ferrequipos de la Costa
@@ -76,10 +73,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener"
             sx={{
-              color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.light
-                  : theme.palette.secondary.light,
+              color: theme.palette.custom.accent,
             }}
           >
             <Email />
@@ -91,10 +85,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener"
             sx={{
-              color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.light
-                  : theme.palette.secondary.light,
+              color: theme.palette.custom.accent,
             }}
           >
             <Instagram />
@@ -106,10 +97,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener"
             sx={{
-              color:
-                theme.palette.mode === "light"
-                  ? theme.palette.primary.light
-                  : theme.palette.secondary.light,
+              color: theme.palette.custom.accent,
             }}
           >
             <Facebook />
