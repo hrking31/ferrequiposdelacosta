@@ -370,13 +370,25 @@ export const CustomThemeProvider = ({ children }) => {
           // el azul (devolución parcial) y el gris (inactiva), y estos dos
           // tienen que distinguirse de todos ellos.
           //
-          // "finalizada" usaba el naranja de la marca hasta el 2026-07-30,
-          // cuando ese naranja quedó reservado para la barra de arriba. El
-          // verde azulado se despega del verde de "despachada" —que es otra
-          // etapa, no el cierre— sin repetir ningún otro estado.
+          // Los cinco estados de una factura, con los colores que eligió el
+          // usuario el 2026-07-30. Antes vivían repetidos en los tres
+          // componentes que los muestran, cada uno armando su propio objeto y
+          // mezclando tokens de la paleta (success, info) con hex sueltos.
+          //
+          // Son FIJOS en los dos modos a propósito: quien los usa saca el
+          // color de la letra con getContrastText, así que el chip se lee
+          // igual de día que de noche sin necesidad de dos versiones.
+          //
+          // Las claves son las mismas que guarda Firestore en el campo
+          // "estado", para poder indexar directo sin traducir.
           // Se usan en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
-          pendienteDespacho: "#7E57C2",
-          facturaFinalizada: "#0F766E",
+          estadoFactura: {
+            pendienteDespacho: "#F59E0B", // ámbar
+            despachada: "#2563EB", // azul
+            devolucionParcial: "#7C3AED", // violeta
+            finalizada: "#16A34A", // verde
+            inactivo: "#6B7280", // gris
+          },
 
           // Cada bloque de la factura tiene su propio color, para poder
           // distinguir de un vistazo qué se está mirando: el pago, los equipos

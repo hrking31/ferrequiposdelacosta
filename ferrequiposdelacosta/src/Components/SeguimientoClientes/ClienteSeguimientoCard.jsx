@@ -117,12 +117,7 @@ export default function ClienteSeguimientoCard({
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   const [ampliarOpen, setAmpliarOpen] = useState(false);
 
-  const avatarBgPorEstado = {
-    pendienteDespacho: theme.palette.custom.pendienteDespacho,
-    despachada: theme.palette.success.main,
-    devolucionParcial: theme.palette.info.main,
-    finalizada: theme.palette.custom.facturaFinalizada,
-  };
+  const avatarBgPorEstado = theme.palette.custom.estadoFactura;
 
   // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como
   // chips. El historial de vencimientos aparece numerado (1er, 2do…) y el

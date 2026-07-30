@@ -115,16 +115,7 @@ export default function ListaClientes() {
   const acento =
     theme.palette.custom.accent;
 
-  const avatarBgPorEstado = {
-    inactivo:
-      theme.palette.mode === "light"
-        ? theme.palette.grey[400]
-        : theme.palette.grey[700],
-    pendienteDespacho: theme.palette.custom.pendienteDespacho,
-    despachada: theme.palette.success.main,
-    devolucionParcial: theme.palette.info.main,
-    finalizada: theme.palette.custom.facturaFinalizada,
-  };
+  const avatarBgPorEstado = theme.palette.custom.estadoFactura;
 
   const clientesPorTipoYBusqueda = useMemo(() => {
     const busquedaLower = busqueda.toLowerCase();

@@ -289,16 +289,7 @@ export default function ClienteDetalle() {
   // recuadro va sobre fondo de tarjeta, no sobre la pizarra oscura.
   const colorAbonos = theme.palette.info.main;
   const colorAdicionales = theme.palette.custom.seccionAdicionales;
-  const avatarBgPorEstado = {
-    inactivo:
-      theme.palette.mode === "light"
-        ? theme.palette.grey[400]
-        : theme.palette.grey[700],
-    pendienteDespacho: theme.palette.custom.pendienteDespacho,
-    despachada: theme.palette.success.main,
-    devolucionParcial: theme.palette.info.main,
-    finalizada: theme.palette.custom.facturaFinalizada,
-  };
+  const avatarBgPorEstado = theme.palette.custom.estadoFactura;
   const [cliente, setCliente] = useState(null);
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
