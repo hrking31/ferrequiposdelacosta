@@ -24,6 +24,7 @@ import {
   useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import { collection, doc, updateDoc, writeBatch } from "firebase/firestore";
@@ -823,8 +824,14 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
               <Typography
                 variant="overline"
                 color="text.secondary"
-                sx={{ display: "block", lineHeight: 1.6 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  lineHeight: 1.6,
+                }}
               >
+                <PaymentsIcon fontSize="small" />
                 {TIPO_PAGO_INFO[form.tipoPago]?.label ?? "Pago"}
               </Typography>
               <Paper variant="totales">
@@ -846,13 +853,13 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                     crear la factura. Va aparte para que el total de abajo no
                     parezca que no cuadra con los renglones de arriba. */}
                 {pagosAgregados > 0 && (
-                  <Box className="fila">
+                  <Box className="fila abono">
                     <Typography variant="body2">Equipos agregados</Typography>
                     <Typography variant="body2">{formatearMoneda(pagosAgregados)}</Typography>
                   </Box>
                 )}
 
-                <Box className="fila total">
+                <Box className="fila total pagado">
                   <Typography variant="subtitle1" fontWeight="bold">
                     Pagado
                   </Typography>
@@ -871,7 +878,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                         {formatearMoneda(valorTotalCalculado)}
                       </Typography>
                     </Box>
-                    <Box className="fila">
+                    <Box className="fila abono">
                       <Typography variant="body2">Pasa a abono</Typography>
                       <Typography variant="body2">
                         {formatearMoneda(excedenteCalculado)}

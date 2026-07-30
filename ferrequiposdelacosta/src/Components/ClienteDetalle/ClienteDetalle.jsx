@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { alpha } from "@mui/material/styles";
 import {
   Avatar,
   Box,
@@ -48,6 +49,16 @@ import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import AbonoDialog from "./AbonoDialog";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import SavingsIcon from "@mui/icons-material/Savings";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
+import EventIcon from "@mui/icons-material/Event";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import AddCardIcon from "@mui/icons-material/AddCard";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
@@ -231,6 +242,17 @@ export default function ClienteDetalle() {
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const acento = theme.palette.custom.accent;
+  // Cada bloque de la factura tiene su color: el pago, los equipos del
+  // alta y los que se agregaron despues.
+  const colorPago = theme.palette.custom.seccionPago;
+  const colorEquipos = theme.palette.custom.seccionEquipos;
+  const colorEquiposAgregados =
+    theme.palette.custom.seccionEquiposAgregados;
+  // Los abonos van con el mismo azul que la casilla "Abonos" del resumen de
+  // cuenta del encabezado. Se usa el tono .main y no .light porque acá el
+  // recuadro va sobre fondo de tarjeta, no sobre la pizarra oscura.
+  const colorAbonos = theme.palette.info.main;
+  const colorAdicionales = theme.palette.custom.seccionAdicionales;
   const avatarBgPorEstado = {
     inactivo:
       theme.palette.mode === "light"
@@ -359,7 +381,7 @@ export default function ClienteDetalle() {
   // Tarjeta de un equipo dentro de una factura: cantidad/nombre/subtotal
   // arriba, días/precio/fechas como pills abajo. La misma tarjeta sirve para
   // un equipo original o uno agregado después.
-  const renderEquipoRow = (equipo, key) => {
+  const renderEquipoRow = (equipo, key, color) => {
     const despacho = formatearFecha(equipo.fechaDespacho);
     const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
     const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
@@ -378,8 +400,22 @@ export default function ClienteDetalle() {
         sx={{
           p: 1,
           borderRadius: 1,
+          bgcolor: "background.paper",
           border: "1px solid",
-          borderColor: "divider",
+          // Mismo tratamiento que el recuadro de pago, con el color del grupo
+          // al que pertenece el equipo.
+          borderColor: color,
+          boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            borderRadius: "inherit",
+            background: `linear-gradient(135deg, ${alpha(color, 0.12)}, ${alpha(color, 0.03)})`,
+            pointerEvents: "none",
+          },
         }}
       >
         <Stack direction="row" alignItems="center" gap={1}>
@@ -437,6 +473,7 @@ export default function ClienteDetalle() {
               key="dias"
               variant="meta"
               size="small"
+              icon={<EventIcon />}
               label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
             />,
           ];
@@ -446,6 +483,7 @@ export default function ClienteDetalle() {
                 key="valor"
                 variant="meta"
                 size="small"
+                icon={<AttachMoneyIcon />}
                 label={`${formatearMoneda(Number(equipo.valor))}/día`}
               />,
             );
@@ -458,6 +496,7 @@ export default function ClienteDetalle() {
                 key="despacho"
                 variant="meta"
                 size="small"
+                icon={<LocalShippingIcon />}
                 label={`Despacho ${despacho}`}
               />,
             );
@@ -478,10 +517,14 @@ export default function ClienteDetalle() {
                   key="vencido"
                   size="small"
                   variant="metaEstado"
+                  icon={<EventBusyIcon />}
                   sx={{
                     bgcolor: "error.main",
                     color: "error.contrastText",
                     border: "none",
+                    // El ícono va del color del texto del chip, no del acento:
+                    // sobre el rojo pleno el naranja no se distinguiría.
+                    "& .MuiChip-icon": { color: "inherit" },
                   }}
                   label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
                 />,
@@ -515,7 +558,13 @@ export default function ClienteDetalle() {
                 key="descuento"
                 variant="metaEstado"
                 size="small"
-                sx={{ fontWeight: 600, color: "success.main" }}
+                // El marranito: lo que el cliente se ahorra.
+                icon={<SavingsIcon />}
+                sx={{
+                  fontWeight: 600,
+                  color: "success.main",
+                  "& .MuiChip-icon": { color: "inherit" },
+                }}
                 label={`Descuento ${formatearMoneda(ampliacion.descuento)}`}
               />,
             );
@@ -530,6 +579,7 @@ export default function ClienteDetalle() {
                 key="devuelve"
                 variant="meta"
                 size="small"
+                icon={<AssignmentReturnIcon />}
                 label={`Devuelve ${formatearFecha(equipo.fechaVencimiento)}`}
               />,
             );
@@ -561,52 +611,6 @@ export default function ClienteDetalle() {
     );
   };
 
-  // Los dos recuadros punteados de una factura —el de pago y el de
-  // adicionales— comparten forma y tipografía: se definen una sola vez acá
-  // para que no se separen con el tiempo.
-  const cuadroPunteadoSx = {
-    p: 1,
-    borderRadius: 1,
-    border: "1px dashed",
-    borderColor: "divider",
-  };
-
-  const filaDatosProps = {
-    direction: { xs: "column", sm: "row" },
-    flexWrap: "wrap",
-    columnGap: 2,
-    rowGap: { xs: 0.6, sm: 0.4 },
-    alignItems: { xs: "flex-start", sm: "center" },
-  };
-
-  const etiquetaDato = (texto) => (
-    <Typography
-      component="span"
-      sx={{
-        fontSize: "0.65rem",
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        mr: 0.5,
-      }}
-    >
-      {texto}
-    </Typography>
-  );
-
-  // El valor va en negrita y con el color normal del texto (no el gris
-  // apagado que hereda por default un <Typography variant="caption">).
-  const valorDato = (texto) => (
-    <Typography
-      component="span"
-      variant="body2"
-      sx={{ fontWeight: 700, color: "text.primary" }}
-    >
-      {texto}
-    </Typography>
-  );
-
   // Lo que se cobra aparte del alquiler: depósito y transporte. Antes iban
   // dentro del cuadro de pago, mezclados con el medio y el monto; ahora van
   // en su propio recuadro, debajo de los equipos.
@@ -616,6 +620,7 @@ export default function ClienteDetalle() {
     transporteMonto,
     iva,
     key,
+    color,
   }) => {
     const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
     const hayIva = Number(iva) > 0;
@@ -626,36 +631,101 @@ export default function ClienteDetalle() {
       deposito +
       (hayTransporte ? transporteMonto : 0);
 
+    const datos = [];
+    if (hayIva) {
+      datos.push({
+        clave: "iva",
+        rotulo: "IVA (19%)",
+        valor: formatearMoneda(Number(iva)),
+      });
+    }
+    if (deposito > 0) {
+      datos.push({
+        clave: "deposito",
+        rotulo: "Depósito",
+        valor: formatearMoneda(deposito),
+      });
+    }
+    // El tipo de transporte y su valor van juntos: son un solo dato, no dos
+    // ("Ida y vuelta · $60.000").
+    if (hayTransporte) {
+      datos.push({
+        clave: "transporte",
+        rotulo: "Transporte",
+        valor:
+          transporteMonto > 0
+            ? `${transporteTipo} · ${formatearMoneda(transporteMonto)}`
+            : transporteTipo,
+      });
+    }
+    // La suma de todo lo que se cobra aparte del alquiler.
+    datos.push({
+      clave: "total",
+      rotulo: "Total",
+      valor: formatearMoneda(total),
+    });
+
     return (
-      <Box key={key} sx={cuadroPunteadoSx}>
-        <Stack {...filaDatosProps}>
-          {hayIva && (
-            <Box>
-              {etiquetaDato("IVA (19%)")}{" "}
-              {valorDato(formatearMoneda(Number(iva)))}
+      <Box
+        key={key}
+        sx={{
+          p: 1.5,
+          borderRadius: 1,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: color,
+          boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            borderRadius: "inherit",
+            background: `linear-gradient(135deg, ${alpha(color, 0.16)}, ${alpha(color, 0.04)})`,
+            pointerEvents: "none",
+          },
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          rowGap={1}
+          sx={{ minWidth: 0 }}
+          divider={
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
+            />
+          }
+        >
+          {datos.map(({ clave, rotulo, valor }) => (
+            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
+              <Typography
+                sx={{
+                  display: "block",
+                  lineHeight: 1.1,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  // El rótulo lleva el color del bloque; el valor va en el
+                  // color normal del texto, que es donde se lee la cifra.
+                  color,
+                  fontSize: { md: "0.6rem", lg: "0.7rem" },
+                }}
+              >
+                {rotulo}
+              </Typography>
+              <Typography
+                fontWeight="bold"
+                sx={{
+                  lineHeight: 1.25,
+                  fontSize: { md: "0.75rem", lg: "0.9rem" },
+                }}
+              >
+                {valor}
+              </Typography>
             </Box>
-          )}
-          {deposito > 0 && (
-            <Box>
-              {etiquetaDato("Depósito")} {valorDato(formatearMoneda(deposito))}
-            </Box>
-          )}
-          {/* El tipo de transporte y su valor van juntos: son un solo dato,
-              no dos ("Ida y vuelta · $60.000"). */}
-          {hayTransporte && (
-            <Box>
-              {etiquetaDato("Transporte")}{" "}
-              {valorDato(
-                transporteMonto > 0
-                  ? `${transporteTipo} · ${formatearMoneda(transporteMonto)}`
-                  : transporteTipo,
-              )}
-            </Box>
-          )}
-          {/* La suma de todo lo que se cobra aparte del alquiler. */}
-          <Box>
-            {etiquetaDato("Total")} {valorDato(formatearMoneda(total))}
-          </Box>
+          ))}
         </Stack>
       </Box>
     );
@@ -664,75 +734,148 @@ export default function ClienteDetalle() {
   // Cuadro de pago de un lote de equipos (el original de la factura, o cada
   // equipo agregado después): tipo de pago, medio(s) de pago, depósito y
   // transporte de ESE lote puntual — no de toda la factura.
-  const renderInfoPago = ({ pagos, tipoPago, fecha, key }) => {
+  const renderInfoPago = ({ pagos, tipoPago, fecha, key, colorEstado }) => {
     const tipoPagoLabel = TIPO_PAGO_LABELS[tipoPago] || null;
     if (pagos.length === 0 && !tipoPagoLabel) return null;
 
+    const mediosPago = pagos.filter((pago) => pago.medio);
+    const totalPagos = pagos.reduce(
+      (total, pago) => total + (Number(pago.monto) || 0),
+      0,
+    );
+
+    // Cada dato es una columna con el rotulo arriba y el valor abajo, igual
+    // que el resumen de cuenta del encabezado.
+    const datos = [];
+    // Cuando se recibio esta plata: la fecha de creacion en la factura, y la
+    // de solicitud en cada lote de equipos agregados.
+    if (fecha) {
+      datos.push({
+        clave: "fecha",
+        rotulo: "Fecha",
+        valor: formatearFecha(fecha),
+      });
+    }
+    if (tipoPagoLabel) {
+      datos.push({ clave: "pago", rotulo: "Pago", valor: tipoPagoLabel });
+    }
+    // El medio va con el logo de la marca en vez del nombre escrito. Cuando el
+    // pago se repartio entre varios, siguen separados por "+".
+    if (mediosPago.length > 0) {
+      datos.push({
+        clave: "medio",
+        rotulo: "Medio",
+        contenido: (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 0.5,
+            }}
+          >
+            {mediosPago.map((pago, indice) => (
+              <Fragment key={`${pago.medio}-${indice}`}>
+                {indice > 0 && "+"}
+                {renderMedioPago(pago.medio)}
+              </Fragment>
+            ))}
+          </Box>
+        ),
+      });
+    }
+    if (pagos.length > 0) {
+      datos.push({
+        clave: "valor",
+        rotulo: "Valor",
+        valor: pagos
+          .map((pago) => formatearMoneda(Number(pago.monto)))
+          .filter(Boolean)
+          .join(" + "),
+      });
+    }
+    // Con el pago repartido en varios medios, el renglon de arriba queda como
+    // una suma sin resolver: aca va el resultado.
+    if (pagos.length > 1) {
+      datos.push({
+        clave: "total",
+        rotulo: "Total",
+        valor: formatearMoneda(totalPagos),
+      });
+    }
+
     return (
-      <Box key={key} sx={cuadroPunteadoSx}>
-        <Stack {...filaDatosProps}>
-          {/* Cuándo se recibió esta plata: la fecha de creación en la factura,
-              y la de solicitud en cada lote de equipos agregados. */}
-          {fecha && (
-            <Box>
-              {etiquetaDato("Fecha")} {valorDato(formatearFecha(fecha))}
-            </Box>
-          )}
-          {tipoPagoLabel && (
-            <Box>
-              {etiquetaDato("Pago")} {valorDato(tipoPagoLabel)}
-            </Box>
-          )}
-          {/* El medio va con el logo de la marca en vez del nombre escrito.
-              Cuando el pago se repartió entre varios, siguen separados por "+",
-              igual que la fila de valores de abajo. */}
-          {pagos.length > 0 && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 0.5,
-              }}
-            >
-              {etiquetaDato("Medio")}
-              {pagos
-                .filter((pago) => pago.medio)
-                .map((pago, indice) => (
-                  <Fragment key={`${pago.medio}-${indice}`}>
-                    {indice > 0 && valorDato("+")}
-                    {renderMedioPago(pago.medio)}
-                  </Fragment>
-                ))}
-            </Box>
-          )}
-          {pagos.length > 0 && (
-            <Box>
-              {etiquetaDato("Valor")}{" "}
-              {valorDato(
-                pagos
-                  .map((pago) => formatearMoneda(Number(pago.monto)))
-                  .filter(Boolean)
-                  .join(" + "),
+      <Box
+        key={key}
+        sx={{
+          p: 1.5,
+          borderRadius: 1,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          // Todo el recuadro se tiñe del color del estado de la factura: el
+          // borde, un resplandor difuso alrededor y un degradado por encima.
+          borderColor: colorEstado,
+          // El resplandor va hacia ADENTRO: como sombra externa se derramaba
+          // por fuera del borde y manchaba lo que tenía al lado.
+          boxShadow: `inset 0 0 12px ${alpha(colorEstado, 0.2)}`,
+          position: "relative",
+          // Recorta el degradado al radio del borde: con inset 0 las esquinas
+          // se le salían por encima.
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            borderRadius: "inherit",
+            // El degradado cubre el recuadro completo: entra fuerte por la
+            // esquina de arriba y se va aclarando en diagonal, pero sin llegar
+            // nunca a transparente.
+            background: `linear-gradient(135deg, ${alpha(colorEstado, 0.16)}, ${alpha(colorEstado, 0.04)})`,
+            pointerEvents: "none",
+          },
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          rowGap={1}
+          sx={{ minWidth: 0 }}
+          divider={
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
+            />
+          }
+        >
+          {datos.map(({ clave, rotulo, valor, contenido }) => (
+            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
+              <Typography
+                sx={{
+                  display: "block",
+                  lineHeight: 1.1,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  // El rótulo lleva el color del bloque; el valor va en el
+                  // color normal del texto, que es donde se lee la cifra.
+                  color: colorEstado,
+                  fontSize: { md: "0.6rem", lg: "0.7rem" },
+                }}
+              >
+                {rotulo}
+              </Typography>
+              {contenido || (
+                <Typography
+                  fontWeight="bold"
+                  sx={{
+                    lineHeight: 1.25,
+                    fontSize: { md: "0.75rem", lg: "0.9rem" },
+                  }}
+                >
+                  {valor}
+                </Typography>
               )}
             </Box>
-          )}
-          {/* Cuando el pago se repartió en más de un medio, el renglón de
-              arriba queda como una suma sin resolver ("$100.000 + $27.000"):
-              acá va el resultado, para no tener que hacerla de cabeza. */}
-          {pagos.length > 1 && (
-            <Box>
-              {etiquetaDato("Total")}{" "}
-              {valorDato(
-                formatearMoneda(
-                  pagos.reduce(
-                    (total, pago) => total + (Number(pago.monto) || 0),
-                    0,
-                  ),
-                ),
-              )}
-            </Box>
-          )}
+          ))}
         </Stack>
       </Box>
     );
@@ -741,26 +884,105 @@ export default function ClienteDetalle() {
   // Los abonos que se registraron después de emitida la factura. Van en el
   // mismo recuadro que la información de pago, porque son lo mismo: plata que
   // entró, con su fecha y su medio.
-  const renderAbonos = (abonos) => {
+  const renderAbonos = (abonos, colorEstado) => {
     if (!abonos || abonos.length === 0) return null;
 
     return (
-      <Box sx={cuadroPunteadoSx}>
-        <Stack spacing={0.5}>
-          {abonos.map((abono, indice) => (
-            <Stack key={`abono-${indice}`} {...filaDatosProps}>
-              <Box>
-                {etiquetaDato("Abono")} {valorDato(formatearFecha(abono.fecha))}
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                {etiquetaDato("Medio")} {renderMedioPago(abono.medio)}
-              </Box>
-              <Box>
-                {etiquetaDato("Valor")}{" "}
-                {valorDato(formatearMoneda(Number(abono.monto) || 0))}
-              </Box>
-            </Stack>
+      <Box
+        sx={{
+          p: 1.5,
+          borderRadius: 1,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          // Todo el recuadro se tiñe del color del estado de la factura: el
+          // borde, un resplandor difuso alrededor y un degradado por encima.
+          borderColor: colorEstado,
+          // El resplandor va hacia ADENTRO: como sombra externa se derramaba
+          // por fuera del borde y manchaba lo que tenía al lado.
+          boxShadow: `inset 0 0 12px ${alpha(colorEstado, 0.2)}`,
+          position: "relative",
+          // Recorta el degradado al radio del borde: con inset 0 las esquinas
+          // se le salían por encima.
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            borderRadius: "inherit",
+            // El degradado cubre el recuadro completo: entra fuerte por la
+            // esquina de arriba y se va aclarando en diagonal, pero sin llegar
+            // nunca a transparente.
+            background: `linear-gradient(135deg, ${alpha(colorEstado, 0.16)}, ${alpha(colorEstado, 0.04)})`,
+            pointerEvents: "none",
+          },
+        }}
+      >
+        <Stack spacing={1} divider={<Divider />}>
+          {abonos.map((abono, indice) => {
+            const datos = [
+              {
+                clave: "fecha",
+                rotulo: "Abono",
+                valor: formatearFecha(abono.fecha),
+              },
+              {
+                clave: "medio",
+                rotulo: "Medio",
+                contenido: renderMedioPago(abono.medio),
+              },
+              {
+                clave: "valor",
+                rotulo: "Valor",
+                valor: formatearMoneda(Number(abono.monto) || 0),
+              },
+            ];
+            return (
+              <Box key={`abono-${indice}`}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          rowGap={1}
+          sx={{ minWidth: 0 }}
+          divider={
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
+            />
+          }
+        >
+          {datos.map(({ clave, rotulo, valor, contenido }) => (
+            <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
+              <Typography
+                sx={{
+                  display: "block",
+                  lineHeight: 1.1,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  // El rótulo lleva el color del bloque; el valor va en el
+                  // color normal del texto, que es donde se lee la cifra.
+                  color: colorEstado,
+                  fontSize: { md: "0.6rem", lg: "0.7rem" },
+                }}
+              >
+                {rotulo}
+              </Typography>
+              {contenido || (
+                <Typography
+                  fontWeight="bold"
+                  sx={{
+                    lineHeight: 1.25,
+                    fontSize: { md: "0.75rem", lg: "0.9rem" },
+                  }}
+                >
+                  {valor}
+                </Typography>
+              )}
+            </Box>
           ))}
+        </Stack>
+              </Box>
+            );
+          })}
         </Stack>
       </Box>
     );
@@ -1067,6 +1289,7 @@ export default function ClienteDetalle() {
               ? renderAdicionales({
                   key: "adicionales-factura",
                   iva: ivaDeEquipos(equiposOriginales),
+                  color: colorAdicionales,
                   deposito: Number(factura.deposito) || 0,
                   transporteTipo,
                   transporteMonto: Number(factura.valorTransporte) || 0,
@@ -1158,16 +1381,31 @@ export default function ClienteDetalle() {
                 spacing={esMovil ? 1.5 : 0.75}
                 alignItems="center"
               >
-                {/* Registrar un pago posterior. Siempre disponible: también
-                    se abona sobre una factura ya saldada. */}
-                <Tooltip title="Registrar abono">
-                  <IconButton
-                    size="small"
-                    onClick={() => setFacturaAbonando(factura)}
-                    sx={{ ...iconBtnSx, color: acento }}
-                  >
-                    <AttachMoneyIcon fontSize="small" />
-                  </IconButton>
+                {/* Registrar un pago posterior. Queda a la vista siempre, pero
+                    bloqueado cuando no hay nada que cobrar. El span es porque
+                    un boton deshabilitado no emite eventos y sin el el globo
+                    de ayuda no aparece. */}
+                <Tooltip
+                  title={
+                    hayColorAlerta
+                      ? "Registrar abono"
+                      : "La factura no tiene saldo pendiente"
+                  }
+                >
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={!hayColorAlerta}
+                      onClick={() => setFacturaAbonando(factura)}
+                      sx={{
+                        ...iconBtnSx,
+                        color: acento,
+                        "&.Mui-disabled": { color: "action.disabled" },
+                      }}
+                    >
+                      <AttachMoneyIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
 
                 {equiposSonObjetos && (
@@ -1209,17 +1447,21 @@ export default function ClienteDetalle() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
+                  // El fondo de tarjeta sobre el fondo de la app ya alcanza
+                  // para que se despegue: en modo noche es el azul acero sobre
+                  // el azul noche.
                   bgcolor: "background.paper",
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: "custom.accent",
                 }}
               >
                 <Stack
                   direction="row"
                   justifyContent="space-between"
-                  alignItems="flex-start"
+                  alignItems="center"
                   flexWrap="wrap"
                   rowGap={1}
+                  gap={1.5}
                 >
                   <Box>
                     <Typography fontWeight="bold">
@@ -1236,6 +1478,139 @@ export default function ClienteDetalle() {
                       </Typography>
                     )}
                   </Box>
+                  {/* Con la factura plegada, en computador, el resumen de la
+                      cuenta ocupa el hueco que queda entre el titulo y los
+                      botones. Va sobre la pizarra del tema, que tiene fondo
+                      oscuro fijo en los dos modos. */}
+                  {!isFullScreen && facturaColapsada(factura.id) && (
+                    <Paper
+                      variant="totales"
+                      sx={{
+                        // Entre 916 y 1200px el hueco que dejan el titulo, los
+                        // cinco botones y el chip de estado (190px fijos) no
+                        // pasa de unos 300px, y cuatro importes de siete cifras
+                        // ahi se montan entre si. Asi que en ese tramo la
+                        // tarjeta pasa a su propia fila, con todo el ancho; de
+                        // 1200px en adelante si entra en el hueco.
+                        flexGrow: 1,
+                        flexBasis: { md: "100%", lg: 0 },
+                        order: { md: 1, lg: 0 },
+                        minWidth: 0,
+                        py: 1.25,
+                        px: 1.5,
+                        mt: 0,
+                        // Reemplaza la sombra difusa de la variante por el
+                        // relieve: luz arriba, sombra abajo.
+                        boxShadow: (theme) => theme.palette.custom.panelRelieve,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        sx={{ minWidth: 0 }}
+                        // El divisor lleva margen arriba y abajo para no llegar
+                        // a los bordes de la tarjeta.
+                        divider={
+                          <Divider
+                            orientation="vertical"
+                            flexItem
+                            sx={{
+                              my: 0.5,
+                              borderColor: "custom.panelText",
+                              opacity: 0.25,
+                            }}
+                          />
+                        }
+                      >
+                        {[
+                          {
+                            clave: "total",
+                            Icono: ReceiptLongIcon,
+                            rotulo: "Total",
+                            valor: valorTotal,
+                            color: "custom.totalText",
+                          },
+                          {
+                            clave: "pagado",
+                            Icono: PaymentsIcon,
+                            rotulo: "Pagado",
+                            valor: formatearMoneda(totalPagadoFactura),
+                            color: "success.light",
+                          },
+                          {
+                            clave: "abonos",
+                            Icono: SavingsIcon,
+                            rotulo: "Abonos",
+                            valor: formatearMoneda(totalAbonos),
+                            color: "info.light",
+                          },
+                          {
+                            clave: "saldo",
+                            Icono: PendingActionsIcon,
+                            rotulo: saldoAFavorNumero > 0 ? "A favor" : "Saldo",
+                            valor:
+                              saldoAFavorNumero > 0
+                                ? formatearMoneda(saldoAFavorNumero)
+                                : saldoPendiente,
+                            color:
+                              saldoAFavorNumero > 0
+                                ? "success.light"
+                                : "error.light",
+                          },
+                        ].map(({ clave, Icono, rotulo, valor, color }) => (
+                          <Box
+                            key={clave}
+                            sx={{
+                              // Las cuatro casillas miden lo mismo.
+                              flex: 1,
+                              minWidth: 0,
+                              color,
+                              px: 0.75,
+                            }}
+                          >
+                            {/* El icono queda a la izquierda, alineado con el
+                                rotulo; como es mas alto que las dos lineas,
+                                ocupa el espacio que sobra abajo. El rotulo y el
+                                valor arrancan en el mismo punto. */}
+                            <Stack
+                              direction="row"
+                              alignItems="flex-start"
+                              gap={0.75}
+                              sx={{ minWidth: 0 }}
+                            >
+                              <Icono sx={{ fontSize: 20, flexShrink: 0 }} />
+                              <Box sx={{ minWidth: 0 }}>
+                                <Typography
+                                  sx={{
+                                    display: "block",
+                                    lineHeight: 1.1,
+                                    textTransform: "uppercase",
+                                    letterSpacing: 0.4,
+                                    fontSize: { md: "0.6rem", lg: "0.7rem" },
+                                  }}
+                                >
+                                  {rotulo}
+                                </Typography>
+                                {/* Un valor de siete cifras no entra en un
+                                    cuarto del hueco y se montaba sobre el de al
+                                    lado: achica en pantallas medianas. */}
+                                <Typography
+                                  fontWeight="bold"
+                                  sx={{
+                                    lineHeight: 1.25,
+                                    whiteSpace: "nowrap",
+                                    fontSize: { md: "0.75rem", lg: "1rem" },
+                                  }}
+                                >
+                                  {valor}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Paper>
+                  )}
+
                   <Stack direction="row" spacing={1} alignItems="center">
                     {!esMovil && iconosFactura}
                     {chipEstado}
@@ -1311,9 +1686,15 @@ export default function ClienteDetalle() {
                         >
                           <Typography
                             variant="overline"
-                            color="text.secondary"
-                            sx={{ lineHeight: 1.6 }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              lineHeight: 1.6,
+                              color: colorPago,
+                            }}
                           >
+                            <PaymentsIcon fontSize="small" />
                             Información de pago
                           </Typography>
                           {renderToggle("pagoGeneral")}
@@ -1324,6 +1705,7 @@ export default function ClienteDetalle() {
                             pagos: pagosOriginales,
                             tipoPago: factura.tipoPago,
                             fecha: factura.fecha,
+                            colorEstado: colorPago,
                           })}
 
                         <Stack
@@ -1334,9 +1716,15 @@ export default function ClienteDetalle() {
                         >
                           <Typography
                             variant="overline"
-                            color="text.secondary"
-                            sx={{ lineHeight: 1.6 }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              lineHeight: 1.6,
+                              color: colorEquipos,
+                            }}
                           >
+                            <ConstructionIcon fontSize="small" />
                             Equipos {equiposOriginales.length}
                           </Typography>
                           {renderToggle("equiposFactura")}
@@ -1355,7 +1743,7 @@ export default function ClienteDetalle() {
                               }}
                             >
                               {equiposOriginales.map((equipo, index) =>
-                                renderEquipoRow(equipo, `original-${index}`),
+                                renderEquipoRow(equipo, `original-${index}`, colorEquipos),
                               )}
                             </Box>
 
@@ -1363,9 +1751,15 @@ export default function ClienteDetalle() {
                               <Box sx={{ mt: 1 }}>
                                 <Typography
                                   variant="overline"
-                                  color="text.secondary"
-                                  sx={{ display: "block", lineHeight: 1.6 }}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                    lineHeight: 1.6,
+                                    color: colorAdicionales,
+                                  }}
                                 >
+                                  <AddCardIcon fontSize="small" />
                                   Cargos adicionales
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>{adicionalesFactura}</Box>
@@ -1385,9 +1779,15 @@ export default function ClienteDetalle() {
                         >
                           <Typography
                             variant="overline"
-                            color="text.secondary"
-                            sx={{ lineHeight: 1.6 }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              lineHeight: 1.6,
+                              color: colorEquiposAgregados,
+                            }}
                           >
+                            <LibraryAddIcon fontSize="small" />
                             Equipos agregados {equiposAgregados.length}
                           </Typography>
                           {renderToggle("equiposAgregados")}
@@ -1400,6 +1800,7 @@ export default function ClienteDetalle() {
                             const adicionalesLote = renderAdicionales({
                               key: `lote-adicionales-${indiceLote}`,
                               iva: ivaDeEquipos(lote.equipos),
+                              color: colorAdicionales,
                               deposito: Number(lote.cabecera.deposito) || 0,
                               transporteTipo: lote.cabecera.transporte || null,
                               transporteMonto:
@@ -1432,6 +1833,17 @@ export default function ClienteDetalle() {
                                         ? "calc(50% - 4px)"
                                         : "100%",
                                   },
+                                  // Cada lote va en su propia tarjeta: sus
+                                  // equipos, su pago y sus cargos son un
+                                  // conjunto, y sueltos se confundían con los
+                                  // del lote de al lado. El fondo de la app la
+                                  // separa de los recuadros de adentro, que
+                                  // son de color de tarjeta.
+                                  p: 1.5,
+                                  borderRadius: 2,
+                                  bgcolor: "background.default",
+                                  border: "1px solid",
+                                  borderColor: alpha(colorEquiposAgregados, 0.4),
                                 }}
                               >
                                 <Box
@@ -1448,6 +1860,7 @@ export default function ClienteDetalle() {
                                     renderEquipoRow(
                                       equipo,
                                       `agregado-${indiceLote}-${index}`,
+                                      colorEquiposAgregados,
                                     ),
                                   )}
                                 </Box>
@@ -1455,9 +1868,15 @@ export default function ClienteDetalle() {
                                 <Box sx={{ mt: 1 }}>
                                   <Typography
                                     variant="overline"
-                                    color="text.secondary"
-                                    sx={{ display: "block", lineHeight: 1.6 }}
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 0.5,
+                                      lineHeight: 1.6,
+                                      color: colorPago,
+                                    }}
                                   >
+                                    <PaymentsIcon fontSize="small" />
                                     Información de pago
                                   </Typography>
                                   {renderInfoPago({
@@ -1469,6 +1888,7 @@ export default function ClienteDetalle() {
                                     ),
                                     tipoPago: lote.cabecera.tipoPago,
                                     fecha: lote.cabecera.fechaAgregado,
+                                    colorEstado: colorPago,
                                   })}
                                 </Box>
 
@@ -1476,9 +1896,15 @@ export default function ClienteDetalle() {
                                   <Box sx={{ mt: 1 }}>
                                     <Typography
                                       variant="overline"
-                                      color="text.secondary"
-                                      sx={{ display: "block", lineHeight: 1.6 }}
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.5,
+                                        lineHeight: 1.6,
+                                        color: colorAdicionales,
+                                      }}
                                     >
+                                      <AddCardIcon fontSize="small" />
                                       Cargos adicionales
                                     </Typography>
                                     <Box sx={{ mt: 0.5 }}>
@@ -1497,16 +1923,31 @@ export default function ClienteDetalle() {
                         después de los equipos de la factura. */}
                     {(factura.abonos || []).length > 0 && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="overline"
-                          color="text.secondary"
-                          sx={{ display: "block", lineHeight: 1.6 }}
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
                         >
-                          Información de pago
-                        </Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          {renderAbonos(factura.abonos)}
-                        </Box>
+                          <Typography
+                            variant="overline"
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              lineHeight: 1.6,
+                              color: colorAbonos,
+                            }}
+                          >
+                            <SavingsIcon fontSize="small" />
+                            Abonos
+                          </Typography>
+                          {renderToggle("abonos")}
+                        </Stack>
+                        {mostrar("abonos") && (
+                          <Box sx={{ mt: 0.5 }}>
+                            {renderAbonos(factura.abonos, colorAbonos)}
+                          </Box>
+                        )}
                       </Box>
                     )}
                   </>
@@ -1536,9 +1977,19 @@ export default function ClienteDetalle() {
                     >
                       <Typography
                         variant="overline"
-                        color="text.secondary"
-                        sx={{ lineHeight: 1.6 }}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          lineHeight: 1.6,
+                          // Los dos cierres de la factura —el total y el
+                          // estado de cuenta— van con el acento del tema, no
+                          // con el color de un bloque: resumen todo lo de
+                          // arriba, no una sección en particular.
+                          color: "custom.accent",
+                        }}
                       >
+                        <ReceiptLongIcon fontSize="small" />
                         Total factura
                       </Typography>
                       {renderToggle("pagoTotal")}
@@ -1601,9 +2052,15 @@ export default function ClienteDetalle() {
                         >
                           <Typography
                             variant="overline"
-                            color="text.secondary"
-                            sx={{ display: "block", lineHeight: 1.6 }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              lineHeight: 1.6,
+                              color: "custom.accent",
+                            }}
                           >
+                            <AccountBalanceWalletIcon fontSize="small" />
                             Estado de cuenta
                           </Typography>
                           <Paper
@@ -1633,7 +2090,7 @@ export default function ClienteDetalle() {
                               o cuando hubo abonos: con la factura saldada de
                               una sola vez sería repetir el total. */}
                             {(hayColorAlerta || totalAbonos > 0) && (
-                              <Box className="fila">
+                              <Box className="fila pagado">
                                 <Typography variant="body2">Pagado</Typography>
                                 <Typography variant="body2">
                                   {formatearMoneda(totalPagadoFactura)}
@@ -1645,7 +2102,7 @@ export default function ClienteDetalle() {
                               abono, con su fecha y su medio, va arriba en su
                               propia información de pago. */}
                             {totalAbonos > 0 && (
-                              <Box className="fila">
+                              <Box className="fila abono">
                                 <Typography variant="body2">Abonos</Typography>
                                 <Typography variant="body2">
                                   {formatearMoneda(totalAbonos)}

@@ -24,6 +24,7 @@ import {
   useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import { doc, updateDoc } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { db } from "../Firebase/Firebase";
@@ -816,8 +817,14 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
               <Typography
                 variant="overline"
                 color="text.secondary"
-                sx={{ display: "block", lineHeight: 1.6 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  lineHeight: 1.6,
+                }}
               >
+                <PaymentsIcon fontSize="small" />
                 {form.tipoPago === "total"
                   ? "Pago total"
                   : form.tipoPago === "parcial"
@@ -841,7 +848,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                   ))
                 )}
 
-                <Box className="fila total">
+                <Box className="fila total pagado">
                   <Typography variant="subtitle1" fontWeight="bold">
                     Pagado
                   </Typography>
@@ -858,7 +865,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                       <Typography variant="body2">Cubre estos equipos</Typography>
                       <Typography variant="body2">{formatearMoneda(totalEsteEquipo)}</Typography>
                     </Box>
-                    <Box className="fila">
+                    <Box className="fila abono">
                       <Typography variant="body2">Pasa a abono</Typography>
                       <Typography variant="body2">
                         {formatearMoneda(pagoEsteEquipo - totalEsteEquipo)}
@@ -906,7 +913,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
                   </Typography>
                 </Box>
 
-                <Box className="fila">
+                <Box className="fila abono">
                   <Typography variant="body2">+ Equipos agregados</Typography>
                   <Typography variant="body2">{formatearMoneda(totalEsteEquipo)}</Typography>
                 </Box>

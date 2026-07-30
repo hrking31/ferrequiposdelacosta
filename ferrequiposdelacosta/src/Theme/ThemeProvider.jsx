@@ -74,6 +74,10 @@ export const CustomThemeProvider = ({ children }) => {
     const AZUL_NOCHE = "#0F172A";
     const AMARILLO = "#FFB800";
     const AMARILLO_CLARO = "#FFC72C";
+    // El amarillo de los importes. Es aparte del amarillo de marca —que tira a
+    // dorado y vive en los acentos y el navbar— porque acá se necesita un
+    // amarillo limpio, que se lea como cifra y no como adorno.
+    const AMARILLO_VALOR = "#FFD740";
     const AMBAR = "#D97706";
     const AMBAR_PREVENCION = "#F59E0B";
     const NARANJA = "#EA580C";
@@ -258,10 +262,12 @@ export const CustomThemeProvider = ({ children }) => {
           documentText: GRIS_TEXTO,
 
           // El amarillo del importe total, el número grande de la pizarra.
-          // Igual en ambos modos, porque el pizarrón también lo es.
+          // Igual en ambos modos, porque el pizarrón también lo es. Usa el
+          // amarillo de importes, no el dorado de marca: ese queda para los
+          // acentos y el navbar.
           // Se usa en: ClienteDetalle, ClienteSeguimientoCard,
           // FacturaFormDialog, AgregarEquipoDialog, AmpliarVencimientoDialog.
-          totalText: AMARILLO,
+          totalText: AMARILLO_VALOR,
 
           // El rojo de lo que queda debiendo: saldos pendientes y renglones
           // de alerta dentro de la pizarra. Es el rojo de marca aclarado,
@@ -322,6 +328,13 @@ export const CustomThemeProvider = ({ children }) => {
           // El pizarrón.
           panelBackground: "#1e1e1e",
           panelShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+
+          // Relieve para los paneles oscuros: una luz fina arriba y una
+          // sombra abajo, por dentro, más un apoyo hacia afuera. Da volumen
+          // sin la sombra difusa de panelShadow, que aplana el recuadro.
+          // Se usa en: ClienteDetalle (el resumen de cuenta de la factura).
+          panelRelieve:
+            "inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.55), 0 2px 3px rgba(0, 0, 0, 0.35)",
           // La tiza blanca: etiquetas e importes comunes.
           panelText: NIEVE,
 
@@ -336,6 +349,17 @@ export const CustomThemeProvider = ({ children }) => {
           // azul, el naranja y el gris, y este necesita distinguirse de todos.
           // Se usa en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
           pendienteDespacho: "#7E57C2",
+
+          // Cada bloque de la factura tiene su propio color, para poder
+          // distinguir de un vistazo qué se está mirando: el pago, los equipos
+          // con los que se emitió y los que se sumaron después. De acá salen
+          // el borde, el resplandor interno y el degradado de cada recuadro,
+          // y también el rótulo que lo encabeza.
+          // Se usan en: ClienteDetalle.
+          seccionPago: "#22C55E", // verde
+          seccionEquipos: "#3B82F6", // azul
+          seccionEquiposAgregados: "#A855F7", // violeta
+          seccionAdicionales: "#F97316", // naranja
 
           // El puntito verde que indica que un usuario está conectado.
           // Se usa en: ListaUsuarios y AdminCotizaciones.
@@ -873,6 +897,18 @@ export const CustomThemeProvider = ({ children }) => {
                 "& .fila.ok": {
                   color: theme.palette.custom.saldadoText,
                 },
+
+                // Las cuatro cifras de una cuenta se leen siempre con el mismo
+                // color, acá y en el resumen del encabezado de la factura:
+                // amarillo el total, verde lo pagado, azul los abonos y rojo
+                // lo que queda debiendo.
+                "& .fila.pagado": {
+                  color: theme.palette.custom.saldadoText,
+                },
+
+                "& .fila.abono": {
+                  color: theme.palette.info.light,
+                },
               }),
             },
           ],
@@ -1295,6 +1331,11 @@ export const CustomThemeProvider = ({ children }) => {
                 borderRadius: theme.shape.borderRadius,
                 backgroundColor: theme.palette.background.elevated,
                 border: "none",
+                // El ícono de la ficha va en el acento: naranja de día,
+                // amarillo de noche. Así se distingue del texto del dato.
+                "& .MuiChip-icon": {
+                  color: theme.palette.custom.accent,
+                },
                 [theme.breakpoints.down("sm")]: {
                   borderRadius: theme.shape.pill,
                   backgroundColor: "transparent",

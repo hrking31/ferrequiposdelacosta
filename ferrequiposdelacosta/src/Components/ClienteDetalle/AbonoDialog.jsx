@@ -18,6 +18,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -203,23 +204,29 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
               <Typography
                 variant="overline"
                 color="text.secondary"
-                sx={{ display: "block", lineHeight: 1.6 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  lineHeight: 1.6,
+                }}
               >
+                <AccountBalanceWalletIcon fontSize="small" />
                 Estado de cuenta
               </Typography>
               <Paper variant="totales">
-                <Box className="fila">
+                <Box className="fila total">
                   <Typography variant="body2">Total factura</Typography>
                   <Typography variant="body2">{formatearMoneda(estadoActual.total)}</Typography>
                 </Box>
 
-                <Box className="fila">
+                <Box className="fila pagado">
                   <Typography variant="body2">Pagado hasta ahora</Typography>
                   <Typography variant="body2">{formatearMoneda(estadoActual.pagado)}</Typography>
                 </Box>
 
                 {montoNuevo > 0 && (
-                  <Box className="fila">
+                  <Box className="fila abono">
                     <Typography variant="body2">+ Este abono</Typography>
                     <Typography variant="body2">{formatearMoneda(montoNuevo)}</Typography>
                   </Box>
