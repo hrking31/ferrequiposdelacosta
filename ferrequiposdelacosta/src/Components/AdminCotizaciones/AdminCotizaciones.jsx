@@ -155,7 +155,12 @@ export default function KioskAdminCotizaciones() {
               variant={filtroTipo === "todos" ? "filled" : "outlined"}
               sx={
                 filtroTipo === "todos"
-                  ? { bgcolor: acento, color: theme.palette.getContrastText(acento) }
+                  ? {
+                      bgcolor: acento,
+                      color: theme.palette.getContrastText(acento),
+                      "&:hover": { bgcolor: acento },
+                      "&.Mui-focusVisible": { bgcolor: acento },
+                    }
                   : undefined
               }
             />
@@ -171,6 +176,10 @@ export default function KioskAdminCotizaciones() {
                       bgcolor: acento,
                       color: theme.palette.getContrastText(acento),
                       "& .MuiChip-icon": { color: "inherit" },
+                      // Conserva su color: sin esto MUI le superpone un tinte
+                      // al pasar el mouse y otro mientras tiene el foco.
+                      "&:hover": { bgcolor: acento },
+                      "&.Mui-focusVisible": { bgcolor: acento },
                     }
                   : undefined
               }
@@ -187,6 +196,10 @@ export default function KioskAdminCotizaciones() {
                       bgcolor: acento,
                       color: theme.palette.getContrastText(acento),
                       "& .MuiChip-icon": { color: "inherit" },
+                      // Conserva su color: sin esto MUI le superpone un tinte
+                      // al pasar el mouse y otro mientras tiene el foco.
+                      "&:hover": { bgcolor: acento },
+                      "&.Mui-focusVisible": { bgcolor: acento },
                     }
                   : undefined
               }

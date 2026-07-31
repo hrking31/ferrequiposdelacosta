@@ -77,32 +77,17 @@ export const CustomThemeProvider = ({ children }) => {
     // dorado y vive en los acentos y el navbar— porque acá se necesita un
     // amarillo limpio, que se lea como cifra y no como adorno.
     const AMARILLO_VALOR = "#FFD740";
-    const AMBAR = "#D97706";
     const AMBAR_PREVENCION = "#F59E0B";
     const NARANJA = "#EA580C";
-    // EL acento del modo claro: el azul del LOGO de la empresa, EXACTO.
-    // Salió de muestrear el PNG del isotipo — es el tono que ocupa la mayor
-    // parte de sus píxeles.
+    // El acento del modo claro: el azul EXACTO del logo, muestreado del PNG
+    // del isotipo. Tiene que ser este hex, no un azul parecido.
     //
-    // **Este valor es una decisión del dueño: tiene que ser el hex del logo,
-    // no un azul parecido.** El 2026-07-30 se probaron dos versiones más
-    // luminosas —#2563EB y #384EC7— porque con el azul del isotipo el menú se
-    // ve sobrio: tiene 5.3 de luminosidad relativa contra 24.5 del naranja al
-    // que reemplazó, y el acento pinta los nueve íconos. Las dos se
-    // descartaron y se volvió a este. **No “mejorarlo” otra vez.**
-    //
-    // Contraste de sobra (medido el 2026-07-30):
     //   - como texto sobre una tarjeta ........... 9.75:1  (mínimo 4.5)
     //   - como texto sobre el fondo de página .... 9.31:1
     //   - con letra BLANCA encima ................ 10.2:1
     //
-    // OJO: es SOLO para el modo claro. Sobre el azul noche del modo oscuro
-    // se queda en 1.75:1, o sea invisible; de noche el acento es el amarillo.
-    //
-    // El naranja de marca (NARANJA) dejó de ser el acento el 2026-07-30 y
-    // quedó reservado para la barra de arriba — ver "navbarText" — y para
-    // "secondary", que es otro rol: el foco de los campos y los botones
-    // naranjas, que son naranjas en los dos modos.
+    // Sirve SOLO de día: sobre el azul noche se queda en 1.75:1, así que de
+    // noche el acento es el amarillo.
     const AZUL_LOGO = "#283890";
     const VERDE = "#16A34A";
     const VERDE_OSCURO = "#15803D";
@@ -110,33 +95,27 @@ export const CustomThemeProvider = ({ children }) => {
     const ROJO_OSCURO = "#B91C1C";
 
     // ── Colores de ACCIÓN ──────────────────────────────────────────────
-    // Sistema definido por el dueño el 2026-07-30. Cada acción tiene su
-    // color, y el color dice qué va a pasar al tocar el botón:
+    // El color dice qué va a pasar al tocar el botón:
     //
-    //   AZUL      navegación y acciones principales (crear, guardar, confirmar)
-    //   VERDE     confirmar, crear, cobrar
-    //   AMARILLO  agregar, editar, advertencia
-    //   ROJO      eliminar, cancelar, deuda
-    //   GRIS      acciones secundarias
+    //   AZUL     navegación y acciones principales
+    //   ACENTO   agregar, seleccionar
+    //   VERDE    confirmar, crear, cobrar
+    //   ROJO     eliminar, cancelar, deuda
+    //   NEUTRO   secundarias (el botón de contorno)
     //
-    // Cada uno tiene DOS versiones: la de día y una más luminosa para la
+    // Cada uno tiene dos versiones: la de día y una más luminosa para la
     // noche, porque sobre el fondo azul noche los tonos oscuros desaparecen.
     // De noche todos los rellenos llevan letra OSCURA; de día, blanca —salvo
     // el verde, que con blanca se queda en 3.3:1 y necesita letra oscura.
     const AZUL_ACCION = "#2563EB";
     const AZUL_ACCION_NOCHE = "#3B82F6";
-    // El "amarillo" de las acciones secundarias es ámbar tostado de día: un
-    // amarillo de verdad sobre fondo claro no se lee. De noche sí es amarillo.
-    const AMBAR_ACCION = "#B45309";
-    const AMBAR_ACCION_NOCHE = "#FBBF24";
     const VERDE_NOCHE = "#22C55E";
     const ROJO_NOCHE = "#EF4444";
     // El borde de la acción neutra en modo claro (el botón de contorno).
     const BORDE_NEUTRO = "#CBD5E1";
 
-    // El ROJO del logo, el de la "C" del isotipo. Salió de muestrear el PNG,
-    // igual que el azul. Marca el campo que tiene el foco, y es el único lugar
-    // de la app donde se usa.
+    // El rojo del logo, muestreado del PNG igual que el azul. Marca el campo
+    // que tiene el foco, y es el único lugar de la app donde se usa.
     //
     // De noche va una versión aclarada: el rojo del isotipo sobre el azul
     // noche se queda en 2.43:1 y un borde necesita 3:1. El aclarado da 4.03:1
@@ -171,13 +150,18 @@ export const CustomThemeProvider = ({ children }) => {
           dark: esClaro ? darken(AZUL_ACCION, 0.15) : AZUL_ACCION,
           contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
-        // AMARILLO: agregar, editar, advertencia. De día es ámbar tostado
-        // (5.02:1 con letra blanca); de noche, amarillo con letra oscura
-        // (10.69:1).
+        // "secondary" no es un rol de esta app: nadie lo usa. Está definido
+        // como red de seguridad, apuntando al acento.
+        //
+        // Borrarlo no lo elimina: MUI completa con un tema de fábrica todo lo
+        // que el proyecto no define, y su "secondary" de fábrica es PÚRPURA
+        // (#9C27B0 de día, #CE93D8 de noche). Un color="secondary" escrito por
+        // descuido no daría error ni fallaría el build — saldría un botón
+        // púrpura. Apuntándolo acá, ese descuido sale de un color de la marca.
+        //
+        // En código nuevo va color="accent", que dice lo que es.
         secondary: {
-          main: esClaro ? AMBAR_ACCION : AMBAR_ACCION_NOCHE,
-          light: AMARILLO, // el dorado de marca: navbar y acentos de noche
-          dark: esClaro ? darken(AMBAR_ACCION, 0.15) : AMBAR,
+          main: esClaro ? AZUL_LOGO : AMARILLO,
           contrastText: esClaro ? BLANCO : AZUL_NOCHE,
         },
         // Semánticos. Sobre el azul oscuro del modo nocturno, el tono de marca
@@ -186,16 +170,15 @@ export const CustomThemeProvider = ({ children }) => {
         // de marca.
         //   Regla de uso: ".main" para fondos rellenos (con contrastText),
         //   ".light" para texto o íconos sueltos en modo oscuro.
-        // El ACENTO como color de MUI, para poder escribir color="accent" en
+        // El acento como color de MUI, para poder escribir color="accent" en
         // un botón igual que se escribe color="error".
         //
-        // Es el mismo valor que custom.accent —el azul del logo de día, el
-        // amarillo de noche—; existe acá arriba además de en "custom" porque
-        // MUI solo reconoce como color de componente lo que está en la raíz de
-        // la paleta. Si se cambia uno, cambiar el otro.
+        // Mismo valor que custom.accent. Existe en los dos lugares porque MUI
+        // solo reconoce como color de componente lo que está en la raíz de la
+        // paleta: si se cambia uno, cambiar el otro.
         //
         // Se usa en: los botones de agregar y seleccionar (Crear y Editar
-        // Equipo, y los diálogos de Agregar equipo y Crear Factura).
+        // Equipo, los diálogos de Agregar equipo y Crear Factura, y el kiosco).
         accent: {
           main: esClaro ? AZUL_LOGO : AMARILLO,
           contrastText: esClaro ? BLANCO : AZUL_NOCHE,
@@ -233,11 +216,9 @@ export const CustomThemeProvider = ({ children }) => {
         // elevación SUBE hacia el blanco; en oscuro sube hacia el gris azulado.
         // Que la tarjeta no sea blanca es a propósito: las fotos de los equipos
         // son blancas fijas, así que quedan por encima y se despegan solas.
-        // El 2026-07-30 los tres niveles del modo claro subieron un escalón
-        // hacia el blanco: el fondo era CEMENTO (#E2E8F0) y la app se veía
-        // apagada. No se fue directo al blanco para no perder lo del párrafo
-        // de arriba: la tarjeta sigue siendo un punto más oscura que la foto
-        // que lleva encima.
+        // Ninguno de los tres es blanco puro en modo claro, por lo del párrafo
+        // de arriba: la tarjeta tiene que quedar un punto más oscura que la
+        // foto que lleva encima.
         background: {
           default: esClaro ? CONCRETO : AZUL_NOCHE,
           paper: esClaro ? NIEVE : AZUL_ACERO,
@@ -263,9 +244,13 @@ export const CustomThemeProvider = ({ children }) => {
           active: esClaro ? alpha(AZUL_ACERO, 0.72) : "rgba(255, 255, 255, 0.7)",
           hover: esClaro ? alpha(AZUL_ACERO, 0.05) : alpha(BLANCO, 0.07),
           hoverOpacity: esClaro ? 0.05 : 0.07,
-          selected: esClaro ? alpha(NARANJA, 0.12) : alpha(AMARILLO, 0.16),
+          // El tinte que MUI pone encima de lo elegido y de lo que tiene el
+          // foco —los chips de filtro, por ejemplo— sale del acento del modo.
+          // Con el naranja acá, un filtro ya aplicado viraba a naranja al
+          // volver a pasarle el mouse por encima.
+          selected: esClaro ? alpha(AZUL_LOGO, 0.12) : alpha(AMARILLO, 0.16),
           selectedOpacity: esClaro ? 0.12 : 0.16,
-          focus: esClaro ? alpha(NARANJA, 0.18) : alpha(AMARILLO, 0.2),
+          focus: esClaro ? alpha(AZUL_LOGO, 0.18) : alpha(AMARILLO, 0.2),
           focusOpacity: esClaro ? 0.18 : 0.2,
           disabled: esClaro ? alpha(AZUL_ACERO, 0.3) : alpha(BLANCO, 0.3),
           disabledBackground: esClaro
@@ -311,11 +296,9 @@ export const CustomThemeProvider = ({ children }) => {
           // tiene que llamar la atención: títulos, íconos, bordes de algo
           // seleccionado, el relleno de los botones de acción.
           //
-          // Es UNO SOLO para toda la app, en los dos modos. Hasta el
-          // 2026-07-30 hubo dos versiones en modo claro —una para texto
-          // grande y otra para letra chica— y se unificaron: el azul del logo
-          // cumple de sobra en los dos tamaños, así que la distinción dejó de
-          // tener sentido. Si aparece `accentSmall`, es código viejo.
+          // Es UNO SOLO para toda la app y para los dos modos: el azul del
+          // logo cumple contraste con cualquier tamaño de letra. Si aparece
+          // `accentSmall` en algún lado, es código viejo.
           //
           // Para íconos, bordes, rellenos, títulos y letra chica.
           // Se usa en: NavBar, Drawer, Footer, AdminCotizaciones,
@@ -433,19 +416,12 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: ClienteSeguimientoCard.
           tabStripBackground: esClaro ? CEMENTO : AZUL_NOCHE,
 
-          // Los dos estados de factura que no salen de la paleta de la marca,
-          // y es a propósito: los otros ya se llevaron el verde (despachada),
-          // el azul (devolución parcial) y el gris (inactiva), y estos dos
-          // tienen que distinguirse de todos ellos.
+          // Los cinco estados de una factura. Cada uno tiene que distinguirse
+          // de los otros cuatro, así que no salen todos de la paleta de marca.
           //
-          // Los cinco estados de una factura, con los colores que eligió el
-          // usuario el 2026-07-30. Antes vivían repetidos en los tres
-          // componentes que los muestran, cada uno armando su propio objeto y
-          // mezclando tokens de la paleta (success, info) con hex sueltos.
-          //
-          // Son FIJOS en los dos modos a propósito: quien los usa saca el
-          // color de la letra con getContrastText, así que el chip se lee
-          // igual de día que de noche sin necesidad de dos versiones.
+          // Son FIJOS en los dos modos: quien los usa saca el color de la
+          // letra con getContrastText, así que el chip se lee igual de día que
+          // de noche sin necesitar dos versiones.
           //
           // Las claves son las mismas que guarda Firestore en el campo
           // "estado", para poder indexar directo sin traducir.
@@ -748,8 +724,7 @@ export const CustomThemeProvider = ({ children }) => {
         // arriba, porque ahí el resumen se va a una columna angosta al costado
         // y con el tamaño normal no entraba.
         //
-        // Antes estaba escrito como `fontSize: { md: "0.675rem" }` suelto en
-        // los 5 renglones de VistaCart y otra vez en los 5 de KioskCart.
+        // Se usa en: VistaCart y KioskCart.
         resumenCarrito: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
@@ -786,8 +761,7 @@ export const CustomThemeProvider = ({ children }) => {
         // al que pertenece (pago, adicionales, abonos) y se lo pasa cada
         // pantalla; dentro de la pizarra de totales lo hereda del renglón.
         //
-        // Antes estaban escritos como `fontSize: { md: …, lg: … }` sueltos, y
-        // repetidos en los cuatro recuadros de ClienteDetalle.
+        // Se usan en: los cuatro recuadros de ClienteDetalle.
         rotuloDato: {
           fontFamily: '"Open Sans", sans-serif',
           fontWeight: 400,
@@ -1192,7 +1166,6 @@ export const CustomThemeProvider = ({ children }) => {
             }),
             // El botón compacto: el que va en la barra de acciones del pie en
             // celular (MENU / CERRAR SESION) y en los botones de los diálogos.
-            // Antes cada pantalla repetía el mismo sx con estos tres números.
             sizeSmall: ({ theme }) => ({
               padding: theme.spacing(0.75, 1),
               fontSize: "0.75rem",
@@ -1212,11 +1185,10 @@ export const CustomThemeProvider = ({ children }) => {
               },
             }),
           },
-          // Acá vivían "danger", "success" y "menuLogout". El 2026-07-30
-          // pasaron a ser el sistema de MUI —variant="contained" con
-          // color="error" / "success"— porque eran exactamente eso: el mismo
-          // botón relleno con distinto color. Las que quedan son las que MUI
-          // no sabe hacer: colores de marca ajena y formas propias.
+          // Un botón relleno con distinto color NO va acá: eso es
+          // variant="contained" con color="error" / "success" / "accent".
+          // Estas variantes son las que MUI no sabe hacer: colores de marca
+          // ajena y formas propias.
           variants: [
             {
               // EXCEPCIÓN CONSCIENTE: el verde oficial de WhatsApp con texto
@@ -1276,10 +1248,6 @@ export const CustomThemeProvider = ({ children }) => {
                   // abajo. En pantallas chicas —o bajitas, como un portátil
                   // con la ventana a media altura— todo encoge para que los
                   // 9 botones sigan entrando sin scroll.
-                  //
-                  // Antes esto se armaba en AdminForms: el mismo
-                  // `fontSize: isCompact ? 28 : 40` escrito en los 9 íconos,
-                  // uno por uno.
                   fontSize: "0.875rem",
                   gap: theme.spacing(2),
                   "& .MuiSvgIcon-root": {
@@ -1322,31 +1290,25 @@ export const CustomThemeProvider = ({ children }) => {
 
         MuiOutlinedInput: {
           styleOverrides: {
-            // El borde del campo tiene DOS estados y dos colores, nada más
-            // (definido por el dueño el 2026-07-30):
+            // El borde del campo tiene DOS estados y dos colores, nada más:
             //
             //   quieto → el acento del modo: azul del logo de día, amarillo
             //            de noche.
             //   foco   → el ROJO DEL LOGO, y el borde al doble de grueso.
             //
-            // Se probó con un tercer color para el mouse encima y se descartó:
-            // de día quedaba pegado al rojo del foco y de noche al amarillo
-            // del estado quieto, así que eran tres estados con dos señales.
-            // Pasar el mouse ahora no cambia nada — pero la regla de :hover
-            // tiene que estar igual, porque si no MUI la pinta por su cuenta.
+            // Pasar el mouse no cambia nada, pero la regla de :hover tiene que
+            // estar igual: si no está, MUI la pinta por su cuenta.
             root: ({ theme }) => ({
               borderRadius: 6,
 
-              // El botón que se mete DENTRO del campo —el ojo de la
-              // contraseña— venía con el relleno normal de un IconButton y
-              // estiraba el campo a 40px, contra los 37 de los que no llevan
-              // ícono. Se achican el relleno y el dibujo para que el campo con
-              // botón mida lo mismo que el resto.
+              // El botón que va DENTRO del campo —el ojo de la contraseña—
+              // con el relleno normal de un IconButton estira el campo a 40px,
+              // contra los 37 de los que no llevan ícono.
               //
               // Va acá y no en "MuiInputAdornment" porque esos botones no
               // siempre están envueltos en uno, y el ícono no siempre es de
-              // MUI: el del ojo viene de react-icons, así que se apunta al
-              // <svg> pelado en vez de a "MuiSvgIcon-root".
+              // MUI: el del ojo viene de react-icons, así que hay que apuntar
+              // al <svg> pelado en vez de a "MuiSvgIcon-root".
               "& .MuiIconButton-root": {
                 padding: 4,
                 "& svg": {
@@ -1530,9 +1492,8 @@ export const CustomThemeProvider = ({ children }) => {
             // ── Fichas de datos de un equipo ────────────────────────────
             //
             // Los chiquitos que acompañan a cada equipo con sus datos:
-            // días, precio por día, fechas, días ampliados. Antes cada
-            // pantalla los armaba con un objeto "metaPillSx" propio,
-            // copiado igual en ClienteDetalle y en Seguimiento.
+            // días, precio por día, fechas, días ampliados.
+            // Se usan en: ClienteDetalle y ClienteSeguimientoCard.
             //
             // Cambian de piel según la pantalla, y eso lo resuelve el CSS
             // (no hace falta preguntar por el ancho desde el componente):

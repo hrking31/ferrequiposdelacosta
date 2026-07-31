@@ -21,6 +21,7 @@ import { useAuth } from "../../Context/useAuth";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
 import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
+import ReceiptIcon from "@mui/icons-material/Receipt";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCuentaDeCobro() {
@@ -74,7 +75,7 @@ export default function VistaCuentaDeCobro() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -82,6 +83,8 @@ export default function VistaCuentaDeCobro() {
             role={role}
             genero={genero}
             vista={"Crear Cuenta de Cobro"}
+            descripcion={"Genera la cuenta de cobro de un servicio"}
+            icono={<ReceiptIcon />}
           />
         </Box>
 

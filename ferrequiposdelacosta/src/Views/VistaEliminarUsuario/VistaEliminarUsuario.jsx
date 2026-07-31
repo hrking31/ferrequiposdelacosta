@@ -11,6 +11,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/useAuth";
+import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import UsersList from "../../Components/ListaUsuarios/ListaUsuarios";
 
@@ -40,7 +41,7 @@ export default function VistaEliminarUsuario() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -48,6 +49,8 @@ export default function VistaEliminarUsuario() {
             role={role}
             genero={genero}
             vista={"Edita o Elimina un Usuario"}
+            descripcion={"Edita o da de baja al personal"}
+            icono={<PersonRemoveIcon />}
           />
         </Box>
 

@@ -789,7 +789,7 @@ export default function KioskCart() {
 
         <Button
           variant="contained"
-          color="secondary"
+          color="accent"
           onClick={handleSendQuotation}
           target="_blank"
           rel="noopener noreferrer"

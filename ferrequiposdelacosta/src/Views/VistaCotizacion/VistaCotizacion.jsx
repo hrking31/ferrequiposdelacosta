@@ -28,6 +28,7 @@ import {
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
+import BuildIcon from "@mui/icons-material/Build";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
@@ -209,7 +210,7 @@ export default function VistaCotizacion() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -217,6 +218,8 @@ export default function VistaCotizacion() {
             role={role}
             genero={genero}
             vista={"Crea una Cotización"}
+            descripcion={"Arma la cotización y envíala al cliente"}
+            icono={<BuildIcon />}
             cotId={values.cotizacionId}
           />
         </Box>

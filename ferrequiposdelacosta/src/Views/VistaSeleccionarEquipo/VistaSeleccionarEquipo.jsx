@@ -22,6 +22,7 @@ import {
 import Search from "../../Components/Search/Search";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
+import EditIcon from "@mui/icons-material/Edit";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
@@ -122,6 +123,8 @@ const VistaSeleccionarEquipo = () => {
             role={role}
             genero={genero}
             vista={"Edita o Elimina un Equipo"}
+            descripcion={"Busca el equipo que quieres editar o eliminar"}
+            icono={<EditIcon />}
           />
         </Box>
 

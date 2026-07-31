@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import ListaClientes from "../../Components/ListaClientes/ListaClientes";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaClientes() {
@@ -33,7 +34,7 @@ export default function VistaClientes() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -41,6 +42,8 @@ export default function VistaClientes() {
             role={role}
             genero={genero}
             vista={"Clientes"}
+            descripcion={"Consulta y administra la lista de clientes"}
+            icono={<FolderSharedIcon />}
           />
         </Box>
 

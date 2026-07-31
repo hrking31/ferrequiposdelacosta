@@ -266,6 +266,10 @@ export default function ListaClientes() {
                 : { width: "100%", justifyContent: "flex-start", "& .MuiChip-label": { width: "100%" } }),
               ...(seleccionado && {
                 bgcolor: colorSeleccionado,
+                // Conserva su color: sin esto MUI le superpone un tinte
+                // al pasar el mouse y otro mientras tiene el foco.
+                "&:hover": { bgcolor: colorSeleccionado },
+                "&.Mui-focusVisible": { bgcolor: colorSeleccionado },
                 color: contraste,
                 "& .MuiChip-icon": { ml: "10px" },
               }),
@@ -314,6 +318,11 @@ export default function ListaClientes() {
                 bgcolor: acento,
                 color: theme.palette.getContrastText(acento),
                 "& .MuiChip-icon": { color: "inherit" },
+                // El filtro aplicado conserva su color. Sin esto MUI le
+                // superpone un tinte al pasar el mouse y otro mientras tiene
+                // el foco, que recién se suelta al hacer clic en otro lado.
+                "&:hover": { bgcolor: acento },
+                "&.Mui-focusVisible": { bgcolor: acento },
               }),
             }}
           />

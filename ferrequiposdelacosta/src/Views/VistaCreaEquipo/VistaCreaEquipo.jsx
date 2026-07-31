@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import CrearEquipos from "../../Components/CrearEquipos/CrearEquipos";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaCreaEquipo = () => {
@@ -32,7 +33,7 @@ const VistaCreaEquipo = () => {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -40,6 +41,8 @@ const VistaCreaEquipo = () => {
             role={role}
             genero={genero}
             vista={"Crea un Nuevo Equipo"}
+            descripcion={"Agrega un equipo nuevo al catálogo"}
+            icono={<AddCircleOutlineIcon />}
           />
         </Box>
 

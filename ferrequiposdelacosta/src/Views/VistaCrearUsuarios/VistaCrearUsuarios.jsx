@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/useAuth";
 import Register from "../../Components/Register/Register";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCrearUsuarios() {
@@ -38,7 +39,7 @@ export default function VistaCrearUsuarios() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -46,6 +47,8 @@ export default function VistaCrearUsuarios() {
             role={role}
             genero={genero}
             vista={"Crea un nuevo Usuario "}
+            descripcion={"Completa la información para registrar un nuevo usuario"}
+            icono={<PersonAddAlt1Icon />}
           />
         </Box>
 

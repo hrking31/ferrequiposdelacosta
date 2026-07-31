@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/useAuth";
 import AdminCotizaciones from "../../Components/AdminCotizaciones/AdminCotizaciones";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaCotizacion() {
@@ -44,7 +45,7 @@ export default function VistaCotizacion() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -52,6 +53,8 @@ export default function VistaCotizacion() {
             role={role}
             genero={genero}
             vista={"Buzón de Cotizaciones"}
+            descripcion={"Atiende las solicitudes que llegan de la tienda"}
+            icono={<ReceiptLongIcon />}
           />
         </Box>
 

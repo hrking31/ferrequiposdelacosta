@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
+import EditIcon from "@mui/icons-material/Edit";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 const VistaEliminaEquipo = () => {
@@ -39,7 +40,7 @@ const VistaEliminaEquipo = () => {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -47,6 +48,8 @@ const VistaEliminaEquipo = () => {
             role={role}
             genero={genero}
             vista={"Elimina el Equipo"}
+            descripcion={"Saca el equipo del catálogo"}
+            icono={<EditIcon />}
           />
         </Box>
 

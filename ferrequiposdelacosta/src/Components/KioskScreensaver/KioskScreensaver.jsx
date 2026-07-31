@@ -140,7 +140,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
         <Typography
           variant="h5"
           sx={{
-            color: "secondary.light",
+            color: "custom.accent",
             mb: 4,
             fontWeight: 400,
             textShadow: "0px 2px 5px rgba(0,0,0,0.8)",
@@ -158,7 +158,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             borderRadius: (theme) => theme.shape.pill,
             fontSize: "1.5rem",
             fontWeight: "bold",
-            backgroundColor: (theme) => theme.palette.secondary.main,
+            backgroundColor: (theme) => theme.palette.custom.accent,
             // No usa theme.shadows: el kiosco fuerza modo oscuro, y ahí la
             // escala es "none" a propósito. Acá sí hace falta la sombra porque
             // es una pieza flotante a pantalla completa, no una superficie.

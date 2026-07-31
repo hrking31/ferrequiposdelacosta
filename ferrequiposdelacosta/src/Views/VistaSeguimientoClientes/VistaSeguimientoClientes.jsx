@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import SeguimientoClientes from "../../Components/SeguimientoClientes/SeguimientoClientes";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 
 export default function VistaSeguimientoClientes() {
@@ -33,7 +34,7 @@ export default function VistaSeguimientoClientes() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -41,6 +42,8 @@ export default function VistaSeguimientoClientes() {
             role={role}
             genero={genero}
             vista={"Seguimiento de Clientes"}
+            descripcion={"Controla vencimientos y saldos pendientes"}
+            icono={<SupportAgentIcon />}
           />
         </Box>
 

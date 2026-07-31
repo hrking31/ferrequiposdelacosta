@@ -115,6 +115,13 @@ export default function ClienteSeguimientoCard({
   const [tabFactura, setTabFactura] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [detalleAbierto, setDetalleAbierto] = useState(false);
+  // Plegar la factura, igual que en Detalle Cliente: arrancan TODAS plegadas
+  // y lo que se guarda es cuáles se fueron abriendo, así la lista de clientes
+  // se ve completa de un vistazo.
+  const [facturasAbiertas, setFacturasAbiertas] = useState({});
+  const facturaPlegada = (facturaId) => !facturasAbiertas[facturaId];
+  const togglePlegarFactura = (facturaId) =>
+    setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
   const [ampliarOpen, setAmpliarOpen] = useState(false);
 
   const avatarBgPorEstado = theme.palette.custom.estadoFactura;
@@ -565,10 +572,38 @@ export default function ClienteSeguimientoCard({
                     color: theme.palette.getContrastText(facturaEstadoColor),
                   }}
                 />
+
+                {/* Pliega la factura y deja a la vista solo este encabezado,
+                    igual que en Detalle Cliente. */}
+                <Tooltip
+                  title={
+                    facturaPlegada(factura.id)
+                      ? "Mostrar factura"
+                      : "Ocultar factura"
+                  }
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => togglePlegarFactura(factura.id)}
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 0.5,
+                      color: acento,
+                    }}
+                  >
+                    {facturaPlegada(factura.id) ? (
+                      <ExpandMoreIcon fontSize="small" />
+                    ) : (
+                      <ExpandLessIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
               </Stack>
             </Stack>
 
-            {factura.equipos?.length > 0 && (
+            {!facturaPlegada(factura.id) && factura.equipos?.length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
                 {agruparPorVencimiento(factura.equipos, hoy).map((grupo) => (
                   <Box key={grupo.clave}>
@@ -600,7 +635,7 @@ export default function ClienteSeguimientoCard({
               </Stack>
             )}
 
-            {esMovil ? (
+            {facturaPlegada(factura.id) ? null : esMovil ? (
               <Box>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>

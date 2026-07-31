@@ -125,7 +125,7 @@ export default function AdminForms() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ p: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -133,6 +133,7 @@ export default function AdminForms() {
             role={role}
             genero={genero}
             vista={"Gestión de Operaciones"}
+            descripcion={"Elige con qué quieres trabajar"}
           />
         </Box>
 

@@ -129,7 +129,7 @@ export default function KioskDetail() {
           <Box sx={{ textAlign: "center", pb: 2 }}>
             <Button
               variant="contained"
-              color="secondary"
+              color="accent"
               onClick={() => navigate("/kioskhome")}
             >
               Ver más Equipos
