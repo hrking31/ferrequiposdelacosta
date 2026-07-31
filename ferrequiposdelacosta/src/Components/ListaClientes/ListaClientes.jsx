@@ -266,12 +266,12 @@ export default function ListaClientes() {
                 : { width: "100%", justifyContent: "flex-start", "& .MuiChip-label": { width: "100%" } }),
               ...(seleccionado && {
                 bgcolor: colorSeleccionado,
+                color: contraste,
+                "& .MuiChip-icon": { ml: "10px" },
                 // Conserva su color: sin esto MUI le superpone un tinte
                 // al pasar el mouse y otro mientras tiene el foco.
                 "&:hover": { bgcolor: colorSeleccionado },
                 "&.Mui-focusVisible": { bgcolor: colorSeleccionado },
-                color: contraste,
-                "& .MuiChip-icon": { ml: "10px" },
               }),
             }}
           />
