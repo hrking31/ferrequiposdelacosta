@@ -1,6 +1,11 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import {
+  formatearMoneda,
+  formatearFechaLegible,
+  formatearNit,
+} from "../../Utils/formato";
 
 export default function generarCuentaCobro(values) {
   const doc = new jsPDF();
@@ -21,7 +26,12 @@ export default function generarCuentaCobro(values) {
   // Fecha
   doc.setFontSize(10);
   doc.setTextColor(68, 68, 68);
-  doc.text(`Barranquilla, ${values.value.fecha}`, 105, 50, { align: "center" });
+  doc.text(
+    `Barranquilla, ${formatearFechaLegible(values.value.fecha)}`,
+    105,
+    50,
+    { align: "center" },
+  );
 
   // Título documento
   doc.setFontSize(14);
@@ -32,7 +42,9 @@ export default function generarCuentaCobro(values) {
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
   doc.text(values.value.empresa, 105, 75, { align: "center" });
-  doc.text(`Nit: ${values.value.nit}`, 105, 82, { align: "center" });
+  doc.text(`Nit: ${formatearNit(values.value.nit)}`, 105, 82, {
+    align: "center",
+  });
   doc.text(`Obra: ${values.value.obra}`, 105, 89, { align: "center" });
 
   // Deudor
@@ -42,7 +54,9 @@ export default function generarCuentaCobro(values) {
 
   // Concepto
   doc.setFontSize(12);
-  doc.text(`LA SUMA DE: ${values.value.total}`, 105, 125, { align: "center" });
+  doc.text(`LA SUMA DE: ${formatearMoneda(values.value.total)}`, 105, 125, {
+    align: "center",
+  });
   doc.text(`POR CONCEPTO DE: ${values.value.concepto}`, 105, 135, {
     align: "center",
   });
@@ -54,7 +68,7 @@ export default function generarCuentaCobro(values) {
     body: values.value.items.map((item) => [
       item.quantity,
       item.description,
-      item.subtotal,
+      formatearMoneda(item.subtotal),
     ]),
     styles: { fontSize: 11, halign: "center" },
     columnStyles: {
@@ -70,7 +84,7 @@ export default function generarCuentaCobro(values) {
   // doc.setFont(undefined, "bold");
   doc.setTextColor(68, 68, 68);
   doc.text(
-    `Total a Cancelar: ${values.value.total}`,
+    `Total a Cancelar: ${formatearMoneda(values.value.total)}`,
     200,
     doc.lastAutoTable.finalY + 12,
     { align: "right" }

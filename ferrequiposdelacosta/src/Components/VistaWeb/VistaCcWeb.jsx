@@ -1,6 +1,11 @@
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
+  formatearMoneda,
+  formatearFechaLegible,
+  formatearNit,
+} from "../../Utils/formato";
+import {
   Container,
   Typography,
   Box,
@@ -93,7 +98,7 @@ export default function VistaCcWeb() {
           textAlign: "center",
         }}
       >
-        Barranquilla, {formValues.value.fecha}
+        Barranquilla, {formatearFechaLegible(formValues.value.fecha)}
       </Typography>
 
       <Typography
@@ -126,7 +131,7 @@ export default function VistaCcWeb() {
           textAlign: "center",
         }}
       >
-        Nit: {formValues.value.nit}
+        Nit: {formatearNit(formValues.value.nit)}
       </Typography>
 
       <Typography
@@ -170,7 +175,7 @@ export default function VistaCcWeb() {
           textAlign: "center",
         }}
       >
-        LA SUMA DE: {formValues.value.total}
+        LA SUMA DE: {formatearMoneda(formValues.value.total)}
       </Typography>
 
       <Typography
@@ -204,7 +209,9 @@ export default function VistaCcWeb() {
             {item.description}
           </Typography>
 
-          <Typography variant="subtitle1">{item.subtotal}</Typography>
+          <Typography variant="subtitle1">
+            {formatearMoneda(item.subtotal)}
+          </Typography>
         </Box>
       ))}
 
@@ -215,7 +222,7 @@ export default function VistaCcWeb() {
           mt: "20px",
         }}
       >
-        Total a Cancelar: {total}
+        Total a Cancelar: {formatearMoneda(total)}
       </Typography>
 
       <Box sx={{ mt: "40px", textAlign: "center" }}>

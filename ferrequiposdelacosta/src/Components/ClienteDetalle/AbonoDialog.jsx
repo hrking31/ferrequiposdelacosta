@@ -32,11 +32,10 @@ import {
   calcularEstadoCuenta,
   calcularAmpliacionFactura,
 } from "./facturaUtils";
+import { formatearMoneda } from "../../Utils/formato";
 
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 
-const formatearMoneda = (valor) =>
-  Number(valor || 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
 
 // Registra un pago posterior a la factura: el cliente abona algo a lo que
 // quedó debiendo. Cada abono guarda su fecha y su medio, para saber cuándo y

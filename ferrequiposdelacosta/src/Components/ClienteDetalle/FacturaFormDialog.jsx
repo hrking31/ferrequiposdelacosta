@@ -43,6 +43,7 @@ import {
   sumarAbonos,
   separarExcedentePago,
 } from "./facturaUtils";
+import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
 
 const ESTADO_INICIAL_ITEM = {
@@ -59,8 +60,6 @@ const obtenerNombreCliente = (cliente) => {
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
 };
 
-const formatearMoneda = (valor) =>
-  Number(valor || 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
 
 // Toda factura nace "pendienteDespacho": se facturó pero los equipos todavía
 // no se le entregaron al cliente. El resto de estados (despachada, devolución

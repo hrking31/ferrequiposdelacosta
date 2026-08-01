@@ -41,6 +41,7 @@ import {
   sumarAbonos,
   separarExcedentePago,
 } from "./facturaUtils";
+import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
 
 // Datos que comparten todos los equipos que se agregan juntos: la fecha en que
@@ -67,8 +68,6 @@ const ESTADO_INICIAL_ITEM = {
   fechaDespacho: "",
 };
 
-const formatearMoneda = (valor) =>
-  Number(valor || 0).toLocaleString("es-CO", { style: "currency", currency: "COP" });
 
 const subtotalDeItem = (item) =>
   (Number(item?.cantidad) || 0) * (Number(item?.dias) || 0) * (Number(item?.valor) || 0);

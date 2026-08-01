@@ -77,6 +77,7 @@ import {
   ESTADO_CLIENTE_INFO,
   ESTADOS_FACTURA_EN_ORDEN,
 } from "./facturaUtils";
+import { formatearMonedaOVacio } from "../../Utils/formato";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
 // y "Nequi A" son dos cuentas de personas distintas —Yaz y Armando— con el
@@ -242,10 +243,9 @@ const tieneTelefonoValido = (telefono) =>
   telefono &&
   !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
-const formatearMoneda = (valor) =>
-  typeof valor === "number"
-    ? valor.toLocaleString("es-CO", { style: "currency", currency: "COP" })
-    : null;
+// Ojo: esta es la variante que devuelve NADA si el valor no es un número, no la
+// que muestra "$ 0". Ver Utils/formato.js.
+const formatearMoneda = formatearMonedaOVacio;
 
 
 const formatearFecha = (isoDate) => {

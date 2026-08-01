@@ -2,15 +2,13 @@
 // distintas, de dos personas diferentes).
 export const MODOS_PAGO = ["Nequi", "Nequi A", "Bancolombia", "Daviplata", "Efectivo"];
 
-export const formatearMonedaInput = (valor) => (valor ? Number(valor).toLocaleString("es-CO") : "");
+// Viven en Utils/formato.js, que es donde va todo lo de presentación. Se
+// reexportan desde acá para no tocar a quienes ya las importaban de este módulo.
+export { formatearMonedaInput, limpiarMonedaInput } from "../../Utils/formato";
 
-export const limpiarMonedaInput = (texto) => texto.replace(/\D/g, "");
-
-export const formatearFechaLegible = (fechaIso) => {
-  if (!fechaIso) return "";
-  const [anio, mes, dia] = fechaIso.split("-");
-  return `${dia}/${mes}/${anio}`;
-};
+// Vive en Utils/formato.js, que es donde va todo lo de presentación. Se
+// reexporta desde acá para no tocar a quienes ya la importaban de este módulo.
+export { formatearFechaLegible } from "../../Utils/formato";
 
 // Un pago puede repartirse en más de un medio (ej. parte por Bancolombia,
 // parte en efectivo). Las facturas/equipos viejos solo tenían un campo

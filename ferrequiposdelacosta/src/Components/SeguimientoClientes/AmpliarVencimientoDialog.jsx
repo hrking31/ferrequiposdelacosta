@@ -22,6 +22,7 @@ import {
   calcularVencimiento,
   obtenerAmpliaciones,
 } from "../ClienteDetalle/facturaUtils";
+import { formatearMoneda } from "../../Utils/formato";
 
 const formatearFechaLegible = (fechaIso) => {
   if (!fechaIso) return "";
@@ -31,11 +32,6 @@ const formatearFechaLegible = (fechaIso) => {
 
 const ESTADO_INICIAL_CAMBIO = { dias: "", descuento: "", indefinida: false };
 
-const formatearMoneda = (valor) =>
-  Number(valor || 0).toLocaleString("es-CO", {
-    style: "currency",
-    currency: "COP",
-  });
 
 export default function AmpliarVencimientoDialog({ open, onClose, cliente, factura, onActualizado }) {
   const theme = useTheme();

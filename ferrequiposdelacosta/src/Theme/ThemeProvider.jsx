@@ -1471,6 +1471,20 @@ export const CustomThemeProvider = ({ children }) => {
                     : theme.palette.text.secondary,
                 transition: "background-color 5000s ease-in-out 0s", // opcional para evitar parpadeo
               },
+
+              // El calendarcito de los campos de fecha lo dibuja el NAVEGADOR,
+              // no MUI, y lo pinta negro fijo: sobre el fondo oscuro quedaba
+              // invisible. Invertirlo lo vuelve blanco, que es lo que se
+              // necesita de noche. De día se deja como viene.
+              //
+              // Aplica a todos los campos de fecha de la app —Cotización,
+              // Cuenta de Cobro, facturas, abonos, vencimientos— porque está en
+              // el input de todos los TextField.
+              "&::-webkit-calendar-picker-indicator": {
+                filter: esClaro ? "none" : "invert(1)",
+                cursor: "pointer",
+                opacity: 0.85,
+              },
             }),
           },
         },

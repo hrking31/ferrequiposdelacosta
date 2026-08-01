@@ -130,7 +130,10 @@ export default function Cotizacion() {
   const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
 
   return (
-    <Box mx="auto" display="flex" flexDirection="column">
+    // El aire de los costados es para el resplandor de los recuadros de ítem:
+    // son 20px de sombra difusa y sin este margen el contenedor que scrollea
+    // la recortaba contra el borde izquierdo.
+    <Box mx="auto" display="flex" flexDirection="column" sx={{ px: 2 }}>
       <Box component="form">
         <Grid container spacing={2} sx={{ mt: { xs: 0, md: 0 } }}>
           <Grid item xs={12} sm={6}>

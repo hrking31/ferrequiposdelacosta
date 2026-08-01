@@ -30,6 +30,7 @@ import {
   ESTADO_FACTURA_INFO,
   ESTADOS_FACTURA_EN_ORDEN,
 } from "../ClienteDetalle/facturaUtils";
+import { formatearMonedaOVacio } from "../../Utils/formato";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
 
@@ -86,10 +87,9 @@ const obtenerNombreCompleto = (cliente) => {
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
 };
 
-const formatearMoneda = (valor) =>
-  typeof valor === "number"
-    ? valor.toLocaleString("es-CO", { style: "currency", currency: "COP" })
-    : null;
+// Ojo: esta es la variante que devuelve NADA si el valor no es un número, no la
+// que muestra "$ 0". Ver Utils/formato.js.
+const formatearMoneda = formatearMonedaOVacio;
 
 const formatearFecha = (isoDate) => {
   if (!isoDate) return null;

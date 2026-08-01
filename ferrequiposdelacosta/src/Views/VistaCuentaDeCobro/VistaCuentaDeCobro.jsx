@@ -12,12 +12,10 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  setFormCuentaCobro,
-  setItemsCc,
-  setTotalCc,
-} from "../../Store/Slices/cuentacobroSlice";
+import { limpiarCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
 import { useAuth } from "../../Context/useAuth";
+import useSnackbar from "../../Hooks/useSnackbar";
+import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
 import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
@@ -32,24 +30,46 @@ export default function VistaCuentaDeCobro() {
     (state) => state.user,
   );
   const { logout } = useAuth();
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
 
+  // Deja la cuenta en blanco y borra la sesión guardada. Antes se hacía con
+  // tres dispatches y el primero reemplazaba el estado entero sin incluir los
+  // ítems, así que la lista quedaba inexistente por un instante.
   const clearForm = () => {
-    dispatch(
-      setFormCuentaCobro({
-        empresa: "",
-        obra: "",
-        concepto: "",
-        nit: "",
-        fecha: "",
-      }),
-    );
-    dispatch(setItemsCc([]));
-    dispatch(setTotalCc("0"));
+    dispatch(limpiarCuentaCobro());
+  };
+
+  // Qué le falta a la cuenta para poder emitirse. Se revisa al pedir el PDF y
+  // no deshabilitando el botón: así el usuario ve QUÉ falta en vez de un botón
+  // apagado sin explicación.
+  const faltantes = () => {
+    const cuenta = values.value;
+    const falta = [];
+    if (!cuenta.fecha) falta.push("la fecha");
+    if (!cuenta.empresa?.trim()) falta.push("la empresa");
+    if (!cuenta.nit?.trim()) falta.push("el NIT");
+    if (!cuenta.concepto?.trim()) falta.push("el concepto");
+
+    const items = cuenta.items || [];
+    if (items.length === 0) {
+      falta.push("al menos un ítem");
+    } else if (items.some((item) => !item.description?.trim())) {
+      falta.push("la descripción de todos los ítems");
+    } else if (items.some((item) => !(Number(item.subtotal) > 0))) {
+      falta.push("cantidad, días y precio en todos los ítems");
+    }
+    return falta;
   };
 
   const handleClick = () => {
+    const falta = faltantes();
+    if (falta.length > 0) {
+      showSnackbar(`Antes de descargar falta ${falta.join(", ")}.`, "warning");
+      return;
+    }
+
     setLoading(true);
     setTimeout(() => {
       VistaCcPdf(values);
@@ -170,6 +190,8 @@ export default function VistaCuentaDeCobro() {
           </Stack>
         </Box>
       )}
+
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }
