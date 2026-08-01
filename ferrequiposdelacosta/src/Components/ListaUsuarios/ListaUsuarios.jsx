@@ -508,13 +508,6 @@ export default function UsersList() {
         open={openConfirmDelete}
         onClose={() => setOpenConfirmDelete(false)}
         sx={{ zIndex: 1400 }}
-        PaperProps={{
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === "light" ? "primary.light" : "primary.main",
-            backgroundImage: "none",
-          },
-        }}
       >
         <DialogTitle
           sx={{

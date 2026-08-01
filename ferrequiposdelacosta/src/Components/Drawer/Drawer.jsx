@@ -19,7 +19,6 @@ import {
   Divider,
   Dialog,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -138,10 +137,7 @@ export default function MobileDrawerLayout() {
               target="_blank"
               sx={{
                 "&:hover": {
-                  backgroundColor: alpha(
-                    theme.palette.custom.whatsapp.main,
-                    theme.palette.mode === "dark" ? 0.08 : 0.12,
-                  ),
+                  backgroundColor: theme.palette.custom.whatsapp.hover,
                 },
               }}
             >
@@ -165,10 +161,7 @@ export default function MobileDrawerLayout() {
               href="tel:+573116576633"
               sx={{
                 "&:hover": {
-                  backgroundColor: alpha(
-                    theme.palette.custom.call.main,
-                    theme.palette.mode === "dark" ? 0.08 : 0.12,
-                  ),
+                  backgroundColor: theme.palette.custom.call.hover,
                 },
               }}
             >

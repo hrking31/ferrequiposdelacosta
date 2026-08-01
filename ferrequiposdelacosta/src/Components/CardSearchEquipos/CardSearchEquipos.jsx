@@ -23,9 +23,13 @@ export default function CardSearchEquipos({ equipo, onSelect, isSelected }) {
           // El acento ya cambia con el modo, así que la tarjeta no pregunta
           // en cuál está. Elegida y sin elegir comparten color: lo que las
           // distingue es que la elegida se rodea entera y levanta sombra.
+          // La elegida lleva un resplandor del acento, que sí se ve de noche.
+          // La que no, una sombra normal de la escala del tema: de día apoya la
+          // tarjeta sobre la página y de noche no sale ninguna, porque ahí la
+          // elevación la marca el borde.
           boxShadow: isSelected
             ? `0 4px 12px ${alpha(theme.palette.custom.accent, 0.3)}`
-            : "0 2px 8px rgba(0, 0, 0, 0.08)",
+            : theme.shadows[3],
           border: "1px solid",
           borderColor: isSelected ? theme.palette.custom.accent : "divider",
           borderTop: (theme) =>

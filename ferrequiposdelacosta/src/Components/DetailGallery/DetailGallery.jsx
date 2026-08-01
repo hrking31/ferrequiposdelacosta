@@ -67,10 +67,10 @@ const NavButton = styled(IconButton)(({ theme }) => ({
   position: "absolute",
   top: "50%",
   transform: "translateY(-50%)",
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  backgroundColor: theme.palette.custom.veloFoto,
   color: theme.palette.common.white,
   "&:hover": {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: theme.palette.custom.veloFotoHover,
   },
 }));
 
@@ -169,10 +169,10 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
               position: "absolute",
               right: theme.spacing(2),
               bottom: theme.spacing(2),
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              backgroundColor: theme.palette.custom.veloFoto,
               color: theme.palette.common.white,
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                backgroundColor: theme.palette.custom.veloFotoHover,
               },
             }}
           >

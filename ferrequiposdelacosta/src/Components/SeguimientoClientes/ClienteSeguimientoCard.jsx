@@ -265,16 +265,14 @@ export default function ClienteSeguimientoCard({
     );
   };
 
-  const gradosGrisPestana =
-    theme.palette.mode === "light" ? theme.palette.grey[300] : theme.palette.grey[700];
+  const gradosGrisPestana = theme.palette.custom.pestanaInactiva;
 
   const indiceActivo = Math.min(tabFactura, facturas.length - 1);
   const factura = facturas[indiceActivo];
   const facturaEstadoInfo =
     ESTADO_FACTURA_INFO[factura.estado] || { label: factura.estado || "Sin estado" };
   const facturaEstadoColor =
-    avatarBgPorEstado[factura.estado] ||
-    (theme.palette.mode === "light" ? theme.palette.grey[400] : theme.palette.grey[700]);
+    avatarBgPorEstado[factura.estado] || theme.palette.custom.estadoNeutro;
 
   // El cálculo de las ampliaciones vive en facturaUtils, compartido con
   // ClienteDetalle y con el diálogo que las guarda: así las tres pantallas
@@ -504,7 +502,7 @@ export default function ClienteSeguimientoCard({
                       mb: 0,
                       boxShadow:
                         !activo && idx < facturas.length - 1
-                          ? "3px 0 4px -2px rgba(0,0,0,0.35)"
+                          ? theme.palette.custom.sombraPestana
                           : "none",
                       transition: "background-color 0.15s ease",
                     }}

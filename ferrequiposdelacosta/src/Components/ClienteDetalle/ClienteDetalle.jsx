@@ -952,9 +952,7 @@ export default function ClienteDetalle() {
                 : { label: "Sin estado" });
             const facturaEstadoColor =
               avatarBgPorEstado[factura.estado] ||
-              (theme.palette.mode === "light"
-                ? theme.palette.grey[400]
-                : theme.palette.grey[700]);
+              theme.palette.custom.estadoNeutro;
             // Formato viejo (migrado del Excel): transporte es un número.
             // Formato nuevo (creado en la app): transporte es el tipo
             // (ej. "Solo ida") y el monto vive aparte en valorTransporte.

@@ -199,12 +199,10 @@ export default function KioskProductCardDetail({ product }) {
                 }
                 sx={{
                   ...(varianteSeleccionada === variante && {
-                    backgroundColor:
-                      theme.palette.custom.accent,
-                    color:
-                      theme.palette.mode === "light"
-                        ? theme.palette.primary.contrastText
-                        : theme.palette.warning.contrastText,
+                    backgroundColor: theme.palette.custom.accent,
+                    // El chip elegido va relleno con el acento, así que su
+                    // letra usa el token pensado para ir encima.
+                    color: theme.palette.custom.onAccent,
                   }),
                 }}
               />

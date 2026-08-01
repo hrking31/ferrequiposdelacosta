@@ -5,6 +5,10 @@ import {
   responsiveFontSizes,
 } from "@mui/material";
 import { alpha, darken, lighten } from "@mui/material/styles";
+// La misma escala de grises que MUI usa para palette.grey. Se importa para
+// poder armar tokens con ella acá arriba, donde la paleta todavía se está
+// definiendo y theme.palette.grey no existe.
+import { grey } from "@mui/material/colors";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
@@ -124,7 +128,15 @@ export const CustomThemeProvider = ({ children }) => {
     const ROJO_LOGO_NOCHE = "#D3636E";
     const AZUL_LLAMADA = "#0284C7";
     const AZUL_LLAMADA_OSCURO = "#0369A1";
+    // El verde oficial de WhatsApp. Es marca ajena: no se toca ni se adapta al
+    // modo. Estaba escrito directo en la paleta; acá arriba queda junto al
+    // resto de los colores literales, que es donde va por convención.
+    const VERDE_WHATSAPP = "#25D366";
+    const VERDE_WHATSAPP_OSCURO = "#128C7E";
     const BLANCO = "#FFFFFF";
+    // Negro puro. Solo se usa translúcido, para oscurecer una foto por debajo
+    // de un ícono; nunca como color de relleno ni de letra.
+    const NEGRO = "#000000";
     const NIEVE = "#F8FAFC";
     const CONCRETO = "#F1F5F9";
     const GRIS_TEXTO = "#475569";
@@ -382,6 +394,33 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: el estilo general de "caption" y "overline".
           captionText: esClaro ? GRIS_CAPTION : GRIS_SUAVE,
 
+          // ── El velo sobre las fotos ──────────────────────────────────
+          //
+          // Los íconos que van ENCIMA de una foto (la cámara al pasar sobre el
+          // avatar, las flechas de la galería) necesitan un fondo que los
+          // despegue de la imagen. Es negro translúcido, IGUAL en los dos
+          // modos: lo que hay debajo es una foto, no una superficie de la app,
+          // así que no cambia con el tema. El segundo es el mismo velo un poco
+          // más cerrado, para el paso del mouse.
+          // Se usan en: HeaderUsuario (el avatar) y DetailGallery.
+          veloFoto: alpha(NEGRO, 0.5),
+          veloFotoHover: alpha(NEGRO, 0.7),
+
+          // ── La nota grabada ──────────────────────────────────────────
+          //
+          // La aclaración al pie del formulario de factura, la de las 3 p.m.
+          // Se ve como grabada en bajorrelieve: letra muy tenue más una línea
+          // de luz justo debajo, que simula el borde iluminado de un hueco.
+          // De día la luz es blanca marcada; de noche apenas se insinúa, o el
+          // relieve se vería como un subrayado.
+          //
+          // El aspecto completo (tamaño incluido) está armado abajo como la
+          // variante "notaGrabada" de Typography; estos son solo sus colores.
+          notaGrabadaText: esClaro ? alpha(NEGRO, 0.35) : alpha(BLANCO, 0.25),
+          notaGrabadaRelieve: esClaro
+            ? `0px 1px 0px ${alpha(BLANCO, 0.7)}`
+            : `0px 1px 0px ${alpha(BLANCO, 0.12)}`,
+
           // ── El recuadro de totales: una PIZARRA ──────────────────────
           //
           // La idea es esa: una pizarra donde se anotan los importes. Fondo
@@ -416,6 +455,37 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: ClienteSeguimientoCard.
           tabStripBackground: esClaro ? CEMENTO : AZUL_NOCHE,
 
+          // El globito con la cantidad que va DENTRO de un chip de filtro ya
+          // aplicado. El chip está relleno con su color, así que el globo se
+          // hace con blanco translúcido: se aclara sobre cualquier color de
+          // fondo sin tener que saber cuál es. Igual en los dos modos.
+          // Se usa en: ListaClientes (los filtros de estado y tipo).
+          contadorSobreChip: alpha(BLANCO, 0.3),
+
+          // La sombra que separa una pestaña de factura de la que tiene detrás.
+          // No es una sombra de elevación —va hacia el COSTADO, no hacia
+          // abajo— y por eso no sale de theme.shadows: es lo que hace que las
+          // pestañas se lean como carpetas apiladas. Igual en los dos modos,
+          // porque el efecto de apilado no depende del tema.
+          // Se usa en: ClienteSeguimientoCard.
+          sombraPestana: `3px 0 4px -2px ${alpha(NEGRO, 0.35)}`,
+
+          // El realce al pasar el mouse por una tarjeta de solicitud: dos capas
+          // muy difusas que la despegan de la página. Es de las pocas sombras
+          // que SÍ se muestran de noche —el resto de la app las apaga—, y ahí
+          // van en negro, porque una sombra azulada sobre el fondo noche no se
+          // percibe.
+          // Se usa en: AdminCotizaciones.
+          sombraTarjetaHover: esClaro
+            ? `0 12px 24px -6px ${alpha(AZUL_ACERO_CLARO, 0.25)}, 0 4px 14px -2px ${alpha(AZUL_ACERO_CLARO, 0.15)}`
+            : `0 12px 20px -5px ${alpha(NEGRO, 0.4)}, 0 4px 12px -2px ${alpha(NEGRO, 0.2)}`,
+
+          // El relleno de las pestañas de factura que NO están abiertas: un
+          // gris apagado, para que la abierta —que va con el acento— sea la
+          // única que resalta.
+          // Se usa en: ClienteSeguimientoCard.
+          pestanaInactiva: esClaro ? grey[300] : grey[700],
+
           // Los cinco estados de una factura. Cada uno tiene que distinguirse
           // de los otros cuatro, así que no salen todos de la paleta de marca.
           //
@@ -433,6 +503,13 @@ export const CustomThemeProvider = ({ children }) => {
             finalizada: "#16A34A", // verde
             inactivo: "#6B7280", // gris
           },
+
+          // El gris de respaldo para una factura cuyo estado no está en la
+          // lista de arriba: las migradas del Excel traen valores viejos que no
+          // siempre coinciden. Antes este mismo cálculo estaba copiado en
+          // ClienteDetalle y ClienteSeguimientoCard.
+          // Se usa en: ClienteDetalle y ClienteSeguimientoCard.
+          estadoNeutro: esClaro ? grey[400] : grey[700],
 
           // Cada bloque de la factura tiene su propio color, para poder
           // distinguir de un vistazo qué se está mirando: el pago, los equipos
@@ -453,8 +530,20 @@ export const CustomThemeProvider = ({ children }) => {
           // marcas ajenas, así que son siempre los mismos y no cambian con el
           // modo: si se tocaran, dejarían de reconocerse.
           // Se usan en: ButtonContacto, Drawer, ClienteSeguimientoCard.
-          whatsapp: { main: "#25D366", dark: "#128C7E" },
-          call: { main: AZUL_LLAMADA, dark: AZUL_LLAMADA_OSCURO },
+          //
+          // El "hover" es el mismo color apenas insinuado, para teñir el
+          // renglón del menú al pasar el mouse. De noche va más suave: sobre
+          // el fondo oscuro un tinte del 12% ya se ve como un bloque de color.
+          whatsapp: {
+            main: VERDE_WHATSAPP,
+            dark: VERDE_WHATSAPP_OSCURO,
+            hover: alpha(VERDE_WHATSAPP, esClaro ? 0.12 : 0.08),
+          },
+          call: {
+            main: AZUL_LLAMADA,
+            dark: AZUL_LLAMADA_OSCURO,
+            hover: alpha(AZUL_LLAMADA, esClaro ? 0.12 : 0.08),
+          },
 
           // Los medios de pago que maneja la empresa (ver MODOS_PAGO en
           // facturaUtils.js). Nequi, Bancolombia y Daviplata se muestran con su
@@ -847,6 +936,30 @@ export const CustomThemeProvider = ({ children }) => {
           "@media (max-width:600px)": {
             fontSize: "0.625rem",
           },
+        },
+
+        // La aclaración al pie del formulario de factura (la de las 3 p.m.):
+        // letra muy chica y tenue, con una línea de luz debajo que la hace ver
+        // grabada en la superficie. Es información de respaldo, no algo que
+        // haya que leer sí o sí, y el tratamiento lo dice sin necesidad de
+        // achicarla más.
+        //
+        // Concentraba SIETE valores escritos a mano en el componente: el
+        // tamaño, dos grises translúcidos y dos sombras, cada color con su
+        // propio "si el modo es claro". Los colores salen ahora de
+        // custom.notaGrabadaText y notaGrabadaRelieve.
+        //
+        // Hereda de body1 todo lo demás —tipo de letra, grosor e interlineado—
+        // porque eso es lo que hacía antes: era un Typography sin variante.
+        // El tamaño NO escala con la pantalla, también como antes.
+        // Se usa en: FacturaFormDialog.
+        notaGrabada: {
+          fontFamily: '"Open Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: "0.65rem",
+          lineHeight: 1.5,
+          color: p.custom.notaGrabadaText,
+          textShadow: p.custom.notaGrabadaRelieve,
         },
 
         button: {
@@ -1683,6 +1796,9 @@ export const CustomThemeProvider = ({ children }) => {
               // párrafos (salían por "body1") y tienen que seguir siéndolo.
               rotuloDato: "p",
               valorDato: "p",
+              // Ídem: la nota del pie del formulario era un Typography sin
+              // variante, o sea un párrafo. Tiene que seguir saliendo así.
+              notaGrabada: "p",
               // Este en cambio sí va como <span>, que es lo que era antes
               // (usaba "caption"): así el pie de la hoja no cambia de forma.
               documentoPie: "span",

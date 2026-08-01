@@ -234,7 +234,9 @@ export default function ListaClientes() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      bgcolor: seleccionado ? "rgba(255,255,255,0.3)" : "action.selected",
+                      bgcolor: seleccionado
+                        ? "custom.contadorSobreChip"
+                        : "action.selected",
                       color: seleccionado ? contraste : "text.secondary",
                     }}
                   >

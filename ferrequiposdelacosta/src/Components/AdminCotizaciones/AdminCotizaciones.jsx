@@ -251,10 +251,7 @@ export default function KioskAdminCotizaciones() {
               "&:hover": {
                 transform: "translateY(0)",
                 outlineColor: "custom.accent",
-                boxShadow: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "0 12px 20px -5px rgba(0,0,0,0.4), 0 4px 12px -2px rgba(0,0,0,0.2)"
-                    : "0 12px 24px -6px rgba(58,81,105,0.25), 0 4px 14px -2px rgba(58,81,105,0.15)",
+                boxShadow: (theme) => theme.palette.custom.sombraTarjetaHover,
               },
 
               "&:not(:hover)": {
@@ -289,10 +286,7 @@ export default function KioskAdminCotizaciones() {
                 >
                   <Avatar
                     sx={{
-                      bgcolor: (theme) =>
-                        theme.palette.mode === "light"
-                          ? "primary.main"
-                          : "primary.dark",
+                      bgcolor: "primary.main",
                       width: 56,
                       height: 56,
                       flexShrink: 0,

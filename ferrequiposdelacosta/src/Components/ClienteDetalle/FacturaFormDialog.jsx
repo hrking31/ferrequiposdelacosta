@@ -909,19 +909,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
             </Grid>
 
             <Grid item xs={12}>
-              <Typography
-                sx={{
-                  fontSize: "0.65rem",
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? "rgba(0,0,0,0.35)"
-                      : "rgba(255,255,255,0.25)",
-                  textShadow: (theme) =>
-                    theme.palette.mode === "light"
-                      ? "0px 1px 0px rgba(255,255,255,0.7)"
-                      : "0px 1px 0px rgba(255,255,255,0.12)",
-                }}
-              >
+              <Typography variant="notaGrabada">
                 Los pedidos realizados antes de las 3:00 p.m. se procesan el mismo día. Los
                 realizados después, se procesan al día siguiente.
               </Typography>
