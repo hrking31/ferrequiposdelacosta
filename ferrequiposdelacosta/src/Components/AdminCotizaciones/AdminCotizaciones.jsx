@@ -450,6 +450,8 @@ export default function KioskAdminCotizaciones() {
                         {
                           texto: "Eliminar",
                           accion: () => handleEliminar(quotation.id),
+                          // El único que borra, y por eso el único en rojo.
+                          variante: "quotationSquareDanger",
                         },
                         {
                           texto: "Editar",
@@ -509,7 +511,7 @@ export default function KioskAdminCotizaciones() {
                         {btnConfig.map((btn, index) => (
                           <Button
                             key={index}
-                            variant="quotationSquare"
+                            variant={btn.variante || "quotationSquare"}
                             fullWidth
                             size="large"
                             onClick={() => btn.accion()}

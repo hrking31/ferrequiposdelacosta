@@ -1398,6 +1398,26 @@ export const CustomThemeProvider = ({ children }) => {
                 },
               }),
             },
+            {
+              // La misma tarjeta de acción, pero para lo que DESTRUYE. En el
+              // buzón de cotizaciones todos los botones salían con la variante
+              // de arriba, así que ELIMINAR se veía igual que EDITAR o que
+              // Crear Cotización.
+              //
+              // Es una variante aparte y no un color="error" porque
+              // "quotationSquare" fija su propio fondo: el color de MUI no le
+              // gana. Misma forma y mismo tamaño, solo cambia el color.
+              // Se usa en: AdminCotizaciones (el botón Eliminar).
+              props: { variant: "quotationSquareDanger" },
+              style: ({ theme }) => ({
+                backgroundColor: theme.palette.error.main,
+                color: theme.palette.error.contrastText,
+                boxShadow: "none",
+                "&:hover": {
+                  backgroundColor: darken(theme.palette.error.main, 0.12),
+                },
+              }),
+            },
           ],
         },
 
