@@ -335,6 +335,79 @@ const agruparLotesAgregados = (equipos) => {
   return lotes;
 };
 
+// ── Los estados de una factura ─────────────────────────────────────────
+//
+// Ciclo de vida de una factura creada desde la app:
+//   pendienteDespacho  se facturó, los equipos todavía no se entregaron
+//   despachada         todos los equipos están con el cliente
+//   devolucionParcial  devolvió algunos y se quedó con otros
+//   finalizada         devolvió todo, no queda nada pendiente
+//
+// Las claves son las que se guardan en Firestore; el color de cada una vive en
+// el tema, en `palette.custom.estadoFactura`.
+//
+// Este orden es el del CICLO, y es el que usan los menús para cambiar de
+// estado. No confundirlo con PRIORIDAD_ESTADO_CLIENTE (más abajo), que ordena
+// por urgencia y sirve para otra cosa.
+export const ESTADOS_FACTURA_EN_ORDEN = [
+  "pendienteDespacho",
+  "despachada",
+  "devolucionParcial",
+  "finalizada",
+];
+
+// El nombre visible de cada estado. Estaba copiado en CINCO lugares —dos de
+// ellos en el mismo archivo— más ocho veces suelto dentro de los menús, así
+// que agregar un estado obligaba a acordarse de todos.
+export const ESTADO_FACTURA_INFO = {
+  pendienteDespacho: { label: "Pendiente despacho" },
+  despachada: { label: "Despachada" },
+  devolucionParcial: { label: "Devolución parcial" },
+  finalizada: { label: "Finalizada" },
+};
+
+// El cliente usa el mismo vocabulario que sus facturas, más "inactivo" para
+// cuando no tiene ninguna.
+export const ESTADO_CLIENTE_INFO = {
+  inactivo: { label: "Inactivo" },
+  ...ESTADO_FACTURA_INFO,
+};
+
+// El estado que se le muestra a un CLIENTE es un resumen de sus facturas, no
+// un dato propio: gana la que exige atención más pronto. Este es el orden.
+//
+// Antes cada pantalla escribía en el cliente el estado de la factura que
+// acababas de tocar, así que un cliente con tres facturas quedaba "Finalizada"
+// por cerrar una sola, aunque las otras dos tuvieran equipos en la calle. Y el
+// filtro de la lista de clientes heredaba esa mentira.
+const PRIORIDAD_ESTADO_CLIENTE = [
+  "pendienteDespacho", // hay algo por despachar: acción nuestra, y es lo primero
+  "devolucionParcial", // devolvió una parte, falta el resto
+  "despachada", // equipos en la calle, corriendo días
+  "finalizada", // solo si TODAS lo están
+];
+
+// Resume las facturas de un cliente en un solo estado. Ojo: hay que pasarle
+// TODAS las facturas del cliente, no un subconjunto filtrado.
+export const calcularEstadoCliente = (facturas) => {
+  const estados = (Array.isArray(facturas) ? facturas : [])
+    .map((factura) => factura?.estado)
+    .filter(Boolean);
+
+  // Sin facturas —o sin ninguna que tenga estado— el cliente está inactivo,
+  // que es con lo que nace uno recién creado.
+  if (estados.length === 0) return "inactivo";
+
+  const masUrgente = PRIORIDAD_ESTADO_CLIENTE.find((estado) =>
+    estados.includes(estado),
+  );
+
+  // Las facturas migradas del Excel traen estados viejos que no están en la
+  // escala ("vencida", "morosa", "cerrada"...). Si el cliente solo tiene de
+  // esos, se conserva el primero en vez de degradarlo a inactivo.
+  return masUrgente ?? estados[0];
+};
+
 // Etiqueta ordinal para cada fecha del historial: "1er vencimiento",
 // "2do vencimiento", etc.
 export const etiquetaVencimiento = (indice) => {

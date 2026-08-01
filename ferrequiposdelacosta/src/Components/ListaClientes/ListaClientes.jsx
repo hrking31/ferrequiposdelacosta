@@ -32,6 +32,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "./ClienteFormDialog";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import { ESTADO_CLIENTE_INFO } from "../ClienteDetalle/facturaUtils";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
@@ -48,15 +49,14 @@ const FILTROS_TIPO = [
   { valor: "empresa", label: "Empresas", icono: BusinessIcon },
 ];
 
-// El color de cada estado sale de avatarBgPorEstado (color propio, no del
-// prop `color` de MUI) para no repetir colores ya usados en otros botones.
-const ESTADO_INFO = {
-  inactivo: { label: "Inactivo" },
-  pendienteDespacho: { label: "Pendiente despacho" },
-  despachada: { label: "Despachada" },
-  devolucionParcial: { label: "Devolución parcial" },
-  finalizada: { label: "Finalizada" },
-};
+// Los nombres de los estados vienen de facturaUtils. El color de cada uno sale
+// de avatarBgPorEstado —color propio, no el prop `color` de MUI— para no
+// repetir colores ya usados en otros botones.
+//
+// Los rótulos de FILTROS son aparte a propósito: ahí van en plural
+// ("Despachadas", "Finalizadas") porque nombran un grupo de clientes, no el
+// estado de uno.
+const ESTADO_INFO = ESTADO_CLIENTE_INFO;
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
 

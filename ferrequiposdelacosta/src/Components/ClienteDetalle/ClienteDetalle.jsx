@@ -71,7 +71,11 @@ import {
   normalizarPagos,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  calcularEstadoCliente,
   sumarAbonos,
+  ESTADO_FACTURA_INFO,
+  ESTADO_CLIENTE_INFO,
+  ESTADOS_FACTURA_EN_ORDEN,
 } from "./facturaUtils";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
@@ -208,30 +212,9 @@ const renderFilaDatos = (color, datos) => (
   </Stack>
 );
 
-// El estado del cliente es el mismo vocabulario que el de sus facturas
-// (el cliente toma el estado de la factura que se le crea/edita), más
-// "inactivo" para cuando todavía no tiene ninguna factura.
-const ESTADO_CLIENTE_INFO = {
-  inactivo: { label: "Inactivo" },
-  pendienteDespacho: { label: "Pendiente despacho" },
-  despachada: { label: "Despachada" },
-  devolucionParcial: { label: "Devolución parcial" },
-  finalizada: { label: "Finalizada" },
-};
-
-// Ciclo de vida de una factura creada desde la app:
-// pendienteDespacho (se facturó, equipos aún no entregados)
-//   -> despachada (todos los equipos entregados al cliente)
-//   -> devolucionParcial (devolvió algunos equipos, se quedó con otros)
-//   -> finalizada (devolvió todo, no queda nada pendiente)
-// El color de cada estado sale de avatarBgPorEstado (color propio, no del
-// prop `color` de MUI) para no repetir colores ya usados en otros botones.
-const ESTADO_FACTURA_INFO = {
-  pendienteDespacho: { label: "Pendiente despacho" },
-  despachada: { label: "Despachada" },
-  devolucionParcial: { label: "Devolución parcial" },
-  finalizada: { label: "Finalizada" },
-};
+// Los estados y sus nombres viven en facturaUtils (ver ESTADO_FACTURA_INFO).
+// El color de cada uno sale de avatarBgPorEstado —color propio, no el prop
+// `color` de MUI— para no repetir colores ya usados en otros botones.
 
 const TIPO_PAGO_LABELS = {
   total: "Total",
@@ -355,12 +338,19 @@ export default function ClienteDetalle() {
     const facturaId = facturaMenuId;
     handleCerrarMenuEstado();
     try {
+      // El estado del CLIENTE no es el de esta factura: es el resumen de
+      // todas. "facturas" ya trae la lista completa del cliente, así que
+      // alcanza con aplicarle el cambio y recalcular.
+      const facturasActualizadas = facturas.map((factura) =>
+        factura.id === facturaId ? { ...factura, estado: nuevoEstado } : factura,
+      );
+
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", id, "facturas", facturaId), {
         estado: nuevoEstado,
       });
       batch.update(doc(db, "clientes", id), {
-        estado: nuevoEstado,
+        estado: calcularEstadoCliente(facturasActualizadas),
       });
       await batch.commit();
       await fetchCliente(true);
@@ -2052,22 +2042,16 @@ export default function ClienteDetalle() {
         open={Boolean(menuEstadoAnchor)}
         onClose={handleCerrarMenuEstado}
       >
-        <MenuItem
-          onClick={() => handleCambiarEstadoFactura("pendienteDespacho")}
-        >
-          Pendiente despacho
-        </MenuItem>
-        <MenuItem onClick={() => handleCambiarEstadoFactura("despachada")}>
-          Despachada
-        </MenuItem>
-        <MenuItem
-          onClick={() => handleCambiarEstadoFactura("devolucionParcial")}
-        >
-          Devolución parcial
-        </MenuItem>
-        <MenuItem onClick={() => handleCambiarEstadoFactura("finalizada")}>
-          Finalizada
-        </MenuItem>
+        {/* En el orden del ciclo de vida, y con los nombres de una sola
+            fuente: agregar un estado nuevo no obliga a tocar este menú. */}
+        {ESTADOS_FACTURA_EN_ORDEN.map((estado) => (
+          <MenuItem
+            key={estado}
+            onClick={() => handleCambiarEstadoFactura(estado)}
+          >
+            {ESTADO_FACTURA_INFO[estado].label}
+          </MenuItem>
+        ))}
       </Menu>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />

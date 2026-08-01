@@ -444,6 +444,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
         const nuevaFactura = { ...datosFactura, estado: ESTADO_INICIAL_FACTURA };
         const batch = writeBatch(db);
         batch.set(facturaRef, nuevaFactura);
+        // El estado del cliente resume todas sus facturas (ver
+        // calcularEstadoCliente), pero acá no hace falta leerlas: una factura
+        // recién creada nace "pendienteDespacho", que es justo el estado de
+        // mayor prioridad, así que gana siempre. Si algún día cambia el estado
+        // inicial, esto tiene que pasar a usar el cálculo de verdad.
         batch.update(doc(db, "clientes", cliente.id), {
           estado: nuevaFactura.estado,
         });

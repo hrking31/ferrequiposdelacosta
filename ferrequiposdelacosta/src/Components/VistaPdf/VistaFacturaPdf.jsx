@@ -8,6 +8,7 @@ import {
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
   formatearFechaLegible,
+  ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
 // El PDF de una factura: los mismos datos que muestra ClienteDetalle, en hoja.
@@ -42,12 +43,6 @@ const obtenerNombreCliente = (cliente) => {
   );
 };
 
-const ESTADOS = {
-  pendienteDespacho: "Pendiente despacho",
-  despachada: "Despachada",
-  devolucionParcial: "Devolución parcial",
-  finalizada: "Finalizada",
-};
 
 const TIPOS_PAGO = {
   total: "Total",
@@ -107,7 +102,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
   });
 
   doc.setFontSize(10);
-  doc.text(ESTADOS[factura.estado] || factura.estado || "", centro, 86, {
+  const nombreEstado =
+    ESTADO_FACTURA_INFO[factura.estado]?.label || factura.estado || "";
+  doc.text(nombreEstado, centro, 86, {
     align: "center",
   });
 

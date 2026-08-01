@@ -15,7 +15,10 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
-import { obtenerFechaHoyBogota } from "../ClienteDetalle/facturaUtils";
+import {
+  obtenerFechaHoyBogota,
+  calcularEstadoCliente,
+} from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
   if (!cliente) return "";
@@ -90,11 +93,26 @@ export default function SeguimientoClientes() {
 
   const handleCambiarEstadoFactura = async (clienteId, facturaId, nuevoEstado) => {
     try {
+      // El estado del CLIENTE resume TODAS sus facturas. Acá hay que releerlas
+      // de la base: las que esta pantalla tiene en memoria están filtradas
+      // —solo las que entraron en seguimiento— y calcular con esa lista
+      // parcial daría un estado equivocado.
+      const facturasSnap = await getDocs(
+        collection(db, "clientes", clienteId, "facturas"),
+      );
+      const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
+        docSnap.id === facturaId
+          ? { id: docSnap.id, ...docSnap.data(), estado: nuevoEstado }
+          : { id: docSnap.id, ...docSnap.data() },
+      );
+
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", clienteId, "facturas", facturaId), {
         estado: nuevoEstado,
       });
-      batch.update(doc(db, "clientes", clienteId), { estado: nuevoEstado });
+      batch.update(doc(db, "clientes", clienteId), {
+        estado: calcularEstadoCliente(todasLasFacturas),
+      });
       await batch.commit();
       await fetchSeguimiento(true);
       showSnackbar("Estado de la factura actualizado.", "success");

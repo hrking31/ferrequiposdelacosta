@@ -27,15 +27,11 @@ import {
   diferenciaEnDias,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  ESTADO_FACTURA_INFO,
+  ESTADOS_FACTURA_EN_ORDEN,
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
-const ESTADO_FACTURA_INFO = {
-  pendienteDespacho: { label: "Pendiente despacho" },
-  despachada: { label: "Despachada" },
-  devolucionParcial: { label: "Devolución parcial" },
-  finalizada: { label: "Finalizada" },
-};
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
 // equipos en distinta situación: unos ya vencidos, otros que vencen hoy y
@@ -694,10 +690,11 @@ export default function ClienteSeguimientoCard({
       </Box>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-        <MenuItem onClick={() => handleCambiar("pendienteDespacho")}>Pendiente despacho</MenuItem>
-        <MenuItem onClick={() => handleCambiar("despachada")}>Despachada</MenuItem>
-        <MenuItem onClick={() => handleCambiar("devolucionParcial")}>Devolución parcial</MenuItem>
-        <MenuItem onClick={() => handleCambiar("finalizada")}>Finalizada</MenuItem>
+        {ESTADOS_FACTURA_EN_ORDEN.map((estado) => (
+          <MenuItem key={estado} onClick={() => handleCambiar(estado)}>
+            {ESTADO_FACTURA_INFO[estado].label}
+          </MenuItem>
+        ))}
       </Menu>
 
       <AmpliarVencimientoDialog
