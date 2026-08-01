@@ -270,13 +270,16 @@ const VistaSeleccionarEquipo = () => {
             selección. Con el buscador nuevo dejó de hacer falta —la X limpia la
             búsqueda y la selección se suelta sola— así que se quitó y los dos
             que quedan se reparten el ancho. */}
+        {/* En celular van lado a lado, como MENU y CERRAR SESION del pie:
+            apilados se comian 130px de alto y del listado quedaba visible
+            apenas media tarjeta. */}
         <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={8} sm={5} md={5}>
+          <Grid item xs={6} sm={5} md={5}>
             <Button variant="contained" onClick={handleEditar} fullWidth>
               EDITAR
             </Button>
           </Grid>
-          <Grid item xs={8} sm={5} md={5}>
+          <Grid item xs={6} sm={5} md={5}>
             <Button variant="contained" color="error" onClick={handleEliminar} fullWidth>
               ELIMINAR
             </Button>
