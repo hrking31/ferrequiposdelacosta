@@ -7,8 +7,6 @@ import {
   Chip,
   Divider,
   Fab,
-  IconButton,
-  InputAdornment,
   Pagination,
   Stack,
   Table,
@@ -17,17 +15,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import SearchIcon from "@mui/icons-material/Search";
 import PhoneIcon from "@mui/icons-material/Phone";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import ClearIcon from "@mui/icons-material/Clear";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import { collection, getDocs } from "firebase/firestore";
@@ -36,6 +31,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "./ClienteFormDialog";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 
 const FILTROS = [
   { valor: "todos", label: "Todos" },
@@ -180,27 +176,10 @@ export default function ListaClientes() {
   );
 
   const buscador = (
-    <TextField
+    <BuscadorFiltro
       value={busqueda}
-      onChange={(e) => setBusqueda(e.target.value)}
+      onChange={setBusqueda}
       placeholder="Buscar clientes..."
-      fullWidth
-      size="small"
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
-          </InputAdornment>
-        ),
-        endAdornment: busqueda && (
-          <InputAdornment position="end">
-            <IconButton size="small" onClick={() => setBusqueda("")} edge="end">
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </InputAdornment>
-        ),
-        sx: { borderRadius: (theme) => theme.shape.pill },
-      }}
     />
   );
 

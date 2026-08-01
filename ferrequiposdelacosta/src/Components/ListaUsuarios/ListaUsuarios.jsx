@@ -536,10 +536,13 @@ export default function UsersList() {
             },
           }}
         >
+          {/* El que borra va en ROJO y el de salir en contorno. Estaban al
+              revés —borrar en verde, cancelar en rojo—: el verde invita a
+              tocar, y acá se borra la cuenta del usuario. */}
           <Button
             onClick={handleDeleteUser}
             variant="contained"
-            color="success"
+            color="error"
             size="medium"
             fullWidth={isMobile}
           >
@@ -548,8 +551,7 @@ export default function UsersList() {
 
           <Button
             onClick={() => setOpenConfirmDelete(false)}
-            variant="contained"
-            color="error"
+            variant="outlined"
             size="medium"
             fullWidth={isMobile}
           >

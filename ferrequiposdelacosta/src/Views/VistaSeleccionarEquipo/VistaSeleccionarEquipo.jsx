@@ -5,21 +5,21 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Typography,
   useTheme,
   useMediaQuery,
-  Skeleton,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { useEffect, useState } from "react";
+import SearchIcon from "@mui/icons-material/Search";
+import SearchOffIcon from "@mui/icons-material/SearchOff";
+import { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchEquipos,
-  clearSearchEquipo,
-} from "../../Store/Slices/searchSlice";
-import Search from "../../Components/Search/Search";
+import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
+import BuscadorFiltro from "../../Components/BuscadorFiltro/BuscadorFiltro";
 import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchEquipos";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import EditIcon from "@mui/icons-material/Edit";
@@ -27,27 +27,79 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
+// El cartel que ocupa el lugar de las tarjetas cuando no hay nada que mostrar:
+// al entrar (todavía no buscaste) y cuando la búsqueda no encuentra nada. El
+// ícono y el texto los pone quien lo usa, que es el que sabe cuál de los dos
+// casos es.
+const MensajeVacio = ({ icono, titulo, detalle }) => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      textAlign: "center",
+      gap: 1,
+      py: 6,
+      px: 3,
+      // Centrado vertical con "m: auto" en vez de justifyContent en el padre:
+      // con justify-content, un contenido más alto que el área se recorta por
+      // arriba y no se puede scrollear hasta él.
+      m: "auto",
+      color: "text.secondary",
+      "& .MuiSvgIcon-root": { fontSize: 56, opacity: 0.4 },
+    }}
+  >
+    {icono}
+    <Typography variant="h6" sx={{ color: "text.primary" }}>
+      {titulo}
+    </Typography>
+    <Typography variant="body2">{detalle}</Typography>
+  </Box>
+);
+
+MensajeVacio.propTypes = {
+  icono: PropTypes.node.isRequired,
+  titulo: PropTypes.string.isRequired,
+  detalle: PropTypes.string.isRequired,
+};
+
 const VistaSeleccionarEquipo = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const equipos = useSelector((state) => state.search.results);
-  const loading = useSelector((state) => state.search.loading);
-  const error = useSelector((state) => state.search.error);
-  const hasSearched = useSelector((state) => state.search.hasSearched);
+  // El catálogo completo, el mismo que usa la tienda. Antes esta vista
+  // consultaba Firestore en cada búsqueda y solo encontraba por el COMIENZO
+  // del nombre; ahora filtra en memoria, así que "martillo" también encuentra
+  // "Taladro martillo".
+  const equipos = useSelector((state) => state.equipos.equipos);
+  const loading = useSelector((state) => state.equipos.loading);
+  const error = useSelector((state) => state.equipos.error);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isMedium = useMediaQuery(theme.breakpoints.down("lg"));
 
-  const handleSearch = (searchTerm) => {
-    dispatch(fetchEquipos(searchTerm));
+  // Los tres bloques del cuerpo —buscador, tarjetas y botones— comparten ancho
+  // y centrado. Antes esto vivía en un solo contenedor que además scrolleaba;
+  // al separarlos hay que repetirlo, así que se declara una vez.
+  const anchoContenido = {
+    width: "100%",
+    mx: "auto",
+    [theme.breakpoints.up("md")]: { width: "60%" },
   };
+
+  const equiposFiltrados = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase();
+    if (!termino) return [];
+    return equipos.filter((equipo) =>
+      (equipo.name || "").toLowerCase().includes(termino),
+    );
+  }, [equipos, busqueda]);
 
   const handleEditar = () => {
     if (equipoSeleccionado) {
@@ -67,30 +119,44 @@ const VistaSeleccionarEquipo = () => {
     }
   };
 
-  const handleCancelarSeleccion = () => {
-    setEquipoSeleccionado(null);
-  };
-
   const handlerLogout = async () => {
     await logout();
   };
 
+  // El catálogo se pide una sola vez: si ya está cargado (porque se pasó por
+  // la tienda o por otra vista), navegar hasta acá no vuelve a consultar.
   useEffect(() => {
-    return () => {
-      dispatch(clearSearchEquipo());
-    };
+    if (equipos.length === 0) {
+      dispatch(fetchEquiposData());
+    }
+    // Solo al montar: si dependiera de "equipos", un catálogo vacío de verdad
+    // haría que se pidiera en bucle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
+  // Si el equipo elegido deja de estar a la vista —porque cambiaste la
+  // búsqueda o la limpiaste— se suelta la selección. Sin esto quedaría
+  // seleccionado algo que ya no se ve, y EDITAR o ELIMINAR trabajarían sobre
+  // un equipo que el usuario cree haber soltado.
+  useEffect(() => {
+    if (
+      equipoSeleccionado &&
+      !equiposFiltrados.some((equipo) => equipo.id === equipoSeleccionado.id)
+    ) {
+      setEquipoSeleccionado(null);
+    }
+  }, [equiposFiltrados, equipoSeleccionado]);
+
+  // "No se encontraron equipos" ya no va por aquí: con el filtrado al escribir
+  // saldría un aviso por cada tecla. Ahora se muestra en el cuerpo de la vista.
   useEffect(() => {
     if (error) {
       showSnackbar(
-        "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo.",
+        "Hubo un problema al cargar los equipos. Inténtalo de nuevo.",
         "error",
       );
-    } else if (hasSearched && !loading && equipos.length === 0) {
-      showSnackbar("No se encontraron equipos.", "warning");
     }
-  }, [error, equipos, loading, hasSearched, showSnackbar]);
+  }, [error, showSnackbar]);
 
   return (
     <Box
@@ -144,83 +210,78 @@ const VistaSeleccionarEquipo = () => {
         )}
       </Box>
 
+      {/* El buscador queda FIJO. Antes vivía dentro del área que scrollea:
+          apenas la búsqueda devolvía varias tarjetas se iba hacia arriba, y
+          para cambiar el texto había que volver a subir. */}
+      <Box sx={{ ...anchoContenido, flexShrink: 0, pb: 2 }}>
+        <BuscadorFiltro
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder="Buscar equipo..."
+        />
+      </Box>
+
+      {/* Lo ÚNICO que scrollea son las tarjetas. Los 6px de arriba son para que
+          el contenedor no le recorte el borde superior a la primera fila
+          cuando una tarjeta se levanta al pasar el mouse. */}
       <Box
         sx={{
+          ...anchoContenido,
           flex: 1,
           minHeight: 0,
           overflowY: "auto",
           display: "flex",
-          alignItems: "center",
-          justifyContent: { xs: "flex-start", md: "center" },
           flexDirection: "column",
-          mx: "auto",
-          width: "100%",
-          [theme.breakpoints.up("md")]: { width: "60%" },
+          pt: "6px",
         }}
       >
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Search onSearch={handleSearch} />
-          </Grid>
+        {loading ? (
+          <LoadingLogo height="40vh" text="Cargando equipos..." />
+        ) : equiposFiltrados.length > 0 ? (
+          <CardsSearchEquipos
+            equipos={equiposFiltrados}
+            onSelectEquipo={setEquipoSeleccionado}
+            equipoSeleccionado={equipoSeleccionado}
+          />
+        ) : (
+          // Antes acá salían 3 rectángulos grises animados, que parecían
+          // "cargando" cuando en realidad la vista esperaba que escribieras.
+          // Ahora dice lo que pasa.
+          <MensajeVacio
+            icono={busqueda ? <SearchOffIcon /> : <SearchIcon />}
+            titulo={
+              busqueda
+                ? "No se encontraron equipos"
+                : "Busca un equipo para empezar"
+            }
+            detalle={
+              busqueda
+                ? `Ningún equipo coincide con "${busqueda.trim()}".`
+                : "Escribe el nombre del equipo que quieres editar o eliminar."
+            }
+          />
+        )}
+      </Box>
 
-          <Grid item xs={12}>
-            {equipos.length > 0 ? (
-              <CardsSearchEquipos
-                onSelectEquipo={setEquipoSeleccionado}
-                equipoSeleccionado={equipoSeleccionado}
-              />
-            ) : loading ? (
-              <LoadingLogo height="40vh" text="Buscando equipos..." />
-            ) : (
-              <Grid container spacing={2}>
-                {[...Array(isMobile ? 1 : isMedium ? 2 : 3)].map((_, index) => (
-                  <Grid item xs={12} sm={12} md={6} lg={4} key={index}>
-                    <Skeleton
-                      variant="rectangular"
-                      animation="wave"
-                      sx={{
-                        borderRadius: 2,
-                        height: { xs: 280, md: 350, lg: 400 },
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            )}
+      {/* Los botones también quedan fijos, al pie del contenido y por encima de
+          la barra de MENU / CERRAR SESION. */}
+      <Box sx={{ ...anchoContenido, flexShrink: 0, pt: 2 }}>
+        {/* Eran tres: había un CANCELAR que no cancelaba nada, solo soltaba la
+            selección. Con el buscador nuevo dejó de hacer falta —la X limpia la
+            búsqueda y la selección se suelta sola— así que se quitó y los dos
+            que quedan se reparten el ancho. */}
+        <Grid container spacing={2} justifyContent="center">
+          <Grid item xs={8} sm={5} md={5}>
+            <Button variant="contained" onClick={handleEditar} fullWidth>
+              EDITAR
+            </Button>
+          </Grid>
+          <Grid item xs={8} sm={5} md={5}>
+            <Button variant="contained" color="error" onClick={handleEliminar} fullWidth>
+              ELIMINAR
+            </Button>
           </Grid>
         </Grid>
-
-        <Box
-          sx={{
-            flexShrink: 0,
-            width: "100%",
-            //  border: "2px solid red"
-          }}
-        >
-          <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-            <Grid item xs={8} sm={4} md={4}>
-              <Button variant="contained" onClick={handleEditar} fullWidth>
-                EDITAR
-              </Button>
-            </Grid>
-            <Grid item xs={8} sm={4} md={4}>
-              <Button variant="contained" color="error" onClick={handleEliminar} fullWidth>
-                ELIMINAR
-              </Button>
-            </Grid>
-            <Grid item xs={8} sm={4} md={4}>
-              {/* Va en contorno, no en rojo: solo suelta la selección. Con el
-                  mismo rojo de ELIMINAR parecía igual de peligroso. */}
-              <Button
-                variant="outlined"
-                onClick={handleCancelarSeleccion}
-                fullWidth
-              >
-                CANCELAR
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
       </Box>
 
       {isFullScreen && (

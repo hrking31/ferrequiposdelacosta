@@ -206,10 +206,13 @@ const EliminarEquipo = () => {
             },
           }}
         >
+          {/* El que borra va en ROJO y el de salir en contorno. Estaban al
+              revés —borrar en verde, cancelar en rojo—: el verde invita a
+              tocar, y acá se lleva el equipo con todas sus imágenes. */}
           <Button
             onClick={handleDelete}
             variant="contained"
-            color="success"
+            color="error"
             size="medium"
             fullWidth={isMobile}
           >
@@ -218,8 +221,7 @@ const EliminarEquipo = () => {
 
           <Button
             onClick={() => setOpenConfirmDelete(false)}
-            variant="contained"
-            color="error"
+            variant="outlined"
             size="medium"
             fullWidth={isMobile}
           >

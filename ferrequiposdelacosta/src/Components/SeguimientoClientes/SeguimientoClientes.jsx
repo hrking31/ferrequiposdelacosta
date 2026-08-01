@@ -2,15 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Chip,
-  IconButton,
-  InputAdornment,
   Stack,
-  TextField,
   Typography,
   useTheme,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
@@ -19,6 +14,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { obtenerFechaHoyBogota } from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
@@ -144,27 +140,10 @@ export default function SeguimientoClientes() {
           alignItems={{ xs: "stretch", sm: "center" }}
           sx={{ mb: 3, flexShrink: 0 }}
         >
-          <TextField
+          <BuscadorFiltro
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={setBusqueda}
             placeholder="Buscar cliente..."
-            size="small"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: busqueda && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setBusqueda("")} edge="end">
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ),
-              sx: { borderRadius: (theme) => theme.shape.pill },
-            }}
           />
 
           <Typography

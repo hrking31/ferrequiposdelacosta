@@ -9,9 +9,6 @@ import {
   Avatar,
   Divider,
   Stack,
-  TextField,
-  InputAdornment,
-  IconButton,
   useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
@@ -23,8 +20,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
-import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
+import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
@@ -116,27 +112,10 @@ export default function KioskAdminCotizaciones() {
           alignItems={{ xs: "stretch", sm: "center" }}
           sx={{ flexShrink: 0 }}
         >
-          <TextField
+          <BuscadorFiltro
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={setBusqueda}
             placeholder="Buscar cliente..."
-            size="small"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: busqueda && (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setBusqueda("")} edge="end">
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ),
-              sx: { borderRadius: (theme) => theme.shape.pill },
-            }}
           />
 
           <Typography
