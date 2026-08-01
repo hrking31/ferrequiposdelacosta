@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import {
   Avatar,
+  Badge,
   Box,
   Button,
   Chip,
@@ -24,7 +25,7 @@ import {
 } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -72,7 +73,8 @@ import {
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
   calcularEstadoCliente,
-  sumarAbonos,
+  calcularCuentaFactura,
+  calcularCuentaCliente,
   ESTADO_FACTURA_INFO,
   ESTADO_CLIENTE_INFO,
   ESTADOS_FACTURA_EN_ORDEN,
@@ -213,6 +215,136 @@ const renderFilaDatos = (color, datos) => (
   </Stack>
 );
 
+// El molde de los botones de acción de esta pantalla: un cuadrito con borde,
+// que los agrupa visualmente en vez de dejarlos sueltos. Lo usan los de cada
+// factura y —en pantalla chica— los del encabezado del cliente.
+const iconBtnSx = {
+  border: "1px solid",
+  borderColor: "divider",
+  borderRadius: 1,
+  p: 0.5,
+};
+
+// ── La pizarra del estado de cuenta ────────────────────────────────────
+//
+// Las casillas de una cuenta, en el orden en que se leen: cuánto es, cuánto
+// entró y cuánto falta. La usan la tarjeta del cliente —sumando todas sus
+// facturas— y cada factura plegada.
+//
+// `resumida` deja solo las dos que importan de un vistazo: en celular las
+// cuatro no entran y los importes de siete cifras se montan entre sí.
+const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
+  const aFavor = cuenta.saldoAFavor > 0;
+
+  const casillaTotal = {
+    clave: "total",
+    Icono: ReceiptLongIcon,
+    rotulo: "Total",
+    valor: formatearMonedaOVacio(cuenta.total),
+    color: "custom.totalText",
+  };
+
+  // Un solo renglón para las dos caras de lo mismo: lo que falta cobrar, o lo
+  // que el cliente tiene a su favor si entregó de más.
+  const casillaSaldo = {
+    clave: "saldo",
+    Icono: PendingActionsIcon,
+    rotulo: aFavor ? "A favor" : "Saldo",
+    valor: formatearMonedaOVacio(
+      aFavor ? cuenta.saldoAFavor : cuenta.saldoPendiente,
+    ),
+    color: aFavor ? "success.light" : "error.light",
+  };
+
+  if (resumida) return [casillaTotal, casillaSaldo];
+
+  return [
+    casillaTotal,
+    {
+      clave: "pagado",
+      Icono: PaymentsIcon,
+      rotulo: "Pagado",
+      valor: formatearMonedaOVacio(cuenta.pagado),
+      color: "success.light",
+    },
+    {
+      clave: "abonos",
+      Icono: SavingsIcon,
+      rotulo: "Abonos",
+      valor: formatearMonedaOVacio(cuenta.abonos),
+      color: "info.light",
+    },
+    casillaSaldo,
+  ];
+};
+
+// La pizarra en sí: casillas del mismo ancho separadas por una línea
+// vertical, sobre el fondo oscuro fijo del tema (se lee igual de día que de
+// noche). El `sx` que se le pase se suma al de acá, para acomodarla en el
+// hueco de cada pantalla.
+const renderPizarraTotales = (casillas, sx) => (
+  <Paper
+    variant="totales"
+    sx={{
+      minWidth: 0,
+      py: 1.25,
+      px: 1.5,
+      mt: 0,
+      // Reemplaza la sombra difusa de la variante por el relieve: luz arriba,
+      // sombra abajo.
+      boxShadow: (theme) => theme.palette.custom.panelRelieve,
+      ...sx,
+    }}
+  >
+    <Stack
+      direction="row"
+      sx={{ minWidth: 0 }}
+      // El divisor lleva margen arriba y abajo para no llegar a los bordes de
+      // la tarjeta.
+      divider={
+        <Divider
+          orientation="vertical"
+          flexItem
+          sx={{ my: 0.5, borderColor: "custom.panelText", opacity: 0.25 }}
+        />
+      }
+    >
+      {casillas.map(({ clave, Icono, rotulo, valor, color }) => (
+        <Box
+          key={clave}
+          // Todas las casillas miden lo mismo.
+          sx={{ flex: 1, minWidth: 0, color, px: 0.75 }}
+        >
+          {/* El icono queda a la izquierda, alineado con el rotulo; como es
+              mas alto que las dos lineas, ocupa el espacio que sobra abajo. El
+              rotulo y el valor arrancan en el mismo punto. */}
+          <Stack
+            direction="row"
+            alignItems="flex-start"
+            gap={0.75}
+            sx={{ minWidth: 0 }}
+          >
+            <Icono fontSize="small" sx={{ flexShrink: 0 }} />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="rotuloDato">{rotulo}</Typography>
+              {/* Un valor de siete cifras no entra en un cuarto del hueco y se
+                  montaba sobre el de al lado: achica en pantallas medianas.
+                  Estas son las cifras principales de la cuenta, un punto más
+                  grandes que las de un recuadro. */}
+              <Typography
+                variant="valorDato"
+                sx={{ whiteSpace: "nowrap", fontSize: { lg: "1rem" } }}
+              >
+                {valor}
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
+  </Paper>
+);
+
 // Los estados y sus nombres viven en facturaUtils (ver ESTADO_FACTURA_INFO).
 // El color de cada uno sale de avatarBgPorEstado —color propio, no el prop
 // `color` de MUI— para no repetir colores ya usados en otros botones.
@@ -285,6 +417,11 @@ export default function ClienteDetalle() {
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [menuEstadoAnchor, setMenuEstadoAnchor] = useState(null);
+  // En celular el encabezado deja a la vista solo el nombre y el resumen de
+  // cuenta: el teléfono y la dirección se despliegan con la flecha, así lo que
+  // se busca de un vistazo (cuánto es y cuánto falta) no queda debajo de todo.
+  // En computador sobra el ancho y van siempre visibles.
+  const [contactoAbierto, setContactoAbierto] = useState(false);
   const [facturaMenuId, setFacturaMenuId] = useState(null);
   // Cada factura tiene 4 secciones que se muestran/ocultan por separado en
   // móvil (pagoGeneral, equiposFactura, equiposAgregados, pagoTotal) — la
@@ -826,108 +963,271 @@ export default function ClienteDetalle() {
   const estadoColor =
     avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
+  // La cuenta del cliente entero: la suma de todas sus facturas. A diferencia
+  // de una factura suelta, acá el saldo es neto (lo que sobró en una descuenta
+  // lo que se debe en otra).
+  const cuentaCliente = calcularCuentaCliente(facturas);
+  // Solo se pliega en celular; en computador el contacto está siempre a la
+  // vista, así que la flecha no tiene nada que hacer.
+  const contactoVisible = !esMovil || contactoAbierto;
+  // Los botones del encabezado van enmarcados, iguales a los de cada factura:
+  // toda la pantalla usa el mismo molde.
+  const botonEncabezadoSx = { ...iconBtnSx, color: acento };
 
-  return (
-    <Box sx={{ width: "100%" }}>
+  // Las acciones del encabezado, en este orden: volver al listado, crear
+  // factura y editar el cliente, y por último plegar el contacto. La carpeta
+  // reemplaza al botón "Volver a Clientes" que ocupaba un renglón entero
+  // arriba de la tarjeta; "Crear Factura" reemplaza al botón con letra que
+  // vivía junto al título "Facturas N" (ese título se fue entero: el conteo
+  // ahora es la insignia sobre el avatar del cliente).
+  //
+  // Hasta 915px son varios y flotan en la esquina de arriba. En computador
+  // queda el lápiz solo y va dentro de la fila del nombre, después de la
+  // pizarra de valores, así queda centrado con ella.
+  const botonesEncabezado = (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={
+        isFullScreen
+          ? { position: "absolute", top: 8, right: 8 }
+          : { flexShrink: 0 }
+      }
+    >
       {isFullScreen && (
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/vistaclientes")}
-          sx={{ mb: 2, color: acento }}
-        >
-          Volver a Clientes
-        </Button>
+        <Tooltip title="Volver a Clientes">
+          <IconButton
+            size="small"
+            onClick={() => navigate("/vistaclientes")}
+            sx={botonEncabezadoSx}
+          >
+            <FolderSharedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       )}
 
+      <Tooltip title="Crear factura">
+        <IconButton
+          size="small"
+          onClick={() => setCrearFacturaOpen(true)}
+          sx={botonEncabezadoSx}
+        >
+          <ReceiptLongIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Editar cliente">
+        <IconButton
+          size="small"
+          onClick={() => setEditarOpen(true)}
+          sx={botonEncabezadoSx}
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      {esMovil && (
+        <Tooltip
+          title={
+            contactoAbierto
+              ? "Ocultar teléfono y dirección"
+              : "Ver teléfono y dirección"
+          }
+        >
+          <IconButton
+            size="small"
+            onClick={() => setContactoAbierto((abierto) => !abierto)}
+            sx={botonEncabezadoSx}
+          >
+            {contactoAbierto ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      )}
+    </Stack>
+  );
+
+  return (
+    <Box
+      sx={{
+        // El encabezado (tarjeta del cliente + "Facturas / Crear Factura")
+        // queda fuera de cualquier scroll: solo la lista de facturas, más
+        // abajo, tiene el suyo propio.
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       <Box
         sx={{
-          p: 3,
-          borderRadius: 3,
+          // Los mismos márgenes y esquinas que la tarjeta de una factura: son
+          // dos tarjetas de la misma lista, una arriba de la otra.
+          p: 2,
+          borderRadius: 2,
           bgcolor: "background.paper",
           border: "1px solid",
           borderColor: "divider",
           boxShadow: 1,
           mb: 3,
           position: "relative",
+          // Sin esto, una pizarra de cuatro importes largos estira la tarjeta
+          // más allá del ancho de la pantalla y aparece scroll horizontal.
+          minWidth: 0,
+          // Es fija, no parte del área con scroll: que no se achique si el
+          // alto de la pantalla es chico.
+          flexShrink: 0,
         }}
       >
-        <IconButton
-          onClick={() => setEditarOpen(true)}
-          sx={{ position: "absolute", top: 8, right: 8, color: acento }}
+        {isFullScreen && botonesEncabezado}
+        {/* En computador el resumen de cuenta va al lado del nombre; en celular
+            no entra en la misma línea y pasa debajo, a todo el ancho. */}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          sx={{
+            // La separación va como `gap` y no como `spacing`: con los
+            // elementos envolviéndose, los márgenes de spacing dejan huecos
+            // dobles en el renglón de abajo.
+            gap: 2,
+            // Si el nombre y la pizarra no entran juntos, la pizarra baja a su
+            // propio renglón en vez de estirar la tarjeta fuera de la pantalla.
+            flexWrap: "wrap",
+            // Hasta 915px hay que dejarle libre la esquina a los tres botones
+            // enmarcados (volver a clientes, crear factura y editar) que
+            // flotan sobre la tarjeta. Medido en pantalla a 915px: con pr:10
+            // la pizarra terminaba 18px adentro del primer botón. De ahí en
+            // adelante el lápiz es un elemento más de esta fila y no hace
+            // falta el hueco. En celular la reserva la hace la fila del
+            // nombre, que es la única que llega hasta arriba.
+            pr: { sm: 15 },
+            "@media (min-width:916px)": { pr: 0 },
+          }}
         >
-          <EditIcon />
-        </IconButton>
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
             sx={{
-              width: 56,
-              height: 56,
-              bgcolor:
-                avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+              minWidth: 0,
+              // Sin facturas no hay pizarra que empuje el lápiz al borde
+              // derecho, así que el hueco lo ocupa el nombre.
+              flexGrow: facturas.length > 0 ? 0 : 1,
+              // En celular, el Stack de arriba pasa a columna y este renglón
+              // (y la pizarra, su hermano) deberían estirarse solos por el
+              // alignItems:"stretch" del padre — pero con flexWrap:"wrap" en
+              // un contenedor en columna, ese estirado no se aplica y cada
+              // hijo vuelve a su ancho de contenido, más ancho que la
+              // tarjeta. Forzarlo así es lo que evita que se salga.
+              width: { xs: "100%", sm: "auto" },
             }}
           >
-            {cliente.tipo === "empresa" ? (
-              <BusinessIcon sx={{ fontSize: 28 }} />
-            ) : (
-              <PersonIcon sx={{ fontSize: 28 }} />
+            {/* El conteo de facturas va como insignia sobre el avatar: antes
+                era el título "Facturas N" que encabezaba la lista, antes de
+                que ese renglón se repartiera entre esta insignia y el botón
+                de crear factura, arriba. */}
+            <Badge
+              badgeContent={facturas.length}
+              color="primary"
+              overlap="circular"
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              sx={{ flexShrink: 0 }}
+            >
+              <Avatar
+                sx={{
+                  // Más chico en celular: libera ancho para el nombre, que ahí
+                  // ya viene apretado contra los botones de la esquina.
+                  width: { xs: 44, sm: 56 },
+                  height: { xs: 44, sm: 56 },
+                  bgcolor:
+                    avatarBgPorEstado[cliente.estado] ||
+                    avatarBgPorEstado.inactivo,
+                }}
+              >
+                {cliente.tipo === "empresa" ? (
+                  <BusinessIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+                ) : (
+                  <PersonIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+                )}
+              </Avatar>
+            </Badge>
+            <Box sx={{ minWidth: 0, width: "100%" }}>
+              {/* La reserva para los botones flotantes va solo en el nombre,
+                  que es el único renglón a su misma altura: si se la
+                  ponía a todo este bloque, el chip —que ya cae debajo de
+                  los botones— quedaba igual de angosto y se truncaba
+                  ("PENDIE..."). Dejar que el nombre se parta en dos líneas
+                  es aceptable; que el estado se corte, no. */}
+              <Typography
+                variant="h6"
+                sx={{ pr: { xs: 20, sm: 0 } }}
+              >
+                {nombreCompleto}
+              </Typography>
+              <Chip
+                label={estadoInfo.label}
+                variant="estado"
+                size="small"
+                sx={{
+                  mt: 0.5,
+                  bgcolor: estadoColor,
+                  color: theme.palette.getContrastText(estadoColor),
+                }}
+              />
+            </Box>
+          </Stack>
+
+          {/* Sin facturas no hay cuenta que mostrar: una pizarra en cero
+              sugeriría que el cliente debe algo. */}
+          {facturas.length > 0 &&
+            renderPizarraTotales(
+              // Hasta 915px solo el total y el saldo: las cuatro casillas, con
+              // importes de siete cifras, no entran sin montarse entre sí. Es
+              // el mismo corte que usa la pizarra de cada factura.
+              casillasDeCuenta(cuentaCliente, { resumida: isFullScreen }),
+              // El mismo forzado de ancho que el renglón del avatar, y por la
+              // misma razón: sin esto, en celular la pizarra vuelve a su
+              // ancho de contenido y se sale de la tarjeta por la derecha.
+              { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
             )}
-          </Avatar>
-          <Box>
-            <Typography variant="h6">{nombreCompleto}</Typography>
-            <Chip
-              label={estadoInfo.label}
-              variant="estado"
-              size="small"
-              sx={{
-                mt: 0.5,
-                bgcolor: estadoColor,
-                color: theme.palette.getContrastText(estadoColor),
-              }}
-            />
-          </Box>
+
+          {!isFullScreen && botonesEncabezado}
         </Stack>
 
-        <Divider sx={{ my: 2 }} />
+        {contactoVisible && (
+          <>
+            <Divider sx={{ my: 2 }} />
 
-        <Stack spacing={1}>
-          {telefonoValido ? (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">{cliente.telefono}</Typography>
-            </Stack>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              Sin teléfono registrado
-            </Typography>
-          )}
+            <Stack spacing={1}>
+              {telefonoValido ? (
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2">{cliente.telefono}</Typography>
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Sin teléfono registrado
+                </Typography>
+              )}
 
-          {cliente.direccion && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">{cliente.direccion}</Typography>
+              {cliente.direccion && (
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2">{cliente.direccion}</Typography>
+                </Stack>
+              )}
             </Stack>
-          )}
-        </Stack>
+          </>
+        )}
       </Box>
 
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 2 }}
-      >
-        <Typography variant="h6">Facturas {facturas.length}</Typography>
-
-        <Button
-          startIcon={<ReceiptLongIcon />}
-          onClick={() => setCrearFacturaOpen(true)}
-          sx={{ color: acento, flexShrink: 0 }}
-        >
-          Crear Factura
-        </Button>
-      </Stack>
-
+      {/* De acá para abajo es lo único que se desplaza: la tarjeta del
+          cliente queda fija, fuera de este contenedor. */}
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
       {facturas.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           Este cliente no tiene facturas registradas.
@@ -975,14 +1275,16 @@ export default function ClienteDetalle() {
                 : factura.iva,
             );
             const deposito = formatearMoneda(factura.deposito);
+            // La cuenta de la factura (total, cobrado, abonado y saldo) sale
+            // toda de facturaUtils: es la misma que suma el resumen del
+            // encabezado del cliente, así los dos lugares dicen lo mismo.
+            //
             // El total y el saldo se muestran con los días ampliados ya
             // sumados, igual que el subtotal y el IVA de más arriba. Si no,
             // los renglones de la izquierda no cuadrarían con este total: el
             // guardado en la factura es de antes de la ampliación.
-            const totalFacturaNumero = ampliacionFactura.hay
-              ? ampliacionFactura.nuevoTotal
-              : Number(factura.valorTotal) || 0;
-            const valorTotal = formatearMoneda(totalFacturaNumero);
+            const cuenta = calcularCuentaFactura(factura);
+            const valorTotal = formatearMoneda(cuenta.total);
             const fecha = formatearFecha(factura.fecha);
             // Solo importa en móvil (en PC siempre se muestra todo).
             const mostrar = (seccion) =>
@@ -1047,36 +1349,14 @@ export default function ClienteDetalle() {
             const transporteTotalFactura =
               (Number(factura.valorTransporte) || 0) + transporteAgregadosTotal;
 
-            // Lo cobrado hasta ahora: el pago inicial más el de cada equipo
-            // que se agregó después.
-            const totalPagadoFactura =
-              pagosOriginales.reduce(
-                (total, pago) => total + (Number(pago.monto) || 0),
-                0,
-              ) +
-              equiposAgregados.reduce(
-                (total, equipo) =>
-                  total +
-                  normalizarPagos(equipo.pagos, equipo.modoPago, null).reduce(
-                    (suma, pago) => suma + (Number(pago.monto) || 0),
-                    0,
-                  ),
-                0,
-              );
-
-            // Lo que el cliente fue abonando después de emitida la factura.
-            const totalAbonos = sumarAbonos(factura.abonos);
-            const totalRecibido = totalPagadoFactura + totalAbonos;
-            // Si pagó de más, el sobrante NO baja el saldo (que nunca es
+            // Lo cobrado al emitir la factura más lo de cada equipo agregado
+            // después, y lo que el cliente fue abonando desde entonces. Si
+            // pagó de más, el sobrante NO baja el saldo (que nunca es
             // negativo): sale aparte como saldo a favor.
-            const saldoPendienteNumero = Math.max(
-              0,
-              totalFacturaNumero - totalRecibido,
-            );
-            const saldoAFavorNumero = Math.max(
-              0,
-              totalRecibido - totalFacturaNumero,
-            );
+            const totalPagadoFactura = cuenta.pagado;
+            const totalAbonos = cuenta.abonos;
+            const saldoPendienteNumero = cuenta.saldoPendiente;
+            const saldoAFavorNumero = cuenta.saldoAFavor;
             const saldoPendiente = formatearMoneda(saldoPendienteNumero);
             const hayColorAlerta = saldoPendienteNumero > 0;
 
@@ -1177,16 +1457,18 @@ export default function ClienteDetalle() {
                   cursor: "pointer",
                   bgcolor: facturaEstadoColor,
                   color: theme.palette.getContrastText(facturaEstadoColor),
+                  // La variante "estado" trae un ancho fijo de 190px, pensado
+                  // para una lista donde los chips se alinean en columna (ver
+                  // ThemeProvider). Acá no hay esa columna, y 190px era lo que
+                  // mandaba el chip a la línea de abajo aunque el título le
+                  // dejara sitio de sobra. Sigue siendo el MISMO ancho para
+                  // los cuatro estados —no varía según el texto—, solo que
+                  // más angosto: 145px cubre con margen al más largo,
+                  // "Pendiente despacho" (mide 141px ajustado a su texto).
+                  width: 145,
                 }}
               />
             );
-
-            const iconBtnSx = {
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              p: 0.5,
-            };
 
             const iconosFactura = (
               <Stack
@@ -1275,8 +1557,44 @@ export default function ClienteDetalle() {
                   bgcolor: "background.paper",
                   border: "1px solid",
                   borderColor: "custom.accent",
+                  // Sin esto, la pizarra de totales estira la tarjeta más allá
+                  // del ancho de la pantalla y aparece scroll horizontal.
+                  minWidth: 0,
+                  // Referencia para la flecha flotante de celular, más abajo.
+                  position: "relative",
                 }}
               >
+                {/* En celular, con el título largo ("Factura N / Creada el..."),
+                    el grupo chip+flecha no entra en la misma línea y se envolvía
+                    entero a la línea de abajo pegado a la izquierda —la flecha
+                    terminaba lejos de la esquina, donde nadie la busca. Sacarla
+                    del grupo que se envuelve y clavarla en la esquina de la
+                    tarjeta la deja siempre en el mismo lugar. En pantallas más
+                    anchas no hace falta: ahí el título sí entra junto al chip. */}
+                {esMovil && (
+                  <Box sx={{ position: "absolute", top: 8, right: 8 }}>
+                    <Tooltip
+                      title={
+                        facturaColapsada(factura.id)
+                          ? "Mostrar factura"
+                          : "Ocultar factura"
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleFacturaColapsada(factura.id)}
+                        sx={{ ...iconBtnSx, color: acento }}
+                      >
+                        {facturaColapsada(factura.id) ? (
+                          <ExpandMoreIcon fontSize="small" />
+                        ) : (
+                          <ExpandLessIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+
                 <Stack
                   direction="row"
                   justifyContent="space-between"
@@ -1284,6 +1602,16 @@ export default function ClienteDetalle() {
                   flexWrap="wrap"
                   rowGap={1}
                   gap={1.5}
+                  // En celular el hueco entre título y chip se achica a 8px:
+                  // con el de 12px de siempre, "Pendiente despacho" no
+                  // alcanzaba a compartir línea con el título por unos pocos
+                  // píxeles y el chip se iba abajo aunque hubiera casi lugar.
+                  columnGap={esMovil ? 1 : 1.5}
+                  // Deja libre la esquina para la flecha flotante de arriba.
+                  // El mínimo para no montarse con ella son 22px (medido en
+                  // pantalla); unos pocos más de aire para que no quede
+                  // pegado.
+                  sx={esMovil ? { pr: 5 } : undefined}
                 >
                   <Box>
                     <Typography fontWeight="bold">
@@ -1304,163 +1632,72 @@ export default function ClienteDetalle() {
                       cuenta ocupa el hueco que queda entre el titulo y los
                       botones. Va sobre la pizarra del tema, que tiene fondo
                       oscuro fijo en los dos modos. */}
-                  {!isFullScreen && facturaColapsada(factura.id) && (
-                    <Paper
-                      variant="totales"
-                      sx={{
-                        // Entre 916 y 1200px el hueco que dejan el titulo, los
-                        // cinco botones y el chip de estado (190px fijos) no
-                        // pasa de unos 300px, y cuatro importes de siete cifras
-                        // ahi se montan entre si. Asi que en ese tramo la
-                        // tarjeta pasa a su propia fila, con todo el ancho; de
-                        // 1200px en adelante si entra en el hueco.
-                        flexGrow: 1,
-                        flexBasis: { md: "100%", lg: 0 },
-                        order: { md: 1, lg: 0 },
-                        minWidth: 0,
-                        py: 1.25,
-                        px: 1.5,
-                        mt: 0,
-                        // Reemplaza la sombra difusa de la variante por el
-                        // relieve: luz arriba, sombra abajo.
-                        boxShadow: (theme) => theme.palette.custom.panelRelieve,
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        sx={{ minWidth: 0 }}
-                        // El divisor lleva margen arriba y abajo para no llegar
-                        // a los bordes de la tarjeta.
-                        divider={
-                          <Divider
-                            orientation="vertical"
-                            flexItem
-                            sx={{
-                              my: 0.5,
-                              borderColor: "custom.panelText",
-                              opacity: 0.25,
-                            }}
-                          />
-                        }
-                      >
-                        {[
-                          {
-                            clave: "total",
-                            Icono: ReceiptLongIcon,
-                            rotulo: "Total",
-                            valor: valorTotal,
-                            color: "custom.totalText",
-                          },
-                          {
-                            clave: "pagado",
-                            Icono: PaymentsIcon,
-                            rotulo: "Pagado",
-                            valor: formatearMoneda(totalPagadoFactura),
-                            color: "success.light",
-                          },
-                          {
-                            clave: "abonos",
-                            Icono: SavingsIcon,
-                            rotulo: "Abonos",
-                            valor: formatearMoneda(totalAbonos),
-                            color: "info.light",
-                          },
-                          {
-                            clave: "saldo",
-                            Icono: PendingActionsIcon,
-                            rotulo: saldoAFavorNumero > 0 ? "A favor" : "Saldo",
-                            valor:
-                              saldoAFavorNumero > 0
-                                ? formatearMoneda(saldoAFavorNumero)
-                                : saldoPendiente,
-                            color:
-                              saldoAFavorNumero > 0
-                                ? "success.light"
-                                : "error.light",
-                          },
-                        ].map(({ clave, Icono, rotulo, valor, color }) => (
-                          <Box
-                            key={clave}
-                            sx={{
-                              // Las cuatro casillas miden lo mismo.
-                              flex: 1,
-                              minWidth: 0,
-                              color,
-                              px: 0.75,
-                            }}
-                          >
-                            {/* El icono queda a la izquierda, alineado con el
-                                rotulo; como es mas alto que las dos lineas,
-                                ocupa el espacio que sobra abajo. El rotulo y el
-                                valor arrancan en el mismo punto. */}
-                            <Stack
-                              direction="row"
-                              alignItems="flex-start"
-                              gap={0.75}
-                              sx={{ minWidth: 0 }}
-                            >
-                              <Icono
-                                fontSize="small"
-                                sx={{ flexShrink: 0 }}
-                              />
-                              <Box sx={{ minWidth: 0 }}>
-                                <Typography variant="rotuloDato">
-                                  {rotulo}
-                                </Typography>
-                                {/* Un valor de siete cifras no entra en un
-                                    cuarto del hueco y se montaba sobre el de al
-                                    lado: achica en pantallas medianas. Estas
-                                    son las cifras principales de la cuenta, un
-                                    punto más grandes que las de un recuadro. */}
-                                <Typography
-                                  variant="valorDato"
-                                  sx={{
-                                    whiteSpace: "nowrap",
-                                    fontSize: { lg: "1rem" },
-                                  }}
-                                >
-                                  {valor}
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </Box>
-                        ))}
-                      </Stack>
-                    </Paper>
-                  )}
+                  {!isFullScreen &&
+                    facturaColapsada(factura.id) &&
+                    renderPizarraTotales(casillasDeCuenta(cuenta), {
+                      // Entre 916 y 1200px el hueco que dejan el titulo, los
+                      // cinco botones y el chip de estado (190px fijos) no
+                      // pasa de unos 300px, y cuatro importes de siete cifras
+                      // ahi se montan entre si. Asi que en ese tramo la
+                      // tarjeta pasa a su propia fila, con todo el ancho; de
+                      // 1200px en adelante si entra en el hueco.
+                      flexGrow: 1,
+                      flexBasis: { md: "100%", lg: 0 },
+                      order: { md: 1, lg: 0 },
+                    })}
 
                   <Stack direction="row" spacing={1} alignItems="center">
                     {!esMovil && iconosFactura}
                     {chipEstado}
-                    {/* Pliega la factura completa, dejando a la vista solo el
-                        encabezado. Visible siempre, no solo en celular. */}
-                    <Tooltip
-                      title={
-                        facturaColapsada(factura.id)
-                          ? "Mostrar factura"
-                          : "Ocultar factura"
-                      }
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={() => toggleFacturaColapsada(factura.id)}
-                        sx={{ ...iconBtnSx, color: acento }}
+                    {/* En celular la flecha ya va flotando en la esquina,
+                        arriba; acá solo se repite para pantallas más anchas,
+                        donde comparte línea con el chip sin problema. */}
+                    {!esMovil && (
+                      <Tooltip
+                        title={
+                          facturaColapsada(factura.id)
+                            ? "Mostrar factura"
+                            : "Ocultar factura"
+                        }
                       >
-                        {facturaColapsada(factura.id) ? (
-                          <ExpandMoreIcon fontSize="small" />
-                        ) : (
-                          <ExpandLessIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleFacturaColapsada(factura.id)}
+                          sx={{ ...iconBtnSx, color: acento }}
+                        >
+                          {facturaColapsada(factura.id) ? (
+                            <ExpandMoreIcon fontSize="small" />
+                          ) : (
+                            <ExpandLessIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Stack>
                 </Stack>
 
-                {esMovil && (
-                  <Stack direction="row" alignItems="center" sx={{ mt: 1 }}>
-                    {iconosFactura}
-                  </Stack>
-                )}
+                {/* Hasta 915px la pizarra completa no entra en el hueco del
+                    encabezado, así que la factura plegada muestra debajo la
+                    versión corta: al recorrer la lista lo que se busca es
+                    cuánto es y cuánto falta, no editarla.
+
+                    En celular los botones tienen su propio renglón —el mismo
+                    que ocupa la pizarra— y vuelven al desplegar la factura; de
+                    600px en adelante ya están arriba, en el encabezado. */}
+                {isFullScreen &&
+                  (facturaColapsada(factura.id) ? (
+                    <Box sx={{ mt: 1 }}>
+                      {renderPizarraTotales(
+                        casillasDeCuenta(cuenta, { resumida: true }),
+                      )}
+                    </Box>
+                  ) : (
+                    esMovil && (
+                      <Stack direction="row" alignItems="center" sx={{ mt: 1 }}>
+                        {iconosFactura}
+                      </Stack>
+                    )
+                  ))}
 
                 {/* Todo lo que va debajo del encabezado se pliega con la
                     flecha de arriba, para poder recorrer varias facturas sin
@@ -1967,6 +2204,7 @@ export default function ClienteDetalle() {
           })}
         </Stack>
       )}
+      </Box>
 
       <ClienteFormDialog
         open={editarOpen}

@@ -68,7 +68,10 @@ export default function VistaClienteDetalle() {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
+      {/* El scroll ya no va acá: ClienteDetalle fija su propia tarjeta y el
+          encabezado "Facturas / Crear Factura", y solo la lista de facturas
+          se desplaza, dentro de este mismo alto fijo. */}
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", mx: isFullScreen ? 0 : 2 }}>
         <ClienteDetalle />
       </Box>
 

@@ -294,6 +294,92 @@ export const calcularEstadoCuenta = (factura, totalMostrado) => {
   };
 };
 
+// Lo que el cliente entregó al momento de facturar: el pago del alta más el
+// de cada lote de equipos que se agregó después. No incluye los abonos, que
+// son plata posterior y se cuentan aparte.
+//
+// Ojo: esto NO es factura.montoPagado (que solo guarda el pago del alta, y en
+// las facturas viejas ni eso). Por eso `calcularEstadoCuenta` —que sí lo usa—
+// se queda para los formularios, y las pantallas que muestran la cuenta al día
+// usan esta.
+export const sumarPagosFactura = (factura) => {
+  const sumar = (pagos) =>
+    pagos.reduce((total, pago) => total + (Number(pago?.monto) || 0), 0);
+
+  const pagoInicial = sumar(
+    normalizarPagos(factura?.pagos, factura?.modoPago, factura?.montoPagado),
+  );
+
+  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
+  const pagoAgregados = equipos
+    .filter((equipo) => equipo?.agregadoPosteriormente)
+    .reduce(
+      (total, equipo) =>
+        total + sumar(normalizarPagos(equipo.pagos, equipo.modoPago, null)),
+      0,
+    );
+
+  return pagoInicial + pagoAgregados;
+};
+
+// La cuenta de una factura tal como se MUESTRA: el total ya trae los días
+// ampliados sumados (regla de siempre: con ampliación se muestra, sin ella se
+// guarda). Si el cliente entregó de más, el sobrante no baja el saldo —que
+// nunca es negativo— sino que sale aparte como saldo a favor.
+export const calcularCuentaFactura = (
+  factura,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const ampliacion = calcularAmpliacionFactura(factura, hoyIso);
+  const total = ampliacion.hay
+    ? ampliacion.nuevoTotal
+    : Number(factura?.valorTotal) || 0;
+  const pagado = sumarPagosFactura(factura);
+  const abonos = sumarAbonos(factura?.abonos);
+  const recibido = pagado + abonos;
+
+  return {
+    total,
+    pagado,
+    abonos,
+    recibido,
+    saldoPendiente: Math.max(0, total - recibido),
+    saldoAFavor: Math.max(0, recibido - total),
+  };
+};
+
+// El resumen de TODAS las facturas de un cliente, para la tarjeta de su
+// encabezado.
+//
+// Acá el saldo es NETO, a diferencia de una factura suelta: lo que sobró en
+// una descuenta lo que se debe en otra, porque lo que se está mirando es la
+// cuenta del cliente como un todo, no la de un documento.
+export const calcularCuentaCliente = (
+  facturas,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const resumen = (Array.isArray(facturas) ? facturas : []).reduce(
+    (acumulado, factura) => {
+      const cuenta = calcularCuentaFactura(factura, hoyIso);
+      return {
+        total: acumulado.total + cuenta.total,
+        pagado: acumulado.pagado + cuenta.pagado,
+        abonos: acumulado.abonos + cuenta.abonos,
+        recibido: acumulado.recibido + cuenta.recibido,
+      };
+    },
+    { total: 0, pagado: 0, abonos: 0, recibido: 0 },
+  );
+
+  const neto = resumen.total - resumen.recibido;
+
+  return {
+    ...resumen,
+    saldoPendiente: Math.max(0, neto),
+    saldoAFavor: Math.max(0, -neto),
+  };
+};
+
 export // Los equipos que se agregaron juntos forman un lote: comparten un solo
 // pago y unos solos adicionales, que quedan guardados en el primero de
 // ellos. Los lotes nuevos traen "loteId"; en los guardados antes de que
