@@ -50,12 +50,12 @@ export default function VistaClienteDetalle() {
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Tooltip title="Volver a Clientes">
-              <IconButton onClick={() => navigate("/vistaclientes")}>
+              <IconButton onClick={() => navigate("/vistaclientes")} color="primary">
                 <FolderSharedIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")}>
+              <IconButton onClick={() => navigate("/adminforms")} color="primary">
                 <DashboardIcon />
               </IconButton>
             </Tooltip>

@@ -242,7 +242,7 @@ export default function VistaCotizacion() {
               </span>
             </Tooltip>
             <Tooltip title="Guardar y salir">
-              <IconButton onClick={handleGuardarYSalirClick}>
+              <IconButton onClick={handleGuardarYSalirClick} color="success">
                 <DashboardIcon />
               </IconButton>
             </Tooltip>

@@ -61,7 +61,7 @@ export default function VistaCotizacion() {
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")}>
+              <IconButton onClick={() => navigate("/adminforms")} color="primary">
                 <DashboardIcon />
               </IconButton>
             </Tooltip>

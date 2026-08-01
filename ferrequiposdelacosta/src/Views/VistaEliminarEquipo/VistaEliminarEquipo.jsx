@@ -56,7 +56,7 @@ const VistaEliminaEquipo = () => {
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Tooltip title="Seleccionar otro equipo">
-              <IconButton onClick={() => navigate("/vistaseleccionarequipo")}>
+              <IconButton onClick={() => navigate("/vistaseleccionarequipo")} color="primary">
                 <ListAltIcon />
               </IconButton>
             </Tooltip>
