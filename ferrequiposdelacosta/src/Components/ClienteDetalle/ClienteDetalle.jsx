@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import {
@@ -49,6 +49,7 @@ import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import AbonoDialog from "./AbonoDialog";
+import ReporteFacturasDialog from "./ReporteFacturasDialog";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SavingsIcon from "@mui/icons-material/Savings";
@@ -411,6 +412,7 @@ export default function ClienteDetalle() {
   const [notFound, setNotFound] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
   const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
+  const [reporteOpen, setReporteOpen] = useState(false);
   const [facturaAgregarEquipo, setFacturaAgregarEquipo] = useState(null);
   const [facturaAbonando, setFacturaAbonando] = useState(null);
   const [facturaEditando, setFacturaEditando] = useState(null);
@@ -940,6 +942,16 @@ export default function ClienteDetalle() {
     return renderRecuadroBloque(colorEstado, renglones);
   };
 
+  // Las finalizadas no entran en el reporte: ya no tienen nada pendiente que
+  // reportar. Memoizado porque ReporteFacturasDialog usa esta lista como
+  // dependencia para saber cuándo premarcar todo de nuevo, y sin esto cambia
+  // de referencia en cada render del padre. Va antes del "if (loading)": los
+  // Hooks no pueden llamarse condicionalmente.
+  const facturasParaReporte = useMemo(
+    () => facturas.filter((factura) => factura.estado !== "finalizada"),
+    [facturas],
+  );
+
   if (loading) {
     return <LoadingLogo height="40vh" text="Cargando cliente..." />;
   }
@@ -985,15 +997,7 @@ export default function ClienteDetalle() {
   // queda el lápiz solo y va dentro de la fila del nombre, después de la
   // pizarra de valores, así queda centrado con ella.
   const botonesEncabezado = (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={
-        isFullScreen
-          ? { position: "absolute", top: 8, right: 8 }
-          : { flexShrink: 0 }
-      }
-    >
+    <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
       {isFullScreen && (
         <Tooltip title="Volver a Clientes">
           <IconButton
@@ -1014,6 +1018,21 @@ export default function ClienteDetalle() {
         >
           <ReceiptLongIcon fontSize="small" />
         </IconButton>
+      </Tooltip>
+
+      {/* El span es necesario para que el tooltip funcione con el botón
+          deshabilitado: un botón así no emite eventos de mouse. */}
+      <Tooltip title="Descargar reporte de facturas">
+        <span>
+          <IconButton
+            size="small"
+            onClick={() => setReporteOpen(true)}
+            disabled={facturasParaReporte.length === 0}
+            sx={botonEncabezadoSx}
+          >
+            <PictureAsPdfIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
 
       <Tooltip title="Editar cliente">
@@ -1050,6 +1069,105 @@ export default function ClienteDetalle() {
     </Stack>
   );
 
+  // El nombre (con avatar y estado) más la pizarra de cuenta: un solo bloque
+  // de contenido que se ubica distinto según el ancho (ver más abajo), pero
+  // es el mismo en los dos casos.
+  const contenidoEncabezado = (
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      alignItems={{ xs: "stretch", sm: "center" }}
+      sx={{
+        // La separación va como `gap` y no como `spacing`: con los
+        // elementos envolviéndose, los márgenes de spacing dejan huecos
+        // dobles en el renglón de abajo.
+        gap: 2,
+        // Si el nombre y la pizarra no entran juntos, la pizarra baja a su
+        // propio renglón en vez de estirar la tarjeta fuera de la pantalla.
+        flexWrap: "wrap",
+        minWidth: 0,
+        flex: "1 1 auto",
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        sx={{
+          minWidth: 0,
+          // Sin facturas no hay pizarra que empuje el bloque al borde
+          // derecho, así que el hueco lo ocupa el nombre.
+          flexGrow: facturas.length > 0 ? 0 : 1,
+          // En celular, el Stack de arriba pasa a columna y este renglón
+          // (y la pizarra, su hermano) deberían estirarse solos por el
+          // alignItems:"stretch" del padre — pero con flexWrap:"wrap" en
+          // un contenedor en columna, ese estirado no se aplica y cada
+          // hijo vuelve a su ancho de contenido, más ancho que la
+          // tarjeta. Forzarlo así es lo que evita que se salga.
+          width: { xs: "100%", sm: "auto" },
+        }}
+      >
+        {/* El conteo de facturas va como insignia sobre el avatar: antes
+            era el título "Facturas N" que encabezaba la lista, antes de
+            que ese renglón se repartiera entre esta insignia y el botón
+            de crear factura, arriba. */}
+        <Badge
+          badgeContent={facturas.length}
+          color="primary"
+          overlap="circular"
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          sx={{ flexShrink: 0 }}
+        >
+          <Avatar
+            sx={{
+              // Más chico en celular: libera ancho para el nombre.
+              width: { xs: 44, sm: 56 },
+              height: { xs: 44, sm: 56 },
+              bgcolor:
+                avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+            }}
+          >
+            {cliente.tipo === "empresa" ? (
+              <BusinessIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+            ) : (
+              <PersonIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+            )}
+          </Avatar>
+        </Badge>
+        <Box sx={{ minWidth: 0, width: "100%" }}>
+          {/* Antes acá había que reservarle hueco a los botones flotantes:
+              ahora que son parte del mismo flujo, ese hueco ya no hace
+              falta. Dejar que el nombre se parta en dos líneas sigue
+              siendo aceptable si no entra entero. */}
+          <Typography variant="h6">{nombreCompleto}</Typography>
+          <Chip
+            label={estadoInfo.label}
+            variant="estado"
+            size="small"
+            sx={{
+              mt: 0.5,
+              bgcolor: estadoColor,
+              color: theme.palette.getContrastText(estadoColor),
+            }}
+          />
+        </Box>
+      </Stack>
+
+      {/* Sin facturas no hay cuenta que mostrar: una pizarra en cero
+          sugeriría que el cliente debe algo. */}
+      {facturas.length > 0 &&
+        renderPizarraTotales(
+          // Hasta 915px solo el total y el saldo: las cuatro casillas, con
+          // importes de siete cifras, no entran sin montarse entre sí. Es
+          // el mismo corte que usa la pizarra de cada factura.
+          casillasDeCuenta(cuentaCliente, { resumida: isFullScreen }),
+          // El mismo forzado de ancho que el renglón del avatar, y por la
+          // misma razón: sin esto, en celular la pizarra vuelve a su
+          // ancho de contenido y se sale de la tarjeta por la derecha.
+          { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
+        )}
+    </Stack>
+  );
+
   return (
     <Box
       sx={{
@@ -1083,120 +1201,35 @@ export default function ClienteDetalle() {
           flexShrink: 0,
         }}
       >
-        {isFullScreen && botonesEncabezado}
         {/* En computador el resumen de cuenta va al lado del nombre; en celular
-            no entra en la misma línea y pasa debajo, a todo el ancho. */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          sx={{
-            // La separación va como `gap` y no como `spacing`: con los
-            // elementos envolviéndose, los márgenes de spacing dejan huecos
-            // dobles en el renglón de abajo.
-            gap: 2,
-            // Si el nombre y la pizarra no entran juntos, la pizarra baja a su
-            // propio renglón en vez de estirar la tarjeta fuera de la pantalla.
-            flexWrap: "wrap",
-            // Hasta 915px hay que dejarle libre la esquina a los tres botones
-            // enmarcados (volver a clientes, crear factura y editar) que
-            // flotan sobre la tarjeta. Medido en pantalla a 915px: con pr:10
-            // la pizarra terminaba 18px adentro del primer botón. De ahí en
-            // adelante el lápiz es un elemento más de esta fila y no hace
-            // falta el hueco. En celular la reserva la hace la fila del
-            // nombre, que es la única que llega hasta arriba.
-            pr: { sm: 15 },
-            "@media (min-width:916px)": { pr: 0 },
-          }}
-        >
+            no entra en la misma línea y pasa debajo, a todo el ancho. Los
+            botones son el mismo bloque en los dos casos (botonesEncabezado);
+            lo que cambia es dónde se ubican. */}
+        {isFullScreen ? (
+          // Hasta 915px los botones ya no flotan sobre la tarjeta: van en su
+          // propia fila, siempre arriba y a la derecha. `row-reverse` hace
+          // que el primer hijo (los botones, de ancho fijo) se quede fijo en
+          // esa fila; si el segundo (nombre + pizarra) no entra al lado, es
+          // el que baja completo a su propia fila — nunca los botones.
+          <Stack
+            direction="row-reverse"
+            flexWrap="wrap"
+            alignItems="flex-start"
+            sx={{ rowGap: 2, columnGap: 2 }}
+          >
+            {botonesEncabezado}
+            {contenidoEncabezado}
+          </Stack>
+        ) : (
           <Stack
             direction="row"
-            spacing={2}
             alignItems="center"
-            sx={{
-              minWidth: 0,
-              // Sin facturas no hay pizarra que empuje el lápiz al borde
-              // derecho, así que el hueco lo ocupa el nombre.
-              flexGrow: facturas.length > 0 ? 0 : 1,
-              // En celular, el Stack de arriba pasa a columna y este renglón
-              // (y la pizarra, su hermano) deberían estirarse solos por el
-              // alignItems:"stretch" del padre — pero con flexWrap:"wrap" en
-              // un contenedor en columna, ese estirado no se aplica y cada
-              // hijo vuelve a su ancho de contenido, más ancho que la
-              // tarjeta. Forzarlo así es lo que evita que se salga.
-              width: { xs: "100%", sm: "auto" },
-            }}
+            sx={{ gap: 2, flexWrap: "wrap" }}
           >
-            {/* El conteo de facturas va como insignia sobre el avatar: antes
-                era el título "Facturas N" que encabezaba la lista, antes de
-                que ese renglón se repartiera entre esta insignia y el botón
-                de crear factura, arriba. */}
-            <Badge
-              badgeContent={facturas.length}
-              color="primary"
-              overlap="circular"
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              sx={{ flexShrink: 0 }}
-            >
-              <Avatar
-                sx={{
-                  // Más chico en celular: libera ancho para el nombre, que ahí
-                  // ya viene apretado contra los botones de la esquina.
-                  width: { xs: 44, sm: 56 },
-                  height: { xs: 44, sm: 56 },
-                  bgcolor:
-                    avatarBgPorEstado[cliente.estado] ||
-                    avatarBgPorEstado.inactivo,
-                }}
-              >
-                {cliente.tipo === "empresa" ? (
-                  <BusinessIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
-                ) : (
-                  <PersonIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
-                )}
-              </Avatar>
-            </Badge>
-            <Box sx={{ minWidth: 0, width: "100%" }}>
-              {/* La reserva para los botones flotantes va solo en el nombre,
-                  que es el único renglón a su misma altura: si se la
-                  ponía a todo este bloque, el chip —que ya cae debajo de
-                  los botones— quedaba igual de angosto y se truncaba
-                  ("PENDIE..."). Dejar que el nombre se parta en dos líneas
-                  es aceptable; que el estado se corte, no. */}
-              <Typography
-                variant="h6"
-                sx={{ pr: { xs: 20, sm: 0 } }}
-              >
-                {nombreCompleto}
-              </Typography>
-              <Chip
-                label={estadoInfo.label}
-                variant="estado"
-                size="small"
-                sx={{
-                  mt: 0.5,
-                  bgcolor: estadoColor,
-                  color: theme.palette.getContrastText(estadoColor),
-                }}
-              />
-            </Box>
+            {contenidoEncabezado}
+            {botonesEncabezado}
           </Stack>
-
-          {/* Sin facturas no hay cuenta que mostrar: una pizarra en cero
-              sugeriría que el cliente debe algo. */}
-          {facturas.length > 0 &&
-            renderPizarraTotales(
-              // Hasta 915px solo el total y el saldo: las cuatro casillas, con
-              // importes de siete cifras, no entran sin montarse entre sí. Es
-              // el mismo corte que usa la pizarra de cada factura.
-              casillasDeCuenta(cuentaCliente, { resumida: isFullScreen }),
-              // El mismo forzado de ancho que el renglón del avatar, y por la
-              // misma razón: sin esto, en celular la pizarra vuelve a su
-              // ancho de contenido y se sale de la tarjeta por la derecha.
-              { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
-            )}
-
-          {!isFullScreen && botonesEncabezado}
-        </Stack>
+        )}
 
         {contactoVisible && (
           <>
@@ -2219,6 +2252,13 @@ export default function ClienteDetalle() {
         onClose={() => setCrearFacturaOpen(false)}
         cliente={cliente}
         onGuardado={() => fetchCliente(true)}
+      />
+
+      <ReporteFacturasDialog
+        open={reporteOpen}
+        onClose={() => setReporteOpen(false)}
+        cliente={cliente}
+        facturas={facturasParaReporte}
       />
 
       <FacturaFormDialog

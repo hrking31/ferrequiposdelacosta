@@ -11,19 +11,17 @@ import {
   ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
-// El PDF de una factura: los mismos datos que muestra ClienteDetalle, en hoja.
-//
-// Los colores repiten el código de la pantalla —verde el pago, azul los
-// equipos del alta, violeta los agregados, naranja los cargos y azul los
-// abonos— para que quien vea el papel y la app reconozca lo mismo. Acá van
-// como RGB numérico porque jspdf no lee el tema de MUI.
-const VERDE = [34, 197, 94];
-const AZUL = [59, 130, 246];
-const VIOLETA = [168, 85, 247];
-const NARANJA = [249, 115, 22];
-const AZUL_ABONO = [14, 165, 233];
 const GRIS = [68, 68, 68];
 const NEGRO = [0, 0, 0];
+// Mismo sombreado neutro que el reporte de facturas: alcanza para no perder
+// la fila al leer, sin colores por sección.
+const GRIS_ENCABEZADO = [225, 225, 225];
+const GRIS_FILA = [244, 244, 244];
+const ESTILO_TABLA = {
+  theme: "striped",
+  headStyles: { fillColor: GRIS_ENCABEZADO, textColor: NEGRO, fontStyle: "bold" },
+  alternateRowStyles: { fillColor: GRIS_FILA },
+};
 
 const moneda = (valor) =>
   Number(valor || 0).toLocaleString("es-CO", {
@@ -51,30 +49,32 @@ const TIPOS_PAGO = {
   sinPago: "Sin pago",
 };
 
+// El PDF de una factura: los mismos datos que muestra ClienteDetalle, en
+// hoja. Tamaño carta, sin colores en las tablas (mismo estilo que el reporte
+// de facturas del cliente) y con el membrete —logo, nombre y NIT— repetido en
+// cada hoja, así que el contenido de las hojas después de la primera arranca
+// más abajo (`inicioPaginaSiguiente`), dejándole sitio.
 export default function generarFacturaPdf({ factura, cliente }) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ format: "letter" });
   const anchoHoja = doc.internal.pageSize.getWidth();
+  const altoHoja = doc.internal.pageSize.getHeight();
   const centro = anchoHoja / 2;
 
-  // ── Encabezado, igual que la cotización ────────────────────────────────
-  doc.addImage(LogoFerrequipos, "PNG", 30, 10, 25, 25);
+  const margenPie = 34;
+  const limiteContenido = altoHoja - margenPie;
+  const inicioPaginaSiguiente = 40;
+  const margenTablas = {
+    left: 20,
+    right: 20,
+    top: inicioPaginaSiguiente,
+    bottom: margenPie,
+  };
 
   doc.setFontSize(9);
   doc.setTextColor(180, 180, 180);
   doc.text(`Factura ${factura.numeroFactura ?? "s/n"}`, 200, 12, {
     align: "right",
   });
-
-  doc.setFontSize(16);
-  doc.setTextColor(0, 0, 255);
-  doc.text("FERREQUIPOS DE LA COSTA", centro, 20, { align: "center" });
-
-  doc.setFontSize(10);
-  doc.setTextColor(255, 0, 0);
-  doc.text("Alquiler de equipos para la construcción", centro, 26, {
-    align: "center",
-  });
-  doc.text("Nit: 22.736.950 - 1", centro, 31, { align: "center" });
 
   // ── Cliente y fecha ────────────────────────────────────────────────────
   doc.setFontSize(10);
@@ -110,27 +110,36 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   let y = 92;
 
-  // Escribe el rótulo de una sección con su color, y devuelve dónde sigue.
-  const titulo = (texto, color) => {
-    if (y > 250) {
+  // Escribe el rótulo de una sección y devuelve dónde sigue. Salta de hoja si
+  // no queda sitio antes del pie.
+  const titulo = (texto) => {
+    if (y > limiteContenido) {
       doc.addPage();
-      y = 20;
+      y = inicioPaginaSiguiente;
     }
     doc.setFontSize(11);
-    doc.setTextColor(...color);
+    doc.setTextColor(...NEGRO);
     doc.text(texto, 20, y);
     return y + 3;
   };
 
+  const saltarSiNoCabe = () => {
+    if (y > limiteContenido) {
+      doc.addPage();
+      y = inicioPaginaSiguiente;
+    }
+  };
+
   // Tabla estándar: la usan los equipos, los pagos y los cargos.
-  const tabla = ({ head, body, startY, colores }) => {
+  const tabla = ({ head, body, startY }) => {
+    saltarSiNoCabe();
     autoTable(doc, {
       startY,
       head,
       body,
+      ...ESTILO_TABLA,
       styles: { fontSize: 9 },
-      headStyles: { fillColor: colores, textColor: [255, 255, 255] },
-      margin: { left: 20, right: 20 },
+      margin: margenTablas,
     });
     y = doc.lastAutoTable.finalY + 8;
   };
@@ -138,7 +147,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const equipos = Array.isArray(factura.equipos) ? factura.equipos : [];
   const sonObjetos = equipos.length > 0 && typeof equipos[0] === "object";
 
-  // Cada equipo en una fila, con sus fechas y sus días ampliados.
+  // Cada equipo en su fila: cantidad, nombre (con los días ampliados y el
+  // descuento como nota si los tiene), despacho y devolución en su propia
+  // columna, días, valor por día y subtotal.
   const filaDeEquipo = (equipo) => {
     const ampliacion = calcularAmpliacionEquipo(equipo);
     const subtotal =
@@ -147,14 +158,6 @@ export default function generarFacturaPdf({ factura, cliente }) {
       (Number(equipo.valor) || 0);
 
     const detalles = [equipo.nombre];
-    if (equipo.fechaDespacho) {
-      detalles.push(`Despacho: ${formatearFechaLegible(equipo.fechaDespacho)}`);
-    }
-    if (equipo.vencimientoIndefinido) {
-      detalles.push("Entrega indefinida");
-    } else if (equipo.fechaVencimiento) {
-      detalles.push(`Devuelve: ${formatearFechaLegible(equipo.fechaVencimiento)}`);
-    }
     if (ampliacion.dias > 0) {
       detalles.push(
         `+${ampliacion.dias} día(s) ampliado(s): ${moneda(ampliacion.neto)}`,
@@ -167,18 +170,21 @@ export default function generarFacturaPdf({ factura, cliente }) {
     return [
       equipo.cantidad ?? "",
       detalles.join("\n"),
+      formatearFechaLegible(equipo.fechaDespacho) || "—",
+      equipo.vencimientoIndefinido
+        ? "Indefinida"
+        : formatearFechaLegible(equipo.fechaVencimiento) || "—",
       equipo.dias ?? "",
       moneda(equipo.valor),
       moneda(subtotal + ampliacion.neto),
     ];
   };
 
-  const tablaEquipos = (lista, colores) =>
+  const tablaEquipos = (lista) =>
     tabla({
-      head: [["Cant.", "Equipo", "Días", "Valor/día", "Subtotal"]],
+      head: [["Cant.", "Equipo", "Despacho", "Devolución", "Días", "Valor/día", "Subtotal"]],
       body: lista.map(filaDeEquipo),
       startY: y,
-      colores,
     });
 
   // El pago de un lote: cuándo entró, de qué tipo y por qué medios.
@@ -186,7 +192,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
     const medios = pagos.filter((pago) => pago.medio);
     if (medios.length === 0 && !TIPOS_PAGO[tipoPago]) return;
 
-    y = titulo("INFORMACIÓN DE PAGO", VERDE);
+    y = titulo("INFORMACIÓN DE PAGO");
     tabla({
       head: [["Fecha", "Pago", "Medio", "Valor"]],
       body:
@@ -206,7 +212,6 @@ export default function generarFacturaPdf({ factura, cliente }) {
               ],
             ],
       startY: y,
-      colores: VERDE,
     });
   };
 
@@ -230,12 +235,11 @@ export default function generarFacturaPdf({ factura, cliente }) {
       (hayTransporte ? transporteMonto : 0);
     filas.push(["Total", moneda(total)]);
 
-    y = titulo("CARGOS ADICIONALES", NARANJA);
+    y = titulo("CARGOS ADICIONALES");
     tabla({
       head: [["Concepto", "Valor"]],
       body: filas,
       startY: y,
-      colores: NARANJA,
     });
   };
 
@@ -258,8 +262,8 @@ export default function generarFacturaPdf({ factura, cliente }) {
     const agregados = equipos.filter((e) => e.agregadoPosteriormente);
 
     if (originales.length > 0) {
-      y = titulo(`EQUIPOS (${originales.length})`, AZUL);
-      tablaEquipos(originales, AZUL);
+      y = titulo(`EQUIPOS (${originales.length})`);
+      tablaEquipos(originales);
 
       tablaPago({
         pagos: normalizarPagos(
@@ -286,9 +290,8 @@ export default function generarFacturaPdf({ factura, cliente }) {
         : "";
       y = titulo(
         `EQUIPOS AGREGADOS ${indice + 1} (${lote.equipos.length})${solicitud}`,
-        VIOLETA,
       );
-      tablaEquipos(lote.equipos, VIOLETA);
+      tablaEquipos(lote.equipos);
 
       tablaPago({
         pagos: normalizarPagos(lote.cabecera.pagos, lote.cabecera.modoPago, null),
@@ -305,12 +308,11 @@ export default function generarFacturaPdf({ factura, cliente }) {
     });
   } else if (equipos.length > 0) {
     // Facturas viejas migradas del Excel: los equipos son solo nombres.
-    y = titulo(`EQUIPOS (${equipos.length})`, AZUL);
+    y = titulo(`EQUIPOS (${equipos.length})`);
     tabla({
       head: [["Equipo"]],
       body: equipos.map((nombre) => [nombre]),
       startY: y,
-      colores: AZUL,
     });
   }
 
@@ -318,7 +320,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const abonos = Array.isArray(factura.abonos) ? factura.abonos : [];
   const totalAbonos = sumarAbonos(abonos);
   if (abonos.length > 0) {
-    y = titulo("ABONOS", AZUL_ABONO);
+    y = titulo("ABONOS");
     tabla({
       head: [["Abono", "Medio", "Valor"]],
       body: [
@@ -330,7 +332,6 @@ export default function generarFacturaPdf({ factura, cliente }) {
         ["", "Total abonado", moneda(totalAbonos)],
       ],
       startY: y,
-      colores: AZUL_ABONO,
     });
   }
 
@@ -394,16 +395,18 @@ export default function generarFacturaPdf({ factura, cliente }) {
     moneda(saldoAFavor > 0 ? saldoAFavor : saldoPendiente),
   ]);
 
-  y = titulo("TOTAL FACTURA", GRIS);
+  y = titulo("TOTAL FACTURA");
+  saltarSiNoCabe();
   autoTable(doc, {
     startY: y,
     body: filasTotales,
+    ...ESTILO_TABLA,
     styles: { fontSize: 10 },
     columnStyles: {
       0: { cellWidth: 120, halign: "right" },
       1: { cellWidth: 50, halign: "right" },
     },
-    margin: { left: 20, right: 20 },
+    margin: margenTablas,
     // Las dos filas fuertes —el total y el saldo— van en negrita para que se
     // encuentren de un vistazo. La lista es explícita: comparar contra el
     // texto en mayúsculas también agarraba "IVA (19%)".
@@ -416,22 +419,40 @@ export default function generarFacturaPdf({ factura, cliente }) {
     },
   });
 
-  // ── Pie de página, en todas las hojas ──────────────────────────────────
+  // ── Membrete (logo, nombre y NIT) y pie, en todas las hojas ────────────
   const paginas = doc.internal.getNumberOfPages();
   for (let pagina = 1; pagina <= paginas; pagina += 1) {
     doc.setPage(pagina);
+
+    doc.addImage(LogoFerrequipos, "PNG", 30, 10, 25, 25);
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 255);
+    doc.text("FERREQUIPOS DE LA COSTA", centro, 20, { align: "center" });
+    doc.setFontSize(10);
+    doc.setTextColor(255, 0, 0);
+    doc.text("Alquiler de equipos para la construcción", centro, 26, {
+      align: "center",
+    });
+    doc.text("Nit: 22.736.950 - 1", centro, 31, { align: "center" });
+
     doc.setFontSize(10);
     doc.setFont(undefined, "normal");
     doc.setTextColor(0, 0, 255);
-    doc.text("www.ferrequiposdelacosta.com", centro, 270, { align: "center" });
-    doc.text("ferrequipos07@hotmail.com", centro, 275, { align: "center" });
+    doc.text("www.ferrequiposdelacosta.com", centro, altoHoja - 24, {
+      align: "center",
+    });
+    doc.text("ferrequipos07@hotmail.com", centro, altoHoja - 19, {
+      align: "center",
+    });
     doc.text(
       "Kra 38 # 108 – 23. Tel 605 3356050 - 311 6576633 - 310 6046465",
       centro,
-      280,
+      altoHoja - 14,
       { align: "center" },
     );
-    doc.text("BARRANQUILLA - COLOMBIA", centro, 285, { align: "center" });
+    doc.text("BARRANQUILLA - COLOMBIA", centro, altoHoja - 9, {
+      align: "center",
+    });
   }
 
   doc.save(`Factura-${factura.numeroFactura ?? "s-n"}.pdf`);
