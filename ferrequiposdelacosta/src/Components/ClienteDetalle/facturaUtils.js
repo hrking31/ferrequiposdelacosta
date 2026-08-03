@@ -348,6 +348,50 @@ export const calcularCuentaFactura = (
   };
 };
 
+// El saldo que queda en una factura con esta lista de abonos: el total
+// facturado menos el pago del alta menos todos los abonos. Nunca baja de
+// cero —si se pagó de más, eso se ve aparte como saldo a favor. Usa los
+// valores CRUDOS de la factura (sin ampliación): es la misma regla de
+// siempre, lo que se guarda no lleva los días ampliados.
+export const calcularSaldoConAbonos = (factura, abonos) =>
+  Math.max(
+    0,
+    (Number(factura?.valorTotal) || 0) -
+      (Number(factura?.montoPagado) || 0) -
+      sumarAbonos(abonos),
+  );
+
+// Las facturas de un cliente que todavía tienen saldo, ordenadas de mayor a
+// menor saldo (empate: la más antigua primero). Es el orden en que se les va
+// aplicando un abono: primero a la que más debe. El saldo que se compara acá
+// SÍ lleva los días ampliados —es "lo que se ve"— para saber quién debe más
+// hoy. La usan tanto el botón Abono como el excedente de "Agregar equipo".
+export const ordenarFacturasConSaldo = (facturas, hoyIso = obtenerFechaHoyBogota()) =>
+  (Array.isArray(facturas) ? facturas : [])
+    .map((factura) => ({ factura, cuenta: calcularCuentaFactura(factura, hoyIso) }))
+    .filter(({ cuenta }) => cuenta.saldoPendiente > 0)
+    .sort((a, b) => {
+      const porSaldo = b.cuenta.saldoPendiente - a.cuenta.saldoPendiente;
+      if (porSaldo !== 0) return porSaldo;
+      return (a.factura.fecha || "").localeCompare(b.factura.fecha || "");
+    });
+
+// Reparte un monto entre una lista de facturas con saldo ya ordenadas (ver
+// ordenarFacturasConSaldo): a cada una le asigna lo que le falta para
+// saldarse, y si sobra pasa a la siguiente. La última que llega a recibir
+// algo se lleva TODO lo que quede, así que si sobra después de saldar a
+// todas, ese remanente queda ahí como saldo a favor en vez de perderse.
+export const repartirEntreFacturas = (facturasConSaldo, monto) => {
+  let restante = monto;
+  return facturasConSaldo.map(({ factura, cuenta }, indice) => {
+    if (restante <= 0) return { factura, cuenta, aplicado: 0 };
+    const esUltima = indice === facturasConSaldo.length - 1;
+    const aplicado = esUltima ? restante : Math.min(restante, cuenta.saldoPendiente);
+    restante -= aplicado;
+    return { factura, cuenta, aplicado };
+  });
+};
+
 // El resumen de TODAS las facturas de un cliente, para la tarjeta de su
 // encabezado.
 //

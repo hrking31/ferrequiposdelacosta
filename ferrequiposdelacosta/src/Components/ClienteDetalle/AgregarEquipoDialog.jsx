@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PaymentsIcon from "@mui/icons-material/Payments";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
@@ -40,6 +40,9 @@ import {
   calcularAmpliacionFactura,
   sumarAbonos,
   separarExcedentePago,
+  calcularSaldoConAbonos,
+  ordenarFacturasConSaldo,
+  repartirEntreFacturas,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -72,7 +75,7 @@ const ESTADO_INICIAL_ITEM = {
 const subtotalDeItem = (item) =>
   (Number(item?.cantidad) || 0) * (Number(item?.dias) || 0) * (Number(item?.valor) || 0);
 
-export default function AgregarEquipoDialog({ open, onClose, cliente, factura, onAgregado }) {
+export default function AgregarEquipoDialog({ open, onClose, cliente, factura, facturas, onAgregado }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const acento = theme.palette.custom.accent;
@@ -375,24 +378,45 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
     const loteId = `lote-${Date.now()}`;
 
     // Lo que se entregó de más no se guarda como pago del lote: se convierte
-    // en un abono de la factura, con la fecha de solicitud de estos equipos.
+    // en un abono, con la fecha de solicitud de estos equipos. Primero
+    // satura el saldo de ESTA factura; si sobra, se reparte entre las demás
+    // facturas del cliente con saldo (de mayor a menor), igual que el botón
+    // Abono — así deja de quedar pegado como saldo a favor de esta factura.
     const { pagos: pagosGuardados, excedente, medio: medioExcedente } =
       separarExcedentePago(form.pagos, totalEsteEquipo);
 
+    const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
+    const montoPagadoFinal = (Number(factura?.montoPagado) || 0) + pagadoEnLote;
+
+    const saldoSinExcedente = calcularSaldoConAbonos(
+      { valorTotal: nuevoValorTotal, montoPagado: montoPagadoFinal },
+      factura?.abonos || [],
+    );
+    const abonoEnEstaFactura = Math.min(excedente, saldoSinExcedente);
+    const sobranteExcedente = excedente - abonoEnEstaFactura;
+
     const abonos =
-      excedente > 0
+      abonoEnEstaFactura > 0
         ? [
             ...(factura?.abonos || []),
-            { fecha: form.fechaSolicitud, medio: medioExcedente, monto: excedente },
+            { fecha: form.fechaSolicitud, medio: medioExcedente, monto: abonoEnEstaFactura },
           ]
         : factura?.abonos || [];
 
-    const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
-    const montoPagadoFinal = (Number(factura?.montoPagado) || 0) + pagadoEnLote;
-    const saldoFinal = Math.max(
-      0,
-      nuevoValorTotal - montoPagadoFinal - sumarAbonos(abonos),
+    const saldoFinal = saldoSinExcedente - abonoEnEstaFactura;
+
+    // El resto del excedente (si esta factura ya quedó saldada y sobró
+    // plata) se reparte en las demás facturas del cliente con saldo,
+    // dejando en cada una un abono con una nota de dónde vino.
+    const otrasFacturasConSaldo = ordenarFacturasConSaldo(
+      (facturas || []).filter((f) => f.id !== factura.id),
     );
+    const repartoSobrante =
+      sobranteExcedente > 0
+        ? repartirEntreFacturas(otrasFacturasConSaldo, sobranteExcedente).filter(
+            (item) => item.aplicado > 0,
+          )
+        : [];
 
     const nuevosEquipos = equiposNuevos.map((item, index) => {
       const equipo = {
@@ -432,7 +456,8 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
 
     setGuardando(true);
     try {
-      await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
         equipos: [...(factura.equipos || []), ...nuevosEquipos],
         subtotal: nuevoSubtotal,
         iva: nuevoIva,
@@ -445,6 +470,27 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, o
         // ya no de lo que se elija acá (eso es solo el pago de este equipo puntual).
         tipoPago: saldoFinal > 0 ? "parcial" : "total",
       });
+
+      // El resto del excedente, si lo hay, queda como abono en cada factura
+      // destino, con una nota de que vino de acá (para no confundirlo con un
+      // abono que el cliente haya hecho directamente sobre esa factura).
+      repartoSobrante.forEach(({ factura: facturaDestino, aplicado }) => {
+        const abonosDestino = [
+          ...(facturaDestino.abonos || []),
+          {
+            fecha: form.fechaSolicitud,
+            medio: medioExcedente,
+            monto: aplicado,
+            nota: `Abono trasladado desde la factura ${factura.numeroFactura ?? "s/n"} (equipo agregado)`,
+          },
+        ];
+        batch.update(doc(db, "clientes", cliente.id, "facturas", facturaDestino.id), {
+          abonos: abonosDestino,
+          saldoPendiente: calcularSaldoConAbonos(facturaDestino, abonosDestino),
+        });
+      });
+
+      await batch.commit();
 
       showSnackbar(
         nuevosEquipos.length === 1
@@ -965,5 +1011,6 @@ AgregarEquipoDialog.propTypes = {
   onClose: PropTypes.func.isRequired,
   cliente: PropTypes.object,
   factura: PropTypes.object,
+  facturas: PropTypes.array,
   onAgregado: PropTypes.func,
 };

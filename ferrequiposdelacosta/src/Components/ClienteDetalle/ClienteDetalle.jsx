@@ -414,7 +414,7 @@ export default function ClienteDetalle() {
   const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
   const [reporteOpen, setReporteOpen] = useState(false);
   const [facturaAgregarEquipo, setFacturaAgregarEquipo] = useState(null);
-  const [facturaAbonando, setFacturaAbonando] = useState(null);
+  const [abonoOpen, setAbonoOpen] = useState(false);
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
@@ -933,6 +933,18 @@ export default function ClienteDetalle() {
           return (
             <Box key={`abono-${indice}`}>
               {renderFilaDatos(colorEstado, datos)}
+              {/* Cuando el abono no lo hizo el cliente directamente sobre
+                  esta factura, sino que llegó como sobrante de otra (ver
+                  AgregarEquipoDialog), queda esta nota para no confundirlo. */}
+              {abono.nota && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}
+                >
+                  {abono.nota}
+                </Typography>
+              )}
             </Box>
           );
         })}
@@ -1018,6 +1030,32 @@ export default function ClienteDetalle() {
         >
           <ReceiptLongIcon fontSize="small" />
         </IconButton>
+      </Tooltip>
+
+      {/* Un solo botón para todo el cliente: el abono se reparte solo entre
+          las facturas que tengan saldo (ver AbonoDialog). El span es porque
+          un botón deshabilitado no emite eventos de mouse y sin él el globo
+          de ayuda no aparece. */}
+      <Tooltip
+        title={
+          cuentaCliente.saldoPendiente > 0
+            ? "Registrar abono"
+            : "El cliente no tiene saldo pendiente"
+        }
+      >
+        <span>
+          <IconButton
+            size="small"
+            disabled={cuentaCliente.saldoPendiente === 0}
+            onClick={() => setAbonoOpen(true)}
+            sx={{
+              ...botonEncabezadoSx,
+              "&.Mui-disabled": { color: "action.disabled" },
+            }}
+          >
+            <AttachMoneyIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
 
       {/* El span es necesario para que el tooltip funcione con el botón
@@ -1509,33 +1547,6 @@ export default function ClienteDetalle() {
                 spacing={esMovil ? 1.5 : 0.75}
                 alignItems="center"
               >
-                {/* Registrar un pago posterior. Queda a la vista siempre, pero
-                    bloqueado cuando no hay nada que cobrar. El span es porque
-                    un boton deshabilitado no emite eventos y sin el el globo
-                    de ayuda no aparece. */}
-                <Tooltip
-                  title={
-                    hayColorAlerta
-                      ? "Registrar abono"
-                      : "La factura no tiene saldo pendiente"
-                  }
-                >
-                  <span>
-                    <IconButton
-                      size="small"
-                      disabled={!hayColorAlerta}
-                      onClick={() => setFacturaAbonando(factura)}
-                      sx={{
-                        ...iconBtnSx,
-                        color: acento,
-                        "&.Mui-disabled": { color: "action.disabled" },
-                      }}
-                    >
-                      <AttachMoneyIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-
                 {equiposSonObjetos && (
                   <Tooltip title="Agregar equipo">
                     <IconButton
@@ -2274,14 +2285,15 @@ export default function ClienteDetalle() {
         onClose={() => setFacturaAgregarEquipo(null)}
         cliente={cliente}
         factura={facturaAgregarEquipo}
+        facturas={facturas}
         onAgregado={() => fetchCliente(true)}
       />
 
       <AbonoDialog
-        open={Boolean(facturaAbonando)}
-        onClose={() => setFacturaAbonando(null)}
+        open={abonoOpen}
+        onClose={() => setAbonoOpen(false)}
         cliente={cliente}
-        factura={facturaAbonando}
+        facturas={facturas}
         onAbonado={() => fetchCliente(true)}
       />
 

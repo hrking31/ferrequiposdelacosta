@@ -19,7 +19,7 @@ import {
   useTheme,
 } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -28,19 +28,22 @@ import {
   obtenerFechaInicialEfectiva,
   formatearMonedaInput,
   limpiarMonedaInput,
-  sumarAbonos,
-  calcularEstadoCuenta,
-  calcularAmpliacionFactura,
+  calcularSaldoConAbonos,
+  ordenarFacturasConSaldo,
+  repartirEntreFacturas,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 
-
-// Registra un pago posterior a la factura: el cliente abona algo a lo que
-// quedó debiendo. Cada abono guarda su fecha y su medio, para saber cuándo y
-// por dónde entró la plata.
-export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado }) {
+// Registra un pago que el cliente consigna después de facturar, y que puede
+// alcanzar para varias facturas a la vez: el usuario ingresa un solo valor
+// (una sola fecha, un solo medio) y acá se reparte solo entre las facturas
+// que todavía tienen saldo. Se le da primero a la de MÁS saldo hasta
+// saldarla, y si sobra se sigue con la siguiente en ese orden; si el abono
+// alcanza para saldar todas, lo que sobre queda como saldo a favor en la
+// última que se tocó (la de menor saldo).
+export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonado }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const [form, setForm] = useState(ESTADO_INICIAL);
@@ -54,19 +57,21 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
     setErrors({});
   }, [open]);
 
-  // El total que se muestra acá tiene que ser el mismo que se ve en la
-  // factura, y ese incluye los días ampliados. El que se guarda, no.
-  const ampliacion = calcularAmpliacionFactura(factura);
-  const totalMostrado = ampliacion.hay
-    ? ampliacion.nuevoTotal
-    : Number(factura?.valorTotal) || 0;
-  const estadoActual = calcularEstadoCuenta(factura, totalMostrado);
+  // Solo entran las facturas que todavía deben algo: son las únicas que
+  // pueden recibir parte de este abono. El total ya trae los días ampliados
+  // sumados, igual que en la tarjeta de cada factura, para que la cifra que
+  // se ve acá sea la misma que se ve afuera. Empatadas en saldo, gana la más
+  // antigua.
+  const facturasConSaldo = ordenarFacturasConSaldo(facturas);
+
   const montoNuevo = Number(form.monto) || 0;
 
-  // Cómo queda la cuenta si se guarda este abono.
-  const pagadoConEsteAbono = estadoActual.pagado + montoNuevo;
-  const saldoPendiente = Math.max(0, estadoActual.total - pagadoConEsteAbono);
-  const saldoAFavor = Math.max(0, pagadoConEsteAbono - estadoActual.total);
+  // La simulación del reparto: a cada factura, en el orden de más a menos
+  // saldo, se le asigna lo que le falta hasta saldarla. La última que llega a
+  // recibir algo se lleva TODO lo que quede del abono, así que si sobra
+  // después de saldar a todas, ese sobrante queda ahí como saldo a favor en
+  // vez de perderse.
+  const reparto = repartirEntreFacturas(facturasConSaldo, montoNuevo);
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -89,27 +94,30 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
   const handleGuardar = async () => {
     if (!validar()) return;
 
-    const abonos = [
-      ...(factura.abonos || []),
-      { fecha: form.fecha, medio: form.medio, monto: montoNuevo },
-    ];
+    const aplicaciones = reparto.filter((item) => item.aplicado > 0);
+    if (aplicaciones.length === 0) return;
 
     setGuardando(true);
     try {
-      await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-        abonos,
-        // El saldo guardado sale del total facturado menos todo lo recibido:
-        // los pagos del alta más los abonos. Nunca baja de cero — si se pagó
-        // de más, eso se muestra aparte como saldo a favor.
-        saldoPendiente: Math.max(
-          0,
-          (Number(factura.valorTotal) || 0) -
-            (Number(factura.montoPagado) || 0) -
-            sumarAbonos(abonos),
-        ),
+      const batch = writeBatch(db);
+      aplicaciones.forEach(({ factura, aplicado }) => {
+        const abonos = [
+          ...(factura.abonos || []),
+          { fecha: form.fecha, medio: form.medio, monto: aplicado },
+        ];
+        batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
+          abonos,
+          saldoPendiente: calcularSaldoConAbonos(factura, abonos),
+        });
       });
+      await batch.commit();
 
-      showSnackbar("Abono registrado.", "success");
+      showSnackbar(
+        aplicaciones.length > 1
+          ? `Abono registrado en ${aplicaciones.length} facturas.`
+          : "Abono registrado.",
+        "success",
+      );
       onAbonado?.();
       onClose();
     } catch (error) {
@@ -125,7 +133,7 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
         <DialogTitle sx={{ color: acento }}>
           <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
             <span>Registrar abono</span>
-            {factura && (
+            {facturasConSaldo.length > 0 && (
               <Typography
                 variant="h6"
                 color="text.secondary"
@@ -137,7 +145,8 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
                   whiteSpace: "nowrap",
                 }}
               >
-                Factura {factura.numeroFactura ?? "s/n"}
+                {facturasConSaldo.length} factura{facturasConSaldo.length === 1 ? "" : "s"} con
+                saldo
               </Typography>
             )}
           </Stack>
@@ -197,8 +206,9 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
               />
             </Grid>
 
-            {/* Cómo queda la cuenta con este abono, para no tener que hacer la
-                resta de cabeza antes de guardar. */}
+            {/* El reparto automático: cada factura con saldo, en el orden en
+                que se le va aplicando la plata, y cómo queda si se guarda
+                este abono. */}
             <Grid item xs={12}>
               <Typography
                 variant="overline"
@@ -211,48 +221,69 @@ export default function AbonoDialog({ open, onClose, cliente, factura, onAbonado
                 }}
               >
                 <AccountBalanceWalletIcon fontSize="small" />
-                Estado de cuenta
+                Facturas con saldo
               </Typography>
-              <Paper variant="totales">
-                <Box className="fila total">
-                  <Typography variant="body2">Total factura</Typography>
-                  <Typography variant="body2">{formatearMoneda(estadoActual.total)}</Typography>
-                </Box>
 
-                <Box className="fila pagado">
-                  <Typography variant="body2">Pagado hasta ahora</Typography>
-                  <Typography variant="body2">{formatearMoneda(estadoActual.pagado)}</Typography>
-                </Box>
+              {facturasConSaldo.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Este cliente no tiene facturas con saldo pendiente.
+                </Typography>
+              ) : (
+                <Paper variant="totales">
+                  {reparto.map(({ factura, cuenta, aplicado }) => {
+                    const quedaSaldo = Math.max(0, cuenta.saldoPendiente - aplicado);
+                    const quedaAFavor = Math.max(0, aplicado - cuenta.saldoPendiente);
 
-                {montoNuevo > 0 && (
-                  <Box className="fila abono">
-                    <Typography variant="body2">+ Este abono</Typography>
-                    <Typography variant="body2">{formatearMoneda(montoNuevo)}</Typography>
-                  </Box>
-                )}
+                    return (
+                      <Box key={factura.id}>
+                        <Box className="fila total">
+                          <Typography variant="body2">
+                            Factura {factura.numeroFactura ?? "s/n"}
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatearMoneda(cuenta.total)}
+                          </Typography>
+                        </Box>
 
-                {/* Verde cuando la factura queda saldada (o con plata a favor),
-                    rojo mientras quede algo por cobrar. */}
-                {saldoAFavor > 0 ? (
-                  <Box className="fila ok" sx={{ mt: 1 }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      Saldo a favor
-                    </Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      {formatearMoneda(saldoAFavor)}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box className={saldoPendiente > 0 ? "fila alerta" : "fila ok"} sx={{ mt: 1 }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      Saldo pendiente
-                    </Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      {formatearMoneda(saldoPendiente)}
-                    </Typography>
-                  </Box>
-                )}
-              </Paper>
+                        <Box className="fila">
+                          <Typography variant="body2">Saldo actual</Typography>
+                          <Typography variant="body2">
+                            {formatearMoneda(cuenta.saldoPendiente)}
+                          </Typography>
+                        </Box>
+
+                        {aplicado > 0 && (
+                          <>
+                            <Box className="fila abono">
+                              <Typography variant="body2">+ Se abona</Typography>
+                              <Typography variant="body2">
+                                {formatearMoneda(aplicado)}
+                              </Typography>
+                            </Box>
+
+                            <Box className={quedaSaldo > 0 ? "fila alerta" : "fila ok"}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {quedaAFavor > 0
+                                  ? "Saldo a favor"
+                                  : quedaSaldo > 0
+                                    ? "Queda debiendo"
+                                    : "Queda saldada"}
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {quedaAFavor > 0
+                                  ? formatearMoneda(quedaAFavor)
+                                  : quedaSaldo > 0
+                                    ? formatearMoneda(quedaSaldo)
+                                    : ""}
+                              </Typography>
+                            </Box>
+                          </>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Paper>
+              )}
             </Grid>
           </Grid>
         </DialogContent>
@@ -275,6 +306,6 @@ AbonoDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   cliente: PropTypes.object,
-  factura: PropTypes.object,
+  facturas: PropTypes.array,
   onAbonado: PropTypes.func,
 };
