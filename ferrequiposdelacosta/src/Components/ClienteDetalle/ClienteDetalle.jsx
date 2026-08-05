@@ -76,6 +76,7 @@ import {
   calcularEstadoCliente,
   calcularCuentaFactura,
   calcularCuentaCliente,
+  equipoDevueltoCompleto,
   ESTADO_FACTURA_INFO,
   ESTADO_CLIENTE_INFO,
   ESTADOS_FACTURA_EN_ORDEN,
@@ -539,6 +540,7 @@ export default function ClienteDetalle() {
   // un equipo original o uno agregado después.
   const renderEquipoRow = (equipo, key, color) => {
     const despacho = formatearFecha(equipo.fechaDespacho);
+    const devuelto = equipoDevueltoCompleto(equipo);
     const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
     const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
 
@@ -657,6 +659,18 @@ export default function ClienteDetalle() {
               />,
             );
           }
+          if (devuelto) {
+            chipsFechas.push(
+              <Chip
+                key="devuelto"
+                variant="meta"
+                size="small"
+                icon={<AssignmentReturnIcon />}
+                sx={{ color: "success.main" }}
+                label={`Devuelto ${formatearFecha(equipo.fechaDevolucion) || ""}`}
+              />,
+            );
+          }
           if (equipo.vencimientoIndefinido) {
             chipsFechas.push(
               <Chip
@@ -729,7 +743,7 @@ export default function ClienteDetalle() {
           // El vencimiento vigente va último: primero se lee de dónde viene
           // (venció tal día, se le sumaron tantos días, con tal descuento) y
           // recién al final hasta cuándo quedó.
-          if (!equipo.vencimientoIndefinido && equipo.fechaVencimiento) {
+          if (!devuelto && !equipo.vencimientoIndefinido && equipo.fechaVencimiento) {
             chipsFechas.push(
               <Chip
                 key="devuelve"

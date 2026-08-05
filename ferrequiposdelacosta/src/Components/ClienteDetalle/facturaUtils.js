@@ -137,6 +137,23 @@ export const obtenerHistorialVencimientos = (equipo) =>
     .map((ampliacion) => ampliacion.fechaAnterior)
     .filter(Boolean);
 
+// ── Devoluciones ────────────────────────────────────────────────────────
+//
+// Cada línea de equipo puede devolverse en más de una tanda: se guarda
+//
+//   cantidadDevuelta: number  (cuánto de `cantidad` ya volvió)
+//   fechaDevolucion: string   (se pone cuando queda en cantidad, es decir,
+//                              cuando la línea se cierra del todo)
+//
+// Cuando una devolución no cubre toda la línea, en vez de guardar cantidades
+// mixtas se PARTE la línea en dos (ver RegistrarDevolucionDialog): así
+// `cantidad` sigue siendo constante en toda la vida de cada línea, que es lo
+// que asume calcularAmpliacionEquipo más abajo.
+export const calcularCantidadPendiente = (equipo) =>
+  Math.max(0, (Number(equipo?.cantidad) || 0) - (Number(equipo?.cantidadDevuelta) || 0));
+
+export const equipoDevueltoCompleto = (equipo) => calcularCantidadPendiente(equipo) <= 0;
+
 // Lo que suma una ampliación en un equipo: días agregados, cuánto valen a
 // precio de lista, cuánto se descontó y el neto que se cobraría.
 // El descuento se resta ANTES del IVA.
@@ -468,11 +485,19 @@ const agruparLotesAgregados = (equipos) => {
 // Ciclo de vida de una factura creada desde la app:
 //   pendienteDespacho  se facturó, los equipos todavía no se entregaron
 //   despachada         todos los equipos están con el cliente
-//   devolucionParcial  devolvió algunos y se quedó con otros
-//   finalizada         devolvió todo, no queda nada pendiente
+//   vencida            algún equipo llegó a su vencimiento y todavía no se
+//                       registró ninguna devolución
+//   devolucionParcial  devolvió algo (todo o una parte) y se quedó con el
+//                       resto, o falta confirmar que ya cobró todo
+//   finalizada         no queda nada pendiente, se cerró a mano
 //
 // Las claves son las que se guardan en Firestore; el color de cada una vive en
 // el tema, en `palette.custom.estadoFactura`.
+//
+// despachada→vencida y vencida/devolucionParcial→devolucionParcial se ponen
+// solos (ver SeguimientoClientes y RegistrarDevolucionDialog).
+// devolucionParcial→finalizada sigue siendo manual: falta definir la regla
+// de cuándo una factura se considera pagada antes de automatizarla.
 //
 // Este orden es el del CICLO, y es el que usan los menús para cambiar de
 // estado. No confundirlo con PRIORIDAD_ESTADO_CLIENTE (más abajo), que ordena
@@ -480,6 +505,7 @@ const agruparLotesAgregados = (equipos) => {
 export const ESTADOS_FACTURA_EN_ORDEN = [
   "pendienteDespacho",
   "despachada",
+  "vencida",
   "devolucionParcial",
   "finalizada",
 ];
@@ -490,6 +516,7 @@ export const ESTADOS_FACTURA_EN_ORDEN = [
 export const ESTADO_FACTURA_INFO = {
   pendienteDespacho: { label: "Pendiente despacho" },
   despachada: { label: "Despachada" },
+  vencida: { label: "Vencida" },
   devolucionParcial: { label: "Devolución parcial" },
   finalizada: { label: "Finalizada" },
 };
@@ -510,7 +537,8 @@ export const ESTADO_CLIENTE_INFO = {
 // filtro de la lista de clientes heredaba esa mentira.
 const PRIORIDAD_ESTADO_CLIENTE = [
   "pendienteDespacho", // hay algo por despachar: acción nuestra, y es lo primero
-  "devolucionParcial", // devolvió una parte, falta el resto
+  "vencida", // venció y todavía no se registró ninguna devolución: hay que llamar
+  "devolucionParcial", // ya devolvió una parte, falta el resto
   "despachada", // equipos en la calle, corriendo días
   "finalizada", // solo si TODAS lo están
 ];

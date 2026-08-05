@@ -18,6 +18,7 @@ import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import {
   obtenerFechaHoyBogota,
   calcularEstadoCliente,
+  calcularCantidadPendiente,
 } from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
@@ -27,16 +28,19 @@ const obtenerNombreCompleto = (cliente) => {
 };
 
 // Una factura entra a seguimiento cuando no está Finalizada y al menos un
-// equipo ya llegó (o pasó) su fecha de vencimiento — o ya se le amplió el
-// vencimiento o quedó indefinido: una vez que un equipo necesitó
-// seguimiento, se queda en la lista hasta que la factura se finalice, no
-// desaparece solo porque se le corrió la fecha.
+// equipo con cantidad pendiente de devolver ya llegó (o pasó) su fecha de
+// vencimiento — o ya se le amplió el vencimiento o quedó indefinido: una vez
+// que un equipo necesitó seguimiento, se queda en la lista hasta que la
+// factura se finalice, no desaparece solo porque se le corrió la fecha. Si
+// ya se devolvió del todo, deja de contar — si no, una factura devuelta
+// completa (pero sin cerrar a mano) se quedaría en la lista para siempre.
 const facturaEnSeguimiento = (factura, hoyIso) => {
   if (factura.estado === "finalizada") return false;
   if (!Array.isArray(factura.equipos)) return false;
   return factura.equipos.some(
     (equipo) =>
       typeof equipo === "object" &&
+      calcularCantidadPendiente(equipo) > 0 &&
       ((equipo.fechaVencimiento && equipo.fechaVencimiento <= hoyIso) ||
         equipo.vencimientoIndefinido ||
         equipo.fechaVencimientoOriginal),
@@ -63,18 +67,49 @@ export default function SeguimientoClientes() {
           ...docSnap.data(),
         }));
         const hoy = obtenerFechaHoyBogota();
+        const batch = writeBatch(db);
+        let huboCambios = false;
 
         const resultados = await Promise.all(
           clientes.map(async (cliente) => {
             const facturasSnap = await getDocs(
               collection(db, "clientes", cliente.id, "facturas"),
             );
-            const facturas = facturasSnap.docs
-              .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-              .filter((factura) => facturaEnSeguimiento(factura, hoy));
+            const todasLasFacturas = facturasSnap.docs.map((docSnap) => ({
+              id: docSnap.id,
+              ...docSnap.data(),
+            }));
+
+            // Una factura "despachada" que ya entra en seguimiento pasa sola
+            // a "vencida": nadie registró todavía ninguna devolución, pero ya
+            // hay que llamar al cliente.
+            let cambioEnCliente = false;
+            const facturasActualizadas = todasLasFacturas.map((factura) => {
+              if (factura.estado === "despachada" && facturaEnSeguimiento(factura, hoy)) {
+                batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
+                  estado: "vencida",
+                });
+                cambioEnCliente = true;
+                huboCambios = true;
+                return { ...factura, estado: "vencida" };
+              }
+              return factura;
+            });
+
+            if (cambioEnCliente) {
+              batch.update(doc(db, "clientes", cliente.id), {
+                estado: calcularEstadoCliente(facturasActualizadas),
+              });
+            }
+
+            const facturas = facturasActualizadas.filter((factura) =>
+              facturaEnSeguimiento(factura, hoy),
+            );
             return facturas.length > 0 ? { cliente, facturas } : null;
           }),
         );
+
+        if (huboCambios) await batch.commit();
 
         setClientesConSeguimiento(resultados.filter(Boolean));
       } catch (error) {

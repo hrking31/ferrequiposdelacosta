@@ -499,6 +499,7 @@ export const CustomThemeProvider = ({ children }) => {
           estadoFactura: {
             pendienteDespacho: "#F59E0B", // ámbar
             despachada: "#2563EB", // azul
+            vencida: "#DC2626", // rojo
             devolucionParcial: "#7C3AED", // violeta
             finalizada: "#16A34A", // verde
             inactivo: "#6B7280", // gris

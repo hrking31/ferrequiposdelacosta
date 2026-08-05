@@ -19,6 +19,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PhoneIcon from "@mui/icons-material/Phone";
 import UpdateIcon from "@mui/icons-material/Update";
+import AssignmentReturnedIcon from "@mui/icons-material/AssignmentReturned";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
@@ -27,11 +28,13 @@ import {
   diferenciaEnDias,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  equipoDevueltoCompleto,
   ESTADO_FACTURA_INFO,
   ESTADOS_FACTURA_EN_ORDEN,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMonedaOVacio } from "../../Utils/formato";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
+import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
@@ -97,6 +100,14 @@ const formatearFecha = (isoDate) => {
   return `${dia}/${mes}/${anio}`;
 };
 
+// "N° 101", "N° 101 y N° 105", "N° 101, N° 105 y N° 110" — para el mensaje de
+// WhatsApp cuando el cliente tiene más de una factura en seguimiento.
+const formatearListaFacturas = (numeros) => {
+  const conPrefijo = numeros.map((numero) => `N° ${numero}`);
+  if (conPrefijo.length <= 1) return conPrefijo.join("");
+  return `${conPrefijo.slice(0, -1).join(", ")} y ${conPrefijo[conPrefijo.length - 1]}`;
+};
+
 export default function ClienteSeguimientoCard({
   cliente,
   facturas,
@@ -119,6 +130,7 @@ export default function ClienteSeguimientoCard({
   const togglePlegarFactura = (facturaId) =>
     setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
   const [ampliarOpen, setAmpliarOpen] = useState(false);
+  const [devolucionOpen, setDevolucionOpen] = useState(false);
 
   const avatarBgPorEstado = theme.palette.custom.estadoFactura;
 
@@ -261,6 +273,33 @@ export default function ClienteSeguimientoCard({
     );
   };
 
+  // Línea de equipo ya devuelta del todo: se muestra aparte y atenuada, para
+  // no mezclarla con lo que todavía hay que seguir.
+  const renderEquipoDevuelto = (equipo, key) => (
+    <Box
+      key={key}
+      sx={{ p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider", opacity: 0.65 }}
+    >
+      <Stack direction="row" alignItems="center" gap={1}>
+        <Chip
+          variant="meta"
+          label={equipo.cantidad}
+          size="small"
+          sx={{ fontWeight: "bold", flexShrink: 0 }}
+        />
+        <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
+          {equipo.nombre}
+        </Typography>
+        <Chip
+          size="small"
+          variant="meta"
+          sx={{ color: "success.main" }}
+          label={`Devuelto ${formatearFecha(equipo.fechaDevolucion) || ""}`}
+        />
+      </Stack>
+    </Box>
+  );
+
   const gradosGrisPestana = theme.palette.custom.pestanaInactiva;
 
   const indiceActivo = Math.min(tabFactura, facturas.length - 1);
@@ -305,6 +344,24 @@ export default function ClienteSeguimientoCard({
 
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
   const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
+
+  // Mensaje de recordatorio de vencimiento, precargado en el link de
+  // WhatsApp. Junta TODAS las facturas del cliente que están en seguimiento
+  // (no solo la pestaña activa): si tiene dos venciendo el mismo día, un solo
+  // mensaje las menciona a ambas en vez de mandar uno por cada una.
+  const numerosFactura = facturas.map((f) => f.numeroFactura ?? "s/n");
+  const mensajeWhatsapp = [
+    `👋 Hola, ${obtenerNombreCompleto(cliente)}.`,
+    "",
+    `Te recordamos que hoy, ${formatearFecha(hoy)}, finaliza el período de alquiler de los equipos registrados en ${
+      numerosFactura.length === 1 ? "tu factura" : "tus facturas"
+    } ${formatearListaFacturas(numerosFactura)}.`,
+    "",
+    "Si deseas extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.",
+    "",
+    "Gracias por confiar en Ferrequipos de la Costa.",
+  ].join("\n");
+  const linkWhatsapp = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(mensajeWhatsapp)}`;
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
@@ -396,7 +453,7 @@ export default function ClienteSeguimientoCard({
                 <IconButton
                   size="small"
                   component="a"
-                  href={`https://wa.me/${numeroWhatsapp}`}
+                  href={linkWhatsapp}
                   target="_blank"
                   rel="noopener"
                   sx={{
@@ -555,6 +612,22 @@ export default function ClienteSeguimientoCard({
                   </IconButton>
                 </Tooltip>
 
+                <Tooltip title="Registrar devolución">
+                  <IconButton
+                    size="small"
+                    onClick={() => setDevolucionOpen(true)}
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 0.5,
+                      color: acento,
+                    }}
+                  >
+                    <AssignmentReturnedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
                 <Chip
                   label={facturaEstadoInfo.label}
                   size="small"
@@ -599,7 +672,10 @@ export default function ClienteSeguimientoCard({
 
             {!facturaPlegada(factura.id) && factura.equipos?.length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
-                {agruparPorVencimiento(factura.equipos, hoy).map((grupo) => (
+                {agruparPorVencimiento(
+                  factura.equipos.filter((equipo) => !equipoDevueltoCompleto(equipo)),
+                  hoy,
+                ).map((grupo) => (
                   <Box key={grupo.clave}>
                     {/* El encabezado dice en qué situación está el grupo, así
                         cada renglón solo necesita mostrar la fecha. */}
@@ -626,6 +702,26 @@ export default function ClienteSeguimientoCard({
                     </Stack>
                   </Box>
                 ))}
+
+                {factura.equipos.some((equipo) => equipoDevueltoCompleto(equipo)) && (
+                  <Box>
+                    <Typography
+                      variant="overline"
+                      color="text.secondary"
+                      sx={{ display: "block", lineHeight: 1.6 }}
+                    >
+                      Devuelto
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {factura.equipos
+                        .map((equipo, index) => ({ equipo, index }))
+                        .filter(({ equipo }) => equipoDevueltoCompleto(equipo))
+                        .map(({ equipo, index }) =>
+                          renderEquipoDevuelto(equipo, `devuelto-${equipo.nombre}-${index}`),
+                        )}
+                    </Stack>
+                  </Box>
+                )}
               </Stack>
             )}
 
@@ -700,6 +796,14 @@ export default function ClienteSeguimientoCard({
       <AmpliarVencimientoDialog
         open={ampliarOpen}
         onClose={() => setAmpliarOpen(false)}
+        cliente={cliente}
+        factura={factura}
+        onActualizado={onEquiposActualizados}
+      />
+
+      <RegistrarDevolucionDialog
+        open={devolucionOpen}
+        onClose={() => setDevolucionOpen(false)}
         cliente={cliente}
         factura={factura}
         onActualizado={onEquiposActualizados}
