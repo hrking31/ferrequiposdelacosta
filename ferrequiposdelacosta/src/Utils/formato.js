@@ -62,3 +62,24 @@ export const formatearFechaLegible = (fechaIso) => {
   const [anio, mes, dia] = fechaIso.split("-");
   return `${dia}/${mes}/${anio}`;
 };
+
+// De la hora que guarda la app (HH:MM en 24 horas) a la que se lee en
+// Colombia: "9:14 a. m.", "2:30 p. m.".
+//
+// Se guarda en 24 horas a propósito —así se ordena y se compara sola, sin
+// interpretar el "a. m."— y se le da formato recién al mostrarla, igual que
+// con las fechas y los importes.
+//
+// Los puntos y el espacio de "a. m." son los de la norma en español; no es un
+// AM/PM en inglés.
+// Se usa en: RegistrarLlamadaDialog y ClienteSeguimientoCard.
+export const formatearHoraLegible = (horaHHMM) => {
+  if (!horaHHMM) return "";
+  const [horas, minutos] = String(horaHHMM).split(":").map(Number);
+  if (Number.isNaN(horas) || Number.isNaN(minutos)) return horaHHMM;
+
+  // Las 0 y las 12 son el caso raro: 00:30 son las 12:30 a. m. y 12:30 son
+  // las 12:30 p. m.
+  const hora12 = horas % 12 === 0 ? 12 : horas % 12;
+  return `${hora12}:${String(minutos).padStart(2, "0")} ${horas < 12 ? "a. m." : "p. m."}`;
+};

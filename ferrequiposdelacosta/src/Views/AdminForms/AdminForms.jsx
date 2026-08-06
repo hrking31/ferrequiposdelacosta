@@ -35,6 +35,7 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 import {
   calcularCantidadPendiente,
   calcularCuentaFactura,
+  calcularEstadoFactura,
   obtenerFechaHoyBogota,
 } from "../../Components/ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
@@ -146,15 +147,16 @@ export default function AdminForms() {
           )
         ).flat();
 
-        // Cuentan "despachada" (los equipos ya salieron), "vencida" (siguen
-        // afuera, vencieron y no se registró ninguna devolución todavía) y
-        // "devolucionParcial" (devolvió una parte, pero puede quedar equipo
-        // real sin devolver). "pendienteDespacho" (no salió) y "finalizada"
-        // (ya cerró) quedan afuera. calcularCantidadPendiente ya descuenta lo
-        // que sí volvió, así que no hay riesgo de contar de más.
-        const ESTADOS_EQUIPOS_ACTIVOS = ["despachada", "vencida", "devolucionParcial"];
+        // Los equipos que están en la calle: cuentan las facturas "activa"
+        // (alquiler vigente) y "vencida" (siguen afuera pasados de fecha). Las
+        // "pendiente" todavía no salieron, y en "cobro" y "finalizada" ya
+        // volvió todo. calcularCantidadPendiente además descuenta lo que sí se
+        // devolvió, así que no hay riesgo de contar de más.
+        const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
         const equiposActivos = facturas
-          .filter((factura) => ESTADOS_EQUIPOS_ACTIVOS.includes(factura.estado))
+          .filter((factura) =>
+            ESTADOS_EQUIPOS_ACTIVOS.includes(calcularEstadoFactura(factura, hoy)),
+          )
           .flatMap((factura) => factura.equipos || [])
           .filter((equipo) => typeof equipo === "object")
           .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);

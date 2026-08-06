@@ -17,7 +17,12 @@ import {
   useTheme,
 } from "@mui/material";
 import generarReporteFacturasPdf from "../VistaPdf/VistaReporteClientePdf";
-import { calcularCuentaFactura, ESTADO_FACTURA_INFO, formatearFechaLegible } from "./facturaUtils";
+import {
+  calcularCuentaFactura,
+  calcularEstadoFactura,
+  ESTADO_FACTURA_INFO,
+  formatearFechaLegible,
+} from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
 // Elegir qué facturas del cliente entran en el reporte. Las finalizadas ya no
@@ -99,7 +104,7 @@ export default function ReporteFacturasDialog({ open, onClose, cliente, facturas
             <List dense sx={{ maxHeight: 320, overflowY: "auto" }}>
               {facturas.map((factura) => {
                 const cuenta = calcularCuentaFactura(factura);
-                const estadoInfo = ESTADO_FACTURA_INFO[factura.estado];
+                const estadoInfo = ESTADO_FACTURA_INFO[calcularEstadoFactura(factura)];
                 const saldoTexto =
                   cuenta.saldoAFavor > 0
                     ? `A favor ${formatearMoneda(cuenta.saldoAFavor)}`
@@ -118,7 +123,7 @@ export default function ReporteFacturasDialog({ open, onClose, cliente, facturas
                       </ListItemIcon>
                       <ListItemText
                         primary={`Factura ${factura.numeroFactura ?? "s/n"} · ${formatearFechaLegible(factura.fecha) || ""}`}
-                        secondary={`${estadoInfo?.label || factura.estado || ""} · ${formatearMoneda(cuenta.total)} · ${saldoTexto}`}
+                        secondary={`${estadoInfo?.label || ""} · ${formatearMoneda(cuenta.total)} · ${saldoTexto}`}
                       />
                     </ListItemButton>
                   </ListItem>

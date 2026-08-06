@@ -14,8 +14,6 @@ import {
   DialogActions,
   Divider,
   IconButton,
-  Menu,
-  MenuItem,
   Paper,
   Stack,
   Tooltip,
@@ -40,7 +38,7 @@ import {
   doc,
   getDoc,
   getDocs,
-  writeBatch,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -74,13 +72,14 @@ import {
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
   calcularEstadoCliente,
+  calcularEstadoFactura,
   calcularCuentaFactura,
   calcularCuentaCliente,
   equipoDevueltoCompleto,
   ESTADO_FACTURA_INFO,
   ESTADO_CLIENTE_INFO,
-  ESTADOS_FACTURA_EN_ORDEN,
 } from "./facturaUtils";
+import RegistrarDevolucionDialog from "../SeguimientoClientes/RegistrarDevolucionDialog";
 import { formatearMonedaOVacio } from "../../Utils/formato";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
@@ -419,13 +418,15 @@ export default function ClienteDetalle() {
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
-  const [menuEstadoAnchor, setMenuEstadoAnchor] = useState(null);
+  // La factura a la que se le está registrando una devolución. Es el mismo
+  // diálogo que usa Seguimiento: acá sirve para el cliente que devuelve todo
+  // ANTES de vencerse, que nunca pasa por esa pantalla.
+  const [facturaDevolucion, setFacturaDevolucion] = useState(null);
   // En celular el encabezado deja a la vista solo el nombre y el resumen de
   // cuenta: el teléfono y la dirección se despliegan con la flecha, así lo que
   // se busca de un vistazo (cuánto es y cuánto falta) no queda debajo de todo.
   // En computador sobra el ancho y van siempre visibles.
   const [contactoAbierto, setContactoAbierto] = useState(false);
-  const [facturaMenuId, setFacturaMenuId] = useState(null);
   // Cada factura tiene 4 secciones que se muestran/ocultan por separado en
   // móvil (pagoGeneral, equiposFactura, equiposAgregados, pagoTotal) — la
   // clave es "{facturaId}:{seccion}". En PC todas están siempre visibles.
@@ -464,45 +465,9 @@ export default function ClienteDetalle() {
     setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
   const facturaColapsada = (facturaId) => !facturasAbiertas[facturaId];
 
-  const handleAbrirMenuEstado = (event, facturaId) => {
-    setMenuEstadoAnchor(event.currentTarget);
-    setFacturaMenuId(facturaId);
-  };
-
-  const handleCerrarMenuEstado = () => {
-    setMenuEstadoAnchor(null);
-    setFacturaMenuId(null);
-  };
-
-  const handleCambiarEstadoFactura = async (nuevoEstado) => {
-    const facturaId = facturaMenuId;
-    handleCerrarMenuEstado();
-    try {
-      // El estado del CLIENTE no es el de esta factura: es el resumen de
-      // todas. "facturas" ya trae la lista completa del cliente, así que
-      // alcanza con aplicarle el cambio y recalcular.
-      const facturasActualizadas = facturas.map((factura) =>
-        factura.id === facturaId ? { ...factura, estado: nuevoEstado } : factura,
-      );
-
-      const batch = writeBatch(db);
-      batch.update(doc(db, "clientes", id, "facturas", facturaId), {
-        estado: nuevoEstado,
-      });
-      batch.update(doc(db, "clientes", id), {
-        estado: calcularEstadoCliente(facturasActualizadas),
-      });
-      await batch.commit();
-      await fetchCliente(true);
-      showSnackbar("Estado de la factura actualizado.", "success");
-    } catch (error) {
-      showSnackbar(`Error al actualizar el estado: ${error.message}`, "error");
-    }
-  };
-
   // silencioso=true evita el spinner de pantalla completa: se usa para
-  // refrescar datos después de una edición puntual (crear factura, cambiar
-  // estado) sin desmontar toda la vista y perder el scroll.
+  // refrescar datos después de una edición puntual (crear factura, registrar
+  // un abono) sin desmontar toda la vista y perder el scroll.
   const fetchCliente = useCallback(
     async (silencioso = false) => {
       try {
@@ -512,7 +477,7 @@ export default function ClienteDetalle() {
           setNotFound(true);
           return;
         }
-        setCliente({ id: clienteSnap.id, ...clienteSnap.data() });
+        const datosCliente = { id: clienteSnap.id, ...clienteSnap.data() };
 
         const facturasSnap = await getDocs(
           collection(db, "clientes", id, "facturas"),
@@ -520,6 +485,19 @@ export default function ClienteDetalle() {
         const listaFacturas = facturasSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+
+        // El estado del cliente es el único que se guarda, para que la lista
+        // de clientes pueda filtrar sin leer las facturas de todos. Puede
+        // quedar viejo solo con que pase el tiempo —una factura que venció
+        // anoche—, así que acá, que ya tenemos todas sus facturas, se
+        // recalcula y se corrige si hace falta.
+        const estadoCalculado = calcularEstadoCliente(listaFacturas);
+        if (estadoCalculado !== datosCliente.estado) {
+          await updateDoc(doc(db, "clientes", id), { estado: estadoCalculado });
+          datosCliente.estado = estadoCalculado;
+        }
+
+        setCliente(datosCliente);
         setFacturas(listaFacturas);
       } catch (error) {
         console.error("Error al obtener el cliente:", error);
@@ -974,7 +952,7 @@ export default function ClienteDetalle() {
   // de referencia en cada render del padre. Va antes del "if (loading)": los
   // Hooks no pueden llamarse condicionalmente.
   const facturasParaReporte = useMemo(
-    () => facturas.filter((factura) => factura.estado !== "finalizada"),
+    () => facturas.filter((factura) => calcularEstadoFactura(factura) !== "finalizada"),
     [facturas],
   );
 
@@ -1192,6 +1170,7 @@ export default function ClienteDetalle() {
               siendo aceptable si no entra entero. */}
           <Typography variant="h6">{nombreCompleto}</Typography>
           <Chip
+            icon={estadoInfo.Icono ? <estadoInfo.Icono /> : undefined}
             label={estadoInfo.label}
             variant="estado"
             size="small"
@@ -1199,6 +1178,7 @@ export default function ClienteDetalle() {
               mt: 0.5,
               bgcolor: estadoColor,
               color: theme.palette.getContrastText(estadoColor),
+              "& .MuiChip-icon": { color: "inherit" },
             }}
           />
         </Box>
@@ -1320,13 +1300,14 @@ export default function ClienteDetalle() {
       ) : (
         <Stack spacing={2}>
           {facturas.map((factura) => {
+            // El estado sale de los datos de la factura, no de un campo
+            // guardado: así no puede quedar viejo por el simple paso del
+            // tiempo (ver calcularEstadoFactura en facturaUtils).
+            const facturaEstado = calcularEstadoFactura(factura);
             const facturaEstadoInfo =
-              ESTADO_FACTURA_INFO[factura.estado] ||
-              (factura.estado
-                ? { label: factura.estado }
-                : { label: "Sin estado" });
+              ESTADO_FACTURA_INFO[facturaEstado] || { label: "Sin estado" };
             const facturaEstadoColor =
-              avatarBgPorEstado[factura.estado] ||
+              avatarBgPorEstado[facturaEstado] ||
               theme.palette.custom.estadoNeutro;
             // Formato viejo (migrado del Excel): transporte es un número.
             // Formato nuevo (creado en la app): transporte es el tipo
@@ -1532,25 +1513,29 @@ export default function ClienteDetalle() {
             }
             const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
 
+            // El estado no se toca a mano: sale de las fechas, de lo que se
+            // devolvió y del saldo (ver calcularEstadoFactura). Para moverlo
+            // hay que actuar sobre la factura —despachar, devolver, cobrar—,
+            // no sobre la etiqueta.
             const chipEstado = (
               <Chip
+                icon={facturaEstadoInfo.Icono ? <facturaEstadoInfo.Icono /> : undefined}
                 label={facturaEstadoInfo.label}
                 variant="estado"
                 size="small"
-                onClick={(e) => handleAbrirMenuEstado(e, factura.id)}
                 sx={{
-                  cursor: "pointer",
                   bgcolor: facturaEstadoColor,
                   color: theme.palette.getContrastText(facturaEstadoColor),
+                  "& .MuiChip-icon": { color: "inherit" },
                   // La variante "estado" trae un ancho fijo de 190px, pensado
                   // para una lista donde los chips se alinean en columna (ver
                   // ThemeProvider). Acá no hay esa columna, y 190px era lo que
                   // mandaba el chip a la línea de abajo aunque el título le
                   // dejara sitio de sobra. Sigue siendo el MISMO ancho para
-                  // los cuatro estados —no varía según el texto—, solo que
-                  // más angosto: 145px cubre con margen al más largo,
-                  // "Pendiente despacho" (mide 141px ajustado a su texto).
-                  width: 145,
+                  // los cinco estados —no varía según el texto—, solo que más
+                  // angosto: con los nombres nuevos, el más largo es
+                  // "Finalizada", y 130px lo cubre con el ícono adelante.
+                  width: 130,
                 }}
               />
             );
@@ -1569,6 +1554,20 @@ export default function ClienteDetalle() {
                       sx={{ ...iconBtnSx, color: acento }}
                     >
                       <AddIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {/* Para el cliente que devuelve antes de que se le venza el
+                    alquiler: esa factura nunca entra a Seguimiento, así que
+                    sin este botón no habría dónde anotar la devolución. */}
+                {equiposSonObjetos && (
+                  <Tooltip title="Registrar devolución">
+                    <IconButton
+                      size="small"
+                      onClick={() => setFacturaDevolucion(factura)}
+                      sx={{ ...iconBtnSx, color: acento }}
+                    >
+                      <AssignmentReturnIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 )}
@@ -2341,22 +2340,13 @@ export default function ClienteDetalle() {
         </DialogActions>
       </Dialog>
 
-      <Menu
-        anchorEl={menuEstadoAnchor}
-        open={Boolean(menuEstadoAnchor)}
-        onClose={handleCerrarMenuEstado}
-      >
-        {/* En el orden del ciclo de vida, y con los nombres de una sola
-            fuente: agregar un estado nuevo no obliga a tocar este menú. */}
-        {ESTADOS_FACTURA_EN_ORDEN.map((estado) => (
-          <MenuItem
-            key={estado}
-            onClick={() => handleCambiarEstadoFactura(estado)}
-          >
-            {ESTADO_FACTURA_INFO[estado].label}
-          </MenuItem>
-        ))}
-      </Menu>
+      <RegistrarDevolucionDialog
+        open={Boolean(facturaDevolucion)}
+        onClose={() => setFacturaDevolucion(null)}
+        cliente={cliente}
+        factura={facturaDevolucion}
+        onActualizado={() => fetchCliente(true)}
+      />
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

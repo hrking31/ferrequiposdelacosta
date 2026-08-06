@@ -25,7 +25,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
   MODOS_PAGO,
-  obtenerFechaInicialEfectiva,
+  obtenerFechaHoyBogota,
   formatearMonedaInput,
   limpiarMonedaInput,
   calcularSaldoConAbonos,
@@ -53,7 +53,11 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
 
   useEffect(() => {
     if (!open) return;
-    setForm({ ...ESTADO_INICIAL, fecha: obtenerFechaInicialEfectiva() });
+    // La fecha de HOY, no la del despacho: un abono es plata que ya entró.
+    // Antes usaba la regla de las 3 p.m. —la que corre el alquiler al día
+    // siguiente— y un pago recibido a las 4 de la tarde quedaba fechado
+    // mañana.
+    setForm({ ...ESTADO_INICIAL, fecha: obtenerFechaHoyBogota() });
     setErrors({});
   }, [open]);
 

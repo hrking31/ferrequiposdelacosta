@@ -18,33 +18,13 @@ import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import {
   obtenerFechaHoyBogota,
   calcularEstadoCliente,
-  calcularCantidadPendiente,
+  facturaEnSeguimiento,
 } from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
   if (!cliente) return "";
   if (cliente.tipo === "empresa") return cliente.razonSocial || cliente.nombreOriginal;
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
-};
-
-// Una factura entra a seguimiento cuando no está Finalizada y al menos un
-// equipo con cantidad pendiente de devolver ya llegó (o pasó) su fecha de
-// vencimiento — o ya se le amplió el vencimiento o quedó indefinido: una vez
-// que un equipo necesitó seguimiento, se queda en la lista hasta que la
-// factura se finalice, no desaparece solo porque se le corrió la fecha. Si
-// ya se devolvió del todo, deja de contar — si no, una factura devuelta
-// completa (pero sin cerrar a mano) se quedaría en la lista para siempre.
-const facturaEnSeguimiento = (factura, hoyIso) => {
-  if (factura.estado === "finalizada") return false;
-  if (!Array.isArray(factura.equipos)) return false;
-  return factura.equipos.some(
-    (equipo) =>
-      typeof equipo === "object" &&
-      calcularCantidadPendiente(equipo) > 0 &&
-      ((equipo.fechaVencimiento && equipo.fechaVencimiento <= hoyIso) ||
-        equipo.vencimientoIndefinido ||
-        equipo.fechaVencimientoOriginal),
-  );
 };
 
 export default function SeguimientoClientes() {
@@ -80,29 +60,20 @@ export default function SeguimientoClientes() {
               ...docSnap.data(),
             }));
 
-            // Una factura "despachada" que ya entra en seguimiento pasa sola
-            // a "vencida": nadie registró todavía ninguna devolución, pero ya
-            // hay que llamar al cliente.
-            let cambioEnCliente = false;
-            const facturasActualizadas = todasLasFacturas.map((factura) => {
-              if (factura.estado === "despachada" && facturaEnSeguimiento(factura, hoy)) {
-                batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-                  estado: "vencida",
-                });
-                cambioEnCliente = true;
-                huboCambios = true;
-                return { ...factura, estado: "vencida" };
-              }
-              return factura;
-            });
-
-            if (cambioEnCliente) {
-              batch.update(doc(db, "clientes", cliente.id), {
-                estado: calcularEstadoCliente(facturasActualizadas),
-              });
+            // El estado de cada factura se calcula, así que no hay nada que
+            // corregir en ellas. Lo que sí puede quedar viejo es el del
+            // CLIENTE, que se guarda para que la lista de clientes pueda
+            // filtrar sin leer las facturas de todos: una factura que venció
+            // sola —sin que nadie tocara nada— lo deja desactualizado. Esta
+            // pantalla, que ya tiene todas las facturas en la mano, es el
+            // lugar natural para ponerlo al día.
+            const estadoCliente = calcularEstadoCliente(todasLasFacturas, hoy);
+            if (estadoCliente !== cliente.estado) {
+              batch.update(doc(db, "clientes", cliente.id), { estado: estadoCliente });
+              huboCambios = true;
             }
 
-            const facturas = facturasActualizadas.filter((factura) =>
+            const facturas = todasLasFacturas.filter((factura) =>
               facturaEnSeguimiento(factura, hoy),
             );
             return facturas.length > 0 ? { cliente, facturas } : null;
@@ -125,36 +96,6 @@ export default function SeguimientoClientes() {
   useEffect(() => {
     fetchSeguimiento();
   }, [fetchSeguimiento]);
-
-  const handleCambiarEstadoFactura = async (clienteId, facturaId, nuevoEstado) => {
-    try {
-      // El estado del CLIENTE resume TODAS sus facturas. Acá hay que releerlas
-      // de la base: las que esta pantalla tiene en memoria están filtradas
-      // —solo las que entraron en seguimiento— y calcular con esa lista
-      // parcial daría un estado equivocado.
-      const facturasSnap = await getDocs(
-        collection(db, "clientes", clienteId, "facturas"),
-      );
-      const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
-        docSnap.id === facturaId
-          ? { id: docSnap.id, ...docSnap.data(), estado: nuevoEstado }
-          : { id: docSnap.id, ...docSnap.data() },
-      );
-
-      const batch = writeBatch(db);
-      batch.update(doc(db, "clientes", clienteId, "facturas", facturaId), {
-        estado: nuevoEstado,
-      });
-      batch.update(doc(db, "clientes", clienteId), {
-        estado: calcularEstadoCliente(todasLasFacturas),
-      });
-      await batch.commit();
-      await fetchSeguimiento(true);
-      showSnackbar("Estado de la factura actualizado.", "success");
-    } catch (error) {
-      showSnackbar(`Error al actualizar el estado: ${error.message}`, "error");
-    }
-  };
 
   const busquedaLower = busqueda.trim().toLowerCase();
 
@@ -287,7 +228,6 @@ export default function SeguimientoClientes() {
                 cliente={cliente}
                 facturas={facturas}
                 hoy={obtenerFechaHoyBogota()}
-                onCambiarEstado={handleCambiarEstadoFactura}
                 onEquiposActualizados={() => fetchSeguimiento(true)}
               />
             ))}

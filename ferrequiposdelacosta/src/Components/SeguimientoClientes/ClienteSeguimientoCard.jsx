@@ -5,8 +5,6 @@ import {
   Box,
   Chip,
   IconButton,
-  Menu,
-  MenuItem,
   Paper,
   Stack,
   Tooltip,
@@ -14,27 +12,43 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PhoneIcon from "@mui/icons-material/Phone";
 import UpdateIcon from "@mui/icons-material/Update";
-import AssignmentReturnedIcon from "@mui/icons-material/AssignmentReturned";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+// Los mismos íconos que usan las facturas en Detalle Cliente, para que un
+// equipo se lea igual en las dos pantallas.
+import EventIcon from "@mui/icons-material/Event";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+// Ojo: es "Return", no "Returned". El que termina en "-ed" es un ícono
+// distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
+// registrar una devolución en ninguna otra parte de la app.
+import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
+import SavingsIcon from "@mui/icons-material/Savings";
+import HistoryIcon from "@mui/icons-material/History";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import {
-  obtenerHistorialVencimientos,
-  etiquetaVencimiento,
   diferenciaEnDias,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  calcularCantidadPendiente,
   equipoDevueltoCompleto,
-  ESTADO_FACTURA_INFO,
-  ESTADOS_FACTURA_EN_ORDEN,
+  calcularEstadoFactura,
+  calcularGestionFactura,
+  obtenerGestiones,
+  GESTION_INFO,
 } from "../ClienteDetalle/facturaUtils";
-import { formatearMonedaOVacio } from "../../Utils/formato";
+import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
+import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
 
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
@@ -100,19 +114,159 @@ const formatearFecha = (isoDate) => {
   return `${dia}/${mes}/${anio}`;
 };
 
-// "N° 101", "N° 101 y N° 105", "N° 101, N° 105 y N° 110" — para el mensaje de
-// WhatsApp cuando el cliente tiene más de una factura en seguimiento.
-const formatearListaFacturas = (numeros) => {
-  const conPrefijo = numeros.map((numero) => `N° ${numero}`);
-  if (conPrefijo.length <= 1) return conPrefijo.join("");
-  return `${conPrefijo.slice(0, -1).join(", ")} y ${conPrefijo[conPrefijo.length - 1]}`;
+// Cada anotación de la línea de tiempo, contada en una frase. Los tipos son
+// los que guarda la factura en `gestiones` (ver facturaUtils): la llamada la
+// registra quien llama, las otras tres se anotan solas al hacer la acción.
+const describirGestion = (registro) => {
+  if (registro.tipo === "llamada") {
+    const aQuien = registro.numero ? ` a ${registro.numero}` : "";
+    return `Llamada${aQuien} — ${registro.contesto ? "contestó" : "no contestó"}`;
+  }
+
+  if (registro.tipo === "prorroga") {
+    if (registro.indefinida && !registro.dias) return "Renovación: entrega indefinida";
+    const dias = Number(registro.dias) || 0;
+    const texto = `Renovación: ${dias} día${dias === 1 ? "" : "s"}`;
+    return registro.indefinida ? `${texto} y entrega indefinida` : texto;
+  }
+
+  if (registro.tipo === "parcial" || registro.tipo === "total") {
+    const unidades = Number(registro.unidades) || 0;
+    const cuantos = unidades > 0 ? `: ${unidades} equipo${unidades === 1 ? "" : "s"}` : "";
+    return `Devolución ${registro.tipo === "total" ? "total" : "parcial"}${cuantos}`;
+  }
+
+  return registro.tipo;
+};
+
+// ── El recordatorio de WhatsApp ────────────────────────────────────────
+//
+// Hay un texto por cada gestión, porque no es lo mismo escribirle a quien
+// nunca contestó que a quien ya devolvió la mitad de los equipos. El que se
+// manda depende de la gestión vigente de la factura ABIERTA en la tarjeta, no
+// del cliente: con varias facturas en seguimiento, los números (equipos
+// pendientes, saldo) no se podrían atribuir a ninguna.
+//
+// Todos comparten el saludo y la despedida, y todos tutean.
+const construirMensajeWhatsapp = ({
+  gestion,
+  nombre,
+  numeroFactura,
+  hoy,
+  equiposPendientes,
+  saldo,
+  fechaProrroga,
+}) => {
+  const saludo = `👋 Hola, ${nombre}.`;
+  const despedida = "Gracias por confiar en Ferrequipos de la Costa.";
+  const contacto = "Por favor comunícate con nosotros.";
+  const laFactura = `tu factura N° ${numeroFactura}`;
+
+  // "5 equipos pendientes de devolución y un saldo aproximado de $800.000",
+  // saltándose la parte que no aplique. El saldo va como "aproximado" porque
+  // incluye los días que siguen corriendo.
+  const situacion = [
+    equiposPendientes > 0 &&
+      `${equiposPendientes} equipo${equiposPendientes === 1 ? "" : "s"} pendiente${
+        equiposPendientes === 1 ? "" : "s"
+      } de devolución`,
+    saldo > 0 && `un saldo aproximado de ${formatearMoneda(saldo)}`,
+  ]
+    .filter(Boolean)
+    .join(" y ");
+
+  // Ya devolvió todo y solo debe plata: hablarle de devoluciones o de
+  // extender el alquiler no tendría sentido, esto es cobranza.
+  if (gestion === "cobro") {
+    return [
+      saludo,
+      "",
+      `Te recordamos que ${laFactura} tiene un saldo pendiente de ${formatearMoneda(saldo)}.`,
+      "",
+      "Ya recibimos todos los equipos, así que solo queda pendiente el pago.",
+      "",
+      `Si ya lo realizaste o quieres coordinarlo, ${contacto.toLowerCase()}`,
+      "",
+      despedida,
+    ].join("\n");
+  }
+
+  // Se le dio más plazo. Si la fecha nueva todavía no llegó es un aviso; si
+  // ya pasó, es un reclamo — el mismo texto sirve para los dos cambiando el
+  // tiempo del verbo.
+  if (gestion === "prorroga") {
+    const plazo = fechaProrroga
+      ? `El plazo que acordamos ${
+          fechaProrroga < hoy ? "venció" : "vence"
+        } el ${formatearFecha(fechaProrroga)}.`
+      : "Habíamos acordado extender el alquiler hasta que nos avises.";
+
+    return [
+      saludo,
+      "",
+      `Te escribimos por ${laFactura}, a la que le extendimos el período de alquiler.`,
+      "",
+      plazo,
+      ...(situacion ? ["", `A la fecha tienes ${situacion}.`] : []),
+      "",
+      `Si necesitas más tiempo o quieres coordinar la devolución, ${contacto.toLowerCase()}`,
+      "",
+      despedida,
+    ].join("\n");
+  }
+
+  // Devolvió una parte. Primero se le reconoce lo que entregó: si no, el
+  // mensaje suena a que no se registró su devolución.
+  if (gestion === "parcial") {
+    return [
+      saludo,
+      "",
+      `Recibimos la devolución de parte de los equipos de ${laFactura}. ¡Gracias!`,
+      ...(situacion ? ["", `Todavía quedan ${situacion}.`] : []),
+      "",
+      `Cuando puedas coordinar la entrega del resto, ${contacto.toLowerCase()}`,
+      "",
+      despedida,
+    ].join("\n");
+  }
+
+  // Se le llamó y no contestó. Se dice, pero sin reproche: explica por qué
+  // se le escribe por acá.
+  if (gestion === "sinRespuesta") {
+    return [
+      saludo,
+      "",
+      "Hemos intentado comunicarnos contigo por teléfono sin lograrlo, por eso te escribimos por este medio.",
+      "",
+      `${laFactura.charAt(0).toUpperCase()}${laFactura.slice(1)} tiene el período de alquiler vencido${
+        situacion ? `, con ${situacion}` : ""
+      }.`,
+      "",
+      `Para extender el alquiler o coordinar la devolución, ${contacto.toLowerCase()}`,
+      "",
+      despedida,
+    ].join("\n");
+  }
+
+  // Sin gestionar: el primer aviso, el día que se vence.
+  return [
+    saludo,
+    "",
+    `Te recordamos que hoy, ${formatearFecha(
+      hoy,
+    )}, finaliza el período de alquiler de los equipos registrados en ${laFactura}.`,
+    ...(situacion ? ["", `Actualmente tienes ${situacion}.`] : []),
+    "",
+    "Si deseas extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.",
+    "",
+    despedida,
+  ].join("\n");
 };
 
 export default function ClienteSeguimientoCard({
   cliente,
   facturas,
   hoy,
-  onCambiarEstado,
   onEquiposActualizados,
 }) {
   const theme = useTheme();
@@ -120,8 +274,11 @@ export default function ClienteSeguimientoCard({
     theme.palette.custom.accent;
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const [tabFactura, setTabFactura] = useState(0);
-  const [menuAnchor, setMenuAnchor] = useState(null);
   const [detalleAbierto, setDetalleAbierto] = useState(false);
+  // La bitácora de gestión arranca plegada: con varias llamadas registradas
+  // la lista completa puede ocupar la pantalla entera, en PC igual que en
+  // móvil. Se pliega/despliega aparte del resto de la factura.
+  const [gestionAbierta, setGestionAbierta] = useState(false);
   // Plegar la factura, igual que en Detalle Cliente: arrancan TODAS plegadas
   // y lo que se guarda es cuáles se fueron abriendo, así la lista de clientes
   // se ve completa de un vistazo.
@@ -131,15 +288,54 @@ export default function ClienteSeguimientoCard({
     setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
   const [ampliarOpen, setAmpliarOpen] = useState(false);
   const [devolucionOpen, setDevolucionOpen] = useState(false);
+  const [llamadaOpen, setLlamadaOpen] = useState(false);
 
-  const avatarBgPorEstado = theme.palette.custom.estadoFactura;
+  // Acá se muestra la GESTIÓN, no el estado: el estado de la factura se ve en
+  // Clientes y en Detalle Cliente. Son dos escalas distintas y no se mezclan
+  // (ver facturaUtils).
+  const coloresGestion = theme.palette.custom.gestionFactura;
+
+  // Los colores de bloque son los MISMOS que en Detalle Cliente: un equipo se
+  // ve igual en las dos pantallas. Los que se sumaron después de emitida la
+  // factura van en violeta, como allá.
+  const colorEquipos = theme.palette.custom.seccionEquipos;
+  const colorEquiposAgregados = theme.palette.custom.seccionEquiposAgregados;
+  const colorGestion = theme.palette.custom.seccionGestion;
+
+  // El grupo "Entrega indefinida" (sin fecha, el cliente debe avisar) iba con
+  // el mismo gris que "Vence": dos situaciones distintas —una tiene fecha
+  // futura conocida, la otra no tiene ninguna— quedaban visualmente
+  // idénticas. Va en teal, fijo en los dos modos como los demás colores de
+  // bloque: no hay otro tono libre en la paleta de este componente (rojo,
+  // ámbar, azul, violeta, rosa y verde ya están tomados).
+  const colorIndefinido = "#0D9488";
+
+  // El recuadro teñido de los bloques de factura: borde del color, un
+  // resplandor hacia adentro y un degradado en diagonal. Copiado tal cual de
+  // ClienteDetalle para que las dos pantallas no se separen.
+  const recuadroDeBloque = (color) => ({
+    p: 1,
+    borderRadius: 1,
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: color,
+    boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
+    position: "relative",
+    overflow: "hidden",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: "inherit",
+      background: `linear-gradient(135deg, ${alpha(color, 0.12)}, ${alpha(color, 0.03)})`,
+      pointerEvents: "none",
+    },
+  });
 
   // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como
-  // chips. El historial de vencimientos aparece numerado (1er, 2do…) y el
-  // vigente va aparte, marcado según en qué situación está.
+  // chips. Si ya se le amplió el vencimiento, la fecha original aparece
+  // marcada como "Vencido"; la vigente va aparte, según en qué situación está.
   const renderEquipo = (equipo, key, situacion) => {
-    const historial = obtenerHistorialVencimientos(equipo);
-
     // Lo que cuesta un día de este equipo: el precio diario por la cantidad
     // alquilada. Sirve para valorizar tanto los días vencidos como los que se
     // le agregaron al ampliar.
@@ -158,11 +354,23 @@ export default function ClienteSeguimientoCard({
     const conValor = (dias) =>
       valorPorDia > 0 ? ` · ${formatearMoneda(dias * valorPorDia)}` : "";
 
+    // El recuadro entero lleva el color de la URGENCIA, el mismo del rótulo
+    // de su grupo: rojo lo vencido, ámbar lo que vence hoy, gris lo que
+    // todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
+    // importa más que de dónde vino el equipo —a diferencia de Detalle
+    // Cliente, donde no hay urgencias que seguir y el color sí distingue el
+    // alta de lo agregado después—.
+    const color =
+      situacion === "vencido"
+        ? theme.palette.error.main
+        : situacion === "hoy"
+          ? theme.palette.warning.main
+          : situacion === "indefinido"
+            ? colorIndefinido
+            : theme.palette.text.secondary;
+
     return (
-      <Box
-        key={key}
-        sx={{ p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider" }}
-      >
+      <Box key={key} sx={recuadroDeBloque(color)}>
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip
             variant="meta"
@@ -179,29 +387,45 @@ export default function ClienteSeguimientoCard({
           <Chip
             variant="meta"
             size="small"
+            icon={<EventIcon />}
             label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
           />
+
+          {Number(equipo.valor) > 0 && (
+            <Chip
+              variant="meta"
+              size="small"
+              icon={<AttachMoneyIcon />}
+              label={`${formatearMoneda(Number(equipo.valor))}/día`}
+            />
+          )}
 
           {equipo.fechaDespacho && (
             <Chip
               variant="meta"
               size="small"
+              icon={<LocalShippingIcon />}
               label={`Despacho ${formatearFecha(equipo.fechaDespacho)}`}
             />
           )}
 
-          {/* Cada ampliación dejó una fecha atrás: se listan numeradas para
-              poder seguir la historia del alquiler. Van siempre en contorno,
-              para que se distingan de la fecha vigente. */}
-          {historial.map((fecha, i) => (
+          {/* La fecha con la que había nacido el equipo, antes de la primera
+              ampliación. Mismo chip que en Detalle Cliente: uno solo con la
+              fecha original, no uno por cada ampliación que hubo después. */}
+          {equipo.fechaVencimientoOriginal && (
             <Chip
-              key={`vto-${i}`}
-              variant="meta"
               size="small"
-              sx={{ bgcolor: "transparent", border: "1px solid", borderColor: "divider" }}
-              label={`${etiquetaVencimiento(i)} ${formatearFecha(fecha)}`}
+              variant="metaEstado"
+              icon={<EventBusyIcon />}
+              sx={{
+                bgcolor: "error.main",
+                color: "error.contrastText",
+                border: "none",
+                "& .MuiChip-icon": { color: "inherit" },
+              }}
+              label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
             />
-          ))}
+          )}
 
           {/* Días que se le sumaron al plazo, con lo que cuestan ya
               descontado, y el descuento aparte para que no quede escondido. */}
@@ -224,15 +448,27 @@ export default function ClienteSeguimientoCard({
             <Chip
               variant="metaEstado"
               size="small"
-              sx={{ fontWeight: 600, color: "success.main" }}
+              icon={<SavingsIcon />}
+              sx={{
+                fontWeight: 600,
+                color: "success.main",
+                "& .MuiChip-icon": { color: "inherit" },
+              }}
               label={`Descuento ${formatearMoneda(ampliacionEquipo.descuento)}`}
             />
           )}
 
           {situacion === "indefinido" ? (
             <Chip
-              variant="meta"
               size="small"
+              variant="metaEstado"
+              icon={<EventIcon />}
+              sx={{
+                bgcolor: colorIndefinido,
+                color: theme.palette.getContrastText(colorIndefinido),
+                border: "none",
+                "& .MuiChip-icon": { color: "inherit" },
+              }}
               label="Entrega indefinida — el cliente debe avisar"
             />
           ) : (
@@ -240,9 +476,16 @@ export default function ClienteSeguimientoCard({
               <Chip
                 size="small"
                 variant={situacion === "vencido" ? "metaEstado" : "meta"}
+                icon={situacion === "vencido" ? <EventBusyIcon /> : <AssignmentReturnIcon />}
                 sx={
                   situacion === "vencido"
-                    ? { bgcolor: "error.main", color: "error.contrastText", border: "none" }
+                    ? {
+                        bgcolor: "error.main",
+                        color: "error.contrastText",
+                        border: "none",
+                        // Sobre el rojo pleno, el ícono va del color del texto.
+                        "& .MuiChip-icon": { color: "inherit" },
+                      }
                     : { fontWeight: "bold" }
                 }
                 label={`${
@@ -250,7 +493,7 @@ export default function ClienteSeguimientoCard({
                     ? "Venció"
                     : situacion === "hoy"
                       ? "Vence hoy"
-                      : "Vence"
+                      : "Devuelve"
                 } ${formatearFecha(equipo.fechaVencimiento)}`}
               />
             )
@@ -278,7 +521,14 @@ export default function ClienteSeguimientoCard({
   const renderEquipoDevuelto = (equipo, key) => (
     <Box
       key={key}
-      sx={{ p: 1, borderRadius: 1, border: "1px solid", borderColor: "divider", opacity: 0.65 }}
+      sx={{
+        ...recuadroDeBloque(
+          equipo.agregadoPosteriormente ? colorEquiposAgregados : colorEquipos,
+        ),
+        // Atenuado: ya no hay nada que hacer con este equipo, pero se sigue
+        // viendo para saber qué se devolvió y cuándo.
+        opacity: 0.65,
+      }}
     >
       <Stack direction="row" alignItems="center" gap={1}>
         <Chip
@@ -293,7 +543,8 @@ export default function ClienteSeguimientoCard({
         <Chip
           size="small"
           variant="meta"
-          sx={{ color: "success.main" }}
+          icon={<AssignmentReturnIcon />}
+          sx={{ color: "success.main", "& .MuiChip-icon": { color: "inherit" } }}
           label={`Devuelto ${formatearFecha(equipo.fechaDevolucion) || ""}`}
         />
       </Stack>
@@ -304,10 +555,15 @@ export default function ClienteSeguimientoCard({
 
   const indiceActivo = Math.min(tabFactura, facturas.length - 1);
   const factura = facturas[indiceActivo];
-  const facturaEstadoInfo =
-    ESTADO_FACTURA_INFO[factura.estado] || { label: factura.estado || "Sin estado" };
-  const facturaEstadoColor =
-    avatarBgPorEstado[factura.estado] || theme.palette.custom.estadoNeutro;
+
+  // La gestión vigente: lo último que se hizo con esta factura, salvo que ya
+  // haya devuelto todo y solo deba plata —ahí manda "Cobro"—.
+  const estadoFactura = calcularEstadoFactura(factura, hoy);
+  const gestionClave = calcularGestionFactura(factura, estadoFactura);
+  const gestionInfo = GESTION_INFO[gestionClave] || GESTION_INFO.sinGestionar;
+  const gestionColor = coloresGestion[gestionClave] || theme.palette.custom.estadoNeutro;
+  const IconoGestion = gestionInfo.Icono;
+  const gestiones = obtenerGestiones(factura);
 
   // El cálculo de las ampliaciones vive en facturaUtils, compartido con
   // ClienteDetalle y con el diálogo que las guarda: así las tres pantallas
@@ -345,33 +601,58 @@ export default function ClienteSeguimientoCard({
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
   const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
 
-  // Mensaje de recordatorio de vencimiento, precargado en el link de
-  // WhatsApp. Junta TODAS las facturas del cliente que están en seguimiento
-  // (no solo la pestaña activa): si tiene dos venciendo el mismo día, un solo
-  // mensaje las menciona a ambas en vez de mandar uno por cada una.
-  const numerosFactura = facturas.map((f) => f.numeroFactura ?? "s/n");
-  const mensajeWhatsapp = [
-    `👋 Hola, ${obtenerNombreCompleto(cliente)}.`,
-    "",
-    `Te recordamos que hoy, ${formatearFecha(hoy)}, finaliza el período de alquiler de los equipos registrados en ${
-      numerosFactura.length === 1 ? "tu factura" : "tus facturas"
-    } ${formatearListaFacturas(numerosFactura)}.`,
-    "",
-    "Si deseas extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.",
-    "",
-    "Gracias por confiar en Ferrequipos de la Costa.",
-  ].join("\n");
+  // Cuántos equipos le faltan devolver de ESTA factura, para decírselo en el
+  // mensaje. Es la suma de lo pendiente de cada línea, no la cantidad de
+  // líneas: si de una de 8 andamios devolvió 3, faltan 5.
+  const equiposPendientes = (factura.equipos || [])
+    .filter((equipo) => typeof equipo === "object")
+    .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
+
+  // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
+  // equipos que todavía no volvió, sin contar los que quedaron con entrega
+  // indefinida (esos no tienen fecha que recordarle).
+  const fechaProrroga =
+    (factura.equipos || [])
+      .filter(
+        (equipo) =>
+          typeof equipo === "object" &&
+          calcularCantidadPendiente(equipo) > 0 &&
+          !equipo.vencimientoIndefinido &&
+          equipo.fechaVencimiento,
+      )
+      .map((equipo) => equipo.fechaVencimiento)
+      .sort()
+      .pop() || null;
+
+  const mensajeWhatsapp = construirMensajeWhatsapp({
+    gestion: gestionClave,
+    nombre: obtenerNombreCompleto(cliente),
+    numeroFactura: factura.numeroFactura ?? "s/n",
+    hoy,
+    equiposPendientes,
+    saldo: saldoPendienteNumero,
+    fechaProrroga,
+  });
   const linkWhatsapp = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(mensajeWhatsapp)}`;
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
   const cuadroTotales = valorTotal && (
     <Box>
+      {/* El acento del tema, no el color de un bloque: esto resume TODO lo de
+          arriba (pago, equipos, adicionales), no una sección puntual. Mismo
+          criterio que en Detalle Cliente. */}
       <Typography
         variant="overline"
-        color="text.secondary"
-        sx={{ display: "block", lineHeight: 1.6 }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          lineHeight: 1.6,
+          color: "custom.accent",
+        }}
       >
+        <AccountBalanceWalletIcon fontSize="small" />
         Estado de cuenta
       </Typography>
       <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
@@ -385,9 +666,11 @@ export default function ClienteSeguimientoCard({
       </Box>
 
       {/* Lo ya cobrado. Solo aparece cuando queda saldo: con la factura
-          saldada sería el mismo número del total, repetido. */}
+          saldada sería el mismo número del total, repetido. La clase "pagado"
+          es la que lo pinta verde —sin ella cae en el blanco tiza del
+          renglón común, que es lo que pasaba acá y no en Detalle Cliente—. */}
       {saldoPendienteNumero > 0 && (
-        <Box className="fila">
+        <Box className="fila pagado">
           <Typography variant="body2">Pagado</Typography>
           <Typography variant="body2">
             {formatearMoneda(Number(factura.montoPagado) || 0)}
@@ -413,11 +696,6 @@ export default function ClienteSeguimientoCard({
     </Box>
   );
 
-  const handleCambiar = (nuevoEstado) => {
-    setMenuAnchor(null);
-    onCambiarEstado(cliente.id, factura.id, nuevoEstado);
-  };
-
   // Capas detrás de la carpeta activa: sugieren que hay más facturas "debajo".
   const capasDePila = Math.min(facturas.length - 1, 2);
 
@@ -433,7 +711,7 @@ export default function ClienteSeguimientoCard({
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 0.5, pb: 1 }}>
-        <Avatar sx={{ bgcolor: facturaEstadoColor, width: 36, height: 36 }}>
+        <Avatar sx={{ bgcolor: gestionColor, width: 36, height: 36 }}>
           {cliente.tipo === "empresa" ? (
             <BusinessIcon sx={{ fontSize: 18 }} />
           ) : (
@@ -450,38 +728,48 @@ export default function ClienteSeguimientoCard({
                 {cliente.telefono}
               </Typography>
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ ml: 0.5 }}>
-                <IconButton
-                  size="small"
-                  component="a"
-                  href={linkWhatsapp}
-                  target="_blank"
-                  rel="noopener"
-                  sx={{
-                    bgcolor: theme.palette.custom.whatsapp.main,
-                    color: theme.palette.common.white,
-                    width: 18,
-                    height: 18,
-                    "&:hover": { bgcolor: theme.palette.custom.whatsapp.dark },
-                  }}
-                >
-                  <WhatsAppIcon sx={{ fontSize: 11 }} />
-                </IconButton>
-                {esMovil && (
+                <Tooltip title="Escribir por WhatsApp">
                   <IconButton
                     size="small"
                     component="a"
-                    href={`tel:${cliente.telefono}`}
+                    href={linkWhatsapp}
+                    target="_blank"
+                    rel="noopener"
+                    sx={{
+                      bgcolor: theme.palette.custom.whatsapp.main,
+                      color: theme.palette.common.white,
+                      width: 30,
+                      height: 30,
+                      // Cuadrados con la esquina apenas redondeada, igual que
+                      // los botones de acción de la factura.
+                      borderRadius: 1,
+                      "&:hover": { bgcolor: theme.palette.custom.whatsapp.dark },
+                    }}
+                  >
+                    <WhatsAppIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Este botón NO marca: abre el registro de la llamada, que
+                    es lo único que se puede hacer en las dos pantallas. En el
+                    celular, el marcador se abre desde adentro del diálogo;
+                    desde el computador solo se anota si contestó o no. */}
+                <Tooltip title="Registrar llamada">
+                  <IconButton
+                    size="small"
+                    onClick={() => setLlamadaOpen(true)}
                     sx={{
                       bgcolor: theme.palette.custom.call.main,
                       color: theme.palette.common.white,
-                      width: 18,
-                      height: 18,
+                      width: 30,
+                      height: 30,
+                      borderRadius: 1,
                       "&:hover": { bgcolor: theme.palette.custom.call.dark },
                     }}
                   >
-                    <PhoneIcon sx={{ fontSize: 11 }} />
+                    <PhoneIcon sx={{ fontSize: 18 }} />
                   </IconButton>
-                )}
+                </Tooltip>
               </Stack>
             </Stack>
           ) : (
@@ -624,21 +912,26 @@ export default function ClienteSeguimientoCard({
                       color: acento,
                     }}
                   >
-                    <AssignmentReturnedIcon fontSize="small" />
+                    <AssignmentReturnIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
 
+                {/* La gestión vigente. No se puede cambiar a mano: la ponen
+                    las acciones de arriba (llamar, ampliar, devolver). Sin
+                    contador: cuántas veces se llamó queda en la línea de
+                    tiempo de abajo, acá solo el nombre. */}
                 <Chip
-                  label={facturaEstadoInfo.label}
+                  icon={<IconoGestion />}
+                  label={gestionInfo.label}
                   size="small"
-                  onClick={(e) => setMenuAnchor(e.currentTarget)}
                   variant="estadoCompacto"
                   sx={{
-                    cursor: "pointer",
-                    bgcolor: facturaEstadoColor,
-                    color: theme.palette.getContrastText(facturaEstadoColor),
+                    bgcolor: gestionColor,
+                    color: theme.palette.getContrastText(gestionColor),
+                    "& .MuiChip-icon": { color: "inherit" },
                   }}
                 />
+
 
                 {/* Pliega la factura y deja a la vista solo este encabezado,
                     igual que en Detalle Cliente. */}
@@ -670,6 +963,78 @@ export default function ClienteSeguimientoCard({
               </Stack>
             </Stack>
 
+            {/* La línea de tiempo de la factura: todo lo que se hizo para
+                destrabarla, en orden. Se pliega con el resto de la factura
+                —un cliente con la tarjeta cerrada no la ve— pero además tiene
+                su PROPIA flecha: con varias llamadas registradas la lista
+                puede ser larga y no tiene por qué ocupar toda la pantalla
+                cada vez que se abre la factura, ni en PC ni en móvil. */}
+            {!facturaPlegada(factura.id) && gestiones.length > 0 && (
+              <Box sx={{ mb: 1 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      lineHeight: 1.6,
+                      color: colorGestion,
+                    }}
+                  >
+                    <HistoryIcon fontSize="small" />
+                    Gestión {gestiones.length}
+                  </Typography>
+                  <Tooltip title={gestionAbierta ? "Ocultar gestión" : "Ver gestión"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setGestionAbierta((prev) => !prev)}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        p: 0.5,
+                        color: acento,
+                      }}
+                    >
+                      {gestionAbierta ? (
+                        <ExpandLessIcon fontSize="small" />
+                      ) : (
+                        <ExpandMoreIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+
+                {gestionAbierta && (
+                  <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
+                    <Stack spacing={0.25}>
+                      {gestiones.map((registro, i) => (
+                        <Stack
+                          key={`gestion-${i}`}
+                          direction="row"
+                          spacing={1}
+                          alignItems="baseline"
+                          flexWrap="wrap"
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
+                          >
+                            {formatearFecha(registro.fecha)} {formatearHoraLegible(registro.hora)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ minWidth: 0 }}>
+                            {describirGestion(registro)}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {!facturaPlegada(factura.id) && factura.equipos?.length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
                 {agruparPorVencimiento(
@@ -678,21 +1043,39 @@ export default function ClienteSeguimientoCard({
                 ).map((grupo) => (
                   <Box key={grupo.clave}>
                     {/* El encabezado dice en qué situación está el grupo, así
-                        cada renglón solo necesita mostrar la fecha. */}
+                        cada renglón solo necesita mostrar la fecha. Mismo
+                        formato que los rótulos de sección de Detalle Cliente:
+                        overline con el ícono adelante. */}
                     <Typography
                       variant="overline"
                       sx={{
-                        display: "block",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
                         lineHeight: 1.6,
+                        // Semáforo: rojo lo que ya venció, ámbar lo que vence
+                        // hoy (hay que actuar YA, antes de que pase a rojo),
+                        // gris lo que todavía tiene plazo. Antes "Vence hoy"
+                        // iba en el acento del tema, el mismo azul que ahora
+                        // llevan "Total factura" y "Estado de cuenta" más
+                        // abajo — se perdía entre esos y el azul del bloque de
+                        // equipos.
                         color:
                           grupo.clave === "vencido"
                             ? "error.main"
                             : grupo.clave === "hoy"
-                              ? "custom.accent"
-                              : "text.secondary",
+                              ? "warning.main"
+                              : grupo.clave === "indefinido"
+                                ? colorIndefinido
+                                : "text.secondary",
                       }}
                     >
-                      {grupo.titulo}
+                      {grupo.clave === "vencido" ? (
+                        <EventBusyIcon fontSize="small" />
+                      ) : (
+                        <EventIcon fontSize="small" />
+                      )}
+                      {grupo.titulo} {grupo.items.length}
                     </Typography>
 
                     <Stack spacing={0.5}>
@@ -707,9 +1090,15 @@ export default function ClienteSeguimientoCard({
                   <Box>
                     <Typography
                       variant="overline"
-                      color="text.secondary"
-                      sx={{ display: "block", lineHeight: 1.6 }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        lineHeight: 1.6,
+                        color: "success.main",
+                      }}
                     >
+                      <AssignmentReturnIcon fontSize="small" />
                       Devuelto
                     </Typography>
                     <Stack spacing={0.5}>
@@ -728,7 +1117,17 @@ export default function ClienteSeguimientoCard({
             {facturaPlegada(factura.id) ? null : esMovil ? (
               <Box>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      lineHeight: 1.6,
+                      color: "custom.accent",
+                    }}
+                  >
+                    <ReceiptLongIcon fontSize="small" />
                     Total factura
                   </Typography>
                   <IconButton
@@ -756,7 +1155,17 @@ export default function ClienteSeguimientoCard({
               </Box>
             ) : (
               <Box>
-                <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    lineHeight: 1.6,
+                    color: "custom.accent",
+                  }}
+                >
+                  <ReceiptLongIcon fontSize="small" />
                   Total factura
                 </Typography>
                 <Box
@@ -785,13 +1194,13 @@ export default function ClienteSeguimientoCard({
         </Box>
       </Box>
 
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-        {ESTADOS_FACTURA_EN_ORDEN.map((estado) => (
-          <MenuItem key={estado} onClick={() => handleCambiar(estado)}>
-            {ESTADO_FACTURA_INFO[estado].label}
-          </MenuItem>
-        ))}
-      </Menu>
+      <RegistrarLlamadaDialog
+        open={llamadaOpen}
+        onClose={() => setLlamadaOpen(false)}
+        cliente={cliente}
+        factura={factura}
+        onActualizado={onEquiposActualizados}
+      />
 
       <AmpliarVencimientoDialog
         open={ampliarOpen}
@@ -816,6 +1225,5 @@ ClienteSeguimientoCard.propTypes = {
   cliente: PropTypes.object.isRequired,
   facturas: PropTypes.array.isRequired,
   hoy: PropTypes.string,
-  onCambiarEstado: PropTypes.func.isRequired,
   onEquiposActualizados: PropTypes.func,
 };

@@ -34,13 +34,18 @@ import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { ESTADO_CLIENTE_INFO } from "../ClienteDetalle/facturaUtils";
 
+// Los rótulos van en plural porque nombran un GRUPO de clientes, no el estado
+// de uno solo: por eso son aparte de ESTADO_CLIENTE_INFO. El orden es el de
+// urgencia, el mismo con el que se resume el estado de un cliente (ver
+// calcularEstadoCliente): primero lo que hay que atender hoy.
 const FILTROS = [
   { valor: "todos", label: "Todos" },
-  { valor: "inactivo", label: "Inactivos" },
-  { valor: "pendienteDespacho", label: "Pendiente despacho" },
-  { valor: "despachada", label: "Despachadas" },
-  { valor: "devolucionParcial", label: "Devolución parcial" },
+  { valor: "vencida", label: "Vencidas" },
+  { valor: "cobro", label: "En cobro" },
+  { valor: "pendiente", label: "Pendientes" },
+  { valor: "activa", label: "Activas" },
   { valor: "finalizada", label: "Finalizadas" },
+  { valor: "inactivo", label: "Inactivos" },
 ];
 
 const FILTROS_TIPO = [
@@ -49,13 +54,9 @@ const FILTROS_TIPO = [
   { valor: "empresa", label: "Empresas", icono: BusinessIcon },
 ];
 
-// Los nombres de los estados vienen de facturaUtils. El color de cada uno sale
-// de avatarBgPorEstado —color propio, no el prop `color` de MUI— para no
-// repetir colores ya usados en otros botones.
-//
-// Los rótulos de FILTROS son aparte a propósito: ahí van en plural
-// ("Despachadas", "Finalizadas") porque nombran un grupo de clientes, no el
-// estado de uno.
+// Los nombres y los íconos de los estados vienen de facturaUtils. El color de
+// cada uno sale de avatarBgPorEstado —color propio, no el prop `color` de
+// MUI— para no repetir colores ya usados en otros botones.
 const ESTADO_INFO = ESTADO_CLIENTE_INFO;
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
@@ -467,12 +468,14 @@ export default function ListaClientes() {
                           </Stack>
 
                           <Chip
+                            icon={estadoInfo.Icono ? <estadoInfo.Icono /> : undefined}
                             label={estadoInfo.label}
                             variant="estado"
                             size="small"
                             sx={{
                               bgcolor: estadoColor,
                               color: theme.palette.getContrastText(estadoColor),
+                              "& .MuiChip-icon": { color: "inherit" },
                             }}
                           />
                         </Stack>
@@ -725,12 +728,14 @@ export default function ListaClientes() {
 
                         <TableCell>
                           <Chip
+                            icon={estadoInfo.Icono ? <estadoInfo.Icono /> : undefined}
                             label={estadoInfo.label}
                             variant="estado"
                             size="small"
                             sx={{
                               bgcolor: estadoColor,
                               color: theme.palette.getContrastText(estadoColor),
+                              "& .MuiChip-icon": { color: "inherit" },
                             }}
                           />
                         </TableCell>

@@ -27,7 +27,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
-import { collection, doc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { db } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
@@ -42,6 +42,7 @@ import {
   normalizarPagos,
   sumarAbonos,
   separarExcedentePago,
+  calcularEstadoCliente,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -60,12 +61,6 @@ const obtenerNombreCliente = (cliente) => {
   return [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") || cliente.nombreOriginal;
 };
 
-
-// Toda factura nace "pendienteDespacho": se facturó pero los equipos todavía
-// no se le entregaron al cliente. El resto de estados (despachada, devolución
-// parcial, finalizada) se setean a mano después, según lo que pase con el
-// alquiler.
-const ESTADO_INICIAL_FACTURA = "pendienteDespacho";
 
 // Si se pasa `factura`, precarga sus valores (modo edición); si no, arranca
 // en blanco (modo creación).
@@ -440,16 +435,24 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
         onGuardado?.({ id: factura.id, ...factura, ...datosFactura });
       } else {
         const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
-        const nuevaFactura = { ...datosFactura, estado: ESTADO_INICIAL_FACTURA };
+        // La factura no guarda su estado: se calcula a partir de sus fechas,
+        // de lo que se haya devuelto y del saldo (ver calcularEstadoFactura).
+        const nuevaFactura = { ...datosFactura };
         const batch = writeBatch(db);
         batch.set(facturaRef, nuevaFactura);
-        // El estado del cliente resume todas sus facturas (ver
-        // calcularEstadoCliente), pero acá no hace falta leerlas: una factura
-        // recién creada nace "pendienteDespacho", que es justo el estado de
-        // mayor prioridad, así que gana siempre. Si algún día cambia el estado
-        // inicial, esto tiene que pasar a usar el cálculo de verdad.
+        // El del CLIENTE sí se guarda, para que la lista pueda filtrar sin
+        // leer las facturas de todos. Se recalcula con la nueva incluida: no
+        // alcanza con suponer que la recién creada manda, porque una vencida
+        // que el cliente ya tenía es más urgente que una por despachar.
+        const anterioresSnap = await getDocs(
+          collection(db, "clientes", cliente.id, "facturas"),
+        );
+        const todasLasFacturas = [
+          ...anterioresSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })),
+          nuevaFactura,
+        ];
         batch.update(doc(db, "clientes", cliente.id), {
-          estado: nuevaFactura.estado,
+          estado: calcularEstadoCliente(todasLasFacturas),
         });
         await batch.commit();
 
@@ -912,12 +915,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
-              <Typography variant="notaGrabada">
-                Los pedidos realizados antes de las 3:00 p.m. se procesan el mismo día. Los
-                realizados después, se procesan al día siguiente.
-              </Typography>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>

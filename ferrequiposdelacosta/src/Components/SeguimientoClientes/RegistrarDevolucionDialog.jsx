@@ -25,6 +25,8 @@ import {
   calcularCantidadPendiente,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
+  obtenerGestiones,
+  crearRegistroGestion,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -105,6 +107,9 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
     try {
       const hoy = obtenerFechaHoyBogota();
       let huboCierre = false;
+      // Cuántas unidades volvieron en esta tanda, para dejarlo escrito en la
+      // línea de tiempo ("Devolución parcial: 3 equipos").
+      let unidadesDevueltas = 0;
 
       const equiposActualizados = [];
       equipos.forEach((equipo, index) => {
@@ -119,6 +124,7 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
         }
 
         huboCierre = true;
+        unidadesDevueltas += cantidadDevuelta;
 
         if (cantidadDevuelta >= pendiente) {
           // Devuelve todo lo que quedaba pendiente: la línea se cierra donde está.
@@ -170,25 +176,35 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
         equiposActualizados.push(restante);
       });
 
-      // Cualquier devolución (total o parcial) mueve la factura a
-      // "devolución parcial": cerrarla del todo sigue siendo manual, falta
-      // definir la regla de cuándo se considera pagada.
-      const nuevoEstado =
-        huboCierre && factura.estado !== "finalizada" ? "devolucionParcial" : factura.estado;
+      // El estado de la factura ya no se guarda: sale solo de los equipos y
+      // del saldo (ver calcularEstadoFactura). Lo que sí se anota es la
+      // gestión — si volvió todo o solo una parte—, que es el registro de lo
+      // que se hizo.
+      const quedanEquipos = equiposActualizados.some(
+        (equipo) => calcularCantidadPendiente(equipo) > 0,
+      );
+      const gestiones = huboCierre
+        ? [
+            ...obtenerGestiones(factura),
+            crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
+              unidades: unidadesDevueltas,
+            }),
+          ]
+        : obtenerGestiones(factura);
 
       // El estado del cliente resume TODAS sus facturas: hay que releerlas
       // de la base, no alcanza con la que tenemos en memoria.
       const facturasSnap = await getDocs(collection(db, "clientes", cliente.id, "facturas"));
       const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
         docSnap.id === factura.id
-          ? { id: docSnap.id, ...docSnap.data(), equipos: equiposActualizados, estado: nuevoEstado }
+          ? { id: docSnap.id, ...docSnap.data(), equipos: equiposActualizados, gestiones }
           : { id: docSnap.id, ...docSnap.data() },
       );
 
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
         equipos: equiposActualizados,
-        estado: nuevoEstado,
+        gestiones,
       });
       batch.update(doc(db, "clientes", cliente.id), {
         estado: calcularEstadoCliente(todasLasFacturas),
@@ -308,9 +324,12 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
                       )}
 
                       {nuevaFecha && (
+                        // Mismo ajuste que en AmpliarVencimientoDialog: ese
+                        // amarillo es para la pizarra oscura de totales, no
+                        // para el fondo normal del diálogo.
                         <Typography
                           variant="caption"
-                          sx={{ display: "block", mt: 0.5, color: "custom.totalText" }}
+                          sx={{ display: "block", mt: 0.5, color: "custom.accent" }}
                         >
                           Nueva fecha de vencimiento: {formatearFechaLegible(nuevaFecha)}
                         </Typography>

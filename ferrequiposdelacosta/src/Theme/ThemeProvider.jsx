@@ -406,21 +406,6 @@ export const CustomThemeProvider = ({ children }) => {
           veloFoto: alpha(NEGRO, 0.5),
           veloFotoHover: alpha(NEGRO, 0.7),
 
-          // ── La nota grabada ──────────────────────────────────────────
-          //
-          // La aclaración al pie del formulario de factura, la de las 3 p.m.
-          // Se ve como grabada en bajorrelieve: letra muy tenue más una línea
-          // de luz justo debajo, que simula el borde iluminado de un hueco.
-          // De día la luz es blanca marcada; de noche apenas se insinúa, o el
-          // relieve se vería como un subrayado.
-          //
-          // El aspecto completo (tamaño incluido) está armado abajo como la
-          // variante "notaGrabada" de Typography; estos son solo sus colores.
-          notaGrabadaText: esClaro ? alpha(NEGRO, 0.35) : alpha(BLANCO, 0.25),
-          notaGrabadaRelieve: esClaro
-            ? `0px 1px 0px ${alpha(BLANCO, 0.7)}`
-            : `0px 1px 0px ${alpha(BLANCO, 0.12)}`,
-
           // ── El recuadro de totales: una PIZARRA ──────────────────────
           //
           // La idea es esa: una pizarra donde se anotan los importes. Fondo
@@ -486,28 +471,52 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: ClienteSeguimientoCard.
           pestanaInactiva: esClaro ? grey[300] : grey[700],
 
-          // Los cinco estados de una factura. Cada uno tiene que distinguirse
-          // de los otros cuatro, así que no salen todos de la paleta de marca.
+          // ── Estado y gestión: dos escalas distintas ──────────────────
           //
-          // Son FIJOS en los dos modos: quien los usa saca el color de la
-          // letra con getContrastText, así que el chip se lee igual de día que
-          // de noche sin necesitar dos versiones.
+          // El ESTADO dice en qué punto de su vida está la factura y se
+          // calcula solo (ver calcularEstadoFactura en facturaUtils). Se ve en
+          // Clientes y Detalle Cliente.
           //
-          // Las claves son las mismas que guarda Firestore en el campo
-          // "estado", para poder indexar directo sin traducir.
-          // Se usan en: ClienteDetalle, ListaClientes, ClienteSeguimientoCard.
+          // La GESTIÓN dice qué se hizo para destrabarla —llamar, dar más
+          // días, recibir equipos— y la registra una persona o una acción. Se
+          // ve solo en Seguimiento.
+          //
+          // Son escalas separadas a propósito: nunca se muestran juntas, así
+          // que pueden repetir un color si significan lo mismo (Cobro es el
+          // mismo naranja en las dos, porque es la misma situación vista desde
+          // cada pantalla).
+          //
+          // Los colores son FIJOS en los dos modos: quien los usa saca el
+          // color de la letra con getContrastText, así que el chip se lee
+          // igual de día que de noche sin necesitar dos versiones.
+
+          // Los cinco estados, cada uno distinguible de los otros cuatro (por
+          // eso no salen todos de la paleta de marca), más "inactivo" para el
+          // cliente que todavía no tiene ninguna factura.
+          // Se usan en: ClienteDetalle y ListaClientes.
           estadoFactura: {
-            pendienteDespacho: "#F59E0B", // ámbar
-            despachada: "#2563EB", // azul
-            vencida: "#DC2626", // rojo
-            devolucionParcial: "#7C3AED", // violeta
-            finalizada: "#16A34A", // verde
-            inactivo: "#6B7280", // gris
+            pendiente: "#F59E0B", // ámbar — falta despachar
+            activa: "#16A34A", // verde — alquiler vigente
+            vencida: "#DC2626", // rojo — se pasó la fecha
+            cobro: "#EA580C", // naranja — devolvió todo, debe plata
+            finalizada: "#475569", // gris azulado — cerrada
+            inactivo: "#6B7280", // gris — cliente sin facturas
           },
 
-          // El gris de respaldo para una factura cuyo estado no está en la
-          // lista de arriba: las migradas del Excel traen valores viejos que no
-          // siempre coinciden. Antes este mismo cálculo estaba copiado en
+          // Las gestiones, en el orden en que suelen aparecer. "sinGestionar"
+          // es el gris tenue de la factura que recién entró y que nadie tocó
+          // todavía.
+          // Se usan en: ClienteSeguimientoCard.
+          gestionFactura: {
+            sinGestionar: "#9CA3AF", // gris claro — nadie la trabajó
+            sinRespuesta: "#6B7280", // gris — se llamó y no contestó
+            prorroga: "#2563EB", // azul — se autorizó más tiempo
+            parcial: "#7C3AED", // violeta — devolvió una parte
+            cobro: "#EA580C", // naranja — devolvió todo, debe plata
+          },
+
+          // El gris de respaldo para un estado o una gestión que no esté en
+          // las listas de arriba. Antes este mismo cálculo estaba copiado en
           // ClienteDetalle y ClienteSeguimientoCard.
           // Se usa en: ClienteDetalle y ClienteSeguimientoCard.
           estadoNeutro: esClaro ? grey[400] : grey[700],
@@ -522,6 +531,13 @@ export const CustomThemeProvider = ({ children }) => {
           seccionEquipos: "#3B82F6", // azul
           seccionEquiposAgregados: "#A855F7", // violeta
           seccionAdicionales: "#F97316", // naranja
+          // La gestión de seguimiento (llamadas, prórrogas, devoluciones).
+          // Va en rosa porque es el único tono que no se confunde con los de
+          // arriba ni con el azul de "info" que usan los abonos: entre el
+          // violeta de los agregados y el naranja de los adicionales queda
+          // claramente aparte.
+          // Se usa en: ClienteSeguimientoCard.
+          seccionGestion: "#DB2777", // rosa
 
           // El puntito verde que indica que un usuario está conectado.
           // Se usa en: ListaUsuarios y AdminCotizaciones.
@@ -937,30 +953,6 @@ export const CustomThemeProvider = ({ children }) => {
           "@media (max-width:600px)": {
             fontSize: "0.625rem",
           },
-        },
-
-        // La aclaración al pie del formulario de factura (la de las 3 p.m.):
-        // letra muy chica y tenue, con una línea de luz debajo que la hace ver
-        // grabada en la superficie. Es información de respaldo, no algo que
-        // haya que leer sí o sí, y el tratamiento lo dice sin necesidad de
-        // achicarla más.
-        //
-        // Concentraba SIETE valores escritos a mano en el componente: el
-        // tamaño, dos grises translúcidos y dos sombras, cada color con su
-        // propio "si el modo es claro". Los colores salen ahora de
-        // custom.notaGrabadaText y notaGrabadaRelieve.
-        //
-        // Hereda de body1 todo lo demás —tipo de letra, grosor e interlineado—
-        // porque eso es lo que hacía antes: era un Typography sin variante.
-        // El tamaño NO escala con la pantalla, también como antes.
-        // Se usa en: FacturaFormDialog.
-        notaGrabada: {
-          fontFamily: '"Open Sans", sans-serif',
-          fontWeight: 400,
-          fontSize: "0.65rem",
-          lineHeight: 1.5,
-          color: p.custom.notaGrabadaText,
-          textShadow: p.custom.notaGrabadaRelieve,
         },
 
         button: {
@@ -1831,9 +1823,6 @@ export const CustomThemeProvider = ({ children }) => {
               // párrafos (salían por "body1") y tienen que seguir siéndolo.
               rotuloDato: "p",
               valorDato: "p",
-              // Ídem: la nota del pie del formulario era un Typography sin
-              // variante, o sea un párrafo. Tiene que seguir saliendo así.
-              notaGrabada: "p",
               // Este en cambio sí va como <span>, que es lo que era antes
               // (usaba "caption"): así el pie de la hoja no cambia de forma.
               documentoPie: "span",

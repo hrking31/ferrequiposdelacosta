@@ -8,6 +8,7 @@ import {
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
   formatearFechaLegible,
+  calcularEstadoFactura,
   ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
@@ -103,7 +104,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   doc.setFontSize(10);
   const nombreEstado =
-    ESTADO_FACTURA_INFO[factura.estado]?.label || factura.estado || "";
+    ESTADO_FACTURA_INFO[calcularEstadoFactura(factura)]?.label || "";
   doc.text(nombreEstado, centro, 86, {
     align: "center",
   });

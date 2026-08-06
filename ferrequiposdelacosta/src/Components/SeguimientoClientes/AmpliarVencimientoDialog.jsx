@@ -14,13 +14,16 @@ import {
   Divider,
   useTheme,
 } from "@mui/material";
-import { doc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
   calcularVencimiento,
   obtenerAmpliaciones,
+  obtenerGestiones,
+  crearRegistroGestion,
+  calcularEstadoCliente,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -86,17 +89,25 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
 
     setGuardando(true);
     try {
+      // Lo que se le concedió al cliente, para dejarlo anotado en la línea de
+      // tiempo: los días de la ampliación más larga y si alguna línea quedó
+      // sin fecha de devolución.
+      let diasConcedidos = 0;
+      let quedoIndefinida = false;
+
       const equiposActualizados = equipos.map((equipo, index) => {
         const cambio = cambios[index];
         if (!cambio) return equipo;
 
         if (cambio.indefinida) {
+          quedoIndefinida = true;
           return { ...equipo, vencimientoIndefinido: true };
         }
 
         const extra = Number(cambio.dias) || 0;
         if (extra <= 0) return equipo;
 
+        diasConcedidos = Math.max(diasConcedidos, extra);
         const fechaNueva = calcularVencimiento(equipo.fechaVencimiento, extra);
         const descuento = Math.max(0, Number(cambio.descuento) || 0);
 
@@ -122,9 +133,35 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         };
       });
 
-      await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
+      // La prórroga queda anotada en la línea de tiempo de la factura: es la
+      // gestión que explica por qué se le corrió la fecha.
+      const gestiones = [
+        ...obtenerGestiones(factura),
+        crearRegistroGestion("prorroga", {
+          dias: diasConcedidos,
+          indefinida: quedoIndefinida,
+        }),
+      ];
+
+      // El estado del cliente resume TODAS sus facturas, así que hay que
+      // releerlas: ampliar el vencimiento puede sacar esta factura de
+      // "vencida" y cambiar con eso el estado del cliente entero.
+      const facturasSnap = await getDocs(collection(db, "clientes", cliente.id, "facturas"));
+      const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
+        docSnap.id === factura.id
+          ? { id: docSnap.id, ...docSnap.data(), equipos: equiposActualizados, gestiones }
+          : { id: docSnap.id, ...docSnap.data() },
+      );
+
+      const batch = writeBatch(db);
+      batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
         equipos: equiposActualizados,
+        gestiones,
       });
+      batch.update(doc(db, "clientes", cliente.id), {
+        estado: calcularEstadoCliente(todasLasFacturas),
+      });
+      await batch.commit();
 
       showSnackbar("Vencimiento actualizado correctamente.", "success");
       onActualizado?.();
@@ -212,9 +249,14 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                   )}
 
                   {nuevaFecha && (
+                    // custom.totalText es un amarillo pensado para la pizarra
+                    // oscura de totales (fondo negro fijo); acá el fondo es el
+                    // normal del diálogo, blanco en modo claro, y ese amarillo
+                    // casi no se leía. El acento sí está pensado para leerse
+                    // sobre superficies normales en los dos modos.
                     <Typography
                       variant="caption"
-                      sx={{ display: "block", mt: 0.5, color: "custom.totalText" }}
+                      sx={{ display: "block", mt: 0.5, color: "custom.accent" }}
                     >
                       Nueva fecha de vencimiento: {formatearFechaLegible(nuevaFecha)}
                     </Typography>
