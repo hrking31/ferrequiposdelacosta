@@ -8,9 +8,11 @@ import {
   Divider,
   Chip,
 } from "@mui/material";
+import { useDispatch } from "react-redux";
 import { storage, db } from "../Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, setDoc, doc } from "firebase/firestore";
+import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -25,6 +27,7 @@ const CrearEquipos = () => {
   const [textoExtra, setTextoExtra] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
+  const dispatch = useDispatch();
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
@@ -109,6 +112,12 @@ const CrearEquipos = () => {
       };
 
       await setDoc(equipoRef, data);
+
+      // Mismo motivo que en EditarEquipos: el catálogo vive en Redux y solo se
+      // consulta cuando está vacío, así que sin este refresh el equipo recién
+      // creado no aparece en la tienda, el kiosco ni el buscador de editar o
+      // eliminar hasta que se recargue la página.
+      dispatch(fetchEquiposData());
 
       showSnackbar("Equipo creado exitosamente.", "success");
 

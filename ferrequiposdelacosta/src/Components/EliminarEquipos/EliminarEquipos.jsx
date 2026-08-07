@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { deleteDoc, doc } from "firebase/firestore";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { getStorage, ref, listAll, deleteObject } from "firebase/storage";
 import { db } from "../../Components/Firebase/Firebase";
+import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import {
   Box,
   Typography,
@@ -29,6 +31,7 @@ const EliminarEquipo = () => {
     () => location.state?.equipo || null,
   );
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
+  const dispatch = useDispatch();
 
   const eliminarCarpetaCompleta = async (equipoId) => {
     const storage = getStorage();
@@ -49,6 +52,11 @@ const EliminarEquipo = () => {
       // solo quedan imágenes huérfanas (invisibles), no un equipo fantasma
       // con imágenes rotas.
       await deleteDoc(doc(db, "equipos", id));
+
+      // El catálogo vive en Redux y solo se consulta cuando está vacío, así que
+      // sin este refresh el equipo borrado sigue apareciendo en la tienda, el
+      // kiosco y el buscador hasta que se recargue la página.
+      dispatch(fetchEquiposData());
 
       try {
         await eliminarCarpetaCompleta(id);
