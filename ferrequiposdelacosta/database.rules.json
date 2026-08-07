@@ -1,0 +1,37 @@
+{
+  /*
+    Reglas de la Realtime Database — Ferrequipos de la Costa
+
+    OJO: las reglas de esta base NO pueden consultar Firestore, y el rol de cada
+    usuario vive en Firestore (users/{uid}). Por eso aquí no se puede filtrar por
+    rol como en firestore.rules; lo máximo que se puede exigir es que haya una
+    sesión iniciada.
+  */
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    /*
+      Solicitudes de cotización. Las crea la Cloud Function crearCotizacion
+      (desde el cliente público) y el personal las crea, edita y borra desde
+      VistaCotizacion.jsx y AdminCotizaciones.jsx.
+
+      La escritura se declara por cotización y no en el nodo padre, para que
+      nadie pueda borrar o reemplazar TODAS las solicitudes de un solo golpe.
+    */
+    "cotizaciones": {
+      ".read": "auth != null",
+      "$cotizacionId": {
+        ".write": "auth != null"
+      }
+    },
+
+    /* Presencia en línea: cada usuario solo puede escribir su propio nodo. */
+    "usuariosConectados": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    }
+  }
+}

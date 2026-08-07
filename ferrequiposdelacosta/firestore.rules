@@ -1,0 +1,103 @@
+rules_version = '2';
+
+// Reglas de seguridad de Cloud Firestore — Ferrequipos de la Costa
+//
+// IMPORTANTE: este archivo es la ÚNICA barrera real de seguridad de la app.
+// El mapa de roles del cliente (src/Components/RolesPermisos/RolesPermisos.jsx)
+// solo decide qué botones se ven; cualquiera puede saltárselo desde la consola
+// del navegador. Si se cambian los roles o permisos ahí, hay que actualizar
+// también las funciones de este archivo.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    // Ayudantes
+    // ---------------------------------------------------------------
+
+    // Rol del usuario que hace la petición, leído de users/{uid}.
+    // Devuelve "" si no hay sesión, si el documento no existe o si no tiene
+    // el campo "role", para que ninguna regla se caiga por leer un campo
+    // inexistente (ante la duda, se niega el acceso).
+    function rolUsuario() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("role", "")
+        : "";
+    }
+
+    function tieneRol(roles) {
+      return rolUsuario() in roles;
+    }
+
+    // Permisos "crearEquipos" y "eliminarEditarEquipos" de RolesPermisos.jsx.
+    function puedeGestionarEquipos() {
+      return tieneRol(["gestorEditor", "gestorIntegral", "administrador"]);
+    }
+
+    // Permisos "clientes" y "gestionCartera" de RolesPermisos.jsx.
+    function puedeGestionarClientes() {
+      return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
+    }
+
+    // Permisos "crearUsuarios" y "eliminarUsuarios": solo el administrador.
+    function esAdministrador() {
+      return tieneRol(["administrador"]);
+    }
+
+    // ---------------------------------------------------------------
+    // Catálogo de equipos
+    // ---------------------------------------------------------------
+    // La tienda web y el kiosco muestran el catálogo SIN iniciar sesión,
+    // así que la lectura tiene que quedar abierta.
+    match /equipos/{equipoId} {
+      allow read: if true;
+      allow create, update, delete: if puedeGestionarEquipos();
+    }
+
+    // ---------------------------------------------------------------
+    // Usuarios internos
+    // ---------------------------------------------------------------
+    match /users/{userId} {
+      // Cada quien lee su propio perfil (AuthContext.jsx). La lista completa
+      // (ListaUsuarios.jsx) es solo para el administrador.
+      allow get: if request.auth != null
+        && (request.auth.uid == userId || esAdministrador());
+      allow list: if esAdministrador();
+
+      // Un usuario cualquiera solo puede cambiar SU foto de perfil
+      // (HeaderUsuario.jsx). Sin este límite, cualquier empleado podría
+      // escribir role: "administrador" en su propio documento desde la
+      // consola del navegador y quedar con todos los permisos.
+      // El administrador sí puede editar nombre, género, rol y permisos
+      // de cualquiera (ListaUsuarios.jsx).
+      allow update: if (request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["photoURL"]))
+        || esAdministrador();
+
+      // Crear y borrar usuarios pasa por las Cloud Functions createUser y
+      // deleteUser, que usan el SDK de administrador y no pasan por estas
+      // reglas. Desde el navegador queda prohibido.
+      allow create, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // Clientes y sus facturas
+    // ---------------------------------------------------------------
+    match /clientes/{clienteId} {
+      allow read, write: if puedeGestionarClientes();
+
+      match /facturas/{facturaId} {
+        allow read, write: if puedeGestionarClientes();
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Todo lo demás queda cerrado
+    // ---------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

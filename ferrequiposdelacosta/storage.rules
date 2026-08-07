@@ -1,0 +1,52 @@
+rules_version = '2';
+
+// Reglas de seguridad de Cloud Storage — Ferrequipos de la Costa
+//
+// En el bucket conviven dos tipos de archivo:
+//   avatars/{uid}          -> foto de perfil de cada usuario interno
+//   {equipoId}/{archivo}   -> imágenes de los equipos del catálogo
+//
+// Las imágenes de equipos NO van dentro de una carpeta "equipos": CrearEquipos.jsx
+// y EditarEquipos.jsx suben a una carpeta con el id del equipo, directamente en la
+// raíz del bucket. Por eso la regla de abajo se escribe "todo lo que no sea avatars".
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Rol del usuario que hace la petición, leído de Firestore (users/{uid}),
+    // que es donde vive el rol. Devuelve "" si no hay sesión o el documento
+    // no existe todavía.
+    function rolUsuario() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role
+        : "";
+    }
+
+    // Mismos roles que "crearEquipos" / "eliminarEditarEquipos" en
+    // src/Components/RolesPermisos/RolesPermisos.jsx.
+    function puedeGestionarEquipos() {
+      return rolUsuario() in ["gestorEditor", "gestorIntegral", "administrador"];
+    }
+
+    function esAdministrador() {
+      return rolUsuario() == "administrador";
+    }
+
+    // Fotos de perfil: las ve cualquier usuario con sesión (aparecen en la
+    // lista de usuarios), las sube únicamente su dueño (HeaderUsuario.jsx) y
+    // el administrador puede borrarlas al eliminar el usuario (ListaUsuarios.jsx).
+    match /avatars/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && (request.auth.uid == uid || esAdministrador());
+    }
+
+    // Imágenes de equipos: lectura pública, porque el catálogo y el kiosco
+    // se ven sin iniciar sesión.
+    match /{carpeta}/{archivo=**} {
+      allow read: if carpeta != "avatars";
+      allow write: if carpeta != "avatars" && puedeGestionarEquipos();
+    }
+  }
+}
