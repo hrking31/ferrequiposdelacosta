@@ -9,44 +9,31 @@ rules_version = '2';
 // Las imágenes de equipos NO van dentro de una carpeta "equipos": CrearEquipos.jsx
 // y EditarEquipos.jsx suben a una carpeta con el id del equipo, directamente en la
 // raíz del bucket. Por eso la regla de abajo se escribe "todo lo que no sea avatars".
+//
+// A PROPÓSITO no se consulta acá el rol del usuario (que vive en Firestore). Hacerlo
+// exige habilitar las "llamadas entre servicios" en Google Cloud: un permiso que no
+// queda registrado en este repositorio, invisible para quien lea estas reglas, y que
+// el 2026-08-07 dejó rotas todas las subidas de imágenes hasta que se descubrió.
+// El filtro por rol se sigue aplicando donde de verdad importa: para que un equipo
+// aparezca en el catálogo hay que escribir su documento en la colección "equipos",
+// y firestore.rules sí exige el rol ahí. Una imagen suelta en el bucket no publica
+// nada.
 
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Rol del usuario que hace la petición, leído de Firestore (users/{uid}),
-    // que es donde vive el rol. Devuelve "" si no hay sesión o el documento
-    // no existe todavía.
-    function rolUsuario() {
-      return request.auth != null
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        ? firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role
-        : "";
-    }
-
-    // Mismos roles que "crearEquipos" / "eliminarEditarEquipos" en
-    // src/Components/RolesPermisos/RolesPermisos.jsx.
-    function puedeGestionarEquipos() {
-      return rolUsuario() in ["gestorEditor", "gestorIntegral", "administrador"];
-    }
-
-    function esAdministrador() {
-      return rolUsuario() == "administrador";
-    }
-
-    // Fotos de perfil: las ve cualquier usuario con sesión (aparecen en la
-    // lista de usuarios), las sube únicamente su dueño (HeaderUsuario.jsx) y
-    // el administrador puede borrarlas al eliminar el usuario (ListaUsuarios.jsx).
+    // Fotos de perfil: las ve cualquiera con sesión iniciada (salen en la lista de
+    // usuarios) y solo su dueño puede subirla o reemplazarla (HeaderUsuario.jsx).
     match /avatars/{uid} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && (request.auth.uid == uid || esAdministrador());
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Imágenes de equipos: lectura pública, porque el catálogo y el kiosco
-    // se ven sin iniciar sesión.
+    // Imágenes de equipos: lectura pública, porque el catálogo y el kiosco se ven
+    // sin iniciar sesión. Escritura para cualquier usuario con sesión.
     match /{carpeta}/{archivo=**} {
       allow read: if carpeta != "avatars";
-      allow write: if carpeta != "avatars" && puedeGestionarEquipos();
+      allow write: if carpeta != "avatars" && request.auth != null;
     }
   }
 }
