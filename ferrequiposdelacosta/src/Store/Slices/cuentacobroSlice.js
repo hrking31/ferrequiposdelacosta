@@ -6,13 +6,27 @@ const CLAVE_SESION = "sesion_trabajo_cuenta_cobro";
 
 // Los importes son NÚMEROS. El formato de moneda se pone al mostrarlos, nunca
 // al guardarlos: ver Utils/formato.js.
+//
+// El modelo toma de la cotización el tipo (persona/empresa), la dirección, el
+// transporte, el IVA y el depósito, y conserva lo propio de la cuenta de cobro:
+// la obra y el "por concepto de". Los totales se guardan desglosados para que
+// la hoja y el PDF muestren Subtotal / IVA / Depósito / Transporte / Total.
 const valorInicial = {
-  empresa: "",
+  tipo: "persona",
+  empresa: "", // razón social si es empresa, o el nombre si es persona
   obra: "",
   concepto: "",
-  nit: "",
+  nit: "", // NIT o cédula según el tipo
+  direccion: "",
   fecha: "",
   items: [],
+  transporte: "",
+  valorTransporte: 0,
+  iva: true,
+  deposito: true,
+  valorDeposito: 0,
+  subtotalNumero: 0,
+  ivaNumero: 0,
   total: 0,
 };
 

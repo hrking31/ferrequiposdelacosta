@@ -19,6 +19,8 @@ export default function VistaCcWeb() {
   const items = useSelector((state) => state.cuentacobro.value.items);
   const total = useSelector((state) => state.cuentacobro.value.total);
 
+  const cuenta = formValues.value;
+
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -145,6 +147,19 @@ export default function VistaCcWeb() {
         Obra: {formValues.value.obra}
       </Typography>
 
+      {cuenta.direccion && (
+        <Typography
+          variant="body1"
+          sx={{
+            color: theme.palette.custom.documentText,
+            mb: "10px",
+            textAlign: "center",
+          }}
+        >
+          Dirección: {cuenta.direccion}
+        </Typography>
+      )}
+
       <Typography
         variant="h5"
         sx={{
@@ -215,15 +230,35 @@ export default function VistaCcWeb() {
         </Box>
       ))}
 
-      <Typography
-        variant="subtitle1"
-        sx={{
-          textAlign: "right",
-          mt: "20px",
-        }}
-      >
-        Total a Cancelar: {formatearMoneda(total)}
-      </Typography>
+      {/* Desglose de totales: el Subtotal siempre; IVA, Depósito y Transporte
+          solo si aplican, para no ensuciar el documento con renglones en cero. */}
+      <Box sx={{ mt: "20px", textAlign: "right" }}>
+        <Typography variant="subtitle2">
+          Subtotal: {formatearMoneda(cuenta.subtotalNumero)}
+        </Typography>
+
+        {cuenta.iva && (
+          <Typography variant="subtitle2">
+            IVA (19%): {formatearMoneda(cuenta.ivaNumero)}
+          </Typography>
+        )}
+
+        {cuenta.deposito && Number(cuenta.valorDeposito) > 0 && (
+          <Typography variant="subtitle2">
+            Depósito: {formatearMoneda(cuenta.valorDeposito)}
+          </Typography>
+        )}
+
+        {Number(cuenta.valorTransporte) > 0 && (
+          <Typography variant="subtitle2">
+            Transporte: {formatearMoneda(cuenta.valorTransporte)}
+          </Typography>
+        )}
+
+        <Typography variant="subtitle1" sx={{ mt: "8px" }}>
+          Total a Cancelar: {formatearMoneda(total)}
+        </Typography>
+      </Box>
 
       <Box sx={{ mt: "40px", textAlign: "center" }}>
         <Typography
