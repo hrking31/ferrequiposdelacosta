@@ -21,7 +21,7 @@ nombre y sufijo `.test` (ej. `formato.js` → `formato.test.js`).
 De lo más valioso y estable a lo más frágil:
 
 1. **Fase 1 — Lógica pura**: funciones que reciben datos y devuelven datos
-   (cálculos de facturas, formato, roles) y los *slices* de Redux. ← en curso
+   (cálculos de facturas, formato, roles) y los *slices* de Redux. ← ✅ COMPLETA
 2. **Fase 2 — Componentes clave**: formularios y validaciones.
 3. **Fase 3 — Resto de componentes**.
 4. **(Futuro) Flujos completos** con Cypress/Playwright (fuera de Vitest).
@@ -91,8 +91,10 @@ Pendientes de este módulo (menor prioridad):
 - [ ] `agruparLotesAgregados(equipos)` — agrupa equipos agregados en lotes
 - Constantes (`MODOS_PAGO`, `ESTADO_FACTURA_INFO`, etc.): son datos, no requieren prueba.
 
-### ⬜ src/Components/RolesPermisos/RolesPermisos.jsx — mapa de roles y permisos
-- [ ] (se detalla al abordar el módulo)
+### ✅ src/Components/RolesPermisos/RolesPermisos.jsx — pruebas en `RolesPermisos.test.js`
+- [x] Invariantes del mapa de permisos (las mismas que replican las reglas de Firestore):
+  solo el admin gestiona usuarios; gestorEditor = equipos; gestorFacturacion = clientes/cartera;
+  gestorIntegral = ambos sin usuarios; el admin incluye todo lo de los demás.
 
 ### ✅ Redux slices — src/Store/Slices/ — 11/11 · cada uno con su `.test.js`
 Reducers probados como funciones puras (`reducer(estado, acción)`):
@@ -108,10 +110,10 @@ Reducers probados como funciones puras (`reducer(estado, acción)`):
 - [x] installAppSlice.js — mostrar/ocultar aviso de instalación
 - [x] passwordSlice.js — alternar visibilidad de la contraseña
 
-### ⬜ Hooks — src/Hooks/, src/Theme/, src/Context/
-- [ ] useSnackbar.js
-- [ ] useColorMode.js
-- [ ] useAuth.js
+### ✅ Hooks — src/Hooks/, src/Theme/, src/Context/ — con `renderHook`
+- [x] useSnackbar.js — abrir/cerrar avisos, severidad por defecto
+- [x] useColorMode.js — lee el ColorModeContext (probado con Provider)
+- [x] useAuth.js — lee el authContext (probado con Provider)
 
 ---
 
@@ -127,4 +129,5 @@ grupos.
 
 ---
 
-_Última actualización: Fase 1 en curso — `formato.js` (8/8), `facturaUtils.js` (28/28) y los 11 slices de Redux cubiertos (112 tests). Siguen `RolesPermisos` y los hooks._
+_Última actualización: **Fase 1 (lógica pura) COMPLETA** — formato, facturaUtils, 11 slices,
+RolesPermisos y los 3 hooks. **123 tests pasando.** Sigue la Fase 2 (componentes)._

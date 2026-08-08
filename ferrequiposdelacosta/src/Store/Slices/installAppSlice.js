@@ -13,7 +13,7 @@ const installAppSlice = createSlice({
       state.showInstallApp = false;
     },
   },
-});0
+});
 
 export const { showInstallApp, hideInstallApp } = installAppSlice.actions;
 

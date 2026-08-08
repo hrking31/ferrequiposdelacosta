@@ -34,6 +34,11 @@ module.exports = {
         beforeEach: 'readonly',
         afterEach: 'readonly',
       },
+      // En los tests de hooks con contexto se usan wrappers mínimos con
+      // `children`; no tiene sentido exigirles propTypes.
+      rules: {
+        'react/prop-types': 'off',
+      },
     },
   ],
 }
