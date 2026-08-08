@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
+import BadgeIcon from "@mui/icons-material/Badge";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -80,7 +81,7 @@ import {
   ESTADO_CLIENTE_INFO,
 } from "./facturaUtils";
 import RegistrarDevolucionDialog from "../SeguimientoClientes/RegistrarDevolucionDialog";
-import { formatearMonedaOVacio } from "../../Utils/formato";
+import { formatearMonedaOVacio, formatearNit } from "../../Utils/formato";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
 // y "Nequi A" son dos cuentas de personas distintas —Yaz y Armando— con el
@@ -1079,8 +1080,8 @@ export default function ClienteDetalle() {
         <Tooltip
           title={
             contactoAbierto
-              ? "Ocultar teléfono y dirección"
-              : "Ver teléfono y dirección"
+              ? "Ocultar datos del cliente"
+              : "Ver datos del cliente"
           }
         >
           <IconButton
@@ -1283,6 +1284,25 @@ export default function ClienteDetalle() {
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                   <Typography variant="body2">{cliente.direccion}</Typography>
+                </Stack>
+              )}
+
+              {cliente.nit && (
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2">
+                    {cliente.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
+                    {formatearNit(cliente.nit)}
+                  </Typography>
+                </Stack>
+              )}
+
+              {cliente.obra && (
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <ConstructionIcon
+                    sx={{ fontSize: 18, color: "text.secondary" }}
+                  />
+                  <Typography variant="body2">Obra: {cliente.obra}</Typography>
                 </Stack>
               )}
             </Stack>
