@@ -151,7 +151,11 @@ exports.deleteUser = onCall(async (request) => {
   }
 });
 
-exports.crearCotizacion = onCall(async (request) => {
+// enforceAppCheck rechaza toda llamada que no traiga un token válido de App
+// Check (reCAPTCHA Enterprise). Así solo la app real puede crear cotizaciones;
+// un bot que descubra la URL de la función queda fuera. El cliente adjunta el
+// token automáticamente porque App Check se inicializa en Firebase.js.
+exports.crearCotizacion = onCall({enforceAppCheck: true}, async (request) => {
   const quotationData = request.data;
 
   if (
