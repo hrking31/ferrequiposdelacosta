@@ -26,6 +26,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
+import { formatearNit, limpiarNit } from "../../Utils/formato";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
@@ -40,8 +41,10 @@ const ESTADO_INICIAL = {
   nombres: "",
   apellido: "",
   razonSocial: "",
+  nit: "", // NIT si es empresa, cédula si es persona
   telefono: "",
   direccion: "",
+  obra: "",
 };
 
 const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
@@ -68,8 +71,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         nombres: cliente.nombres || "",
         apellido: cliente.apellido || "",
         razonSocial: cliente.razonSocial || "",
+        nit: cliente.nit || "",
         telefono: cliente.telefono || "",
         direccion: cliente.direccion || "",
+        obra: cliente.obra || "",
       });
     } else {
       setForm(ESTADO_INICIAL);
@@ -82,6 +87,12 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
 
   const handleChangeTelefono = (e) => {
     setForm((prev) => ({ ...prev, telefono: formatTelefono(e.target.value) }));
+  };
+
+  // El NIT/cédula se guarda pelado (dígitos y guion) y se muestra con puntos,
+  // igual que en la cotización y la cuenta de cobro.
+  const handleChangeNit = (e) => {
+    setForm((prev) => ({ ...prev, nit: limpiarNit(e.target.value) }));
   };
 
   const validar = () => {
@@ -113,8 +124,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         nombres: form.tipo === "persona" ? form.nombres.trim() : "",
         apellido: form.tipo === "persona" ? form.apellido.trim() : "",
         razonSocial: form.tipo === "empresa" ? form.razonSocial.trim() : "",
+        nit: form.nit.trim(),
         telefono: form.telefono.trim(),
         direccion: form.direccion.trim(),
+        obra: form.obra.trim(),
       };
 
       if (esEdicion) {
@@ -233,6 +246,13 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
             )}
 
             <TextField
+              label={form.tipo === "empresa" ? "NIT" : "Cédula"}
+              value={formatearNit(form.nit)}
+              onChange={handleChangeNit}
+              fullWidth
+            />
+
+            <TextField
               label="Teléfono"
               value={form.telefono}
               onChange={handleChangeTelefono}
@@ -245,6 +265,13 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
               label="Dirección"
               value={form.direccion}
               onChange={handleChange("direccion")}
+              fullWidth
+            />
+
+            <TextField
+              label="Obra"
+              value={form.obra}
+              onChange={handleChange("obra")}
               fullWidth
             />
           </Stack>
