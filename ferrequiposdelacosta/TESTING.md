@@ -40,8 +40,56 @@ De lo más valioso y estable a lo más frágil:
 - [x] `formatearFechaLegible(fechaIso)` — AAAA-MM-DD → DD/MM/AAAA
 - [x] `formatearHoraLegible(horaHHMM)` — HH:MM (24h) → "2:30 p. m."
 
-### ⬜ src/Components/ClienteDetalle/facturaUtils.js — corazón de la lógica de facturas
-- [ ] (se detallan las funciones al abordar el módulo — próximo paso)
+### ✅ src/Components/ClienteDetalle/facturaUtils.js — 28/28 · pruebas en `facturaUtils.test.js`
+Fechas y días:
+- [x] `obtenerFechaHoyBogota()` — fecha de hoy en Colombia (AAAA-MM-DD)
+- [x] `obtenerFechaInicialEfectiva()` — regla de las 3pm (arranca hoy / mañana)
+- [x] `calcularFechaDevolucion(fechaIso, dias)` — despacho + días − 1
+- [x] `calcularVencimiento(fechaIso, dias)` — suma días completos (ampliar plazo)
+- [x] `diferenciaEnDias(desdeIso, hastaIso)` — días calendario entre dos fechas
+
+Cantidades y devoluciones:
+- [x] `calcularCantidadPendiente(equipo)` — unidades sin devolver (nunca < 0)
+- [x] `equipoDevueltoCompleto(equipo)` — true si no queda nada pendiente
+
+Pagos y abonos:
+- [x] `normalizarPagos(pagos, modoPagoLegado, montoLegado)` — unifica formato viejo/nuevo
+- [x] `sumarAbonos(abonos)` — suma los montos de los abonos
+- [x] `separarExcedentePago(pagos, total)` — recorta el sobrante y lo aísla
+- [x] `sumarPagosFactura(factura)` — pago del alta + pagos de equipos agregados
+
+Cuenta de factura y cliente:
+- [x] `calcularEstadoCuenta(factura, totalMostrado)` — total/abonos/pagado/saldo (para formularios)
+- [x] `calcularCuentaFactura(factura, hoyIso)` — cuenta como se MUESTRA (con ampliación)
+- [x] `calcularSaldoConAbonos(factura, abonos)` — saldo crudo (sin ampliación)
+- [x] `calcularCuentaCliente(facturas, hoyIso)` — resumen NETO del cliente
+
+Ampliaciones de plazo:
+- [x] `obtenerAmpliaciones(equipo)` — lista de ampliaciones (3 formatos históricos)
+- [x] `obtenerHistorialVencimientos(equipo)` — fechas anteriores del equipo
+- [x] `calcularAmpliacionEquipo(equipo, hoyIso)` — días/bruto/descuento/neto de un equipo
+- [x] `calcularAmpliacionFactura(factura, hoyIso)` — lo anterior por factura, con IVA
+
+Reparto de un abono:
+- [x] `ordenarFacturasConSaldo(facturas, hoyIso)` — facturas con saldo, mayor a menor
+- [x] `repartirEntreFacturas(facturasConSaldo, monto)` — reparte el abono entre ellas
+
+Estados:
+- [x] `calcularEstadoFactura(factura, hoyIso)` — pendiente/activa/vencida/cobro/finalizada
+- [x] `calcularEstadoCliente(facturas, hoyIso)` — el estado más urgente del cliente
+
+Gestión (seguimiento):
+- [x] `obtenerGestiones(factura)` — línea de tiempo de gestiones
+- [x] `contarLlamadasSinRespuesta(factura)` — cuántas llamadas sin contestar
+- [x] `calcularGestionFactura(factura, estado)` — la gestión vigente
+- [x] `facturaEnSeguimiento(factura, hoyIso)` — true si está vencida o en cobro
+- [x] `etiquetaVencimiento(indice)` — "1er vencimiento", "2do vencimiento"…
+
+Pendientes de este módulo (menor prioridad):
+- [ ] `obtenerHoraBogotaHHMM()` — hora de Colombia HH:MM (solo formato)
+- [ ] `crearRegistroGestion(tipo, datos)` — sella un registro con fecha/hora
+- [ ] `agruparLotesAgregados(equipos)` — agrupa equipos agregados en lotes
+- Constantes (`MODOS_PAGO`, `ESTADO_FACTURA_INFO`, etc.): son datos, no requieren prueba.
 
 ### ⬜ src/Components/RolesPermisos/RolesPermisos.jsx — mapa de roles y permisos
 - [ ] (se detalla al abordar el módulo)
@@ -79,4 +127,4 @@ grupos.
 
 ---
 
-_Última actualización: Fase 0 (setup) lista y Fase 1 iniciada con `formato.js`._
+_Última actualización: Fase 1 en curso — `formato.js` (8/8) y `facturaUtils.js` (28/28) cubiertos. Siguen los slices de Redux, RolesPermisos y los hooks._
