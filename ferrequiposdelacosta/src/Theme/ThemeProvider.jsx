@@ -1220,6 +1220,37 @@ export const CustomThemeProvider = ({ children }) => {
           },
         },
 
+        // LOS BOTONES DE UN DIÁLOGO VAN COMPACTOS, todos, sin que cada
+        // diálogo tenga que acordarse de pedir size="small". Un diálogo es
+        // una pregunta corta: con el botón de tamaño normal, tres respuestas
+        // ("Cancelar", "Descartar y salir", "Guardar y salir") no entran en
+        // el ancho y se amontonan.
+        //
+        // Se aplica el mismo tamaño que "sizeSmall" (ver MuiButton) desde
+        // acá, en vez de repetir la prop en los ~15 diálogos de la app. Gana
+        // por especificidad: son dos clases contra una.
+        //
+        // Y si aun así no entran, bajan de renglón en vez de apretarse.
+        MuiDialogActions: {
+          styleOverrides: {
+            root: ({ theme }) => ({
+              flexWrap: "wrap",
+              gap: theme.spacing(1),
+              "& .MuiButton-root": {
+                padding: theme.spacing(0.75, 1.5),
+                fontSize: "0.75rem",
+                minHeight: 32,
+              },
+              // El gap ya separa los botones; el margen que MUI le pone al
+              // segundo en adelante se sumaría y quedarían desparejos con los
+              // que caen en el renglón siguiente.
+              "& > :not(style) ~ :not(style)": {
+                marginLeft: 0,
+              },
+            }),
+          },
+        },
+
         MuiMenu: {
           styleOverrides: {
             paper: ({ theme }) => ({
@@ -1262,6 +1293,19 @@ export const CustomThemeProvider = ({ children }) => {
               padding: "8px 22px",
               boxShadow: "none",
               transition: "all 0.2s ease-in-out",
+              // TODOS LOS BOTONES MIDEN LO MISMO DE ALTO, diga lo que diga su
+              // texto. Sin esto, uno con rótulo largo partía en dos renglones,
+              // crecía al doble y dejaba la fila despareja: al lado de
+              // "Guardar" un "Descartar y cerrar sesión" se veía como otro
+              // componente. El rótulo se mantiene en un solo renglón y el
+              // botón se ensancha; si la fila no da, el contenedor los baja
+              // (los DialogActions y las barras de acciones usan flexWrap).
+              //
+              // Los tiles cuadrados del menú son la excepción —ahí el texto va
+              // debajo del ícono y sí puede ocupar dos renglones—: lo vuelven
+              // a poner en "normal" en sus variantes, más abajo.
+              minHeight: 40,
+              whiteSpace: "nowrap",
               // UN SOLO gesto de hover para todos los botones: se levantan.
               // Antes convivían dos lenguajes —los tiles del menú y el botón
               // de acción rápida se levantaban, y el resto sacaba sombra—, y
@@ -1271,10 +1315,12 @@ export const CustomThemeProvider = ({ children }) => {
               },
             }),
             // El botón compacto: el que va en la barra de acciones del pie en
-            // celular (MENU / CERRAR SESION) y en los botones de los diálogos.
+            // celular (MENU / CERRAR SESION) y en los botones de los diálogos
+            // (ver MuiDialogActions, que se lo aplica solo a todos).
             sizeSmall: ({ theme }) => ({
               padding: theme.spacing(0.75, 1),
               fontSize: "0.75rem",
+              minHeight: 32,
             }),
 
             // La acción NEUTRA del sistema de colores: el botón de contorno.
@@ -1336,6 +1382,11 @@ export const CustomThemeProvider = ({ children }) => {
                   alignItems: "center",
                   textAlign: "center",
                   overflow: "hidden",
+                  // Excepción a la regla de un solo renglón (ver "root"): acá
+                  // el rótulo va debajo del ícono, con todo el ancho del tile
+                  // para repartirse, y nombres como "Solicitudes de
+                  // Cotización" necesitan dos.
+                  whiteSpace: "normal",
                   // Estos tiles ocupan casi toda la pantalla: son SUPERFICIES,
                   // no acentos. Pintarlos con el color de marca saturado hacía
                   // que el modo claro se viera oscuro (9 bloques azules) y el
