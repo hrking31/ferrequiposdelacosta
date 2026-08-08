@@ -9,6 +9,7 @@ import {
   AdminForms,
   VistaCotizacion,
   VistaCuentaDeCobro,
+  VistaCuentasCobro,
   VistaCreaEquipo,
   VistaSeleccionarEquipo,
   VistaEliminarEquipo,
@@ -163,6 +164,14 @@ function App() {
           element={
             <ProtectedRoutes allowedRoles={["cuentaCombro"]}>
               <VistaCuentaDeCobro />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistacuentascobro"
+          element={
+            <ProtectedRoutes allowedRoles={["cuentaCombro"]}>
+              <VistaCuentasCobro />
             </ProtectedRoutes>
           }
         />

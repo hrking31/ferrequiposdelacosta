@@ -102,15 +102,37 @@ export default function VistaCcWeb() {
         boxShadow: 4,
         borderRadius: 1.5,
         margin: "0 auto",
+        // Para que el número de la cuenta pueda anclarse a la esquina.
+        position: "relative",
         // La hoja es blanca en los dos modos, así que su texto no puede seguir
         // al tema: las variantes de tipografía traen color propio y en modo
         // oscuro dejaban gris claro sobre blanco. Los colores del membrete
-        // (azul y rojo) se declaran con "&&" para sobrevivir a esta regla.
+        // (azul y rojo) y la marca de agua se declaran con "&&" para
+        // sobrevivir a esta regla.
         "& .MuiTypography-root": {
           color: theme.palette.custom.documentText,
         },
       }}
     >
+      {/* El número del documento, como marca de agua en la esquina: se lee si
+          se lo busca, pero no compite con nada. Igual que en la cotización. */}
+      <Typography
+        sx={{
+          position: "absolute",
+          top: { xs: 6, sm: 12 },
+          right: { xs: 10, sm: 20 },
+          fontSize: { xs: "8px", sm: "10px", md: "12px" },
+          fontWeight: 700,
+          "&&": { color: "rgba(0,0,0,0.15)" },
+          letterSpacing: { xs: 0.5, sm: 1.5 },
+          textTransform: "uppercase",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      >
+        {cuenta.cuentaCobroId}
+      </Typography>
+
       <Grid
         container
         spacing={1}

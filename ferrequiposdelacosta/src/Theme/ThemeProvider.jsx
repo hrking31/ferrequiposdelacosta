@@ -1412,10 +1412,16 @@ export const CustomThemeProvider = ({ children }) => {
                     color: theme.palette.custom.accent,
                     fontSize: 40,
                   },
+                  // En pantalla chica los tiles tienen que entrar todos sin
+                  // scroll (ver AdminForms), y con diez les tocan unos 75px de
+                  // alto: el ícono, el aire y el rótulo se achican para caber
+                  // ahí. El relleno de los costados se mantiene; el de arriba
+                  // y abajo se recorta, que es el que estaba de más.
                   "@media (max-width:915px), (max-height:700px)": {
                     fontSize: "0.7rem",
-                    gap: theme.spacing(1),
-                    "& .MuiSvgIcon-root": { fontSize: 28 },
+                    gap: theme.spacing(0.5),
+                    padding: theme.spacing(0.5, 1),
+                    "& .MuiSvgIcon-root": { fontSize: 24 },
                   },
                   // El levantarse lo pone "root", igual que en todos los
                   // botones; acá solo va lo propio del tile.

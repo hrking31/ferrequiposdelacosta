@@ -161,6 +161,10 @@ export default function construirCuentaCobroDesdeFacturas({
       : "Sin transporte";
 
   return {
+    // De qué cliente salió, para poder encontrar después sus cuentas sin
+    // buscarlas por nombre. El número del documento y el id en la base los
+    // pone la pantalla, no esto.
+    clienteId: cliente?.id || null,
     tipo: cliente?.tipo === "empresa" ? "empresa" : "persona",
     empresa: obtenerNombreCliente(cliente),
     obra: cliente?.obra || "",

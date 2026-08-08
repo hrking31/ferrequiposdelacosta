@@ -17,6 +17,19 @@ const CLAVE_SESION = "sesion_trabajo_cuenta_cobro";
 // `abonos`— y el descuento de las renovaciones. Ahí el documento deja de
 // cobrar el total: cobra el SALDO, que es lo que queda debiendo.
 const valorInicial = {
+  // El número visible del documento ("CC-1754..."), que se genera al abrir la
+  // pantalla. Es lo que va de marca de agua en la hoja y en el PDF, y le da
+  // nombre al archivo. Mismo criterio que "cotizacionId".
+  cuentaCobroId: "",
+  // El id del documento en Firestore, si ya se guardó alguna vez. Es lo que
+  // distingue crear de actualizar: sin esto, reabrir una cuenta guardada y
+  // volver a guardarla dejaría dos.
+  id: null,
+  // "creada" cuando se emitió el PDF, "pausada" cuando se guardó a medias.
+  status: "",
+  // De qué cliente salió, cuando se armó desde sus facturas. Sirve para
+  // encontrar después las cuentas de un cliente sin buscarlas por nombre.
+  clienteId: null,
   tipo: "persona",
   empresa: "", // razón social si es empresa, o el nombre si es persona
   obra: "",

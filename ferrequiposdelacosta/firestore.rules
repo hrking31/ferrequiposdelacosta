@@ -40,6 +40,14 @@ service cloud.firestore {
       return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
     }
 
+    // Permiso "cuentaCombro" de RolesPermisos.jsx (sí, con esa grafía: es un
+    // error de tipeo del modelo de datos que se mantiene por consistencia).
+    // Hoy son los mismos roles que puedeGestionarClientes, pero va aparte
+    // porque son permisos distintos y pueden separarse.
+    function puedeGestionarCuentasCobro() {
+      return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
+    }
+
     // Permisos "crearUsuarios" y "eliminarUsuarios": solo el administrador.
     function esAdministrador() {
       return tieneRol(["administrador"]);
@@ -91,6 +99,16 @@ service cloud.firestore {
       match /facturas/{facturaId} {
         allow read, write: if puedeGestionarClientes();
       }
+    }
+
+    // ---------------------------------------------------------------
+    // Cuentas de cobro emitidas
+    // ---------------------------------------------------------------
+    // Las emite el staff desde la app y quedan guardadas para consultarlas
+    // después (ver Components/CuentaDeCobro/cuentasCobroDb.js). No las ve
+    // nadie de afuera: son documentos de cobro con datos de clientes.
+    match /cuentasCobro/{cuentaId} {
+      allow read, write: if puedeGestionarCuentasCobro();
     }
 
     // ---------------------------------------------------------------

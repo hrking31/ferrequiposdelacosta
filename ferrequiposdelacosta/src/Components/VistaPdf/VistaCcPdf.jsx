@@ -202,6 +202,13 @@ export default function generarCuentaCobro(values) {
   for (let pagina = 1; pagina <= paginas; pagina += 1) {
     doc.setPage(pagina);
 
+    // El número del documento, arriba a la derecha y en gris claro: se lee si
+    // se lo busca, pero no compite con el membrete. Igual que en la
+    // cotización, y en todas las hojas para que ninguna quede suelta.
+    doc.setFontSize(9);
+    doc.setTextColor(180, 180, 180);
+    doc.text(cuenta.cuentaCobroId || "", anchoHoja - 15, 12, { align: "right" });
+
     doc.addImage(LogoFerrequipos, "PNG", 30, 10, 25, 25);
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 255);
@@ -234,6 +241,7 @@ export default function generarCuentaCobro(values) {
     });
   }
 
-  // Descargar PDF
-  doc.save(`CuentaCobro_${cuenta.empresa}.pdf`);
+  // Descargar PDF. El archivo se llama con el número del documento, igual que
+  // la cotización: así el nombre coincide con lo que se ve en la hoja.
+  doc.save(`${cuenta.cuentaCobroId || "CuentaCobro"}.pdf`);
 }

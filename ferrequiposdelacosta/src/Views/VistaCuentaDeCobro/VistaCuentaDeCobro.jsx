@@ -15,10 +15,17 @@ import {
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { limpiarCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
+import {
+  limpiarCuentaCobro,
+  setFormCuentaCobro,
+} from "../../Store/Slices/cuentacobroSlice";
+import {
+  generarCuentaCobroId,
+  guardarCuentaCobro,
+} from "../../Components/CuentaDeCobro/cuentasCobroDb";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
@@ -32,9 +39,8 @@ export default function VistaCuentaDeCobro() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const values = useSelector((state) => state.cuentacobro);
-  const { name, photoURL, role, genero } = useSelector(
-    (state) => state.user,
-  );
+  const usuario = useSelector((state) => state.user);
+  const { name, photoURL, role, genero } = usuario;
   const { logout } = useAuth();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const isFullScreen = useMediaQuery("(max-width:915px)");
@@ -44,10 +50,22 @@ export default function VistaCuentaDeCobro() {
 
   const cuenta = values.value;
 
-  // La cuenta no se guarda en la base: vive en la sesión (localStorage), y el
-  // slice la persiste sola en cada cambio. Por eso "guardar y salir" es
-  // simplemente salir dejándola ahí, y lo que hay que preguntar antes es si la
-  // quiere conservar para después o descartarla.
+  // El número del documento se asigna al abrir la pantalla y ya no cambia: es
+  // lo que se ve de marca de agua en la hoja mientras se llena, así que tiene
+  // que existir antes de guardar nada.
+  useEffect(() => {
+    if (!cuenta.cuentaCobroId) {
+      dispatch(
+        setFormCuentaCobro({ ...cuenta, cuentaCobroId: generarCuentaCobroId() }),
+      );
+    }
+    // Solo interesa la primera vez; el resto del formulario cambia todo el
+    // tiempo y no tiene por qué volver a entrar acá.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cuenta.cuentaCobroId, dispatch]);
+
+  // Si el usuario cargó algo. Una cuenta en blanco no se guarda ni se
+  // pregunta al salir: llenaría la base de documentos vacíos.
   const hayContenido = Boolean(
     (cuenta.items || []).length > 0 ||
       cuenta.empresa?.trim() ||
@@ -78,10 +96,32 @@ export default function VistaCuentaDeCobro() {
     return falta;
   };
 
-  // Descarga el PDF y deja la cuenta como está: a diferencia de la cotización
-  // —que al descargarse queda creada en la base— esta no se registra en ningún
-  // lado, así que borrarla acá sería perder el trabajo.
-  const handleDescargarPdf = () => {
+  // Único punto de guardado. Devuelve la cuenta ya guardada, o null si falló:
+  // ante un error NO se sigue adelante —no se limpia ni se sale— para que el
+  // trabajo no se pierda por un problema de red o de permisos.
+  const guardar = async (estado) => {
+    try {
+      const id = await guardarCuentaCobro(cuenta, estado, usuario);
+      return { ...cuenta, id, status: estado };
+    } catch (error) {
+      console.error(`Error al guardar la cuenta de cobro (${estado}):`, error);
+      showSnackbar(
+        `No se pudo guardar la cuenta de cobro: ${error.message}`,
+        "error",
+      );
+      return null;
+    }
+  };
+
+  const salirAlMenu = () => {
+    dispatch(limpiarCuentaCobro());
+    navigate("/adminforms");
+  };
+
+  // Emitir: guarda la cuenta como creada, baja el PDF y cierra el trabajo,
+  // igual que la cotización. Ya queda registrada en la base, así que limpiar
+  // el formulario no pierde nada.
+  const handleDescargarPdf = async () => {
     const falta = faltantes();
     if (falta.length > 0) {
       showSnackbar(`Antes de descargar falta ${falta.join(", ")}.`, "warning");
@@ -89,21 +129,29 @@ export default function VistaCuentaDeCobro() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      VistaCcPdf(values);
+    const guardada = await guardar("creada");
+    if (!guardada) {
       setLoading(false);
-    }, 200);
+      return;
+    }
+
+    VistaCcPdf({ value: guardada });
+    setLoading(false);
+    salirAlMenu();
   };
 
-  const guardarYSalir = () => {
+  const guardarYSalir = async () => {
     setPendingAction(null);
-    navigate("/adminforms");
+    setLoading(true);
+    const guardada = await guardar("pausada");
+    setLoading(false);
+    if (!guardada) return;
+    salirAlMenu();
   };
 
-  const salirSinGuardar = () => {
+  const descartarYSalir = () => {
     setPendingAction(null);
-    dispatch(limpiarCuentaCobro());
-    navigate("/adminforms");
+    salirAlMenu();
   };
 
   const handleGuardarYSalirClick = () => {
@@ -111,11 +159,16 @@ export default function VistaCuentaDeCobro() {
       setPendingAction("salir");
       return;
     }
-    salirSinGuardar();
+    salirAlMenu();
   };
 
   const handleGuardarYCerrarSesion = async () => {
     setPendingAction(null);
+    setLoading(true);
+    const guardada = await guardar("pausada");
+    setLoading(false);
+    if (!guardada) return;
+    dispatch(limpiarCuentaCobro());
     await logout();
   };
 
@@ -157,6 +210,7 @@ export default function VistaCuentaDeCobro() {
             vista={"Crear Cuenta de Cobro"}
             descripcion={"Genera la cuenta de cobro de un servicio"}
             icono={<ReceiptIcon />}
+            cotId={cuenta.cuentaCobroId}
           />
         </Box>
 
@@ -165,19 +219,37 @@ export default function VistaCuentaDeCobro() {
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Tooltip title="Descargar PDF">
-              <IconButton onClick={handleDescargarPdf} color="success">
-                <PictureAsPdfIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  onClick={handleDescargarPdf}
+                  disabled={loading}
+                  color="success"
+                >
+                  <PictureAsPdfIcon />
+                </IconButton>
+              </span>
             </Tooltip>
             <Tooltip title="Guardar y salir">
-              <IconButton onClick={handleGuardarYSalirClick} color="success">
-                <DashboardIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  onClick={handleGuardarYSalirClick}
+                  disabled={loading}
+                  color="success"
+                >
+                  <DashboardIcon />
+                </IconButton>
+              </span>
             </Tooltip>
             <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handleLogoutClick} color="error">
-                <LogoutIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  onClick={handleLogoutClick}
+                  disabled={loading}
+                  color="error"
+                >
+                  <LogoutIcon />
+                </IconButton>
+              </span>
             </Tooltip>
           </Stack>
         )}
@@ -205,8 +277,9 @@ export default function VistaCuentaDeCobro() {
                   variant="contained"
                   color="success"
                   fullWidth
-                  sx={{ flex: 1, whiteSpace: "nowrap" }}
+                  sx={{ flex: 1 }}
                   onClick={handleDescargarPdf}
+                  disabled={loading}
                 >
                   {loading ? "Cargando..." : "Descargar PDF"}
                 </Button>
@@ -230,6 +303,7 @@ export default function VistaCuentaDeCobro() {
               fullWidth
               size="small"
               onClick={handleGuardarYSalirClick}
+              disabled={loading}
             >
               Guardar y Salir
             </Button>
@@ -240,6 +314,7 @@ export default function VistaCuentaDeCobro() {
               color="error"
               fullWidth
               size="small"
+              disabled={loading}
             >
               CERRAR SESION
             </Button>
@@ -248,12 +323,12 @@ export default function VistaCuentaDeCobro() {
       )}
 
       <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
-        <DialogTitle>Tienes una cuenta de cobro sin terminar</DialogTitle>
+        <DialogTitle>Tienes una cuenta de cobro sin emitir</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {pendingAction === "logout"
-              ? "¿Querés conservarla para seguir después de cerrar sesión, o descartarla?"
-              : "¿Querés conservarla para seguir después, o descartarla?"}
+              ? "¿Querés guardarla para seguir después de cerrar sesión, o descartarla?"
+              : "¿Querés guardarla para seguir después, o descartarla?"}
           </DialogContentText>
         </DialogContent>
         {/* El tamaño de los botones y el bajar de renglón los pone el tema
@@ -261,17 +336,22 @@ export default function VistaCuentaDeCobro() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           {/* Con borde y sin relleno: se ve como botón, pero el color lleno se
               reserva para las dos acciones de verdad —descartar y guardar—. */}
-          <Button variant="outlined" onClick={() => setPendingAction(null)}>
+          <Button
+            variant="outlined"
+            onClick={() => setPendingAction(null)}
+            disabled={loading}
+          >
             Cancelar
           </Button>
           <Button
             onClick={
               pendingAction === "logout"
                 ? handleCerrarSesionSinGuardar
-                : salirSinGuardar
+                : descartarYSalir
             }
             variant="contained"
             color="error"
+            disabled={loading}
           >
             {pendingAction === "logout"
               ? "Descartar y cerrar sesión"
@@ -285,6 +365,7 @@ export default function VistaCuentaDeCobro() {
             }
             variant="contained"
             color="success"
+            disabled={loading}
           >
             {pendingAction === "logout"
               ? "Guardar y cerrar sesión"
