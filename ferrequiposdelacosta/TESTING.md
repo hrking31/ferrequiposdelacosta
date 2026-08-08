@@ -94,19 +94,19 @@ Pendientes de este módulo (menor prioridad):
 ### ⬜ src/Components/RolesPermisos/RolesPermisos.jsx — mapa de roles y permisos
 - [ ] (se detalla al abordar el módulo)
 
-### ⬜ Redux slices — src/Store/Slices/
-Reducers y selectores (lógica de estado, fácil de probar). Se detallará cada uno:
-- [ ] cartSlice.js
-- [ ] clienteSlice.js
-- [ ] cotizacionSlice.js
-- [ ] cuentacobroSlice.js
-- [ ] detailSlice.js
-- [ ] equiposSlice.js
-- [ ] searchSlice.js
-- [ ] userSlice.js
-- [ ] presenciaSlice.js
-- [ ] installAppSlice.js
-- [ ] passwordSlice.js
+### ✅ Redux slices — src/Store/Slices/ — 11/11 · cada uno con su `.test.js`
+Reducers probados como funciones puras (`reducer(estado, acción)`):
+- [x] cartSlice.js — agregar/quitar/actualizar líneas, variantes, vaciar
+- [x] clienteSlice.js — set/actualizar cliente y dirección, limpiar
+- [x] cotizacionSlice.js — cotización en curso + persistencia en localStorage
+- [x] cuentacobroSlice.js — cuenta de cobro + persistencia en localStorage
+- [x] detailSlice.js — reducers del detalle (el thunk de Firestore queda fuera)
+- [x] equiposSlice.js — fases del thunk fetchEquiposData (pending/fulfilled/rejected)
+- [x] searchSlice.js — fases de fetchEquipos + limpiar búsqueda
+- [x] userSlice.js — merge de datos y limpieza (login/logout)
+- [x] presenciaSlice.js — mapa de usuarios en línea
+- [x] installAppSlice.js — mostrar/ocultar aviso de instalación
+- [x] passwordSlice.js — alternar visibilidad de la contraseña
 
 ### ⬜ Hooks — src/Hooks/, src/Theme/, src/Context/
 - [ ] useSnackbar.js
@@ -127,4 +127,4 @@ grupos.
 
 ---
 
-_Última actualización: Fase 1 en curso — `formato.js` (8/8) y `facturaUtils.js` (28/28) cubiertos. Siguen los slices de Redux, RolesPermisos y los hooks._
+_Última actualización: Fase 1 en curso — `formato.js` (8/8), `facturaUtils.js` (28/28) y los 11 slices de Redux cubiertos (112 tests). Siguen `RolesPermisos` y los hooks._
