@@ -1292,10 +1292,27 @@ export default function ClienteDetalle() {
               <Stack
                 direction={isFullScreen ? "row" : "column"}
                 spacing={isFullScreen ? 2 : 1}
+                alignItems="center"
+                justifyContent="center"
+                // En móvil, teléfono y NIT/cédula van en fila con una línea
+                // divisoria vertical entre ellos (como las columnas en PC), y
+                // cada uno centrado en su mitad. En PC quedan apilados, sin
+                // divisor.
+                divider={
+                  isFullScreen ? (
+                    <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+                  ) : undefined
+                }
                 sx={{ flex: 1, minWidth: 0 }}
               >
                 {telefonoValido ? (
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{ flex: isFullScreen ? 1 : "none" }}
+                  >
                     <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
                       {!isFullScreen && "Teléfono: "}
@@ -1309,7 +1326,13 @@ export default function ClienteDetalle() {
                 )}
 
                 {cliente.nit && (
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{ flex: isFullScreen ? 1 : "none" }}
+                  >
                     <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
                       {!isFullScreen &&
@@ -1320,9 +1343,19 @@ export default function ClienteDetalle() {
                 )}
               </Stack>
 
-              <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+              <Stack
+                spacing={1}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ flex: 1, minWidth: 0 }}
+              >
                 {cliente.direccion && (
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
                       {!isFullScreen && "Dirección: "}
@@ -1332,7 +1365,12 @@ export default function ClienteDetalle() {
                 )}
 
                 {cliente.obra && (
-                  <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                  >
                     <ConstructionIcon
                       sx={{ fontSize: 18, color: "text.secondary" }}
                     />
