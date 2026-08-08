@@ -1266,45 +1266,60 @@ export default function ClienteDetalle() {
 
         {contactoVisible && (
           <>
-            <Divider sx={{ my: 2 }} />
+            {/* El divisor horizontal no llega a los bordes de la tarjeta:
+                queda centrado al 95% del ancho. */}
+            <Divider sx={{ my: 2, width: "95%", mx: "auto" }} />
 
-            <Stack spacing={1}>
-              {telefonoValido ? (
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">{cliente.telefono}</Typography>
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Sin teléfono registrado
-                </Typography>
-              )}
-
-              {cliente.direccion && (
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">{cliente.direccion}</Typography>
-                </Stack>
-              )}
-
-              {cliente.nit && (
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    {cliente.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
-                    {formatearNit(cliente.nit)}
+            {/* Dos columnas en computador (>915px): a la izquierda el contacto
+                (teléfono y NIT/cédula), a la derecha la ubicación (dirección y
+                obra). Hasta 915px se apilan en una sola columna. */}
+            <Stack
+              direction={isFullScreen ? "column" : "row"}
+              spacing={isFullScreen ? 1 : 4}
+              sx={{ minWidth: 0 }}
+            >
+              <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+                {telefonoValido ? (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">{cliente.telefono}</Typography>
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Sin teléfono registrado
                   </Typography>
-                </Stack>
-              )}
+                )}
 
-              {cliente.obra && (
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <ConstructionIcon
-                    sx={{ fontSize: 18, color: "text.secondary" }}
-                  />
-                  <Typography variant="body2">Obra: {cliente.obra}</Typography>
-                </Stack>
-              )}
+                {cliente.nit && (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">
+                      {cliente.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
+                      {formatearNit(cliente.nit)}
+                    </Typography>
+                  </Stack>
+                )}
+              </Stack>
+
+              <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+                {cliente.direccion && (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">
+                      Dirección: {cliente.direccion}
+                    </Typography>
+                  </Stack>
+                )}
+
+                {cliente.obra && (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <ConstructionIcon
+                      sx={{ fontSize: 18, color: "text.secondary" }}
+                    />
+                    <Typography variant="body2">Obra: {cliente.obra}</Typography>
+                  </Stack>
+                )}
+              </Stack>
             </Stack>
           </>
         )}
