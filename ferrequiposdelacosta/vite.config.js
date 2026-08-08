@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -53,5 +54,16 @@ export default defineConfig({
         },
       },
     },
+  },
+  // Configuración de Vitest (motor de pruebas).
+  test: {
+    // jsdom simula un navegador en Node para poder renderizar componentes.
+    environment: "jsdom",
+    // Deja usar describe/it/expect sin importarlos en cada archivo de test.
+    globals: true,
+    // Se ejecuta antes de cada archivo de test (carga los matchers de jest-dom).
+    setupFiles: "./src/test/setup.js",
+    // No procesar CSS en los tests: no aporta y los hace más lentos.
+    css: false,
   },
 });
