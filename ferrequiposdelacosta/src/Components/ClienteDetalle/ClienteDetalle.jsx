@@ -1276,13 +1276,31 @@ export default function ClienteDetalle() {
             <Stack
               direction={isFullScreen ? "column" : "row"}
               spacing={isFullScreen ? 1 : 4}
+              // Línea divisoria vertical entre las dos columnas, solo en
+              // computador. `flexItem` la estira a la altura del contenido y el
+              // margen vertical evita que llegue a los bordes.
+              divider={
+                !isFullScreen ? (
+                  <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+                ) : undefined
+              }
               sx={{ minWidth: 0 }}
             >
-              <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+              {/* En computador, teléfono arriba y NIT/cédula debajo (columna).
+                  En móvil van uno al lado del otro (fila): son cortos y entran
+                  bien, así ahorran una línea. */}
+              <Stack
+                direction={isFullScreen ? "row" : "column"}
+                spacing={isFullScreen ? 2 : 1}
+                sx={{ flex: 1, minWidth: 0 }}
+              >
                 {telefonoValido ? (
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                    <Typography variant="body2">{cliente.telefono}</Typography>
+                    <Typography variant="body2">
+                      {!isFullScreen && "Teléfono: "}
+                      {cliente.telefono}
+                    </Typography>
                   </Stack>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
@@ -1294,7 +1312,8 @@ export default function ClienteDetalle() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
-                      {cliente.tipo === "empresa" ? "NIT" : "Cédula"}:{" "}
+                      {!isFullScreen &&
+                        `${cliente.tipo === "empresa" ? "NIT" : "Cédula"}: `}
                       {formatearNit(cliente.nit)}
                     </Typography>
                   </Stack>
@@ -1306,7 +1325,8 @@ export default function ClienteDetalle() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
-                      Dirección: {cliente.direccion}
+                      {!isFullScreen && "Dirección: "}
+                      {cliente.direccion}
                     </Typography>
                   </Stack>
                 )}
@@ -1316,7 +1336,10 @@ export default function ClienteDetalle() {
                     <ConstructionIcon
                       sx={{ fontSize: 18, color: "text.secondary" }}
                     />
-                    <Typography variant="body2">Obra: {cliente.obra}</Typography>
+                    <Typography variant="body2">
+                      {!isFullScreen && "Obra: "}
+                      {cliente.obra}
+                    </Typography>
                   </Stack>
                 )}
               </Stack>
