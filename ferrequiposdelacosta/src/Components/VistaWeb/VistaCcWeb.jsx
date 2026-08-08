@@ -10,6 +10,11 @@ import {
   Typography,
   Box,
   Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -17,12 +22,76 @@ import {
 export default function VistaCcWeb() {
   const formValues = useSelector((state) => state.cuentacobro);
   const items = useSelector((state) => state.cuentacobro.value.items);
-  const total = useSelector((state) => state.cuentacobro.value.total);
 
   const cuenta = formValues.value;
 
+  // Lo que de verdad se cobra: el total menos lo que el cliente ya entregó.
+  // Se recalcula acá, y no se usa el `saldo` guardado, para que una cuenta
+  // vieja —de antes de que existieran estos campos— siga mostrándose bien.
+  const pagado = Number(cuenta.pagado) || 0;
+  const abonos = Number(cuenta.abonos) || 0;
+  const yaCobrado = pagado + abonos;
+  const aCancelar = Math.max(0, (Number(cuenta.total) || 0) - yaCobrado);
+
+  const conFactura = items.some((item) => item.factura);
+
+  // Los renglones del desglose, en el mismo orden y con las mismas condiciones
+  // que el PDF (ver VistaCcPdf). `fuerte` marca los tres que van destacados.
+  const etiquetaTotal = cuenta.desdeFacturas ? "Total facturas" : "Total";
+  const filasTotales = [
+    { etiqueta: "Subtotal", valor: cuenta.subtotalNumero, fuerte: true },
+  ];
+  if (Number(cuenta.descuento) > 0) {
+    filasTotales.push({
+      etiqueta: "Descuento",
+      valor: cuenta.descuento,
+      resta: true,
+    });
+  }
+  if (cuenta.iva && Number(cuenta.ivaNumero) > 0) {
+    filasTotales.push({ etiqueta: "IVA (19%)", valor: cuenta.ivaNumero });
+  }
+  if (Number(cuenta.valorDeposito) > 0) {
+    filasTotales.push({ etiqueta: "Depósito", valor: cuenta.valorDeposito });
+  }
+  if (Number(cuenta.valorTransporte) > 0) {
+    filasTotales.push({ etiqueta: "Transporte", valor: cuenta.valorTransporte });
+  }
+  if (yaCobrado > 0) {
+    filasTotales.push({ etiqueta: etiquetaTotal, valor: cuenta.total, fuerte: true });
+    if (pagado > 0) {
+      filasTotales.push({ etiqueta: "Pagado", valor: pagado, resta: true });
+    }
+    if (abonos > 0) {
+      filasTotales.push({ etiqueta: "Abonos", valor: abonos, resta: true });
+    }
+  }
+  filasTotales.push({
+    etiqueta: "Total a Cancelar",
+    valor: aCancelar,
+    fuerte: true,
+  });
+
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Las dos tablas de la hoja se pintan como las del PDF: encabezado azul y
+  // filas alternadas en gris y blanco. Los colores van fijos, no del tema,
+  // porque la hoja es blanca en modo claro y en modo oscuro por igual.
+  const estiloTabla = {
+    "& td, & th": {
+      borderColor: "#E0E0E0",
+      px: 0.75,
+      whiteSpace: "nowrap",
+      color: theme.palette.custom.documentText,
+    },
+    "& thead th": {
+      backgroundColor: "#2980B9",
+      color: "#FFFFFF",
+      fontWeight: "bold",
+    },
+    "& tbody tr:nth-of-type(even)": { backgroundColor: "#F5F5F5" },
+  };
 
   return (
     <Container
@@ -147,18 +216,17 @@ export default function VistaCcWeb() {
         Obra: {formValues.value.obra}
       </Typography>
 
-      {cuenta.direccion && (
-        <Typography
-          variant="body1"
-          sx={{
-            color: theme.palette.custom.documentText,
-            mb: "10px",
-            textAlign: "center",
-          }}
-        >
-          Dirección: {cuenta.direccion}
-        </Typography>
-      )}
+      {/* La dirección lleva renglón fijo: va siempre, aunque esté vacía. */}
+      <Typography
+        variant="body1"
+        sx={{
+          color: theme.palette.custom.documentText,
+          mb: "10px",
+          textAlign: "center",
+        }}
+      >
+        Dirección: {cuenta.direccion}
+      </Typography>
 
       <Typography
         variant="h5"
@@ -190,7 +258,7 @@ export default function VistaCcWeb() {
           textAlign: "center",
         }}
       >
-        LA SUMA DE: {formatearMoneda(formValues.value.total)}
+        LA SUMA DE: {formatearMoneda(aCancelar)}
       </Typography>
 
       <Typography
@@ -204,60 +272,79 @@ export default function VistaCcWeb() {
         POR CONCEPTO DE: {formValues.value.concepto}
       </Typography>
 
-      {items.map((item, index) => (
-        <Box
-          key={index}
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            padding: "5px 0",
-          }}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              wordBreak: "break-word",
-              whiteSpace: "normal",
-            }}
-          >
-            {item.description}
-          </Typography>
+      {/* Copia de la tabla del PDF: la primera columna es el número de factura
+          y solo aparece si los ítems lo traen (se rotula a las personas, no a
+          las empresas). En pantallas angostas la tabla se desliza de costado
+          en vez de desarmar la hoja. */}
+      {/* Las dos tablas van más angostas que la hoja, con aire a los costados,
+          como el margen que dejan en el PDF. */}
+      <Box sx={{ overflowX: "auto", mx: { xs: 0, sm: 4 } }}>
+        <Table size="small" sx={estiloTabla}>
+          <TableHead>
+            <TableRow>
+              {conFactura && <TableCell align="center">Factura</TableCell>}
+              <TableCell align="center">Cant.</TableCell>
+              <TableCell>Equipo</TableCell>
+              <TableCell align="center">Días</TableCell>
+              <TableCell align="right" sx={{ pl: 3 }}>
+                Subtotal
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((item, index) => (
+              <TableRow key={index}>
+                {conFactura && (
+                  <TableCell align="center">{item.factura || ""}</TableCell>
+                )}
+                <TableCell align="center">{item.quantity}</TableCell>
+                <TableCell sx={{ whiteSpace: "normal !important", wordBreak: "break-word" }}>
+                  {item.description}
+                </TableCell>
+                <TableCell align="center">{item.day}</TableCell>
+                <TableCell align="right" sx={{ pl: 3 }}>
+                  {formatearMoneda(item.subtotal)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
 
-          <Typography variant="subtitle1">
-            {formatearMoneda(item.subtotal)}
-          </Typography>
-        </Box>
-      ))}
-
-      {/* Desglose de totales: el Subtotal siempre; IVA, Depósito y Transporte
-          solo si aplican, para no ensuciar el documento con renglones en cero. */}
-      <Box sx={{ mt: "20px", textAlign: "right" }}>
-        <Typography variant="subtitle2">
-          Subtotal: {formatearMoneda(cuenta.subtotalNumero)}
-        </Typography>
-
-        {cuenta.iva && (
-          <Typography variant="subtitle2">
-            IVA (19%): {formatearMoneda(cuenta.ivaNumero)}
-          </Typography>
-        )}
-
-        {cuenta.deposito && Number(cuenta.valorDeposito) > 0 && (
-          <Typography variant="subtitle2">
-            Depósito: {formatearMoneda(cuenta.valorDeposito)}
-          </Typography>
-        )}
-
-        {Number(cuenta.valorTransporte) > 0 && (
-          <Typography variant="subtitle2">
-            Transporte: {formatearMoneda(cuenta.valorTransporte)}
-          </Typography>
-        )}
-
-        <Typography variant="subtitle1" sx={{ mt: "8px" }}>
-          Total a Cancelar: {formatearMoneda(total)}
-        </Typography>
+      {/* Desglose de totales, también igual al PDF: rayado gris y blanco, el
+          Subtotal siempre y el resto solo si tiene valor. Los tres renglones
+          fuertes llevan el rótulo pegado a la cifra, más grande y en negrita;
+          los demás, al principio. Lo que se cobra es el saldo, no el total. */}
+      <Box sx={{ mt: "44px", mx: { xs: 0, sm: 4 } }}>
+        <Table size="small" sx={estiloTabla}>
+          <TableBody>
+            {filasTotales.map(({ etiqueta, valor, fuerte, resta }) => (
+              <TableRow key={etiqueta}>
+                <TableCell
+                  align={fuerte ? "right" : "left"}
+                  sx={{
+                    width: "70%",
+                    pr: fuerte ? 4 : 1,
+                    fontWeight: fuerte ? "bold" : "normal",
+                    fontSize: fuerte ? "1.05rem" : undefined,
+                  }}
+                >
+                  {etiqueta}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontWeight: fuerte ? "bold" : "normal",
+                    fontSize: fuerte ? "1.05rem" : undefined,
+                  }}
+                >
+                  {resta ? "- " : ""}
+                  {formatearMoneda(valor)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Box>
 
       <Box sx={{ mt: "40px", textAlign: "center" }}>

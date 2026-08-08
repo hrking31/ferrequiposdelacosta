@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { alpha } from "@mui/material/styles";
 import {
   Avatar,
@@ -49,6 +50,10 @@ import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import AbonoDialog from "./AbonoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
+import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
+import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
+import { setFormCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SavingsIcon from "@mui/icons-material/Savings";
@@ -391,6 +396,10 @@ const formatearFecha = (isoDate) => {
 export default function ClienteDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  // Solo para avisar, antes de reemplazarla, si hay una cuenta de cobro a
+  // medio hacer en la sesión.
+  const itemsCuentaCobro = useSelector((state) => state.cuentacobro.value.items);
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
@@ -414,6 +423,7 @@ export default function ClienteDetalle() {
   const [editarOpen, setEditarOpen] = useState(false);
   const [crearFacturaOpen, setCrearFacturaOpen] = useState(false);
   const [reporteOpen, setReporteOpen] = useState(false);
+  const [cuentaCobroOpen, setCuentaCobroOpen] = useState(false);
   const [facturaAgregarEquipo, setFacturaAgregarEquipo] = useState(null);
   const [abonoOpen, setAbonoOpen] = useState(false);
   const [facturaEditando, setFacturaEditando] = useState(null);
@@ -957,6 +967,21 @@ export default function ClienteDetalle() {
     [facturas],
   );
 
+  // Pasar las facturas elegidas a una cuenta de cobro y abrirla para
+  // completarle el "por concepto de", que es lo único que no sale de acá. Lo
+  // que se cobra es el saldo: ver cuentaCobroDesdeFacturas.js.
+  const handleCuentaCobro = (facturasElegidas) => {
+    dispatch(
+      setFormCuentaCobro(
+        construirCuentaCobroDesdeFacturas({
+          cliente,
+          facturas: facturasElegidas,
+        }),
+      ),
+    );
+    navigate("/vistacuentadecobro");
+  };
+
   if (loading) {
     return <LoadingLogo height="40vh" text="Cargando cliente..." />;
   }
@@ -1062,6 +1087,21 @@ export default function ClienteDetalle() {
             sx={botonEncabezadoSx}
           >
             <PictureAsPdfIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      {/* Misma lista de facturas que el reporte, pero en vez de un PDF arma la
+          cuenta de cobro y lleva a su pantalla. */}
+      <Tooltip title="Pasar facturas a cuenta de cobro">
+        <span>
+          <IconButton
+            size="small"
+            onClick={() => setCuentaCobroOpen(true)}
+            disabled={facturasParaReporte.length === 0}
+            sx={botonEncabezadoSx}
+          >
+            <RequestQuoteIcon fontSize="small" />
           </IconButton>
         </span>
       </Tooltip>
@@ -2379,6 +2419,22 @@ export default function ClienteDetalle() {
         onClose={() => setReporteOpen(false)}
         cliente={cliente}
         facturas={facturasParaReporte}
+      />
+
+      <SeleccionarFacturasDialog
+        open={cuentaCobroOpen}
+        onClose={() => setCuentaCobroOpen(false)}
+        facturas={facturasParaReporte}
+        titulo="Pasar a cuenta de cobro"
+        descripcion="Elegí qué facturas se cobran. Se copian los equipos y el resumen; el total a cancelar es el saldo pendiente."
+        aviso={
+          itemsCuentaCobro.length > 0
+            ? "Hay una cuenta de cobro a medio hacer: se va a reemplazar."
+            : undefined
+        }
+        textoVacio="Este cliente no tiene facturas para cobrar (las finalizadas no entran en la lista)."
+        textoConfirmar="Pasar a cuenta de cobro"
+        onConfirmar={handleCuentaCobro}
       />
 
       <FacturaFormDialog

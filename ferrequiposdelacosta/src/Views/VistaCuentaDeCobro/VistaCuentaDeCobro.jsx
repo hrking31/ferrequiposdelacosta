@@ -5,10 +5,16 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
   useMediaQuery,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -33,19 +39,28 @@ export default function VistaCuentaDeCobro() {
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const [loading, setLoading] = useState(false);
+  // null | "salir" | "logout" — qué acción está esperando confirmación
+  const [pendingAction, setPendingAction] = useState(null);
 
-  // Deja la cuenta en blanco y borra la sesión guardada. Antes se hacía con
-  // tres dispatches y el primero reemplazaba el estado entero sin incluir los
-  // ítems, así que la lista quedaba inexistente por un instante.
-  const clearForm = () => {
-    dispatch(limpiarCuentaCobro());
-  };
+  const cuenta = values.value;
+
+  // La cuenta no se guarda en la base: vive en la sesión (localStorage), y el
+  // slice la persiste sola en cada cambio. Por eso "guardar y salir" es
+  // simplemente salir dejándola ahí, y lo que hay que preguntar antes es si la
+  // quiere conservar para después o descartarla.
+  const hayContenido = Boolean(
+    (cuenta.items || []).length > 0 ||
+      cuenta.empresa?.trim() ||
+      cuenta.nit?.trim() ||
+      cuenta.obra?.trim() ||
+      cuenta.direccion?.trim() ||
+      cuenta.concepto?.trim(),
+  );
 
   // Qué le falta a la cuenta para poder emitirse. Se revisa al pedir el PDF y
   // no deshabilitando el botón: así el usuario ve QUÉ falta en vez de un botón
   // apagado sin explicación.
   const faltantes = () => {
-    const cuenta = values.value;
     const falta = [];
     if (!cuenta.fecha) falta.push("la fecha");
     if (!cuenta.empresa?.trim()) falta.push("la empresa");
@@ -63,7 +78,10 @@ export default function VistaCuentaDeCobro() {
     return falta;
   };
 
-  const handleClick = () => {
+  // Descarga el PDF y deja la cuenta como está: a diferencia de la cotización
+  // —que al descargarse queda creada en la base— esta no se registra en ningún
+  // lado, así que borrarla acá sería perder el trabajo.
+  const handleDescargarPdf = () => {
     const falta = faltantes();
     if (falta.length > 0) {
       showSnackbar(`Antes de descargar falta ${falta.join(", ")}.`, "warning");
@@ -77,8 +95,42 @@ export default function VistaCuentaDeCobro() {
     }, 200);
   };
 
-  const handlerLogout = async () => {
+  const guardarYSalir = () => {
+    setPendingAction(null);
+    navigate("/adminforms");
+  };
+
+  const salirSinGuardar = () => {
+    setPendingAction(null);
+    dispatch(limpiarCuentaCobro());
+    navigate("/adminforms");
+  };
+
+  const handleGuardarYSalirClick = () => {
+    if (hayContenido) {
+      setPendingAction("salir");
+      return;
+    }
+    salirSinGuardar();
+  };
+
+  const handleGuardarYCerrarSesion = async () => {
+    setPendingAction(null);
     await logout();
+  };
+
+  const handleCerrarSesionSinGuardar = async () => {
+    setPendingAction(null);
+    dispatch(limpiarCuentaCobro());
+    await logout();
+  };
+
+  const handleLogoutClick = () => {
+    if (hayContenido) {
+      setPendingAction("logout");
+      return;
+    }
+    logout();
   };
 
   return (
@@ -108,15 +160,22 @@ export default function VistaCuentaDeCobro() {
           />
         </Box>
 
+        {/* En computador las tres acciones viven acá arriba, igual que en la
+            cotización; en celular bajan al pie de la pantalla. */}
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")} color="primary">
+            <Tooltip title="Descargar PDF">
+              <IconButton onClick={handleDescargarPdf} color="success">
+                <PictureAsPdfIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Guardar y salir">
+              <IconButton onClick={handleGuardarYSalirClick} color="success">
                 <DashboardIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
+              <IconButton onClick={handleLogoutClick} color="error">
                 <LogoutIcon />
               </IconButton>
             </Tooltip>
@@ -138,27 +197,23 @@ export default function VistaCuentaDeCobro() {
           </Grid>
         </Box>
 
-        <Box sx={{ mb: 2 }}>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={10} sm={4} md={4}>
-              <Button
-                variant="contained"
-                color="success"
-                fullWidth
-                sx={{ flex: 1, whiteSpace: "nowrap" }}
-                onClick={handleClick}
-              >
-                {loading ? "Cargando..." : "Descargar PDF"}
-              </Button>
+        {isFullScreen && (
+          <Box sx={{ mb: 2 }}>
+            <Grid container spacing={2} justifyContent="center">
+              <Grid item xs={10} sm={6} md={4}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  fullWidth
+                  sx={{ flex: 1, whiteSpace: "nowrap" }}
+                  onClick={handleDescargarPdf}
+                >
+                  {loading ? "Cargando..." : "Descargar PDF"}
+                </Button>
+              </Grid>
             </Grid>
-
-            <Grid item xs={10} sm={4} md={4}>
-              <Button variant="contained" color="error" onClick={clearForm} fullWidth>
-                Cancelar
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
+          </Box>
+        )}
       </Box>
 
       {isFullScreen && (
@@ -171,15 +226,16 @@ export default function VistaCuentaDeCobro() {
           >
             <Button
               variant="contained"
+              color="success"
               fullWidth
               size="small"
-              onClick={() => navigate("/adminforms")}
+              onClick={handleGuardarYSalirClick}
             >
-              MENU
+              Guardar y Salir
             </Button>
 
             <Button
-              onClick={handlerLogout}
+              onClick={handleLogoutClick}
               variant="contained"
               color="error"
               fullWidth
@@ -190,6 +246,52 @@ export default function VistaCuentaDeCobro() {
           </Stack>
         </Box>
       )}
+
+      <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
+        <DialogTitle>Tienes una cuenta de cobro sin terminar</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {pendingAction === "logout"
+              ? "¿Querés conservarla para seguir después de cerrar sesión, o descartarla?"
+              : "¿Querés conservarla para seguir después, o descartarla?"}
+          </DialogContentText>
+        </DialogContent>
+        {/* El tamaño de los botones y el bajar de renglón los pone el tema
+            (ver MuiDialogActions). */}
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {/* Con borde y sin relleno: se ve como botón, pero el color lleno se
+              reserva para las dos acciones de verdad —descartar y guardar—. */}
+          <Button variant="outlined" onClick={() => setPendingAction(null)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={
+              pendingAction === "logout"
+                ? handleCerrarSesionSinGuardar
+                : salirSinGuardar
+            }
+            variant="contained"
+            color="error"
+          >
+            {pendingAction === "logout"
+              ? "Descartar y cerrar sesión"
+              : "Descartar y salir"}
+          </Button>
+          <Button
+            onClick={
+              pendingAction === "logout"
+                ? handleGuardarYCerrarSesion
+                : guardarYSalir
+            }
+            variant="contained"
+            color="success"
+          >
+            {pendingAction === "logout"
+              ? "Guardar y cerrar sesión"
+              : "Guardar y salir"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
