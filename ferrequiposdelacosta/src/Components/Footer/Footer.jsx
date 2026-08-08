@@ -7,6 +7,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { Instagram, Facebook, Email, Business } from "@mui/icons-material";
+import RecaptchaNotice from "../RecaptchaNotice/RecaptchaNotice";
 
 export default function Footer() {
   const theme = useTheme();
@@ -116,6 +117,8 @@ export default function Footer() {
         © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los derechos
         reservados.
       </Typography>
+
+      <RecaptchaNotice />
     </Box>
   );
 }
