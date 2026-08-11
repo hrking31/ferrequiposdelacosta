@@ -35,26 +35,30 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import VistaCotPdf from "../VistaPdf/VistaCotPdf";
+import {
+  calcularStatusPrevio,
+  etiquetaEstado,
+} from "../../Utils/cotizacionEstado";
 import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 
-// Los cuatro momentos por los que pasa una solicitud. Se muestran con el
-// mismo chip que la lista de cuentas de cobro: chico, delineado y con icono.
-const ESTADO_INFO = {
-  creada: { label: "Emitida", Icono: CheckCircleIcon, color: "success" },
-  pendiente: { label: "Pendiente", Icono: PendingActionsIcon, color: "warning" },
-  enProceso: { label: "En Proceso", Icono: AutorenewIcon, color: "info" },
-  pausada: { label: "Pausada", Icono: PauseCircleOutlineIcon, color: "default" },
+// Cómo se pinta cada uno de los cuatro momentos por los que pasa una
+// solicitud. El nombre sale de Utils/cotizacionEstado, que es donde viven los
+// estados; acá solo se elige el icono y el color del chip.
+const ESTILO_ESTADO = {
+  creada: { Icono: CheckCircleIcon, color: "success" },
+  pendiente: { Icono: PendingActionsIcon, color: "warning" },
+  enProceso: { Icono: AutorenewIcon, color: "info" },
+  pausada: { Icono: PauseCircleOutlineIcon, color: "default" },
 };
 
-const estadoDe = (status) =>
-  ESTADO_INFO[status] || {
-    label: status
-      ? status.charAt(0).toUpperCase() + status.slice(1)
-      : "Sin estado",
+const estadoDe = (status) => ({
+  label: etiquetaEstado(status),
+  ...(ESTILO_ESTADO[status] || {
     Icono: PendingActionsIcon,
     color: "default",
-  };
+  }),
+});
 
 export default function KioskAdminCotizaciones() {
   const theme = useTheme();
@@ -90,8 +94,14 @@ export default function KioskAdminCotizaciones() {
 
   const handleOpenQuotation = async (quotation) => {
     try {
+      // De dónde viene: si se sale sin dejar cambios, vuelve a este estado.
+      // Hay que anotarlo ahora, porque en un segundo su estado será
+      // "enProceso" y el anterior ya no se podría saber.
+      const statusPrevio = calcularStatusPrevio(quotation);
+
       await update(ref(database, `cotizaciones/${quotation.id}`), {
         status: "enProceso",
+        statusPrevio,
         atendidoPor: name,
         atendidoPorUid: uid,
       });
@@ -100,6 +110,7 @@ export default function KioskAdminCotizaciones() {
         setCotizacionActual({
           ...quotation,
           status: "enProceso",
+          statusPrevio,
           atendidoPor: name,
           atendidoPorUid: uid,
         }),

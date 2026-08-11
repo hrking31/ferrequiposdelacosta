@@ -25,6 +25,7 @@ import {
   resetCotizacion,
   setFormCotizacion,
 } from "../../Store/Slices/cotizacionSlice";
+import { etiquetaEstado, hayCambios } from "../../Utils/cotizacionEstado";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
@@ -35,6 +36,8 @@ export default function VistaCotizacion() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const values = useSelector((state) => state.cotizacion.value);
+  // La cotización tal como se abrió, para saber si se cambió algo.
+  const original = useSelector((state) => state.cotizacion.original);
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
@@ -93,20 +96,17 @@ export default function VistaCotizacion() {
       item.description?.trim() && Number(item.quantity) > 0 && Number(item.price) > 0,
   );
 
-  const hayDatosCliente = Boolean(
-    values.empresa?.trim() ||
-      values.nit?.trim() ||
-      values.telefono?.trim() ||
-      values.direccion?.trim() ||
-      values.barrio?.trim() ||
-      values.otrosDatos?.trim(),
-  );
+  // Si se tocó algo desde que se abrió. De esto dependen las dos decisiones al
+  // salir: si preguntar, y en qué estado queda la cotización.
+  //
+  // Para una cotización nueva la foto es el formulario en blanco, así que acá
+  // además responde "¿escribió algo?" — sin eso se llenaría el buzón de
+  // solicitudes vacías.
+  const cambios = hayCambios(values, original);
 
-  // Si ya existe en la base (values.id) hay que guardar el progreso sí o sí.
-  // Si es una cotización nueva (sin id), solo vale la pena guardar si el
-  // staff ya cargó algo (equipos o datos del cliente) — evita crear
-  // solicitudes en blanco en el buzón.
-  const hayContenido = Boolean(values.id) || !sinEquipos || hayDatosCliente;
+  // El estado al que vuelve si se descartan los cambios. Una cotización nueva
+  // no viene de ningún lado: no hay nada que restaurar.
+  const statusPrevio = values.statusPrevio || "pausada";
 
   const telefonoDigits = String(values.telefono || "").replace(/\D/g, "");
   const telefono = telefonoDigits.startsWith("57") ? telefonoDigits : `57${telefonoDigits}`;
@@ -140,10 +140,13 @@ export default function VistaCotizacion() {
     navigate("/adminforms");
   };
 
+  // Descartar: la cotización vuelve tal como estaba antes de abrirla. Lo único
+  // que se escribe es el estado —los datos de esta sesión no se guardan— y si
+  // es nueva no se escribe nada, porque no existe en la base.
   const salirSinGuardar = async () => {
     setPendingAction(null);
     setLoading(true);
-    await actualizarSoloEstado("pausada");
+    await actualizarSoloEstado(statusPrevio);
     dispatch(resetCotizacion());
     setLoading(false);
     navigate("/adminforms");
@@ -158,8 +161,10 @@ export default function VistaCotizacion() {
     navigate("/adminforms");
   };
 
+  // Sin cambios no se pregunta nada: guardar y descartar terminarían igual, así
+  // que la pregunta no aportaría. Sale y la deja como estaba.
   const handleGuardarYSalirClick = () => {
-    if (hayContenido) {
+    if (cambios) {
       setPendingAction("salir");
       return;
     }
@@ -168,14 +173,14 @@ export default function VistaCotizacion() {
 
   const ejecutarLogout = async () => {
     setLoading(true);
-    await actualizarSoloEstado("pausada");
+    await actualizarSoloEstado(statusPrevio);
     dispatch(resetCotizacion());
     await logout();
     setLoading(false);
   };
 
   const handleLogoutClick = () => {
-    if (hayContenido) {
+    if (cambios) {
       setPendingAction("logout");
       return;
     }
@@ -327,12 +332,14 @@ export default function VistaCotizacion() {
         <DialogContent>
           <DialogContentText>
             {values.id
-              ? pendingAction === "logout"
-                ? "¿Quieres guardar los cambios antes de cerrar sesión?"
-                : "¿Quieres guardar los cambios antes de salir?"
-              : pendingAction === "logout"
-                ? "Esta cotización todavía no se ha creado. ¿Qué quieres hacer antes de cerrar sesión?"
-                : "Esta cotización todavía no se ha creado. ¿Quieres guardarla antes de salir?"}
+              ? `Si los guardas, la cotización queda ${etiquetaEstado(
+                  "pausada",
+                )}. Si sales sin guardar, vuelve a quedar ${etiquetaEstado(
+                  statusPrevio,
+                )}, como estaba antes de abrirla.`
+              : `Esta cotización todavía no se ha creado. Si la guardas queda ${etiquetaEstado(
+                  "pausada",
+                )}; si sales sin guardar, se pierde.`}
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
@@ -349,7 +356,9 @@ export default function VistaCotizacion() {
             color="error"
             disabled={loading}
           >
-            {pendingAction === "logout" ? "Cerrar sin Crear" : "Salir sin guardar"}
+            {pendingAction === "logout"
+              ? "Cerrar sesión sin guardar"
+              : "Salir sin guardar"}
           </Button>
           <Button
             onClick={
@@ -361,7 +370,9 @@ export default function VistaCotizacion() {
             color="success"
             disabled={loading}
           >
-            {pendingAction === "logout" ? "Crear y cerrar sesión" : "Guardar y salir"}
+            {pendingAction === "logout"
+              ? "Guardar y cerrar sesión"
+              : "Guardar y salir"}
           </Button>
         </DialogActions>
       </Dialog>
