@@ -25,7 +25,7 @@ import {
   resetCotizacion,
   setFormCotizacion,
 } from "../../Store/Slices/cotizacionSlice";
-import { etiquetaEstado, hayCambios } from "../../Utils/cotizacionEstado";
+import { hayCambios } from "../../Utils/cotizacionEstado";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
@@ -331,15 +331,8 @@ export default function VistaCotizacion() {
         <DialogTitle>Tienes cambios sin guardar</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {values.id
-              ? `Si los guardas, la cotización queda ${etiquetaEstado(
-                  "pausada",
-                )}. Si sales sin guardar, vuelve a quedar ${etiquetaEstado(
-                  statusPrevio,
-                )}, como estaba antes de abrirla.`
-              : `Esta cotización todavía no se ha creado. Si la guardas queda ${etiquetaEstado(
-                  "pausada",
-                )}; si sales sin guardar, se pierde.`}
+            Si sales sin guardar, perderás los cambios realizados en esta
+            sesión.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>

@@ -66,7 +66,10 @@ export default function KioskAdminCotizaciones() {
   const acento = theme.palette.custom.accent;
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { name, uid } = useSelector((state) => state.user);
+  const { name, uid, role } = useSelector((state) => state.user);
+  // Borrar una solicitud no se deshace, así que queda solo en manos del
+  // administrador — en cualquier estado, incluso las ya emitidas.
+  const esAdministrador = role === "administrador";
   const cotizaciones = useSelector(
     (state) => state.cotizacion.listaCotizaciones,
   );
@@ -488,9 +491,8 @@ export default function KioskAdminCotizaciones() {
                     quotation.status === "creada" &&
                     Array.isArray(quotation.items) &&
                     quotation.items.length > 0;
-                  const puedeEliminar = quotation.status === "creada";
 
-                  if (!tituloAbrir && !puedeDescargar && !puedeEliminar) {
+                  if (!tituloAbrir && !puedeDescargar && !esAdministrador) {
                     return null;
                   }
 
@@ -523,7 +525,7 @@ export default function KioskAdminCotizaciones() {
                           </IconButton>
                         </Tooltip>
                       )}
-                      {puedeEliminar && (
+                      {esAdministrador && (
                         <Tooltip title="Eliminar">
                           <IconButton
                             size="small"
