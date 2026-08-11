@@ -156,6 +156,18 @@ describe("contarCuentasCobroDelMes", () => {
     expect(await contarCuentasCobroDelMes()).toBe(2);
   });
 
+  it("una emitida que alguien tiene abierta sigue contando", async () => {
+    mocks.getDocs.mockResolvedValue({
+      docs: [
+        docFalso("a", { status: "enProceso", statusPrevio: "creada" }),
+        // Un borrador abierto no: nunca se emitió.
+        docFalso("b", { status: "enProceso", statusPrevio: "pausada" }),
+      ],
+    });
+
+    expect(await contarCuentasCobroDelMes()).toBe(1);
+  });
+
   it("filtra desde el primer día del mes", async () => {
     mocks.getDocs.mockResolvedValue({ docs: [] });
 

@@ -25,7 +25,7 @@ import {
   resetCotizacion,
   setFormCotizacion,
 } from "../../Store/Slices/cotizacionSlice";
-import { hayCambios } from "../../Utils/cotizacionEstado";
+import { hayCambios } from "../../Utils/estadoDocumento";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";

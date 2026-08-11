@@ -3,7 +3,7 @@ import {
   calcularStatusPrevio,
   etiquetaEstado,
   hayCambios,
-} from "./cotizacionEstado";
+} from "./estadoDocumento";
 
 // Una cotización como la que llega del buzón, recortada a lo que importa acá.
 const cotizacion = (extra = {}) => ({

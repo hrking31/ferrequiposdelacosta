@@ -52,7 +52,7 @@ import AbonoDialog from "./AbonoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
 import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
-import { setFormCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
+import { abrirCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -972,7 +972,7 @@ export default function ClienteDetalle() {
   // que se cobra es el saldo: ver cuentaCobroDesdeFacturas.js.
   const handleCuentaCobro = (facturasElegidas) => {
     dispatch(
-      setFormCuentaCobro(
+      abrirCuentaCobro(
         construirCuentaCobroDesdeFacturas({
           cliente,
           facturas: facturasElegidas,

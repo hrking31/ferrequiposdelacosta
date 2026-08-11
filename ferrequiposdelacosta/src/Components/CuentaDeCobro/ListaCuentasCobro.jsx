@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -22,24 +22,34 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
-import { setFormCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
+import { abrirCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
 import VistaCcPdf from "../VistaPdf/VistaCcPdf";
-import { eliminarCuentaCobro, leerCuentasCobro } from "./cuentasCobroDb";
+import {
+  eliminarCuentaCobro,
+  escucharCuentasCobro,
+  leerCuentasCobro,
+  marcarCuentaEnProceso,
+} from "./cuentasCobroDb";
+import { calcularStatusPrevio } from "../../Utils/estadoDocumento";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 
-// Las dos situaciones en que puede estar una cuenta guardada. "creada" es la
-// que ya se emitió —se descargó su PDF— y "pausada" la que quedó a medias.
+// Las situaciones en que puede estar una cuenta guardada: "creada" es la que
+// ya se emitió —se descargó su PDF—, "pausada" la que quedó a medias y
+// "enProceso" la que alguien tiene abierta ahora mismo.
+//
 // Se muestran con las mismas palabras, icono y color que en el buzón de
-// cotizaciones (ver AdminCotizaciones): son los mismos dos estados y verlos
+// cotizaciones (ver AdminCotizaciones): son los mismos estados y verlos
 // nombrados distinto en cada pantalla confundía.
 const ESTADO_INFO = {
   creada: { label: "Emitida", Icono: CheckCircleIcon, color: "success" },
+  enProceso: { label: "En Proceso", Icono: AutorenewIcon, color: "info" },
   pausada: { label: "Pausada", Icono: PauseCircleOutlineIcon, color: "default" },
 };
 
@@ -60,8 +70,17 @@ export default function ListaCuentasCobro() {
   const navigate = useNavigate();
   const acento = theme.palette.custom.accent;
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+  const usuario = useSelector((state) => state.user);
+  // Quién está conectado ahora, para saber si el que tiene una cuenta abierta
+  // sigue trabajándola o solo la dejó colgada.
+  const usuariosConectados = useSelector(
+    (state) => state.presence.usuariosConectados || {},
+  );
 
+  // La primera tanda llega en vivo y se reemplaza entera con cada cambio; las
+  // que trae "Cargar más" van aparte, o cada aviso del servidor las borraría.
   const [cuentas, setCuentas] = useState([]);
+  const [masCuentas, setMasCuentas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
   // El último documento crudo de Firestore: con él se pide la tanda siguiente.
@@ -74,32 +93,29 @@ export default function ListaCuentasCobro() {
   const [aEliminar, setAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
 
+  // La primera tanda se ESCUCHA, no se lee una vez: así, si otra persona abre
+  // una cuenta, acá se ve "En Proceso" sin recargar la pantalla. Sin eso, el
+  // aviso de quién la tiene llegaría tarde y dos personas podrían editarla a
+  // la vez sin enterarse.
   useEffect(() => {
-    let cancelado = false;
-
-    (async () => {
-      try {
-        const tanda = await leerCuentasCobro();
-        if (cancelado) return;
+    const dejarDeEscuchar = escucharCuentasCobro(
+      (tanda) => {
         setCuentas(tanda.cuentas);
         setUltimo(tanda.ultimo);
         setHayMas(tanda.hayMas);
-      } catch (error) {
+        setCargando(false);
+      },
+      (error) => {
         console.error("Error al cargar las cuentas de cobro:", error);
-        if (!cancelado) {
-          showSnackbar(
-            `No se pudieron cargar las cuentas de cobro: ${error.message}`,
-            "error",
-          );
-        }
-      } finally {
-        if (!cancelado) setCargando(false);
-      }
-    })();
+        showSnackbar(
+          `No se pudieron cargar las cuentas de cobro: ${error.message}`,
+          "error",
+        );
+        setCargando(false);
+      },
+    );
 
-    return () => {
-      cancelado = true;
-    };
+    return dejarDeEscuchar;
     // Solo al montar: las tandas siguientes las pide el botón de abajo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -108,7 +124,7 @@ export default function ListaCuentasCobro() {
     setCargandoMas(true);
     try {
       const tanda = await leerCuentasCobro(ultimo);
-      setCuentas((previas) => [...previas, ...tanda.cuentas]);
+      setMasCuentas((previas) => [...previas, ...tanda.cuentas]);
       setUltimo(tanda.ultimo);
       setHayMas(tanda.hayMas);
     } catch (error) {
@@ -119,12 +135,17 @@ export default function ListaCuentasCobro() {
     }
   };
 
+  const todas = useMemo(
+    () => [...cuentas, ...masCuentas],
+    [cuentas, masCuentas],
+  );
+
   // El filtro corre sobre lo que ya está cargado, no sobre la base (ver
   // BuscadorFiltro). Busca por número, cliente, NIT y concepto.
   const filtradas = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
-    return cuentas.filter((cuenta) => {
+    return todas.filter((cuenta) => {
       if (filtroTipo !== "todos" && cuenta.tipo !== filtroTipo) return false;
       if (!texto) return true;
 
@@ -132,7 +153,7 @@ export default function ListaCuentasCobro() {
         .filter(Boolean)
         .some((campo) => String(campo).toLowerCase().includes(texto));
     });
-  }, [cuentas, busqueda, filtroTipo]);
+  }, [todas, busqueda, filtroTipo]);
 
   // El chip activo va relleno con el color de acento. Sin fijarle el hover y
   // el foco, MUI le superpone un tinte y se ve de otro color al usarlo.
@@ -149,8 +170,31 @@ export default function ListaCuentasCobro() {
 
   // Reabrir: la carga tal cual en el formulario. Como trae su `id`, volver a
   // guardarla actualiza esta misma y no crea otra.
-  const abrir = (cuenta) => {
-    dispatch(setFormCuentaCobro(cuenta));
+  //
+  // Antes de entrar la marca "en proceso" con el nombre de quien la abre, para
+  // que los demás vean que está ocupada. `statusPrevio` es a dónde vuelve si
+  // esta persona sale sin guardar: hay que anotarlo ahora, porque en un segundo
+  // su estado será "enProceso" y el anterior ya no se podría saber.
+  const abrir = async (cuenta) => {
+    const statusPrevio = calcularStatusPrevio(cuenta, "pausada");
+
+    try {
+      await marcarCuentaEnProceso(cuenta.id, statusPrevio, usuario);
+    } catch (error) {
+      console.error("Error al marcar la cuenta en proceso:", error);
+      showSnackbar(`No se pudo abrir la cuenta: ${error.message}`, "error");
+      return;
+    }
+
+    dispatch(
+      abrirCuentaCobro({
+        ...cuenta,
+        status: "enProceso",
+        statusPrevio,
+        atendidoPor: usuario.name,
+        atendidoPorUid: usuario.uid,
+      }),
+    );
     navigate("/vistacuentadecobro");
   };
 
@@ -159,7 +203,9 @@ export default function ListaCuentasCobro() {
     setEliminando(true);
     try {
       await eliminarCuentaCobro(aEliminar.id);
-      setCuentas((previas) =>
+      // La primera tanda se corrige sola, que está escuchando; las traídas con
+      // "Cargar más" hay que sacarlas a mano.
+      setMasCuentas((previas) =>
         previas.filter((cuenta) => cuenta.id !== aEliminar.id),
       );
       setAEliminar(null);
@@ -196,7 +242,7 @@ export default function ListaCuentasCobro() {
           color="text.secondary"
           sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
         >
-          {filtradas.length} de {cuentas.length} cuentas
+          {filtradas.length} de {todas.length} cuentas
         </Typography>
 
         <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
@@ -229,7 +275,7 @@ export default function ListaCuentasCobro() {
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.5 }}>
         {filtradas.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: "center", py: 6 }}>
-            {cuentas.length === 0
+            {todas.length === 0
               ? "Todavía no hay cuentas de cobro guardadas."
               : "Ninguna cuenta coincide con la búsqueda."}
           </Typography>
@@ -238,6 +284,17 @@ export default function ListaCuentasCobro() {
             {filtradas.map((cuenta) => {
               const estado = ESTADO_INFO[cuenta.status] || ESTADO_INFO.pausada;
               const saldo = saldoDe(cuenta);
+
+              // Se puede abrir salvo que la tenga otra persona que siga
+              // conectada: ahí se esconde el botón para no pisarle el trabajo.
+              // Si esa persona se desconectó, la cuenta se puede asumir.
+              const laTengoYo =
+                cuenta.status === "enProceso" &&
+                cuenta.atendidoPorUid === usuario.uid;
+              const ocupada =
+                cuenta.status === "enProceso" &&
+                !laTengoYo &&
+                usuariosConectados[cuenta.atendidoPorUid]?.online === true;
 
               return (
                 <Paper
@@ -275,14 +332,51 @@ export default function ListaCuentasCobro() {
                       {formatearFechaLegible(cuenta.fecha) || "sin fecha"} ·{" "}
                       {formatearMoneda(saldo)}
                     </Typography>
+
+                    {/* Quién la tiene abierta, con el punto que late mientras
+                        esa persona siga conectada. Igual que en el buzón de
+                        cotizaciones. */}
+                    {cuenta.status === "enProceso" && cuenta.atendidoPor && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.primary",
+                          fontStyle: "italic",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.6,
+                          mt: 0.25,
+                        }}
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            flexShrink: 0,
+                            backgroundColor: usuariosConectados[
+                              cuenta.atendidoPorUid
+                            ]?.online
+                              ? theme.palette.custom.online
+                              : theme.palette.grey[500],
+                          }}
+                        />
+                        <span>
+                          Atendida por: <strong>{cuenta.atendidoPor}</strong>
+                        </span>
+                      </Typography>
+                    )}
                   </Box>
 
                   <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
-                    <Tooltip title="Abrir">
-                      <IconButton size="small" onClick={() => abrir(cuenta)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    {!ocupada && (
+                      <Tooltip title={laTengoYo ? "Retomar" : "Abrir"}>
+                        <IconButton size="small" onClick={() => abrir(cuenta)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Descargar PDF">
                       <IconButton
                         size="small"

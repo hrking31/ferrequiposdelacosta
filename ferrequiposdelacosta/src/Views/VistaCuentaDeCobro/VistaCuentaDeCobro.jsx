@@ -19,12 +19,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
+  CAMPOS_INTERNOS_CC,
   limpiarCuentaCobro,
   setFormCuentaCobro,
 } from "../../Store/Slices/cuentacobroSlice";
+import { hayCambios } from "../../Utils/cambios";
 import {
   generarCuentaCobroId,
   guardarCuentaCobro,
+  liberarCuentaCobro,
 } from "../../Components/CuentaDeCobro/cuentasCobroDb";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -64,16 +67,18 @@ export default function VistaCuentaDeCobro() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cuenta.cuentaCobroId, dispatch]);
 
-  // Si el usuario cargó algo. Una cuenta en blanco no se guarda ni se
-  // pregunta al salir: llenaría la base de documentos vacíos.
-  const hayContenido = Boolean(
-    (cuenta.items || []).length > 0 ||
-      cuenta.empresa?.trim() ||
-      cuenta.nit?.trim() ||
-      cuenta.obra?.trim() ||
-      cuenta.direccion?.trim() ||
-      cuenta.concepto?.trim(),
-  );
+  // Si se tocó algo desde que se abrió. Sin cambios no se pregunta nada al
+  // salir —no hay nada que perder— y no se escribe en la base: mismo criterio
+  // que la cotización.
+  //
+  // Para una cuenta nueva la foto es el formulario en blanco, así que acá
+  // además responde "¿escribió algo?", que es lo que evita llenar la base de
+  // documentos vacíos.
+  const cambios = hayCambios(cuenta, values.original, CAMPOS_INTERNOS_CC);
+
+  // El estado al que vuelve si se descartan los cambios. Una cuenta nueva no
+  // viene de ningún lado: no hay nada que restaurar.
+  const statusPrevio = cuenta.statusPrevio || "pausada";
 
   // Qué le falta a la cuenta para poder emitirse. Se revisa al pedir el PDF y
   // no deshabilitando el botón: así el usuario ve QUÉ falta en vez de un botón
@@ -113,9 +118,30 @@ export default function VistaCuentaDeCobro() {
     }
   };
 
+  // Al salir sin guardar hay que soltar la cuenta: abrirla la dejó marcada
+  // "en proceso" a nombre de quien la abrió, y si nadie la libera queda
+  // ocupada para siempre. Solo se toca el estado, no los datos: lo que se
+  // escribió en esta sesión no se guarda.
+  const liberar = async () => {
+    if (!cuenta.id) return;
+    try {
+      await liberarCuentaCobro(cuenta.id, statusPrevio);
+    } catch (error) {
+      console.error("Error al liberar la cuenta de cobro:", error);
+    }
+  };
+
   const salirAlMenu = () => {
     dispatch(limpiarCuentaCobro());
     navigate("/adminforms");
+  };
+
+  const liberarYSalir = async () => {
+    setPendingAction(null);
+    setLoading(true);
+    await liberar();
+    setLoading(false);
+    salirAlMenu();
   };
 
   // Emitir: guarda la cuenta como creada, baja el PDF y cierra el trabajo,
@@ -149,17 +175,17 @@ export default function VistaCuentaDeCobro() {
     salirAlMenu();
   };
 
-  const descartarYSalir = () => {
-    setPendingAction(null);
-    salirAlMenu();
-  };
+  const descartarYSalir = liberarYSalir;
 
+  // Sin cambios no se pregunta nada: guardar y descartar terminarían igual,
+  // así que la pregunta no aportaría. Igual hay que soltarla, porque abrirla
+  // la dejó marcada como ocupada.
   const handleGuardarYSalirClick = () => {
-    if (hayContenido) {
+    if (cambios) {
       setPendingAction("salir");
       return;
     }
-    salirAlMenu();
+    liberarYSalir();
   };
 
   const handleGuardarYCerrarSesion = async () => {
@@ -174,16 +200,17 @@ export default function VistaCuentaDeCobro() {
 
   const handleCerrarSesionSinGuardar = async () => {
     setPendingAction(null);
+    await liberar();
     dispatch(limpiarCuentaCobro());
     await logout();
   };
 
   const handleLogoutClick = () => {
-    if (hayContenido) {
+    if (cambios) {
       setPendingAction("logout");
       return;
     }
-    logout();
+    handleCerrarSesionSinGuardar();
   };
 
   return (
@@ -323,12 +350,11 @@ export default function VistaCuentaDeCobro() {
       )}
 
       <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
-        <DialogTitle>Tienes una cuenta de cobro sin emitir</DialogTitle>
+        <DialogTitle>Tienes cambios sin guardar</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {pendingAction === "logout"
-              ? "¿Querés guardarla para seguir después de cerrar sesión, o descartarla?"
-              : "¿Querés guardarla para seguir después, o descartarla?"}
+            Si sales sin guardar, perderás los cambios realizados en esta
+            sesión.
           </DialogContentText>
         </DialogContent>
         {/* El tamaño de los botones y el bajar de renglón los pone el tema

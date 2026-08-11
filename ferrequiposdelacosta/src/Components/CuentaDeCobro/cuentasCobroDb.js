@@ -15,6 +15,7 @@ import {
   doc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   startAfter,
@@ -92,6 +93,44 @@ export const leerCuentasCobro = async (despuesDe = null) => {
   };
 };
 
+// La primera tanda, pero escuchando: la lista se entera sola de que alguien
+// abrió una cuenta, sin recargar la pantalla. Firestore cobra por documento
+// leído, no por tener el oído puesto, así que esto cuesta la misma lectura
+// inicial de siempre más una por cada cuenta que cambie.
+//
+// Solo la primera tanda: las siguientes las trae `leerCuentasCobro` a pedido.
+// Devuelve la función para cortar la escucha, que hay que llamar al salir de
+// la pantalla.
+export const escucharCuentasCobro = (alRecibir, alFallar) =>
+  onSnapshot(
+    query(collection(db, COLECCION), orderBy("creadaEn", "desc"), limit(POR_TANDA)),
+    (snap) =>
+      alRecibir({
+        cuentas: snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })),
+        ultimo: snap.docs[snap.docs.length - 1] || null,
+        hayMas: snap.docs.length === POR_TANDA,
+      }),
+    alFallar,
+  );
+
+// Marca que alguien la está trabajando. `statusPrevio` es a dónde vuelve si esa
+// persona sale sin guardar; se calcula al abrirla (ver Utils/estadoDocumento).
+export const marcarCuentaEnProceso = (cuentaId, statusPrevio, usuario) =>
+  updateDoc(doc(db, COLECCION, cuentaId), {
+    status: "enProceso",
+    statusPrevio,
+    atendidoPor: usuario?.name || "",
+    atendidoPorUid: usuario?.uid || null,
+  });
+
+// Devuelve la cuenta al estado que tenía, sin tocar sus datos: es la salida
+// "descartar", donde lo que se escribió en esta sesión no se guarda.
+export const liberarCuentaCobro = (cuentaId, status) =>
+  updateDoc(doc(db, COLECCION, cuentaId), { status });
+
 export const eliminarCuentaCobro = (cuentaId) =>
   deleteDoc(doc(db, COLECCION, cuentaId));
 
@@ -99,6 +138,13 @@ export const eliminarCuentaCobro = (cuentaId) =>
 // Los borradores no cuentan: lo que interesa es cuánto se facturó, no cuántas
 // quedaron a medias.
 //
+// Una emitida que alguien tiene ABIERTA en este momento sigue contando: su
+// estado dice "enProceso" solo mientras dure esa sesión, y sin esto el número
+// del mes bajaría solo porque alguien la abrió a mirar.
+const seEmitio = (cuenta) =>
+  cuenta.status === "creada" ||
+  (cuenta.status === "enProceso" && cuenta.statusPrevio === "creada");
+
 // Se filtra por fecha en la base —una sola condición, así no hace falta crear
 // un índice compuesto— y el estado se mira acá. Con las pocas decenas que se
 // emiten por mes, traerlas sale más barato que mantener un índice.
@@ -111,5 +157,5 @@ export const contarCuentasCobroDelMes = async () => {
     query(collection(db, COLECCION), where("creadaEn", ">=", inicioDeMes.getTime())),
   );
 
-  return snap.docs.filter((docSnap) => docSnap.data().status === "creada").length;
+  return snap.docs.filter((docSnap) => seEmitio(docSnap.data())).length;
 };

@@ -38,7 +38,7 @@ import VistaCotPdf from "../VistaPdf/VistaCotPdf";
 import {
   calcularStatusPrevio,
   etiquetaEstado,
-} from "../../Utils/cotizacionEstado";
+} from "../../Utils/estadoDocumento";
 import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
 

@@ -3,6 +3,26 @@ import { createSlice } from "@reduxjs/toolkit";
 // La clave en localStorage. Mismo criterio que la cotización, que guarda su
 // sesión bajo "sesion_trabajo_cotizacion".
 const CLAVE_SESION = "sesion_trabajo_cuenta_cobro";
+// La cuenta tal como se abrió. Comparar el formulario contra esta foto es lo
+// que dice si el usuario cambió algo; se guarda aparte para que una sesión
+// interrumpida —un cierre del navegador— no pierda la referencia y crea que
+// todo es un cambio. Mismo criterio que la cotización.
+const CLAVE_ORIGINAL = "sesion_trabajo_cuenta_cobro_original";
+
+// Los campos que mueve la app sola: no cuentan como cambios del usuario (ver
+// Utils/cambios). El número del documento entra acá porque se genera al abrir
+// la pantalla, sin que nadie lo escriba.
+export const CAMPOS_INTERNOS_CC = [
+  "id",
+  "cuentaCobroId",
+  "status",
+  "statusPrevio",
+  "atendidoPor",
+  "atendidoPorUid",
+  "creadaEn",
+  "actualizadoEn",
+  "emitidaPor",
+];
 
 // Los importes son NÚMEROS. El formato de moneda se pone al mostrarlos, nunca
 // al guardarlos: ver Utils/formato.js.
@@ -25,8 +45,15 @@ const valorInicial = {
   // distingue crear de actualizar: sin esto, reabrir una cuenta guardada y
   // volver a guardarla dejaría dos.
   id: null,
-  // "creada" cuando se emitió el PDF, "pausada" cuando se guardó a medias.
+  // "creada" cuando se emitió el PDF, "pausada" cuando se guardó a medias y
+  // "enProceso" mientras alguien la tiene abierta (ver Utils/estadoDocumento).
   status: "",
+  // A qué estado vuelve si esa persona sale sin guardar. Lo anota la lista al
+  // abrirla, cuando el estado anterior todavía se puede saber.
+  statusPrevio: null,
+  // Quién la tiene abierta. Solo se muestra mientras está "enProceso".
+  atendidoPor: "",
+  atendidoPorUid: null,
   // De qué cliente salió, cuando se armó desde sus facturas. Sirve para
   // encontrar después las cuentas de un cliente sin buscarlas por nombre.
   clienteId: null,
@@ -57,9 +84,9 @@ const valorInicial = {
   desdeFacturas: false,
 };
 
-const leerSesionGuardada = () => {
+const leerSesionGuardada = (clave) => {
   try {
-    const guardado = localStorage.getItem(CLAVE_SESION);
+    const guardado = localStorage.getItem(clave);
     // Con los valores por omisión debajo: una sesión guardada por una versión
     // anterior de la app no trae los campos nuevos, y sin esto quedarían en
     // `undefined` en vez de en cero.
@@ -70,18 +97,21 @@ const leerSesionGuardada = () => {
   return valorInicial;
 };
 
-const guardarSesion = (value) => {
+const guardarEn = (clave, value) => {
   try {
-    localStorage.setItem(CLAVE_SESION, JSON.stringify(value));
+    localStorage.setItem(clave, JSON.stringify(value));
   } catch (error) {
     console.error("Error al guardar la cuenta de cobro:", error);
   }
 };
 
+const guardarSesion = (value) => guardarEn(CLAVE_SESION, value);
+
 const cuentacobroSlice = createSlice({
   name: "cuentacobro",
   initialState: {
-    value: leerSesionGuardada(),
+    value: leerSesionGuardada(CLAVE_SESION),
+    original: leerSesionGuardada(CLAVE_ORIGINAL),
   },
   reducers: {
     // OJO: reemplaza el value ENTERO, no hace merge. Quien lo llame tiene que
@@ -89,6 +119,17 @@ const cuentacobroSlice = createSlice({
     setFormCuentaCobro: (state, action) => {
       state.value = action.payload;
       guardarSesion(state.value);
+    },
+
+    // Cargar una cuenta para trabajarla: una guardada que se reabre desde la
+    // lista, o la que se arma con las facturas de un cliente. Además de
+    // cargarla deja la foto contra la que se comparan los cambios, que es lo
+    // que distingue "no tocó nada" de "modificó algo".
+    abrirCuentaCobro: (state, action) => {
+      state.value = action.payload;
+      state.original = action.payload;
+      guardarSesion(state.value);
+      guardarEn(CLAVE_ORIGINAL, state.original);
     },
 
     setItemsCc: (state, action) => {
@@ -104,13 +145,16 @@ const cuentacobroSlice = createSlice({
     // Deja la cuenta en blanco y borra la sesión: es el botón Cancelar.
     limpiarCuentaCobro: (state) => {
       state.value = valorInicial;
+      state.original = valorInicial;
       localStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_ORIGINAL);
     },
   },
 });
 
 export const {
   setFormCuentaCobro,
+  abrirCuentaCobro,
   setItemsCc,
   setTotalCc,
   limpiarCuentaCobro,
