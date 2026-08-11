@@ -21,7 +21,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import EditNoteIcon from "@mui/icons-material/EditNote";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
@@ -35,9 +35,12 @@ import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 
 // Las dos situaciones en que puede estar una cuenta guardada. "creada" es la
 // que ya se emitió —se descargó su PDF— y "pausada" la que quedó a medias.
+// Se muestran con las mismas palabras, icono y color que en el buzón de
+// cotizaciones (ver AdminCotizaciones): son los mismos dos estados y verlos
+// nombrados distinto en cada pantalla confundía.
 const ESTADO_INFO = {
   creada: { label: "Emitida", Icono: CheckCircleIcon, color: "success" },
-  pausada: { label: "Borrador", Icono: EditNoteIcon, color: "warning" },
+  pausada: { label: "Pausada", Icono: PauseCircleOutlineIcon, color: "default" },
 };
 
 // Lo que se cobra en una cuenta guardada. Se recalcula en vez de confiar en el
