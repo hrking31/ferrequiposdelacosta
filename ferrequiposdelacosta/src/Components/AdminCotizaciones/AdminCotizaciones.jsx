@@ -8,7 +8,14 @@ import {
   Button,
   Avatar,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
   Stack,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
@@ -18,24 +25,41 @@ import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BadgeIcon from "@mui/icons-material/Badge";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BusinessIcon from "@mui/icons-material/Business";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import VistaCotPdf from "../VistaPdf/VistaCotPdf";
 import { ref, remove, update } from "firebase/database";
 import { database } from "../../Components/Firebase/Firebase.js";
+
+// Los cuatro momentos por los que pasa una solicitud. Se muestran con el
+// mismo chip que la lista de cuentas de cobro: chico, delineado y con icono.
+const ESTADO_INFO = {
+  creada: { label: "Emitida", Icono: CheckCircleIcon, color: "success" },
+  pendiente: { label: "Pendiente", Icono: PendingActionsIcon, color: "warning" },
+  enProceso: { label: "En Proceso", Icono: AutorenewIcon, color: "info" },
+  pausada: { label: "Pausada", Icono: PauseCircleOutlineIcon, color: "default" },
+};
+
+const estadoDe = (status) =>
+  ESTADO_INFO[status] || {
+    label: status
+      ? status.charAt(0).toUpperCase() + status.slice(1)
+      : "Sin estado",
+    Icono: PendingActionsIcon,
+    color: "default",
+  };
 
 export default function KioskAdminCotizaciones() {
   const theme = useTheme();
   // Acento del modo: naranja en claro, amarillo en oscuro.
   const acento = theme.palette.custom.accent;
-  // Mismo criterio que ClienteSeguimientoCard: el color va en el estado
-  // puntual (el Chip), no en toda la tarjeta.
-  const coloresEstado = {
-    creada: theme.palette.grey[500],
-    pendiente: theme.palette.warning.main,
-    enProceso: theme.palette.info.main,
-    pausada: theme.palette.grey[600],
-  };
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { name, uid } = useSelector((state) => state.user);
@@ -47,6 +71,8 @@ export default function KioskAdminCotizaciones() {
   );
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [aEliminar, setAEliminar] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const busquedaLower = busqueda.trim().toLowerCase();
 
@@ -85,11 +111,17 @@ export default function KioskAdminCotizaciones() {
     }
   };
 
-  const handleEliminar = async (id) => {
+  // La solicitud desaparece sola de la lista: App.jsx escucha la base en vivo.
+  const handleEliminar = async () => {
+    if (!aEliminar) return;
+    setEliminando(true);
     try {
-      await remove(ref(database, `cotizaciones/${id}`));
+      await remove(ref(database, `cotizaciones/${aEliminar.id}`));
+      setAEliminar(null);
     } catch (error) {
       console.error("Error eliminando solicitud:", error);
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -282,18 +314,9 @@ export default function KioskAdminCotizaciones() {
                     )}
                   </Avatar>
 
+                  {/* Sin rótulo "Nombre"/"Empresa": el icono del avatar ya
+                      dice de cuál de los dos se trata. */}
                   <Box sx={{ minWidth: 0, width: "100%" }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "text.secondary",
-                        display: "block",
-                        mb: -0.5,
-                      }}
-                    >
-                      {quotation.tipo === "empresa" ? "Empresa:" : "Nombre:"}
-                    </Typography>
-
                     <Typography
                       variant="h5"
                       noWrap
@@ -323,32 +346,18 @@ export default function KioskAdminCotizaciones() {
                     // border: "2px solid red",
                   }}
                 >
-                  <Chip
-                    label={
-                      quotation.status === "enProceso"
-                        ? "En Proceso"
-                        : quotation.status === "pendiente"
-                          ? "Pendiente"
-                          : quotation.status === "pausada"
-                            ? "Pausada"
-                            : quotation.status
-                              ? quotation.status.charAt(0).toUpperCase() +
-                                quotation.status.slice(1)
-                              : ""
-                    }
-                    variant="estadoCompacto"
-                    sx={{
-                      height: "26px",
-                      border: "none",
-                      bgcolor:
-                        coloresEstado[quotation.status] ||
-                        theme.palette.grey[500],
-                      color: theme.palette.getContrastText(
-                        coloresEstado[quotation.status] ||
-                          theme.palette.grey[500],
-                      ),
-                    }}
-                  />
+                  {(() => {
+                    const estado = estadoDe(quotation.status);
+                    return (
+                      <Chip
+                        size="small"
+                        icon={<estado.Icono />}
+                        label={estado.label}
+                        color={estado.color}
+                        variant="outlined"
+                      />
+                    );
+                  })()}
 
                   {quotation.status === "enProceso" &&
                     quotation.atendidoPor && (
@@ -436,104 +445,122 @@ export default function KioskAdminCotizaciones() {
                   </Stack>
                 </Stack>
 
-                <Box
-                  sx={{
-                    minWidth: { xs: "100%", sm: "200px" },
-                    mt: { xs: 2, sm: 0 },
-                  }}
-                >
-                  {(() => {
-                    let btnConfig = [];
+                {(() => {
+                  // Abrir la cotización es siempre la misma acción; lo que
+                  // cambia es cómo se llama según en qué punto quedó.
+                  let tituloAbrir = null;
 
-                    if (quotation.status === "creada") {
-                      btnConfig = [
-                        {
-                          texto: "Eliminar",
-                          accion: () => handleEliminar(quotation.id),
-                          // El único que borra, y por eso el único en rojo.
-                          variante: "quotationSquareDanger",
-                        },
-                        {
-                          texto: "Editar",
-                          accion: () => handleOpenQuotation(quotation),
-                        },
-                      ];
-                    } else if (quotation.status === "pausada") {
-                      btnConfig = [
-                        {
-                          texto: "Continuar Cotización",
-                          accion: () => handleOpenQuotation(quotation),
-                        },
-                      ];
-                    } else if (quotation.status === "pendiente") {
-                      btnConfig = [
-                        {
-                          texto: "Crear Cotización",
-                          accion: () => handleOpenQuotation(quotation),
-                        },
-                      ];
-                    } else if (quotation.status === "enProceso") {
-                      const laTengoYo = quotation.atendidoPor === name;
+                  if (quotation.status === "creada") {
+                    tituloAbrir = "Editar";
+                  } else if (quotation.status === "pausada") {
+                    tituloAbrir = "Continuar cotización";
+                  } else if (quotation.status === "pendiente") {
+                    tituloAbrir = "Crear cotización";
+                  } else if (quotation.status === "enProceso") {
+                    const laTengoYo = quotation.atendidoPor === name;
+                    const asesorEstaConectado =
+                      usuariosConectados[quotation.atendidoPorUid]?.online ===
+                      true;
 
-                      const asesorAsignadoUid = quotation.atendidoPorUid;
-                      const asesorEstaConectado =
-                        usuariosConectados[asesorAsignadoUid]?.online === true;
-                      if (laTengoYo) {
-                        btnConfig = [
-                          {
-                            texto: "Retomar Cotización",
-                            accion: () => handleOpenQuotation(quotation, name),
-                          },
-                        ];
-                      } else if (!asesorEstaConectado) {
-                        // Si la tiene otra persona y no está conectada, muestra el botón
-                        btnConfig = [
-                          {
-                            texto: "Asumir Gestión",
-                            accion: () => handleOpenQuotation(quotation, name),
-                          },
-                        ];
-                      } else {
-                        // Si la tiene otra persona y está conectada, se oculta el botón
-                        btnConfig = [];
-                      }
+                    if (laTengoYo) {
+                      tituloAbrir = "Retomar cotización";
+                    } else if (!asesorEstaConectado) {
+                      // La tiene otra persona pero está desconectada: se
+                      // puede asumir. Si está conectada no se ofrece, para
+                      // no pisarle el trabajo.
+                      tituloAbrir = "Asumir gestión";
                     }
-                    if (btnConfig.length === 0) return null;
+                  }
 
-                    return (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 1,
-                        }}
-                      >
-                        {btnConfig.map((btn, index) => (
-                          <Button
-                            key={index}
-                            variant={btn.variante || "quotationSquare"}
-                            fullWidth
-                            size="large"
-                            onClick={() => btn.accion()}
-                            endIcon={<ReceiptLongIcon />}
-                            sx={{
-                              letterSpacing: 0.5,
-                              py: 1.5,
-                            }}
+                  // Solo las emitidas tienen un documento que descargar.
+                  const puedeDescargar =
+                    quotation.status === "creada" &&
+                    Array.isArray(quotation.items) &&
+                    quotation.items.length > 0;
+                  const puedeEliminar = quotation.status === "creada";
+
+                  if (!tituloAbrir && !puedeDescargar && !puedeEliminar) {
+                    return null;
+                  }
+
+                  return (
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{
+                        flexShrink: 0,
+                        alignSelf: { xs: "flex-end", sm: "center" },
+                      }}
+                    >
+                      {tituloAbrir && (
+                        <Tooltip title={tituloAbrir}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleOpenQuotation(quotation)}
                           >
-                            {btn.texto}
-                          </Button>
-                        ))}
-                      </Box>
-                    );
-                  })()}
-                </Box>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {puedeDescargar && (
+                        <Tooltip title="Descargar PDF">
+                          <IconButton
+                            size="small"
+                            onClick={() => VistaCotPdf(quotation)}
+                          >
+                            <PictureAsPdfIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {puedeEliminar && (
+                        <Tooltip title="Eliminar">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => setAEliminar(quotation)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  );
+                })()}
               </Stack>
             </CardContent>
           </Card>
         ))
       )}
       </Box>
+
+      <Dialog open={Boolean(aEliminar)} onClose={() => setAEliminar(null)}>
+        <DialogTitle sx={{ color: acento }}>Eliminar solicitud</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ¿Seguro que querés eliminar la solicitud{" "}
+            {aEliminar?.cotizacionId} de{" "}
+            {aEliminar?.empresa || "cliente sin nombre"}? Esta acción no se
+            puede deshacer.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setAEliminar(null)}
+            disabled={eliminando}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleEliminar}
+            disabled={eliminando}
+          >
+            {eliminando ? "Eliminando..." : "Eliminar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
