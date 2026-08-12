@@ -30,9 +30,8 @@ import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { ref, deleteObject } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
-import { db, functions, storage, auth } from "../Firebase/Firebase";
+import { db, functions, auth } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
@@ -147,12 +146,11 @@ export default function UsersList() {
       const userEmail = selectedUser?.email;
       const isSelfDeletion = auth.currentUser?.uid === userId;
 
-      if (userId) {
-        const storageRef = ref(storage, `avatars/${userId}`);
-        deleteObject(storageRef).catch(() => {});
-      }
-
-      // Borrar de Firebase Authentication mediante la Function
+      // La Function borra TODO lo del usuario: su cuenta de acceso, su ficha,
+      // su foto y su presencia. Antes la foto se intentaba borrar desde acá,
+      // pero las reglas de Storage dejan tocar un avatar solo a su dueño, así
+      // que al eliminar a otro fallaba siempre —en silencio, con un catch
+      // vacío— y la foto quedaba huérfana en el bucket.
       await deleteUserCloud({ email: userEmail });
       showSnackbar("Usuario eliminado con éxito", "success");
 

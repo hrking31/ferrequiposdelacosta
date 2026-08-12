@@ -5,6 +5,7 @@ import {initializeApp} from "firebase-admin/app";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 import {getDatabase, ServerValue} from "firebase-admin/database";
+import {getStorage} from "firebase-admin/storage";
 
 initializeApp();
 
@@ -125,6 +126,32 @@ export const deleteUser = onCall(async (request) => {
     const uid = userRecord.uid;
 
     await getFirestore().collection("users").doc(uid).delete();
+
+    // Lo que el usuario deja regado en los otros dos servicios. Se borra
+    // desde acá porque esta función corre con permisos de administrador: las
+    // reglas de Storage dejan tocar un avatar SOLO a su dueño, así que el
+    // intento que hacía la app al eliminar fallaba siempre —en silencio— y la
+    // foto quedaba huérfana en el bucket. La presencia directamente no la
+    // borraba nadie.
+    //
+    // Cada uno va en su propio try: que quede una foto suelta no puede
+    // impedir que se elimine la cuenta.
+    try {
+      await getDatabase().ref(`usuariosConectados/${uid}`).remove();
+    } catch (error) {
+      console.error("No se pudo borrar la presencia del usuario:", error);
+    }
+
+    try {
+      // ignoreNotFound porque un usuario que nunca subió foto no tiene
+      // archivo, y eso no es un error.
+      await getStorage()
+          .bucket()
+          .file(`avatars/${uid}`)
+          .delete({ignoreNotFound: true});
+    } catch (error) {
+      console.error("No se pudo borrar la foto del usuario:", error);
+    }
 
     await getAuth().deleteUser(uid);
 
