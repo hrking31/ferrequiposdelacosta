@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "sincronizar-calculos": "node scripts/sincronizar-calculos.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
