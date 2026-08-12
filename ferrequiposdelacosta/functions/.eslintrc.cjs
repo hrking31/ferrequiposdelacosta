@@ -9,8 +9,12 @@ module.exports = {
     es6: true,
     node: true,
   },
+  // Las funciones se escriben con import/export (ver "type": "module" en
+  // package.json). Este archivo lleva .cjs justamente por eso: es el único que
+  // sigue siendo del formato viejo, porque ESLint lo carga con require.
   parserOptions: {
-    "ecmaVersion": 2018,
+    "ecmaVersion": 2022,
+    "sourceType": "module",
   },
   extends: [
     "eslint:recommended",

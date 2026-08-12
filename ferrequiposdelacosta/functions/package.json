@@ -13,6 +13,8 @@
     "node": "22"
   },
   "main": "index.js",
+  "//": "type: module — las funciones se escriben con import/export, igual que la app. Hizo falta para poder usar tal cual la copia de las cuentas de facturas (compartido/facturaCalculos.js), que viene del frontend y está escrita así.",
+  "type": "module",
   "dependencies": {
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0"

@@ -1,10 +1,10 @@
-const {setGlobalOptions} = require("firebase-functions");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+import {setGlobalOptions} from "firebase-functions";
+import {onCall, HttpsError} from "firebase-functions/v2/https";
 
-const {initializeApp} = require("firebase-admin/app");
-const {getFirestore, FieldValue} = require("firebase-admin/firestore");
-const {getAuth} = require("firebase-admin/auth");
-const {getDatabase, ServerValue} = require("firebase-admin/database");
+import {initializeApp} from "firebase-admin/app";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {getAuth} from "firebase-admin/auth";
+import {getDatabase, ServerValue} from "firebase-admin/database";
 
 initializeApp();
 
@@ -48,7 +48,7 @@ async function verificarPermisoUsuarios(request) {
   }
 }
 
-exports.createUser = onCall(async (request) => {
+export const createUser = onCall(async (request) => {
   await verificarPermisoUsuarios(request);
 
   try {
@@ -108,7 +108,7 @@ exports.createUser = onCall(async (request) => {
   }
 });
 
-exports.deleteUser = onCall(async (request) => {
+export const deleteUser = onCall(async (request) => {
   await verificarPermisoUsuarios(request);
 
   try {
@@ -161,7 +161,9 @@ exports.deleteUser = onCall(async (request) => {
 // real. El cliente de la tienda no nota ninguna diferencia: nunca escribió en
 // la base directamente, siempre llamó a esta función, que escribe con permisos
 // de administrador sin pasar por las reglas.
-exports.crearCotizacion = onCall({enforceAppCheck: true}, async (request) => {
+const CON_APP_CHECK = {enforceAppCheck: true};
+
+export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
   const quotationData = request.data;
 
   if (
