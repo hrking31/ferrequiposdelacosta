@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getCountFromServer, getDocs } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
 import { useDispatch, useSelector } from "react-redux";
@@ -126,6 +126,23 @@ export default function AdminForms() {
     await logout();
   };
 
+  // Cada recuadro necesita leer una colección distinta, y las reglas de
+  // Firestore las tienen cerradas por rol. Un recuadro que el usuario no puede
+  // consultar se quedaba en "…" para siempre y encima disparaba una consulta
+  // que iba a rebotar. Se filtran igual que los botones de abajo: si no está
+  // el permiso, el recuadro no existe y no se pregunta nada.
+  const puedeVerCotizaciones = permisos.includes("cotizacion");
+  const puedeVerCuentasCobro = permisos.includes("cuentaCombro");
+  // Los equipos alquilados y la plata por cobrar salen de las facturas, que
+  // viven dentro de cada cliente: hace falta el permiso de clientes.
+  const puedeVerCartera = permisos.includes("clientes");
+  // El catálogo es la única colección que puede leer cualquiera. Su recuadro
+  // aparece solo para quien no tiene ningún otro —hoy, el gestorEditor—, para
+  // que no se encuentre el menú sin panel. A quien ya tiene los cuatro no se
+  // le agrega un quinto, que apretaría la fila.
+  const mostrarCatalogo =
+    !puedeVerCotizaciones && !puedeVerCuentasCobro && !puedeVerCartera;
+
   // Equipos Activos y Pagos Pendientes se sacan agregando TODAS las facturas
   // de TODOS los clientes — mismo patrón de doble fetch que ya usa
   // SeguimientoClientes. Corre aparte, sin bloquear los botones de abajo.
@@ -135,108 +152,122 @@ export default function AdminForms() {
     let cancelado = false;
 
     (async () => {
-      try {
-        const hoy = obtenerFechaHoyBogota();
-        const clientesSnap = await getDocs(collection(db, "clientes"));
-        const clientes = clientesSnap.docs.map((docSnap) => ({ id: docSnap.id }));
+      // Cada consulta va en su propio try: si una falla —por ejemplo, si
+      // todavía no se desplegaron las reglas de esa colección— los demás
+      // recuadros igual muestran su número.
+      const frescos = {};
 
-        const facturas = (
-          await Promise.all(
-            clientes.map((cliente) =>
-              getDocs(collection(db, "clientes", cliente.id, "facturas")).then((snap) =>
-                snap.docs.map((docSnap) => docSnap.data()),
-              ),
-            ),
-          )
-        ).flat();
-
-        // Los equipos que están en la calle: cuentan las facturas "activa"
-        // (alquiler vigente) y "vencida" (siguen afuera pasados de fecha). Las
-        // "pendiente" todavía no salieron, y en "cobro" y "finalizada" ya
-        // volvió todo. calcularCantidadPendiente además descuenta lo que sí se
-        // devolvió, así que no hay riesgo de contar de más.
-        const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
-        const equiposActivos = facturas
-          .filter((factura) =>
-            ESTADOS_EQUIPOS_ACTIVOS.includes(calcularEstadoFactura(factura, hoy)),
-          )
-          .flatMap((factura) => factura.equipos || [])
-          .filter((equipo) => typeof equipo === "object")
-          .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
-
-        const pagosPendientes = facturas.reduce(
-          (total, factura) => total + calcularCuentaFactura(factura, hoy).saldoPendiente,
-          0,
-        );
-
-        // Las cuentas de cobro y las cotizaciones del mes salen cada una de su
-        // colección. Van aparte del resto —y aparte entre sí— para que un
-        // fallo de una (por ejemplo, si todavía no se desplegaron sus reglas)
-        // no deje sin número a los demás recuadros.
-        let cuentasCobro = null;
+      if (puedeVerCartera) {
         try {
-          cuentasCobro = await contarCuentasCobroDelMes();
+          const hoy = obtenerFechaHoyBogota();
+          const clientesSnap = await getDocs(collection(db, "clientes"));
+          const clientes = clientesSnap.docs.map((docSnap) => ({ id: docSnap.id }));
+
+          const facturas = (
+            await Promise.all(
+              clientes.map((cliente) =>
+                getDocs(collection(db, "clientes", cliente.id, "facturas")).then((snap) =>
+                  snap.docs.map((docSnap) => docSnap.data()),
+                ),
+              ),
+            )
+          ).flat();
+
+          // Los equipos que están en la calle: cuentan las facturas "activa"
+          // (alquiler vigente) y "vencida" (siguen afuera pasados de fecha).
+          // Las "pendiente" todavía no salieron, y en "cobro" y "finalizada"
+          // ya volvió todo. calcularCantidadPendiente además descuenta lo que
+          // sí se devolvió, así que no hay riesgo de contar de más.
+          const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
+          frescos.equiposActivos = facturas
+            .filter((factura) =>
+              ESTADOS_EQUIPOS_ACTIVOS.includes(calcularEstadoFactura(factura, hoy)),
+            )
+            .flatMap((factura) => factura.equipos || [])
+            .filter((equipo) => typeof equipo === "object")
+            .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
+
+          frescos.pagosPendientes = facturas.reduce(
+            (total, factura) => total + calcularCuentaFactura(factura, hoy).saldoPendiente,
+            0,
+          );
+        } catch (error) {
+          console.error("Error al calcular los totales de cartera:", error);
+        }
+      }
+
+      if (puedeVerCuentasCobro) {
+        try {
+          frescos.cuentasCobro = await contarCuentasCobroDelMes();
         } catch (error) {
           console.error("Error al contar las cuentas de cobro del mes:", error);
         }
+      }
 
+      if (puedeVerCotizaciones) {
         // Antes este número se sacaba contando la lista completa de
         // cotizaciones que la app tenía en memoria. Ahora que el buzón carga
         // de a 50, esa cuenta quedaría corta sin que se note: hay que
-        // preguntárselo a la base. Cuesta 1 lectura, porque Firestore devuelve
-        // solo el número (ver contarCotizacionesDelMes).
-        let cotizaciones = null;
+        // preguntárselo a la base. Cuesta 1 lectura, porque Firestore
+        // devuelve solo el número (ver contarCotizacionesDelMes).
         try {
-          cotizaciones = await contarCotizacionesDelMes();
+          frescos.cotizaciones = await contarCotizacionesDelMes();
         } catch (error) {
           console.error("Error al contar las cotizaciones del mes:", error);
         }
-
-        if (cancelado) return;
-
-        const frescos = {
-          equiposActivos,
-          pagosPendientes,
-          cuentasCobro,
-          cotizaciones,
-        };
-        setStats(frescos);
-        // Quedan guardados para la próxima visita al menú, solo para no
-        // mostrar "…" mientras se vuelven a consultar.
-        dispatch(setKpis(frescos));
-      } catch (error) {
-        console.error("Error al calcular los KPIs del panel:", error);
       }
+
+      if (mostrarCatalogo) {
+        try {
+          const snap = await getCountFromServer(collection(db, "equipos"));
+          frescos.equiposCatalogo = snap.data().count;
+        } catch (error) {
+          console.error("Error al contar los equipos del catálogo:", error);
+        }
+      }
+
+      if (cancelado) return;
+
+      setStats((previos) => ({ ...previos, ...frescos }));
+      // Quedan guardados para la próxima visita al menú, solo para no
+      // mostrar "…" mientras se vuelven a consultar.
+      dispatch(setKpis(frescos));
     })();
 
     return () => {
       cancelado = true;
     };
-  }, [dispatch]);
+  }, [
+    dispatch,
+    puedeVerCartera,
+    puedeVerCuentasCobro,
+    puedeVerCotizaciones,
+    mostrarCatalogo,
+  ]);
 
   const kpis = [
-    {
+    puedeVerCotizaciones && {
       etiqueta: "COTIZACIONES",
       icono: <RequestQuoteIcon />,
       color: theme.palette.info.main,
       valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
     },
-    {
+    puedeVerCuentasCobro && {
       etiqueta: "CUENTAS DE COBRO",
       icono: <ReceiptLongIcon />,
       color: theme.palette.success.main,
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
     },
-    {
+    puedeVerCartera && {
       etiqueta: "EQUIPOS ACTIVOS",
       icono: <LocalShippingIcon />,
       color: theme.palette.warning.main,
       valor: stats.equiposActivos ?? "…",
       subtitulo: "En alquiler",
     },
-    {
+    puedeVerCartera && {
       etiqueta: "PAGOS PENDIENTES",
       icono: <ErrorOutlineIcon />,
       color: theme.palette.error.main,
@@ -244,7 +275,14 @@ export default function AdminForms() {
       subtitulo: "Por cobrar",
       tamanoValor: "h4",
     },
-  ];
+    mostrarCatalogo && {
+      etiqueta: "EQUIPOS",
+      icono: <BuildIcon />,
+      color: theme.palette.info.main,
+      valor: stats.equiposCatalogo ?? "…",
+      subtitulo: "En el catálogo",
+    },
+  ].filter(Boolean);
 
   const botonesConfig = [
     {
@@ -431,7 +469,7 @@ export default function AdminForms() {
         )}
       </Box>
 
-      {!isMobile && (
+      {!isMobile && kpis.length > 0 && (
         <Stack
           direction="row"
           spacing={2}

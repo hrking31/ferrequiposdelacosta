@@ -20,6 +20,7 @@ const initialState = {
   cuentasCobro: null,
   equiposActivos: null,
   pagosPendientes: null,
+  equiposCatalogo: null,
 };
 
 const kpisSlice = createSlice({

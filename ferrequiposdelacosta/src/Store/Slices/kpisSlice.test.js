@@ -9,6 +9,7 @@ describe("kpisSlice", () => {
     cuentasCobro: null,
     equiposActivos: null,
     pagosPendientes: null,
+    equiposCatalogo: null,
   });
 
   it("setKpis guarda los números que llegaron", () => {
@@ -27,6 +28,7 @@ describe("kpisSlice", () => {
       cuentasCobro: 7,
       equiposActivos: 30,
       pagosPendientes: 1500000,
+      equiposCatalogo: null,
     });
   });
 
