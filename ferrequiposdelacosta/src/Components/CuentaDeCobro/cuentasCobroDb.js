@@ -29,7 +29,11 @@ export const COLECCION = "cuentasCobro";
 // Cuántas se traen por tanda. La lista pide la primera al abrirse y el resto
 // solo si alguien pide "cargar más": la colección crece para siempre y traerla
 // entera sería cada vez más lento y más caro.
-export const POR_TANDA = 100;
+//
+// Cada documento de la tanda es una lectura que se paga, y entrar a la pantalla
+// vuelve a pedirla: por eso conviene que sea chica. 50 alcanza para ver de un
+// vistazo lo del último tiempo, que es a lo que se entra el 99% de las veces.
+export const POR_TANDA = 50;
 
 // El número visible del documento. Mismo formato que el de la cotización
 // ("COT-..."), con CC adelante para no confundirlos.
