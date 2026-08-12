@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
-import { collection, getCountFromServer, getDocs } from "firebase/firestore";
+import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,13 +35,8 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import { contarCuentasCobroDelMes } from "../../Components/CuentaDeCobro/cuentasCobroDb";
 import { contarCotizacionesDelMes } from "../../Components/AdminCotizaciones/cotizacionesDb";
+import { leerTotalesPanel } from "./totalesPanelDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import {
-  calcularCantidadPendiente,
-  calcularCuentaFactura,
-  calcularEstadoFactura,
-  obtenerFechaHoyBogota,
-} from "../../Components/ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
 // Tarjeta resumen del panel de KPIs: ícono con tinte del color, número
@@ -133,19 +128,19 @@ export default function AdminForms() {
   // el permiso, el recuadro no existe y no se pregunta nada.
   const puedeVerCotizaciones = permisos.includes("cotizacion");
   const puedeVerCuentasCobro = permisos.includes("cuentaCombro");
-  // Los equipos alquilados y la plata por cobrar salen de las facturas, que
-  // viven dentro de cada cliente: hace falta el permiso de clientes.
-  const puedeVerCartera = permisos.includes("clientes");
   // El catálogo es la única colección que puede leer cualquiera. Su recuadro
-  // aparece solo para quien no tiene ningún otro —hoy, el gestorEditor—, para
-  // que no se encuentre el menú sin panel. A quien ya tiene los cuatro no se
-  // le agrega un quinto, que apretaría la fila.
-  const mostrarCatalogo =
-    !puedeVerCotizaciones && !puedeVerCuentasCobro && !puedeVerCartera;
+  // aparece solo para quien no tiene ninguno de los otros dos —hoy, el
+  // gestorEditor—, para que no se encuentre el menú sin panel. A quien ya
+  // tiene los demás no se le agrega uno más, que apretaría la fila.
+  const mostrarCatalogo = !puedeVerCotizaciones && !puedeVerCuentasCobro;
 
-  // Equipos Activos y Pagos Pendientes se sacan agregando TODAS las facturas
-  // de TODOS los clientes — mismo patrón de doble fetch que ya usa
-  // SeguimientoClientes. Corre aparte, sin bloquear los botones de abajo.
+  // Equipos Activos y Pagos Pendientes salen de la PIZARRA: un documento con
+  // los dos números, que mantiene el servidor. Antes se calculaban acá
+  // leyendo todos los clientes y todas sus facturas en CADA visita al menú.
+  //
+  // Como la pizarra tiene solo números —ni un dato de cliente— la puede leer
+  // cualquier empleado con sesión. Por eso estos dos recuadros ya no dependen
+  // del permiso de clientes: hasta el gestorEditor los ve.
   const [stats, setStats] = useState(kpisGuardados);
 
   useEffect(() => {
@@ -157,43 +152,14 @@ export default function AdminForms() {
       // recuadros igual muestran su número.
       const frescos = {};
 
-      if (puedeVerCartera) {
-        try {
-          const hoy = obtenerFechaHoyBogota();
-          const clientesSnap = await getDocs(collection(db, "clientes"));
-          const clientes = clientesSnap.docs.map((docSnap) => ({ id: docSnap.id }));
-
-          const facturas = (
-            await Promise.all(
-              clientes.map((cliente) =>
-                getDocs(collection(db, "clientes", cliente.id, "facturas")).then((snap) =>
-                  snap.docs.map((docSnap) => docSnap.data()),
-                ),
-              ),
-            )
-          ).flat();
-
-          // Los equipos que están en la calle: cuentan las facturas "activa"
-          // (alquiler vigente) y "vencida" (siguen afuera pasados de fecha).
-          // Las "pendiente" todavía no salieron, y en "cobro" y "finalizada"
-          // ya volvió todo. calcularCantidadPendiente además descuenta lo que
-          // sí se devolvió, así que no hay riesgo de contar de más.
-          const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
-          frescos.equiposActivos = facturas
-            .filter((factura) =>
-              ESTADOS_EQUIPOS_ACTIVOS.includes(calcularEstadoFactura(factura, hoy)),
-            )
-            .flatMap((factura) => factura.equipos || [])
-            .filter((equipo) => typeof equipo === "object")
-            .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
-
-          frescos.pagosPendientes = facturas.reduce(
-            (total, factura) => total + calcularCuentaFactura(factura, hoy).saldoPendiente,
-            0,
-          );
-        } catch (error) {
-          console.error("Error al calcular los totales de cartera:", error);
+      try {
+        const totales = await leerTotalesPanel();
+        if (totales) {
+          frescos.equiposActivos = totales.equiposActivos;
+          frescos.pagosPendientes = totales.pagosPendientes;
         }
+      } catch (error) {
+        console.error("Error al leer los totales del panel:", error);
       }
 
       if (puedeVerCuentasCobro) {
@@ -237,13 +203,7 @@ export default function AdminForms() {
     return () => {
       cancelado = true;
     };
-  }, [
-    dispatch,
-    puedeVerCartera,
-    puedeVerCuentasCobro,
-    puedeVerCotizaciones,
-    mostrarCatalogo,
-  ]);
+  }, [dispatch, puedeVerCuentasCobro, puedeVerCotizaciones, mostrarCatalogo]);
 
   const kpis = [
     puedeVerCotizaciones && {
@@ -260,14 +220,14 @@ export default function AdminForms() {
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
     },
-    puedeVerCartera && {
+    {
       etiqueta: "EQUIPOS ACTIVOS",
       icono: <LocalShippingIcon />,
       color: theme.palette.warning.main,
       valor: stats.equiposActivos ?? "…",
       subtitulo: "En alquiler",
     },
-    puedeVerCartera && {
+    {
       etiqueta: "PAGOS PENDIENTES",
       icono: <ErrorOutlineIcon />,
       color: theme.palette.error.main,

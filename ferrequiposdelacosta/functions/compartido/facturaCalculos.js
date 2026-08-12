@@ -587,6 +587,71 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
   return "activa";
 };
 
+// ── Los totales del panel del menú ─────────────────────────────────────
+//
+// Los dos números de los recuadros "Equipos activos" y "Pagos pendientes".
+// Antes los calculaba el menú leyendo TODOS los clientes y TODAS sus facturas
+// en cada visita; ahora los mantiene una Cloud Function en un solo documento
+// y el menú lo lee de una (ver la pizarra `resumen/totales`).
+//
+// Viven acá, al lado del resto de las cuentas, por dos motivos: se prueban con
+// las demás, y el archivo entero viaja al servidor, así que la función usa
+// EXACTAMENTE esta lógica y no una versión suya que pueda divergir.
+
+// Los equipos que están en la calle: cuentan las facturas "activa" (alquiler
+// vigente) y "vencida" (siguen afuera pasados de fecha). Las "pendiente"
+// todavía no salieron, y en "cobro" y "finalizada" ya volvió todo.
+export const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
+
+// Cuánto aporta UNA factura a cada total. Es la pieza que le permite al
+// servidor corregir la pizarra sin leer las demás facturas: cuando alguien
+// toca una, se calcula lo que aportaba antes y lo que aporta ahora, y se
+// ajusta la diferencia.
+//
+// Una factura que no existe (recién creada o recién borrada) aporta cero, así
+// que altas y bajas salen del mismo cálculo sin casos especiales.
+export const calcularAporteFactura = (
+  factura,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  if (!factura) return { equiposActivos: 0, pagosPendientes: 0 };
+
+  const estado = calcularEstadoFactura(factura, hoyIso);
+
+  // calcularCantidadPendiente ya descuenta lo que sí se devolvió, así que no
+  // hay riesgo de contar de más.
+  const equiposActivos = ESTADOS_EQUIPOS_ACTIVOS.includes(estado)
+    ? (Array.isArray(factura.equipos) ? factura.equipos : [])
+        .filter((equipo) => typeof equipo === "object")
+        .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0)
+    : 0;
+
+  return {
+    equiposActivos,
+    pagosPendientes: calcularCuentaFactura(factura, hoyIso).saldoPendiente,
+  };
+};
+
+// Los totales de una lista de facturas, sumando aporte por aporte. Lo usa el
+// repaso de madrugada, que rehace la pizarra desde cero: hace falta porque
+// algunos números cambian SOLOS con el calendario —una factura pendiente pasa
+// a activa cuando llega su día, y una vencida suma días de alquiler— y de eso
+// nadie avisa, porque nadie tocó la base.
+export const calcularTotalesFacturas = (
+  facturas,
+  hoyIso = obtenerFechaHoyBogota(),
+) =>
+  (Array.isArray(facturas) ? facturas : []).reduce(
+    (acumulado, factura) => {
+      const aporte = calcularAporteFactura(factura, hoyIso);
+      return {
+        equiposActivos: acumulado.equiposActivos + aporte.equiposActivos,
+        pagosPendientes: acumulado.pagosPendientes + aporte.pagosPendientes,
+      };
+    },
+    { equiposActivos: 0, pagosPendientes: 0 },
+  );
+
 // El estado que se le muestra a un CLIENTE es un resumen de sus facturas, no
 // un dato propio: gana la que exige atención más pronto. Este es el orden.
 //
