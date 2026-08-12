@@ -32,7 +32,6 @@ import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
 import { addToCart } from "./Store/Slices/cartSlice.js";
 import { setCliente } from "./Store/Slices/clienteSlice";
-import { setListaCotizaciones } from "./Store/Slices/cotizacionSlice";
 
 function App() {
   const location = useLocation();
@@ -84,49 +83,50 @@ function App() {
     }
   }, [items, isKioskRoute]);
 
+  // La campanita de solicitudes nuevas.
+  //
+  // Antes esto escuchaba TODAS las cotizaciones para enterarse de que había una
+  // nueva: cada arranque de la app descargaba el historial entero, incluso para
+  // quien solo entraba a facturación. Ahora las cotizaciones viven en Firestore
+  // (ver Components/AdminCotizaciones/cotizacionesDb.js) y acá solo se escucha
+  // el TIMBRE: un dato de dos campos en la base en tiempo real que la Cloud
+  // Function crearCotizacion cambia con cada solicitud. Enterarse ya no cuesta
+  // ninguna lectura de Firestore.
+  //
+  // El timbre no se apaga nunca. Cada dispositivo se acuerda de cuál fue el
+  // último que le sonó: si el de la base es otro, suena y lo anota. Así dos
+  // personas con la app abierta escuchan las dos, y quien abra después no se
+  // encuentra con un timbre "ya usado" que no le suena.
   useEffect(() => {
-    const quotationsRef = ref(database, "cotizaciones");
+    const timbreRef = ref(database, "timbreCotizaciones");
 
-    const unsubscribe = onValue(quotationsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
+    const unsubscribe = onValue(timbreRef, (snapshot) => {
+      const timbre = snapshot.val();
+      const idSonado = timbre?.cotizacionId ?? null;
 
-        const quotationsArray = Object.entries(data)
-          .map(([id, value]) => ({
-            id,
-            items: value.items || [],
-            ...value,
-          }))
-          .reverse();
+      // La primera lectura es el estado actual del timbre, no un pedido nuevo:
+      // solo se anota, para no sonar cada vez que alguien abre la app.
+      if (!initialized.current) {
+        lastQuotationIdRef.current = idSonado;
+        initialized.current = true;
+        return;
+      }
 
-        const newest = quotationsArray[0];
+      if (!idSonado || idSonado === lastQuotationIdRef.current) return;
 
-        if (initialized.current) {
-          if (newest && newest.id !== lastQuotationIdRef.current) {
-            lastQuotationIdRef.current = newest.id;
+      lastQuotationIdRef.current = idSonado;
 
-            const suppressNotificationSound =
-              isKioskRoute ||
-              location.pathname.toLowerCase().includes("vistacart");
+      const suppressNotificationSound =
+        isKioskRoute || location.pathname.toLowerCase().includes("vistacart");
 
-            if (!suppressNotificationSound) {
-              const audio = new Audio("/notification.mp3");
-              audio.play().catch(() => {});
-            }
-          }
-        } else {
-          if (newest) lastQuotationIdRef.current = newest.id;
-          initialized.current = true;
-        }
-
-        dispatch(setListaCotizaciones(quotationsArray));
-      } else {
-        dispatch(setListaCotizaciones([]));
+      if (!suppressNotificationSound) {
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch(() => {});
       }
     });
 
     return () => unsubscribe();
-  }, [dispatch, location.pathname, isKioskRoute]);
+  }, [location.pathname, isKioskRoute]);
 
   return (
     <div>

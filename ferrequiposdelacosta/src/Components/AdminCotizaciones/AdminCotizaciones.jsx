@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Card,
@@ -34,13 +34,20 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import useSnackbar from "../../Hooks/useSnackbar";
 import VistaCotPdf from "../VistaPdf/VistaCotPdf";
 import {
   calcularStatusPrevio,
   etiquetaEstado,
 } from "../../Utils/estadoDocumento";
-import { ref, remove, update } from "firebase/database";
-import { database } from "../../Components/Firebase/Firebase.js";
+import {
+  eliminarCotizacion,
+  escucharCotizaciones,
+  leerCotizaciones,
+  marcarCotizacionEnProceso,
+} from "./cotizacionesDb";
 
 // Cómo se pinta cada uno de los cuatro momentos por los que pasa una
 // solicitud. El nombre sale de Utils/cotizacionEstado, que es donde viven los
@@ -70,29 +77,89 @@ export default function KioskAdminCotizaciones() {
   // Borrar una solicitud no se deshace, así que queda solo en manos del
   // administrador — en cualquier estado, incluso las ya emitidas.
   const esAdministrador = role === "administrador";
-  const cotizaciones = useSelector(
-    (state) => state.cotizacion.listaCotizaciones,
-  );
   const usuariosConectados = useSelector(
     (state) => state.presence.usuariosConectados || {},
   );
+  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
+
+  // La primera tanda llega en vivo y se reemplaza entera con cada cambio; las
+  // que trae "Cargar más" van aparte, o cada aviso del servidor las borraría.
+  //
+  // Antes esta lista venía de Redux, donde App.jsx dejaba TODAS las
+  // cotizaciones que existían. Ahora la pantalla pide lo suyo: de a 50, como el
+  // buscador de cuentas de cobro.
+  const [cotizaciones, setCotizaciones] = useState([]);
+  const [masCotizaciones, setMasCotizaciones] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  // El último documento crudo de Firestore: con él se pide la tanda siguiente.
+  const [ultimo, setUltimo] = useState(null);
+  const [hayMas, setHayMas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [aEliminar, setAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
 
+  // La primera tanda se ESCUCHA, no se lee una vez: así entra sola la solicitud
+  // que acaba de llegar de la tienda, y se ve "En Proceso" cuando otra persona
+  // abre una, sin recargar la pantalla.
+  useEffect(() => {
+    const dejarDeEscuchar = escucharCotizaciones(
+      (tanda) => {
+        setCotizaciones(tanda.cotizaciones);
+        setUltimo(tanda.ultimo);
+        setHayMas(tanda.hayMas);
+        setCargando(false);
+      },
+      (error) => {
+        console.error("Error al cargar las solicitudes:", error);
+        showSnackbar(
+          `No se pudieron cargar las solicitudes: ${error.message}`,
+          "error",
+        );
+        setCargando(false);
+      },
+    );
+
+    return dejarDeEscuchar;
+    // Solo al montar: las tandas siguientes las pide el botón de abajo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cargarMas = async () => {
+    setCargandoMas(true);
+    try {
+      const tanda = await leerCotizaciones(ultimo);
+      setMasCotizaciones((previas) => [...previas, ...tanda.cotizaciones]);
+      setUltimo(tanda.ultimo);
+      setHayMas(tanda.hayMas);
+    } catch (error) {
+      console.error("Error al cargar más solicitudes:", error);
+      showSnackbar(`No se pudieron cargar más: ${error.message}`, "error");
+    } finally {
+      setCargandoMas(false);
+    }
+  };
+
+  const todas = useMemo(
+    () => [...cotizaciones, ...masCotizaciones],
+    [cotizaciones, masCotizaciones],
+  );
+
   const busquedaLower = busqueda.trim().toLowerCase();
 
+  // El filtro corre sobre lo que ya está cargado, no sobre la base: lo que
+  // todavía no se trajo con "Cargar más" no se encuentra buscando.
   const cotizacionesFiltradas = useMemo(
     () =>
-      cotizaciones.filter((quotation) => {
+      todas.filter((quotation) => {
         if (filtroTipo !== "todos" && quotation.tipo !== filtroTipo) return false;
         if (!busquedaLower) return true;
         const nombre = (quotation.empresa || "").toLowerCase();
         const telefono = (quotation.telefono || "").toLowerCase();
         return nombre.includes(busquedaLower) || telefono.includes(busquedaLower);
       }),
-    [cotizaciones, filtroTipo, busquedaLower],
+    [todas, filtroTipo, busquedaLower],
   );
 
   const handleOpenQuotation = async (quotation) => {
@@ -102,12 +169,7 @@ export default function KioskAdminCotizaciones() {
       // "enProceso" y el anterior ya no se podría saber.
       const statusPrevio = calcularStatusPrevio(quotation);
 
-      await update(ref(database, `cotizaciones/${quotation.id}`), {
-        status: "enProceso",
-        statusPrevio,
-        atendidoPor: name,
-        atendidoPorUid: uid,
-      });
+      await marcarCotizacionEnProceso(quotation.id, statusPrevio, { name, uid });
 
       dispatch(
         setCotizacionActual({
@@ -122,22 +184,33 @@ export default function KioskAdminCotizaciones() {
       navigate("/vistacotizacion");
     } catch (error) {
       console.error("Error al abrir la cotización:", error);
+      showSnackbar(`No se pudo abrir la solicitud: ${error.message}`, "error");
     }
   };
 
-  // La solicitud desaparece sola de la lista: App.jsx escucha la base en vivo.
   const handleEliminar = async () => {
     if (!aEliminar) return;
     setEliminando(true);
     try {
-      await remove(ref(database, `cotizaciones/${aEliminar.id}`));
+      await eliminarCotizacion(aEliminar.id);
+      // La primera tanda se corrige sola, que está escuchando; las traídas con
+      // "Cargar más" hay que sacarlas a mano.
+      setMasCotizaciones((previas) =>
+        previas.filter((cotizacion) => cotizacion.id !== aEliminar.id),
+      );
       setAEliminar(null);
+      showSnackbar("Solicitud eliminada.", "success");
     } catch (error) {
       console.error("Error eliminando solicitud:", error);
+      showSnackbar(`Error al eliminar: ${error.message}`, "error");
     } finally {
       setEliminando(false);
     }
   };
+
+  if (cargando) {
+    return <LoadingLogo height="40vh" text="Cargando solicitudes..." />;
+  }
 
   return (
     <Box
@@ -151,7 +224,7 @@ export default function KioskAdminCotizaciones() {
         transition: "background-color 0.3s ease",
       }}
     >
-      {cotizaciones.length > 0 && (
+      {todas.length > 0 && (
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1.5}
@@ -169,7 +242,7 @@ export default function KioskAdminCotizaciones() {
             color="text.secondary"
             sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
           >
-            {cotizacionesFiltradas.length} de {cotizaciones.length} solicitudes
+            {cotizacionesFiltradas.length} de {todas.length} solicitudes
           </Typography>
 
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
@@ -243,7 +316,7 @@ export default function KioskAdminCotizaciones() {
           gap: 3,
         }}
       >
-      {cotizaciones.length === 0 ? (
+      {todas.length === 0 ? (
         <Typography
           variant="body1"
           sx={{ textAlign: "center", mt: 4, color: "text.secondary" }}
@@ -544,6 +617,17 @@ export default function KioskAdminCotizaciones() {
           </Card>
         ))
       )}
+
+      {/* La lista trae de a tandas: la colección crece para siempre y traerla
+          entera sería cada vez más lenta y más cara. Ojo: el buscador de
+          arriba solo ve lo que ya se cargó. */}
+      {hayMas && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+          <Button variant="outlined" onClick={cargarMas} disabled={cargandoMas}>
+            {cargandoMas ? "Cargando..." : "Cargar más"}
+          </Button>
+        </Box>
+      )}
       </Box>
 
       <Dialog open={Boolean(aEliminar)} onClose={() => setAEliminar(null)}>
@@ -574,6 +658,8 @@ export default function KioskAdminCotizaciones() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>
   );
 }

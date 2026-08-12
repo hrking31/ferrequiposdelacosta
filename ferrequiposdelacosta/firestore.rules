@@ -48,6 +48,11 @@ service cloud.firestore {
       return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
     }
 
+    // Permisos "cotizacion" y "solicitudesCotizaciones" de RolesPermisos.jsx.
+    function puedeGestionarCotizaciones() {
+      return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
+    }
+
     // Permisos "crearUsuarios" y "eliminarUsuarios": solo el administrador.
     function esAdministrador() {
       return tieneRol(["administrador"]);
@@ -109,6 +114,25 @@ service cloud.firestore {
     // nadie de afuera: son documentos de cobro con datos de clientes.
     match /cuentasCobro/{cuentaId} {
       allow read, write: if puedeGestionarCuentasCobro();
+    }
+
+    // ---------------------------------------------------------------
+    // Solicitudes de cotización
+    // ---------------------------------------------------------------
+    // Las crea la Cloud Function crearCotizacion cuando alguien pide una
+    // cotización desde la tienda o el kiosco. Esa función escribe con el SDK
+    // de administrador y no pasa por estas reglas, así que acá no hace falta
+    // (ni conviene) abrirle nada al público: el cliente nunca lee esta
+    // colección, solo llama a la función.
+    //
+    // Vivían en la base en tiempo real, donde lo máximo que se podía exigir
+    // era "tener sesión iniciada" —sus reglas no pueden consultar el rol, que
+    // está en Firestore—. Por eso cualquier empleado logueado podía borrar
+    // solicitudes desde la consola del navegador, aunque no viera el botón.
+    // Acá el borrado queda cerrado de verdad: solo el administrador.
+    match /cotizaciones/{cotizacionId} {
+      allow read, create, update: if puedeGestionarCotizaciones();
+      allow delete: if esAdministrador();
     }
 
     // ---------------------------------------------------------------

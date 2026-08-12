@@ -1,5 +1,4 @@
 import cotizacionReducer, {
-  setListaCotizaciones,
   setCotizacionActual,
   setFormCotizacion,
   setAtendidoPor,
@@ -14,12 +13,9 @@ describe("cotizacionSlice", () => {
     localStorage.clear();
   });
 
-  const base = () => ({ listaCotizaciones: [], value: { atendidoPor: "", items: [] } });
-
-  it("setListaCotizaciones reemplaza la lista del buzón", () => {
-    const estado = cotizacionReducer(base(), setListaCotizaciones([{ id: "1" }]));
-    expect(estado.listaCotizaciones).toEqual([{ id: "1" }]);
-  });
+  // La lista del buzón ya no vive acá: desde la mudanza a Firestore, esa
+  // pantalla pide sus propias tandas (ver AdminCotizaciones/cotizacionesDb.js).
+  const base = () => ({ value: { atendidoPor: "", items: [] } });
 
   it("setCotizacionActual reemplaza la cotización y la persiste", () => {
     const estado = cotizacionReducer(base(), setCotizacionActual({ id: "cot-1", items: [1] }));

@@ -17,7 +17,8 @@ import { Link } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setKpis } from "../../Store/Slices/kpisSlice";
 import BuildIcon from "@mui/icons-material/Build";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -33,6 +34,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import { contarCuentasCobroDelMes } from "../../Components/CuentaDeCobro/cuentasCobroDb";
+import { contarCotizacionesDelMes } from "../../Components/AdminCotizaciones/cotizacionesDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import {
   calcularCantidadPendiente,
@@ -105,22 +107,20 @@ KpiCard.propTypes = {
   tamanoValor: PropTypes.string,
 };
 
-const mismoMesQueHoy = (epochMs) => {
-  if (!epochMs) return false;
-  const fecha = new Date(epochMs);
-  const hoy = new Date();
-  return fecha.getFullYear() === hoy.getFullYear() && fecha.getMonth() === hoy.getMonth();
-};
-
 export default function AdminForms() {
   const theme = useTheme();
+  const dispatch = useDispatch();
   const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isShortViewport = useMediaQuery("(max-height:700px)");
   const isCompact = isFullScreen || isShortViewport;
   const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
-  const cotizaciones = useSelector((state) => state.cotizacion.listaCotizaciones);
+  // Los números que se vieron la última vez que se pasó por acá. Se muestran
+  // mientras la consulta va y vuelve, para que los recuadros no arranquen en
+  // "…" cada vez que se entra al menú; en cuanto llegan los frescos, se
+  // reemplazan. Nunca reemplazan a la consulta: solo tapan el hueco.
+  const kpisGuardados = useSelector((state) => state.kpis);
 
   const handlerLogout = async () => {
     await logout();
@@ -129,11 +129,7 @@ export default function AdminForms() {
   // Equipos Activos y Pagos Pendientes se sacan agregando TODAS las facturas
   // de TODOS los clientes — mismo patrón de doble fetch que ya usa
   // SeguimientoClientes. Corre aparte, sin bloquear los botones de abajo.
-  const [stats, setStats] = useState({
-    equiposActivos: null,
-    pagosPendientes: null,
-    cuentasCobro: null,
-  });
+  const [stats, setStats] = useState(kpisGuardados);
 
   useEffect(() => {
     let cancelado = false;
@@ -173,10 +169,10 @@ export default function AdminForms() {
           0,
         );
 
-        // Las cuentas de cobro emitidas este mes salen de su propia colección
-        // (ver cuentasCobroDb). Va aparte del resto para que un fallo suyo
-        // —por ejemplo, si todavía no se desplegaron sus reglas— no deje sin
-        // número a los otros tres recuadros.
+        // Las cuentas de cobro y las cotizaciones del mes salen cada una de su
+        // colección. Van aparte del resto —y aparte entre sí— para que un
+        // fallo de una (por ejemplo, si todavía no se desplegaron sus reglas)
+        // no deje sin número a los demás recuadros.
         let cuentasCobro = null;
         try {
           cuentasCobro = await contarCuentasCobroDelMes();
@@ -184,7 +180,30 @@ export default function AdminForms() {
           console.error("Error al contar las cuentas de cobro del mes:", error);
         }
 
-        if (!cancelado) setStats({ equiposActivos, pagosPendientes, cuentasCobro });
+        // Antes este número se sacaba contando la lista completa de
+        // cotizaciones que la app tenía en memoria. Ahora que el buzón carga
+        // de a 50, esa cuenta quedaría corta sin que se note: hay que
+        // preguntárselo a la base. Cuesta 1 lectura, porque Firestore devuelve
+        // solo el número (ver contarCotizacionesDelMes).
+        let cotizaciones = null;
+        try {
+          cotizaciones = await contarCotizacionesDelMes();
+        } catch (error) {
+          console.error("Error al contar las cotizaciones del mes:", error);
+        }
+
+        if (cancelado) return;
+
+        const frescos = {
+          equiposActivos,
+          pagosPendientes,
+          cuentasCobro,
+          cotizaciones,
+        };
+        setStats(frescos);
+        // Quedan guardados para la próxima visita al menú, solo para no
+        // mostrar "…" mientras se vuelven a consultar.
+        dispatch(setKpis(frescos));
       } catch (error) {
         console.error("Error al calcular los KPIs del panel:", error);
       }
@@ -193,18 +212,14 @@ export default function AdminForms() {
     return () => {
       cancelado = true;
     };
-  }, []);
-
-  const cotizacionesEsteMes = (cotizaciones || []).filter((c) =>
-    mismoMesQueHoy(c.createdAt),
-  ).length;
+  }, [dispatch]);
 
   const kpis = [
     {
       etiqueta: "COTIZACIONES",
       icono: <RequestQuoteIcon />,
       color: theme.palette.info.main,
-      valor: cotizacionesEsteMes,
+      valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
     },
     {

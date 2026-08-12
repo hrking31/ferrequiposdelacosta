@@ -12,18 +12,33 @@
     ".write": false,
 
     /*
-      Solicitudes de cotización. Las crea la Cloud Function crearCotizacion
-      (desde el cliente público) y el personal las crea, edita y borra desde
-      VistaCotizacion.jsx y AdminCotizaciones.jsx.
+      RESPALDO de las solicitudes de cotización, congelado.
 
-      La escritura se declara por cotización y no en el nodo padre, para que
-      nadie pueda borrar o reemplazar TODAS las solicitudes de un solo golpe.
+      Las cotizaciones se mudaron a Firestore (colección "cotizaciones"), donde
+      las reglas SÍ pueden leer el rol y el borrado se pudo dejar solo en manos
+      del administrador. Los datos viejos no se borraron de acá: quedan como
+      copia de seguridad.
+
+      Por eso la escritura queda cerrada del todo. Nadie —ni la app ni una
+      consola de navegador— puede tocar este nodo; solo se puede leer, por si
+      alguna vez hay que consultar el archivo.
     */
     "cotizaciones": {
       ".read": "auth != null",
-      "$cotizacionId": {
-        ".write": "auth != null"
-      }
+      ".write": false
+    },
+
+    /*
+      El TIMBRE de solicitudes nuevas. Un solo dato, con el número de la última
+      cotización y su hora; cambia cada vez que entra una. App.jsx lo escucha
+      para hacer sonar la campanita sin tener que leer Firestore.
+
+      Solo escribe la Cloud Function crearCotizacion, que usa el SDK de
+      administrador y no pasa por estas reglas: desde la app queda prohibido.
+    */
+    "timbreCotizaciones": {
+      ".read": "auth != null",
+      ".write": false
     },
 
     /* Presencia en línea: cada usuario solo puede escribir su propio nodo. */

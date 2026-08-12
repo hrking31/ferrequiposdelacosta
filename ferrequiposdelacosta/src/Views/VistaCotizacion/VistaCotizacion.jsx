@@ -18,8 +18,10 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { ref, update, push } from "firebase/database";
-import { database } from "../../Components/Firebase/Firebase.js";
+import {
+  guardarCotizacion as guardarCotizacionEnBase,
+  liberarCotizacion,
+} from "../../Components/AdminCotizaciones/cotizacionesDb";
 import { useAuth } from "../../Context/useAuth";
 import {
   resetCotizacion,
@@ -53,26 +55,14 @@ export default function VistaCotizacion() {
     }
   }, [values.id, values.cotizacionId, dispatch]);
 
-  // Único punto de guardado: siempre persiste el formulario completo y decide
-  // crear vs. actualizar según si ya existe values.id.
+  // Único punto de guardado: siempre persiste el formulario completo. Crear vs.
+  // actualizar lo decide cotizacionesDb según si ya existe values.id.
+  //
+  // Devuelve la cotización tal como quedó guardada —con su id—, que es lo que
+  // después recibe el PDF.
   const guardarCotizacion = async (nuevoEstado) => {
     try {
-      const dataToSave = { ...values, status: nuevoEstado };
-
-      if (values.id) {
-        await update(ref(database, `cotizaciones/${values.id}`), dataToSave);
-        return dataToSave;
-      }
-
-      const quotationRef = push(ref(database, "cotizaciones"));
-      const nuevaCotizacion = {
-        ...dataToSave,
-        id: quotationRef.key,
-        cotizacionId: values.cotizacionId || `COT-${Date.now()}`,
-        createdAt: Date.now(),
-      };
-      await update(quotationRef, nuevaCotizacion);
-      return nuevaCotizacion;
+      return await guardarCotizacionEnBase(values, nuevoEstado);
     } catch (error) {
       console.error(`Error al guardar cotización con estado ${nuevoEstado}:`, error);
       return values;
@@ -85,7 +75,7 @@ export default function VistaCotizacion() {
   const actualizarSoloEstado = async (nuevoEstado) => {
     if (!values.id) return;
     try {
-      await update(ref(database, `cotizaciones/${values.id}`), { status: nuevoEstado });
+      await liberarCotizacion(values.id, nuevoEstado);
     } catch (error) {
       console.error(`Error al actualizar el estado a ${nuevoEstado}:`, error);
     }

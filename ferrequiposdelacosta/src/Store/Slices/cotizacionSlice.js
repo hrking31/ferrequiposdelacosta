@@ -54,8 +54,12 @@ const leerGuardada = (clave) => {
 const cotizacionSlice = createSlice({
   name: "cotizacion",
 
+  // Acá vive SOLO la cotización que se está trabajando. La lista del buzón no:
+  // desde que las cotizaciones están en Firestore, esa pantalla pide sus
+  // propias tandas de 50 (ver Components/AdminCotizaciones/cotizacionesDb.js).
+  // Antes se guardaban todas acá porque App.jsx se bajaba el historial entero
+  // en cada arranque de la app.
   initialState: {
-    listaCotizaciones: [],
     value: leerGuardada(CLAVE),
     original: leerGuardada(CLAVE_ORIGINAL),
   },
@@ -66,10 +70,6 @@ const cotizacionSlice = createSlice({
       state.original = initialValue;
       localStorage.removeItem(CLAVE);
       localStorage.removeItem(CLAVE_ORIGINAL);
-    },
-
-    setListaCotizaciones: (state, action) => {
-      state.listaCotizaciones = action.payload;
     },
 
     // Abrir una cotización: además de cargarla, deja la foto contra la que se
@@ -128,7 +128,6 @@ const cotizacionSlice = createSlice({
 
 export const {
   resetCotizacion,
-  setListaCotizaciones,
   setCotizacionActual,
   setFormCotizacion,
   setAtendidoPor,

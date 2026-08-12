@@ -155,6 +155,12 @@ exports.deleteUser = onCall(async (request) => {
 // Check (reCAPTCHA Enterprise). Así solo la app real puede crear cotizaciones;
 // un bot que descubra la URL de la función queda fuera. El cliente adjunta el
 // token automáticamente porque App Check se inicializa en Firebase.js.
+//
+// La solicitud se guarda en Firestore (colección "cotizaciones", ver
+// src/Components/AdminCotizaciones/cotizacionesDb.js) y no en la base en tiempo
+// real. El cliente de la tienda no nota ninguna diferencia: nunca escribió en
+// la base directamente, siempre llamó a esta función, que escribe con permisos
+// de administrador sin pasar por las reglas.
 exports.crearCotizacion = onCall({enforceAppCheck: true}, async (request) => {
   const quotationData = request.data;
 
@@ -170,24 +176,46 @@ exports.crearCotizacion = onCall({enforceAppCheck: true}, async (request) => {
   }
 
   try {
-    const db = getDatabase();
-    const cotizacionesRef = db.ref("cotizaciones");
+    const cotizacionId = `COT-${Date.now()}`;
 
-    const newQuotationRef = cotizacionesRef.push();
-
+    // `id` no se guarda adentro: es el nombre del documento. createdAt va como
+    // número (no como marca de tiempo de Firestore) porque es el campo por el
+    // que ordena y cuenta el resto de la app, y así se compara igual que el de
+    // las cuentas de cobro.
     const finalData = {
       ...quotationData,
       atendidoPor: "",
       atendidoPorUid: "",
       status: "pendiente",
-      id: newQuotationRef.key,
-      cotizacionId: `COT-${Date.now()}`,
-      createdAt: ServerValue.TIMESTAMP,
+      statusPrevio: null,
+      cotizacionId,
+      createdAt: Date.now(),
     };
 
-    await newQuotationRef.set(finalData);
+    const referencia = await getFirestore()
+        .collection("cotizaciones")
+        .add(finalData);
 
-    return {success: true, id: newQuotationRef.key};
+    // El TIMBRE. La campanita del personal no escucha las cotizaciones —eso
+    // costaría lecturas de Firestore a toda hora—, escucha este único dato en
+    // la base en tiempo real, que cobra por bytes y acá no pesa nada.
+    //
+    // Clave: el timbre NO se apaga. Es un valor que CAMBIA, y cada app anota
+    // cuál fue el último que le sonó. Con un "encendido/apagado", la primera
+    // persona que lo viera lo apagaría y a las demás no les sonaría nunca.
+    //
+    // Si esto falla no se cancela nada: la cotización ya quedó guardada y el
+    // cliente no tiene por qué recibir un error porque no sonó una campana.
+    try {
+      await getDatabase().ref("timbreCotizaciones").set({
+        cotizacionId,
+        en: ServerValue.TIMESTAMP,
+      });
+    } catch (error) {
+      console.error("No se pudo tocar el timbre de cotizaciones:", error);
+    }
+
+    return {success: true, id: referencia.id};
   } catch (error) {
     console.error("Error al guardar cotización:", error);
     throw new HttpsError("internal", "No se pudo procesar la solicitud.");
