@@ -267,7 +267,7 @@ export default function AdminForms() {
       permiso: "eliminarEditarEquipos",
       to: "/vistaseleccionarequipo",
       icon: <EditIcon />,
-      label: "EDITAR o ELIMINAR EQUIPO",
+      label: "EDITAR / ELIMINAR EQUIPO",
     },
     {
       permiso: "crearUsuarios",
@@ -279,7 +279,7 @@ export default function AdminForms() {
       permiso: "eliminarUsuarios",
       to: "/VistaEliminarUsuario",
       icon: <PersonRemoveIcon />,
-      label: "EDITAR o ELIMINAR USUARIOS",
+      label: "EDITAR / ELIMINAR USUARIOS",
     },
     {
       permiso: "clientes",
