@@ -305,6 +305,65 @@ describe("calcularAmpliacionEquipo", () => {
     expect(ampliacion.diasAbiertos).toBe(3);
     expect(ampliacion.neto).toBe(300);
   });
+
+  // El caso que se estaba regalando: el cliente no avisó nada, simplemente no
+  // devolvió. Antes esto daba 0 y los días solo se veían como aviso en
+  // Seguimiento, sin entrar en ninguna cuenta.
+  it("cuenta los días de un equipo vencido aunque nadie lo haya marcado indefinido", () => {
+    const equipo = {
+      cantidad: 1,
+      valor: 100,
+      fechaVencimiento: "2026-08-12",
+    };
+    const ampliacion = calcularAmpliacionEquipo(equipo, HOY);
+    expect(ampliacion.diasAbiertos).toBe(3);
+    expect(ampliacion.neto).toBe(300);
+  });
+
+  // El otro agujero: los días se calculaban al vuelo desde la marca de
+  // indefinido, así que al devolver el equipo se borraban de la cuenta.
+  it("congela los días en la fecha de devolución en vez de perderlos", () => {
+    const equipo = {
+      cantidad: 1,
+      valor: 100,
+      cantidadDevuelta: 1,
+      fechaVencimiento: "2026-08-12",
+      fechaDevolucion: "2026-08-14",
+    };
+    // Devolvió el 14, dos días después de vencer: se le cobran esos dos, no
+    // los tres que habrían corrido hasta hoy.
+    expect(calcularAmpliacionEquipo(equipo, HOY).diasAbiertos).toBe(2);
+  });
+
+  it("un equipo devuelto a tiempo no suma días", () => {
+    const equipo = {
+      cantidad: 1,
+      valor: 100,
+      cantidadDevuelta: 1,
+      fechaVencimiento: "2026-08-12",
+      fechaDevolucion: "2026-08-10",
+    };
+    expect(calcularAmpliacionEquipo(equipo, HOY).diasAbiertos).toBe(0);
+  });
+
+  it("un equipo que todavía no vence no suma días", () => {
+    const equipo = { cantidad: 1, valor: 100, fechaVencimiento: "2026-08-20" };
+    expect(calcularAmpliacionEquipo(equipo, HOY).diasAbiertos).toBe(0);
+  });
+
+  // El caso de la factura 1573: se amplió, la ampliación también se venció y
+  // pasaron días sin registrar nada. Se cobran los pactados MÁS los corridos.
+  it("suma los días pactados y los corridos después de la ampliación", () => {
+    const equipo = {
+      cantidad: 1,
+      valor: 100,
+      ampliaciones: [{ dias: 2, descuento: 0 }],
+      fechaVencimiento: "2026-08-13",
+    };
+    const ampliacion = calcularAmpliacionEquipo(equipo, HOY);
+    expect(ampliacion.dias).toBe(4); // 2 pactados + 2 corridos
+    expect(ampliacion.neto).toBe(400);
+  });
 });
 
 describe("calcularAmpliacionFactura", () => {

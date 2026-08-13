@@ -166,11 +166,15 @@ export const equipoDevueltoCompleto = (equipo) => calcularCantidadPendiente(equi
 // precio de lista, cuánto se descontó y el neto que se cobraría.
 // El descuento se resta ANTES del IVA.
 //
-// Además de las ampliaciones pactadas, se cuentan los días de los equipos que
-// quedaron con devolución indefinida: mientras el cliente no devuelva, cada
-// día que pasa desde su vencimiento se cobra igual que un día ampliado (sin
-// descuento, porque no se pactó ninguno). Se cuenta desde el día siguiente al
-// vencimiento: si venció el 25 y hoy es 28, son 3 días.
+// Además de las ampliaciones pactadas, se cuentan los días que el equipo pasó
+// afuera después de su fecha: mientras el cliente no devuelva, cada día se
+// cobra igual que un día ampliado (sin descuento, porque no se pactó
+// ninguno). Se cuenta desde el día siguiente al vencimiento: si venció el 25 y
+// hoy es 28, son 3 días.
+//
+// Da lo mismo si el cliente avisó que la entrega quedaba indefinida o si
+// simplemente no devolvió y no contestó: en los dos casos tiene el equipo, y
+// en los dos se cobra.
 export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia = (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
 
@@ -188,9 +192,29 @@ export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota(
     { dias: 0, bruto: 0, descuento: 0, neto: 0 },
   );
 
-  const diasAbiertos = equipo?.vencimientoIndefinido
-    ? Math.max(0, diferenciaEnDias(equipo.fechaVencimiento, hoyIso))
-    : 0;
+  // Los días que el cliente se quedó con el equipo pasada la fecha. Se cobran
+  // igual que un día pactado: el equipo estuvo en la obra y no estuvo
+  // disponible para alquilar.
+  //
+  // Antes esto solo contaba si el equipo estaba marcado como "entrega
+  // indefinida", y eso dejaba dos agujeros. Al cliente que simplemente no
+  // devolvía y no contestaba no se le cobraba NI UN día: la pantalla de
+  // seguimiento mostraba "6 días · $1.200.000" como aviso, pero esa plata no
+  // entraba en ninguna cuenta. Y al que sí estaba indefinido se le cobraban
+  // los días... hasta que devolvía, porque al registrar la devolución se le
+  // quitaba la marca y los días desaparecían de la cuenta sin que nadie los
+  // hubiera guardado en ningún lado.
+  //
+  // La cuenta se corta el día de la devolución si el equipo ya volvió, y hoy
+  // si sigue afuera. Por eso los días quedan congelados al devolver en vez de
+  // perderse, y no hace falta consolidarlos en ninguna parte: la fecha de
+  // devolución ya está guardada y el cálculo la respeta.
+  const sigueAfuera = calcularCantidadPendiente(equipo) > 0;
+  const hasta = sigueAfuera ? hoyIso : equipo?.fechaDevolucion;
+  const diasAbiertos = Math.max(
+    0,
+    diferenciaEnDias(equipo?.fechaVencimiento, hasta),
+  );
 
   return {
     dias: resumen.dias + diasAbiertos,

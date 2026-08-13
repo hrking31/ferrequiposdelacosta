@@ -753,21 +753,50 @@ export default function ClienteDetalle() {
             }
           }
 
-          // Los días que se le sumaron al plazo, con su valor ya descontado, y
-          // el descuento aparte. Va fuera del if de arriba porque los equipos
-          // con entrega indefinida también acumulan días (los que llevan sin
-          // devolverse), y antes ese chip no se les mostraba nunca.
+          // Los días de más, separados en dos chips porque son dos cosas
+          // distintas: los que se pactaron al ampliar el plazo y los que el
+          // cliente se tomó sin avisar. Los segundos se cobran igual —el
+          // equipo estuvo afuera— pero conviene verlos aparte, que es como se
+          // muestran en Seguimiento.
           const ampliacion = calcularAmpliacionEquipo(equipo);
-          if (ampliacion.dias > 0) {
+          const diasPactados = ampliacion.dias - ampliacion.diasAbiertos;
+          const valorDiaEquipo =
+            (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
+
+          if (diasPactados > 0) {
+            const netoPactado = Math.max(
+              0,
+              diasPactados * valorDiaEquipo - ampliacion.descuento,
+            );
             chipsFechas.push(
               <Chip
                 key="agregados"
                 variant="meta"
                 size="small"
                 sx={{ color: "custom.accent" }}
-                label={`+${ampliacion.dias} día${ampliacion.dias === 1 ? "" : "s"}${
-                  ampliacion.bruto > 0
-                    ? ` · ${formatearMoneda(ampliacion.neto)}`
+                label={`+${diasPactados} día${diasPactados === 1 ? "" : "s"}${
+                  valorDiaEquipo > 0
+                    ? ` · ${formatearMoneda(netoPactado)}`
+                    : ""
+                }`}
+              />,
+            );
+          }
+
+          if (ampliacion.diasAbiertos > 0) {
+            chipsFechas.push(
+              <Chip
+                key="vencidos"
+                variant="metaEstado"
+                size="small"
+                sx={{ fontWeight: 600, color: "error.main" }}
+                label={`${ampliacion.diasAbiertos} día${
+                  ampliacion.diasAbiertos === 1 ? "" : "s"
+                } vencido${ampliacion.diasAbiertos === 1 ? "" : "s"}${
+                  valorDiaEquipo > 0
+                    ? ` · ${formatearMoneda(
+                        ampliacion.diasAbiertos * valorDiaEquipo,
+                      )}`
                     : ""
                 }`}
               />,

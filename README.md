@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-208_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-213_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -157,6 +157,17 @@ flowchart TD
 > Para saber si una renovación la devuelve a *Activa* se usa el saldo **anterior a esa renovación**. Los días recién agregados no cuentan todavía: se cobran cuando el cliente devuelva, igual que cualquier día de alquiler en curso. Si contaran, renovar nunca alcanzaría por sí solo para poner una factura al día.
 
 **Ejemplo real:** una rana alquilada 4 días y pagada completa se vence → el cliente pide 3 días más → como no debía nada, vuelve a *Activa* → y vuelve sola a *Vencida* el día que se cumplen esos 3 días. Nadie tocó un menú.
+
+### El equipo que no vuelve se sigue cobrando
+
+Un equipo que pasó su fecha y sigue en la obra **suma un día de alquiler por cada día que pasa**, automáticamente. Da lo mismo si el cliente avisó que la entrega quedaba indefinida o si simplemente no devolvió y no contesta: en los dos casos tiene el equipo, y en los dos se cobra.
+
+Esos días se cuentan **hasta el día de la devolución**. Cuando el equipo vuelve, quedan congelados en la cuenta: ni siguen creciendo, ni desaparecen.
+
+En la ficha del cliente se ven en dos etiquetas separadas, porque son cosas distintas: los **días pactados** al ampliar el plazo, y los **días vencidos** que el cliente se tomó sin avisar.
+
+> [!WARNING]
+> **Este fue un error costoso.** Antes solo se cobraban los días de los equipos marcados como "entrega indefinida". Al que simplemente no devolvía no se le cobraba ni un día: la pantalla de cartera mostraba *"6 días · $1.200.000"* como aviso, pero esa plata no entraba en ninguna cuenta. Y a los indefinidos se les cobraba… hasta que devolvían, porque los días se calculaban al vuelo desde esa marca y al registrar la devolución se borraban de la cuenta. Dos clientes en la misma situación real se cobraban distinto según cómo se hubiera cargado una fecha.
 
 ### 4. Las gestiones: la bitácora del cobro
 
@@ -400,9 +411,9 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**208 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**213 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
-Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
+Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
 El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 

@@ -23,6 +23,11 @@ const empresa = {
 };
 
 // Una factura simple: un equipo, 3 días a $100.000, con IVA y sin pagos.
+//
+// El equipo se devolvió el día que vencía, a propósito: un equipo que sigue
+// afuera pasada la fecha acumula días de alquiler solos (ver
+// calcularAmpliacionEquipo), y eso ensuciaría todas las cuentas de acá abajo
+// con días que estas pruebas no están mirando.
 const facturaBase = {
   id: "f1",
   numeroFactura: 1234,
@@ -37,8 +42,10 @@ const facturaBase = {
       cantidad: 1,
       dias: 3,
       valor: 100000,
+      cantidadDevuelta: 1,
       fechaDespacho: "2026-08-05",
       fechaVencimiento: "2026-08-07",
+      fechaDevolucion: "2026-08-07",
     },
   ],
 };
@@ -148,6 +155,9 @@ describe("los equipos como ítems", () => {
       equipos: [
         {
           ...facturaBase.equipos[0],
+          // Sigue afuera: por eso los días corren hasta hoy.
+          cantidadDevuelta: 0,
+          fechaDevolucion: undefined,
           vencimientoIndefinido: true,
           fechaVencimiento: "2026-08-07",
         },
@@ -204,8 +214,10 @@ describe("el resumen", () => {
           cantidad: 2,
           dias: 1,
           valor: 50000,
+          cantidadDevuelta: 2,
           fechaDespacho: "2026-08-10",
           fechaVencimiento: "2026-08-10",
+          fechaDevolucion: "2026-08-10",
         },
       ],
     };
