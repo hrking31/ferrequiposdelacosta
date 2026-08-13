@@ -356,6 +356,63 @@ export const sumarPagosFactura = (factura) => {
   return pagoInicial + pagoAgregados;
 };
 
+// ── El depósito: una garantía, no un ingreso ───────────────────────────
+//
+// El depósito se le cobra al cliente junto con el alquiler —entra en el total
+// de la factura— pero no es plata de la empresa: es una garantía que se
+// devuelve cuando entrega los equipos en buen estado. Si vuelven dañados o
+// falta alguno se retiene lo que corresponda, y ESO sí pasa a ser ingreso.
+//
+// Mientras no se resuelva, la plata está en la empresa y el cargo sigue en
+// pie. Al resolverlo, lo devuelto deja de contar y el total de la factura
+// baja: lo que se cobró de verdad es el alquiler más lo retenido.
+//
+// Se resuelve UNA sola vez, por el total y cuando ya no queda ningún equipo
+// afuera. Nada de devolver depósitos por partes en una devolución parcial.
+//
+//   factura.depositoResuelto = { retenido, motivo, fecha, registradoPor }
+//
+// El motivo es texto libre y solo hace falta si se retiene algo.
+
+// El depósito de toda la factura: el del lote original más el que haya traído
+// cada equipo agregado después.
+export const calcularDepositoTotal = (factura) => {
+  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
+  const agregados = equipos
+    .filter((equipo) => equipo?.agregadoPosteriormente)
+    .reduce((total, equipo) => total + (Number(equipo?.deposito) || 0), 0);
+
+  return (Number(factura?.deposito) || 0) + agregados;
+};
+
+// Lo que le corresponde al cliente. Cero mientras no se haya resuelto: hasta
+// ese momento la garantía sigue vigente.
+export const calcularDepositoDevuelto = (factura) => {
+  const resuelto = factura?.depositoResuelto;
+  if (!resuelto) return 0;
+
+  const total = calcularDepositoTotal(factura);
+  const retenido = Math.min(total, Math.max(0, Number(resuelto.retenido) || 0));
+
+  return total - retenido;
+};
+
+// Si todavía falta definir qué pasa con el depósito. Una factura así no puede
+// terminar: la empresa está reteniendo plata que no es suya.
+export const depositoPendiente = (factura) =>
+  calcularDepositoTotal(factura) > 0 && !factura?.depositoResuelto;
+
+// Plata que SALIÓ hacia el cliente: la devolución de un depósito que ya estaba
+// pagado, o un sobrepago que se le reintegra. Es lo contrario de un abono, y
+// por eso resta de lo recibido.
+//
+//   factura.entregas = [{ fecha, medio, monto, nota }]
+export const sumarEntregas = (factura) =>
+  (Array.isArray(factura?.entregas) ? factura.entregas : []).reduce(
+    (total, entrega) => total + (Number(entrega?.monto) || 0),
+    0,
+  );
+
 // La cuenta de una factura tal como se MUESTRA: el total ya trae los días
 // ampliados sumados (regla de siempre: con ampliación se muestra, sin ella se
 // guarda). Si el cliente entregó de más, el sobrante no baja el saldo —que
@@ -365,17 +422,26 @@ export const calcularCuentaFactura = (
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
   const ampliacion = calcularAmpliacionFactura(factura, hoyIso);
-  const total = ampliacion.hay
+  const facturado = ampliacion.hay
     ? ampliacion.nuevoTotal
     : Number(factura?.valorTotal) || 0;
+
+  // El depósito que se devolvió deja de ser un cargo: si no se descontara, el
+  // sistema seguiría creyendo que el cliente debe una plata que ya no debe.
+  const depositoDevuelto = calcularDepositoDevuelto(factura);
+  const total = Math.max(0, facturado - depositoDevuelto);
+
   const pagado = sumarPagosFactura(factura);
   const abonos = sumarAbonos(factura?.abonos);
-  const recibido = pagado + abonos;
+  const entregas = sumarEntregas(factura);
+  const recibido = pagado + abonos - entregas;
 
   return {
     total,
     pagado,
     abonos,
+    entregas,
+    depositoDevuelto,
     recibido,
     saldoPendiente: Math.max(0, total - recibido),
     saldoAFavor: Math.max(0, recibido - total),
@@ -550,12 +616,27 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
 
   const pendientes = equipos.filter((equipo) => calcularCantidadPendiente(equipo) > 0);
 
-  // Ya no queda nada afuera: lo único que decide es si debe plata. Acá SÍ
-  // cuenta lo que costaron las ampliaciones —ya no hay una renovación en
-  // curso que se vaya a cobrar después, esta es la cuenta final—.
+  // Ya no queda nada afuera: lo único que falta es la plata. Acá SÍ cuenta lo
+  // que costaron las ampliaciones —ya no hay una renovación en curso que se
+  // vaya a cobrar después, esta es la cuenta final—.
+  //
+  // "Finalizada" significa que NO queda ningún asunto de plata abierto, en
+  // ninguna de las dos direcciones. Mientras quede uno, la factura sigue en
+  // "cobro", que es la lista de lo que hay que resolver:
+  //
+  //   - el cliente debe                     -> hay que cobrarle
+  //   - el cliente tiene saldo a favor      -> hay que devolverle
+  //   - falta definir qué pasa con el depósito
+  //
+  // Los dos últimos son plata de la empresa hacia el cliente. Antes caían en
+  // "finalizada" igual, y una factura terminada tapaba una deuda con el
+  // cliente.
   if (pendientes.length === 0) {
-    const saldoFinal = calcularCuentaFactura(factura, hoyIso).saldoPendiente;
-    return saldoFinal > 0 ? "cobro" : "finalizada";
+    const cuenta = calcularCuentaFactura(factura, hoyIso);
+    if (cuenta.saldoPendiente > 0) return "cobro";
+    if (cuenta.saldoAFavor > 0) return "cobro";
+    if (depositoPendiente(factura)) return "cobro";
+    return "finalizada";
   }
 
   // Todavía no salieron los equipos.
@@ -604,14 +685,12 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
 // averiguar cuáles son. De eso viven el detalle del cliente, el seguimiento y
 // el repaso de madrugada.
 //
-// Lo del saldo a favor no es un detalle: si el cliente pagó de más, esa plata
-// es suya y hay que devolvérsela o aplicarla a otra factura. Mientras eso no
-// se resuelva la factura NO está cerrada, aunque no deba nada. Sin esta
-// condición, un saldo a favor podría quedar escondido en una factura que las
-// pantallas ya no muestran.
+// Alcanza con preguntar por el estado: "finalizada" ya exige que no quede
+// ningún asunto de plata abierto —ni saldo, ni saldo a favor, ni depósito sin
+// resolver—. Eso no es casualidad: una factura que le debe plata al cliente no
+// puede quedar escondida en un historial que las pantallas ya no muestran.
 export const facturaCerrada = (factura, hoyIso = obtenerFechaHoyBogota()) =>
-  calcularEstadoFactura(factura, hoyIso) === "finalizada" &&
-  calcularCuentaFactura(factura, hoyIso).saldoAFavor === 0;
+  calcularEstadoFactura(factura, hoyIso) === "finalizada";
 
 // ── Los totales del panel del menú ─────────────────────────────────────
 //

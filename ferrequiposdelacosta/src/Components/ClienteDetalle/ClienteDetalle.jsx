@@ -35,6 +35,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
 import HistoryIcon from "@mui/icons-material/History";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
   collection,
   deleteDoc,
@@ -50,6 +51,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import { invalidarCopiaClientes } from "../ListaClientes/clientesCache";
 import FacturaFormDialog from "./FacturaFormDialog";
+import EntregarSaldoDialog from "./EntregarSaldoDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import AbonoDialog from "./AbonoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
@@ -83,6 +85,8 @@ import {
   calcularEstadoCliente,
   calcularEstadoFactura,
   calcularCuentaFactura,
+  calcularDepositoTotal,
+  depositoPendiente,
   calcularCuentaCliente,
   equipoDevueltoCompleto,
   ESTADO_FACTURA_INFO,
@@ -424,6 +428,7 @@ export default function ClienteDetalle() {
   // llegan si el usuario las pide: así la cuenta del encabezado —que se arma
   // con las abiertas— no cambia por el hecho de haber mirado el historial.
   const [facturas, setFacturas] = useState([]);
+  const [facturaEntregando, setFacturaEntregando] = useState(null);
   const [facturasCerradas, setFacturasCerradas] = useState([]);
   const [cerradasCargadas, setCerradasCargadas] = useState(false);
   const [cargandoCerradas, setCargandoCerradas] = useState(false);
@@ -2423,6 +2428,50 @@ export default function ClienteDetalle() {
                               </Box>
                             )}
 
+                            {/* El depósito devuelto ya salió del total de
+                              arriba. Se muestra igual, porque si no el total
+                              cambiaría sin explicación. */}
+                            {cuenta.depositoDevuelto > 0 && (
+                              <Box className="fila abono">
+                                <Typography variant="body2">
+                                  Depósito devuelto
+                                </Typography>
+                                <Typography variant="body2">
+                                  {formatearMoneda(cuenta.depositoDevuelto)}
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {cuenta.entregas > 0 && (
+                              <Box className="fila">
+                                <Typography variant="body2">
+                                  Entregado al cliente
+                                </Typography>
+                                <Typography variant="body2">
+                                  {formatearMoneda(cuenta.entregas)}
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {/* Retener plata sin decir por qué no se puede,
+                              así que el motivo siempre está a la vista. */}
+                            {Number(factura.depositoResuelto?.retenido) > 0 && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "block",
+                                  mt: 0.5,
+                                  color: "text.secondary",
+                                }}
+                              >
+                                Se retuvieron{" "}
+                                {formatearMoneda(
+                                  factura.depositoResuelto.retenido,
+                                )}{" "}
+                                del depósito: {factura.depositoResuelto.motivo}
+                              </Typography>
+                            )}
+
                             {/* Si el cliente pagó de más, el sobrante queda a
                               su favor en vez de mostrarse como saldo. */}
                             {saldoAFavorNumero > 0 ? (
@@ -2449,6 +2498,48 @@ export default function ClienteDetalle() {
                                 </Typography>
                               </Box>
                             )}
+
+                            {/* Plata de la empresa hacia el cliente. Va con
+                                botón y no como un dato más: mientras no se
+                                entregue, la factura no puede terminar, así
+                                que hay que verlo y poder resolverlo acá
+                                mismo. */}
+                            {saldoAFavorNumero > 0 && (
+                              <Button
+                                fullWidth
+                                variant="contained"
+                                color="warning"
+                                startIcon={<CurrencyExchangeIcon />}
+                                sx={{ mt: 1.5 }}
+                                onClick={() => setFacturaEntregando(factura)}
+                              >
+                                Devolver {formatearMoneda(saldoAFavorNumero)}
+                              </Button>
+                            )}
+
+                            {/* Volvieron todos los equipos pero nadie dijo
+                                todavía en qué estado, así que el depósito
+                                sigue retenido. Se define al registrar la
+                                devolución, en Seguimiento. */}
+                            {depositoPendiente(factura) &&
+                              facturaEstado === "cobro" && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: "block",
+                                    mt: 1.5,
+                                    fontWeight: "bold",
+                                    color: "warning.main",
+                                  }}
+                                >
+                                  Falta definir el depósito de{" "}
+                                  {formatearMoneda(
+                                    calcularDepositoTotal(factura),
+                                  )}
+                                  : se resuelve al registrar la devolución en
+                                  Seguimiento.
+                                </Typography>
+                              )}
                           </Paper>
                         </Box>
                       </Box>
@@ -2516,6 +2607,14 @@ export default function ClienteDetalle() {
         onClose={() => setCrearFacturaOpen(false)}
         cliente={cliente}
         onGuardado={() => fetchCliente(true)}
+      />
+
+      <EntregarSaldoDialog
+        open={Boolean(facturaEntregando)}
+        onClose={() => setFacturaEntregando(null)}
+        cliente={cliente}
+        factura={facturaEntregando}
+        onEntregado={() => fetchCliente(true)}
       />
 
       <ReporteFacturasDialog

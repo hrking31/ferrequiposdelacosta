@@ -23,6 +23,9 @@ import {
   calcularEstadoFactura,
   calcularEstadoCliente,
   facturaCerrada,
+  calcularDepositoTotal,
+  calcularDepositoDevuelto,
+  depositoPendiente,
   obtenerGestiones,
   contarLlamadasSinRespuesta,
   calcularGestionFactura,
@@ -451,21 +454,130 @@ describe("facturaCerrada", () => {
     expect(facturaCerrada(factura, HOY)).toBe(false);
   });
 
-  // La razón de ser de la condición extra: sin ella esta factura contaría
-  // como cerrada —no debe nada— y su saldo a favor quedaría escondido en una
-  // factura que las pantallas ya no muestran. Esa plata es del cliente.
+  // Esa plata es del cliente: mientras no se le devuelva, la factura no
+  // terminó. Antes esto caía en "finalizada" y la deuda con el cliente
+  // quedaba tapada.
   it("abierta si el cliente pagó de más, aunque no deba nada", () => {
     const factura = {
       valorTotal: 1000,
       pagos: [{ monto: 1500 }],
       equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
     };
-    expect(calcularEstadoFactura(factura, HOY)).toBe("finalizada");
+    expect(calcularEstadoFactura(factura, HOY)).toBe("cobro");
+    expect(facturaCerrada(factura, HOY)).toBe(false);
+  });
+
+  it("abierta mientras no se resuelva el depósito", () => {
+    const factura = {
+      valorTotal: 1000,
+      deposito: 200,
+      pagos: [{ monto: 1000 }],
+      equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+    };
+    expect(calcularEstadoFactura(factura, HOY)).toBe("cobro");
     expect(facturaCerrada(factura, HOY)).toBe(false);
   });
 
   it("una factura sin datos no está cerrada", () => {
     expect(facturaCerrada({}, HOY)).toBe(false);
+  });
+});
+
+// El depósito se cobra con el alquiler pero no es de la empresa: es una
+// garantía. Al devolverlo deja de contar como cargo y el total baja.
+describe("el depósito", () => {
+  // Devolvió todo, pagó los 1000 (800 de alquiler + 200 de depósito) y el
+  // equipo volvió bien: se le devuelven los 200.
+  const conDeposito = {
+    valorTotal: 1000,
+    deposito: 200,
+    pagos: [{ monto: 1000 }],
+    equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+  };
+
+  it("suma el de la factura y el de los equipos agregados después", () => {
+    expect(
+      calcularDepositoTotal({
+        deposito: 200,
+        equipos: [
+          { deposito: 50, agregadoPosteriormente: true },
+          { deposito: 30, agregadoPosteriormente: true },
+          { deposito: 999 },
+        ],
+      }),
+    ).toBe(280);
+  });
+
+  it("no se devuelve nada mientras no se resuelva", () => {
+    expect(calcularDepositoDevuelto(conDeposito)).toBe(0);
+    expect(calcularCuentaFactura(conDeposito, HOY).total).toBe(1000);
+    expect(depositoPendiente(conDeposito)).toBe(true);
+  });
+
+  it("al devolverlo entero, el total baja y queda saldo a favor", () => {
+    const factura = { ...conDeposito, depositoResuelto: { retenido: 0 } };
+    const cuenta = calcularCuentaFactura(factura, HOY);
+
+    expect(cuenta.total).toBe(800);
+    expect(cuenta.saldoAFavor).toBe(200);
+    // Hay que entregarle esos 200: la factura todavía no termina.
+    expect(calcularEstadoFactura(factura, HOY)).toBe("cobro");
+  });
+
+  it("lo retenido por daños sigue siendo ingreso", () => {
+    const factura = {
+      ...conDeposito,
+      depositoResuelto: { retenido: 50, motivo: "Rayadura" },
+    };
+    const cuenta = calcularCuentaFactura(factura, HOY);
+
+    expect(cuenta.depositoDevuelto).toBe(150);
+    expect(cuenta.total).toBe(850);
+    expect(cuenta.saldoAFavor).toBe(150);
+  });
+
+  it("si se retiene todo, la factura termina sin devolver nada", () => {
+    const factura = {
+      ...conDeposito,
+      depositoResuelto: { retenido: 200, motivo: "Equipo perdido" },
+    };
+    const cuenta = calcularCuentaFactura(factura, HOY);
+
+    expect(cuenta.depositoDevuelto).toBe(0);
+    expect(cuenta.total).toBe(1000);
+    expect(calcularEstadoFactura(factura, HOY)).toBe("finalizada");
+  });
+
+  // El caso del día a día: el cliente debe y el depósito se netea contra lo
+  // que debe, así paga solo la diferencia.
+  it("se netea contra lo que el cliente debe", () => {
+    const factura = {
+      valorTotal: 1000,
+      deposito: 200,
+      pagos: [{ monto: 600 }],
+      equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+      depositoResuelto: { retenido: 0 },
+    };
+    // Debía 400; con los 200 del depósito a favor, paga 200.
+    expect(calcularCuentaFactura(factura, HOY).saldoPendiente).toBe(200);
+  });
+
+  it("la entrega de la plata cierra la factura", () => {
+    const factura = {
+      ...conDeposito,
+      depositoResuelto: { retenido: 0 },
+      entregas: [{ fecha: "2026-08-13", medio: "Nequi", monto: 200 }],
+    };
+    const cuenta = calcularCuentaFactura(factura, HOY);
+
+    expect(cuenta.saldoAFavor).toBe(0);
+    expect(cuenta.saldoPendiente).toBe(0);
+    expect(calcularEstadoFactura(factura, HOY)).toBe("finalizada");
+    expect(facturaCerrada(factura, HOY)).toBe(true);
+  });
+
+  it("una factura sin depósito no queda pendiente por eso", () => {
+    expect(depositoPendiente({ valorTotal: 1000 })).toBe(false);
   });
 });
 

@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-199_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-208_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -145,8 +145,11 @@ flowchart TD
 | 🕓 **Pendiente** | Ya se facturó, pero todavía no llega la fecha de despacho |
 | 🚜 **Activa** | Los equipos están afuera y el alquiler está vigente |
 | ⚠️ **Vencida** | Se pasó la fecha y hay equipos sin devolver |
-| 💰 **Cobro** | Devolvió todos los equipos, pero quedó debiendo |
-| ✅ **Finalizada** | Devolvió todo y no debe nada |
+| 💰 **Cobro** | Volvieron todos los equipos, pero queda plata sin resolver |
+| ✅ **Finalizada** | No queda nada pendiente, en ninguna de las dos direcciones |
+
+> [!NOTE]
+> **"Cobro" no siempre significa que el cliente deba.** También entra ahí cuando **la empresa le debe al cliente**: un depósito por devolver o un pago de más. Una factura solo llega a *Finalizada* cuando no queda ningún asunto de plata abierto — si no, una factura "terminada" podría estar tapando una deuda con el cliente.
 
 > [!IMPORTANT]
 > **La regla menos obvia — qué saldo cuenta en cada decisión.**
@@ -198,7 +201,32 @@ Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte 
 Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien no debe nada.
 
 > [!NOTE]
-> **Saldo a favor y "cerrada".** Si el cliente pagó de más, ese sobrante es plata suya: hay que devolvérsela o aplicarla a una factura futura. Por eso una factura con saldo a favor **no se considera cerrada**, aunque no deba nada — y así nunca queda escondida en un historial que las pantallas no muestran.
+> **Saldo a favor.** Si el cliente pagó de más, ese sobrante es plata suya. La factura no termina hasta que se le devuelva, y para eso existe el botón **Devolver**, que registra la salida con su fecha y su medio — el reverso exacto de un abono.
+
+### 7. El depósito: una garantía, no un ingreso
+
+En el alquiler de equipos, el cliente deja un depósito como garantía. Se le cobra junto con el alquiler, **pero no es plata de la empresa**: vuelve a su bolsillo cuando entrega los equipos en buen estado.
+
+**Don Pedro** alquila una mezcladora en $400.000 con $100.000 de depósito. Paga $500.000 y se lleva el equipo.
+
+**Cuando devuelve la mezcladora**, quien la recibe la tiene delante y es el único momento en que alguien puede decir en qué estado volvió. Así que ahí mismo, al registrar la devolución, se define el depósito:
+
+- **Volvió bien** → se le devuelven los $100.000.
+- **Volvió rayada** → se retienen $30.000 con el motivo escrito, y esos $30.000 **sí** pasan a ser ingreso.
+
+Desde ese momento, lo devuelto **deja de contar en el total** de la factura: lo que la empresa cobró de verdad fue el alquiler más lo retenido. Y ahí pasa una de dos cosas:
+
+| Si el cliente… | Entonces |
+|---|---|
+| **Todavía debía** $200.000 | El depósito se descuenta solo: paga **$100.000** y listo |
+| **Ya había pagado todo** | Quedan $100.000 **a su favor**: hay que entregárselos |
+
+En el primer caso, cuando el usuario abre el diálogo de abono **el número ya viene neteado**: no hay que marcar nada ni acordarse de descontar. En el segundo, la factura muestra un botón para registrar la entrega.
+
+> [!IMPORTANT]
+> Mientras el depósito no se resuelva, la factura **no puede llegar a Finalizada**. Esa es toda la protección: no hace falta que nadie se acuerde de revisar quién tiene depósitos sin devolver, porque esas facturas siguen apareciendo en cartera hasta que se resuelvan.
+
+El depósito se salda **una sola vez y por el total** —contando el de la factura y el de cada equipo agregado después— cuando vuelve el último equipo. Nunca por partes en una devolución parcial.
 
 ---
 
@@ -264,7 +292,7 @@ La salida no fue volver a guardar el estado —eso es lo que envejecía—, sino
 | ¿Se pasó la fecha de devolución? | **Sí**, a medianoche | Se **calcula** |
 | ¿Devolvió todo, quedó a mano? | **No.** Solo si alguien escribe | Se **guarda** |
 
-De ahí sale **`cerrada`**: una factura cerrada devolvió todos los equipos, no debe nada y no tiene saldo a favor. Como no depende del calendario, un dato guardado no puede envejecer, y el servidor lo mantiene exacto.
+De ahí sale **`cerrada`**: una factura cerrada es la que llegó a *Finalizada*, o sea que no le queda ningún asunto de plata abierto —ni saldo, ni saldo a favor, ni depósito sin devolver—. Como nada de eso depende del calendario, un dato guardado no puede envejecer, y el servidor lo mantiene exacto.
 
 Guardarlo es lo que permite **preguntarle a la base** en vez de traer todo para averiguarlo:
 
@@ -372,9 +400,9 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**199 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**208 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
-Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, reparto de abonos entre varias facturas, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
+Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
 El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 
