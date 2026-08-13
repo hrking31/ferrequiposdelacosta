@@ -26,8 +26,6 @@ import {
   VistaClienteDetalle,
   VistaSeguimientoClientes,
 } from "./Views";
-// ⚠️ TEMPORAL: se borra junto con su ruta al terminar el sembrado.
-import VistaSembrarCerrada from "./Views/VistaSembrarCerrada/VistaSembrarCerrada";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
@@ -174,17 +172,6 @@ function App() {
           element={
             <ProtectedRoutes allowedRoles={["cuentaCombro"]}>
               <VistaCuentasCobro />
-            </ProtectedRoutes>
-          }
-        />
-        {/* ⚠️ TEMPORAL — borrar esta ruta y su vista después de sembrar la
-            marca de "cerrada" en las facturas viejas. No está en ningún menú:
-            se llega escribiendo la dirección, y solo se usa en localhost. */}
-        <Route
-          path="/sembrarcerrada"
-          element={
-            <ProtectedRoutes allowedRoles={["clientes"]}>
-              <VistaSembrarCerrada />
             </ProtectedRoutes>
           }
         />
