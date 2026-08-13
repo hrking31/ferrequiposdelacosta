@@ -578,6 +578,32 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
   return "activa";
 };
 
+// ── Cerrada: el único pedazo del estado que SÍ se guarda ───────────────
+//
+// Todo lo de arriba se calcula porque cambia SOLO con el calendario: una
+// factura vence a la medianoche sin que nadie escriba nada, y un dato guardado
+// no se puede enterar de algo que no pasó.
+//
+// Esto es lo contrario. Una factura cerrada es la que ya no tiene nada
+// pendiente por ningún lado: devolvió todos los equipos, no debe plata y
+// tampoco le sobró. Eso NO cambia con el calendario —sin equipos afuera ya no
+// corren días de alquiler—, así que solo puede cambiar si alguien escribe. Y
+// de las escrituras el servidor se entera siempre.
+//
+// Por eso es seguro guardarlo, y guardarlo es lo que permite PREGUNTARLE a la
+// base "dame solo las facturas abiertas" en vez de traerlas todas para
+// averiguar cuáles son. De eso viven el detalle del cliente, el seguimiento y
+// el repaso de madrugada.
+//
+// Lo del saldo a favor no es un detalle: si el cliente pagó de más, esa plata
+// es suya y hay que devolvérsela o aplicarla a otra factura. Mientras eso no
+// se resuelva la factura NO está cerrada, aunque no deba nada. Sin esta
+// condición, un saldo a favor podría quedar escondido en una factura que las
+// pantallas ya no muestran.
+export const facturaCerrada = (factura, hoyIso = obtenerFechaHoyBogota()) =>
+  calcularEstadoFactura(factura, hoyIso) === "finalizada" &&
+  calcularCuentaFactura(factura, hoyIso).saldoAFavor === 0;
+
 // ── Los totales del panel del menú ─────────────────────────────────────
 //
 // Los dos números de los recuadros "Equipos activos" y "Pagos pendientes".
@@ -648,8 +674,11 @@ export const calcularTotalesFacturas = (
 //
 // A diferencia del estado de la factura, este SÍ se guarda en Firestore: la
 // lista de clientes lee solo la colección `clientes`, y traer las facturas de
-// todos para calcularlo al vuelo sería lento y caro. Se recalcula cada vez que
-// se toca una factura y cada vez que se abre Seguimiento.
+// todos para calcularlo al vuelo sería lento y caro. De mantenerlo al día se
+// encarga el servidor: cada vez que se toca una factura, y en el repaso de las
+// 3 a.m. para las que vencen solas (ver functions/index.js). Las pantallas ya
+// no lo corrigen al abrirse — cuando lo hacían, el estado solo se ponía al día
+// si alguien pasaba por ahí.
 const PRIORIDAD_ESTADO_CLIENTE = [
   "vencida", // se pasó la fecha y tiene equipos afuera: hay que llamar ya
   "cobro", // devolvió todo pero debe plata: hay que insistir

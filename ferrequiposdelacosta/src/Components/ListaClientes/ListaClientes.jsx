@@ -33,6 +33,7 @@ import ClienteFormDialog from "./ClienteFormDialog";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { ESTADO_CLIENTE_INFO } from "../ClienteDetalle/facturaUtils";
+import { obtenerClientes, invalidarCopiaClientes } from "./clientesCache";
 
 // Los rótulos van en plural porque nombran un GRUPO de clientes, no el estado
 // de uno solo: por eso son aparte de ESTADO_CLIENTE_INFO. El orden es el de
@@ -88,14 +89,19 @@ export default function ListaClientes() {
   const [crearClienteOpen, setCrearClienteOpen] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
+  // Pasa por la copia guardada en el equipo: si nadie tocó un cliente desde la
+  // última vez, esto cuesta 1 lectura en vez de una por cada cliente. Ver
+  // clientesCache.js.
   const fetchClientes = useCallback(async () => {
     try {
       setLoading(true);
-      const querySnapshot = await getDocs(collection(db, "clientes"));
-      const lista = querySnapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
+      const { clientes: lista } = await obtenerClientes(async () => {
+        const querySnapshot = await getDocs(collection(db, "clientes"));
+        return querySnapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+      });
       setClientes(lista);
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
@@ -104,6 +110,14 @@ export default function ListaClientes() {
       setLoading(false);
     }
   }, [showSnackbar]);
+
+  // Cuando el cambio lo acaba de hacer esta pantalla, la copia se tira sin
+  // preguntar: el servidor tarda un instante en actualizar el sello, y en ese
+  // instante la copia todavía diría que no cambió nada.
+  const refrescarTrasCambio = useCallback(() => {
+    invalidarCopiaClientes();
+    return fetchClientes();
+  }, [fetchClientes]);
 
   useEffect(() => {
     fetchClientes();
@@ -538,7 +552,7 @@ export default function ListaClientes() {
         <ClienteFormDialog
           open={crearClienteOpen}
           onClose={() => setCrearClienteOpen(false)}
-          onGuardado={fetchClientes}
+          onGuardado={refrescarTrasCambio}
         />
 
         <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />

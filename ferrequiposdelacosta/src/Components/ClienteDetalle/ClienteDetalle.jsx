@@ -34,18 +34,21 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AddIcon from "@mui/icons-material/Add";
+import HistoryIcon from "@mui/icons-material/History";
 import {
   collection,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
-  updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
+import { invalidarCopiaClientes } from "../ListaClientes/clientesCache";
 import FacturaFormDialog from "./FacturaFormDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import AbonoDialog from "./AbonoDialog";
@@ -417,7 +420,13 @@ export default function ClienteDetalle() {
   const colorAdicionales = theme.palette.custom.seccionAdicionales;
   const avatarBgPorEstado = theme.palette.custom.estadoFactura;
   const [cliente, setCliente] = useState(null);
+  // `facturas` son SIEMPRE las abiertas. Las cerradas viven aparte y solo
+  // llegan si el usuario las pide: así la cuenta del encabezado —que se arma
+  // con las abiertas— no cambia por el hecho de haber mirado el historial.
   const [facturas, setFacturas] = useState([]);
+  const [facturasCerradas, setFacturasCerradas] = useState([]);
+  const [cerradasCargadas, setCerradasCargadas] = useState(false);
+  const [cargandoCerradas, setCargandoCerradas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
@@ -490,26 +499,41 @@ export default function ClienteDetalle() {
         }
         const datosCliente = { id: clienteSnap.id, ...clienteSnap.data() };
 
+        // Solo las facturas abiertas. Las cerradas —devolvió todo, no debe
+        // nada, no le sobró— son las que se van acumulando con los años y las
+        // que casi nunca se miran; se traen aparte, con "Ver facturas
+        // anteriores". Un cliente con 100 facturas viejas y 2 abiertas pasa de
+        // 101 lecturas a 3.
         const facturasSnap = await getDocs(
-          collection(db, "clientes", id, "facturas"),
+          query(
+            collection(db, "clientes", id, "facturas"),
+            where("cerrada", "==", false),
+          ),
         );
         const listaFacturas = facturasSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
 
         // El estado del cliente es el único que se guarda, para que la lista
-        // de clientes pueda filtrar sin leer las facturas de todos. Puede
-        // quedar viejo solo con que pase el tiempo —una factura que venció
-        // anoche—, así que acá, que ya tenemos todas sus facturas, se
-        // recalcula y se corrige si hace falta.
-        const estadoCalculado = calcularEstadoCliente(listaFacturas);
-        if (estadoCalculado !== datosCliente.estado) {
-          await updateDoc(doc(db, "clientes", id), { estado: estadoCalculado });
-          datosCliente.estado = estadoCalculado;
-        }
+        // de clientes pueda filtrar sin leer las facturas de todos. De
+        // mantenerlo al día se encarga el servidor (ver ajustarTotalesPanel y
+        // recalcularTotalesPanel en functions/index.js): esta pantalla solía
+        // corregirlo al abrirse, y esa era exactamente la falla —el estado
+        // solo se ponía al día si alguien pasaba por acá—.
+        //
+        // Se recalcula igual, pero solo para MOSTRARLO: es gratis, ya tenemos
+        // las facturas, y así el chip nunca depende de qué tan fresco esté lo
+        // guardado.
+        datosCliente.estado = calcularEstadoCliente(listaFacturas);
 
         setCliente(datosCliente);
         setFacturas(listaFacturas);
+        // Al recargar el cliente se descartan las cerradas que se hubieran
+        // traído: si el usuario las quiere ver de nuevo, las vuelve a pedir.
+        // Mantenerlas obligaría a recargarlas también, que es justo el gasto
+        // que se está evitando.
+        setFacturasCerradas([]);
+        setCerradasCargadas(false);
       } catch (error) {
         console.error("Error al obtener el cliente:", error);
         showSnackbar("Error al cargar el cliente", "error");
@@ -523,6 +547,39 @@ export default function ClienteDetalle() {
   useEffect(() => {
     fetchCliente();
   }, [fetchCliente]);
+
+  // El historial: las facturas ya cerradas, a pedido. Se cobran una sola vez
+  // por visita.
+  const cargarFacturasCerradas = useCallback(async () => {
+    try {
+      setCargandoCerradas(true);
+      const snap = await getDocs(
+        query(
+          collection(db, "clientes", id, "facturas"),
+          where("cerrada", "==", true),
+        ),
+      );
+      setFacturasCerradas(
+        snap.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")),
+      );
+      setCerradasCargadas(true);
+    } catch (error) {
+      console.error("Error al obtener las facturas anteriores:", error);
+      showSnackbar("Error al cargar las facturas anteriores", "error");
+    } finally {
+      setCargandoCerradas(false);
+    }
+  }, [id, showSnackbar]);
+
+  // Lo que se dibuja: las abiertas primero y, si se pidieron, el historial
+  // debajo. Ordenar todo junto por fecha mezclaría una factura cerrada de la
+  // semana pasada entre las que están en curso.
+  const facturasVisibles = useMemo(
+    () => [...facturas, ...facturasCerradas],
+    [facturas, facturasCerradas],
+  );
 
   // Tarjeta de un equipo dentro de una factura: cantidad/nombre/subtotal
   // arriba, días/precio/fechas como pills abajo. La misma tarjeta sirve para
@@ -1005,9 +1062,15 @@ export default function ClienteDetalle() {
   const estadoColor =
     avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
-  // La cuenta del cliente entero: la suma de todas sus facturas. A diferencia
-  // de una factura suelta, acá el saldo es neto (lo que sobró en una descuenta
-  // lo que se debe en otra).
+  // La cuenta del cliente: la suma de sus facturas ABIERTAS, o sea lo que
+  // tiene abierto hoy, no lo que compró en toda su vida. A diferencia de una
+  // factura suelta, acá el saldo es neto (lo que sobró en una descuenta lo que
+  // se debe en otra).
+  //
+  // Las cerradas quedan fuera y no le hacen falta: por definición devolvieron
+  // todo, no deben nada y no les sobró, así que aportan cero a las cuatro
+  // casillas. Y por eso mismo el número no cambia si alguien pide ver el
+  // historial.
   const cuentaCliente = calcularCuentaCliente(facturas);
   // Solo se pliega en celular; en computador el contacto está siempre a la
   // vista, así que la flecha no tiene nada que hacer.
@@ -1167,7 +1230,7 @@ export default function ClienteDetalle() {
           minWidth: 0,
           // Sin facturas no hay pizarra que empuje el bloque al borde
           // derecho, así que el hueco lo ocupa el nombre.
-          flexGrow: facturas.length > 0 ? 0 : 1,
+          flexGrow: facturasVisibles.length > 0 ? 0 : 1,
           // En celular, el Stack de arriba pasa a columna y este renglón
           // (y la pizarra, su hermano) deberían estirarse solos por el
           // alignItems:"stretch" del padre — pero con flexWrap:"wrap" en
@@ -1182,7 +1245,7 @@ export default function ClienteDetalle() {
             que ese renglón se repartiera entre esta insignia y el botón
             de crear factura, arriba. */}
         <Badge
-          badgeContent={facturas.length}
+          badgeContent={facturasVisibles.length}
           color="primary"
           overlap="circular"
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
@@ -1429,13 +1492,15 @@ export default function ClienteDetalle() {
       {/* De acá para abajo es lo único que se desplaza: la tarjeta del
           cliente queda fija, fuera de este contenedor. */}
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-      {facturas.length === 0 ? (
+      {facturasVisibles.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          Este cliente no tiene facturas registradas.
+          {cerradasCargadas
+            ? "Este cliente no tiene facturas registradas."
+            : "Este cliente no tiene facturas abiertas."}
         </Typography>
       ) : (
         <Stack spacing={2}>
-          {facturas.map((factura) => {
+          {facturasVisibles.map((factura) => {
             // El estado sale de los datos de la factura, no de un campo
             // guardado: así no puede quedar viejo por el simple paso del
             // tiempo (ver calcularEstadoFactura en facturaUtils).
@@ -2397,13 +2462,52 @@ export default function ClienteDetalle() {
           })}
         </Stack>
       )}
+
+      {/* El historial. Arriba solo están las facturas abiertas; las cerradas
+          —devolvió todo y quedó a mano— se traen solo si alguien las pide,
+          porque son las que se acumulan con los años y casi nunca se miran.
+          La cuenta del encabezado no cambia al traerlas: ahí se muestra lo que
+          el cliente tiene abierto ahora. */}
+      {!cerradasCargadas ? (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<HistoryIcon />}
+            onClick={cargarFacturasCerradas}
+            disabled={cargandoCerradas}
+          >
+            {cargandoCerradas ? "Buscando..." : "Ver facturas anteriores"}
+          </Button>
+        </Box>
+      ) : (
+        facturasCerradas.length === 0 && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: "center", mt: 2 }}
+          >
+            No hay facturas anteriores.
+          </Typography>
+        )
+      )}
       </Box>
 
+      {/* Editar o eliminar al cliente cambia lo que muestra la lista, así que
+          se tira su copia guardada. El servidor también lo sella, pero tarda
+          un instante y para entonces el usuario ya puede estar de vuelta en la
+          lista. */}
       <ClienteFormDialog
         open={editarOpen}
         onClose={() => setEditarOpen(false)}
-        onGuardado={fetchCliente}
-        onEliminado={() => navigate("/vistaclientes")}
+        onGuardado={() => {
+          invalidarCopiaClientes();
+          return fetchCliente();
+        }}
+        onEliminado={() => {
+          invalidarCopiaClientes();
+          navigate("/vistaclientes");
+        }}
         cliente={cliente}
       />
 

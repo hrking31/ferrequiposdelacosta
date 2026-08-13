@@ -22,6 +22,7 @@ import {
   calcularCuentaCliente,
   calcularEstadoFactura,
   calcularEstadoCliente,
+  facturaCerrada,
   obtenerGestiones,
   contarLlamadasSinRespuesta,
   calcularGestionFactura,
@@ -409,6 +410,62 @@ describe("calcularEstadoFactura", () => {
       equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
     };
     expect(calcularEstadoFactura(factura, HOY)).toBe("finalizada");
+  });
+});
+
+// Es el único pedazo del estado que se guarda en Firestore, y de él dependen
+// las consultas de las tres pantallas: si esto se equivoca, una factura
+// desaparece de la vista o una cerrada se sigue arrastrando.
+describe("facturaCerrada", () => {
+  it("cerrada: devolvió todo y no debe nada", () => {
+    const factura = {
+      valorTotal: 1000,
+      pagos: [{ monto: 1000 }],
+      equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+    };
+    expect(facturaCerrada(factura, HOY)).toBe(true);
+  });
+
+  it("abierta si devolvió todo pero queda saldo", () => {
+    const factura = {
+      valorTotal: 1000,
+      pagos: [],
+      equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+    };
+    expect(facturaCerrada(factura, HOY)).toBe(false);
+  });
+
+  it("abierta si todavía tiene equipos afuera", () => {
+    const factura = {
+      valorTotal: 1000,
+      pagos: [{ monto: 1000 }],
+      equipos: [
+        {
+          cantidad: 1,
+          valor: 100,
+          fechaDespacho: "2026-08-10",
+          fechaVencimiento: "2026-08-20",
+        },
+      ],
+    };
+    expect(facturaCerrada(factura, HOY)).toBe(false);
+  });
+
+  // La razón de ser de la condición extra: sin ella esta factura contaría
+  // como cerrada —no debe nada— y su saldo a favor quedaría escondido en una
+  // factura que las pantallas ya no muestran. Esa plata es del cliente.
+  it("abierta si el cliente pagó de más, aunque no deba nada", () => {
+    const factura = {
+      valorTotal: 1000,
+      pagos: [{ monto: 1500 }],
+      equipos: [{ cantidad: 1, cantidadDevuelta: 1, valor: 100 }],
+    };
+    expect(calcularEstadoFactura(factura, HOY)).toBe("finalizada");
+    expect(facturaCerrada(factura, HOY)).toBe(false);
+  });
+
+  it("una factura sin datos no está cerrada", () => {
+    expect(facturaCerrada({}, HOY)).toBe(false);
   });
 });
 

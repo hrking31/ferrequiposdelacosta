@@ -17,7 +17,9 @@ import {getStorage} from "firebase-admin/storage";
 // falla si eso pasa.
 import {
   calcularAporteFactura,
+  calcularEstadoCliente,
   calcularTotalesFacturas,
+  facturaCerrada,
   obtenerFechaHoyBogota,
 } from "./compartido/facturaCalculos.js";
 
@@ -235,9 +237,16 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
       createdAt: Date.now(),
     };
 
+    // TEMPORAL (2026-08-13): el dueño notó que la solicitud aparecía en la
+    // lista antes de que sonara la campana. Estas marcas dicen cuánto tarda
+    // cada paso; se sacan apenas se sepa. Ver "firebase functions:log".
+    const marcaInicio = Date.now();
+
     const referencia = await getFirestore()
         .collection("cotizaciones")
         .add(finalData);
+
+    const marcaGuardada = Date.now();
 
     // El TIMBRE. La campanita del personal no escucha las cotizaciones —eso
     // costaría lecturas de Firestore a toda hora—, escucha este único dato en
@@ -257,6 +266,12 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
     } catch (error) {
       console.error("No se pudo tocar el timbre de cotizaciones:", error);
     }
+
+    // TEMPORAL: ver la nota de arriba.
+    console.log(
+        `MEDICION timbre — guardar: ${marcaGuardada - marcaInicio}ms, ` +
+        `timbre: ${Date.now() - marcaGuardada}ms`,
+    );
 
     return {success: true, id: referencia.id};
   } catch (error) {
@@ -286,6 +301,49 @@ const DOC_TOTALES = "totales";
  */
 function refTotales() {
   return getFirestore().collection(COLECCION_RESUMEN).doc(DOC_TOTALES);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// EL ESTADO DEL CLIENTE
+// ─────────────────────────────────────────────────────────────────────────
+//
+// El estado de una FACTURA se calcula siempre, nunca se guarda. El del
+// CLIENTE es la única excepción: se guarda en clientes/{id}.estado para que la
+// lista de clientes pueda filtrar y contar sin leer las facturas de todos.
+//
+// Y lo que se guarda se puede quedar viejo. Antes lo corregían las pantallas
+// al abrirse (la ficha del cliente y el seguimiento), o sea que un cliente
+// cuya factura venció anoche seguía figurando "activa" —y NO aparecía al
+// filtrar por vencidas, que es justo cuando se lo necesita— hasta que a
+// alguien se le ocurriera entrar a mirarlo. Corregirlo acá lo vuelve
+// independiente de que alguien abra algo.
+/**
+ * Recalcula el estado de un cliente a partir de sus facturas y lo corrige si
+ * quedó viejo.
+ * @param {string} clienteId Id del documento del cliente.
+ * @param {string} hoy Fecha de hoy en Bogotá (AAAA-MM-DD).
+ * @return {Promise} Promesa vacía.
+ */
+async function corregirEstadoCliente(clienteId, hoy) {
+  const refCliente = getFirestore().collection("clientes").doc(clienteId);
+
+  const [clienteSnap, facturasSnap] = await Promise.all([
+    refCliente.get(),
+    refCliente.collection("facturas").get(),
+  ]);
+
+  // Si el cliente ya no existe no hay nada que corregir, y escribirle sería
+  // peor que no hacer nada: al eliminar un cliente se borran sus facturas, y
+  // cada borrado despierta a esta función. Un update sobre un documento
+  // borrado falla; peor aún sería un set, que lo resucitaría vacío.
+  if (!clienteSnap.exists) return;
+
+  const facturas = facturasSnap.docs.map((doc) => doc.data());
+  const estado = calcularEstadoCliente(facturas, hoy);
+
+  if (estado === clienteSnap.data().estado) return;
+
+  await refCliente.update({estado});
 }
 
 // Cada vez que se toca una factura —un abono, un pago, una devolución, una
@@ -324,14 +382,71 @@ export const ajustarTotalesPanel = onDocumentWritten(
 
       // Muchos cambios no mueven ninguno de los dos números (por ejemplo,
       // corregir una dirección). Ahí no se escribe nada.
-      if (equipos === 0 && pagos === 0) return;
+      if (equipos !== 0 || pagos !== 0) {
+        await refTotales().set(
+            {
+              equiposActivos: FieldValue.increment(equipos),
+              pagosPendientes: FieldValue.increment(pagos),
+              actualizadoEn: Date.now(),
+            },
+            {merge: true},
+        );
+      }
 
+      // La marca de "cerrada" en la propia factura. Es el único pedazo del
+      // estado que se guarda, porque es el único que no cambia solo con el
+      // calendario (ver facturaCerrada en las cuentas compartidas). Guardarlo
+      // es lo que permite pedirle a la base "dame solo las facturas abiertas".
+      //
+      // Escribir la factura desde su propio disparador lo vuelve a despertar.
+      // No es un problema: la segunda vez el valor ya coincide, no se escribe
+      // nada y la cadena se corta ahí. Pasa una o dos veces en la vida de cada
+      // factura —cuando se cierra, y si alguna vez se reabre—, así que no vale
+      // la pena una salvaguarda más enredada que el propio caso.
+      if (despues && facturaCerrada(despues, hoy) !== despues.cerrada) {
+        await event.data.after.ref.update({
+          cerrada: facturaCerrada(despues, hoy),
+        });
+      }
+
+      // Y de paso, el estado del cliente dueño de esta factura.
+      //
+      // Ojo: esto SÍ lee, a diferencia de la pizarra. No es un descuido, es
+      // que no hay forma de evitarlo: la pizarra son sumas, así que basta la
+      // diferencia entre el antes y el después que Firestore regala en el
+      // aviso. El estado del cliente no es una suma, es "la más urgente de
+      // TODAS sus facturas": si a un cliente vencido le pagan la factura
+      // vencida, para saber si pasa a activa hay que mirar las otras.
+      //
+      // Son las facturas de UN cliente —pocas—, así que es barato. Pero
+      // téngalo presente antes de correr un script que reescriba facturas en
+      // masa: cada escritura despierta esto y se paga la lectura.
+      await corregirEstadoCliente(event.params.clienteId, hoy);
+    },
+);
+
+// EL SELLO: la fecha del último cambio en los clientes.
+//
+// La lista de clientes tiene que traerlos a todos —el buscador encuentra por
+// cualquier pedazo del nombre y los contadores de la izquierda cuentan sobre
+// el total—, así que son 200 lecturas por visita con 200 clientes. Pero de una
+// visita a la otra casi nunca cambió nada.
+//
+// Con este sello, la lista guarda su propia copia en el equipo y al abrirse
+// solo mira esta fecha: 1 lectura. Si coincide con la de su copia, no vuelve a
+// pedir nada. Si es más nueva, recién ahí trae los 200 de nuevo.
+//
+// Cuesta cero lecturas y una escritura por cambio. Y como vive en el servidor
+// y no en la app, se entera TAMBIÉN de lo que se edita a mano en la consola de
+// Firebase, que es justo lo que uno hace cuando está probando algo.
+//
+// Se despierta también cuando la función de arriba corrige un estado, que es
+// exactamente cuando hay que sellar.
+export const sellarCambioDeClientes = onDocumentWritten(
+    "clientes/{clienteId}",
+    async () => {
       await refTotales().set(
-          {
-            equiposActivos: FieldValue.increment(equipos),
-            pagosPendientes: FieldValue.increment(pagos),
-            actualizadoEn: Date.now(),
-          },
+          {clientesActualizadoEn: Date.now()},
           {merge: true},
       );
     },
@@ -351,18 +466,24 @@ export const ajustarTotalesPanel = onDocumentWritten(
 //
 // De paso corrige cualquier desvío que hubiera quedado de los ajustes.
 //
+// Lo mismo vale para el estado del cliente, y por el mismo motivo: una
+// factura que vence a la medianoche no la escribe nadie, así que el
+// disparador de arriba no se entera nunca. Acá se corrige. Entre la
+// medianoche y las 3 el estado puede estar viejo; a esa hora no trabaja
+// nadie.
+//
 // collectionGroup trae las facturas de TODOS los clientes en una sola
 // consulta, sin recorrer cliente por cliente.
 export const recalcularTotalesPanel = onSchedule(
     {schedule: "0 3 * * *", timeZone: "America/Bogota"},
     async () => {
-      const snap = await getFirestore().collectionGroup("facturas").get();
+      const db = getFirestore();
+      const hoy = obtenerFechaHoyBogota();
+
+      const snap = await db.collectionGroup("facturas").get();
       const facturas = snap.docs.map((doc) => doc.data());
 
-      const totales = calcularTotalesFacturas(
-          facturas,
-          obtenerFechaHoyBogota(),
-      );
+      const totales = calcularTotalesFacturas(facturas, hoy);
 
       await refTotales().set(
           {...totales, actualizadoEn: Date.now(), recalculadoEn: Date.now()},
@@ -372,6 +493,79 @@ export const recalcularTotalesPanel = onSchedule(
       console.log(
           `Pizarra recalculada sobre ${facturas.length} facturas:`,
           totales,
+      );
+
+      // Este recorrido lee TODAS las facturas, también las cerradas. Se
+      // evaluó filtrarlas —aportan cero a los dos totales, así que sumarlas no
+      // cambia nada— y NO conviene: es el único proceso que garantiza que la
+      // pizarra esté bien, y si a una factura le faltara la marca de "cerrada"
+      // quedaría fuera de la consulta y sus equipos y su saldo desaparecerían
+      // de los números del menú, en silencio. Leer de más una vez por noche es
+      // barato; un total mal en el menú, no.
+      //
+      // Y ya que están todas a la vista, se aprovecha para lo contrario:
+      // reparar la marca de "cerrada" donde falte o esté mal. El disparador la
+      // mantiene al día, pero esto cubre las facturas que nadie tocó desde que
+      // el campo existe. Acá es una red de seguridad; allá arriba habría sido
+      // un riesgo.
+      let lote = db.batch();
+      let enElLote = 0;
+
+      const anotarEnLote = async (ref, datos) => {
+        lote.update(ref, datos);
+        enElLote += 1;
+
+        // Un lote de Firestore no admite más de 500 operaciones.
+        if (enElLote === 400) {
+          await lote.commit();
+          lote = db.batch();
+          enElLote = 0;
+        }
+      };
+
+      // El "padre del padre" de clientes/X/facturas/Y es el cliente X.
+      const facturasPorCliente = new Map();
+      let facturasCorregidas = 0;
+
+      for (const facturaSnap of snap.docs) {
+        const clienteId = facturaSnap.ref.parent.parent?.id;
+        if (!clienteId) continue;
+
+        const factura = facturaSnap.data();
+        const lista = facturasPorCliente.get(clienteId) ?? [];
+        lista.push(factura);
+        facturasPorCliente.set(clienteId, lista);
+
+        const cerrada = facturaCerrada(factura, hoy);
+        if (cerrada !== factura.cerrada) {
+          await anotarEnLote(facturaSnap.ref, {cerrada});
+          facturasCorregidas += 1;
+        }
+      }
+
+      // Se recorren TODOS los clientes, no solo los que aparecieron arriba:
+      // un cliente al que le borraron su última factura no sale en la
+      // consulta y tiene que volver a "inactivo".
+      const clientesSnap = await db.collection("clientes").get();
+      let clientesCorregidos = 0;
+
+      for (const clienteSnap of clientesSnap.docs) {
+        const estado = calcularEstadoCliente(
+            facturasPorCliente.get(clienteSnap.id) ?? [],
+            hoy,
+        );
+        if (estado === clienteSnap.data().estado) continue;
+
+        await anotarEnLote(clienteSnap.ref, {estado});
+        clientesCorregidos += 1;
+      }
+
+      if (enElLote > 0) await lote.commit();
+
+      console.log(
+          `Clientes revisados: ${clientesSnap.size}, ` +
+          `estados corregidos: ${clientesCorregidos}, ` +
+          `marcas de cerrada corregidas: ${facturasCorregidas}`,
       );
     },
 );

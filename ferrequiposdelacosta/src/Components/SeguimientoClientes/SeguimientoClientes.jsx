@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
-import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -17,7 +17,6 @@ import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import {
   obtenerFechaHoyBogota,
-  calcularEstadoCliente,
   facturaEnSeguimiento,
 } from "../ClienteDetalle/facturaUtils";
 
@@ -41,46 +40,59 @@ export default function SeguimientoClientes() {
     async (silencioso = false) => {
       try {
         if (!silencioso) setLoading(true);
-        const clientesSnap = await getDocs(collection(db, "clientes"));
+
+        // Solo los clientes que hay que cobrar, no los 200. El estado del
+        // cliente es "la más urgente de sus facturas", y vencida y cobro son
+        // justamente las dos más urgentes: pedir estos dos estados trae
+        // EXACTAMENTE los clientes con alguna factura en seguimiento, ni uno
+        // más ni uno menos. No es una aproximación.
+        //
+        // Esto se apoya en que el estado guardado sea confiable, y lo es desde
+        // que lo mantiene el servidor (ver functions/index.js). Cuando lo
+        // corregían las pantallas al abrirse no se podía hacer: un cliente
+        // vencido anoche seguía marcado activo y habría quedado fuera de la
+        // lista de cobros, que es el peor error posible acá.
+        const clientesSnap = await getDocs(
+          query(
+            collection(db, "clientes"),
+            where("estado", "in", ["vencida", "cobro"]),
+          ),
+        );
         const clientes = clientesSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
         const hoy = obtenerFechaHoyBogota();
-        const batch = writeBatch(db);
-        let huboCambios = false;
 
+        // Esta pantalla no guarda nada: solo mira. El estado de cada factura
+        // se calcula acá mismo, y del estado del CLIENTE —lo único que se
+        // guarda— se encarga el servidor (ver ajustarTotalesPanel y
+        // recalcularTotalesPanel en functions/index.js). Esta pantalla lo
+        // corregía al abrirse, y esa era justamente la falla: si nadie entraba
+        // acá, la lista de clientes mostraba estados viejos.
         const resultados = await Promise.all(
           clientes.map(async (cliente) => {
+            // Y de cada uno, solo las facturas abiertas: una cerrada devolvió
+            // todo y no debe nada, así que nunca puede estar en seguimiento.
+            // Traerlas era pagar por facturas que el filtro de abajo iba a
+            // descartar igual.
             const facturasSnap = await getDocs(
-              collection(db, "clientes", cliente.id, "facturas"),
+              query(
+                collection(db, "clientes", cliente.id, "facturas"),
+                where("cerrada", "==", false),
+              ),
             );
-            const todasLasFacturas = facturasSnap.docs.map((docSnap) => ({
+            const facturasAbiertas = facturasSnap.docs.map((docSnap) => ({
               id: docSnap.id,
               ...docSnap.data(),
             }));
 
-            // El estado de cada factura se calcula, así que no hay nada que
-            // corregir en ellas. Lo que sí puede quedar viejo es el del
-            // CLIENTE, que se guarda para que la lista de clientes pueda
-            // filtrar sin leer las facturas de todos: una factura que venció
-            // sola —sin que nadie tocara nada— lo deja desactualizado. Esta
-            // pantalla, que ya tiene todas las facturas en la mano, es el
-            // lugar natural para ponerlo al día.
-            const estadoCliente = calcularEstadoCliente(todasLasFacturas, hoy);
-            if (estadoCliente !== cliente.estado) {
-              batch.update(doc(db, "clientes", cliente.id), { estado: estadoCliente });
-              huboCambios = true;
-            }
-
-            const facturas = todasLasFacturas.filter((factura) =>
+            const facturas = facturasAbiertas.filter((factura) =>
               facturaEnSeguimiento(factura, hoy),
             );
             return facturas.length > 0 ? { cliente, facturas } : null;
           }),
         );
-
-        if (huboCambios) await batch.commit();
 
         setClientesConSeguimiento(resultados.filter(Boolean));
       } catch (error) {

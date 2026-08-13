@@ -43,6 +43,7 @@ import {
   sumarAbonos,
   separarExcedentePago,
   calcularEstadoCliente,
+  facturaCerrada,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -430,14 +431,28 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     setGuardando(true);
     try {
       if (factura) {
-        await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), datosFactura);
+        await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
+          ...datosFactura,
+          cerrada: facturaCerrada(datosFactura),
+        });
         showSnackbar("Factura actualizada correctamente.", "success");
         onGuardado?.({ id: factura.id, ...factura, ...datosFactura });
       } else {
         const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
-        // La factura no guarda su estado: se calcula a partir de sus fechas,
-        // de lo que se haya devuelto y del saldo (ver calcularEstadoFactura).
-        const nuevaFactura = { ...datosFactura };
+        // La factura no guarda su estado —se calcula a partir de sus fechas,
+        // de lo que se haya devuelto y del saldo (ver calcularEstadoFactura)—
+        // con una sola excepción: la marca de "cerrada".
+        //
+        // Nace acá y no se deja para el servidor a propósito. Las pantallas
+        // piden "las facturas abiertas", así que una factura sin la marca no
+        // aparecería en ninguna. El servidor la pone un segundo después, pero
+        // la pantalla se refresca antes: la factura recién creada parpadearía
+        // y por un momento no estaría. Del resto de los cambios sí se encarga
+        // el servidor.
+        const nuevaFactura = {
+          ...datosFactura,
+          cerrada: facturaCerrada(datosFactura),
+        };
         const batch = writeBatch(db);
         batch.set(facturaRef, nuevaFactura);
         // El del CLIENTE sí se guarda, para que la lista pueda filtrar sin
