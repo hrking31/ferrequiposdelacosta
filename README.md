@@ -42,9 +42,18 @@ Esta aplicación sostiene ese ciclo completo: **el cliente pide → se cotiza �
 | **Para quién** | Clientes, desde su celular o desde una pantalla en el local | El equipo de Ferrequipos |
 | **Qué hace** | Explorar el catálogo, armar un carrito y enviar la solicitud | Cotizar, facturar, cobrar y seguir la cartera |
 | **Cómo entra** | Sin cuenta, abierto a todos | Con usuario y contraseña, con permisos por rol |
-| **Detalle** | El modo Kiosco fuerza tema oscuro y tiene protector de pantalla por inactividad | Aviso sonoro cuando entra una solicitud nueva |
+| **Detalle** | El modo Kiosco fuerza tema oscuro y tiene protector de pantalla por inactividad | Aviso sonoro cuando entra una solicitud nueva, y quién está conectado |
 
 Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del personal**, sin recargar la página, y suena una campana.
+
+### Del lado del cliente
+
+Explora el catálogo, entra al detalle de un equipo y arma su pedido eligiendo **cuántos** y **por cuántos días**. Los equipos que vienen en distintas presentaciones —medidas, capacidades— tienen **variantes**: se eligen con un toque, y el nombre del grupo lo define quien carga el equipo ("Tamaño", "Capacidad", lo que corresponda).
+
+Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la solicitud entra al buzón del personal.
+
+> [!NOTE]
+> La campana suena **solo** para los pedidos que llegan de clientes. Una cotización que arma el propio personal no la hace sonar, y es a propósito: ya la está atendiendo quien la escribe. Cuando una alarma suena para todo, se deja de mirar.
 
 ---
 
@@ -54,11 +63,13 @@ Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del pers
 |---|---|
 | **Solicitudes** | Buzón en vivo de lo que piden los clientes desde la tienda |
 | **Cotización** | Arma la cotización, calcula totales y genera el PDF |
-| **Cuenta de cobro** | Emite el documento de cobro con numeración propia (`CC-…`) |
-| **Clientes** | Ficha de cada cliente, con todas sus facturas y su estado de cuenta |
+| **Cuenta de cobro** | Emite el documento de cobro con numeración propia (`CC-…`), y guarda el historial |
+| **Clientes** | Ficha de cada cliente: sus facturas, su estado de cuenta y sus documentos |
 | **Cartera / Seguimiento** | Los clientes que deben o se les venció el plazo, con su bitácora de gestiones |
-| **Equipos** | Alta, edición y eliminación del catálogo, con fotos |
+| **Equipos** | Alta, edición y eliminación del catálogo, con fotos y variantes |
 | **Usuarios** | Cuentas del personal, con roles y permisos |
+
+El menú de entrada muestra además **cuatro números en vivo**: equipos afuera, plata por cobrar, cotizaciones del mes y cuentas de cobro del mes. Cada uno se filtra por permiso: quien solo administra el catálogo no ve las cifras de cartera.
 
 ### Roles
 
@@ -186,6 +197,21 @@ Se guarda **el historial completo**, no solo lo último: así se puede reconstru
 > [!NOTE]
 > En el registro de llamadas, el número, la fecha y la hora **se sellan solos** y no se pueden editar. Si fueran editables, cualquiera podría anotar llamadas que nunca ocurrieron y la bitácora dejaría de servir como evidencia real de gestión.
 
+### Qué se puede hacer desde cartera
+
+Cada factura de la lista trae las acciones del cobro a la mano:
+
+| Acción | Qué resuelve |
+|---|---|
+| **Llamar** | Marca el teléfono y deja la llamada anotada, con su resultado |
+| **WhatsApp** | Abre el chat con un mensaje distinto **según la gestión** de esa factura: no se le escribe igual a quien nunca contestó que a quien ya devolvió y solo debe plata |
+| **Renovar** | Le da más días al alquiler, con la opción de descuento, y recalcula lo que pasa a valer |
+| **Registrar devolución** | Anota qué equipos volvieron —todos o una parte— y resuelve el depósito |
+
+Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre todas las del cliente: con varias facturas, los números no se podrían atribuir a ninguna.
+
+Cuando la devolución es **parcial**, la línea del equipo se parte en dos: una queda cerrada con lo que volvió, y otra sigue con lo que el cliente conserva, con su propia fecha. Así cada parte lleva su historia y su cuenta por separado.
+
 ### 5. El estado del cliente
 
 Un cliente no tiene estado propio: **hereda el más urgente de sus facturas.**
@@ -210,6 +236,10 @@ Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte 
 **Ejemplo.** Don Pedro debe $300.000 en una factura y $500.000 en otra, y entrega $600.000. Se salda primero la de $500.000, y los $100.000 restantes van contra la otra, que queda debiendo $200.000.
 
 Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien no debe nada.
+
+**Un pago puede repartirse entre varios medios** —parte por Bancolombia, parte en efectivo— y cada uno queda registrado por separado. Los medios disponibles son Nequi, Nequi A, Bancolombia, Daviplata y efectivo; los dos Nequi son cuentas de personas distintas del negocio, y por eso van separados.
+
+Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedaría cobrado de más y la cuenta no cerraría— sino como un abono a su favor, que es lo que realmente es.
 
 > [!NOTE]
 > **Saldo a favor.** Si el cliente pagó de más, ese sobrante es plata suya. La factura no termina hasta que se le devuelva, y para eso existe el botón **Devolver**, que registra la salida con su fecha y su medio — el reverso exacto de un abono.
@@ -238,6 +268,29 @@ En el primer caso, cuando el usuario abre el diálogo de abono **el número ya v
 > Mientras el depósito no se resuelva, la factura **no puede llegar a Finalizada**. Esa es toda la protección: no hace falta que nadie se acuerde de revisar quién tiene depósitos sin devolver, porque esas facturas siguen apareciendo en cartera hasta que se resuelvan.
 
 El depósito se salda **una sola vez y por el total** —contando el de la factura y el de cada equipo agregado después— cuando vuelve el último equipo. Nunca por partes en una devolución parcial.
+
+### 8. Una factura viva: se le pueden sumar equipos
+
+Un alquiler no se congela al facturarlo. Si el cliente pide dos andamios más el martes, **se agregan a la factura que ya existe** en vez de abrir otra.
+
+Los equipos que se piden juntos forman un **lote**, con su propio transporte, depósito y pago. Y cada equipo lleva **su propia fecha de despacho**: se pidieron el mismo día, pero pueden salir en días distintos y cada uno corre sus días desde que salió.
+
+Si al pagar ese lote el cliente entrega de más, el sobrante **se reparte solo** entre las facturas que tengan saldo, con la misma regla de los abonos.
+
+---
+
+## Los documentos que genera
+
+Cuatro documentos en PDF, todos armados en el navegador —sin servidor de por medio— con los datos que ya están en pantalla:
+
+| Documento | Para qué |
+|---|---|
+| **Cotización** | Lo que se le manda al cliente antes de alquilar. Se descarga y abre WhatsApp en un solo paso |
+| **Cuenta de cobro** | El documento formal del cobro, numerado (`CC-…`). Cobra el **saldo**, no el total, y los equipos van a precio de lista con el descuento aparte |
+| **Factura** | El detalle de un alquiler: equipos, días, fechas, pagos y saldo |
+| **Reporte de cliente** | Varias facturas elegidas a mano, en un solo documento. Va en tamaño carta —los otros son A4— porque lleva más columnas |
+
+La cuenta de cobro se puede armar **desde las facturas del cliente**: se eligen con casillas cuáles entran y el documento se llena solo.
 
 ---
 
@@ -328,7 +381,9 @@ Con 200 clientes, abrir esas pantallas a lo largo de un día pasa de unas 24.000
 |---|---|---|
 | **Firestore** | Clientes, facturas, equipos, cotizaciones, cuentas de cobro, usuarios | Documentos duraderos, con consultas y filtros |
 | **Realtime Database** | El "timbre" de las solicitudes nuevas y quién está conectado | Cobra por bytes, no por lectura: ideal para un dato diminuto que se escucha todo el día |
-| **Storage** | Las fotos de los equipos | Archivos |
+| **Storage** | Las fotos de los equipos y los avatares | Archivos |
+
+La presencia se queda en la base en tiempo real por una razón puntual: es la única que avisa cuando alguien **cierra la pestaña de golpe**. Sin eso, un usuario que se va sin desconectarse quedaría marcado como conectado para siempre.
 
 > [!NOTE]
 > **El truco del timbre.** La campana del personal no escucha las cotizaciones —eso costaría lecturas a toda hora—, escucha **un único dato minúsculo** en la base en tiempo real. Y no es un interruptor de encendido/apagado, sino un valor que *cambia*: cada dispositivo anota cuál fue el último que le sonó. Con un interruptor, la primera persona que lo viera lo apagaría y a las demás no les sonaría nunca.
