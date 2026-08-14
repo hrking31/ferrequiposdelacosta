@@ -407,7 +407,14 @@ export default function ClienteDetalle() {
   const itemsCuentaCobro = useSelector((state) => state.cuentacobro.value.items);
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // Hasta acá la tarjeta del cliente usa el diseño compacto: los botones en su
+  // propia fila arriba, y el contacto en una sola columna.
+  //
+  // Estaba en 915px, que era donde el diseño compacto dejaba de hacer falta,
+  // pero no donde el ancho empezaba a alcanzar: entre 915 y 1013 los botones
+  // seguían en la fila del nombre, no entraban, y el flexWrap los mandaba a un
+  // renglón suelto abajo a la izquierda. Se veía como si se hubieran caído.
+  const isFullScreen = useMediaQuery("(max-width:1013px)");
   const acento = theme.palette.custom.accent;
   // Cada bloque de la factura tiene su color: el pago, los equipos del
   // alta y los que se agregaron despues.
@@ -1052,28 +1059,29 @@ export default function ClienteDetalle() {
         </IconButton>
       </Tooltip>
 
-      {esMovil && (
-        <Tooltip
-          title={
-            contactoAbierto
-              ? "Ocultar datos del cliente"
-              : "Ver datos del cliente"
-          }
-        >
-          <IconButton
-            size="small"
-            onClick={() => setContactoAbierto((abierto) => !abierto)}
-            sx={botonEncabezadoSx}
-          >
-            {contactoAbierto ? (
-              <ExpandLessIcon fontSize="small" />
-            ) : (
-              <ExpandMoreIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
-      )}
     </Stack>
+  );
+
+  // La flecha que oculta y muestra los datos del cliente va aparte de las
+  // demás: se queda fija en su esquina mientras las otras se centran. Si
+  // entrara en el mismo grupo, el centrado la correría de lugar cada vez que
+  // aparece o desaparece un botón.
+  const botonPlegarContacto = esMovil && (
+    <Tooltip
+      title={contactoAbierto ? "Ocultar datos del cliente" : "Ver datos del cliente"}
+    >
+      <IconButton
+        size="small"
+        onClick={() => setContactoAbierto((abierto) => !abierto)}
+        sx={botonEncabezadoSx}
+      >
+        {contactoAbierto ? (
+          <ExpandLessIcon fontSize="small" />
+        ) : (
+          <ExpandMoreIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Tooltip>
   );
 
   // El nombre (con avatar y estado) más la pizarra de cuenta: un solo bloque
@@ -1215,18 +1223,33 @@ export default function ClienteDetalle() {
             botones son el mismo bloque en los dos casos (botonesEncabezado);
             lo que cambia es dónde se ubican. */}
         {isFullScreen ? (
-          // Hasta 915px los botones ya no flotan sobre la tarjeta: van en su
-          // propia fila, siempre arriba y a la derecha. `row-reverse` hace
-          // que el primer hijo (los botones, de ancho fijo) se quede fijo en
-          // esa fila; si el segundo (nombre + pizarra) no entra al lado, es
-          // el que baja completo a su propia fila — nunca los botones.
-          <Stack
-            direction="row-reverse"
-            flexWrap="wrap"
-            alignItems="flex-start"
-            sx={{ rowGap: 2, columnGap: 2 }}
-          >
-            {botonesEncabezado}
+          // En pantalla angosta los botones no flotan sobre la tarjeta: van en
+          // su propia fila, arriba de todo y centrados, con la flecha de
+          // plegar fija en la esquina derecha.
+          //
+          // El centrado es del ancho completo de la tarjeta, no del hueco que
+          // deja la flecha: por eso la flecha va en posición absoluta y el
+          // grupo lleva un espacio libre a los dos lados. Si la flecha ocupara
+          // lugar en la fila, los botones quedarían corridos hacia la
+          // izquierda y se notaría el desbalance.
+          <Stack sx={{ rowGap: 2 }}>
+            <Box
+              sx={{
+                position: "relative",
+                display: "flex",
+                justifyContent: "center",
+                // Deja libre la esquina de la flecha a los dos lados, para que
+                // el grupo no se le monte encima al centrarse.
+                px: 5,
+              }}
+            >
+              {botonesEncabezado}
+              {botonPlegarContacto && (
+                <Box sx={{ position: "absolute", right: 0, top: 0 }}>
+                  {botonPlegarContacto}
+                </Box>
+              )}
+            </Box>
             {contenidoEncabezado}
           </Stack>
         ) : (
