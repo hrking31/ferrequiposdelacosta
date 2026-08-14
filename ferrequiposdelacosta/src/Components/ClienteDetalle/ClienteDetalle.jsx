@@ -40,6 +40,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   query,
@@ -427,6 +428,8 @@ export default function ClienteDetalle() {
   const [facturas, setFacturas] = useState([]);
   const [facturaEntregando, setFacturaEntregando] = useState(null);
   const [facturasCerradas, setFacturasCerradas] = useState([]);
+  // Cuántas cerradas tiene, sin traerlas: lo dice el botón antes de abrirlas.
+  const [totalCerradas, setTotalCerradas] = useState(0);
   const [cerradasCargadas, setCerradasCargadas] = useState(false);
   const [cargandoCerradas, setCargandoCerradas] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -503,15 +506,20 @@ export default function ClienteDetalle() {
 
         // Solo las facturas abiertas. Las cerradas —devolvió todo, no debe
         // nada, no le sobró— son las que se van acumulando con los años y las
-        // que casi nunca se miran; se traen aparte, con "Ver facturas
-        // anteriores". Un cliente con 100 facturas viejas y 2 abiertas pasa de
-        // 101 lecturas a 3.
-        const facturasSnap = await getDocs(
-          query(
-            collection(db, "clientes", id, "facturas"),
-            where("cerrada", "==", false),
-          ),
-        );
+        // que casi nunca se miran; se traen aparte, a pedido. Un cliente con
+        // 100 facturas viejas y 2 abiertas pasa de 101 lecturas a 4.
+        //
+        // La cuarta es el CONTEO de las cerradas, que se pide al lado. No las
+        // trae: cuenta en el servidor y devuelve un número, así que sale una
+        // lectura sean 3 o 300. Sirve para dos cosas: el botón puede decir
+        // cuántas son antes de traerlas, y si no hay ninguna ni se muestra —
+        // antes había que apretarlo para enterarse, gastando la consulta
+        // entera para recibir una lista vacía.
+        const facturasRef = collection(db, "clientes", id, "facturas");
+        const [facturasSnap, conteoCerradas] = await Promise.all([
+          getDocs(query(facturasRef, where("cerrada", "==", false))),
+          getCountFromServer(query(facturasRef, where("cerrada", "==", true))),
+        ]);
         const listaFacturas = facturasSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
           .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
@@ -530,6 +538,7 @@ export default function ClienteDetalle() {
 
         setCliente(datosCliente);
         setFacturas(listaFacturas);
+        setTotalCerradas(conteoCerradas.data().count);
         // Al recargar el cliente se descartan las cerradas que se hubieran
         // traído: si el usuario las quiere ver de nuevo, las vuelve a pedir.
         // Mantenerlas obligaría a recargarlas también, que es justo el gasto
@@ -550,7 +559,7 @@ export default function ClienteDetalle() {
     fetchCliente();
   }, [fetchCliente]);
 
-  // El historial: las facturas ya cerradas, a pedido. Se cobran una sola vez
+  // El historial: las facturas ya finalizadas, a pedido. Se cobran una sola vez
   // por visita.
   const cargarFacturasCerradas = useCallback(async () => {
     try {
@@ -568,8 +577,8 @@ export default function ClienteDetalle() {
       );
       setCerradasCargadas(true);
     } catch (error) {
-      console.error("Error al obtener las facturas anteriores:", error);
-      showSnackbar("Error al cargar las facturas anteriores", "error");
+      console.error("Error al obtener las facturas finalizadas:", error);
+      showSnackbar("Error al cargar las facturas finalizadas", "error");
     } finally {
       setCargandoCerradas(false);
     }
@@ -2418,7 +2427,10 @@ export default function ClienteDetalle() {
           porque son las que se acumulan con los años y casi nunca se miran.
           La cuenta del encabezado no cambia al traerlas: ahí se muestra lo que
           el cliente tiene abierto ahora. */}
-      {!cerradasCargadas ? (
+      {/* El botón dice cuántas son porque el conteo ya vino con el cliente
+          (ver fetchCliente). Si no hay ninguna no aparece: no tiene sentido
+          ofrecer abrir una lista vacía. */}
+      {!cerradasCargadas && totalCerradas > 0 && (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
           <Button
             variant="outlined"
@@ -2427,19 +2439,13 @@ export default function ClienteDetalle() {
             onClick={cargarFacturasCerradas}
             disabled={cargandoCerradas}
           >
-            {cargandoCerradas ? "Buscando..." : "Ver facturas anteriores"}
+            {cargandoCerradas
+              ? "Buscando..."
+              : `Ver ${totalCerradas} factura${
+                  totalCerradas === 1 ? "" : "s"
+                } finalizada${totalCerradas === 1 ? "" : "s"}`}
           </Button>
         </Box>
-      ) : (
-        facturasCerradas.length === 0 && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ textAlign: "center", mt: 2 }}
-          >
-            No hay facturas anteriores.
-          </Typography>
-        )
       )}
       </Box>
 

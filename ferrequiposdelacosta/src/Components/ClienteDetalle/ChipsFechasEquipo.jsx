@@ -26,10 +26,11 @@
 // le agrega nada al caso simple, aparece cuando hay historia que contar.
 import { Fragment } from "react";
 import PropTypes from "prop-types";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
-import { useTheme } from "@mui/material/styles";
+// Del barrel de @mui/material, como el resto del proyecto. Con imports
+// profundos (@mui/material/Box) Vite optimiza esas rutas por separado y
+// terminan conviviendo dos copias de MUI: la app arranca con un
+// "createTheme_default is not a function" y no llega a dibujar nada.
+import { Box, Chip, Stack, useTheme } from "@mui/material";
 import {
   agruparChipsFechas,
   describirFechasEquipo,
