@@ -25,7 +25,11 @@ import {
   crearRegistroGestion,
   calcularEstadoCliente,
 } from "../ClienteDetalle/facturaUtils";
-import { formatearMoneda } from "../../Utils/formato";
+import {
+  formatearMoneda,
+  formatearMonedaInput,
+  limpiarMonedaInput,
+} from "../../Utils/formato";
 
 const formatearFechaLegible = (fechaIso) => {
   if (!fechaIso) return "";
@@ -227,10 +231,16 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                   {diasNumero > 0 && !cambio.indefinida && (
                     <TextField
                       label="Descuento sobre esos días"
-                      type="number"
-                      inputProps={{ min: 0 }}
-                      value={cambio.descuento}
-                      onChange={(e) => handleCambiarDescuento(index, e.target.value)}
+                      // Con puntos de miles mientras se escribe, como los demás
+                      // campos de plata: "200.000" y no "200000", que a simple
+                      // vista se confunde con 20.000 o 2.000.000. Va como texto
+                      // y no como número porque un campo numérico no acepta los
+                      // puntos; lo que se guarda son solo los dígitos.
+                      inputProps={{ inputMode: "numeric" }}
+                      value={formatearMonedaInput(cambio.descuento)}
+                      onChange={(e) =>
+                        handleCambiarDescuento(index, limpiarMonedaInput(e.target.value))
+                      }
                       fullWidth
                       size="small"
                       sx={{ mt: 1 }}
