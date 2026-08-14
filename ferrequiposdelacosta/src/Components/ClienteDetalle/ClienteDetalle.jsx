@@ -407,14 +407,14 @@ export default function ClienteDetalle() {
   const itemsCuentaCobro = useSelector((state) => state.cuentacobro.value.items);
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
-  // Hasta acá la tarjeta del cliente usa el diseño compacto: los botones en su
-  // propia fila arriba, y el contacto en una sola columna.
-  //
-  // Estaba en 915px, que era donde el diseño compacto dejaba de hacer falta,
-  // pero no donde el ancho empezaba a alcanzar: entre 915 y 1013 los botones
-  // seguían en la fila del nombre, no entraban, y el flexWrap los mandaba a un
-  // renglón suelto abajo a la izquierda. Se veía como si se hubieran caído.
-  const isFullScreen = useMediaQuery("(max-width:1013px)");
+  // El contacto (teléfono, NIT, dirección) pasa de dos columnas a una, y
+  // aparece el botón de volver al listado.
+  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // Desde acá entran en un solo renglón el nombre, el recuadro de cuenta y los
+  // botones. Por debajo, el recuadro baja a su propia fila (ver el armado del
+  // encabezado). No se persigue el ancho exacto en que dejan de entrar —depende
+  // del largo del nombre del cliente— sino que se corta con margen de sobra.
+  const esAncho = useMediaQuery(theme.breakpoints.up("lg"));
   const acento = theme.palette.custom.accent;
   // Cada bloque de la factura tiene su color: el pago, los equipos del
   // alta y los que se agregaron despues.
@@ -970,7 +970,9 @@ export default function ClienteDetalle() {
   // queda el lápiz solo y va dentro de la fila del nombre, después de la
   // pizarra de valores, así queda centrado con ella.
   const botonesEncabezado = (
-    <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+    // Más separación en pantalla angosta: ahí se tocan con el dedo, y dos
+    // íconos pegados a 8px de distancia se aprietan mal.
+    <Stack direction="row" spacing={isFullScreen ? 1.5 : 1} sx={{ flexShrink: 0 }}>
       {isFullScreen && (
         <Tooltip title="Volver a Clientes">
           <IconButton
@@ -1084,26 +1086,11 @@ export default function ClienteDetalle() {
     </Tooltip>
   );
 
-  // El nombre (con avatar y estado) más la pizarra de cuenta: un solo bloque
-  // de contenido que se ubica distinto según el ancho (ver más abajo), pero
-  // es el mismo en los dos casos.
-  const contenidoEncabezado = (
+  // Quién es el cliente: avatar con el conteo de facturas, nombre y estado.
+  // Va separado de la pizarra de cuenta porque los dos se reacomodan distinto
+  // según el ancho (ver el armado del encabezado, más abajo).
+  const bloqueNombre = (
     <Stack
-      direction={{ xs: "column", sm: "row" }}
-      alignItems={{ xs: "stretch", sm: "center" }}
-      sx={{
-        // La separación va como `gap` y no como `spacing`: con los
-        // elementos envolviéndose, los márgenes de spacing dejan huecos
-        // dobles en el renglón de abajo.
-        gap: 2,
-        // Si el nombre y la pizarra no entran juntos, la pizarra baja a su
-        // propio renglón en vez de estirar la tarjeta fuera de la pantalla.
-        flexWrap: "wrap",
-        minWidth: 0,
-        flex: "1 1 auto",
-      }}
-    >
-      <Stack
         direction="row"
         spacing={2}
         alignItems="center"
@@ -1119,6 +1106,9 @@ export default function ClienteDetalle() {
           // hijo vuelve a su ancho de contenido, más ancho que la
           // tarjeta. Forzarlo así es lo que evita que se salga.
           width: { xs: "100%", sm: "auto" },
+          // Le deja la esquina libre a la flecha de plegar, que está anclada
+          // ahí arriba: un nombre largo le pasaría por debajo.
+          pr: esMovil ? 5 : 0,
         }}
       >
         {/* El conteo de facturas va como insignia sobre el avatar: antes
@@ -1168,22 +1158,23 @@ export default function ClienteDetalle() {
           />
         </Box>
       </Stack>
-
-      {/* Sin facturas no hay cuenta que mostrar: una pizarra en cero
-          sugeriría que el cliente debe algo. */}
-      {facturas.length > 0 &&
-        renderPizarraTotales(
-          // Hasta 915px solo el total y el saldo: las cuatro casillas, con
-          // importes de siete cifras, no entran sin montarse entre sí. Es
-          // el mismo corte que usa la pizarra de cada factura.
-          casillasDeCuenta(cuentaCliente, { resumida: isFullScreen }),
-          // El mismo forzado de ancho que el renglón del avatar, y por la
-          // misma razón: sin esto, en celular la pizarra vuelve a su
-          // ancho de contenido y se sale de la tarjeta por la derecha.
-          { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
-        )}
-    </Stack>
   );
+
+  // Cuánto debe: el recuadro oscuro con la cuenta del cliente.
+  //
+  // Sin facturas no hay cuenta que mostrar: una pizarra en cero sugeriría que
+  // el cliente debe algo.
+  const bloquePizarra =
+    facturas.length > 0 &&
+    renderPizarraTotales(
+      // En celular solo el total y el saldo: las cuatro casillas, con importes
+      // de siete cifras, no entran sin montarse entre sí. De 600px para arriba
+      // el recuadro tiene una fila entera para él, así que las cuatro caben.
+      casillasDeCuenta(cuentaCliente, { resumida: esMovil }),
+      // Sin el ancho forzado, en pantalla angosta la pizarra vuelve a su ancho
+      // de contenido y se sale de la tarjeta por la derecha.
+      { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
+    );
 
   return (
     <Box
@@ -1222,44 +1213,64 @@ export default function ClienteDetalle() {
             no entra en la misma línea y pasa debajo, a todo el ancho. Los
             botones son el mismo bloque en los dos casos (botonesEncabezado);
             lo que cambia es dónde se ubican. */}
-        {isFullScreen ? (
-          // En pantalla angosta los botones no flotan sobre la tarjeta: van en
-          // su propia fila, arriba de todo y centrados, con la flecha de
-          // plegar fija en la esquina derecha.
-          //
-          // El centrado es del ancho completo de la tarjeta, no del hueco que
-          // deja la flecha: por eso la flecha va en posición absoluta y el
-          // grupo lleva un espacio libre a los dos lados. Si la flecha ocupara
-          // lugar en la fila, los botones quedarían corridos hacia la
-          // izquierda y se notaría el desbalance.
-          <Stack sx={{ rowGap: 2 }}>
-            <Box
-              sx={{
-                position: "relative",
-                display: "flex",
-                justifyContent: "center",
-                // Deja libre la esquina de la flecha a los dos lados, para que
-                // el grupo no se le monte encima al centrarse.
-                px: 5,
-              }}
-            >
-              {botonesEncabezado}
-              {botonPlegarContacto && (
-                <Box sx={{ position: "absolute", right: 0, top: 0 }}>
-                  {botonPlegarContacto}
-                </Box>
-              )}
-            </Box>
-            {contenidoEncabezado}
+        {/* La flecha que oculta y muestra los datos del cliente va anclada a
+            la esquina de la tarjeta, a la altura del nombre: es el control de
+            la tarjeta entera, no una acción más del cliente. Por eso no está
+            en la fila de botones de abajo — ahí se leería como si hiciera algo
+            con el cliente, y lo que hace es plegar lo que estás mirando. */}
+        {botonPlegarContacto && (
+          <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
+            {botonPlegarContacto}
+          </Box>
+        )}
+
+        {/* ── Cómo se acomoda el encabezado ──────────────────────────────
+            La tarjeta tiene tres piezas: QUIÉN es el cliente, CUÁNTO debe y
+            QUÉ se puede hacer con él. Lo que cambia con el ancho es cuál cede.
+
+            En pantalla ancha entran las tres en un renglón. Cuando dejan de
+            entrar, el que baja es el RECUADRO DE CUENTA —a su propia fila y a
+            todo el ancho, que es donde mejor se lee—, y los botones se quedan
+            arriba con el nombre. Antes bajaban los botones, y quedaban sueltos
+            abajo a la izquierda como si se hubieran caído.
+
+            Recién en celular, donde el nombre y seis botones ya no conviven en
+            un renglón, los botones pasan abajo y van centrados. */}
+        {esAncho ? (
+          <Stack direction="row" alignItems="center" sx={{ gap: 2 }}>
+            {bloqueNombre}
+            {bloquePizarra}
+            {botonesEncabezado}
           </Stack>
         ) : (
-          <Stack
-            direction="row"
-            alignItems="center"
-            sx={{ gap: 2, flexWrap: "wrap" }}
-          >
-            {contenidoEncabezado}
-            {botonesEncabezado}
+          <Stack sx={{ rowGap: 2 }}>
+            {esMovil ? (
+              <>
+                {bloqueNombre}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    // Las acciones son otra cosa que los datos de arriba, no la
+                    // continuación del nombre.
+                    pt: 0.5,
+                  }}
+                >
+                  {botonesEncabezado}
+                </Box>
+              </>
+            ) : (
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ gap: 2 }}
+              >
+                {bloqueNombre}
+                {botonesEncabezado}
+              </Stack>
+            )}
+            {bloquePizarra}
           </Stack>
         )}
 
