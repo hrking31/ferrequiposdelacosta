@@ -66,9 +66,7 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
 import EventIcon from "@mui/icons-material/Event";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
-import EventBusyIcon from "@mui/icons-material/EventBusy";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
 import AddCardIcon from "@mui/icons-material/AddCard";
@@ -88,7 +86,8 @@ import {
   calcularDepositoTotal,
   depositoPendiente,
   calcularCuentaCliente,
-  equipoDevueltoCompleto,
+  describirFechasEquipo,
+  estiloChipFecha,
   ESTADO_FACTURA_INFO,
   ESTADO_CLIENTE_INFO,
 } from "./facturaUtils";
@@ -590,8 +589,6 @@ export default function ClienteDetalle() {
   // arriba, días/precio/fechas como pills abajo. La misma tarjeta sirve para
   // un equipo original o uno agregado después.
   const renderEquipoRow = (equipo, key, color) => {
-    const despacho = formatearFecha(equipo.fechaDespacho);
-    const devuelto = equipoDevueltoCompleto(equipo);
     const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
     const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
 
@@ -698,142 +695,27 @@ export default function ClienteDetalle() {
             );
           }
 
-          const chipsFechas = [];
-          if (despacho) {
-            chipsFechas.push(
+          // La historia de fechas del equipo sale de una función compartida
+          // con Seguimiento —despacho, vencimientos por los que pasó, días
+          // ampliados, días vencidos, hasta cuándo quedó— y se pinta con el
+          // mapeo de estilos que también es compartido. Cuando cada pantalla
+          // armaba los suyos terminaron contando cosas distintas de la misma
+          // factura, y acá además la fecha vigente ya vencida seguía en gris
+          // como si todavía tuviera plazo.
+          const chipsFechas = describirFechasEquipo(equipo).map((chip) => {
+            const { variant, sx } = estiloChipFecha(chip, theme);
+            const { clave, label, Icono } = chip;
+            return (
               <Chip
-                key="despacho"
-                variant="meta"
+                key={clave}
                 size="small"
-                icon={<LocalShippingIcon />}
-                label={`Despacho ${despacho}`}
-              />,
+                variant={variant}
+                icon={Icono ? <Icono /> : undefined}
+                sx={sx}
+                label={label}
+              />
             );
-          }
-          if (devuelto) {
-            chipsFechas.push(
-              <Chip
-                key="devuelto"
-                variant="meta"
-                size="small"
-                icon={<AssignmentReturnIcon />}
-                sx={{ color: "success.main" }}
-                label={`Devuelto ${formatearFecha(equipo.fechaDevolucion) || ""}`}
-              />,
-            );
-          }
-          if (equipo.vencimientoIndefinido) {
-            chipsFechas.push(
-              <Chip
-                key="indefinida"
-                variant="meta"
-                size="small"
-                label="Entrega indefinida — cliente debe avisar"
-              />,
-            );
-          } else {
-            if (equipo.fechaVencimientoOriginal) {
-              chipsFechas.push(
-                <Chip
-                  key="vencido"
-                  size="small"
-                  variant="metaEstado"
-                  icon={<EventBusyIcon />}
-                  sx={{
-                    bgcolor: "error.main",
-                    color: "error.contrastText",
-                    border: "none",
-                    // El ícono va del color del texto del chip, no del acento:
-                    // sobre el rojo pleno el naranja no se distinguiría.
-                    "& .MuiChip-icon": { color: "inherit" },
-                  }}
-                  label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
-                />,
-              );
-            }
-          }
-
-          // Los días de más, separados en dos chips porque son dos cosas
-          // distintas: los que se pactaron al ampliar el plazo y los que el
-          // cliente se tomó sin avisar. Los segundos se cobran igual —el
-          // equipo estuvo afuera— pero conviene verlos aparte, que es como se
-          // muestran en Seguimiento.
-          const ampliacion = calcularAmpliacionEquipo(equipo);
-          const diasPactados = ampliacion.dias - ampliacion.diasAbiertos;
-          const valorDiaEquipo =
-            (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
-
-          if (diasPactados > 0) {
-            const netoPactado = Math.max(
-              0,
-              diasPactados * valorDiaEquipo - ampliacion.descuento,
-            );
-            chipsFechas.push(
-              <Chip
-                key="agregados"
-                variant="meta"
-                size="small"
-                sx={{ color: "custom.accent" }}
-                label={`+${diasPactados} día${diasPactados === 1 ? "" : "s"}${
-                  valorDiaEquipo > 0
-                    ? ` · ${formatearMoneda(netoPactado)}`
-                    : ""
-                }`}
-              />,
-            );
-          }
-
-          if (ampliacion.diasAbiertos > 0) {
-            chipsFechas.push(
-              <Chip
-                key="vencidos"
-                variant="metaEstado"
-                size="small"
-                sx={{ fontWeight: 600, color: "error.main" }}
-                label={`${ampliacion.diasAbiertos} día${
-                  ampliacion.diasAbiertos === 1 ? "" : "s"
-                } vencido${ampliacion.diasAbiertos === 1 ? "" : "s"}${
-                  valorDiaEquipo > 0
-                    ? ` · ${formatearMoneda(
-                        ampliacion.diasAbiertos * valorDiaEquipo,
-                      )}`
-                    : ""
-                }`}
-              />,
-            );
-          }
-          if (ampliacion.descuento > 0) {
-            chipsFechas.push(
-              <Chip
-                key="descuento"
-                variant="metaEstado"
-                size="small"
-                // El marranito: lo que el cliente se ahorra.
-                icon={<SavingsIcon />}
-                sx={{
-                  fontWeight: 600,
-                  color: "success.main",
-                  "& .MuiChip-icon": { color: "inherit" },
-                }}
-                label={`Descuento ${formatearMoneda(ampliacion.descuento)}`}
-              />,
-            );
-          }
-
-          // El vencimiento vigente va último: primero se lee de dónde viene
-          // (venció tal día, se le sumaron tantos días, con tal descuento) y
-          // recién al final hasta cuándo quedó.
-          if (!devuelto && !equipo.vencimientoIndefinido && equipo.fechaVencimiento) {
-            chipsFechas.push(
-              <Chip
-                key="devuelve"
-                variant="meta"
-                size="small"
-                icon={<AssignmentReturnIcon />}
-                label={`Devuelve ${formatearFecha(equipo.fechaVencimiento)}`}
-              />,
-            );
-          }
+          });
 
           // En móvil, días/precio en una columna y fechas en otra (prolijo).
           // En PC, todos los chips sueltos en una sola fila, como estaba.
@@ -908,10 +790,13 @@ export default function ClienteDetalle() {
             : transporteTipo,
       });
     }
-    // La suma de todo lo que se cobra aparte del alquiler.
+    // La suma de todo lo que se cobra aparte del alquiler. Se llama "Total
+    // adicionales" y no "Total" a secas porque más abajo, en el mismo
+    // recuadro, está el "Total factura": dos números distintos con el mismo
+    // nombre y a pocos centímetros se leían como si tuvieran que coincidir.
     datos.push({
       clave: "total",
-      rotulo: "Total",
+      rotulo: "Total adicionales",
       valor: formatearMoneda(total),
     });
 
@@ -944,7 +829,11 @@ export default function ClienteDetalle() {
       });
     }
     if (tipoPagoLabel) {
-      datos.push({ clave: "pago", rotulo: "Pago", valor: tipoPagoLabel });
+      // "Pago inicial" y no "Pago" a secas: acá va lo que el cliente entregó
+      // al emitirse la factura, y el tipo dice cómo cubría ESE momento. Con el
+      // rótulo viejo, un "Pago: Total" de $864.000 sobre una factura que hoy
+      // vale $3.006.000 se leía como que estaba saldada.
+      datos.push({ clave: "pago", rotulo: "Pago inicial", valor: tipoPagoLabel });
     }
     // El medio va con el logo de la marca en vez del nombre escrito. Cuando el
     // pago se repartio entre varios, siguen separados por "+".

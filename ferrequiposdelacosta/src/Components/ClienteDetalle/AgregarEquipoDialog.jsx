@@ -463,7 +463,9 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         iva: nuevoIva,
         aplicaIva: nuevoAplicaIva,
         valorTotal: nuevoValorTotal,
-        saldoPendiente: saldoFinal,
+        // El saldo ya no se guarda, se calcula al mostrarlo (ver
+        // FacturaFormDialog). `saldoFinal` se sigue usando acá abajo para
+        // decidir el tipo de pago, que sí es un dato del momento.
         montoPagado: montoPagadoFinal,
         abonos,
         // El estado de pago de la factura sale de si queda saldo pendiente o no,
@@ -486,7 +488,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         ];
         batch.update(doc(db, "clientes", cliente.id, "facturas", facturaDestino.id), {
           abonos: abonosDestino,
-          saldoPendiente: calcularSaldoConAbonos(facturaDestino, abonosDestino),
         });
       });
 

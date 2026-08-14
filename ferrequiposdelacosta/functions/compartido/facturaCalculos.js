@@ -271,7 +271,15 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
     nuevoSubtotal: (Number(factura?.subtotal) || 0) + resumen.neto,
     nuevoIva: (Number(factura?.iva) || 0) + iva,
     nuevoTotal: (Number(factura?.valorTotal) || 0) + total,
-    nuevoSaldo: (Number(factura?.saldoPendiente) || 0) + total,
+    // Acá había un `nuevoSaldo` que hacía saldoPendiente + total, leyendo el
+    // saldo GUARDADO en la factura. Se quitó porque era una trampa: ese campo
+    // ya no se guarda, y mientras se guardó mentía. Se recalculaba como
+    // valorTotal − pagado − abonos y, como lo guardado no lleva los días
+    // ampliados, en una factura con el alta paga daba cero y ahí se quedaba:
+    // los abonos posteriores restaban contra cero y desaparecían. Seguimiento
+    // lo usaba y mostraba medio millón de más que Detalle Cliente.
+    //
+    // El saldo se pide a calcularCuentaFactura, que lo arma desde los hechos.
   };
 };
 
@@ -477,6 +485,13 @@ export const calcularCuentaFactura = (
 // cero —si se pagó de más, eso se ve aparte como saldo a favor. Usa los
 // valores CRUDOS de la factura (sin ampliación): es la misma regla de
 // siempre, lo que se guarda no lleva los días ampliados.
+//
+// OJO: hoy no la usa nadie, y es a propósito. Servía para mantener al día el
+// campo `saldoPendiente` de la factura, que dejó de guardarse. Justamente por
+// trabajar sobre los valores crudos, en una factura con el alta paga daba cero
+// y los abonos se perdían. Si hace falta el saldo de una factura, es
+// calcularCuentaFactura. Queda porque responde una pregunta legítima —"cuánto
+// quedaría debiendo con estos abonos"— que un formulario podría necesitar.
 export const calcularSaldoConAbonos = (factura, abonos) =>
   Math.max(
     0,

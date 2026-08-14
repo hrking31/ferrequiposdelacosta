@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-213_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-221_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -369,6 +369,14 @@ Con 200 clientes, abrir esas pantallas a lo largo de un día pasa de unas 24.000
 > [!IMPORTANT]
 > El precio de esta técnica: una factura **sin** el campo no aparece en las consultas que piden "las abiertas". Por eso el campo nace con la factura, el servidor lo corrige en cada cambio, y el repaso de madrugada repara el que falte. Tres redes para el mismo dato, porque una factura invisible es peor que una lectura de más.
 
+### El saldo es una conclusión, no un hecho
+
+La misma regla explica por qué **el saldo no se guarda**. De una factura se guarda lo que pasó —por cuánto se emitió, cuánto entregó el cliente, qué abonos hizo— y el saldo se arma con esos datos cada vez que se muestra.
+
+Guardarlo parecía inofensivo y no lo era. Cada día que un equipo sigue afuera la deuda sube, y de eso nadie avisa: nadie escribe nada en la base a medianoche. Pero además quedaba **mal escrito** desde el momento cero: se recalculaba como *emitido − pagado − abonos* sobre valores que **no** incluyen los días de más, así que en una factura con el alta paga daba cero, y el saldo no puede bajar de cero. Los abonos posteriores restaban contra ese cero y desaparecían sin dejar rastro.
+
+Una factura real llegó a mostrar $476.000 de diferencia entre las dos pantallas: la ficha del cliente recalculaba y veía el abono; cartera leía el número guardado y no.
+
 ---
 
 ## Arquitectura
@@ -391,6 +399,10 @@ La presencia se queda en la base en tiempo real por una razón puntual: es la ú
 ### Las cuentas viven en un solo lugar
 
 Todos los cálculos de dinero y estados están en un único archivo, que se **copia automáticamente** a las Cloud Functions en cada despliegue. Si las dos copias se separaran, el menú y la ficha del cliente mostrarían números distintos — por eso hay una prueba que falla si la copia queda desactualizada.
+
+Lo mismo vale para **lo que se dibuja**. La historia de fechas de un equipo —cuándo salió, hasta cuándo tenía plazo, cuántos días se le agregaron, cuántos lleva de más— la arma una sola función que usan tanto cartera como la ficha del cliente. Cada pantalla decide después con qué color pinta cada dato, pero *qué dice* cada uno se decide en un solo lugar.
+
+No es prolijidad. Cuando cada pantalla armaba lo suyo, terminaron contando cosas distintas de la misma factura: para 10 equipos con 2 días de renovación y 7 días vencidos, una mostraba "+2 días · $400.000" y la otra "+9 días · $1.800.000", con los días vencidos repetidos al lado en ambas. Se leía como si se cobraran $3.200.000 cuando eran $1.800.000. Hay pruebas que fijan el texto de cada dato para que no vuelva a pasar.
 
 ### Seguridad
 
@@ -466,9 +478,11 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**213 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**221 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
+
+También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
 El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 

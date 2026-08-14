@@ -28,7 +28,6 @@ import {
   obtenerFechaHoyBogota,
   formatearMonedaInput,
   limpiarMonedaInput,
-  calcularSaldoConAbonos,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
 } from "./facturaUtils";
@@ -109,9 +108,12 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
           ...(factura.abonos || []),
           { fecha: form.fecha, medio: form.medio, monto: aplicado },
         ];
+        // Solo los abonos: el saldo ya no se guarda, se calcula al mostrarlo
+        // (ver FacturaFormDialog). Guardarlo acá era justo donde más daño
+        // hacía: el recálculo daba cero en cuanto el alta estaba paga, y el
+        // abono que se acababa de registrar se perdía sin dejar rastro.
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,
-          saldoPendiente: calcularSaldoConAbonos(factura, abonos),
         });
       });
       await batch.commit();

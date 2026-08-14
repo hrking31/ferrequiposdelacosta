@@ -396,7 +396,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
 
     const pagadoEnFactura =
       pagosGuardados.reduce((total, pago) => total + pago.monto, 0) + pagosAgregados;
-    const totalAbonosGuardado = sumarAbonos(abonos);
 
     const datosFactura = {
       numeroFactura: form.numeroFactura.trim(),
@@ -420,10 +419,16 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       deposito: Number(form.deposito) || 0,
       tipoPago: form.tipoPago,
       montoPagado: pagadoEnFactura,
-      saldoPendiente: Math.max(
-        0,
-        valorTotalCalculado - pagadoEnFactura - totalAbonosGuardado,
-      ),
+      // El saldo NO se guarda. Se guardan los hechos —lo que se emitió, lo que
+      // el cliente entregó— y el saldo se calcula al mostrarlo, porque es una
+      // conclusión que cambia SOLA con el calendario: cada día que un equipo
+      // sigue afuera la deuda sube y nadie escribe nada en la base. Es el mismo
+      // motivo por el que el campo `estado` dejó de guardarse.
+      //
+      // Guardado, además, no solo quedaba viejo: quedaba mal. Se recalculaba
+      // como valorTotal − pagado − abonos, y como lo guardado no lleva los días
+      // ampliados, en una factura con el alta paga ya daba cero y ahí se
+      // quedaba: los abonos posteriores restaban contra cero y desaparecían.
       pagos: pagosGuardados,
       abonos,
     };

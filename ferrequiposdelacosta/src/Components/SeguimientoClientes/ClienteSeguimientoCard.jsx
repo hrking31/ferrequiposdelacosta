@@ -25,25 +25,25 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EventIcon from "@mui/icons-material/Event";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 // Ojo: es "Return", no "Returned". El que termina en "-ed" es un ícono
 // distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
 // registrar una devolución en ninguna otra parte de la app.
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
-import SavingsIcon from "@mui/icons-material/Savings";
 import HistoryIcon from "@mui/icons-material/History";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import {
-  diferenciaEnDias,
-  calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
+  calcularCuentaFactura,
   calcularCantidadPendiente,
+  describirFechasEquipo,
+  estiloChipFecha,
   equipoDevueltoCompleto,
   calcularEstadoFactura,
   calcularGestionFactura,
   obtenerGestiones,
   GESTION_INFO,
+  COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
@@ -302,13 +302,10 @@ export default function ClienteSeguimientoCard({
   const colorEquiposAgregados = theme.palette.custom.seccionEquiposAgregados;
   const colorGestion = theme.palette.custom.seccionGestion;
 
-  // El grupo "Entrega indefinida" (sin fecha, el cliente debe avisar) iba con
-  // el mismo gris que "Vence": dos situaciones distintas —una tiene fecha
-  // futura conocida, la otra no tiene ninguna— quedaban visualmente
-  // idénticas. Va en teal, fijo en los dos modos como los demás colores de
-  // bloque: no hay otro tono libre en la paleta de este componente (rojo,
-  // ámbar, azul, violeta, rosa y verde ya están tomados).
-  const colorIndefinido = "#0D9488";
+  // El teal de "Entrega indefinida". Vive junto a los chips de fechas, que lo
+  // usan para el suyo: si estuviera acá suelto, el chip y el rótulo del grupo
+  // podrían quedar de colores distintos.
+  const colorIndefinido = COLOR_ENTREGA_INDEFINIDA;
 
   // El recuadro teñido de los bloques de factura: borde del color, un
   // resplandor hacia adentro y un degradado en diagonal. Copiado tal cual de
@@ -336,23 +333,11 @@ export default function ClienteSeguimientoCard({
   // chips. Si ya se le amplió el vencimiento, la fecha original aparece
   // marcada como "Vencido"; la vigente va aparte, según en qué situación está.
   const renderEquipo = (equipo, key, situacion) => {
-    // Lo que cuesta un día de este equipo: el precio diario por la cantidad
-    // alquilada. Sirve para valorizar tanto los días vencidos como los que se
-    // le agregaron al ampliar.
-    const valorPorDia =
-      (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
-
-    // Días que lleva vencido: desde que venció hasta hoy.
-    const diasVencidos =
-      situacion === "vencido" ? diferenciaEnDias(equipo.fechaVencimiento, hoy) : 0;
-
-    // Días agregados y lo que valen ya con el descuento aplicado. Si el equipo
-    // quedó con entrega indefinida, acá ya vienen sumados los días que lleva
-    // sin devolver.
-    const ampliacionEquipo = calcularAmpliacionEquipo(equipo, hoy);
-
-    const conValor = (dias) =>
-      valorPorDia > 0 ? ` · ${formatearMoneda(dias * valorPorDia)}` : "";
+    // La historia de fechas del equipo —despacho, vencimientos por los que
+    // pasó, días ampliados, días vencidos— sale de una función compartida con
+    // Detalle Cliente. Acá solo se decide con qué se pinta cada chip: ver
+    // estiloDeChipFecha.
+    const chipsFechas = describirFechasEquipo(equipo, hoy);
 
     // El recuadro entero lleva el color de la URGENCIA, el mismo del rótulo
     // de su grupo: rojo lo vencido, ámbar lo que vence hoy, gris lo que
@@ -400,117 +385,20 @@ export default function ClienteSeguimientoCard({
             />
           )}
 
-          {equipo.fechaDespacho && (
-            <Chip
-              variant="meta"
-              size="small"
-              icon={<LocalShippingIcon />}
-              label={`Despacho ${formatearFecha(equipo.fechaDespacho)}`}
-            />
-          )}
-
-          {/* La fecha con la que había nacido el equipo, antes de la primera
-              ampliación. Mismo chip que en Detalle Cliente: uno solo con la
-              fecha original, no uno por cada ampliación que hubo después. */}
-          {equipo.fechaVencimientoOriginal && (
-            <Chip
-              size="small"
-              variant="metaEstado"
-              icon={<EventBusyIcon />}
-              sx={{
-                bgcolor: "error.main",
-                color: "error.contrastText",
-                border: "none",
-                "& .MuiChip-icon": { color: "inherit" },
-              }}
-              label={`Vencido ${formatearFecha(equipo.fechaVencimientoOriginal)}`}
-            />
-          )}
-
-          {/* Días que se le sumaron al plazo, con lo que cuestan ya
-              descontado, y el descuento aparte para que no quede escondido. */}
-          {ampliacionEquipo.dias > 0 && (
-            <Chip
-              variant="meta"
-              size="small"
-              sx={{ color: "custom.accent" }}
-              label={`+${ampliacionEquipo.dias} día${
-                ampliacionEquipo.dias === 1 ? "" : "s"
-              }${
-                ampliacionEquipo.bruto > 0
-                  ? ` · ${formatearMoneda(ampliacionEquipo.neto)}`
-                  : ""
-              }`}
-            />
-          )}
-
-          {ampliacionEquipo.descuento > 0 && (
-            <Chip
-              variant="metaEstado"
-              size="small"
-              icon={<SavingsIcon />}
-              sx={{
-                fontWeight: 600,
-                color: "success.main",
-                "& .MuiChip-icon": { color: "inherit" },
-              }}
-              label={`Descuento ${formatearMoneda(ampliacionEquipo.descuento)}`}
-            />
-          )}
-
-          {situacion === "indefinido" ? (
-            <Chip
-              size="small"
-              variant="metaEstado"
-              icon={<EventIcon />}
-              sx={{
-                bgcolor: colorIndefinido,
-                color: theme.palette.getContrastText(colorIndefinido),
-                border: "none",
-                "& .MuiChip-icon": { color: "inherit" },
-              }}
-              label="Entrega indefinida — el cliente debe avisar"
-            />
-          ) : (
-            equipo.fechaVencimiento && (
+          {chipsFechas.map((chip) => {
+            const { variant, sx } = estiloChipFecha(chip, theme);
+            const { clave, label, Icono } = chip;
+            return (
               <Chip
+                key={clave}
                 size="small"
-                variant={situacion === "vencido" ? "metaEstado" : "meta"}
-                icon={situacion === "vencido" ? <EventBusyIcon /> : <AssignmentReturnIcon />}
-                sx={
-                  situacion === "vencido"
-                    ? {
-                        bgcolor: "error.main",
-                        color: "error.contrastText",
-                        border: "none",
-                        // Sobre el rojo pleno, el ícono va del color del texto.
-                        "& .MuiChip-icon": { color: "inherit" },
-                      }
-                    : { fontWeight: "bold" }
-                }
-                label={`${
-                  situacion === "vencido"
-                    ? "Venció"
-                    : situacion === "hoy"
-                      ? "Vence hoy"
-                      : "Devuelve"
-                } ${formatearFecha(equipo.fechaVencimiento)}`}
+                variant={variant}
+                icon={Icono ? <Icono /> : undefined}
+                sx={sx}
+                label={label}
               />
-            )
-          )}
-
-          {/* Lo que se acumuló desde que venció: cuántos días lleva y cuánto
-              representa a precio de este equipo. */}
-          {diasVencidos > 0 && (
-            <Chip
-              size="small"
-              variant="metaEstado"
-              sx={{ color: "error.main" }}
-              label={`${diasVencidos} día${diasVencidos === 1 ? "" : "s"} vencido${
-                diasVencidos === 1 ? "" : "s"
-              }${conValor(diasVencidos)}`}
-            />
-          )}
+            );
+          })}
         </Stack>
       </Box>
     );
@@ -581,9 +469,29 @@ export default function ClienteSeguimientoCard({
     typeof factura.iva === "number" ? ampliacion.nuevoIva : factura.iva,
   );
   const deposito = formatearMoneda(factura.deposito);
-  const valorTotal = formatearMoneda(
-    ampliacion.hay ? ampliacion.nuevoTotal : Number(factura.valorTotal) || 0,
-  );
+
+  // La cuenta de la factura sale de la MISMA función que usa Detalle Cliente:
+  // recalcula todo desde los pagos, los abonos y lo que se le entregó al
+  // cliente, con los días de alquiler contados hasta hoy.
+  //
+  // Antes acá se leía el campo `saldoPendiente` que la factura tiene guardado y
+  // se le sumaba la ampliación, y eso daba de menos y de más a la vez:
+  //
+  //   - Los abonos se perdían. Ese campo se recalcula al abonar como
+  //     valorTotal − montoPagado − abonos, y como lo GUARDADO no lleva los días
+  //     ampliados, una factura con el alta paga ya estaba en cero: el abono
+  //     restaba contra cero, no podía bajar de ahí, y desaparecía. Una factura
+  //     con el alta paga y un abono de $476.000 mostraba acá $476.000 de más
+  //     que en Detalle Cliente.
+  //   - El depósito ya devuelto, la plata entregada al cliente y los pagos de
+  //     los lotes de equipos agregados después no entraban en la cuenta.
+  //
+  // El campo guardado ya no se lee en ninguna pantalla, y tampoco se escribe:
+  // era una CONCLUSIÓN guardada como si fuera un hecho, el mismo error que en
+  // su momento tuvo el campo `estado` (ver facturaCalculos).
+  const cuenta = calcularCuentaFactura(factura, hoy);
+
+  const valorTotal = formatearMoneda(cuenta.total);
   const transporteMonto = formatearMoneda(factura.valorTransporte);
   const transporteTipo = typeof factura.transporte === "string" ? factura.transporte : null;
   const textoTransporte =
@@ -592,10 +500,7 @@ export default function ClienteSeguimientoCard({
       : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ");
   const fecha = formatearFecha(factura.fecha);
 
-  // Con los días ampliados incluidos, igual que el subtotal y el IVA.
-  const saldoPendienteNumero = ampliacion.hay
-    ? ampliacion.nuevoSaldo
-    : Number(factura.saldoPendiente) || 0;
+  const saldoPendienteNumero = cuenta.saldoPendiente;
   const saldoPendiente = formatearMoneda(saldoPendienteNumero);
 
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
@@ -665,32 +570,73 @@ export default function ClienteSeguimientoCard({
         </Typography>
       </Box>
 
-      {/* Lo ya cobrado. Solo aparece cuando queda saldo: con la factura
-          saldada sería el mismo número del total, repetido. La clase "pagado"
-          es la que lo pinta verde —sin ella cae en el blanco tiza del
-          renglón común, que es lo que pasaba acá y no en Detalle Cliente—. */}
-      {saldoPendienteNumero > 0 && (
+      {/* Lo ya cobrado. Solo aparece cuando queda saldo o cuando hubo abonos:
+          con la factura saldada de una sola vez sería el mismo número del
+          total, repetido. La clase "pagado" es la que lo pinta verde —sin ella
+          cae en el blanco tiza del renglón común—. Mismos renglones y mismas
+          condiciones que en Detalle Cliente: las dos pantallas muestran la
+          misma cuenta, y separarlas fue justo lo que las hizo divergir. */}
+      {(saldoPendienteNumero > 0 || cuenta.abonos > 0) && (
         <Box className="fila pagado">
           <Typography variant="body2">Pagado</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.pagado)}</Typography>
+        </Box>
+      )}
+
+      {/* Solo el total de lo abonado: el detalle de cada abono, con su fecha y
+          su medio, se ve en Detalle Cliente. */}
+      {cuenta.abonos > 0 && (
+        <Box className="fila abono">
+          <Typography variant="body2">Abonos</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.abonos)}</Typography>
+        </Box>
+      )}
+
+      {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
+          porque si no el total cambiaría sin explicación. */}
+      {cuenta.depositoDevuelto > 0 && (
+        <Box className="fila abono">
+          <Typography variant="body2">Depósito devuelto</Typography>
           <Typography variant="body2">
-            {formatearMoneda(Number(factura.montoPagado) || 0)}
+            {formatearMoneda(cuenta.depositoDevuelto)}
           </Typography>
         </Box>
       )}
 
-      {/* Siempre visible: rojo si queda algo por cobrar, verde si la factura
-          ya está saldada. Así se lee de un vistazo en qué situación está. */}
-      <Box
-        className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
-        sx={{ mt: 1 }}
-      >
-        <Typography variant="body2" fontWeight="bold">
-          Saldo pendiente
-        </Typography>
-        <Typography variant="body2" fontWeight="bold">
-          {saldoPendiente}
-        </Typography>
-      </Box>
+      {cuenta.entregas > 0 && (
+        <Box className="fila">
+          <Typography variant="body2">Entregado al cliente</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.entregas)}</Typography>
+        </Box>
+      )}
+
+      {/* Si el cliente pagó de más, el sobrante queda a su favor en vez de
+          mostrarse como saldo. Acá va solo el dato: devolverlo se hace desde
+          Detalle Cliente, que es donde están las acciones de plata. */}
+      {cuenta.saldoAFavor > 0 ? (
+        <Box className="fila ok" sx={{ mt: 1 }}>
+          <Typography variant="body2" fontWeight="bold">
+            Saldo a favor
+          </Typography>
+          <Typography variant="body2" fontWeight="bold">
+            {formatearMoneda(cuenta.saldoAFavor)}
+          </Typography>
+        </Box>
+      ) : (
+        /* Siempre visible: rojo si queda algo por cobrar, verde si la factura
+           ya está saldada. Así se lee de un vistazo en qué situación está. */
+        <Box
+          className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
+          sx={{ mt: 1 }}
+        >
+          <Typography variant="body2" fontWeight="bold">
+            Saldo pendiente
+          </Typography>
+          <Typography variant="body2" fontWeight="bold">
+            {saldoPendiente}
+          </Typography>
+        </Box>
+      )}
 
       </Paper>
     </Box>
@@ -1173,11 +1119,16 @@ export default function ClienteSeguimientoCard({
                     display: "flex",
                     flexWrap: "wrap",
                     justifyContent: "space-between",
-                    alignItems: "flex-end",
+                    // Arriba, no al fondo: así el subtotal y el IVA quedan
+                    // justo debajo del rótulo "Total factura" en vez de caer al
+                    // pie del recuadro de estado de cuenta, que es más alto y
+                    // dejaba un hueco en blanco. Mismo criterio que en Detalle
+                    // Cliente.
+                    alignItems: "flex-start",
                     gap: 2,
                   }}
                 >
-                  <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-end">
+                  <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-start">
                     {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
                     {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
                     {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
