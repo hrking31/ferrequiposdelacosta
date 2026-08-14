@@ -65,7 +65,6 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
-import EventIcon from "@mui/icons-material/Event";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
@@ -86,11 +85,10 @@ import {
   calcularDepositoTotal,
   depositoPendiente,
   calcularCuentaCliente,
-  describirFechasEquipo,
-  estiloChipFecha,
   ESTADO_FACTURA_INFO,
   ESTADO_CLIENTE_INFO,
 } from "./facturaUtils";
+import ChipsFechasEquipo from "./ChipsFechasEquipo";
 import RegistrarDevolucionDialog from "../SeguimientoClientes/RegistrarDevolucionDialog";
 import { formatearMonedaOVacio, formatearNit } from "../../Utils/formato";
 
@@ -673,72 +671,15 @@ export default function ClienteDetalle() {
             </Stack>
           )}
         </Stack>
-        {(() => {
-          const chipsDiasValor = [
-            <Chip
-              key="dias"
-              variant="meta"
-              size="small"
-              icon={<EventIcon />}
-              label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
-            />,
-          ];
-          if (Number(equipo.valor) > 0) {
-            chipsDiasValor.push(
-              <Chip
-                key="valor"
-                variant="meta"
-                size="small"
-                icon={<AttachMoneyIcon />}
-                label={`${formatearMoneda(Number(equipo.valor))}/día`}
-              />,
-            );
-          }
+        {/* La historia de fechas del equipo, igual que en Seguimiento: mismo
+            componente, mismos tramos, mismos colores.
 
-          // La historia de fechas del equipo sale de una función compartida
-          // con Seguimiento —despacho, vencimientos por los que pasó, días
-          // ampliados, días vencidos, hasta cuándo quedó— y se pinta con el
-          // mapeo de estilos que también es compartido. Cuando cada pantalla
-          // armaba los suyos terminaron contando cosas distintas de la misma
-          // factura, y acá además la fecha vigente ya vencida seguía en gris
-          // como si todavía tuviera plazo.
-          const chipsFechas = describirFechasEquipo(equipo).map((chip) => {
-            const { variant, sx } = estiloChipFecha(chip, theme);
-            const { clave, label, Icono } = chip;
-            return (
-              <Chip
-                key={clave}
-                size="small"
-                variant={variant}
-                icon={Icono ? <Icono /> : undefined}
-                sx={sx}
-                label={label}
-              />
-            );
-          });
-
-          // En móvil, días/precio en una columna y fechas en otra (prolijo).
-          // En PC, todos los chips sueltos en una sola fila, como estaba.
-          return esMovil ? (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                columnGap: 1,
-                rowGap: 0.5,
-                mt: 0.75,
-              }}
-            >
-              <Stack spacing={0.5}>{chipsDiasValor}</Stack>
-              <Stack spacing={0.5}>{chipsFechas}</Stack>
-            </Box>
-          ) : (
-            <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
-              {chipsDiasValor}
-              {chipsFechas}
-            </Stack>
-          );
-        })()}
+            Acá había un grid de dos columnas para móvil —días y precio de un
+            lado, fechas del otro—. Se fue con los tramos: ahora el precio por
+            día viaja junto a la fecha de salida, que es de lo que es condición,
+            y partirlos en dos columnas volvería a separar lo que se acaba de
+            juntar. En móvil los tramos envuelven solos. */}
+        <ChipsFechasEquipo equipo={equipo} />
       </Box>
     );
   };

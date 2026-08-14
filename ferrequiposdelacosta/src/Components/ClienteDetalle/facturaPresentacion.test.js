@@ -10,7 +10,7 @@
 // Ahora las dos piden la lista acá. Estas pruebas fijan QUÉ dice cada chip,
 // que es lo que se separó; el color y la variante son de cada pantalla.
 import { describe, it, expect } from "vitest";
-import { describirFechasEquipo } from "./facturaPresentacion";
+import { agruparChipsFechas, describirFechasEquipo } from "./facturaPresentacion";
 
 const HOY = "2026-08-15";
 
@@ -59,8 +59,26 @@ describe("describirFechasEquipo", () => {
 
     // La fecha por la que pasó antes de la renovación: se resolvió dándole más
     // días, así que no compite con la vigente.
-    expect(textoDe(chips, "vencimiento-0")).toBe("1er vencimiento 05/08/2026");
+    expect(textoDe(chips, "vencimiento-0")).toBe("Vencía 05/08/2026");
     expect(tonoDe(chips, "vencimiento-0")).toBe("resuelto");
+  });
+
+  // Con una sola ampliación "Vencía 05/08" se entiende sin explicación. Recién
+  // cuando hubo varias hace falta saber cuál fue primero.
+  it("numera los vencimientos solo cuando hubo más de uno", () => {
+    const chips = describirFechasEquipo(
+      {
+        ...chazas,
+        fechaVencimiento: "2026-08-11",
+        ampliaciones: [
+          { fechaAnterior: "2026-08-05", fechaNueva: "2026-08-07", dias: 2, descuento: 0 },
+          { fechaAnterior: "2026-08-07", fechaNueva: "2026-08-11", dias: 4, descuento: 0 },
+        ],
+      },
+      HOY,
+    );
+    expect(textoDe(chips, "vencimiento-0")).toBe("1er vencimiento 05/08/2026");
+    expect(textoDe(chips, "vencimiento-1")).toBe("2do vencimiento 07/08/2026");
   });
 
   it("el día que vence va en alerta, no en urgente", () => {
@@ -126,14 +144,90 @@ describe("describirFechasEquipo", () => {
 
   it("mantiene el orden en que se lee la historia", () => {
     const claves = describirFechasEquipo(chazas, HOY).map((chip) => chip.clave);
-    // Salió, tenía que volver tal día, se le dieron más días, quedó para tal
-    // otro, y lleva tantos de más.
+    // Salió tal día por tantos, a tanto el día; vencía tal, se le dieron más
+    // días, quedó para tal otro; y lleva tantos de más.
     expect(claves).toEqual([
       "despacho",
+      "dias",
+      "valorDia",
       "vencimiento-0",
       "ampliacion",
       "vencimiento",
       "diasVencidos",
     ]);
+  });
+});
+
+describe("agruparChipsFechas", () => {
+  const chazas = {
+    cantidad: 10,
+    valor: 20000,
+    dias: 3,
+    fechaDespacho: "2026-08-03",
+    fechaVencimiento: "2026-08-07",
+    ampliaciones: [{ dias: 2, descuento: 0, fechaAnterior: "2026-08-05" }],
+  };
+
+  it("reparte la historia en trayecto, plazo y vencido", () => {
+    const tramos = agruparChipsFechas(describirFechasEquipo(chazas, HOY));
+
+    expect(tramos.map((tramo) => tramo.map((chip) => chip.clave))).toEqual([
+      ["despacho", "dias", "valorDia"],
+      ["vencimiento-0", "ampliacion", "vencimiento"],
+      ["diasVencidos"],
+    ]);
+  });
+
+  // El agrupado no le agrega nada al caso simple, que es la mayoría de las
+  // facturas: aparece cuando hay historia que contar.
+  it("una factura al día y sin renovaciones tiene dos tramos", () => {
+    const tramos = agruparChipsFechas(
+      describirFechasEquipo(
+        {
+          cantidad: 4,
+          valor: 30000,
+          dias: 3,
+          fechaDespacho: "2026-08-13",
+          fechaVencimiento: "2026-08-20",
+        },
+        HOY,
+      ),
+    );
+
+    expect(tramos.map((tramo) => tramo.map((chip) => chip.clave))).toEqual([
+      ["despacho", "dias", "valorDia"],
+      ["vencimiento"],
+    ]);
+  });
+
+  // La flecha ata un eslabón con el anterior. Sin nada antes no ata nada, así
+  // que la fecha sola de una factura sin renovaciones no la lleva.
+  it("solo encadena los eslabones que vienen de algo", () => {
+    const conHistoria = describirFechasEquipo(chazas, HOY);
+    expect(conHistoria.find((chip) => chip.clave === "vencimiento").enCadena).toBe(true);
+
+    const sinHistoria = describirFechasEquipo(
+      { cantidad: 1, valor: 100, dias: 2, fechaVencimiento: "2026-08-20" },
+      HOY,
+    );
+    expect(sinHistoria.find((chip) => chip.clave === "vencimiento").enCadena).toBe(false);
+  });
+
+  // El descuento va en el tramo del plazo pero no es un paso de la cadena: es
+  // una condición de esos días, no un momento en el tiempo.
+  it("el descuento va en el tramo del plazo, sin flecha", () => {
+    const chips = describirFechasEquipo(
+      {
+        cantidad: 1,
+        valor: 100000,
+        dias: 3,
+        fechaVencimiento: "2026-08-09",
+        ampliaciones: [{ dias: 4, descuento: 80000, fechaAnterior: "2026-08-05" }],
+      },
+      HOY,
+    );
+    const descuento = chips.find((chip) => chip.clave === "descuento");
+    expect(descuento.tramo).toBe(2);
+    expect(descuento.enCadena).toBeUndefined();
   });
 });

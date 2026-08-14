@@ -24,7 +24,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 // equipo se lea igual en las dos pantallas.
 import EventIcon from "@mui/icons-material/Event";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 // Ojo: es "Return", no "Returned". El que termina en "-ed" es un ícono
 // distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
 // registrar una devolución en ninguna otra parte de la app.
@@ -36,8 +35,6 @@ import {
   calcularAmpliacionFactura,
   calcularCuentaFactura,
   calcularCantidadPendiente,
-  describirFechasEquipo,
-  estiloChipFecha,
   equipoDevueltoCompleto,
   calcularEstadoFactura,
   calcularGestionFactura,
@@ -45,6 +42,7 @@ import {
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
+import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
 import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
@@ -333,12 +331,6 @@ export default function ClienteSeguimientoCard({
   // chips. Si ya se le amplió el vencimiento, la fecha original aparece
   // marcada como "Vencido"; la vigente va aparte, según en qué situación está.
   const renderEquipo = (equipo, key, situacion) => {
-    // La historia de fechas del equipo —despacho, vencimientos por los que
-    // pasó, días ampliados, días vencidos— sale de una función compartida con
-    // Detalle Cliente. Acá solo se decide con qué se pinta cada chip: ver
-    // estiloDeChipFecha.
-    const chipsFechas = describirFechasEquipo(equipo, hoy);
-
     // El recuadro entero lleva el color de la URGENCIA, el mismo del rótulo
     // de su grupo: rojo lo vencido, ámbar lo que vence hoy, gris lo que
     // todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
@@ -368,38 +360,7 @@ export default function ClienteSeguimientoCard({
           </Typography>
         </Stack>
 
-        <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
-          <Chip
-            variant="meta"
-            size="small"
-            icon={<EventIcon />}
-            label={`${equipo.dias} día${Number(equipo.dias) === 1 ? "" : "s"}`}
-          />
-
-          {Number(equipo.valor) > 0 && (
-            <Chip
-              variant="meta"
-              size="small"
-              icon={<AttachMoneyIcon />}
-              label={`${formatearMoneda(Number(equipo.valor))}/día`}
-            />
-          )}
-
-          {chipsFechas.map((chip) => {
-            const { variant, sx } = estiloChipFecha(chip, theme);
-            const { clave, label, Icono } = chip;
-            return (
-              <Chip
-                key={clave}
-                size="small"
-                variant={variant}
-                icon={Icono ? <Icono /> : undefined}
-                sx={sx}
-                label={label}
-              />
-            );
-          })}
-        </Stack>
+        <ChipsFechasEquipo equipo={equipo} hoy={hoy} />
       </Box>
     );
   };

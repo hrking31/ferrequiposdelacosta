@@ -28,6 +28,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import EventIcon from "@mui/icons-material/Event";
 import SavingsIcon from "@mui/icons-material/Savings";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import {
   calcularAmpliacionEquipo,
   equipoDevueltoCompleto,
@@ -79,11 +80,11 @@ export const GESTION_INFO = {
 // abiertos al total. Se leía como si se cobraran $3.200.000 de más cuando
 // eran $1.800.000.
 //
-// Cada chip sale como DATO, no como componente: `{ clave, label, Icono,
-// tono }`. El tono dice qué peso tiene, y cada pantalla lo pinta con sus
-// propias variantes de Chip —Seguimiento usa el color de la urgencia, Detalle
-// distingue el alta de lo agregado después—. Lo que se unifica es QUÉ dice
-// cada chip, no cómo se ve.
+// Cada chip sale como DATO, no como componente: `{ clave, label, Icono, tono,
+// tramo, enCadena }`. El tono dice qué peso tiene, y cada pantalla lo pinta con
+// sus propias variantes de Chip —Seguimiento usa el color de la urgencia,
+// Detalle distingue el alta de lo agregado después—. Lo que se unifica es QUÉ
+// dice cada chip, no cómo se ve.
 //
 //   neutro      un dato más, sin urgencia
 //   resuelto    una fecha que ya pasó pero que se resolvió ampliando: es
@@ -93,6 +94,31 @@ export const GESTION_INFO = {
 //   alerta      vence hoy: hay que actuar antes de que pase a rojo
 //   urgente     ya venció y sigue afuera
 //   indefinido  quedó sin fecha y el cliente tiene que avisar
+//
+// ── Los tres tramos ──
+//
+// Los chips venían saliendo en una fila plana, todos del mismo peso, y eso los
+// volvía difíciles de leer aunque cada uno dijera la verdad: "se venció el 05",
+// "se le dieron 2 días" y "quedó para el 07" son tres partes de UNA frase, y
+// estaban cortadas en tres fichas sueltas mezcladas con el precio por día.
+//
+// Ahora cada chip declara a qué tramo pertenece, y las pantallas los dibujan
+// separados por un corte fino:
+//
+//   1 TRAYECTO  qué se llevó y cuándo salió (y cuándo volvió, si volvió)
+//   2 PLAZO     hasta cuándo era, qué se le amplió, en qué quedó
+//   3 VENCIDO   lo que corre solo desde que se pasó la fecha
+//
+// `enCadena` marca los chips del tramo 2 que son eslabones de la misma
+// secuencia temporal (vencía → +2 días → venció): las pantallas les ponen una
+// flecha adelante. El descuento va en el mismo tramo pero SIN flecha, porque no
+// es un paso de la cadena sino una condición de esos días.
+export const TRAMO_FECHAS = {
+  TRAYECTO: 1,
+  PLAZO: 2,
+  VENCIDO: 3,
+};
+
 export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const chips = [];
   const devuelto = equipoDevueltoCompleto(equipo);
@@ -102,66 +128,111 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     valorPorDia > 0 ? ` · ${formatearMoneda(monto)}` : "";
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? "" : "s"}`;
 
-  // 1. De dónde salió.
+  // ── TRAMO 1: qué se llevó, cuándo salió, cuándo volvió ──────────────
+  //
+  // La fecha de salida va primero: es el arranque de la historia. Los días
+  // contratados y el precio por día vienen detrás porque son las condiciones de
+  // ese despacho, no fechas. Antes estos dos abrían la fila y empujaban las
+  // fechas al medio, donde se mezclaban con lo que vino después.
   if (equipo?.fechaDespacho) {
     chips.push({
       clave: "despacho",
+      tramo: TRAMO_FECHAS.TRAYECTO,
       tono: "neutro",
       Icono: LocalShippingIcon,
-      label: `Despacho ${formatearFechaLegible(equipo.fechaDespacho)}`,
+      label: `Salió ${formatearFechaLegible(equipo.fechaDespacho)}`,
+    });
+  }
+
+  if (Number(equipo?.dias) > 0) {
+    chips.push({
+      clave: "dias",
+      tramo: TRAMO_FECHAS.TRAYECTO,
+      tono: "neutro",
+      Icono: EventIcon,
+      label: plural(Number(equipo.dias), "día"),
+    });
+  }
+
+  if (Number(equipo?.valor) > 0) {
+    chips.push({
+      clave: "valorDia",
+      tramo: TRAMO_FECHAS.TRAYECTO,
+      tono: "neutro",
+      Icono: AttachMoneyIcon,
+      label: `${formatearMoneda(Number(equipo.valor))}/día`,
     });
   }
 
   if (devuelto && equipo?.fechaDevolucion) {
     chips.push({
       clave: "devuelto",
+      tramo: TRAMO_FECHAS.TRAYECTO,
       tono: "exito",
       Icono: AssignmentReturnIcon,
       label: `Devuelto ${formatearFechaLegible(equipo.fechaDevolucion)}`,
     });
   }
 
-  // 2. Las fechas por las que ya pasó. Van en tono "resuelto", no en rojo:
-  //    esa fecha se venció, sí, pero se resolvió dándole más días. Dejarlas en
-  //    rojo ponía dos fechas rojas seguidas y no se sabía cuál mandaba.
-  obtenerHistorialVencimientos(equipo).forEach((fecha, indice) => {
+  // ── TRAMO 2: el plazo y lo que se pactó sobre él ────────────────────
+  //
+  // Las fechas por las que ya pasó van en tono "resuelto", no en rojo: esa
+  // fecha se venció, sí, pero se resolvió dándole más días. Dejarlas en rojo
+  // ponía dos fechas rojas seguidas y no se sabía cuál mandaba.
+  //
+  // Con una sola ampliación dice "Vencía 05/08" —en pasado, que es lo que se
+  // entiende sin explicación—. Recién si hubo varias se numeran, porque ahí sí
+  // hace falta saber cuál fue primero.
+  const historial = obtenerHistorialVencimientos(equipo);
+  historial.forEach((fecha, indice) => {
     chips.push({
       clave: `vencimiento-${indice}`,
+      tramo: TRAMO_FECHAS.PLAZO,
       tono: "resuelto",
+      enCadena: true,
       Icono: EventBusyIcon,
-      label: `${etiquetaVencimiento(indice)} ${formatearFechaLegible(fecha)}`,
+      label:
+        historial.length === 1
+          ? `Vencía ${formatearFechaLegible(fecha)}`
+          : `${etiquetaVencimiento(indice)} ${formatearFechaLegible(fecha)}`,
     });
   });
 
-  // 3. Los días que se PACTARON al ampliar, sin los que corren solos: el total
-  //    que devuelve el cálculo los trae sumados, y los abiertos tienen su
-  //    propio chip más abajo.
+  // Los días que se PACTARON al ampliar, sin los que corren solos: el total que
+  // devuelve el cálculo los trae sumados, y los abiertos tienen su propio chip
+  // en el tramo siguiente.
   const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
   const diasPactados = ampliacion.dias - ampliacion.diasAbiertos;
   if (diasPactados > 0) {
     const neto = Math.max(0, diasPactados * valorPorDia - ampliacion.descuento);
     chips.push({
       clave: "ampliacion",
+      tramo: TRAMO_FECHAS.PLAZO,
       tono: "acento",
+      enCadena: true,
       label: `+${plural(diasPactados, "día")}${conValor(neto)}`,
     });
   }
 
+  // Sin flecha: no es un paso de la cadena, es una condición de esos días.
   if (ampliacion.descuento > 0) {
     chips.push({
       clave: "descuento",
+      tramo: TRAMO_FECHAS.PLAZO,
       tono: "exito",
       Icono: SavingsIcon,
       label: `Descuento ${formatearMoneda(ampliacion.descuento)}`,
     });
   }
 
-  // 4. Hasta cuándo quedó. Va después de las ampliaciones a propósito: primero
-  //    se lee de dónde viene y recién al final en qué quedó.
+  // Hasta cuándo quedó. Cierra el tramo a propósito: primero se lee de dónde
+  // viene y recién al final en qué quedó.
   if (equipo?.vencimientoIndefinido) {
     chips.push({
       clave: "indefinido",
+      tramo: TRAMO_FECHAS.PLAZO,
       tono: "indefinido",
+      enCadena: historial.length > 0 || diasPactados > 0,
       Icono: EventIcon,
       label: "Entrega indefinida — el cliente debe avisar",
     });
@@ -172,7 +243,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     const venceHoy = equipo.fechaVencimiento === hoyIso;
     chips.push({
       clave: "vencimiento",
+      tramo: TRAMO_FECHAS.PLAZO,
       tono: vencido ? "urgente" : venceHoy ? "alerta" : "neutro",
+      // La flecha solo si hay de dónde venir: en una factura sin renovaciones
+      // este chip es el único del tramo y una flecha suelta no ataría nada.
+      enCadena: historial.length > 0 || diasPactados > 0,
       Icono: vencido ? EventBusyIcon : AssignmentReturnIcon,
       label: `${vencido ? "Venció" : venceHoy ? "Vence hoy" : "Devuelve"} ${formatearFechaLegible(
         equipo.fechaVencimiento,
@@ -180,10 +255,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     });
   }
 
-  // 5. Lo que se acumuló desde que venció y nadie pactó nada.
+  // ── TRAMO 3: lo que corre solo ──────────────────────────────────────
   if (ampliacion.diasAbiertos > 0) {
     chips.push({
       clave: "diasVencidos",
+      tramo: TRAMO_FECHAS.VENCIDO,
       tono: "urgente",
       label: `${plural(ampliacion.diasAbiertos, "día")} vencido${
         ampliacion.diasAbiertos === 1 ? "" : "s"
@@ -193,6 +269,17 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
 
   return chips;
 };
+
+// Los mismos chips repartidos en sus tramos, sin los que quedaron vacíos. Las
+// pantallas dibujan un corte fino entre grupo y grupo.
+//
+// Una factura al día suele devolver dos grupos —lo que se llevó y hasta cuándo
+// es—, y una sin renovaciones ni atrasos, uno solo. El agrupado no le agrega
+// nada al caso simple: solo aparece cuando hay historia que contar.
+export const agruparChipsFechas = (chips) =>
+  Object.values(TRAMO_FECHAS)
+    .map((tramo) => chips.filter((chip) => chip.tramo === tramo))
+    .filter((grupo) => grupo.length > 0);
 
 // El grupo "Entrega indefinida" (sin fecha, el cliente debe avisar) iba con el
 // mismo gris que "Vence": dos situaciones distintas —una tiene fecha futura

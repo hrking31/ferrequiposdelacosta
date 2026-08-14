@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-221_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-226_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -400,9 +400,21 @@ La presencia se queda en la base en tiempo real por una razón puntual: es la ú
 
 Todos los cálculos de dinero y estados están en un único archivo, que se **copia automáticamente** a las Cloud Functions en cada despliegue. Si las dos copias se separaran, el menú y la ficha del cliente mostrarían números distintos — por eso hay una prueba que falla si la copia queda desactualizada.
 
-Lo mismo vale para **lo que se dibuja**. La historia de fechas de un equipo —cuándo salió, hasta cuándo tenía plazo, cuántos días se le agregaron, cuántos lleva de más— la arma una sola función que usan tanto cartera como la ficha del cliente. Cada pantalla decide después con qué color pinta cada dato, pero *qué dice* cada uno se decide en un solo lugar.
+Lo mismo vale para **lo que se dibuja**. La historia de fechas de un equipo —cuándo salió, hasta cuándo tenía plazo, cuántos días se le agregaron, cuántos lleva de más— la arma un solo componente que usan tanto cartera como la ficha del cliente.
 
 No es prolijidad. Cuando cada pantalla armaba lo suyo, terminaron contando cosas distintas de la misma factura: para 10 equipos con 2 días de renovación y 7 días vencidos, una mostraba "+2 días · $400.000" y la otra "+9 días · $1.800.000", con los días vencidos repetidos al lado en ambas. Se leía como si se cobraran $3.200.000 cuando eran $1.800.000. Hay pruebas que fijan el texto de cada dato para que no vuelva a pasar.
+
+### La historia se cuenta en tres tramos
+
+Aun con los números bien, los datos salían en una fila plana de fichas del mismo peso. "Se venció el 5", "se le dieron 2 días" y "quedó para el 7" son tres partes de **una** frase, y estaban cortadas en tres etiquetas sueltas, mezcladas con el precio por día. Cada una decía la verdad y el conjunto no se entendía.
+
+Ahora van agrupadas, separadas por un corte fino, y las flechas atan lo que es causa y efecto:
+
+```
+🚚 Salió 03/08 · 3 días · $20.000/día │ Vencía 05/08 → +2 días · $400.000 → Venció 07/08 │ 7 días vencidos · $1.400.000
+```
+
+Cada tramo responde una pregunta: **qué se llevó**, **qué se pactó**, **qué corre solo**. Una factura al día y sin renovaciones muestra un solo tramo — el agrupado aparece cuando hay historia que contar, no le agrega nada al caso simple.
 
 ### Seguridad
 
@@ -478,7 +490,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**221 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**226 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
