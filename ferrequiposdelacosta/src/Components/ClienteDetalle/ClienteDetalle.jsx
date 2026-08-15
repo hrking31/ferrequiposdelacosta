@@ -1552,11 +1552,132 @@ export default function ClienteDetalle() {
                 return total + base * 0.19;
               }, 0);
 
+            // El IVA de UN equipo: la misma cuenta que ivaDeEquipos, para una
+            // sola línea. Sirve para abrir el total y ver de dónde sale.
+            const ivaDeUnEquipo = (equipo) => ivaDeEquipos([equipo]);
+
+            // El bloque completo de cargos adicionales: su rótulo con la
+            // flecha, el recuadro con los totales, y —al desplegar— el IVA
+            // discriminado equipo por equipo.
+            //
+            // El IVA del recuadro es la suma del de todos los equipos del
+            // grupo, y sumado no se entiende de dónde salió: una factura que
+            // arrancó con $20.000 de IVA y a la que después se le sumó un
+            // equipo de $30.000 muestra $50.000, sin forma de reconstruir el
+            // reparto. Cerrado se ve exactamente lo de antes; la flecha es lo
+            // único que se agrega.
+            //
+            // El depósito y el transporte no se desglosan porque no son por
+            // equipo: se cobran una vez por despacho, no importa cuántos
+            // equipos hayan salido en él.
+            const renderBloqueAdicionales = ({
+              clave,
+              equipos,
+              deposito,
+              transporteTipo: tipoTransporte,
+              transporteMonto: montoTransporte,
+            }) => {
+              const recuadro = renderAdicionales({
+                key: `${clave}-recuadro`,
+                iva: ivaDeEquipos(equipos),
+                color: colorAdicionales,
+                deposito,
+                transporteTipo: tipoTransporte,
+                transporteMonto: montoTransporte,
+              });
+              if (!recuadro) return null;
+
+              // Solo hay algo que desglosar si más de un equipo aporta IVA.
+              // Con uno solo, el detalle repetiría el total que ya está
+              // arriba, y una flecha que no abre nada es peor que no tenerla.
+              const aportantes = equipos.filter(
+                (equipo) => ivaDeUnEquipo(equipo) > 0,
+              );
+              const hayDesglose = aportantes.length > 1;
+              const abierto = seccionAbierta(factura.id, clave);
+
+              return (
+                <Box sx={{ mt: 1 }}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Typography
+                      variant="overline"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        lineHeight: 1.6,
+                        color: colorAdicionales,
+                      }}
+                    >
+                      <AddCardIcon fontSize="small" />
+                      Cargos adicionales
+                    </Typography>
+                    {hayDesglose && (
+                      <Tooltip
+                        title={abierto ? "Ocultar el detalle" : "Ver de dónde sale el IVA"}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleSeccion(factura.id, clave)}
+                          sx={{ color: colorAdicionales }}
+                        >
+                          {abierto ? (
+                            <ExpandLessIcon fontSize="small" />
+                          ) : (
+                            <ExpandMoreIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Stack>
+
+                  <Box sx={{ mt: 0.5 }}>{recuadro}</Box>
+
+                  {hayDesglose && abierto && (
+                    <Stack
+                      sx={{
+                        mt: 0.75,
+                        pl: 1.5,
+                        // Una línea al costado en vez de otro recuadro: el
+                        // detalle pertenece al recuadro de arriba, no es un
+                        // bloque nuevo que compita con él.
+                        borderLeft: "2px solid",
+                        borderColor: alpha(colorAdicionales, 0.5),
+                        rowGap: 0.25,
+                      }}
+                    >
+                      <Typography variant="rotuloDato" sx={{ color: colorAdicionales }}>
+                        IVA POR EQUIPO
+                      </Typography>
+                      {aportantes.map((equipo, indice) => (
+                        <Stack
+                          key={`${clave}-iva-${equipo.nombre}-${indice}`}
+                          direction="row"
+                          justifyContent="space-between"
+                          sx={{ gap: 2 }}
+                        >
+                          <Typography variant="body2" sx={{ minWidth: 0 }}>
+                            {equipo.cantidad} {equipo.nombre}
+                          </Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
+                            {formatearMoneda(ivaDeUnEquipo(equipo))}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              );
+            };
+
             const adicionalesFactura = equiposSonObjetos
-              ? renderAdicionales({
-                  key: "adicionales-factura",
-                  iva: ivaDeEquipos(equiposOriginales),
-                  color: colorAdicionales,
+              ? renderBloqueAdicionales({
+                  clave: "adicionales-factura",
+                  equipos: equiposOriginales,
                   deposito: Number(factura.deposito) || 0,
                   transporteTipo,
                   transporteMonto: Number(factura.valorTransporte) || 0,
@@ -1967,24 +2088,7 @@ export default function ClienteDetalle() {
                               )}
                             </Box>
 
-                            {adicionalesFactura && (
-                              <Box sx={{ mt: 1 }}>
-                                <Typography
-                                  variant="overline"
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 0.5,
-                                    lineHeight: 1.6,
-                                    color: colorAdicionales,
-                                  }}
-                                >
-                                  <AddCardIcon fontSize="small" />
-                                  Cargos adicionales
-                                </Typography>
-                                <Box sx={{ mt: 0.5 }}>{adicionalesFactura}</Box>
-                              </Box>
-                            )}
+                            {adicionalesFactura}
                           </Box>
                         )}
                       </Box>
@@ -2017,10 +2121,9 @@ export default function ClienteDetalle() {
                             adicionales. */}
                         {mostrar("equiposAgregados") &&
                           lotesAgregados.map((lote, indiceLote) => {
-                            const adicionalesLote = renderAdicionales({
-                              key: `lote-adicionales-${indiceLote}`,
-                              iva: ivaDeEquipos(lote.equipos),
-                              color: colorAdicionales,
+                            const adicionalesLote = renderBloqueAdicionales({
+                              clave: `lote-adicionales-${indiceLote}`,
+                              equipos: lote.equipos,
                               deposito: Number(lote.cabecera.deposito) || 0,
                               transporteTipo: lote.cabecera.transporte || null,
                               transporteMonto:
@@ -2112,26 +2215,7 @@ export default function ClienteDetalle() {
                                   })}
                                 </Box>
 
-                                {adicionalesLote && (
-                                  <Box sx={{ mt: 1 }}>
-                                    <Typography
-                                      variant="overline"
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 0.5,
-                                        lineHeight: 1.6,
-                                        color: colorAdicionales,
-                                      }}
-                                    >
-                                      <AddCardIcon fontSize="small" />
-                                      Cargos adicionales
-                                    </Typography>
-                                    <Box sx={{ mt: 0.5 }}>
-                                      {adicionalesLote}
-                                    </Box>
-                                  </Box>
-                                )}
+                                {adicionalesLote}
                               </Box>
                             );
                           })}
