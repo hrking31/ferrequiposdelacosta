@@ -416,6 +416,18 @@ Ahora van agrupadas, separadas por un corte fino, y las flechas atan lo que es c
 
 Cada tramo responde una pregunta: **qué se llevó**, **qué se pactó**, **qué corre solo**. Una factura al día y sin renovaciones muestra un solo tramo — el agrupado aparece cuando hay historia que contar, no le agrega nada al caso simple.
 
+### Los totales se pueden abrir
+
+Un número sumado esconde de dónde salió. El IVA de los cargos adicionales es el de todos los equipos del despacho junto: si la factura arrancó con $20.000 y después se le sumó un equipo de $30.000, muestra $50.000 sin forma de reconstruir el reparto. Una flecha lo abre y lista lo que aporta cada equipo.
+
+Aparece **solo cuando hay más de un equipo** que aporte. Con uno solo el detalle repetiría el total que ya está arriba, y una flecha que no abre nada es peor que no tenerla. Mismo criterio en el botón del historial: dice **"Ver 12 facturas finalizadas"** con el número por delante, y si no hay ninguna no se muestra — antes había que apretarlo para descubrir que la lista venía vacía.
+
+### La pantalla angosta decide qué cede, no qué se rompe
+
+La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre. En celular, donde el nombre y seis botones ya no conviven, los botones pasan abajo y se centran.
+
+El corte es un punto estándar, no el ancho exacto en que el contenido deja de entrar: ese número no existe, depende del largo del nombre de cada cliente.
+
 ### Seguridad
 
 - **Reglas de Firestore** que limitan qué puede leer y escribir cada quien.
