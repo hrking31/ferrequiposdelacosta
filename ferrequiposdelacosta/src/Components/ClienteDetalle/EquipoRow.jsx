@@ -20,13 +20,12 @@ export default function EquipoRow({ equipo, color }) {
   const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
   const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
 
-  // Si al equipo se le amplió el plazo, cuánto pasa a valer con esos días
-  // extra ya descontados. Se muestra debajo del valor original.
+  // Si al equipo se le amplió el plazo, lo que se debe de más por esos días
+  // —sin el inicial—. Se muestra debajo del valor original: dos números que
+  // suman al total, no uno que ya lo incluye.
   const ampliacionEquipo = calcularAmpliacionEquipo(equipo);
-  const valorConAmpliacion =
-    ampliacionEquipo.neto > 0 && subtotalEquipo > 0
-      ? subtotalEquipo + ampliacionEquipo.neto
-      : 0;
+  const deudaAmpliacion =
+    ampliacionEquipo.neto > 0 && subtotalEquipo > 0 ? ampliacionEquipo.neto : 0;
 
   return (
     <Box
@@ -88,13 +87,13 @@ export default function EquipoRow({ equipo, color }) {
             <Typography variant="body2" fontWeight="bold">
               {formatearMoneda(subtotalEquipo)}
             </Typography>
-            {valorConAmpliacion > 0 && (
+            {deudaAmpliacion > 0 && (
               <Typography
                 variant="caption"
                 fontWeight="bold"
                 sx={{ color: "custom.accent", lineHeight: 1.2 }}
               >
-                {formatearMoneda(valorConAmpliacion)}
+                {formatearMoneda(deudaAmpliacion)}
               </Typography>
             )}
           </Stack>

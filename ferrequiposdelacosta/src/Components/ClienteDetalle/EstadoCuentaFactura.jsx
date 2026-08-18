@@ -26,6 +26,7 @@ import {
   calcularDepositoTotal,
   depositoPendiente,
 } from "./facturaUtils";
+import { iconBtnSx } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
 
@@ -167,7 +168,11 @@ export default function EstadoCuentaFactura({
           Total factura
         </Typography>
         {esMovil && (
-          <IconButton size="small" onClick={onToggle} sx={{ color: acento }}>
+          <IconButton
+            size="small"
+            onClick={onToggle}
+            sx={{ ...iconBtnSx, color: acento }}
+          >
             {abierto ? (
               <ExpandLessIcon fontSize="small" />
             ) : (

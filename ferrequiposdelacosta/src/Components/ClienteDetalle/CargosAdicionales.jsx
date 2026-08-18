@@ -5,13 +5,13 @@
 // El IVA del recuadro es la suma del de todos los equipos del grupo, y sumado
 // no se entiende de dónde salió: una factura que arrancó con $20.000 de IVA y
 // a la que después se le sumó un equipo de $30.000 muestra $50.000, sin forma
-// de reconstruir el reparto. Cerrado se ve exactamente lo de antes; la flecha
-// es lo único que se agrega.
+// de reconstruir el reparto. La flecha vive arriba a la derecha, DENTRO del
+// mismo recuadro —igual que el botón de ocultar factura—, y el detalle
+// abre debajo, también adentro.
 //
 // El depósito y el transporte no se desglosan porque no son por equipo: se
 // cobran una vez por despacho, no importa cuántos equipos hayan salido en él.
 import PropTypes from "prop-types";
-import { alpha } from "@mui/material/styles";
 import {
   Box,
   IconButton,
@@ -24,19 +24,19 @@ import AddCardIcon from "@mui/icons-material/AddCard";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { calcularAmpliacionEquipo } from "./facturaUtils";
-import { renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
+import { iconBtnSx, renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
 
-// El recuadro con los importes. Antes vivía dentro del cuadro de pago,
+// Los datos del recuadro de importes. Antes vivía dentro del cuadro de pago,
 // mezclado con el medio y el monto; ahora va en su propio recuadro, debajo de
-// los equipos.
-const renderAdicionales = ({
+// los equipos. Devuelve la lista de datos en vez del recuadro ya armado,
+// para que el componente pueda meterle la flecha y el desglose adentro.
+const datosAdicionales = ({
   deposito,
   transporteTipo,
   transporteMonto,
   iva,
-  color,
 }) => {
   const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
   const hayIva = Number(iva) > 0;
@@ -84,7 +84,7 @@ const renderAdicionales = ({
     valor: formatearMoneda(total),
   });
 
-  return renderRecuadroBloque(color, renderFilaDatos(color, datos));
+  return datos;
 };
 
 export default function CargosAdicionales({
@@ -101,61 +101,67 @@ export default function CargosAdicionales({
   const theme = useTheme();
   const color = theme.palette.custom.seccionAdicionales;
 
-  // El IVA de un grupo de equipos: cada uno respeta su propia marca y suma
-  // también los días que se le ampliaron. Así el recuadro de la factura
-  // muestra solo el IVA de sus equipos y cada lote agregado el suyo, sin
-  // contarlo dos veces.
-  const ivaDeEquipos = (lista) =>
-  lista.reduce((total, equipo) => {
-    const llevaIva = equipo.aplicaIva ?? Boolean(aplicaIvaFactura);
-    if (!llevaIva) return total;
-    const base =
+  // Cada equipo respeta su propia marca de IVA (o la de la factura, si no
+  // trae la suya). El de un lote es solo el de sus equipos, sin contar el de
+  // otro lote agregado después.
+  const llevaIvaEquipo = (equipo) => equipo.aplicaIva ?? Boolean(aplicaIvaFactura);
+
+  // El IVA de la renta inicial, sin lo ampliado.
+  const ivaInicialDeEquipo = (equipo) => {
+    if (!llevaIvaEquipo(equipo)) return 0;
+    const inicial =
       (Number(equipo.cantidad) || 0) *
-        (Number(equipo.dias) || 0) *
-        (Number(equipo.valor) || 0) +
-      calcularAmpliacionEquipo(equipo).neto;
-    return total + base * 0.19;
-  }, 0);
+      (Number(equipo.dias) || 0) *
+      (Number(equipo.valor) || 0);
+    return inicial * 0.19;
+  };
 
-  // El IVA de UN equipo: la misma cuenta que ivaDeEquipos, para una sola
-  // línea. Sirve para abrir el total y ver de dónde sale.
-  const ivaDeUnEquipo = (equipo) => ivaDeEquipos([equipo]);
+  // El IVA de los días que se le ampliaron al equipo, aparte del inicial:
+  // el dueño los quiere ver separados, no sumados en una sola cifra.
+  const ivaAmpliadoDeEquipo = (equipo) =>
+    llevaIvaEquipo(equipo) ? calcularAmpliacionEquipo(equipo).neto * 0.19 : 0;
 
-  const recuadro = renderAdicionales({
+  // El IVA de UN equipo completo: inicial + ampliado. Sirve para el total
+  // del recuadro y para decidir quién aporta al desglose.
+  const ivaDeUnEquipo = (equipo) =>
+    ivaInicialDeEquipo(equipo) + ivaAmpliadoDeEquipo(equipo);
+
+  const ivaDeEquipos = (lista) =>
+    lista.reduce((total, equipo) => total + ivaDeUnEquipo(equipo), 0);
+
+  const datos = datosAdicionales({
     iva: ivaDeEquipos(equipos),
-    color,
     deposito,
     transporteTipo,
     transporteMonto,
   });
-  if (!recuadro) return null;
+  if (!datos) return null;
 
-  // Solo hay algo que desglosar si más de un equipo aporta IVA. Con uno solo,
-  // el detalle repetiría el total que ya está arriba, y una flecha que no abre
-  // nada es peor que no tenerla.
+  // Hay algo que desglosar si más de un equipo aporta IVA —si fuera uno
+  // solo, la línea repetiría el total que ya está arriba— o si ese único
+  // equipo tiene ampliación, porque ahí sí hay algo nuevo que mostrar: el
+  // IVA partido entre la renta inicial y los días de más. El depósito y el
+  // transporte no entran acá: son un cargo único del lote, no de cada
+  // equipo (ver la nota de arriba).
   const aportantes = equipos.filter((equipo) => ivaDeUnEquipo(equipo) > 0);
-  const hayDesglose = aportantes.length > 1;
+  const hayAmpliacionConIva = aportantes.some(
+    (equipo) => ivaAmpliadoDeEquipo(equipo) > 0,
+  );
+  const hayDesglose = aportantes.length > 1 || hayAmpliacionConIva;
 
-  return (
-    <Box sx={{ mt: 1 }}>
+  // La flecha va DENTRO del recuadro, al lado de los datos y a su mismo
+  // nivel —no en un renglón propio arriba, que solo dejaba un hueco vacío—,
+  // igual que el botón de ocultar factura.
+  const contenidoRecuadro = (
+    <>
       <Stack
         direction="row"
-        justifyContent="space-between"
-        alignItems="center"
+        alignItems="flex-start"
+        sx={{ gap: 1 }}
       >
-        <Typography
-          variant="overline"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            lineHeight: 1.6,
-            color,
-          }}
-        >
-          <AddCardIcon fontSize="small" />
-          Cargos adicionales
-        </Typography>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {renderFilaDatos(color, datos)}
+        </Box>
         {hayDesglose && (
           <Tooltip
             title={abierto ? "Ocultar el detalle" : "Ver de dónde sale el IVA"}
@@ -163,7 +169,7 @@ export default function CargosAdicionales({
             <IconButton
               size="small"
               onClick={onToggle}
-              sx={{ color }}
+              sx={{ ...iconBtnSx, color, flexShrink: 0 }}
             >
               {abierto ? (
                 <ExpandLessIcon fontSize="small" />
@@ -175,41 +181,68 @@ export default function CargosAdicionales({
         )}
       </Stack>
 
-      <Box sx={{ mt: 0.5 }}>{recuadro}</Box>
-
       {hayDesglose && abierto && (
         <Stack
           sx={{
             mt: 0.75,
-            pl: 1.5,
-            // Una línea al costado en vez de otro recuadro: el
-            // detalle pertenece al recuadro de arriba, no es un
-            // bloque nuevo que compita con él.
-            borderLeft: "2px solid",
-            borderColor: alpha(color, 0.5),
             rowGap: 0.25,
           }}
         >
           <Typography variant="rotuloDato" sx={{ color: color }}>
             IVA POR EQUIPO
           </Typography>
-          {aportantes.map((equipo, indice) => (
-            <Stack
-              key={`iva-${equipo.nombre}-${indice}`}
-              direction="row"
-              justifyContent="space-between"
-              sx={{ gap: 2 }}
-            >
-              <Typography variant="body2" sx={{ minWidth: 0 }}>
-                {equipo.cantidad} {equipo.nombre}
-              </Typography>
-              <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
-                {formatearMoneda(ivaDeUnEquipo(equipo))}
-              </Typography>
-            </Stack>
-          ))}
+          {aportantes.map((equipo, indice) => {
+            const ivaAmpliado = ivaAmpliadoDeEquipo(equipo);
+            // Con ampliación, el IVA se ve partido en dos: el de la renta
+            // inicial y el de los días de más. Sin ampliación, una sola
+            // línea con el total, como siempre.
+            const filas = ivaAmpliado > 0
+              ? [
+                  { etiqueta: `${equipo.cantidad} ${equipo.nombre}`, monto: ivaInicialDeEquipo(equipo) },
+                  { etiqueta: `${equipo.cantidad} ${equipo.nombre} · días ampliados`, monto: ivaAmpliado },
+                ]
+              : [{ etiqueta: `${equipo.cantidad} ${equipo.nombre}`, monto: ivaDeUnEquipo(equipo) }];
+
+            return filas.map((fila, indiceFila) => (
+              <Stack
+                key={`iva-${equipo.nombre}-${indice}-${indiceFila}`}
+                direction="row"
+                justifyContent="space-between"
+                sx={{ gap: 2 }}
+              >
+                <Typography variant="body2" sx={{ minWidth: 0 }}>
+                  {fila.etiqueta}
+                </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: "nowrap" }}>
+                  {formatearMoneda(fila.monto)}
+                </Typography>
+              </Stack>
+            ));
+          })}
         </Stack>
       )}
+    </>
+  );
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Typography
+        variant="overline"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          lineHeight: 1.6,
+          color,
+        }}
+      >
+        <AddCardIcon fontSize="small" />
+        Cargos adicionales
+      </Typography>
+
+      <Box sx={{ mt: 0.5 }}>
+        {renderRecuadroBloque(color, contenidoRecuadro)}
+      </Box>
     </Box>
   );
 }

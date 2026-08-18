@@ -126,7 +126,7 @@ export default function FacturaCard({
       <IconButton
         size="small"
         onClick={() => toggleSeccion(factura.id, seccion)}
-        sx={{ color: acento }}
+        sx={{ ...iconBtnSx, color: acento }}
       >
         {seccionAbierta(factura.id, seccion) ? (
           <ExpandLessIcon fontSize="small" />
