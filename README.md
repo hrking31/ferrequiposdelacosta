@@ -428,6 +428,14 @@ La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede 
 
 El corte es un punto estándar, no el ancho exacto en que el contenido deja de entrar: ese número no existe, depende del largo del nombre de cada cliente.
 
+### Una pantalla no es un archivo
+
+La ficha del cliente llegó a 2.692 líneas en un solo archivo, y casi la mitad era un bloque corrido que dibujaba **una** factura: el estado, el subtotal, los equipos del alta, los agregados después, los abonos y la cuenta, todo seguido. Para mover de lugar el IVA había que leer mil líneas hasta encontrar dónde se dibujaba.
+
+Hoy son 468 líneas y siete piezas con un oficio cada una: la tarjeta del cliente, la de una factura, la fila de un equipo, el recuadro del pago con sus abonos, los cargos adicionales, el estado de cuenta y los recuadros que comparten todas.
+
+Lo que **no** se repartió es la cuenta de la factura: se calcula una sola vez en la tarjeta y baja hecha a la pieza que la muestra. Si cada una la sacara por su lado volveríamos al problema de siempre —dos lugares diciendo números distintos de la misma factura.
+
 ### Seguridad
 
 - **Reglas de Firestore** que limitan qué puede leer y escribir cada quien.
