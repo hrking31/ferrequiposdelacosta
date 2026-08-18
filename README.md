@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-226_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-228_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -277,6 +277,18 @@ Los equipos que se piden juntos forman un **lote**, con su propio transporte, de
 
 Si al pagar ese lote el cliente entrega de más, el sobrante **se reparte solo** entre las facturas que tengan saldo, con la misma regla de los abonos.
 
+### 9. Editar una factura no es corregir un dato
+
+El formulario de editar no toca un campo suelto: vuelve a armar la factura entera —equipos, pago, total—. Mientras solo tiene lo que se cargó al alta eso es seguro. El problema es lo que pasa **después**: un abono, un equipo agregado, una ampliación de plazo, una devolución parcial, un depósito ya resuelto. Esa historia queda anotada apoyada en un dato puntual, y el formulario no tenía forma de saber que la factura ya no estaba sola.
+
+Ahora sí la sabe, y de eso salen las reglas:
+
+- Una **factura finalizada** no se edita: agregar equipo, registrar devolución y editar quedan apagados, cada uno con su motivo.
+- Un equipo con ampliaciones o una devolución parcial ya registradas **no se puede quitar** de la lista del formulario —es la única forma que tiene de "editarlo", y quitarlo perdería esa historia sin dejar rastro. Los demás equipos de la misma factura se editan normal.
+- El **depósito** se bloquea una vez que ya se resolvió (devuelto o retenido).
+- Un aviso arriba del formulario lista qué tiene la factura encima, sin bloquear nada más: número, fecha, transporte, IVA y pago inicial se editan siempre.
+- **Eliminar la factura completa** se apaga si ya tiene algo de lo anterior. Sin nada encima —una factura recién cargada, mal tipeada— borrar y volver a cargarla sigue siendo la salida más simple.
+
 ---
 
 ## Los documentos que genera
@@ -436,6 +448,15 @@ Hoy son 468 líneas y siete piezas con un oficio cada una: la tarjeta del client
 
 Lo que **no** se repartió es la cuenta de la factura: se calcula una sola vez en la tarjeta y baja hecha a la pieza que la muestra. Si cada una la sacara por su lado volveríamos al problema de siempre —dos lugares diciendo números distintos de la misma factura.
 
+### El formato viejo que se dejó de sostener
+
+Las primeras facturas de la app vinieron de una migración de Excel, y durante meses el código sostuvo dos formatos a la vez: el nuevo —una lista de pagos, equipos como objetos— y el viejo migrado —equipos como texto suelto, el pago como `modoPago` más `montoPagado`, un número que la app iba **acumulando** cada vez que se agregaba un equipo pagado—.
+
+Ese doble soporte escondía un bug: al agregar un equipo pagado a una factura vieja, la cuenta tomaba el `montoPagado` ya acumulado como si fuera solo el pago del alta, y le sumaba **otra vez** los pagos de los equipos agregados. El "Pagado" se veía inflado y el saldo, más bajo del real —así se detectó, en una factura real donde el pagado subía $428.400 solo con abrir y guardar el lápiz.
+
+> [!WARNING]
+> El dueño confirmó que ya no queda ninguna factura del formato viejo en producción. En vez de parchar la cuenta una vez más, se sacó todo el código que existía solo para sostenerlo. Con el formato viejo fuera, ese bug deja de poder existir: no porque se corrigió una cuenta, sino porque la causa ya no tiene dónde vivir.
+
 ### Seguridad
 
 - **Reglas de Firestore** que limitan qué puede leer y escribir cada quien.
@@ -510,7 +531,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**226 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**228 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
