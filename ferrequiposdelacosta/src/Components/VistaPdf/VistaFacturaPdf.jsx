@@ -3,7 +3,8 @@ import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
   agruparLotesAgregados,
-  normalizarPagos,
+  listaPagos,
+  sumarPagosFactura,
   sumarAbonos,
   calcularAmpliacionEquipo,
   calcularAmpliacionFactura,
@@ -267,11 +268,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
       tablaEquipos(originales);
 
       tablaPago({
-        pagos: normalizarPagos(
-          factura.pagos,
-          factura.modoPago,
-          factura.montoPagado,
-        ),
+        pagos: listaPagos(factura),
         tipoPago: factura.tipoPago,
         fecha: factura.fecha,
       });
@@ -295,7 +292,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
       tablaEquipos(lote.equipos);
 
       tablaPago({
-        pagos: normalizarPagos(lote.cabecera.pagos, lote.cabecera.modoPago, null),
+        pagos: listaPagos(lote.cabecera),
         tipoPago: lote.cabecera.tipoPago,
         fecha: lote.cabecera.fechaAgregado,
       });
@@ -362,20 +359,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const transporteTotal =
     (Number(factura.valorTransporte) || 0) + sumarDeAgregados("valorTransporte");
 
-  const pagadoEnFactura =
-    normalizarPagos(factura.pagos, factura.modoPago, factura.montoPagado).reduce(
-      (total, pago) => total + (Number(pago.monto) || 0),
-      0,
-    ) +
-    equiposAgregados.reduce(
-      (total, equipo) =>
-        total +
-        normalizarPagos(equipo.pagos, equipo.modoPago, null).reduce(
-          (suma, pago) => suma + (Number(pago.monto) || 0),
-          0,
-        ),
-      0,
-    );
+  const pagadoEnFactura = sumarPagosFactura(factura);
 
   const recibido = pagadoEnFactura + totalAbonos;
   const saldoPendiente = Math.max(0, totalFactura - recibido);

@@ -39,8 +39,7 @@ import {
   formatearMonedaInput,
   limpiarMonedaInput,
   formatearFechaLegible,
-  normalizarPagos,
-  pagosDelAlta,
+  listaPagos,
   sumarAbonos,
   separarExcedentePago,
   calcularEstadoCliente,
@@ -74,10 +73,7 @@ const obtenerEstadoInicial = (factura) => ({
   deposito: factura?.deposito ? String(factura.deposito) : "",
   aplicaIva: factura?.aplicaIva ?? true,
   tipoPago: factura?.tipoPago ?? "total",
-  // Solo el pago del ALTA: en las facturas viejas `montoPagado` viene con lo de
-  // los equipos agregados adentro, y traerlo crudo hacía que al guardar se
-  // sumara esa plata otra vez (ver pagosDelAlta en facturaCalculos).
-  pagos: pagosDelAlta(factura),
+  pagos: listaPagos(factura),
 });
 
 const TIPO_PAGO_INFO = {
@@ -163,7 +159,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
   const pagosAgregados = equiposAgregados.reduce(
     (total, item) =>
       total +
-      normalizarPagos(item.pagos, item.modoPago, item.montoPagado).reduce(
+      listaPagos(item).reduce(
         (suma, pago) => suma + (Number(pago.monto) || 0),
         0,
       ),
@@ -398,9 +394,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
           ]
         : factura?.abonos || [];
 
-    const pagadoEnFactura =
-      pagosGuardados.reduce((total, pago) => total + pago.monto, 0) + pagosAgregados;
-
     const datosFactura = {
       numeroFactura: form.numeroFactura.trim(),
       fecha: form.fecha,
@@ -422,7 +415,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       valorTransporte: Number(form.valorTransporte) || 0,
       deposito: Number(form.deposito) || 0,
       tipoPago: form.tipoPago,
-      montoPagado: pagadoEnFactura,
+      // Lo pagado tampoco se guarda: sale de sumar los medios de pago del alta
+      // (`pagos`) más el que trae cada lote de equipos agregado después. Se
+      // guardaba en `montoPagado`, un número acumulado que ya nadie lee y que,
+      // por venir sumado, hacía contar dos veces el pago de un equipo agregado.
+      //
       // El saldo NO se guarda. Se guardan los hechos —lo que se emitió, lo que
       // el cliente entregó— y el saldo se calcula al mostrarlo, porque es una
       // conclusión que cambia SOLA con el calendario: cada día que un equipo

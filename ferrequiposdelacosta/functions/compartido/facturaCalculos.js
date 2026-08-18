@@ -28,14 +28,11 @@
 export const MODOS_PAGO = ["Nequi", "Nequi A", "Bancolombia", "Daviplata", "Efectivo"];
 
 // Un pago puede repartirse en más de un medio (ej. parte por Bancolombia,
-// parte en efectivo). Las facturas/equipos viejos solo tenían un campo
-// `modoPago` de texto: esto lo convierte a la misma forma de lista para que
-// la UI no tenga que distinguir formato viejo/nuevo.
-export const normalizarPagos = (pagos, modoPagoLegado, montoLegado) => {
-  if (Array.isArray(pagos) && pagos.length > 0) return pagos;
-  if (modoPagoLegado) return [{ medio: modoPagoLegado, monto: Number(montoLegado) || 0 }];
-  return [];
-};
+// parte en efectivo), así que siempre es una lista. La piden tanto la factura
+// —los medios de su alta— como cada lote de equipos agregado después, que
+// guarda el suyo en su primer equipo.
+export const listaPagos = (origen) =>
+  Array.isArray(origen?.pagos) ? origen.pagos : [];
 
 const obtenerHoraBogota = () =>
   Number(
@@ -334,51 +331,12 @@ export const separarExcedentePago = (pagos, total) => {
   };
 };
 
-// La cuenta de una factura en un solo lugar, para que todas las pantallas
-// digan lo mismo.
-//
-// `totalMostrado` es opcional y sirve para la regla de siempre: lo que se
-// MUESTRA lleva los días ampliados, lo que se GUARDA no. Quien pinta la
-// pantalla le pasa el total con ampliación; quien guarda no le pasa nada y
-// usa el valorTotal tal cual está en la base.
-//
-// Si el cliente pagó de más, el sobrante NO se resta del saldo (que nunca
-// baja de cero): sale por separado como saldo a favor.
-export const calcularEstadoCuenta = (factura, totalMostrado) => {
-  const total = totalMostrado ?? (Number(factura?.valorTotal) || 0);
-  const abonos = sumarAbonos(factura?.abonos);
-  const pagado = (Number(factura?.montoPagado) || 0) + abonos;
-
-  return {
-    total,
-    abonos,
-    pagado,
-    // Lo que se pagó al emitir la factura, sin contar los abonos.
-    pagadoInicial: Number(factura?.montoPagado) || 0,
-    saldoPendiente: Math.max(0, total - pagado),
-    saldoAFavor: Math.max(0, pagado - total),
-  };
-};
-
 // ── Lo que el cliente entregó ──────────────────────────────────────────
 //
-// Hay dos formas de tener guardado el pago de una factura, y conviene tenerlas
-// claras porque mezclarlas costaba plata:
-//
-//   Formato nuevo (creada en la app): `pagos` es la lista de medios del ALTA, y
-//   cada lote de equipos que se agrega después guarda el suyo en su primer
-//   equipo. Cada plata queda anotada una sola vez.
-//
-//   Formato viejo (migrado del Excel): no hay lista, hay `modoPago` (texto) y
-//   `montoPagado` (número). Y ese número la app lo fue ACUMULANDO: al agregar
-//   un equipo pagado le sumó ese pago (ver AgregarEquipoDialog). O sea que ahí
-//   `montoPagado` NO es el pago del alta, es el alta MÁS los agregados.
-//
-// Por eso el pago del alta se pide con `pagosDelAlta`, que en el formato viejo
-// descuenta lo que ya está contado dentro de los equipos. Tomarlo crudo y
-// sumarle después los lotes —que es lo que se hacía— contaba esa plata dos
-// veces: el "Pagado" salía inflado, el saldo más bajo del real, y guardar la
-// factura desde el lápiz dejaba grabado el número malo.
+// Cada plata queda anotada UNA sola vez y en un solo lugar: los medios del alta
+// en `factura.pagos`, y el de cada lote de equipos agregado después en el
+// primer equipo de ese lote. Sumar las dos cosas da todo lo que entró por la
+// factura, sin contar los abonos, que son plata posterior.
 
 const sumarMontos = (pagos) =>
   (Array.isArray(pagos) ? pagos : []).reduce(
@@ -392,33 +350,10 @@ const sumarMontos = (pagos) =>
 export const sumarPagosDeAgregados = (factura) =>
   (Array.isArray(factura?.equipos) ? factura.equipos : [])
     .filter((equipo) => equipo?.agregadoPosteriormente)
-    .reduce(
-      (total, equipo) =>
-        total + sumarMontos(normalizarPagos(equipo.pagos, equipo.modoPago, null)),
-      0,
-    );
-
-// Los medios de pago del ALTA, en la misma forma de lista que usan las
-// pantallas y el formulario. En el formato viejo se arma el único renglón que
-// hubo, ya con el monto limpio de los equipos agregados.
-export const pagosDelAlta = (factura) => {
-  const registrados = Array.isArray(factura?.pagos) ? factura.pagos : [];
-  if (registrados.length > 0) return registrados;
-  if (!factura?.modoPago) return [];
-
-  return [
-    {
-      medio: factura.modoPago,
-      monto: Math.max(
-        0,
-        (Number(factura.montoPagado) || 0) - sumarPagosDeAgregados(factura),
-      ),
-    },
-  ];
-};
+    .reduce((total, equipo) => total + sumarMontos(listaPagos(equipo)), 0);
 
 // Cuánto entregó el cliente al emitirse la factura.
-export const pagoInicialFactura = (factura) => sumarMontos(pagosDelAlta(factura));
+export const pagoInicialFactura = (factura) => sumarMontos(listaPagos(factura));
 
 // Todo lo que entró por la factura misma: el alta más cada lote agregado
 // después. No incluye los abonos, que son plata posterior y se cuentan aparte.
@@ -516,26 +451,6 @@ export const calcularCuentaFactura = (
     saldoAFavor: Math.max(0, recibido - total),
   };
 };
-
-// El saldo que queda en una factura con esta lista de abonos: el total
-// facturado menos el pago del alta menos todos los abonos. Nunca baja de
-// cero —si se pagó de más, eso se ve aparte como saldo a favor. Usa los
-// valores CRUDOS de la factura (sin ampliación): es la misma regla de
-// siempre, lo que se guarda no lleva los días ampliados.
-//
-// OJO: hoy no la usa nadie, y es a propósito. Servía para mantener al día el
-// campo `saldoPendiente` de la factura, que dejó de guardarse. Justamente por
-// trabajar sobre los valores crudos, en una factura con el alta paga daba cero
-// y los abonos se perdían. Si hace falta el saldo de una factura, es
-// calcularCuentaFactura. Queda porque responde una pregunta legítima —"cuánto
-// quedaría debiendo con estos abonos"— que un formulario podría necesitar.
-export const calcularSaldoConAbonos = (factura, abonos) =>
-  Math.max(
-    0,
-    (Number(factura?.valorTotal) || 0) -
-      (Number(factura?.montoPagado) || 0) -
-      sumarAbonos(abonos),
-  );
 
 // Las facturas de un cliente que todavía tienen saldo, ordenadas de mayor a
 // menor saldo (empate: la más antigua primero). Es el orden en que se les va

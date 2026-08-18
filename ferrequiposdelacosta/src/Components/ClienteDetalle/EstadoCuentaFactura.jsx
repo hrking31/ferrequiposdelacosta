@@ -44,21 +44,6 @@ export default function EstadoCuentaFactura({
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const acento = theme.palette.custom.accent;
 
-  // Formato viejo (migrado del Excel): transporte es un número.
-  // Formato nuevo (creado en la app): transporte es el tipo
-  // (ej. "Solo ida") y el monto vive aparte en valorTransporte.
-  const equiposSonObjetos =
-    factura.equipos?.length > 0 &&
-    typeof factura.equipos[0] === "object";
-  const transporteMonto = formatearMoneda(
-    typeof factura.transporte === "number"
-      ? factura.transporte
-      : factura.valorTransporte,
-  );
-  const transporteTipo =
-    typeof factura.transporte === "string"
-      ? factura.transporte
-      : null;
   // Mismo cálculo compartido que usa Seguimiento de Clientes.
   const ampliacionFactura = calcularAmpliacionFactura(factura);
   // Subtotal e IVA se muestran ya con los días ampliados sumados
@@ -79,11 +64,10 @@ export default function EstadoCuentaFactura({
       ? ampliacionFactura.nuevoIva
       : factura.iva,
   );
-  const deposito = formatearMoneda(factura.deposito);
   const valorTotal = formatearMoneda(cuenta.total);
-  const equiposAgregados = equiposSonObjetos
-    ? factura.equipos.filter((equipo) => equipo.agregadoPosteriormente)
-    : [];
+  const equiposAgregados = (
+    Array.isArray(factura.equipos) ? factura.equipos : []
+  ).filter((equipo) => equipo.agregadoPosteriormente);
 
   // Depósito/transporte de TODA la factura = lo del lote original
   // (fijo, no crece) + lo que haya traído cada equipo agregado.
@@ -130,40 +114,19 @@ export default function EstadoCuentaFactura({
       </Typography>,
     );
   }
-  if (equiposSonObjetos) {
-    if (depositoTotalFactura > 0) {
-      lineasTotalesDer.push(
-        <Typography key="deposito" variant="body2">
-          Depósito {formatearMoneda(depositoTotalFactura)}
-        </Typography>,
-      );
-    }
-    if (transporteTotalFactura > 0) {
-      lineasTotalesDer.push(
-        <Typography key="transporte" variant="body2">
-          Transporte {formatearMoneda(transporteTotalFactura)}
-        </Typography>,
-      );
-    }
-  } else {
-    if (deposito) {
-      lineasTotalesDer.push(
-        <Typography key="deposito" variant="body2">
-          Depósito {deposito}
-        </Typography>,
-      );
-    }
-    if (transporteTipo || transporteMonto) {
-      lineasTotalesDer.push(
-        <Typography key="transporte" variant="body2">
-          {transporteTipo === "Sin transporte"
-            ? "Sin transporte"
-            : ["Transporte", transporteTipo, transporteMonto]
-                .filter(Boolean)
-                .join(" ")}
-        </Typography>,
-      );
-    }
+  if (depositoTotalFactura > 0) {
+    lineasTotalesDer.push(
+      <Typography key="deposito" variant="body2">
+        Depósito {formatearMoneda(depositoTotalFactura)}
+      </Typography>,
+    );
+  }
+  if (transporteTotalFactura > 0) {
+    lineasTotalesDer.push(
+      <Typography key="transporte" variant="body2">
+        Transporte {formatearMoneda(transporteTotalFactura)}
+      </Typography>,
+    );
   }
   const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
 

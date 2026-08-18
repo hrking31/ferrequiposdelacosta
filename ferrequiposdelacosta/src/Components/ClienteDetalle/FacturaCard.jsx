@@ -35,7 +35,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SavingsIcon from "@mui/icons-material/Savings";
 import {
   agruparLotesAgregados,
-  normalizarPagos,
+  listaPagos,
   calcularCuentaFactura,
   calcularEstadoFactura,
   ESTADO_FACTURA_INFO,
@@ -95,16 +95,9 @@ export default function FacturaCard({
   const facturaEstadoColor =
     avatarBgPorEstado[facturaEstado] ||
     theme.palette.custom.estadoNeutro;
-  // Formato viejo (migrado del Excel): transporte es un número.
-  // Formato nuevo (creado en la app): transporte es el tipo
-  // (ej. "Solo ida") y el monto vive aparte en valorTransporte.
-  const equiposSonObjetos =
-    factura.equipos?.length > 0 &&
-    typeof factura.equipos[0] === "object";
-  const transporteTipo =
-    typeof factura.transporte === "string"
-      ? factura.transporte
-      : null;
+  // El transporte es el tipo (ej. "Solo ida") y el monto vive aparte, en
+  // valorTransporte.
+  const transporteTipo = factura.transporte || null;
   // La cuenta de la factura (total, cobrado, abonado y saldo) sale toda de
   // facturaUtils: es la misma que suma el resumen del encabezado del cliente,
   // así los dos lugares dicen lo mismo. Se calcula una sola vez acá y baja
@@ -132,24 +125,16 @@ export default function FacturaCard({
         )}
       </IconButton>
     );
-  const fechaVencimiento = equiposSonObjetos
-    ? null
-    : formatearFecha(factura.fechaVencimiento) ||
-      factura.fechaVencimientoRaw;
-
   // Equipos originales (creados con la factura) vs. agregados
   // después con el botón "Agregar equipo" — cada lote muestra su
   // propio pago.
-  const equiposOriginales = equiposSonObjetos
-    ? factura.equipos.filter(
-        (equipo) => !equipo.agregadoPosteriormente,
-      )
-    : [];
-  const equiposAgregados = equiposSonObjetos
-    ? factura.equipos.filter(
-        (equipo) => equipo.agregadoPosteriormente,
-      )
-    : [];
+  const equipos = Array.isArray(factura.equipos) ? factura.equipos : [];
+  const equiposOriginales = equipos.filter(
+    (equipo) => !equipo.agregadoPosteriormente,
+  );
+  const equiposAgregados = equipos.filter(
+    (equipo) => equipo.agregadoPosteriormente,
+  );
   // Misma regla que los lotes agregados: con un solo equipo el bloque
   // ocupa media grilla, con dos o más se va a todo el ancho. El "|| 1"
   // evita un repeat(0, 1fr) inválido cuando la lista viene vacía.
@@ -157,11 +142,7 @@ export default function FacturaCard({
     equiposOriginales.length || 1,
     2,
   );
-  const pagosOriginales = normalizarPagos(
-    factura.pagos,
-    factura.modoPago,
-    factura.montoPagado,
-  );
+  const pagosOriginales = listaPagos(factura);
 
 
   const lotesAgregados = agruparLotesAgregados(equiposAgregados);
@@ -199,31 +180,27 @@ export default function FacturaCard({
       spacing={esMovil ? 1.5 : 0.75}
       alignItems="center"
     >
-      {equiposSonObjetos && (
-        <Tooltip title="Agregar equipo">
-          <IconButton
-            size="small"
-            onClick={() => onAgregarEquipo(factura)}
-            sx={{ ...iconBtnSx, color: acento }}
-          >
-            <AddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
+      <Tooltip title="Agregar equipo">
+        <IconButton
+          size="small"
+          onClick={() => onAgregarEquipo(factura)}
+          sx={{ ...iconBtnSx, color: acento }}
+        >
+          <AddIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       {/* Para el cliente que devuelve antes de que se le venza el
           alquiler: esa factura nunca entra a Seguimiento, así que
           sin este botón no habría dónde anotar la devolución. */}
-      {equiposSonObjetos && (
-        <Tooltip title="Registrar devolución">
-          <IconButton
-            size="small"
-            onClick={() => onRegistrarDevolucion(factura)}
-            sx={{ ...iconBtnSx, color: acento }}
-          >
-            <AssignmentReturnIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
+      <Tooltip title="Registrar devolución">
+        <IconButton
+          size="small"
+          onClick={() => onRegistrarDevolucion(factura)}
+          sx={{ ...iconBtnSx, color: acento }}
+        >
+          <AssignmentReturnIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       <Tooltip title="Descargar PDF">
         <IconButton
           size="small"
@@ -412,18 +389,6 @@ export default function FacturaCard({
           flecha de arriba, para poder recorrer varias facturas sin
           scrollear cada una entera. */}
       {!facturaColapsada(factura.id) && (
-        <>
-      {fechaVencimiento && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mt: 1 }}
-        >
-          Vencimiento: {fechaVencimiento}
-        </Typography>
-      )}
-
-      {equiposSonObjetos ? (
         <>
           {equiposOriginales.length > 0 && (
             <Box
@@ -634,11 +599,7 @@ export default function FacturaCard({
                           Información de pago
                         </Typography>
                         <RecuadroPago
-                          pagos={normalizarPagos(
-                            lote.cabecera.pagos,
-                            lote.cabecera.modoPago,
-                            null,
-                          )}
+                          pagos={listaPagos(lote.cabecera)}
                           tipoPago={lote.cabecera.tipoPago}
                           fecha={lote.cabecera.fechaAgregado}
                           color={colorPago}
@@ -702,25 +663,15 @@ export default function FacturaCard({
               )}
             </Box>
           )}
-        </>
-      ) : (
-        factura.equipos?.length > 0 && (
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {factura.equipos.join(", ")}
-            </Typography>
-          </Box>
-        )
-      )}
 
-      <EstadoCuentaFactura
-        factura={factura}
-        cuenta={cuenta}
-        facturaEstado={facturaEstado}
-        abierto={seccionAbierta(factura.id, "pagoTotal")}
-        onToggle={() => toggleSeccion(factura.id, "pagoTotal")}
-        onDevolverSaldo={onDevolverSaldo}
-      />
+          <EstadoCuentaFactura
+            factura={factura}
+            cuenta={cuenta}
+            facturaEstado={facturaEstado}
+            abierto={seccionAbierta(factura.id, "pagoTotal")}
+            onToggle={() => toggleSeccion(factura.id, "pagoTotal")}
+            onDevolverSaldo={onDevolverSaldo}
+          />
         </>
       )}
     </Box>

@@ -27,7 +27,6 @@ const factura = ({
 } = {}) => ({
   fecha: fechaDespacho,
   valorTotal,
-  montoPagado,
   pagos: montoPagado ? [{ medio: "Efectivo", monto: montoPagado }] : [],
   abonos,
   equipos: [

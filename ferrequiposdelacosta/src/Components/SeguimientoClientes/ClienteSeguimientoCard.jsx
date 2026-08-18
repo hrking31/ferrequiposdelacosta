@@ -454,7 +454,7 @@ export default function ClienteSeguimientoCard({
 
   const valorTotal = formatearMoneda(cuenta.total);
   const transporteMonto = formatearMoneda(factura.valorTransporte);
-  const transporteTipo = typeof factura.transporte === "string" ? factura.transporte : null;
+  const transporteTipo = factura.transporte || null;
   const textoTransporte =
     transporteTipo === "Sin transporte"
       ? "Sin transporte"

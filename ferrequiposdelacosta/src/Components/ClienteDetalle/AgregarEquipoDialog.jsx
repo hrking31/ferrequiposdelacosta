@@ -40,7 +40,7 @@ import {
   calcularAmpliacionFactura,
   sumarAbonos,
   separarExcedentePago,
-  calcularSaldoConAbonos,
+  sumarPagosFactura,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
 } from "./facturaUtils";
@@ -170,7 +170,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   // varios). Se acumula sobre lo que la factura ya tenía pagado — no lo
   // reemplaza, para no perder pagos previos registrados.
   const pagoEsteEquipo = pagosValidos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
-  const nuevoMontoPagado = (Number(factura?.montoPagado) || 0) + pagoEsteEquipo;
+  const nuevoMontoPagado = sumarPagosFactura(factura) + pagoEsteEquipo;
   // Los abonos ya registrados también cuentan para el saldo: sin esto, agregar
   // un equipo los borraría de la cuenta y reaparecería una deuda ya pagada.
   // (El saldo definitivo se calcula al guardar, porque ahí puede sumarse un
@@ -386,11 +386,15 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
       separarExcedentePago(form.pagos, totalEsteEquipo);
 
     const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
-    const montoPagadoFinal = (Number(factura?.montoPagado) || 0) + pagadoEnLote;
 
-    const saldoSinExcedente = calcularSaldoConAbonos(
-      { valorTotal: nuevoValorTotal, montoPagado: montoPagadoFinal },
-      factura?.abonos || [],
+    // Lo que quedaría debiendo con este lote ya sumado, sobre los valores
+    // CRUDOS de la factura (sin los días ampliados, igual que lo que se
+    // guarda). Sirve para saber cuánto del excedente entra como abono acá.
+    const saldoSinExcedente = Math.max(
+      0,
+      nuevoValorTotal -
+        (sumarPagosFactura(factura) + pagadoEnLote) -
+        sumarAbonos(factura?.abonos),
     );
     const abonoEnEstaFactura = Math.min(excedente, saldoSinExcedente);
     const sobranteExcedente = excedente - abonoEnEstaFactura;
@@ -466,7 +470,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         // El saldo ya no se guarda, se calcula al mostrarlo (ver
         // FacturaFormDialog). `saldoFinal` se sigue usando acá abajo para
         // decidir el tipo de pago, que sí es un dato del momento.
-        montoPagado: montoPagadoFinal,
         abonos,
         // El estado de pago de la factura sale de si queda saldo pendiente o no,
         // ya no de lo que se elija acá (eso es solo el pago de este equipo puntual).
