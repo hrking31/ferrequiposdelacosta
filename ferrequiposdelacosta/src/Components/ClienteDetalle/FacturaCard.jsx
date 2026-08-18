@@ -38,6 +38,7 @@ import {
   listaPagos,
   calcularCuentaFactura,
   calcularEstadoFactura,
+  movimientosFactura,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
@@ -90,6 +91,15 @@ export default function FacturaCard({
   // guardado: así no puede quedar viejo por el simple paso del
   // tiempo (ver calcularEstadoFactura en facturaUtils).
   const facturaEstado = calcularEstadoFactura(factura);
+  // Una factura finalizada no tiene nada más que hacer con ella: no se le
+  // agregan equipos, no se le registra devolución y no se edita. Sigue
+  // viéndose completa, solo deja de tener acciones.
+  const finalizada = facturaEstado === "finalizada";
+  // Si ya tiene un abono, un equipo agregado, una ampliación o una
+  // devolución parcial, borrarla de un clic se llevaría esa historia con
+  // ella. Sin nada encima, borrar y volver a cargarla es la salida más
+  // simple para una factura mal cargada.
+  const tieneMovimientos = movimientosFactura(factura).hayAlgo;
   const facturaEstadoInfo =
     ESTADO_FACTURA_INFO[facturaEstado] || { label: "Sin estado" };
   const facturaEstadoColor =
@@ -180,26 +190,36 @@ export default function FacturaCard({
       spacing={esMovil ? 1.5 : 0.75}
       alignItems="center"
     >
-      <Tooltip title="Agregar equipo">
-        <IconButton
-          size="small"
-          onClick={() => onAgregarEquipo(factura)}
-          sx={{ ...iconBtnSx, color: acento }}
-        >
-          <AddIcon fontSize="small" />
-        </IconButton>
+      <Tooltip
+        title={finalizada ? "Esta factura ya está finalizada" : "Agregar equipo"}
+      >
+        <span>
+          <IconButton
+            size="small"
+            disabled={finalizada}
+            onClick={() => onAgregarEquipo(factura)}
+            sx={{ ...iconBtnSx, color: acento }}
+          >
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
       {/* Para el cliente que devuelve antes de que se le venza el
           alquiler: esa factura nunca entra a Seguimiento, así que
           sin este botón no habría dónde anotar la devolución. */}
-      <Tooltip title="Registrar devolución">
-        <IconButton
-          size="small"
-          onClick={() => onRegistrarDevolucion(factura)}
-          sx={{ ...iconBtnSx, color: acento }}
-        >
-          <AssignmentReturnIcon fontSize="small" />
-        </IconButton>
+      <Tooltip
+        title={finalizada ? "Esta factura ya está finalizada" : "Registrar devolución"}
+      >
+        <span>
+          <IconButton
+            size="small"
+            disabled={finalizada}
+            onClick={() => onRegistrarDevolucion(factura)}
+            sx={{ ...iconBtnSx, color: acento }}
+          >
+            <AssignmentReturnIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
       <Tooltip title="Descargar PDF">
         <IconButton
@@ -210,24 +230,36 @@ export default function FacturaCard({
           <PictureAsPdfIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Editar factura">
-        <IconButton
-          size="small"
-          onClick={() => onEditar(factura)}
-          sx={{ ...iconBtnSx, color: acento }}
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
+      <Tooltip title={finalizada ? "Esta factura ya está finalizada" : "Editar factura"}>
+        <span>
+          <IconButton
+            size="small"
+            disabled={finalizada}
+            onClick={() => onEditar(factura)}
+            sx={{ ...iconBtnSx, color: acento }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
-      <Tooltip title="Eliminar factura">
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => onEliminar(factura)}
-          sx={iconBtnSx}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
+      <Tooltip
+        title={
+          tieneMovimientos
+            ? "Esta factura ya tiene abonos, equipos agregados o devoluciones: no se puede borrar de un clic"
+            : "Eliminar factura"
+        }
+      >
+        <span>
+          <IconButton
+            size="small"
+            color="error"
+            disabled={tieneMovimientos}
+            onClick={() => onEliminar(factura)}
+            sx={iconBtnSx}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </span>
       </Tooltip>
     </Stack>
   );

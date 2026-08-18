@@ -881,3 +881,67 @@ export const diferenciaEnDias = (desdeIso, hastaIso) => {
   const hasta = Date.UTC(a2, m2 - 1, d2);
   return Math.round((hasta - desde) / 86400000);
 };
+
+// ── Qué edición es segura ────────────────────────────────────────────────
+//
+// El formulario de editar una factura no CORRIGE un dato: vuelve a armar la
+// factura entera desde cero (equipos, pago, total). Mientras solo tiene lo
+// del alta, eso es seguro. El problema es lo que pasa DESPUÉS del alta —un
+// abono, un equipo agregado, una ampliación de plazo, una devolución
+// parcial, un depósito ya resuelto—: cada una de esas cosas queda anotada
+// apoyada en un dato puntual (esta línea, este depósito), y el formulario no
+// tiene forma de saber que ya no está sola.
+//
+// Esta función junta esas señales en un solo lugar para no repetir la
+// pregunta "¿esta factura ya tiene algo encima?" en cada pantalla que
+// necesita saberlo.
+export const movimientosFactura = (factura) => {
+  const equipos = (Array.isArray(factura?.equipos) ? factura.equipos : []).filter(
+    (equipo) => typeof equipo === "object",
+  );
+
+  const cantidadAbonos = (Array.isArray(factura?.abonos) ? factura.abonos : []).length;
+  const cantidadAgregados = equipos.filter((equipo) => equipo?.agregadoPosteriormente).length;
+  const equiposConHistoria = equipos.filter(
+    (equipo) =>
+      obtenerAmpliaciones(equipo).length > 0 || Number(equipo?.cantidadDevuelta) > 0,
+  );
+  const depositoResuelto = Boolean(factura?.depositoResuelto);
+
+  return {
+    cantidadAbonos,
+    cantidadAgregados,
+    equiposConHistoria,
+    depositoResuelto,
+    hayAlgo:
+      cantidadAbonos > 0 ||
+      cantidadAgregados > 0 ||
+      equiposConHistoria.length > 0 ||
+      depositoResuelto,
+  };
+};
+
+// El texto del aviso que va arriba del formulario de editar, listando qué
+// tiene la factura encima. Vacío si no hay nada que avisar.
+export const describirMovimientosFactura = (factura) => {
+  const { cantidadAbonos, cantidadAgregados, equiposConHistoria, depositoResuelto } =
+    movimientosFactura(factura);
+
+  const partes = [];
+  if (cantidadAbonos > 0) {
+    partes.push(`${cantidadAbonos} abono${cantidadAbonos === 1 ? "" : "s"}`);
+  }
+  if (cantidadAgregados > 0) {
+    partes.push(
+      `${cantidadAgregados} equipo${cantidadAgregados === 1 ? "" : "s"} agregado${cantidadAgregados === 1 ? "" : "s"}`,
+    );
+  }
+  if (equiposConHistoria.length > 0) {
+    partes.push(
+      `${equiposConHistoria.length} equipo${equiposConHistoria.length === 1 ? "" : "s"} con ampliación o devolución`,
+    );
+  }
+  if (depositoResuelto) partes.push("el depósito ya resuelto");
+
+  return partes;
+};

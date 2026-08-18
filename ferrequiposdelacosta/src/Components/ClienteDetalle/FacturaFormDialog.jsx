@@ -21,6 +21,8 @@ import {
   Stack,
   Typography,
   Divider,
+  Alert,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -44,6 +46,8 @@ import {
   separarExcedentePago,
   calcularEstadoCliente,
   facturaCerrada,
+  obtenerAmpliaciones,
+  describirMovimientosFactura,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -172,6 +176,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
   // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
   // no se digita a mano.
   const valorTotalCalculado = subtotalCalculado + ivaCalculado + transporteTotal + depositoTotal;
+
+  // Qué tiene la factura encima, para el aviso de arriba del formulario. Se
+  // calcula sobre `factura` (lo que ya está guardado), no sobre `form`: es
+  // historia previa, no algo que se esté por guardar.
+  const movimientos = describirMovimientosFactura(factura);
 
   // Solo cuenta como pago el renglón que tenga medio Y monto: son los mismos
   // que se guardan, así lo que muestra el diálogo no puede diferir de lo que
@@ -357,6 +366,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     setEquipos((prev) => prev.filter((_, index) => index !== indexAQuitar));
   };
 
+  // Con ampliaciones o una devolución parcial ya registradas, esta línea no
+  // se puede sacar: es la única forma que tiene este formulario de "editar"
+  // un equipo, y sacarlo perdería esa historia sin dejar rastro.
+  const equipoTieneHistoria = (equipo) =>
+    obtenerAmpliaciones(equipo).length > 0 || Number(equipo?.cantidadDevuelta) > 0;
+
   const validar = () => {
     const errores = {};
     if (!form.numeroFactura.trim()) {
@@ -525,6 +540,16 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
           </Stack>
         </DialogTitle>
         <DialogContent>
+          {movimientos.length > 0 && (
+            // Puramente informativo: no bloquea nada más que lo que ya se
+            // apaga puntualmente (el equipo con historia, el depósito
+            // resuelto). El número, la fecha, el transporte, el IVA y el pago
+            // inicial se editan siempre.
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Esta factura ya tiene {movimientos.join(", ")}. Nada de eso se
+              toca desde acá.
+            </Alert>
+          )}
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             {/* Primero se arma la lista de equipos; el pago va después, al
                 final, cuando ya se sabe cuánto hay que cobrar. */}
@@ -669,6 +694,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 (Number(item.cantidad) || 0) *
                 (Number(item.dias) || 0) *
                 (Number(item.valor) || 0);
+              const conHistoria = equipoTieneHistoria(item);
               return (
                 <Grid item xs={12} key={`${item.nombre}-${index}`}>
                   <Box
@@ -702,9 +728,23 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                         </Typography>
                       )}
                     </Box>
-                    <IconButton size="small" onClick={() => handleQuitarEquipo(index)}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    <Tooltip
+                      title={
+                        conHistoria
+                          ? "Este equipo ya tiene una ampliación o una devolución registrada: no se puede quitar"
+                          : "Quitar"
+                      }
+                    >
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={conHistoria}
+                          onClick={() => handleQuitarEquipo(index)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </Box>
                 </Grid>
               );
@@ -763,6 +803,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 label="Depósito"
                 value={formatearMonedaInput(form.deposito)}
                 onChange={handleChangeMoneda("deposito")}
+                disabled={Boolean(factura?.depositoResuelto)}
+                helperText={
+                  factura?.depositoResuelto
+                    ? "Ya se resolvió (devuelto o retenido) al registrar la devolución."
+                    : undefined
+                }
                 fullWidth
               />
             </Grid>

@@ -23,6 +23,8 @@ import {
   calcularEstadoFactura,
   calcularEstadoCliente,
   facturaCerrada,
+  movimientosFactura,
+  describirMovimientosFactura,
   calcularDepositoTotal,
   calcularDepositoDevuelto,
   depositoPendiente,
@@ -463,6 +465,72 @@ describe("calcularEstadoFactura", () => {
 // Es el único pedazo del estado que se guarda en Firestore, y de él dependen
 // las consultas de las tres pantallas: si esto se equivoca, una factura
 // desaparece de la vista o una cerrada se sigue arrastrando.
+describe("movimientosFactura", () => {
+  it("sin nada encima, hayAlgo es falso", () => {
+    const factura = { equipos: [{ cantidad: 1, valor: 100 }] };
+    expect(movimientosFactura(factura)).toEqual({
+      cantidadAbonos: 0,
+      cantidadAgregados: 0,
+      equiposConHistoria: [],
+      depositoResuelto: false,
+      hayAlgo: false,
+    });
+  });
+
+  it("detecta abonos, equipos agregados, ampliaciones y devoluciones", () => {
+    const conAmpliacion = { ampliaciones: [{ fechaAnterior: "2026-08-01", fechaNueva: "2026-08-03", dias: 2, descuento: 0 }] };
+    const conDevolucion = { cantidad: 10, cantidadDevuelta: 4 };
+    const factura = {
+      abonos: [{ monto: 100 }],
+      equipos: [
+        { agregadoPosteriormente: true },
+        conAmpliacion,
+        conDevolucion,
+        { cantidad: 1 },
+      ],
+    };
+    const movimientos = movimientosFactura(factura);
+    expect(movimientos.cantidadAbonos).toBe(1);
+    expect(movimientos.cantidadAgregados).toBe(1);
+    expect(movimientos.equiposConHistoria).toEqual([conAmpliacion, conDevolucion]);
+    expect(movimientos.hayAlgo).toBe(true);
+  });
+
+  it("detecta el depósito ya resuelto", () => {
+    const factura = { equipos: [], depositoResuelto: { retenido: 0 } };
+    expect(movimientosFactura(factura).depositoResuelto).toBe(true);
+    expect(movimientosFactura(factura).hayAlgo).toBe(true);
+  });
+
+  it("sin factura no revienta", () => {
+    expect(movimientosFactura(undefined).hayAlgo).toBe(false);
+  });
+});
+
+describe("describirMovimientosFactura", () => {
+  it("sin nada, no hay nada que avisar", () => {
+    expect(describirMovimientosFactura({ equipos: [] })).toEqual([]);
+  });
+
+  it("junta cada cosa en su propia frase, en singular si hay una sola", () => {
+    const factura = {
+      abonos: [{ monto: 100 }],
+      equipos: [
+        { agregadoPosteriormente: true },
+        { agregadoPosteriormente: true },
+        { cantidad: 10, cantidadDevuelta: 4 },
+      ],
+      depositoResuelto: { retenido: 0 },
+    };
+    expect(describirMovimientosFactura(factura)).toEqual([
+      "1 abono",
+      "2 equipos agregados",
+      "1 equipo con ampliación o devolución",
+      "el depósito ya resuelto",
+    ]);
+  });
+});
+
 describe("facturaCerrada", () => {
   it("cerrada: devolvió todo y no debe nada", () => {
     const factura = {
