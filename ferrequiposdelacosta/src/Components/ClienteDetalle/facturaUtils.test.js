@@ -212,6 +212,46 @@ describe("calcularCuentaFactura", () => {
     expect(cuenta.pagado).toBe(600);
     expect(cuenta.saldoPendiente).toBe(400);
   });
+
+  // Los dos lados de la devolución anticipada, que es lo que pidió el dueño:
+  // el camino es uno solo —restar del total— y el saldo saca la conclusión.
+  //
+  // 10 chazas, 5 días a $20.000 = $1.000.000 sin IVA. Devuelve 2 días antes:
+  // el crédito es 10 x 2 x $20.000 = $400.000, y el total queda en $600.000.
+  const conDevolucionAnticipada = {
+    valorTotal: 1000000,
+    aplicaIva: false,
+    equipos: [
+      {
+        cantidad: 10,
+        valor: 20000,
+        dias: 5,
+        cantidadDevuelta: 10,
+        fechaDespacho: "2026-08-10",
+        fechaVencimiento: "2026-08-14",
+        fechaDevolucion: "2026-08-12",
+      },
+    ],
+  };
+
+  it("si el cliente NO había pagado, la devolución anticipada baja la factura", () => {
+    const cuenta = calcularCuentaFactura(conDevolucionAnticipada, HOY);
+    expect(cuenta.total).toBe(600000);
+    expect(cuenta.saldoPendiente).toBe(600000);
+    expect(cuenta.saldoAFavor).toBe(0);
+  });
+
+  it("si YA había pagado, la devolución anticipada le queda a favor", () => {
+    const pagada = {
+      ...conDevolucionAnticipada,
+      pagos: [{ medio: "Nequi", monto: 1000000 }],
+    };
+    const cuenta = calcularCuentaFactura(pagada, HOY);
+    expect(cuenta.total).toBe(600000);
+    expect(cuenta.saldoPendiente).toBe(0);
+    // Los $400.000 de los días que no usó: plata suya, que se le devuelve.
+    expect(cuenta.saldoAFavor).toBe(400000);
+  });
 });
 
 describe("calcularCuentaCliente", () => {
@@ -322,7 +362,7 @@ describe("calcularAmpliacionEquipo", () => {
     expect(calcularAmpliacionEquipo(equipo, HOY).diasAbiertos).toBe(2);
   });
 
-  it("un equipo devuelto a tiempo no suma días", () => {
+  it("un equipo devuelto antes de la fecha no suma días vencidos", () => {
     const equipo = {
       cantidad: 1,
       valor: 100,
@@ -350,6 +390,107 @@ describe("calcularAmpliacionEquipo", () => {
     const ampliacion = calcularAmpliacionEquipo(equipo, HOY);
     expect(ampliacion.dias).toBe(4); // 2 pactados + 2 corridos
     expect(ampliacion.neto).toBe(400);
+  });
+});
+
+// El espejo de los días vencidos: si el equipo vuelve ANTES de la fecha, los
+// días que el cliente pagó y no usó no se le cobran.
+describe("calcularAmpliacionEquipo — devolución anticipada", () => {
+  // 5 días desde el 10 (el de despacho cuenta como día 1) vencen el 14.
+  // Devuelve el 12: usó 3 —el día de la devolución SÍ se cobra— y le quedan
+  // 2 sin usar.
+  const rana = {
+    cantidad: 1,
+    valor: 100,
+    dias: 5,
+    cantidadDevuelta: 1,
+    fechaDespacho: "2026-08-10",
+    fechaVencimiento: "2026-08-14",
+    fechaDevolucion: "2026-08-12",
+  };
+
+  it("acredita los días que devolvió sin usar", () => {
+    const ampliacion = calcularAmpliacionEquipo(rana, HOY);
+    expect(ampliacion.diasSinUsar).toBe(2);
+    expect(ampliacion.creditoSinUsar).toBe(200);
+  });
+
+  it("el crédito resta del neto, no suma", () => {
+    expect(calcularAmpliacionEquipo(rana, HOY).neto).toBe(-200);
+  });
+
+  it("el día de la devolución se cobra: no cuenta como día sin usar", () => {
+    // Devuelve justo el día que vence: no usó de más ni de menos.
+    const alDia = { ...rana, fechaDevolucion: "2026-08-14" };
+    const ampliacion = calcularAmpliacionEquipo(alDia, HOY);
+    expect(ampliacion.diasSinUsar).toBe(0);
+    expect(ampliacion.diasAbiertos).toBe(0);
+    expect(ampliacion.neto).toBe(0);
+  });
+
+  it("mientras el equipo siga afuera no acredita nada", () => {
+    // Sin devolver y con fecha futura: no hay días vencidos, pero tampoco
+    // días sin usar. Todavía puede devolverlo tarde.
+    const afuera = {
+      cantidad: 1,
+      valor: 100,
+      dias: 5,
+      fechaVencimiento: "2026-08-20",
+    };
+    const ampliacion = calcularAmpliacionEquipo(afuera, HOY);
+    expect(ampliacion.diasSinUsar).toBe(0);
+    expect(ampliacion.neto).toBe(0);
+  });
+
+  it("descuenta también el IVA de esos días", () => {
+    // 5 días a $100, devuelve 2 antes: el crédito de $200 baja el subtotal
+    // y su IVA con él.
+    const factura = { aplicaIva: true, equipos: [rana] };
+    const ampliacion = calcularAmpliacionFactura(factura, HOY);
+    expect(ampliacion.neto).toBe(-200);
+    expect(ampliacion.iva).toBeCloseTo(-38, 2);
+    expect(ampliacion.total).toBeCloseTo(-238, 2);
+    // Con `hay: total > 0` este crédito se ignoraba y la factura seguía
+    // cobrando los días que el equipo no estuvo afuera.
+    expect(ampliacion.hay).toBe(true);
+  });
+
+  it("en una devolución parcial acredita solo lo que volvió", () => {
+    // La app parte la línea en dos al devolver parcial: 4 unidades cerradas
+    // que volvieron antes, y 6 que el cliente todavía tiene.
+    const factura = {
+      aplicaIva: false,
+      equipos: [
+        {
+          cantidad: 4,
+          valor: 100,
+          dias: 5,
+          cantidadDevuelta: 4,
+          fechaVencimiento: "2026-08-14",
+          fechaDevolucion: "2026-08-12",
+        },
+        {
+          cantidad: 6,
+          valor: 100,
+          dias: 5,
+          fechaVencimiento: "2026-08-20",
+        },
+      ],
+    };
+    const ampliacion = calcularAmpliacionFactura(factura, HOY);
+    // Solo las 4 que volvieron: 2 días x 4 x $100.
+    expect(ampliacion.diasSinUsar).toBe(2);
+    expect(ampliacion.creditoSinUsar).toBe(800);
+    expect(ampliacion.neto).toBe(-800);
+  });
+
+  it("el crédito no puede pasarse de los días que se cobraron", () => {
+    // Devolución con fecha absurda, muy anterior al despacho: el crédito se
+    // topa en los 5 días cobrados y el equipo no queda en negativo.
+    const imposible = { ...rana, fechaDevolucion: "2026-07-01" };
+    const ampliacion = calcularAmpliacionEquipo(imposible, HOY);
+    expect(ampliacion.diasSinUsar).toBe(5);
+    expect(ampliacion.creditoSinUsar).toBe(500);
   });
 });
 

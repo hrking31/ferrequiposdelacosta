@@ -107,7 +107,9 @@ export const GESTION_INFO = {
 //
 //   1 TRAYECTO  qué se llevó y cuándo salió (y cuándo volvió, si volvió)
 //   2 PLAZO     hasta cuándo era, qué se le amplió, en qué quedó
-//   3 VENCIDO   lo que corre solo desde que se pasó la fecha
+//   3 VENCIDO   lo que pasó con el plazo una vez cumplido: los días que
+//               corren solos si no devolvió, o los que no se le cobran si
+//               devolvió antes
 //
 // `enCadena` marca los chips del tramo 2 que son eslabones de la misma
 // secuencia temporal (vencía → +2 días → venció): las pantallas les ponen una
@@ -264,6 +266,23 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       label: `${plural(ampliacion.diasAbiertos, "día")} vencido${
         ampliacion.diasAbiertos === 1 ? "" : "s"
       }${conValor(ampliacion.diasAbiertos * valorPorDia)}`,
+    });
+  }
+
+  // El espejo del anterior: devolvió antes de la fecha y esos días no se le
+  // cobran. Va en el mismo tramo porque responde la misma pregunta —qué pasó
+  // con el plazo una vez vencido o cumplido— pero en tono de algo a favor del
+  // cliente, y con el monto en negativo para que se lea como lo que es: una
+  // resta al total, no un cargo más.
+  if (ampliacion.diasSinUsar > 0) {
+    chips.push({
+      clave: "diasSinUsar",
+      tramo: TRAMO_FECHAS.VENCIDO,
+      tono: "exito",
+      Icono: SavingsIcon,
+      label: `${plural(ampliacion.diasSinUsar, "día")} sin usar${
+        valorPorDia > 0 ? ` · -${formatearMoneda(ampliacion.creditoSinUsar)}` : ""
+      }`,
     });
   }
 

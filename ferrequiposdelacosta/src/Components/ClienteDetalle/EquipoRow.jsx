@@ -20,12 +20,14 @@ export default function EquipoRow({ equipo, color }) {
   const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
   const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
 
-  // Si al equipo se le amplió el plazo, lo que se debe de más por esos días
-  // —sin el inicial—. Se muestra debajo del valor original: dos números que
-  // suman al total, no uno que ya lo incluye.
+  // Lo que el equipo suma o resta sobre su valor inicial: de más si se le
+  // amplió el plazo o se pasó de la fecha, de menos si devolvió antes y hay
+  // días que no se le cobran. Se muestra debajo del valor original —dos
+  // números que se suman, no uno que ya incluye al otro—, y con el signo
+  // adelante cuando es a favor del cliente.
   const ampliacionEquipo = calcularAmpliacionEquipo(equipo);
-  const deudaAmpliacion =
-    ampliacionEquipo.neto > 0 && subtotalEquipo > 0 ? ampliacionEquipo.neto : 0;
+  const ajusteEquipo =
+    subtotalEquipo > 0 && ampliacionEquipo.neto !== 0 ? ampliacionEquipo.neto : 0;
 
   return (
     <Box
@@ -87,13 +89,19 @@ export default function EquipoRow({ equipo, color }) {
             <Typography variant="body2" fontWeight="bold">
               {formatearMoneda(subtotalEquipo)}
             </Typography>
-            {deudaAmpliacion > 0 && (
+            {ajusteEquipo !== 0 && (
               <Typography
                 variant="caption"
                 fontWeight="bold"
-                sx={{ color: "custom.accent", lineHeight: 1.2 }}
+                sx={{
+                  // A favor del cliente va en verde, no en el acento: es el
+                  // mismo criterio del chip "días sin usar".
+                  color: ajusteEquipo < 0 ? "success.main" : "custom.accent",
+                  lineHeight: 1.2,
+                }}
               >
-                {formatearMoneda(deudaAmpliacion)}
+                {ajusteEquipo < 0 ? "-" : ""}
+                {formatearMoneda(Math.abs(ajusteEquipo))}
               </Typography>
             )}
           </Stack>

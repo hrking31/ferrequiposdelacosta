@@ -133,6 +133,45 @@ describe("describirFechasEquipo", () => {
     expect(textoDe(chips, "diasVencidos")).toBe("2 días vencidos · $ 200");
   });
 
+  // El espejo del anterior: devolvió antes y esos días no se le cobran.
+  it("un equipo devuelto antes de tiempo muestra los días que no se le cobran", () => {
+    const chips = describirFechasEquipo(
+      {
+        cantidad: 10,
+        valor: 20000,
+        dias: 5,
+        cantidadDevuelta: 10,
+        fechaDespacho: "2026-08-10",
+        fechaVencimiento: "2026-08-14",
+        fechaDevolucion: "2026-08-12",
+      },
+      HOY,
+    );
+    expect(textoDe(chips, "devuelto")).toBe("Devuelto 12/08/2026");
+    // 2 días a 10 × $20.000: el monto va en negativo porque resta del total.
+    expect(textoDe(chips, "diasSinUsar")).toBe("2 días sin usar · -$ 400.000");
+    // Es algo a favor del cliente, no un cargo.
+    expect(tonoDe(chips, "diasSinUsar")).toBe("exito");
+    // Y no es lo mismo que un día vencido: ese chip no aparece.
+    expect(textoDe(chips, "diasVencidos")).toBeUndefined();
+  });
+
+  it("el que devuelve justo el día que vence no tiene días sin usar", () => {
+    const chips = describirFechasEquipo(
+      {
+        cantidad: 1,
+        valor: 100,
+        dias: 5,
+        cantidadDevuelta: 1,
+        fechaVencimiento: "2026-08-14",
+        fechaDevolucion: "2026-08-14",
+      },
+      HOY,
+    );
+    expect(textoDe(chips, "diasSinUsar")).toBeUndefined();
+    expect(textoDe(chips, "diasVencidos")).toBeUndefined();
+  });
+
   it("el que quedó sin fecha lo dice, en vez de aparentar que tiene plazo", () => {
     const chips = describirFechasEquipo(
       { cantidad: 1, valor: 100, vencimientoIndefinido: true, fechaVencimiento: "2026-08-12" },

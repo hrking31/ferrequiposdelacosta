@@ -49,7 +49,13 @@ const sumarDeAgregados = (equipos, campo) =>
 const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
   const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
   const cantidad = numero(equipo.cantidad);
-  const dias = numero(equipo.dias) + ampliacion.dias;
+  // Los días que se cobran de verdad: los del alta, más los ampliados y los
+  // vencidos, menos los que devolvió sin usar. Si no se restaran, el
+  // documento cobraría días que el equipo no estuvo afuera.
+  const dias = Math.max(
+    0,
+    numero(equipo.dias) + ampliacion.dias - ampliacion.diasSinUsar,
+  );
   const valor = numero(equipo.valor);
 
   return {

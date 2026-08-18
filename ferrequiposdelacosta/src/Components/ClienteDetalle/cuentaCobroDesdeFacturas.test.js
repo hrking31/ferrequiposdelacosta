@@ -131,6 +131,10 @@ describe("los equipos como ítems", () => {
         {
           ...facturaBase.equipos[0],
           fechaVencimiento: "2026-08-09",
+          // Devuelve el día que vence el plazo ya ampliado. Si quedara la
+          // fecha del alta (el 07) sería una devolución anticipada de 2
+          // días, y esta prueba mira las renovaciones, no ese crédito.
+          fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
               fechaAnterior: "2026-08-07",
@@ -267,6 +271,9 @@ describe("el resumen", () => {
         {
           ...facturaBase.equipos[0],
           fechaVencimiento: "2026-08-09",
+          // Igual que arriba: devuelve al vencer el plazo ampliado, para que
+          // no se mezcle el crédito por días sin usar con el descuento.
+          fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
               fechaAnterior: "2026-08-07",

@@ -168,6 +168,16 @@ export default function generarFacturaPdf({ factura, cliente }) {
     if (ampliacion.descuento > 0) {
       detalles.push(`Descuento: ${moneda(ampliacion.descuento)}`);
     }
+    // Devolvió antes de la fecha: esos días no se le cobran. Va escrito en el
+    // documento porque si no, el subtotal de la fila sale más bajo de lo que
+    // dicen los días y el valor por día, sin explicación a la vista.
+    if (ampliacion.diasSinUsar > 0) {
+      detalles.push(
+        `-${ampliacion.diasSinUsar} día(s) sin usar: -${moneda(
+          ampliacion.creditoSinUsar,
+        )}`,
+      );
+    }
 
     return [
       equipo.cantidad ?? "",

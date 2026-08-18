@@ -127,6 +127,15 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (ampliacion.descuento > 0) {
       detalles.push(`Descuento: ${formatearMoneda(ampliacion.descuento)}`);
     }
+    // Devolvió antes de la fecha: esos días no se cobran, y sin esta nota el
+    // subtotal de la fila no cuadraría con los días y el valor por día.
+    if (ampliacion.diasSinUsar > 0) {
+      detalles.push(
+        `-${ampliacion.diasSinUsar} día(s) sin usar: -${formatearMoneda(
+          ampliacion.creditoSinUsar,
+        )}`,
+      );
+    }
 
     return [
       equipo.cantidad ?? "",

@@ -181,6 +181,10 @@ export const equipoDevueltoCompleto = (equipo) => calcularCantidadPendiente(equi
 // Da lo mismo si el cliente avisó que la entrega quedaba indefinida o si
 // simplemente no devolvió y no contestó: en los dos casos tiene el equipo, y
 // en los dos se cobra.
+//
+// Y al revés: si devuelve ANTES de la fecha, los días que pagó y no usó se le
+// acreditan (ver `diasSinUsar` más abajo). Es la misma regla mirada desde el
+// otro lado — el equipo no estuvo afuera esos días, así que no se cobran.
 export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia = (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
 
@@ -217,19 +221,39 @@ export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota(
   // devolución ya está guardada y el cálculo la respeta.
   const sigueAfuera = calcularCantidadPendiente(equipo) > 0;
   const hasta = sigueAfuera ? hoyIso : equipo?.fechaDevolucion;
-  const diasAbiertos = Math.max(
-    0,
-    diferenciaEnDias(equipo?.fechaVencimiento, hasta),
-  );
+  // Cuánto se corrió la devolución respecto de la fecha pactada. Positivo:
+  // el equipo se quedó afuera de más. Negativo: volvió antes.
+  const corrimiento = diferenciaEnDias(equipo?.fechaVencimiento, hasta);
+  const diasAbiertos = Math.max(0, corrimiento);
+
+  // El espejo de los días vencidos: los días que el cliente pagó y NO usó,
+  // porque devolvió antes de la fecha. Si ya pagó el equipo esa plata le
+  // queda a favor; si no lo pagó, la factura baja. En los dos casos el
+  // camino es el mismo: restar del total, y que el saldo saque la
+  // conclusión (ver calcularCuentaFactura).
+  //
+  // Solo cuenta cuando el equipo ya volvió entero: mientras siga afuera no
+  // hay nada devuelto que acreditar. El día de la devolución SÍ se cobra,
+  // igual que un día vencido: el equipo estuvo en la obra ese día.
+  //
+  // Se topa en los días que se cobraron —los del alta más los pactados—
+  // para que el crédito nunca deje el equipo en negativo.
+  const diasCobrados = (Number(equipo?.dias) || 0) + resumen.dias;
+  const diasSinUsar = sigueAfuera
+    ? 0
+    : Math.min(diasCobrados, Math.max(0, -corrimiento));
+  const creditoSinUsar = diasSinUsar * porDia;
 
   return {
     dias: resumen.dias + diasAbiertos,
-    bruto: resumen.bruto + diasAbiertos * porDia,
+    bruto: resumen.bruto + diasAbiertos * porDia - creditoSinUsar,
     descuento: resumen.descuento,
-    neto: resumen.neto + diasAbiertos * porDia,
-    // Se expone aparte por si una vista necesita distinguir los días que
-    // corren solos de los que se pactaron.
+    neto: resumen.neto + diasAbiertos * porDia - creditoSinUsar,
+    // Se exponen aparte por si una vista necesita distinguir los días que
+    // corren solos, los que se pactaron y los que se devolvieron sin usar.
     diasAbiertos,
+    diasSinUsar,
+    creditoSinUsar,
   };
 };
 
@@ -250,9 +274,11 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
         bruto: acumulado.bruto + ampliacion.bruto,
         descuento: acumulado.descuento + ampliacion.descuento,
         neto: acumulado.neto + ampliacion.neto,
+        diasSinUsar: acumulado.diasSinUsar + ampliacion.diasSinUsar,
+        creditoSinUsar: acumulado.creditoSinUsar + ampliacion.creditoSinUsar,
       };
     },
-    { dias: 0, bruto: 0, descuento: 0, neto: 0 },
+    { dias: 0, bruto: 0, descuento: 0, neto: 0, diasSinUsar: 0, creditoSinUsar: 0 },
   );
 
   const llevaIva = factura?.aplicaIva ?? Number(factura?.iva) > 0;
@@ -264,7 +290,11 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
     llevaIva,
     iva,
     total,
-    hay: total > 0,
+    // Distinto de cero, no mayor: una devolución anticipada da un total
+    // NEGATIVO —plata a favor del cliente— y también hay que aplicarlo. Con
+    // `> 0` el crédito se ignoraba y la factura seguía cobrando los días que
+    // el equipo no estuvo afuera.
+    hay: total !== 0,
     nuevoSubtotal: (Number(factura?.subtotal) || 0) + resumen.neto,
     nuevoIva: (Number(factura?.iva) || 0) + iva,
     nuevoTotal: (Number(factura?.valorTotal) || 0) + total,
