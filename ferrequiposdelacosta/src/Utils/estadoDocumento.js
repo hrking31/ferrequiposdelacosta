@@ -10,6 +10,11 @@
 //   - se guardaron cambios sin emitir ........ pausada ("Pausada")
 //   - cualquier otra salida .................. vuelve al estado que tenía
 //
+// La cuenta de cobro tiene además "pagada", que le pone el administrador
+// desde la lista cuando entra la plata. Sale del mismo lugar que los otros:
+// abrir una cuenta pagada la deja en "enProceso" y al salir sin cambios
+// vuelve a "pagada", porque calcularStatusPrevio se acordó de dónde venía.
+//
 // Ese último caso es el que necesita estas funciones: para devolverlo a como
 // estaba hay que acordarse de cómo estaba, y saber si de verdad se tocó algo.
 
@@ -23,6 +28,9 @@ export const ETIQUETA_ESTADO = {
   pendiente: "Pendiente",
   enProceso: "En Proceso",
   pausada: "Pausada",
+  // Solo la cuenta de cobro llega acá: el administrador la marca cuando entra
+  // la plata. Una cotización no se paga, así que nunca toma este estado.
+  pagada: "Pagada",
 };
 
 export const etiquetaEstado = (status) =>

@@ -13,6 +13,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getCountFromServer,
   getDocs,
   limit,
   onSnapshot,
@@ -49,6 +50,14 @@ const documentoDesdeFormulario = (cuenta, estado, usuario) => {
   return {
     ...datos,
     status: estado,
+    // Que la cuenta se emitió es un HECHO, no un estado. El estado va y viene
+    // —"enProceso" mientras alguien la tiene abierta, "pagada" cuando entra la
+    // plata— pero haberse emitido no se deshace nunca. Guardarlo aparte deja
+    // contar las del mes con una sola consulta en vez de traerlas todas y
+    // mirarles el estado acá (ver contarCuentasCobroDelMes).
+    //
+    // Se pone al emitir y no se saca: una vez true, se queda en true.
+    ...(estado === "creada" ? { emitida: true } : {}),
     actualizadoEn: Date.now(),
     // Queda registrado quién la emitió: son documentos de cobro y en algún
     // momento alguien va a preguntar quién hizo cuál.
@@ -138,28 +147,58 @@ export const liberarCuentaCobro = (cuentaId, status) =>
 export const eliminarCuentaCobro = (cuentaId) =>
   deleteDoc(doc(db, COLECCION, cuentaId));
 
+// Marca que el cliente ya pagó esta cuenta, o la devuelve a "Emitida" si se
+// marcó por error. Solo el administrador puede hacerlo (ver ListaCuentasCobro).
+//
+// Es un estado más, no un hecho aparte como `emitida`: el pago se registra a
+// mano y por eso se puede desmarcar. El conteo del mes NO se toca, justamente
+// porque cuenta por `emitida`: una cuenta pagada se emitió igual, y si el
+// número bajara al cobrarla diría cuánto falta cobrar en vez de cuánto se
+// facturó.
+//
+// Queda anotado quién la marcó y cuándo: es plata, y en algún momento alguien
+// va a preguntar quién dijo que estaba paga.
+export const marcarCuentaPagada = (cuentaId, pagada, usuario) =>
+  updateDoc(doc(db, COLECCION, cuentaId), {
+    status: pagada ? "pagada" : "creada",
+    pagadaEn: pagada ? Date.now() : null,
+    pagadaPor: pagada
+      ? { uid: usuario?.uid || null, nombre: usuario?.name || "" }
+      : null,
+  });
+
 // Cuántas cuentas se EMITIERON en el mes corriente, para el panel del menú.
 // Los borradores no cuentan: lo que interesa es cuánto se facturó, no cuántas
 // quedaron a medias.
 //
-// Una emitida que alguien tiene ABIERTA en este momento sigue contando: su
-// estado dice "enProceso" solo mientras dure esa sesión, y sin esto el número
-// del mes bajaría solo porque alguien la abrió a mirar.
-const seEmitio = (cuenta) =>
-  cuenta.status === "creada" ||
-  (cuenta.status === "enProceso" && cuenta.statusPrevio === "creada");
-
-// Se filtra por fecha en la base —una sola condición, así no hace falta crear
-// un índice compuesto— y el estado se mira acá. Con las pocas decenas que se
-// emiten por mes, traerlas sale más barato que mantener un índice.
+// De los cuatro recuadros del menú este era el único que costaba N lecturas
+// por visita —una por cada cuenta del mes—, porque la condición era compuesta
+// y el estado se miraba acá:
+//
+//   status === "creada" || (status === "enProceso" && statusPrevio === "creada")
+//
+// Ese enredo existía porque el estado SE MUEVE: mientras alguien tiene la
+// cuenta abierta dice "enProceso", y sin la segunda parte el número del mes
+// bajaba solo porque alguien la abrió a mirar. Con el campo `emitida` —un
+// hecho que no se deshace— la condición vuelve a ser simple y la cuenta la
+// hace el servidor: 1 lectura, sin traer un solo documento.
+//
+// Mismo patrón que el campo `cerrada` de las facturas.
+//
+// Ojo: necesita el índice compuesto (emitida + creadaEn) en Firestore. Sin él
+// la consulta falla, y el mensaje de error trae el enlace para crearlo.
 export const contarCuentasCobroDelMes = async () => {
   const inicioDeMes = new Date();
   inicioDeMes.setDate(1);
   inicioDeMes.setHours(0, 0, 0, 0);
 
-  const snap = await getDocs(
-    query(collection(db, COLECCION), where("creadaEn", ">=", inicioDeMes.getTime())),
+  const snap = await getCountFromServer(
+    query(
+      collection(db, COLECCION),
+      where("emitida", "==", true),
+      where("creadaEn", ">=", inicioDeMes.getTime()),
+    ),
   );
 
-  return snap.docs.filter((docSnap) => seEmitio(docSnap.data())).length;
+  return snap.data().count;
 };

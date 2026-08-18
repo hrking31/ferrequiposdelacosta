@@ -26,6 +26,8 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import PaidIcon from "@mui/icons-material/Paid";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PersonIcon from "@mui/icons-material/Person";
@@ -41,6 +43,7 @@ import {
   escucharCuentasCobro,
   leerCuentasCobro,
   marcarCuentaEnProceso,
+  marcarCuentaPagada,
 } from "./cuentasCobroDb";
 import { calcularStatusPrevio } from "../../Utils/estadoDocumento";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
@@ -52,10 +55,15 @@ import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 // Se muestran con las mismas palabras, icono y color que en el buzón de
 // cotizaciones (ver AdminCotizaciones): son los mismos estados y verlos
 // nombrados distinto en cada pantalla confundía.
+//
+// "pagada" es el único que no comparte con la cotización: lo pone el
+// administrador cuando entra la plata. Va en primario y no en verde para que
+// no se confunda con "Emitida" de un vistazo — son dos momentos distintos.
 const ESTADO_INFO = {
   creada: { label: "Emitida", Icono: CheckCircleIcon, color: "success" },
   enProceso: { label: "En Proceso", Icono: AutorenewIcon, color: "info" },
   pausada: { label: "Pausada", Icono: PauseCircleOutlineIcon, color: "default" },
+  pagada: { label: "Pagada", Icono: PaidIcon, color: "primary" },
 };
 
 // Lo que se cobra en una cuenta guardada. Se recalcula en vez de confiar en el
@@ -100,6 +108,9 @@ export default function ListaCuentasCobro() {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [aEliminar, setAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
+  // El id de la cuenta cuyo pago se está guardando, para apagar solo ese botón
+  // y no los de las demás tarjetas.
+  const [marcandoPago, setMarcandoPago] = useState(null);
 
   // La primera tanda se ESCUCHA, no se lee una vez: así, si otra persona abre
   // una cuenta, acá se ve "En Proceso" sin recargar la pantalla. Sin eso, el
@@ -206,6 +217,38 @@ export default function ListaCuentasCobro() {
     navigate("/vistacuentadecobro");
   };
 
+  // Marcar / desmarcar el pago. Es un interruptor: si está emitida la pone en
+  // pagada, y si está pagada la devuelve a emitida —un clic de más se arregla
+  // solo, sin tener que tocar la base—.
+  //
+  // Como la primera tanda está escuchando, la tarjeta se actualiza sola; las
+  // traídas con "Cargar más" hay que corregirlas a mano.
+  const alternarPagada = async (cuenta) => {
+    const pagada = cuenta.status !== "pagada";
+    setMarcandoPago(cuenta.id);
+    try {
+      await marcarCuentaPagada(cuenta.id, pagada, usuario);
+      setMasCuentas((previas) =>
+        previas.map((otra) =>
+          otra.id === cuenta.id
+            ? { ...otra, status: pagada ? "pagada" : "creada" }
+            : otra,
+        ),
+      );
+      showSnackbar(
+        pagada
+          ? `Cuenta ${cuenta.cuentaCobroId || ""} marcada como pagada.`
+          : `Cuenta ${cuenta.cuentaCobroId || ""} vuelve a Emitida.`,
+        "success",
+      );
+    } catch (error) {
+      console.error("Error al marcar el pago de la cuenta:", error);
+      showSnackbar(`No se pudo marcar el pago: ${error.message}`, "error");
+    } finally {
+      setMarcandoPago(null);
+    }
+  };
+
   const handleEliminar = async () => {
     if (!aEliminar) return;
     setEliminando(true);
@@ -308,7 +351,13 @@ export default function ListaCuentasCobro() {
               // tiene PDF: bajarlo daría un papel a medio llenar. Mientras
               // alguien la tiene abierta tampoco, porque puede estar
               // cambiándola justo ahora.
-              const puedeDescargar = cuenta.status === "creada";
+              //
+              // Una pagada también se puede bajar: se emitió igual, y que el
+              // cliente ya haya pagado no borra el documento.
+              const emitida =
+                cuenta.status === "creada" || cuenta.status === "pagada";
+              const puedeDescargar = emitida;
+              const estaPagada = cuenta.status === "pagada";
 
               return (
                 // Misma tarjeta que el buzón de cotizaciones: barra de acento
@@ -509,6 +558,34 @@ export default function ListaCuentasCobro() {
                             >
                               <PictureAsPdfIcon fontSize="small" />
                             </IconButton>
+                          </Tooltip>
+                        )}
+                        {/* Registrar el pago es decir que entró la plata, así
+                            que queda solo en manos del administrador — mismo
+                            criterio que eliminar. Solo aparece en las emitidas:
+                            un borrador todavía no se cobró. */}
+                        {esAdministrador && emitida && (
+                          <Tooltip
+                            title={
+                              estaPagada
+                                ? "Marcar como no pagada"
+                                : "Marcar como pagada"
+                            }
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                color={estaPagada ? "default" : "primary"}
+                                disabled={marcandoPago === cuenta.id}
+                                onClick={() => alternarPagada(cuenta)}
+                              >
+                                {estaPagada ? (
+                                  <MoneyOffIcon fontSize="small" />
+                                ) : (
+                                  <PaidIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         )}
                         {esAdministrador && (

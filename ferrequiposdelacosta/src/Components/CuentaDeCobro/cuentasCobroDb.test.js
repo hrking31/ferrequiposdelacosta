@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
   getDocs: vi.fn(),
+  getCountFromServer: vi.fn(),
   collection: vi.fn((_db, nombre) => ({ nombre })),
   doc: vi.fn((_db, nombre, id) => ({ nombre, id })),
   query: vi.fn((base, ...partes) => ({ base, partes })),
@@ -28,6 +29,7 @@ const {
   generarCuentaCobroId,
   guardarCuentaCobro,
   leerCuentasCobro,
+  marcarCuentaPagada,
 } = await import("./cuentasCobroDb");
 
 // Un documento como los que devuelve Firestore.
@@ -93,6 +95,27 @@ describe("guardarCuentaCobro", () => {
       nombre: "",
     });
   });
+
+  // `emitida` es lo que hace posible contar las del mes con UNA lectura, así
+  // que tiene que nacer con el documento (ver contarCuentasCobroDelMes).
+  it("al emitir deja marcado que se emitió", async () => {
+    mocks.addDoc.mockResolvedValue({ id: "nuevo" });
+    await guardarCuentaCobro(cuenta, "creada", usuario);
+    expect(mocks.addDoc.mock.calls[0][1].emitida).toBe(true);
+  });
+
+  it("un borrador no queda marcado como emitido", async () => {
+    mocks.addDoc.mockResolvedValue({ id: "nuevo" });
+    await guardarCuentaCobro(cuenta, "pausada", usuario);
+    expect(mocks.addDoc.mock.calls[0][1]).not.toHaveProperty("emitida");
+  });
+
+  // Haberse emitido no se deshace: pausar una cuenta ya emitida NO puede
+  // borrarle la marca, o el número del mes bajaría porque alguien la abrió.
+  it("volver a guardar como pausada no borra la marca de emitida", async () => {
+    await guardarCuentaCobro({ ...cuenta, id: "abc" }, "pausada", usuario);
+    expect(mocks.updateDoc.mock.calls[0][1]).not.toHaveProperty("emitida");
+  });
 });
 
 describe("leerCuentasCobro", () => {
@@ -144,40 +167,36 @@ describe("leerCuentasCobro", () => {
 });
 
 describe("contarCuentasCobroDelMes", () => {
-  it("cuenta solo las emitidas, no los borradores", async () => {
-    mocks.getDocs.mockResolvedValue({
-      docs: [
-        docFalso("a", { status: "creada" }),
-        docFalso("b", { status: "pausada" }),
-        docFalso("c", { status: "creada" }),
-      ],
-    });
+  // Lo que se cuida acá es que el número lo saque el SERVIDOR: antes se traían
+  // todas las del mes para mirarles el estado, y eso costaba una lectura por
+  // cuenta cada vez que alguien abría el menú.
+  it("pide el número al servidor, sin traer los documentos", async () => {
+    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 7 }) });
 
-    expect(await contarCuentasCobroDelMes()).toBe(2);
+    expect(await contarCuentasCobroDelMes()).toBe(7);
+    expect(mocks.getDocs).not.toHaveBeenCalled();
   });
 
-  it("una emitida que alguien tiene abierta sigue contando", async () => {
-    mocks.getDocs.mockResolvedValue({
-      docs: [
-        docFalso("a", { status: "enProceso", statusPrevio: "creada" }),
-        // Un borrador abierto no: nunca se emitió.
-        docFalso("b", { status: "enProceso", statusPrevio: "pausada" }),
-      ],
-    });
-
-    expect(await contarCuentasCobroDelMes()).toBe(1);
-  });
-
-  it("filtra desde el primer día del mes", async () => {
-    mocks.getDocs.mockResolvedValue({ docs: [] });
+  it("cuenta por el hecho de haberse emitido, no por el estado", async () => {
+    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
 
     await contarCuentasCobroDelMes();
 
-    const [campo, operador, desde] = [
-      mocks.where.mock.calls[0][0],
-      mocks.where.mock.calls[0][1],
-      mocks.where.mock.calls[0][2],
-    ];
+    // El estado va y viene —"enProceso" mientras alguien la tiene abierta,
+    // "pagada" cuando entra la plata— y el número del mes no puede moverse
+    // por eso. Por eso se pregunta por `emitida`, que no se deshace.
+    const [campo, operador, valor] = mocks.where.mock.calls[0];
+    expect(campo).toBe("emitida");
+    expect(operador).toBe("==");
+    expect(valor).toBe(true);
+  });
+
+  it("filtra desde el primer día del mes", async () => {
+    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
+
+    await contarCuentasCobroDelMes();
+
+    const [campo, operador, desde] = mocks.where.mock.calls[1];
     expect(campo).toBe("creadaEn");
     expect(operador).toBe(">=");
 
@@ -185,6 +204,33 @@ describe("contarCuentasCobroDelMes", () => {
     expect(fecha.getDate()).toBe(1);
     expect(fecha.getHours()).toBe(0);
     expect(fecha.getMonth()).toBe(new Date().getMonth());
+  });
+});
+
+describe("marcarCuentaPagada", () => {
+  it("marca el pago con quién y cuándo", async () => {
+    await marcarCuentaPagada("abc", true, usuario);
+
+    const guardado = mocks.updateDoc.mock.calls[0][1];
+    expect(guardado.status).toBe("pagada");
+    expect(typeof guardado.pagadaEn).toBe("number");
+    expect(guardado.pagadaPor).toEqual({ uid: "u1", nombre: "Yasbleidy" });
+  });
+
+  it("al desmarcar la devuelve a emitida y limpia el rastro del pago", async () => {
+    await marcarCuentaPagada("abc", false, usuario);
+
+    const guardado = mocks.updateDoc.mock.calls[0][1];
+    expect(guardado.status).toBe("creada");
+    expect(guardado.pagadaEn).toBeNull();
+    expect(guardado.pagadaPor).toBeNull();
+  });
+
+  // El conteo del mes cuenta por `emitida`, así que cobrar una cuenta no puede
+  // bajar el número: diría cuánto falta cobrar en vez de cuánto se facturó.
+  it("no toca el campo emitida", async () => {
+    await marcarCuentaPagada("abc", true, usuario);
+    expect(mocks.updateDoc.mock.calls[0][1]).not.toHaveProperty("emitida");
   });
 });
 
