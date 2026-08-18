@@ -40,6 +40,7 @@ import {
   limpiarMonedaInput,
   formatearFechaLegible,
   normalizarPagos,
+  pagosDelAlta,
   sumarAbonos,
   separarExcedentePago,
   calcularEstadoCliente,
@@ -73,7 +74,10 @@ const obtenerEstadoInicial = (factura) => ({
   deposito: factura?.deposito ? String(factura.deposito) : "",
   aplicaIva: factura?.aplicaIva ?? true,
   tipoPago: factura?.tipoPago ?? "total",
-  pagos: normalizarPagos(factura?.pagos, factura?.modoPago, factura?.montoPagado),
+  // Solo el pago del ALTA: en las facturas viejas `montoPagado` viene con lo de
+  // los equipos agregados adentro, y traerlo crudo hacía que al guardar se
+  // sumara esa plata otra vez (ver pagosDelAlta en facturaCalculos).
+  pagos: pagosDelAlta(factura),
 });
 
 const TIPO_PAGO_INFO = {

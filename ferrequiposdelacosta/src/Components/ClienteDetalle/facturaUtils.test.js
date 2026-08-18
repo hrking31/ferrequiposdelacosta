@@ -15,6 +15,9 @@ import {
   separarExcedentePago,
   calcularEstadoCuenta,
   sumarPagosFactura,
+  pagosDelAlta,
+  pagoInicialFactura,
+  sumarPagosDeAgregados,
   calcularCuentaFactura,
   calcularSaldoConAbonos,
   ordenarFacturasConSaldo,
@@ -173,6 +176,65 @@ describe("sumarPagosFactura", () => {
     const factura = { modoPago: "Bancolombia", montoPagado: 150, equipos: [] };
     expect(sumarPagosFactura(factura)).toBe(150);
   });
+
+  // El caso que costaba plata: en una factura del Excel, `montoPagado` viene
+  // ACUMULADO —al agregar un equipo pagado, la app se lo sumó— así que sumarle
+  // otra vez el pago del equipo contaba esa plata dos veces.
+  it("no cuenta dos veces el pago de un equipo agregado a una factura vieja", () => {
+    const factura = {
+      modoPago: "Bancolombia",
+      // $200 del alta + $100 del equipo que se agregó después.
+      montoPagado: 300,
+      equipos: [
+        { agregadoPosteriormente: true, pagos: [{ medio: "Nequi", monto: 100 }] },
+      ],
+    };
+    expect(sumarPagosFactura(factura)).toBe(300);
+    expect(pagoInicialFactura(factura)).toBe(200);
+    expect(sumarPagosDeAgregados(factura)).toBe(100);
+  });
+});
+
+describe("pagosDelAlta", () => {
+  it("en el formato nuevo devuelve la lista tal cual", () => {
+    const pagos = [
+      { medio: "Nequi", monto: 200 },
+      { medio: "Efectivo", monto: 50 },
+    ];
+    const factura = {
+      pagos,
+      equipos: [
+        { agregadoPosteriormente: true, pagos: [{ medio: "Nequi", monto: 900 }] },
+      ],
+    };
+    expect(pagosDelAlta(factura)).toEqual(pagos);
+  });
+
+  it("en el formato viejo arma un renglón con el monto ya limpio", () => {
+    const factura = {
+      modoPago: "Bancolombia",
+      montoPagado: 300,
+      equipos: [
+        { agregadoPosteriormente: true, pagos: [{ medio: "Nequi", monto: 100 }] },
+      ],
+    };
+    expect(pagosDelAlta(factura)).toEqual([{ medio: "Bancolombia", monto: 200 }]);
+  });
+
+  it("nunca devuelve un pago negativo", () => {
+    const factura = {
+      modoPago: "Bancolombia",
+      montoPagado: 50,
+      equipos: [
+        { agregadoPosteriormente: true, pagos: [{ medio: "Nequi", monto: 100 }] },
+      ],
+    };
+    expect(pagosDelAlta(factura)).toEqual([{ medio: "Bancolombia", monto: 0 }]);
+  });
+
+  it("sin medio de pago no inventa un renglón", () => {
+    expect(pagosDelAlta({ equipos: [] })).toEqual([]);
+  });
 });
 
 // ── Cuenta de la factura y del cliente ─────────────────────────────────────
@@ -212,6 +274,25 @@ describe("calcularCuentaFactura", () => {
     expect(cuenta.total).toBe(1000);
     expect(cuenta.recibido).toBe(500);
     expect(cuenta.saldoPendiente).toBe(500);
+  });
+
+  // Antes, en una factura del Excel el pago del equipo agregado se contaba dos
+  // veces: la pantalla mostraba $700 pagados y $300 de saldo cuando el cliente
+  // había entregado $600 y debía $400.
+  it("en una factura vieja no infla lo pagado con el equipo agregado", () => {
+    const factura = {
+      valorTotal: 1000,
+      modoPago: "Bancolombia",
+      // $500 del alta + $100 del equipo agregado.
+      montoPagado: 600,
+      equipos: [
+        { cantidad: 1, valor: 100 },
+        { agregadoPosteriormente: true, pagos: [{ medio: "Nequi", monto: 100 }] },
+      ],
+    };
+    const cuenta = calcularCuentaFactura(factura, HOY);
+    expect(cuenta.pagado).toBe(600);
+    expect(cuenta.saldoPendiente).toBe(400);
   });
 });
 

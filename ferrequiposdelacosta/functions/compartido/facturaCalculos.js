@@ -360,33 +360,70 @@ export const calcularEstadoCuenta = (factura, totalMostrado) => {
   };
 };
 
-// Lo que el cliente entregó al momento de facturar: el pago del alta más el
-// de cada lote de equipos que se agregó después. No incluye los abonos, que
-// son plata posterior y se cuentan aparte.
+// ── Lo que el cliente entregó ──────────────────────────────────────────
 //
-// Ojo: esto NO es factura.montoPagado (que solo guarda el pago del alta, y en
-// las facturas viejas ni eso). Por eso `calcularEstadoCuenta` —que sí lo usa—
-// se queda para los formularios, y las pantallas que muestran la cuenta al día
-// usan esta.
-export const sumarPagosFactura = (factura) => {
-  const sumar = (pagos) =>
-    pagos.reduce((total, pago) => total + (Number(pago?.monto) || 0), 0);
+// Hay dos formas de tener guardado el pago de una factura, y conviene tenerlas
+// claras porque mezclarlas costaba plata:
+//
+//   Formato nuevo (creada en la app): `pagos` es la lista de medios del ALTA, y
+//   cada lote de equipos que se agrega después guarda el suyo en su primer
+//   equipo. Cada plata queda anotada una sola vez.
+//
+//   Formato viejo (migrado del Excel): no hay lista, hay `modoPago` (texto) y
+//   `montoPagado` (número). Y ese número la app lo fue ACUMULANDO: al agregar
+//   un equipo pagado le sumó ese pago (ver AgregarEquipoDialog). O sea que ahí
+//   `montoPagado` NO es el pago del alta, es el alta MÁS los agregados.
+//
+// Por eso el pago del alta se pide con `pagosDelAlta`, que en el formato viejo
+// descuenta lo que ya está contado dentro de los equipos. Tomarlo crudo y
+// sumarle después los lotes —que es lo que se hacía— contaba esa plata dos
+// veces: el "Pagado" salía inflado, el saldo más bajo del real, y guardar la
+// factura desde el lápiz dejaba grabado el número malo.
 
-  const pagoInicial = sumar(
-    normalizarPagos(factura?.pagos, factura?.modoPago, factura?.montoPagado),
+const sumarMontos = (pagos) =>
+  (Array.isArray(pagos) ? pagos : []).reduce(
+    (total, pago) => total + (Number(pago?.monto) || 0),
+    0,
   );
 
-  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
-  const pagoAgregados = equipos
+// Lo que se pagó por los equipos agregados después del alta. Cada lote guarda
+// su pago en el PRIMER equipo del grupo, así que recorrer todos los agregados
+// no lo cuenta dos veces.
+export const sumarPagosDeAgregados = (factura) =>
+  (Array.isArray(factura?.equipos) ? factura.equipos : [])
     .filter((equipo) => equipo?.agregadoPosteriormente)
     .reduce(
       (total, equipo) =>
-        total + sumar(normalizarPagos(equipo.pagos, equipo.modoPago, null)),
+        total + sumarMontos(normalizarPagos(equipo.pagos, equipo.modoPago, null)),
       0,
     );
 
-  return pagoInicial + pagoAgregados;
+// Los medios de pago del ALTA, en la misma forma de lista que usan las
+// pantallas y el formulario. En el formato viejo se arma el único renglón que
+// hubo, ya con el monto limpio de los equipos agregados.
+export const pagosDelAlta = (factura) => {
+  const registrados = Array.isArray(factura?.pagos) ? factura.pagos : [];
+  if (registrados.length > 0) return registrados;
+  if (!factura?.modoPago) return [];
+
+  return [
+    {
+      medio: factura.modoPago,
+      monto: Math.max(
+        0,
+        (Number(factura.montoPagado) || 0) - sumarPagosDeAgregados(factura),
+      ),
+    },
+  ];
 };
+
+// Cuánto entregó el cliente al emitirse la factura.
+export const pagoInicialFactura = (factura) => sumarMontos(pagosDelAlta(factura));
+
+// Todo lo que entró por la factura misma: el alta más cada lote agregado
+// después. No incluye los abonos, que son plata posterior y se cuentan aparte.
+export const sumarPagosFactura = (factura) =>
+  pagoInicialFactura(factura) + sumarPagosDeAgregados(factura);
 
 // ── El depósito: una garantía, no un ingreso ───────────────────────────
 //
