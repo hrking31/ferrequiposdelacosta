@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-253_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-257_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -60,6 +60,9 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 **Abrir WhatsApp tiene su truco.** El pedido primero abre el chat y recién después termina de guardarse, no al revés: si se espera al servidor —uno o dos segundos—, el celular ya no reconoce la apertura como algo que el usuario pidió, la trata como ventana emergente y la manda a una pestaña nueva del navegador… que es justo donde `wa.me` se rinde y muestra **WhatsApp Web** en vez de la app. Por eso se llama a la **aplicación instalada** (`whatsapp://`), que además no abandona la página: la pestaña sigue viva guardando mientras el cliente escribe. Si no hay WhatsApp instalado, a segundo y medio cae al enlace web de siempre.
 
 La misma regla vale del otro lado del mostrador: cuando el personal descarga el PDF de una cotización y se lo manda al cliente, el chat se abre igual —en la app del celular, o en WhatsApp Desktop si se trabaja desde el computador—. Las dos pantallas usan la misma pieza, así que no pueden separarse.
+
+> [!NOTE]
+> Saber si la app abrió tiene su vuelta: en el celular la pestaña queda **tapada**, pero en el computador **no** —WhatsApp Desktop se abre encima y la página sigue visible para el sistema—. Preguntando solo por eso, en el computador se abrían las dos cosas: la app *y* la web. La señal que sirve en ambos es el **foco**: cuando WhatsApp toma el control, esta ventana lo pierde.
 
 ---
 
@@ -561,7 +564,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**253 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**257 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
