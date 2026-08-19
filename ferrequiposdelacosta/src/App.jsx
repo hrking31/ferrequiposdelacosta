@@ -27,10 +27,6 @@ import {
   VistaSeguimientoClientes,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
-// ⚠️ TEMPORAL: se borra junto con su carpeta cuando termine la siembra del
-// campo `emitida` (ver VistaSembrarEmitida.jsx). Va importada directo y no
-// desde ./Views para que sacarla sea borrar estas dos líneas y su <Route>.
-import VistaSembrarEmitida from "./Views/VistaSembrarEmitida/VistaSembrarEmitida.jsx";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
@@ -249,17 +245,6 @@ function App() {
           element={
             <ProtectedRoutes allowedRoles={["gestionCartera"]}>
               <VistaSeguimientoClientes />
-            </ProtectedRoutes>
-          }
-        />
-        {/* ⚠️ TEMPORAL: borrar esta ruta, su import y su carpeta cuando la
-            siembra del campo `emitida` esté hecha. No la enlaza ningún menú:
-            se entra escribiendo la dirección a mano. */}
-        <Route
-          path="/vistasembraremitida"
-          element={
-            <ProtectedRoutes allowedRoles={["cuentaCombro"]}>
-              <VistaSembrarEmitida />
             </ProtectedRoutes>
           }
         />
