@@ -237,16 +237,9 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
       createdAt: Date.now(),
     };
 
-    // TEMPORAL (2026-08-13): el dueño notó que la solicitud aparecía en la
-    // lista antes de que sonara la campana. Estas marcas dicen cuánto tarda
-    // cada paso; se sacan apenas se sepa. Ver "firebase functions:log".
-    const marcaInicio = Date.now();
-
     const referencia = await getFirestore()
         .collection("cotizaciones")
         .add(finalData);
-
-    const marcaGuardada = Date.now();
 
     // El TIMBRE. La campanita del personal no escucha las cotizaciones —eso
     // costaría lecturas de Firestore a toda hora—, escucha este único dato en
@@ -266,12 +259,6 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
     } catch (error) {
       console.error("No se pudo tocar el timbre de cotizaciones:", error);
     }
-
-    // TEMPORAL: ver la nota de arriba.
-    console.log(
-        `MEDICION timbre — guardar: ${marcaGuardada - marcaInicio}ms, ` +
-        `timbre: ${Date.now() - marcaGuardada}ms`,
-    );
 
     return {success: true, id: referencia.id};
   } catch (error) {
