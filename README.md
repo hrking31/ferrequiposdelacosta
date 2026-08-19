@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-397_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-416_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -56,6 +56,18 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 > La campana suena **solo** para los pedidos que llegan de clientes. Una cotización que arma el propio personal no la hace sonar, y es a propósito: ya la está atendiendo quien la escribe. Cuando una alarma suena para todo, se deja de mirar.
 >
 > Entre que la solicitud queda guardada y la campana suena pasan **618 ms** medidos. Lo que a veces se siente como demora es el **arranque en frío** del servidor —de segundo y medio a dos y medio cuando lleva rato sin usarse—, que ocurre antes de las dos cosas y no separa una de la otra.
+
+**Y cuando nadie tiene la app abierta, el aviso llega igual.** La campana resuelve el caso de quien está trabajando; el resto del día el pedido esperaría a que alguien entrara a mirar. Cada persona activa los avisos una vez **por aparato** —el celular y el computador de la oficina van por separado, porque el aviso viaja al aparato, no a la cuenta— y desde ahí el servidor le escribe al teléfono como lo haría WhatsApp.
+
+| Aviso | Cuándo | De dónde sale |
+|---|---|---|
+| **Solicitud nueva** | Un cliente manda su pedido | La misma función que toca la campana — así hereda la regla de que **lo que arma el personal no avisa** |
+| **Factura en seguimiento** | Una factura vence sola, con el calendario | El repaso de las 3 de la mañana |
+
+El segundo tiene una vuelta que vale la pena: para saber **cuáles son nuevas** no se guarda ninguna marca. Se pregunta si la factura está en seguimiento **hoy** y no lo estaba **ayer**. Como los cálculos reciben la fecha como parámetro, alcanza con evaluarlos dos veces — un dato menos que mantener al día.
+
+> [!NOTE]
+> Dos límites que conviene conocer antes de perseguir un fantasma. En **iPhone** los avisos solo funcionan con la app **instalada en la pantalla de inicio** (iOS 16.4+); abierta en Safari, el navegador no los soporta. Y **el sonido lo pone el sistema operativo**: no se puede usar la campana propia de la app, que suena solo con la app abierta.
 
 **Abrir WhatsApp tiene su truco.** El pedido primero abre el chat y recién después termina de guardarse, no al revés: si se espera al servidor —uno o dos segundos—, el celular ya no reconoce la apertura como algo que el usuario pidió, la trata como ventana emergente y la manda a una pestaña nueva del navegador… que es justo donde `wa.me` se rinde y muestra **WhatsApp Web** en vez de la app. Por eso se llama a la **aplicación instalada** (`whatsapp://`), que además no abandona la página: la pestaña sigue viva guardando mientras el cliente escribe. Si no hay WhatsApp instalado, a segundo y medio cae al enlace web de siempre.
 
@@ -568,7 +580,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**397 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**416 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
