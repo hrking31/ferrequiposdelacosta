@@ -38,6 +38,15 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
+// El número de la empresa en formato internacional y sin signos, que es como
+// lo quieren los dos enlaces de WhatsApp.
+const TELEFONO_WHATSAPP = "573116576633";
+
+// Cuánto se le da a la app instalada para tomar el enlace antes de caer a la
+// página web. Si abrió, el navegador queda en segundo plano y el respaldo se
+// cancela solo.
+const ESPERA_APP_WHATSAPP_MS = 1500;
+
 export default function VistaCart() {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -197,19 +206,40 @@ export default function VistaCart() {
         "Gracias! 🙏",
     );
 
-    const whatsappLink = `https://wa.me/573116576633?text=${message}`;
-    window.open(whatsappLink, "_blank");
+    // Se llama a la APP instalada, no a la página wa.me. wa.me es una
+    // dirección web: el navegador la abre como una página más y desde ahí solo
+    // OFRECE pasar a la aplicación — en el celular terminaba en WhatsApp Web y
+    // en el computador en el navegador, aun con WhatsApp Desktop instalado.
+    // El esquema whatsapp:// entra directo a la app y, como no navega fuera,
+    // esta pestaña queda viva terminando de guardar la solicitud.
+    const enlaceApp = `whatsapp://send?phone=${TELEFONO_WHATSAPP}&text=${message}`;
+    const enlaceWeb = `https://wa.me/${TELEFONO_WHATSAPP}?text=${message}`;
+
+    window.location.href = enlaceApp;
+
+    // Respaldo para quien no tenga WhatsApp instalado: ahí el esquema no abre
+    // nada y esta página sigue a la vista. Si la app sí abrió, el navegador
+    // quedó en segundo plano (document.hidden) y no se toca nada.
+    window.setTimeout(() => {
+      if (!document.hidden) window.location.href = enlaceWeb;
+    }, ESPERA_APP_WHATSAPP_MS);
   };
 
-  const handleProcesarSolicitud = async () => {
+  const handleProcesarSolicitud = () => {
     if (!validarCarrito()) return;
+
+    // Primero WhatsApp y después el servidor, no al revés. Abrir la app tiene
+    // que ocurrir dentro del mismo toque del botón: si se espera al guardado
+    // —uno o dos segundos— el celular ya no lo reconoce como algo pedido por
+    // el usuario, lo trata como ventana emergente (pide permiso) y termina
+    // abriendo WhatsApp Web en vez de la app.
+    handleEnviarPedido();
+
+    // El guardado sigue por su cuenta mientras el cliente escribe en WhatsApp.
+    // handleSendQuotation atrapa sus propios errores y avisa por snackbar, que
+    // se verá al volver a esta pestaña.
     setLoading(true);
-    try {
-      await handleSendQuotation();
-      handleEnviarPedido();
-    } finally {
-      setLoading(false);
-    }
+    handleSendQuotation().finally(() => setLoading(false));
   };
 
   if (loading) return <LoadingLogo text="Enviando solicitud..." />;
