@@ -66,8 +66,14 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 
 El segundo tiene una vuelta que vale la pena: para saber **cuáles son nuevas** no se guarda ninguna marca. Se pregunta si la factura está en seguimiento **hoy** y no lo estaba **ayer**. Como los cálculos reciben la fecha como parámetro, alcanza con evaluarlos dos veces — un dato menos que mantener al día.
 
+**El aviso no dice quién pidió ni qué pidió.** Aparece en la pantalla de bloqueo, donde lo lee cualquiera que tenga el teléfono a la vista: dice que hay una solicitud nueva y que entre a la app. Los datos están adentro, a un toque.
+
 > [!NOTE]
-> Dos límites que conviene conocer antes de perseguir un fantasma. En **iPhone** los avisos solo funcionan con la app **instalada en la pantalla de inicio** (iOS 16.4+); abierta en Safari, el navegador no los soporta. Y **el sonido lo pone el sistema operativo**: no se puede usar la campana propia de la app, que suena solo con la app abierta.
+> Tres límites que conviene conocer antes de perseguir un fantasma:
+>
+> - En **iPhone** los avisos solo funcionan con la app **instalada en la pantalla de inicio** (iOS 16.4+); abierta en Safari, el navegador no los soporta.
+> - **El sonido lo pone el sistema operativo.** No se puede usar la campana propia de la app, que suena solo con la app abierta. Tampoco se puede quitar el ícono pequeño que Android dibuja junto al nombre del sitio: solo se puede elegir cuál, y lo toma **como silueta monocroma**, así que una imagen a color se convierte en una mancha.
+> - Los avisos se registran **por dirección**. Activarlos entrando por una y usar la app desde otra no sirve: para el navegador son sitios distintos.
 
 **Abrir WhatsApp tiene su truco.** El pedido primero abre el chat y recién después termina de guardarse, no al revés: si se espera al servidor —uno o dos segundos—, el celular ya no reconoce la apertura como algo que el usuario pidió, la trata como ventana emergente y la manda a una pestaña nueva del navegador… que es justo donde `wa.me` se rinde y muestra **WhatsApp Web** en vez de la app. Por eso se llama a la **aplicación instalada** (`whatsapp://`), que además no abandona la página: la pestaña sigue viva guardando mientras el cliente escribe. Si no hay WhatsApp instalado, a segundo y medio cae al enlace web de siempre.
 
@@ -515,6 +521,12 @@ Ese doble soporte escondía un bug: al agregar un equipo pagado a una factura vi
 > [!WARNING]
 > Los permisos por rol de la interfaz son **comodidad, no seguridad**: definen qué botones se ven. Lo que de verdad protege los datos son las reglas del servidor.
 
+Y esa advertencia no es teórica: **había dos acciones que solo estaban protegidas por la pantalla.** Eliminar una cuenta de cobro y darla por pagada mostraban su botón únicamente al administrador, pero la regla del servidor dejaba escribir a cualquiera con permiso de cuentas — alcanzaba con saber hacerlo desde la consola del navegador. Ahora las dos están cerradas del lado del servidor.
+
+Cerrarlas tuvo su detalle: abrir una cuenta ya pagada la pasa a *En proceso* y **al salir vuelve a pagada**, y ese regreso lo hace cualquiera. Si la regla mirara solo el estado final, bloquearía el trabajo normal. Mira, en cambio, si se toca la **marca de quién y cuándo pagó** —lo único que escribe ese botón—, y usa el estado anterior para distinguir el regreso de una decisión nueva.
+
+Un usuario cualquiera solo puede tocar dos campos de su propia ficha: **su foto** y **la lista de aparatos donde quiere recibir avisos**. Nada más — sin ese límite, cualquiera podría escribirse el rol de administrador desde la consola del navegador.
+
 ---
 
 ## Puesta en marcha
@@ -586,7 +598,14 @@ Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones
 
 También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
-Y ya no se quedan en la lógica: **veinte pantallas se prueban dibujándolas de verdad** —los formularios de cliente, factura y equipo, el diálogo de abonos, el login, el registro de personal, las tarjetas de factura y de cartera, y el buscador— con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**: que el abono se reparta como se mostró en pantalla, que no se pise un abono anterior, y que al eliminar un cliente se avise cuántas facturas se lleva por delante antes de hacerlo.
+Y ya no se quedan en la lógica: **las pantallas se prueban dibujándolas de verdad**, con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**. Ahí están las tres operaciones que mueven plata —ampliar el plazo, registrar una devolución, agregar equipos a una factura viva—, los dos formularios grandes, los carritos, el login y las pantallas del panel.
+
+Algunos ejemplos de lo que queda fijado: que un abono se reparta como se mostró en pantalla y no pise los anteriores; que la devolución parcial **parta la línea del equipo en dos**, una cerrada y otra que sigue corriendo; que el pago de un lote de equipos viaje **solo en el primero** —contarlo dos veces hacía subir el pagado al doble—; que al eliminar un cliente se avise cuántas facturas se lleva por delante; y que cada rol vea únicamente lo suyo.
+
+**Lo que deliberadamente no se prueba** también es una decisión: los PDF, las piezas que solo muestran una cuenta ya calculada, la tienda y las vistas que arman el layout. Una prueba de un componente que únicamente repite lo que le pasan no atrapa errores: los repite.
+
+> [!TIP]
+> Dos hallazgos del camino, anotados para no repetirlos. Una prueba **pasaba sin comprobar nada** —buscaba un botón por una etiqueta que no existía, no encontraba ninguno y daba por buena la afirmación—; desde entonces, cuando se afirma que algo está bloqueado se prueba **también** el caso en que debe estar habilitado. Y varias pruebas de formularios fallaban solo al correr todas juntas: no era un error, era que se pasaban del límite de tiempo.
 
 El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 
