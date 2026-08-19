@@ -65,5 +65,9 @@ export default defineConfig({
     setupFiles: "./src/test/setup.js",
     // No procesar CSS en los tests: no aporta y los hace más lentos.
     css: false,
+    // Las pruebas de pantalla dibujan formularios grandes y escriben campo por
+    // campo. Con los 5 segundos que trae de fábrica, algunas fallaban por
+    // tiempo al correr todas juntas —no por un error, solo por lentitud—.
+    testTimeout: 20000,
   },
 });

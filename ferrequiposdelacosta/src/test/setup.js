@@ -8,6 +8,14 @@ import "@testing-library/jest-dom";
 // esto, cualquier prueba que renderice una pantalla se cae antes de empezar.
 // Responde siempre "no coincide", que equivale a modo claro y a la pantalla más
 // ancha: el punto de partida de las pruebas.
+// Tampoco trae URL.createObjectURL, que usan las pantallas que muestran una
+// vista previa de la imagen recién elegida (crear y editar equipos). Devuelve
+// una dirección de mentira: en las pruebas nadie la abre, solo se guarda.
+if (!URL.createObjectURL) {
+  URL.createObjectURL = () => "blob:vista-previa-de-prueba";
+  URL.revokeObjectURL = () => {};
+}
+
 if (!window.matchMedia) {
   window.matchMedia = (query) => ({
     matches: false,

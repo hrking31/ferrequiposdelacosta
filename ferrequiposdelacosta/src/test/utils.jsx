@@ -51,7 +51,11 @@ export function renderConProviders(
     // userEvent simula a una persona: enfoca el campo, teclea letra por letra y
     // dispara los mismos eventos que el navegador. fireEvent solo empuja el
     // valor, y así se escapan errores que en la pantalla sí ocurren.
-    usuario: userEvent.setup(),
+    //
+    // `delay: null` saca la pausa que mete entre tecla y tecla. Con formularios
+    // largos esa pausa hacía que las pruebas pasaran de los 5 segundos y
+    // fallaran por tiempo cuando corren todas juntas, no por un error real.
+    usuario: userEvent.setup({ delay: null }),
     ...render(ui, { wrapper: Envoltorio, ...resto }),
   };
 }
