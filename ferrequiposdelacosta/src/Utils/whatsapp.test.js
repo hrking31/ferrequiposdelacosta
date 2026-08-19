@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { normalizarTelefono, construirEnlacesWhatsapp } from "./whatsapp";
+import {
+  normalizarTelefono,
+  construirEnlacesWhatsapp,
+  debeAbrirLaWeb,
+} from "./whatsapp";
 
 // Pruebas de los enlaces de WhatsApp. Lo que se verifica acá es lo que se rompe
 // en la práctica: que el de la app use el esquema `whatsapp://` —el que entra a
@@ -54,5 +58,51 @@ describe("construirEnlacesWhatsapp", () => {
 
     expect(app).toBe("whatsapp://send?phone=573116576633&text=");
     expect(web).toBe("https://wa.me/573116576633?text=");
+  });
+});
+
+// El respaldo a la página web solo debe dispararse cuando NO se abrió ninguna
+// app. Estas pruebas fijan el caso que ya falló una vez en el computador.
+describe("debeAbrirLaWeb", () => {
+  it("no abre la web si la ventana perdió el foco (abrió WhatsApp Desktop)", () => {
+    // El caso del computador: la pestaña sigue VISIBLE detrás de la app, así
+    // que la única señal es el foco. Antes acá se abrían las dos cosas.
+    expect(
+      debeAbrirLaWeb({
+        perdioElFoco: true,
+        estaOculta: false,
+        tieneElFoco: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("no abre la web si la pestaña quedó oculta (abrió la app del celular)", () => {
+    expect(
+      debeAbrirLaWeb({
+        perdioElFoco: false,
+        estaOculta: true,
+        tieneElFoco: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("no abre la web si la página ya no tiene el foco", () => {
+    expect(
+      debeAbrirLaWeb({
+        perdioElFoco: false,
+        estaOculta: false,
+        tieneElFoco: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("abre la web cuando no pasó nada: no hay WhatsApp instalado", () => {
+    expect(
+      debeAbrirLaWeb({
+        perdioElFoco: false,
+        estaOculta: false,
+        tieneElFoco: true,
+      }),
+    ).toBe(true);
   });
 });

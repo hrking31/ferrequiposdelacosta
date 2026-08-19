@@ -50,9 +50,27 @@ export const construirEnlacesWhatsapp = (telefono, mensaje) => {
 };
 
 /**
- * Abre el chat. Intenta la app instalada y, si a segundo y medio la página
- * sigue a la vista —señal de que no abrió nada porque no está instalada—,
- * recién ahí cae a la página web.
+ * Si hay que caer a la página web, o si ya abrió una app y no hay nada que
+ * hacer. Va aparte porque es la decisión que se equivocó una vez y la única
+ * parte de todo esto que se puede probar sin un navegador de verdad.
+ *
+ * Las tres señales dicen lo mismo desde ángulos distintos, y hacen falta las
+ * tres:
+ *
+ *   - `perdioElFoco`: la ventana avisó ella misma que algo se abrió encima.
+ *     Es la buena en el COMPUTADOR, donde WhatsApp Desktop no oculta nada.
+ *   - `estaOculta`: la pestaña quedó tapada. Es la buena en el CELULAR.
+ *   - `tieneElFoco`: por si el aviso llegó antes de empezar a escuchar.
+ *
+ * Mirar solo si estaba oculta fue el error: en el computador la pestaña sigue
+ * visible detrás de WhatsApp Desktop, así que se abría también la web.
+ */
+export const debeAbrirLaWeb = ({ perdioElFoco, estaOculta, tieneElFoco }) =>
+  !perdioElFoco && !estaOculta && tieneElFoco;
+
+/**
+ * Abre el chat. Intenta la app instalada y, si a segundo y medio nada indica
+ * que se haya abierto —porque no está instalada—, recién ahí cae a la web.
  *
  * Devuelve el identificador del temporizador por si quien lo llama necesita
  * cancelarlo (por ejemplo, al desmontar la pantalla).
@@ -60,10 +78,26 @@ export const construirEnlacesWhatsapp = (telefono, mensaje) => {
 export const abrirWhatsapp = (telefono, mensaje) => {
   const { app, web } = construirEnlacesWhatsapp(telefono, mensaje);
 
+  let perdioElFoco = false;
+  const anotarQueAbrio = () => {
+    perdioElFoco = true;
+  };
+
+  window.addEventListener("blur", anotarQueAbrio, { once: true });
+  document.addEventListener("visibilitychange", anotarQueAbrio, { once: true });
+
   window.location.href = app;
 
   return window.setTimeout(() => {
-    if (document.hidden) return;
+    window.removeEventListener("blur", anotarQueAbrio);
+    document.removeEventListener("visibilitychange", anotarQueAbrio);
+
+    const caer = debeAbrirLaWeb({
+      perdioElFoco,
+      estaOculta: document.hidden,
+      tieneElFoco: document.hasFocus(),
+    });
+    if (!caer) return;
 
     // Sin app: se va a la web. Se intenta en una pestaña aparte para no sacar
     // al usuario de lo que estaba haciendo; si el navegador la bloquea, se
