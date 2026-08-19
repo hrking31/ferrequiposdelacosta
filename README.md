@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-416_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-418_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -68,12 +68,24 @@ El segundo tiene una vuelta que vale la pena: para saber **cuáles son nuevas** 
 
 **El aviso no dice quién pidió ni qué pidió.** Aparece en la pantalla de bloqueo, donde lo lee cualquiera que tenga el teléfono a la vista: dice que hay una solicitud nueva y que entre a la app. Los datos están adentro, a un toque.
 
+**El botón de activarlos aparece una sola vez** y desaparece apenas se usa. Un interruptor permanente para algo que se hace una vez es un botón que estorba todos los días. Vuelve a aparecer cuando de verdad hace falta: en otro aparato, si otra persona inicia sesión en ese mismo equipo, o si se borran los datos del navegador.
+
+Ese segundo caso es más traicionero de lo que parece. En un computador compartido, si lo activa alguien que **no atiende solicitudes** —quien administra el catálogo, por ejemplo—, el aparato queda anotado en su ficha; la siguiente persona no vería el botón, creería que está todo listo y **no recibiría un solo aviso**. Por eso el registro guarda también **de quién es**: cada persona activa el suyo, y los dos conviven.
+
 > [!NOTE]
 > Tres límites que conviene conocer antes de perseguir un fantasma:
 >
 > - En **iPhone** los avisos solo funcionan con la app **instalada en la pantalla de inicio** (iOS 16.4+); abierta en Safari, el navegador no los soporta.
-> - **El sonido lo pone el sistema operativo.** No se puede usar la campana propia de la app, que suena solo con la app abierta. Tampoco se puede quitar el ícono pequeño que Android dibuja junto al nombre del sitio: solo se puede elegir cuál, y lo toma **como silueta monocroma**, así que una imagen a color se convierte en una mancha.
+> - **El sonido y el ícono pequeño los decide el sistema operativo.** No se puede usar la campana propia de la app —esa suena solo con la app abierta— ni pedir que el ícono chico que Android dibuja junto al nombre del sitio vaya a color: lo toma **como silueta** y lo pinta con el color de acento del teléfono. Elegir bien esa imagen sí importa: de los cuatro íconos del proyecto, tres tienen el fondo pintado y su silueta es **un cuadrado**; solo uno tiene el fondo realmente transparente, y es el que deja ver la forma del logo.
 > - Los avisos se registran **por dirección**. Activarlos entrando por una y usar la app desde otra no sirve: para el navegador son sitios distintos.
+
+**Un cambio en el aviso puede desplegarse y no llegar nunca al teléfono.** Vale la pena contarlo, porque el síntoma engaña: se cambió el texto y el ícono a la vez, y en el celular apareció **el texto nuevo con el ícono viejo**. Esa diferencia es la pista — el texto lo arma el servidor y llega siempre; el ícono lo dibuja el ayudante que vive en el teléfono, y ese no se estaba renovando. Eran tres cosas encadenadas:
+
+1. El hosting servía ese archivo **con una hora de caché** —la regla de "nunca desde caché" existía para el service worker de la PWA, pero no para este—, así que el navegador pedía la versión nueva y recibía la vieja.
+2. Aunque la hubiera descargado, se habría quedado **esperando turno**: una versión nueva no reemplaza a la anterior mientras siga viva, y la anterior no muere nunca — cada aviso que llega la despierta.
+3. Y nadie iba a buscarla: el navegador solo revisa si hay versión nueva cuando alguien vuelve a registrarla, o una vez al día.
+
+Las tres corregidas. La lección se generaliza: **cuando algo se despliega y "no cambia", primero hay que preguntarse quién dibuja eso** — si el servidor o el navegador.
 
 **Abrir WhatsApp tiene su truco.** El pedido primero abre el chat y recién después termina de guardarse, no al revés: si se espera al servidor —uno o dos segundos—, el celular ya no reconoce la apertura como algo que el usuario pidió, la trata como ventana emergente y la manda a una pestaña nueva del navegador… que es justo donde `wa.me` se rinde y muestra **WhatsApp Web** en vez de la app. Por eso se llama a la **aplicación instalada** (`whatsapp://`), que además no abandona la página: la pestaña sigue viva guardando mientras el cliente escribe. Si no hay WhatsApp instalado, a segundo y medio cae al enlace web de siempre.
 
@@ -592,7 +604,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**416 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**418 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
