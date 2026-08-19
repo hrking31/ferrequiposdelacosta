@@ -43,6 +43,7 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
 
 export default function MobileDrawerLayout() {
   const dispatch = useDispatch();
@@ -133,9 +134,7 @@ export default function MobileDrawerLayout() {
         <List>
           <ListItem disablePadding>
             <ListItemButton
-              component="a"
-              href="https://wa.me/+573116576633"
-              target="_blank"
+              onClick={() => abrirWhatsapp(TELEFONO_EMPRESA)}
               sx={{
                 "&:hover": {
                   backgroundColor: theme.palette.custom.whatsapp.hover,

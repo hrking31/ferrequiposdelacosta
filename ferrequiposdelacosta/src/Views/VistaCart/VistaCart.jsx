@@ -37,10 +37,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
-import { abrirWhatsapp } from "../../Utils/whatsapp";
-
-// El número de la empresa, al que llegan los pedidos de la tienda.
-const TELEFONO_WHATSAPP = "573116576633";
+import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -202,7 +199,7 @@ export default function VistaCart() {
 
     // Entra a la APP instalada, no a la página wa.me. El porqué —y por qué hay
     // que llamarlo dentro del mismo toque— está en Utils/whatsapp.js.
-    abrirWhatsapp(TELEFONO_WHATSAPP, message);
+    abrirWhatsapp(TELEFONO_EMPRESA, message);
   };
 
   const handleProcesarSolicitud = () => {

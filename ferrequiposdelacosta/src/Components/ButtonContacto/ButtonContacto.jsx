@@ -3,6 +3,7 @@ import { keyframes } from "@mui/system";
 import { WhatsApp, LocalPhone } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import PropTypes from "prop-types";
+import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
 
   const ActionButton = styled(Button)(({ theme }) => ({
     padding: theme.spacing(1.5, 1.5),
@@ -21,7 +22,8 @@ export const WhatsAppButton = () => {
   return (
     <IconButton
       color="success"
-      href="https://wa.me/+573116576633"
+      aria-label="Escribir por WhatsApp"
+      onClick={() => abrirWhatsapp(TELEFONO_EMPRESA)}
       sx={{
         position: "fixed",
         zIndex: 1300,
@@ -98,8 +100,7 @@ export default function ButtonContacto({ width }) {
         <ActionButton
           variant="contained"
           startIcon={<WhatsApp />}
-          href="https://wa.me/+573116576633"
-          target="_blank"
+          onClick={() => abrirWhatsapp(TELEFONO_EMPRESA)}
           sx={{
             backgroundColor: (theme) => theme.palette.custom.whatsapp.main,
             "&:hover": {

@@ -44,6 +44,7 @@ import {
 } from "../ClienteDetalle/facturaUtils";
 import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
 import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
+import { abrirWhatsapp } from "../../Utils/whatsapp";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
@@ -499,7 +500,6 @@ export default function ClienteSeguimientoCard({
     saldo: saldoPendienteNumero,
     fechaProrroga,
   });
-  const linkWhatsapp = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(mensajeWhatsapp)}`;
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
@@ -638,10 +638,8 @@ export default function ClienteSeguimientoCard({
                 <Tooltip title="Escribir por WhatsApp">
                   <IconButton
                     size="small"
-                    component="a"
-                    href={linkWhatsapp}
-                    target="_blank"
-                    rel="noopener"
+                    aria-label="Escribir por WhatsApp"
+                    onClick={() => abrirWhatsapp(numeroWhatsapp, mensajeWhatsapp)}
                     sx={{
                       bgcolor: theme.palette.custom.whatsapp.main,
                       color: theme.palette.common.white,

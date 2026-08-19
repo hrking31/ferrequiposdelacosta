@@ -24,6 +24,12 @@
 // cancela solo.
 export const ESPERA_APP_WHATSAPP_MS = 1500;
 
+// El WhatsApp de la empresa, al que escriben los clientes. Vive acá porque lo
+// usan cuatro pantallas —el botón flotante, el de "Cotiza con nosotros", el
+// panel lateral y el carrito— y tenerlo escrito cuatro veces es la forma
+// segura de que un día cambie en tres.
+export const TELEFONO_EMPRESA = "573116576633";
+
 /**
  * Deja el teléfono como lo quiere WhatsApp: solo dígitos y con el indicativo
  * de Colombia adelante. Acepta lo que haya escrito el usuario ("311 657 6633",
