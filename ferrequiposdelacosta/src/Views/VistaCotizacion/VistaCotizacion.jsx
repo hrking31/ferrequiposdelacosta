@@ -28,6 +28,7 @@ import {
   setFormCotizacion,
 } from "../../Store/Slices/cotizacionSlice";
 import { hayCambios } from "../../Utils/estadoDocumento";
+import { abrirWhatsapp } from "../../Utils/whatsapp";
 import Cotizacion from "../../Components/Cotizacion/Cotizacion";
 import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
@@ -99,9 +100,8 @@ export default function VistaCotizacion() {
   const statusPrevio = values.statusPrevio || "pausada";
 
   const telefonoDigits = String(values.telefono || "").replace(/\D/g, "");
-  const telefono = telefonoDigits.startsWith("57") ? telefonoDigits : `57${telefonoDigits}`;
   const sinTelefono = telefonoDigits.length === 0;
-  const message = encodeURIComponent(`
+  const message = `
     Hola 👋
 
     Hemos preparado su cotización 📄
@@ -115,12 +115,17 @@ export default function VistaCotizacion() {
     FERREQUIPOS DE LA COSTA
 
     Gracias 🙏
-`);
-
-  const whatsappLink = `https://wa.me/${telefono}?text=${message}`;
+`;
 
   const handleDescargarPdf = async () => {
     if (sinEquipos) return;
+
+    // WhatsApp primero, dentro del mismo clic: entra a la app instalada —en el
+    // celular y también en el computador con WhatsApp Desktop— en vez de abrir
+    // la página wa.me en el navegador. Como no navega fuera, esta pantalla
+    // sigue viva guardando la cotización y armando el PDF. El porqué completo,
+    // en Utils/whatsapp.js.
+    if (!sinTelefono) abrirWhatsapp(values.telefono, message);
 
     setLoading(true);
     const cotizacionGuardada = await guardarCotizacion("creada");
@@ -225,10 +230,6 @@ export default function VistaCotizacion() {
               <span>
                 <IconButton
                   onClick={handleDescargarPdf}
-                  component="a"
-                  href={sinEquipos || sinTelefono ? undefined : whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   disabled={sinEquipos}
                   color="success"
                 >
@@ -272,10 +273,6 @@ export default function VistaCotizacion() {
                   fullWidth
                   sx={{ flex: 1, whiteSpace: "nowrap" }}
                   onClick={handleDescargarPdf}
-                  component="a"
-                  href={sinEquipos || sinTelefono ? undefined : whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   disabled={sinEquipos}
                 >
                   {loading ? "Cargando..." : "Descargar PDF"}

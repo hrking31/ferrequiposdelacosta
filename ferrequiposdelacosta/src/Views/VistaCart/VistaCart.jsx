@@ -37,15 +37,10 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import { abrirWhatsapp } from "../../Utils/whatsapp";
 
-// El número de la empresa en formato internacional y sin signos, que es como
-// lo quieren los dos enlaces de WhatsApp.
+// El número de la empresa, al que llegan los pedidos de la tienda.
 const TELEFONO_WHATSAPP = "573116576633";
-
-// Cuánto se le da a la app instalada para tomar el enlace antes de caer a la
-// página web. Si abrió, el navegador queda en segundo plano y el respaldo se
-// cancela solo.
-const ESPERA_APP_WHATSAPP_MS = 1500;
 
 export default function VistaCart() {
   const theme = useTheme();
@@ -181,7 +176,7 @@ export default function VistaCart() {
   const transporte = transporteLabel[tipoTransporte || "no"];
 
   const handleEnviarPedido = () => {
-    const message = encodeURIComponent(
+    const message =
       "👋 *Hola! Quiero alquilar los siguientes equipos:*\n\n" +
         `👤 *Nombre:* ${cliente.nombre}\n` +
         `🆔 *NIT/CC:* ${cliente.identificacion}\n` +
@@ -203,26 +198,11 @@ export default function VistaCart() {
               `📅 Días: ${item.days}\n`,
           )
           .join("") +
-        "Gracias! 🙏",
-    );
+      "Gracias! 🙏";
 
-    // Se llama a la APP instalada, no a la página wa.me. wa.me es una
-    // dirección web: el navegador la abre como una página más y desde ahí solo
-    // OFRECE pasar a la aplicación — en el celular terminaba en WhatsApp Web y
-    // en el computador en el navegador, aun con WhatsApp Desktop instalado.
-    // El esquema whatsapp:// entra directo a la app y, como no navega fuera,
-    // esta pestaña queda viva terminando de guardar la solicitud.
-    const enlaceApp = `whatsapp://send?phone=${TELEFONO_WHATSAPP}&text=${message}`;
-    const enlaceWeb = `https://wa.me/${TELEFONO_WHATSAPP}?text=${message}`;
-
-    window.location.href = enlaceApp;
-
-    // Respaldo para quien no tenga WhatsApp instalado: ahí el esquema no abre
-    // nada y esta página sigue a la vista. Si la app sí abrió, el navegador
-    // quedó en segundo plano (document.hidden) y no se toca nada.
-    window.setTimeout(() => {
-      if (!document.hidden) window.location.href = enlaceWeb;
-    }, ESPERA_APP_WHATSAPP_MS);
+    // Entra a la APP instalada, no a la página wa.me. El porqué —y por qué hay
+    // que llamarlo dentro del mismo toque— está en Utils/whatsapp.js.
+    abrirWhatsapp(TELEFONO_WHATSAPP, message);
   };
 
   const handleProcesarSolicitud = () => {
