@@ -64,6 +64,8 @@ La misma regla vale del otro lado del mostrador: cuando el personal descarga el 
 > [!NOTE]
 > Saber si la app abrió tiene su vuelta: en el celular la pestaña queda **tapada**, pero en el computador **no** —WhatsApp Desktop se abre encima y la página sigue visible para el sistema—. Preguntando solo por eso, en el computador se abrían las dos cosas: la app *y* la web. La señal que sirve en ambos es el **foco**: cuando WhatsApp toma el control, esta ventana lo pierde.
 
+Los **seis** lugares desde donde la app escribe por WhatsApp —el botón flotante, "Cotiza con nosotros", el panel lateral, el carrito, la cotización y el recordatorio de cartera— salen de la misma pieza, con el número de la empresa escrito una sola vez. Repartido en seis archivos, era cuestión de tiempo que un cambio llegara a cinco.
+
 ---
 
 ## Módulos del panel
@@ -413,6 +415,8 @@ La misma regla explica por qué **el saldo no se guarda**. De una factura se gua
 Guardarlo parecía inofensivo y no lo era. Cada día que un equipo sigue afuera la deuda sube, y de eso nadie avisa: nadie escribe nada en la base a medianoche. Pero además quedaba **mal escrito** desde el momento cero: se recalculaba como *emitido − pagado − abonos* sobre valores que **no** incluyen los días de más, así que en una factura con el alta paga daba cero, y el saldo no puede bajar de cero. Los abonos posteriores restaban contra ese cero y desaparecían sin dejar rastro.
 
 Una factura real llegó a mostrar $476.000 de diferencia entre las dos pantallas: la ficha del cliente recalculaba y veía el abono; cartera leía el número guardado y no.
+
+Dejar de escribirlo no alcanzaba: el número viejo seguía dentro de los documentos, y aunque ningún código lo leyera, cualquiera que abriera la base lo iba a encontrar y creer. Se borró de todas las facturas que lo tenían. **Un dato que miente y nadie usa no es inofensivo: es una trampa esperando.**
 
 ---
 
