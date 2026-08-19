@@ -464,6 +464,10 @@ Dejar de escribirlo no alcanzaba: el número viejo seguía dentro de los documen
 
 La presencia se queda en la base en tiempo real por una razón puntual: es la única que avisa cuando alguien **cierra la pestaña de golpe**. Sin eso, un usuario que se va sin desconectarse quedaría marcado como conectado para siempre.
 
+**Una persona vive repartida en los cuatro servicios**: su cuenta de acceso, su ficha, su presencia y su foto. Por eso eliminarla no es borrar un documento, sino cuatro cosas en cuatro lugares — y lo hace el servidor, no el navegador.
+
+Antes no era así, y el resultado fue una lección: la foto se intentaba borrar desde la app, pero las reglas dejan tocar un avatar **solo a su dueño**, así que al eliminar a otra persona **fallaba siempre… en silencio**, tapado por un manejo de error vacío. La cuenta desaparecía, la ficha también, y la foto quedaba tirada en el servidor sin que nadie se enterara. **Un borrado que falla callado es peor que uno que falla a gritos**: el segundo se arregla, el primero se acumula durante meses.
+
 > [!NOTE]
 > **El truco del timbre.** La campana del personal no escucha las cotizaciones —eso costaría lecturas a toda hora—, escucha **un único dato minúsculo** en la base en tiempo real. Y no es un interruptor de encendido/apagado, sino un valor que *cambia*: cada dispositivo anota cuál fue el último que le sonó. Con un interruptor, la primera persona que lo viera lo apagaría y a las demás no les sonaría nunca.
 
