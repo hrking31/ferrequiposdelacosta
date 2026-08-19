@@ -54,6 +54,10 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 
 > [!NOTE]
 > La campana suena **solo** para los pedidos que llegan de clientes. Una cotización que arma el propio personal no la hace sonar, y es a propósito: ya la está atendiendo quien la escribe. Cuando una alarma suena para todo, se deja de mirar.
+>
+> Entre que la solicitud queda guardada y la campana suena pasan **618 ms** medidos. Lo que a veces se siente como demora es el **arranque en frío** del servidor —de segundo y medio a dos y medio cuando lleva rato sin usarse—, que ocurre antes de las dos cosas y no separa una de la otra.
+
+**Abrir WhatsApp tiene su truco.** El pedido primero abre el chat y recién después termina de guardarse, no al revés: si se espera al servidor —uno o dos segundos—, el celular ya no reconoce la apertura como algo que el usuario pidió, la trata como ventana emergente y la manda a una pestaña nueva del navegador… que es justo donde `wa.me` se rinde y muestra **WhatsApp Web** en vez de la app. Por eso se llama a la **aplicación instalada** (`whatsapp://`), que además no abandona la página: la pestaña sigue viva guardando mientras el cliente escribe. Si no hay WhatsApp instalado, a segundo y medio cae al enlace web de siempre.
 
 ---
 
