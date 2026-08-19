@@ -22,7 +22,7 @@ De lo más valioso y estable a lo más frágil:
 
 1. **Fase 1 — Lógica pura**: funciones que reciben datos y devuelven datos
    (cálculos de facturas, formato, roles) y los *slices* de Redux. ← ✅ COMPLETA
-2. **Fase 2 — Componentes clave**: formularios y validaciones.
+2. **Fase 2 — Componentes clave**: formularios y validaciones. ← ✅ COMPLETA
 3. **Fase 3 — Resto de componentes**.
 4. **(Futuro) Flujos completos** con Cypress/Playwright (fuera de Vitest).
 
@@ -201,11 +201,46 @@ escribió y **qué** se escribió.
 - [x] Si no entra, se queda donde está
 - [x] El ojo muestra y vuelve a ocultar la contraseña
 
-### Lo que sigue en esta fase
-- [ ] `Register` — el alta de usuarios internos
-- [ ] `CrearEquipos`
-- [ ] `FacturaCard` / `EstadoCuentaFactura` — la tarjeta de una factura
-- [ ] `ClienteSeguimientoCard` — la tarjeta de cartera y sus gestiones
+### ✅ Register — 7 pruebas · `Register.test.jsx`
+- [x] No crea la cuenta sin nombre, con correo incompleto, con contraseña de
+      menos de 6 o sin rol
+- [x] Adjunta los permisos que salen del **mapa de roles**, no de una lista suelta
+- [x] Deja el formulario limpio para cargar al siguiente
+- [x] "El correo ya está registrado" en vez del código de Firebase
+
+### ✅ CrearEquipos — 6 pruebas · `CrearEquipos.test.jsx`
+- [x] Exige nombre, descripción y al menos una foto
+- [x] Sube la imagen a Storage y guarda su dirección en el equipo
+- [x] Guarda `nameLowerCase` (sin él el equipo no aparece al buscarlo)
+- [x] Refresca el catálogo, que vive en memoria
+- [x] Guarda las variantes y no repite las iguales
+- [x] Si falla la subida, avisa y **no** guarda un equipo sin imagen
+
+### ✅ FacturaCard — 9 pruebas · `FacturaCard.test.jsx`
+- [x] Muestra de qué factura se trata (y aguanta una sin número)
+- [x] Con la factura abierta: agregar, devolución y editar disponibles
+- [x] Editar le avisa a la pantalla con esa factura
+- [x] El PDF se descarga con la factura y su cliente
+- [x] Una factura **finalizada** se sigue viendo, pero sin acciones (el PDF sí)
+- [x] Una factura con abonos ya no se borra de un clic, pero sí se edita
+
+### ✅ ClienteSeguimientoCard — 7 pruebas · `ClienteSeguimientoCard.test.jsx`
+- [x] Dice de quién es la deuda y por qué factura
+- [x] Sin teléfono usable (códigos "SN", "NT", "N/A") no ofrece escribirle
+- [x] El WhatsApp va al número del **cliente**, no al de la empresa
+- [x] El texto cambia con la gestión: al que ya devolvió todo no se le habla de
+      devoluciones, solo del pago
+- [x] Ofrece registrar llamada, ampliar vencimiento y registrar devolución
+
+### Fase 2: COMPLETA (2026-08-19)
+
+Nueve pantallas, 70 pruebas. Lo que sigue es la **Fase 3** (el resto de los
+componentes) y, más adelante, los flujos completos con Cypress/Playwright.
+
+**Dos ajustes del entorno que hicieron falta:** `userEvent.setup({ delay: null })`
+en el helper y `testTimeout: 20000` en `vite.config.js`. Las pruebas de
+formularios largos pasaban aisladas y fallaban todas juntas por pasarse de los
+5 segundos de fábrica: era lentitud, no un error.
 
 ## Fase 3 — Resto de componentes
 
@@ -214,7 +249,8 @@ grupos.
 
 ---
 
-_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 en curso** —
-andamiaje de render con providers + cinco pantallas probadas (BuscadorFiltro,
-AbonoDialog, ClienteFormDialog, FacturaFormDialog y Login). **298 pruebas
-pasando** en 32 archivos._
+_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 COMPLETA** —
+andamiaje de render con providers + nueve pantallas probadas (BuscadorFiltro,
+AbonoDialog, ClienteFormDialog, FacturaFormDialog, Login, Register,
+CrearEquipos, FacturaCard y ClienteSeguimientoCard). **327 pruebas pasando**
+en 36 archivos. Sigue la Fase 3._

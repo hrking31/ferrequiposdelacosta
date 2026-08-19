@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-298_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-327_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -568,13 +568,13 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**298 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**327 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
 También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
-Y ya no se quedan en la lógica: **tres pantallas se prueban dibujándolas de verdad** —el buscador de administración, el diálogo de abonos y el formulario de clientes— con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**: que el abono se reparta como se mostró en pantalla, que no se pise un abono anterior, y que al eliminar un cliente se avise cuántas facturas se lleva por delante antes de hacerlo.
+Y ya no se quedan en la lógica: **nueve pantallas se prueban dibujándolas de verdad** —los formularios de cliente, factura y equipo, el diálogo de abonos, el login, el registro de personal, las tarjetas de factura y de cartera, y el buscador— con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**: que el abono se reparta como se mostró en pantalla, que no se pise un abono anterior, y que al eliminar un cliente se avise cuántas facturas se lleva por delante antes de hacerlo.
 
 El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 
