@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-228_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-245_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -128,6 +128,10 @@ stateDiagram-v2
 
 Usa **exactamente los mismos estados** que la cotización: se abre, se pausa y se emite igual. Se numera sola (`CC-…`) y cobra el **saldo pendiente** de la factura, no el total.
 
+Al emitirse queda **sellada**: una marca que dice que ese documento ya salió. El menú la usa para contar cuántas se emitieron en el mes con **una sola consulta**, en vez de traerse las cuentas del mes y contarlas una por una.
+
+Ese sello es también lo que hace posible el botón de **pagada** —solo para administradores y solo sobre cuentas ya emitidas, con quien la marcó y cuándo—. Es un interruptor: si se marcó por error, se vuelve atrás. Y como el conteo del mes mira el sello y no el estado, cobrar una cuenta **no le mueve el número**: el menú sigue diciendo cuánto se facturó, que es lo que se le preguntó, y no cuánto falta cobrar.
+
 ### 3. La factura: su estado se calcula, nunca se guarda
 
 Este es el corazón del sistema. El estado de una factura **no existe como campo** en la base de datos: se deduce cada vez que se mira, a partir de sus fechas, sus cantidades devueltas y su saldo.
@@ -179,6 +183,18 @@ En la ficha del cliente se ven en dos etiquetas separadas, porque son cosas dist
 
 > [!WARNING]
 > **Este fue un error costoso.** Antes solo se cobraban los días de los equipos marcados como "entrega indefinida". Al que simplemente no devolvía no se le cobraba ni un día: la pantalla de cartera mostraba *"6 días · $1.200.000"* como aviso, pero esa plata no entraba en ninguna cuenta. Y a los indefinidos se les cobraba… hasta que devolvían, porque los días se calculaban al vuelo desde esa marca y al registrar la devolución se borraban de la cuenta. Dos clientes en la misma situación real se cobraban distinto según cómo se hubiera cargado una fecha.
+
+### Y el que devuelve antes no paga lo que no usó
+
+La misma regla, mirada desde el otro lado. Si el cliente alquiló cinco días y devolvió a los tres, **los dos días que no usó no son de la empresa**:
+
+- **Si ya había pagado ese equipo** → se le restan esos dos días *y su IVA*, y esa plata le queda a favor.
+- **Si todavía no lo pagaba** → los días simplemente se descuentan de la factura.
+
+El crédito nunca pasa de lo que ese equipo tenía cobrado: una devolución anticipada baja la cuenta, no la da vuelta. En la ficha del cliente el número aparece en verde, y tanto en la cuenta de cobro como en el PDF va como un renglón aparte —*"−2 días sin usar"*— para que la fila siga cuadrando con los días por el valor del día.
+
+> [!NOTE]
+> Acá se escondía un error fácil de pasar por alto. El cálculo avisaba que había ajuste preguntando si el total era **mayor que cero**… y un crédito da un total **negativo**. Las ocho pantallas que consultan ese dato lo descartaban y seguían cobrando los días de más. La pregunta correcta no era *"¿es positivo?"* sino *"¿es distinto de cero?"*.
 
 ### 4. Las gestiones: la bitácora del cobro
 
@@ -434,6 +450,14 @@ Un número sumado esconde de dónde salió. El IVA de los cargos adicionales es 
 
 Aparece **solo cuando hay más de un equipo** que aporte. Con uno solo el detalle repetiría el total que ya está arriba, y una flecha que no abre nada es peor que no tenerla. Mismo criterio en el botón del historial: dice **"Ver 12 facturas finalizadas"** con el número por delante, y si no hay ninguna no se muestra — antes había que apretarlo para descubrir que la lista venía vacía.
 
+Cuando un equipo tiene días agregados, ese detalle se parte en dos renglones —*"10 chazas"* y *"10 chazas · días ampliados"*—, porque el IVA de lo que se pactó al principio y el de lo que se sumó después no son el mismo hecho.
+
+### Dos números que decían lo mismo dos veces
+
+La fila de un equipo mostraba dos cifras, una debajo de la otra, y la de abajo **contenía** a la de arriba: $600.000 de renta inicial y $2.400.000 de total. Puestos así no dicen dos cosas, dicen una sola dos veces, y obligan a restar de cabeza para saber lo que interesa.
+
+Ahora el segundo número es **solo lo que se agregó**: $600.000 y $1.800.000. Se leen como "esto se cobró" y "esto se debe". Y cuando lo agregado es un crédito —una devolución anticipada— el mismo número lleva su signo y va en verde.
+
 ### La pantalla angosta decide qué cede, no qué se rompe
 
 La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre. En celular, donde el nombre y seis botones ya no conviven, los botones pasan abajo y se centran.
@@ -531,9 +555,9 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**228 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**245 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
-Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
+Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 
 También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
