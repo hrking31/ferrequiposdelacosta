@@ -947,3 +947,62 @@ describe("obtenerFechaInicialEfectiva (regla de las 3pm)", () => {
     expect(obtenerFechaInicialEfectiva()).toBe("2026-08-16");
   });
 });
+
+// ── "Entró hoy en seguimiento" ─────────────────────────────────────────────
+//
+// El aviso nocturno (recalcularTotalesPanel en functions/index.js) tiene que
+// distinguir las facturas que ACABAN de entrar en seguimiento de las que ya
+// estaban. No guarda ningún dato para eso: pregunta si la factura está en
+// seguimiento HOY y no lo estaba AYER, aprovechando que estas funciones reciben
+// la fecha como parámetro.
+//
+// Estas pruebas fijan ese patrón. Si se rompiera, el aviso avisaría todas las
+// noches por las mismas facturas viejas, y en dos días nadie lo miraría.
+describe("facturaEnSeguimiento — el patrón de \"entró hoy\"", () => {
+  const facturaVencidaEl = (fechaVencimiento) => ({
+    valorTotal: 300000,
+    pagos: [],
+    abonos: [],
+    equipos: [
+      {
+        nombre: "ANDAMIO",
+        cantidad: 1,
+        dias: 3,
+        valor: 100000,
+        fechaDespacho: "2026-08-10",
+        fechaVencimiento,
+      },
+    ],
+  });
+
+  const entroEseDia = (factura, hoy, ayer) =>
+    facturaEnSeguimiento(factura, hoy) && !facturaEnSeguimiento(factura, ayer);
+
+  it("la víspera del vencimiento todavía está tranquila", () => {
+    const factura = facturaVencidaEl("2026-08-15");
+
+    expect(facturaEnSeguimiento(factura, "2026-08-14")).toBe(false);
+  });
+
+  it("entra el MISMO día del vencimiento, y ahí hay que avisar", () => {
+    // Un equipo cuenta como vencido cuando su fecha de devolución ya llegó
+    // (fecha <= hoy), no al día siguiente: ese día tenía que volver.
+    const factura = facturaVencidaEl("2026-08-15");
+
+    expect(entroEseDia(factura, "2026-08-15", "2026-08-14")).toBe(true);
+  });
+
+  it("al día siguiente ya no es nueva: no se vuelve a avisar", () => {
+    const factura = facturaVencidaEl("2026-08-15");
+
+    // Sigue en seguimiento, pero ayer también estaba.
+    expect(facturaEnSeguimiento(factura, "2026-08-16")).toBe(true);
+    expect(entroEseDia(factura, "2026-08-16", "2026-08-15")).toBe(false);
+  });
+
+  it("una factura al día no entra ningún día", () => {
+    const factura = facturaVencidaEl("2026-08-30");
+
+    expect(entroEseDia(factura, "2026-08-16", "2026-08-15")).toBe(false);
+  });
+});

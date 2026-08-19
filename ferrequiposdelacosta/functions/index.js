@@ -21,6 +21,7 @@ import {
   calcularEstadoCliente,
   calcularTotalesFacturas,
   facturaCerrada,
+  facturaEnSeguimiento,
   obtenerFechaHoyBogota,
 } from "./compartido/facturaCalculos.js";
 
@@ -203,6 +204,62 @@ const ROLES_QUE_ATIENDEN = [
   "gestorIntegral",
   "administrador",
 ];
+
+/**
+ * El día anterior a una fecha AAAA-MM-DD. Se arma en UTC a propósito: la fecha
+ * ya viene resuelta en hora de Bogotá (obtenerFechaHoyBogota), así que acá solo
+ * hay que correr el calendario un día, sin volver a mezclar zonas horarias.
+ * @param {string} fechaIso Fecha AAAA-MM-DD.
+ * @return {string} El día anterior, AAAA-MM-DD.
+ */
+function restarUnDia(fechaIso) {
+  const [anio, mes, dia] = fechaIso.split("-").map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  fecha.setUTCDate(fecha.getUTCDate() - 1);
+  return fecha.toISOString().slice(0, 10);
+}
+
+/**
+ * Cómo se llama un cliente, sea persona o empresa. Mismo criterio que la app
+ * (obtenerNombreCompleto en las pantallas de clientes).
+ * @param {Object} cliente Datos del cliente.
+ * @return {string} Nombre para mostrar.
+ */
+function nombreDeCliente(cliente) {
+  if (!cliente) return "Un cliente";
+  if (cliente.tipo === "empresa") {
+    return cliente.razonSocial || cliente.nombreOriginal || "Una empresa";
+  }
+  return (
+    [cliente.nombres, cliente.apellido].filter(Boolean).join(" ") ||
+    cliente.nombreOriginal ||
+    "Un cliente"
+  );
+}
+
+/**
+ * El texto del aviso de facturas que entraron en seguimiento.
+ *
+ * Con una sola se dice cuál es; con varias, de quiénes son. Más de tres no
+ * entran en la pantalla del teléfono, así que se cuentan las que sobran: el
+ * aviso es para que alguien abra la pantalla, no para resolverlo desde ahí.
+ *
+ * @param {Array} entradas Facturas que entraron, con clienteId y numero.
+ * @param {Map} nombres clienteId → nombre para mostrar.
+ * @return {string} Texto del aviso.
+ */
+function describirEntradasEnSeguimiento(entradas, nombres) {
+  const deQuien = (entrada) => nombres.get(entrada.clienteId) || "Un cliente";
+
+  if (entradas.length === 1) {
+    return `Factura ${entradas[0].numero} de ${deQuien(entradas[0])}.`;
+  }
+
+  const primeros = entradas.slice(0, 3).map(deQuien).join(", ");
+  const resto = entradas.length - 3;
+
+  return resto > 0 ? `${primeros} y ${resto} más.` : `${primeros}.`;
+}
 
 /**
  * Manda un aviso al teléfono del personal que puede atenderlo, aunque tengan la
@@ -618,6 +675,14 @@ export const recalcularTotalesPanel = onSchedule(
       const facturasPorCliente = new Map();
       let facturasCorregidas = 0;
 
+      // Las que ENTRARON en seguimiento con el cambio de día. Una factura vence
+      // sola, por calendario: nadie escribe nada y por eso nadie se entera. Se
+      // detectan preguntando si están en seguimiento HOY y no lo estaban AYER
+      // —los cálculos reciben la fecha, así que alcanza con evaluarlos dos
+      // veces— y no hace falta guardar ningún dato nuevo para saberlo.
+      const ayer = restarUnDia(hoy);
+      const entraronEnSeguimiento = [];
+
       for (const facturaSnap of snap.docs) {
         const clienteId = facturaSnap.ref.parent.parent?.id;
         if (!clienteId) continue;
@@ -626,6 +691,16 @@ export const recalcularTotalesPanel = onSchedule(
         const lista = facturasPorCliente.get(clienteId) ?? [];
         lista.push(factura);
         facturasPorCliente.set(clienteId, lista);
+
+        if (
+          facturaEnSeguimiento(factura, hoy) &&
+          !facturaEnSeguimiento(factura, ayer)
+        ) {
+          entraronEnSeguimiento.push({
+            clienteId,
+            numero: factura.numeroFactura ?? "s/n",
+          });
+        }
 
         const cerrada = facturaCerrada(factura, hoy);
         if (cerrada !== factura.cerrada) {
@@ -658,5 +733,31 @@ export const recalcularTotalesPanel = onSchedule(
           `estados corregidos: ${clientesCorregidos}, ` +
           `marcas de cerrada corregidas: ${facturasCorregidas}`,
       );
+
+      // El aviso de las que entraron en seguimiento. Va acá abajo, con los
+      // clientes ya leídos, para poder decir de quién es cada factura sin
+      // volver a consultar nada.
+      if (entraronEnSeguimiento.length > 0) {
+        const nombres = new Map(
+            clientesSnap.docs.map((docSnap) => [
+              docSnap.id,
+              nombreDeCliente(docSnap.data()),
+            ]),
+        );
+
+        const cuantas = entraronEnSeguimiento.length;
+
+        await avisarAlPersonal({
+          titulo: cuantas === 1 ?
+            "Una factura entró en seguimiento" :
+            `${cuantas} facturas entraron en seguimiento`,
+          cuerpo: describirEntradasEnSeguimiento(
+              entraronEnSeguimiento,
+              nombres,
+          ),
+          url: "/vistaseguimientoclientes",
+          tipo: "seguimiento",
+        });
+      }
     },
 );
