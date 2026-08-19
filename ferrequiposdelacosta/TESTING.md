@@ -23,7 +23,7 @@ De lo más valioso y estable a lo más frágil:
 1. **Fase 1 — Lógica pura**: funciones que reciben datos y devuelven datos
    (cálculos de facturas, formato, roles) y los *slices* de Redux. ← ✅ COMPLETA
 2. **Fase 2 — Componentes clave**: formularios y validaciones. ← ✅ COMPLETA
-3. **Fase 3 — Resto de componentes**.
+3. **Fase 3 — Resto de componentes**. ← ✅ COMPLETA (con criterio: ver abajo)
 4. **(Futuro) Flujos completos** con Cypress/Playwright (fuera de Vitest).
 
 ---
@@ -244,13 +244,86 @@ formularios largos pasaban aisladas y fallaban todas juntas por pasarse de los
 
 ## Fase 3 — Resto de componentes
 
-El inventario del resto de los ~70 componentes `.jsx` se irá completando por
-grupos.
+**El criterio:** no se prueban los ~60 componentes que faltan uno por uno. Se
+probó **todo lo que decide algo** —plata, permisos, qué se guarda— y se deja
+fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
+únicamente muestra lo que le pasan no atrapa errores: los repite.
+
+### ✅ Los tres diálogos que mueven plata — 23 pruebas
+
+**`AmpliarVencimientoDialog.test.jsx` (8)**
+- [x] No guarda una ampliación vacía
+- [x] Corre la fecha y deja anotada la ampliación con su fecha anterior
+- [x] Guarda el descuento hecho sobre esos días
+- [x] Acumula la ampliación nueva sobre las anteriores
+- [x] Anota la prórroga en la línea de tiempo
+- [x] "Indefinida" y "días" son caminos excluyentes: la indefinida no inventa
+      fecha ni ampliación
+
+**`RegistrarDevolucionDialog.test.jsx` (9)**
+- [x] Sin cantidad no registra nada
+- [x] Devolución total: cierra la línea con la fecha de hoy, gestión "total"
+- [x] Devolución parcial: **parte la línea en dos** —lo que volvió y lo que
+      sigue afuera—, gestión "parcial"
+- [x] No deja devolver más de lo que hay afuera
+- [x] Al remanente se le puede dar más plazo en el mismo paso
+- [x] Depósito: devuelto entero, o retenido con motivo obligatorio
+
+**`AgregarEquipoDialog.test.jsx` (6)**
+- [x] Sin equipos en la lista no guarda
+- [x] Los nuevos entran sin pisar los del alta y quedan marcados como agregados
+      después, con su lote y su fecha de entrega
+- [x] Rehace el total de la factura
+- [x] El pago del lote viaja **solo en el primer equipo** (contarlo en los dos
+      hacía subir el pagado al doble)
+
+### ✅ Los dos carritos — 9 pruebas
+- [x] `VistaCart` (5): con el carrito vacío no manda nada; con el pedido armado
+      abre WhatsApp **y** manda la solicitud; el mensaje lleva al cliente y lo
+      que pidió; si el servidor falla, el WhatsApp ya salió igual
+- [x] `KioskCart` (4): manda la solicitud pero **no** abre WhatsApp — el cliente
+      está en el local
+
+### ✅ Las pantallas del panel — 22 pruebas
+- [x] `ListaCuentasCobro` (6): marcar como pagada es solo del administrador y
+      solo sobre emitidas; es un interruptor
+- [x] `AdminCotizaciones` (5): el buzón, tomar una pendiente, y eliminar solo
+      para el administrador (pedirlo abre la confirmación, no borra)
+- [x] `EditarEquipos` (5): guarda en el equipo correcto, rehace el nombre en
+      minúsculas y vuelve a pedir el catálogo
+- [x] `ListaUsuarios` (3): cambiar el rol cambia el juego de permisos, que sale
+      del mapa de roles
+- [x] `DatosClienteModal` (6): persona/empresa, identificación de 5 dígitos
+      mínimo, teléfono solo números, y los datos quedan en el estado de la app
+- [x] `AdminForms` (6): cada rol ve solo lo suyo, y a quien no puede ver cartera
+      ni siquiera se le piden esas cifras
+
+### ✅ La copia local de clientes — 7 pruebas
+- [x] `clientesCache` : usa la copia cuando el sello coincide (0 lecturas),
+      relee cuando cambió, se invalida a mano tras crear o borrar, y tiene sus
+      salidas de emergencia (copia corrupta, vencida, base sin sello)
+
+### Lo que queda deliberadamente sin prueba
+
+- **Los PDF** (`VistaPdf/*`) y sus equivalentes en pantalla (`VistaWeb/*`):
+  arman un documento con datos que ya vienen calculados y probados. Probarlos
+  sería fijar el diseño, que cambia seguido, no la corrección.
+- **Las piezas de la ficha del cliente** (`EstadoCuentaFactura`,
+  `CargosAdicionales`, `RecuadroPago`, `EquipoRow`, `recuadrosCuenta`,
+  `ClienteEncabezado`): reciben la cuenta **ya calculada** —esa es la regla, se
+  calcula una sola vez en `FacturaCard`— y la muestran. La cuenta está probada
+  en `facturaUtils.test.js`.
+- **La tienda y el kiosco** (`ProductCardDetail`, `KioskProductCardDetail`,
+  `Search`, `Drawer`, protector de pantalla): navegación y presentación.
+- **Las vistas contenedoras** (`Vista*`): arman el layout y delegan en los
+  componentes ya probados.
+
+Si alguna de estas incorpora una decisión —una validación, un cálculo, un
+permiso— ahí sí corresponde probarla.
 
 ---
 
-_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 COMPLETA** —
-andamiaje de render con providers + nueve pantallas probadas (BuscadorFiltro,
-AbonoDialog, ClienteFormDialog, FacturaFormDialog, Login, Register,
-CrearEquipos, FacturaCard y ClienteSeguimientoCard). **327 pruebas pasando**
-en 36 archivos. Sigue la Fase 3._
+_Última actualización (2026-08-19): **Fases 1, 2 y 3 COMPLETAS** — lógica,
+nueve pantallas clave y todo lo que decide algo (plata, permisos, qué se
+guarda). **397 pruebas pasando** en 48 archivos. Lo que sigue, cuando haga
+falta: flujos completos con Cypress/Playwright._
