@@ -79,14 +79,16 @@ service cloud.firestore {
       allow list: if esAdministrador();
 
       // Un usuario cualquiera solo puede cambiar SU foto de perfil
-      // (HeaderUsuario.jsx). Sin este límite, cualquier empleado podría
+      // (HeaderUsuario.jsx) y la lista de equipos donde quiere recibir avisos
+      // (Utils/avisos.js). Sin este límite, cualquier empleado podría
       // escribir role: "administrador" en su propio documento desde la
       // consola del navegador y quedar con todos los permisos.
       // El administrador sí puede editar nombre, género, rol y permisos
       // de cualquiera (ListaUsuarios.jsx).
       allow update: if (request.auth != null
           && request.auth.uid == userId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["photoURL"]))
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["photoURL", "avisosTokens"]))
         || esAdministrador();
 
       // Crear y borrar usuarios pasa por las Cloud Functions createUser y

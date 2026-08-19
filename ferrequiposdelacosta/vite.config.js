@@ -12,6 +12,14 @@ export default defineConfig({
       devOptions: {
         enabled: true,
       },
+      workbox: {
+        // El ayudante de los avisos (public/firebase-messaging-sw.js) queda
+        // FUERA de la caché de la PWA. Son dos service workers distintos: si
+        // este se guardara en caché, el navegador podría seguir usando una
+        // versión vieja aunque se despliegue una nueva, y los avisos dejarían
+        // de llegar sin que nada avise.
+        globIgnores: ["**/firebase-messaging-sw.js"],
+      },
       manifest: {
         id: "/",
         name: "Ferrequipos de la Costa",

@@ -37,3 +37,18 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const database = getDatabase(app);
 export const functions = getFunctions(app);
+
+// La app de Firebase, para quien necesite armar un servicio bajo demanda. Lo
+// usa Utils/avisos.js con la mensajería: ese servicio NO se puede crear acá
+// arriba porque revienta en los navegadores que no soportan notificaciones
+// (Safari sin instalar la app, por ejemplo), y este archivo lo carga TODA la
+// app, incluida la tienda pública.
+export { app };
+
+// La llave pública de las notificaciones (par de claves VAPID, generado en
+// Consola de Firebase → Configuración del proyecto → Cloud Messaging →
+// Certificados push web). Es pública por diseño, igual que la de reCAPTCHA:
+// identifica al remitente ante el navegador, no autoriza a enviar nada. Quien
+// envía es el servidor, con sus credenciales de administrador.
+export const LLAVE_AVISOS =
+  "BA6eq6xlfRaEIK2ZdJqcbOLs3icPR6ss9mafffT8-PxHIHWRYsy7-lHPxKaoPm592BzGhau36HS7gSWM1rYLf-I";

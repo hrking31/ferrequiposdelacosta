@@ -6,6 +6,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {initializeApp} from "firebase-admin/app";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
+import {getMessaging} from "firebase-admin/messaging";
 import {getDatabase, ServerValue} from "firebase-admin/database";
 import {getStorage} from "firebase-admin/storage";
 
@@ -194,6 +195,96 @@ export const deleteUser = onCall(async (request) => {
   }
 });
 
+// Los roles que atienden solicitudes: los mismos que ven el buzón en
+// RolesPermisos.jsx (permiso "solicitudesCotizaciones"). Si allá se agrega otro
+// rol con ese permiso, agregarlo también acá.
+const ROLES_QUE_ATIENDEN = [
+  "gestorFacturacion",
+  "gestorIntegral",
+  "administrador",
+];
+
+/**
+ * Manda un aviso al teléfono del personal que puede atenderlo, aunque tengan la
+ * app cerrada.
+ *
+ * Cada persona registra sus equipos desde el botón "Activar avisos"
+ * (src/Utils/avisos.js), y quedan en `avisosTokens` de su ficha. Una misma
+ * persona puede tener varios: el celular y el computador de la oficina.
+ *
+ * Se manda SOLO datos, sin el bloque de notificación que arma Firebase: así el
+ * aviso lo dibuja el ayudante del navegador (public/firebase-messaging-sw.js),
+ * que decide el ícono, el texto y a dónde lleva al tocarlo.
+ *
+ * Nunca lanza: un aviso que no sale no puede tumbar la solicitud del cliente,
+ * que es lo único que de verdad no se puede perder.
+ *
+ * @param {Object} aviso Qué decir y a dónde llevar.
+ * @param {string} aviso.titulo Primera línea del aviso.
+ * @param {string} aviso.cuerpo Segunda línea.
+ * @param {string} aviso.url Pantalla que se abre al tocarlo.
+ * @param {string} aviso.tipo Agrupa los avisos parecidos en el teléfono.
+ * @return {Promise<void>}
+ */
+async function avisarAlPersonal({titulo, cuerpo, url, tipo}) {
+  try {
+    const db = getFirestore();
+    const personal = await db
+        .collection("users")
+        .where("role", "in", ROLES_QUE_ATIENDEN)
+        .get();
+
+    // De quién es cada equipo, para poder limpiar después los que ya no
+    // responden.
+    const porUsuario = new Map();
+    personal.forEach((docSnap) => {
+      const equipos = docSnap.data().avisosTokens;
+      if (Array.isArray(equipos) && equipos.length > 0) {
+        porUsuario.set(docSnap.id, equipos);
+      }
+    });
+
+    const tokens = [...porUsuario.values()].flat();
+    if (tokens.length === 0) return;
+
+    const respuesta = await getMessaging().sendEachForMulticast({
+      tokens,
+      data: {titulo, cuerpo, url, tipo},
+      // Un aviso de trabajo no puede esperar a que el teléfono despierte solo.
+      webpush: {headers: {Urgency: "high"}},
+    });
+
+    // Equipos que ya no existen (app desinstalada, teléfono cambiado). Si no se
+    // sacan, la lista crece para siempre y cada envío arrastra direcciones
+    // muertas.
+    const muertos = new Set();
+    respuesta.responses.forEach((resultado, i) => {
+      const codigo = resultado.error ? resultado.error.code : "";
+      if (
+        codigo.includes("registration-token-not-registered") ||
+        codigo.includes("invalid-argument")
+      ) {
+        muertos.add(tokens[i]);
+      }
+    });
+
+    if (muertos.size === 0) return;
+
+    await Promise.all(
+        [...porUsuario].map(([uid, suyos]) => {
+          const aBorrar = suyos.filter((token) => muertos.has(token));
+          if (aBorrar.length === 0) return null;
+          return db
+              .collection("users")
+              .doc(uid)
+              .update({avisosTokens: FieldValue.arrayRemove(...aBorrar)});
+        }),
+    );
+  } catch (error) {
+    console.error("No se pudo avisar al personal:", error);
+  }
+}
+
 // enforceAppCheck rechaza toda llamada que no traiga un token válido de App
 // Check (reCAPTCHA Enterprise). Así solo la app real puede crear cotizaciones;
 // un bot que descubra la URL de la función queda fuera. El cliente adjunta el
@@ -259,6 +350,19 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
     } catch (error) {
       console.error("No se pudo tocar el timbre de cotizaciones:", error);
     }
+
+    // Y el aviso al teléfono, para quien no tenga la app abierta. Va acá y no
+    // en un disparador aparte por el mismo motivo que el timbre: así hereda la
+    // regla de que las cotizaciones que arma el PERSONAL no avisan —esas pasan
+    // por guardarCotizacion, no por esta función—.
+    const equipos = quotationData.items.length;
+    await avisarAlPersonal({
+      titulo: "Nueva solicitud de cotización",
+      cuerpo: `${quotationData.empresa || "Un cliente"} pidió ${equipos} ` +
+        `equipo${equipos === 1 ? "" : "s"}.`,
+      url: "/vistacotizacionesAdmin",
+      tipo: "cotizacion",
+    });
 
     return {success: true, id: referencia.id};
   } catch (error) {

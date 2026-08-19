@@ -37,6 +37,7 @@ import { contarCuentasCobroDelMes } from "../../Components/CuentaDeCobro/cuentas
 import { contarCotizacionesDelMes } from "../../Components/AdminCotizaciones/cotizacionesDb";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import BotonAvisos from "../../Components/Avisos/BotonAvisos";
 import { formatearMoneda } from "../../Utils/formato";
 
 // Tarjeta resumen del panel de KPIs: ícono con tinte del color, número
@@ -420,6 +421,7 @@ export default function AdminForms() {
 
         {!isFullScreen && (
           <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+            <BotonAvisos />
             <Tooltip title="Cerrar sesión">
               <IconButton onClick={handlerLogout} color="error">
                 <LogoutIcon />
@@ -480,7 +482,13 @@ export default function AdminForms() {
 
       {isFullScreen && (
         <Box sx={{ pt: 4, pb: 1.5 }}>
-          <Grid container justifyContent="center">
+          <Grid container justifyContent="center" spacing={1.5}>
+            {/* En celular el botón de avisos va acá abajo, junto al de salir:
+                arriba no hay lugar y es justamente donde más se usa, porque el
+                aviso llega al teléfono. */}
+            <Grid item xs={12} sm={5} md={4}>
+              <BotonAvisos variante="boton" />
+            </Grid>
             <Grid item xs={12} sm={5} md={4}>
               <Button
                 onClick={handlerLogout}
