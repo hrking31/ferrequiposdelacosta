@@ -139,8 +139,24 @@ toman colores del tema. Eso vive en **`src/test/utils.jsx`**:
 como texto: la prueba no toca la base, pero afirma **a qué documento** se
 escribió y **qué** se escribió.
 
-**Trampa:** en un `Select` de MUI, `getByLabelText` encuentra dos elementos (el
-input oculto y el combobox). Va `getByRole("combobox", { name: "..." })`.
+**Trampas ya pagadas, para no repetirlas:**
+
+1. En un `Select` de MUI, `getByLabelText` encuentra **dos** elementos (el input
+   oculto y el combobox) y falla. Va `getByRole("combobox", { name })` y después
+   `findByRole("option", { name })`.
+2. Un campo **obligatorio** lleva un `*` pegado al texto de la etiqueta, así que
+   `getByLabelText("Contraseña")` no lo encuentra: hay que buscarlo por
+   coincidencia parcial (`/Contraseña/`).
+3. Textos que se repiten: el título dice "2 facturas con saldo" y el rótulo de
+   la sección "Facturas con saldo". Una expresión floja matchea los dos; hay que
+   anclarla.
+4. Botones cuyo nombre cambia según el modo (`Crear Factura` / `Guardar
+   Cambios`): buscarlos por los dos.
+5. **Ojo con las pruebas que pasan sin comprobar nada.** Un `filter` que no
+   encuentra nada devuelve una lista vacía, y `.some(...)` sobre vacío es
+   `false`: la prueba pasa siempre. Pasó buscando un `aria-label` que no
+   existía. Cuando se afirma que algo está bloqueado, probar **también** el caso
+   en que debe estar habilitado.
 
 ### ✅ BuscadorFiltro — 5 pruebas · `BuscadorFiltro.test.jsx`
 - [x] Muestra el texto y la indicación que le pasan
@@ -167,11 +183,29 @@ input oculto y el combobox). Va `getByRole("combobox", { name: "..." })`.
 - [x] Antes de borrar dice cuántas facturas se lleva por delante
 - [x] Al confirmar, borra facturas y cliente en una sola operación
 
+### ✅ FacturaFormDialog — 8 pruebas · `FacturaFormDialog.test.jsx`
+- [x] No deja guardar sin número de factura ni sin equipos
+- [x] Dice campo por campo qué le falta a un equipo a medio llenar
+- [x] Al crear: calcula la entrega (despacho + días − 1), el subtotal, nace con
+      `cerrada: false` y actualiza el estado del cliente, todo en una operación
+- [x] **No** guarda saldo, estado ni pagado acumulado: solo los hechos
+- [x] Editar actualiza la factura existente en vez de crear otra
+- [x] Lo entregado de más se guarda como **abono**, con los pagos recortados
+      hasta cubrir el total
+- [x] Un equipo con devolución registrada no se puede quitar; uno sin historia sí
+
+### ✅ Login — 9 pruebas · `Login.test.jsx`
+- [x] Al entrar bien pasa correo y contraseña tal cual y lleva al panel
+- [x] Cierra el cartel si lo abrieron desde uno
+- [x] Traduce cada código de Firebase a su frase en castellano (4 casos)
+- [x] Si no entra, se queda donde está
+- [x] El ojo muestra y vuelve a ocultar la contraseña
+
 ### Lo que sigue en esta fase
-- [ ] `FacturaFormDialog` — el más grande; el alta y la edición de una factura
-- [ ] `Login` y `Register`
+- [ ] `Register` — el alta de usuarios internos
 - [ ] `CrearEquipos`
 - [ ] `FacturaCard` / `EstadoCuentaFactura` — la tarjeta de una factura
+- [ ] `ClienteSeguimientoCard` — la tarjeta de cartera y sus gestiones
 
 ## Fase 3 — Resto de componentes
 
@@ -180,6 +214,7 @@ grupos.
 
 ---
 
-_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 arrancada** —
-andamiaje de render con providers + las tres primeras pantallas (BuscadorFiltro,
-AbonoDialog, ClienteFormDialog). **281 pruebas pasando** en 30 archivos._
+_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 en curso** —
+andamiaje de render con providers + cinco pantallas probadas (BuscadorFiltro,
+AbonoDialog, ClienteFormDialog, FacturaFormDialog y Login). **298 pruebas
+pasando** en 32 archivos._
