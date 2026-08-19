@@ -36,9 +36,26 @@ import { app, db, LLAVE_AVISOS } from "../Components/Firebase/Firebase";
 const RUTA_AYUDANTE = "/firebase-messaging-sw.js";
 const RINCON_AYUDANTE = "/firebase-cloud-messaging-push-scope";
 
-// La dirección de ESTE aparato queda anotada acá para poder darla de baja al
-// desactivar: sin esto habría que adivinar cuál de la lista es la suya.
+// Lo que este aparato tiene registrado: su dirección y de QUIÉN es.
+//
+// El uid importa: si en el mismo equipo entra otra persona, el aparato ya está
+// registrado pero los avisos irían a la ficha del anterior. Guardando el uid,
+// la app sabe que a esta persona todavía le falta activarlos acá.
 const CLAVE_LOCAL = "avisos_token";
+
+const leerRegistroLocal = () => {
+  const guardado = localStorage.getItem(CLAVE_LOCAL);
+  if (!guardado) return null;
+
+  try {
+    const registro = JSON.parse(guardado);
+    return registro?.token ? registro : null;
+  } catch {
+    // Formato viejo: solo el token, sin dueño. Vale igual —era de quien estaba
+    // usando el equipo— y se actualiza sola la próxima vez que se active.
+    return { token: guardado, uid: null };
+  }
+};
 
 /**
  * Si el navegador puede recibir avisos. Da `false` en Safari sin instalar la
@@ -53,24 +70,52 @@ export const avisosSoportados = async () => {
 };
 
 /**
- * En qué punto está este aparato, para saber qué mostrar:
+ * En qué punto está este aparato para esta persona:
  *
- *   "activados"  — ya los tiene andando
- *   "sin activar" — nunca se le preguntó, o se activaron en otro aparato
- *   "bloqueados" — la persona dijo que no. El navegador NO deja volver a
- *                  preguntar: hay que habilitarlo a mano en su configuración.
+ *   "activados"  — ya los tiene andando acá; el botón no hace falta
+ *   "sin activar" — nunca se activaron en este aparato, o los activó otra
+ *                  persona en este mismo equipo
+ *   "bloqueados" — dijo que no. El navegador NO deja volver a preguntar: hay
+ *                  que habilitarlo a mano en su configuración.
+ *
+ * @param {string} uid Quién está usando la app ahora.
+ * @return {string} El estado.
  */
-export const estadoAvisos = () => {
+export const estadoAvisos = (uid) => {
   if (!("Notification" in window)) return "sin soporte";
   if (Notification.permission === "denied") return "bloqueados";
-  if (Notification.permission === "granted" && localStorage.getItem(CLAVE_LOCAL)) {
-    return "activados";
-  }
+
+  const registro = leerRegistroLocal();
+  const esDeEstaPersona = registro && (!registro.uid || !uid || registro.uid === uid);
+
+  if (Notification.permission === "granted" && esDeEstaPersona) return "activados";
+
   return "sin activar";
 };
 
 const registrarAyudante = () =>
   navigator.serviceWorker.register(RUTA_AYUDANTE, { scope: RINCON_AYUDANTE });
+
+/**
+ * Le pide al navegador que revise si hay una versión nueva del ayudante.
+ *
+ * Hace falta porque el navegador NO lo revisa solo: lo hace cuando alguien
+ * vuelve a registrarlo, o una vez al día. Sin esto, un cambio desplegado —el
+ * texto de un aviso, el ícono— puede tardar días en llegar a un teléfono que
+ * ya lo tenía activado.
+ *
+ * Se llama al abrir la app, y no hace nada si este aparato no tiene avisos.
+ */
+export const revisarAyudante = async (uid) => {
+  if (estadoAvisos(uid) !== "activados") return;
+
+  try {
+    const ayudante = await registrarAyudante();
+    await ayudante.update();
+  } catch {
+    // Que no se pueda revisar no rompe nada: sigue andando la versión que haya.
+  }
+};
 
 /**
  * Pide el permiso, consigue la dirección de este aparato y la guarda en la
@@ -119,7 +164,9 @@ export const activarAvisos = async (uid) => {
     // arrayUnion no repite: activar dos veces en el mismo equipo no deja dos
     // direcciones iguales ni manda el aviso por duplicado.
     await updateDoc(doc(db, "users", uid), { avisosTokens: arrayUnion(token) });
-    localStorage.setItem(CLAVE_LOCAL, token);
+    // Se guarda con el uid: así, si mañana entra otra persona en este mismo
+    // equipo, la app sabe que a ella todavía le falta activarlos.
+    localStorage.setItem(CLAVE_LOCAL, JSON.stringify({uid, token}));
 
     return { ok: true, mensaje: "Listo: este equipo va a recibir los avisos." };
   } catch (error) {
@@ -132,7 +179,7 @@ export const activarAvisos = async (uid) => {
  * solo lo cambia la persona—, pero el servidor deja de mandarle avisos.
  */
 export const desactivarAvisos = async (uid) => {
-  const token = localStorage.getItem(CLAVE_LOCAL);
+  const token = leerRegistroLocal()?.token;
 
   try {
     if (token && uid) {

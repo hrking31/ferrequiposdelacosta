@@ -30,6 +30,13 @@
         ]
       },
       {
+        "//": "El ayudante de los avisos, igual que el de la PWA: nunca desde cache. Sin esta regla Firebase lo sirve con una hora de cache, y el telefono sigue usando la version vieja aunque se despliegue una nueva — pasa desapercibido, porque los avisos siguen llegando, solo que con el texto y el icono de antes.",
+        "source": "/firebase-messaging-sw.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
         "source": "/manifest.webmanifest",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }

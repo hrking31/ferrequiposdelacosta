@@ -2,26 +2,31 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Button, IconButton, Tooltip } from "@mui/material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
-import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import PropTypes from "prop-types";
 import {
   activarAvisos,
   avisosSoportados,
-  desactivarAvisos,
   estadoAvisos,
+  revisarAyudante,
 } from "../../Utils/avisos";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
 /**
- * El interruptor de los avisos que llegan con la app cerrada.
+ * El botón para empezar a recibir avisos con la app cerrada.
  *
- * Se activa UNA vez por aparato y por persona: el celular y el computador de la
- * oficina se activan por separado, porque el aviso va al aparato, no a la
- * cuenta.
+ * Aparece SOLO mientras haga falta: en cuanto este aparato queda registrado, el
+ * botón desaparece y no vuelve. Un interruptor permanente para algo que se hace
+ * una vez es un botón que estorba todos los días.
  *
- * No se muestra si el navegador no puede recibirlos —Safari sin instalar la
- * app, sobre todo—: un botón que no puede funcionar solo genera reclamos.
+ * Vuelve a aparecer cuando de verdad hace falta activarlos de nuevo:
+ *
+ *   · en otro aparato (cada uno se registra por su cuenta),
+ *   · si otra persona inicia sesión en este mismo equipo,
+ *   · si se borran los datos del navegador o se reinstala la app.
+ *
+ * Tampoco se muestra donde no puede funcionar —Safari sin instalar la app—:
+ * un botón que no puede cumplir solo genera reclamos.
  *
  * `variante="boton"` lo dibuja como botón ancho (para el pie en celular);
  * cualquier otra cosa, como ícono (para la barra de arriba en pantalla grande).
@@ -29,70 +34,72 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 export default function BotonAvisos({ variante = "icono" }) {
   const uid = useSelector((state) => state.user.uid);
   const [soportado, setSoportado] = useState(false);
-  const [estado, setEstado] = useState("sin activar");
+  // Arranca en "ya está" para que el botón no aparezca y desaparezca de golpe
+  // mientras se averigua el estado real.
+  const [yaActivados, setYaActivados] = useState(true);
   const [trabajando, setTrabajando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   useEffect(() => {
     let vigente = true;
+
     avisosSoportados().then((puede) => {
       if (!vigente) return;
       setSoportado(puede);
-      if (puede) setEstado(estadoAvisos());
+      if (!puede) return;
+
+      setYaActivados(estadoAvisos(uid) === "activados");
+      // De paso se revisa si hay una versión nueva del ayudante que recibe los
+      // avisos: el navegador no lo hace solo, y sin esto un cambio desplegado
+      // tarda días en llegar a un teléfono que ya los tenía activados.
+      revisarAyudante(uid);
     });
+
     return () => {
       vigente = false;
     };
-  }, []);
+  }, [uid]);
 
-  if (!soportado || !uid) return null;
-
-  const activados = estado === "activados";
-  const bloqueados = estado === "bloqueados";
-
-  const titulo = bloqueados
-    ? "Los avisos están bloqueados en este navegador"
-    : activados
-      ? "Este equipo recibe avisos. Tocá para dejar de recibirlos"
-      : "Recibir avisos aunque la app esté cerrada";
+  // El aviso de resultado vive acá adentro, así que el componente sigue montado
+  // mientras esté abierto: si desapareciera junto con el botón, la persona
+  // nunca llegaría a leer que quedó activado.
+  if (!soportado || !uid || (yaActivados && !snackbar.open)) return null;
 
   const alTocar = async () => {
     setTrabajando(true);
-    const resultado = activados ? await desactivarAvisos(uid) : await activarAvisos(uid);
-    setEstado(estadoAvisos());
+    const resultado = await activarAvisos(uid);
+    setYaActivados(estadoAvisos(uid) === "activados");
     setTrabajando(false);
     showSnackbar(resultado.mensaje, resultado.ok ? "success" : "warning");
   };
 
-  const icono = activados ? <NotificationsActiveIcon /> : <NotificationsOffIcon />;
-
   return (
     <>
-      {variante === "boton" ? (
-        <Button
-          onClick={alTocar}
-          disabled={trabajando}
-          variant="contained"
-          color={activados ? "success" : "accent"}
-          fullWidth
-          startIcon={icono}
-        >
-          {activados ? "AVISOS ACTIVADOS" : "ACTIVAR AVISOS"}
-        </Button>
-      ) : (
-        <Tooltip title={titulo}>
-          <span>
-            <IconButton
-              onClick={alTocar}
-              disabled={trabajando}
-              color={activados ? "success" : "default"}
-              aria-label={activados ? "Desactivar avisos" : "Activar avisos"}
-            >
-              {icono}
-            </IconButton>
-          </span>
-        </Tooltip>
-      )}
+      {!yaActivados &&
+        (variante === "boton" ? (
+          <Button
+            onClick={alTocar}
+            disabled={trabajando}
+            variant="contained"
+            color="accent"
+            fullWidth
+            startIcon={<NotificationsActiveIcon />}
+          >
+            ACTIVAR AVISOS
+          </Button>
+        ) : (
+          <Tooltip title="Recibir avisos aunque la app esté cerrada">
+            <span>
+              <IconButton
+                onClick={alTocar}
+                disabled={trabajando}
+                aria-label="Activar avisos"
+              >
+                <NotificationsActiveIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+        ))}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </>

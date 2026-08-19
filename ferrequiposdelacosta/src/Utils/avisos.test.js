@@ -36,9 +36,14 @@ vi.mock("firebase/firestore", () => ({
 
 // Deja el navegador simulado en un estado concreto: qué respondió la persona al
 // permiso y si este aparato ya estaba registrado.
-const navegadorCon = ({ permiso, registrado = false }) => {
+const navegadorCon = ({ permiso, registradoPor = null }) => {
   window.Notification = { permission: permiso, requestPermission: vi.fn() };
-  if (registrado) localStorage.setItem("avisos_token", "token-de-este-equipo");
+  if (registradoPor) {
+    localStorage.setItem(
+      "avisos_token",
+      JSON.stringify({ uid: registradoPor, token: "token-de-este-equipo" }),
+    );
+  }
 };
 
 beforeEach(() => {
@@ -49,9 +54,26 @@ beforeEach(() => {
 
 describe("estadoAvisos", () => {
   it("dice que están activados cuando este aparato ya está registrado", () => {
-    navegadorCon({ permiso: "granted", registrado: true });
+    navegadorCon({ permiso: "granted", registradoPor: "u1" });
 
-    expect(estadoAvisos()).toBe("activados");
+    expect(estadoAvisos("u1")).toBe("activados");
+  });
+
+  it("si en este equipo entra OTRA persona, a ella le falta activarlos", () => {
+    // El aparato está registrado, pero a nombre del anterior: los avisos irían
+    // a su ficha, no a la de quien está usando la app ahora.
+    navegadorCon({ permiso: "granted", registradoPor: "u1" });
+
+    expect(estadoAvisos("u2")).toBe("sin activar");
+  });
+
+  it("un registro del formato viejo (sin dueño) sigue valiendo", () => {
+    // Los que ya lo tenían activado antes de guardar el uid no deben ver el
+    // botón de nuevo sin motivo.
+    window.Notification = { permission: "granted", requestPermission: vi.fn() };
+    localStorage.setItem("avisos_token", "token-de-este-equipo");
+
+    expect(estadoAvisos("u1")).toBe("activados");
   });
 
   it("con el permiso dado pero sin registrar acá, todavía no están", () => {
@@ -59,19 +81,19 @@ describe("estadoAvisos", () => {
     // permiso es del navegador, el registro es de cada aparato.
     navegadorCon({ permiso: "granted" });
 
-    expect(estadoAvisos()).toBe("sin activar");
+    expect(estadoAvisos("u1")).toBe("sin activar");
   });
 
   it("reconoce cuando la persona los bloqueó", () => {
     navegadorCon({ permiso: "denied" });
 
-    expect(estadoAvisos()).toBe("bloqueados");
+    expect(estadoAvisos("u1")).toBe("bloqueados");
   });
 
   it("y cuando nunca se le preguntó", () => {
     navegadorCon({ permiso: "default" });
 
-    expect(estadoAvisos()).toBe("sin activar");
+    expect(estadoAvisos("u1")).toBe("sin activar");
   });
 });
 
@@ -125,6 +147,9 @@ describe("activarAvisos — cuando sí se puede", () => {
     expect(mensajeria.getToken).toHaveBeenCalled();
     // Queda anotado cuál es el de este aparato, para poder darlo de baja
     // después sin tocar los de los demás.
-    expect(localStorage.getItem("avisos_token")).toBe("token-de-este-equipo");
+    expect(JSON.parse(localStorage.getItem("avisos_token"))).toEqual({
+      uid: "u1",
+      token: "token-de-este-equipo",
+    });
   });
 });

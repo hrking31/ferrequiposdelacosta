@@ -23,6 +23,16 @@
 // app para usarla sin internet). Son dos, cada uno con su trabajo, y no se
 // pisan porque este se registra en su propio rincón.
 
+// RELEVO INMEDIATO. Sin estas dos líneas, una versión nueva de este archivo se
+// queda esperando a que la vieja "muera", y la vieja no muere: cada aviso que
+// llega la despierta. Resultado: se despliega un cambio —el texto, el ícono— y
+// en el teléfono sigue trabajando la versión anterior durante días.
+//
+// skipWaiting: la nueva entra en cuanto se instala, sin esperar turno.
+// clients.claim: y se hace cargo de las pestañas que ya estaban abiertas.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener("push", (event) => {
   const recibido = (() => {
     try {
