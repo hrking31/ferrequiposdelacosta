@@ -41,11 +41,14 @@ self.addEventListener("push", (event) => {
   const titulo = datos.titulo || "Ferrequipos de la Costa";
   const opciones = {
     body: datos.cuerpo || "",
-    icon: "/web-app-manifest-192x192.png",
-    badge: "/favicon-48x48.png",
+    // El logo de la empresa, el mismo ícono con el que la app queda instalada.
+    icon: "/web-app-manifest-512x512.png",
+    // Sin `badge` a propósito: esa imagen chiquita Android la exige MONOCROMA
+    // y, si no lo es, la convierte en una mancha. Sin ella usa el ícono de la
+    // app, que es justo el logo.
     // Los avisos del mismo tipo se reemplazan entre sí en vez de apilarse: con
-    // cinco solicitudes seguidas, el personal ve una que dice cinco, no cinco
-    // avisos. `renotify` hace que igual suene cada vez.
+    // cinco solicitudes seguidas queda uno solo en la pantalla, no una pila que
+    // hay que ir descartando. `renotify` hace que igual suene cada vez.
     tag: datos.tipo || "aviso",
     renotify: true,
     data: { url: datos.url || "/" },

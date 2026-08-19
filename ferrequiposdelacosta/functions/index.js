@@ -412,11 +412,15 @@ export const crearCotizacion = onCall(CON_APP_CHECK, async (request) => {
     // en un disparador aparte por el mismo motivo que el timbre: así hereda la
     // regla de que las cotizaciones que arma el PERSONAL no avisan —esas pasan
     // por guardarCotizacion, no por esta función—.
-    const equipos = quotationData.items.length;
+    //
+    // El aviso NO nombra al cliente ni dice qué pidió: aparece en la pantalla
+    // de bloqueo del teléfono, donde lo puede leer cualquiera que lo tenga a
+    // la vista. Los datos están adentro de la app, a un toque.
     await avisarAlPersonal({
-      titulo: "Nueva solicitud de cotización",
-      cuerpo: `${quotationData.empresa || "Un cliente"} pidió ${equipos} ` +
-        `equipo${equipos === 1 ? "" : "s"}.`,
+      titulo: "📋 Nueva solicitud",
+      cuerpo:
+        "Tienes una nueva cotización pendiente por gestionar. " +
+        "Entra a la app para revisar los detalles.",
       url: "/vistacotizacionesAdmin",
       tipo: "cotizacion",
     });
