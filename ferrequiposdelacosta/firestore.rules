@@ -112,8 +112,43 @@ service cloud.firestore {
     // Las emite el staff desde la app y quedan guardadas para consultarlas
     // después (ver Components/CuentaDeCobro/cuentasCobroDb.js). No las ve
     // nadie de afuera: son documentos de cobro con datos de clientes.
+    //
+    // Dos cosas quedan SOLO en manos del administrador, igual que en las
+    // cotizaciones: eliminar una cuenta (no se deshace) y darla por pagada
+    // (es plata que se declara cobrada, y queda anotado quién lo dijo).
+    // Hasta el 2026-08-19 eso era solo de pantalla: el botón no se mostraba,
+    // pero la regla dejaba escribir a cualquiera con el permiso.
     match /cuentasCobro/{cuentaId} {
-      allow read, write: if puedeGestionarCuentasCobro();
+      // Los campos que escribe SOLO el botón de pagada (quién y cuándo).
+      function tocaLaMarcaDePago() {
+        return request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasAny(["pagadaEn", "pagadaPor"]);
+      }
+
+      // Poner una cuenta EN "pagada" viniendo de otro estado.
+      //
+      // Se permite el regreso legítimo: cuando alguien abre una cuenta ya
+      // pagada, esta pasa a "enProceso" y al salir vuelve a "pagada". Ahí
+      // `statusPrevio` dice de dónde venía, así que ese camino no es "darla
+      // por pagada", es devolverla a como estaba.
+      function laDaPorPagada() {
+        return request.resource.data.get("status", "") == "pagada"
+          && resource.data.get("status", "") != "pagada"
+          && resource.data.get("statusPrevio", "") != "pagada";
+      }
+
+      allow read: if puedeGestionarCuentasCobro();
+
+      // Una cuenta nace como borrador o emitida; nadie la crea ya pagada.
+      allow create: if puedeGestionarCuentasCobro()
+        && (esAdministrador()
+            || request.resource.data.get("status", "") != "pagada");
+
+      allow update: if puedeGestionarCuentasCobro()
+        && (esAdministrador() || (!tocaLaMarcaDePago() && !laDaPorPagada()));
+
+      allow delete: if esAdministrador();
     }
 
     // ---------------------------------------------------------------
