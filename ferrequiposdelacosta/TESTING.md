@@ -119,8 +119,59 @@ Reducers probados como funciones puras (`reducer(estado, acción)`):
 
 ## Fase 2 — Componentes clave (formularios y validaciones)
 
-Se detallará al llegar. Candidatos: `ClienteFormDialog`, `FacturaFormDialog`,
-`AbonoDialog`, `CrearEquipos`, `Login`, `Register`.
+### El andamiaje (hecho el 2026-08-19)
+
+Ninguna pantalla se dibuja sola: leen el estado, saben en qué ruta están y
+toman colores del tema. Eso vive en **`src/test/utils.jsx`**:
+
+- **`renderConProviders(ui, opciones)`** — envuelve en Redux + Router + tema, en
+  el mismo orden de `main.jsx` (el tema lee la ruta para forzar el oscuro del
+  kiosco, así que va por dentro del Router). Acepta `ruta` y `estadoInicial`, y
+  devuelve `store` y `usuario` (userEvent, que teclea y hace clic como una
+  persona en vez de empujar valores).
+- **`crearStore()`** en `Store.js` — cada prueba arma su propio estado y arranca
+  de cero, del mismo mapa de reducers que usa la app.
+- **`window.matchMedia`** en `setup.js` — jsdom no lo trae y el tema lo consulta
+  al arrancar; sin eso no se dibuja ninguna pantalla.
+
+**Al probar un componente con Firebase**, se reemplaza el módulo por un doble
+(`vi.mock("firebase/firestore")`) donde `doc`/`collection` devuelven la ruta
+como texto: la prueba no toca la base, pero afirma **a qué documento** se
+escribió y **qué** se escribió.
+
+**Trampa:** en un `Select` de MUI, `getByLabelText` encuentra dos elementos (el
+input oculto y el combobox). Va `getByRole("combobox", { name: "..." })`.
+
+### ✅ BuscadorFiltro — 5 pruebas · `BuscadorFiltro.test.jsx`
+- [x] Muestra el texto y la indicación que le pasan
+- [x] Avisa letra por letra mientras se escribe (filtra en vivo, no con Enter)
+- [x] La X solo aparece cuando hay algo escrito
+- [x] Tocar la X avisa que quedó vacío
+
+### ✅ AbonoDialog — 6 pruebas · `AbonoDialog.test.jsx`
+- [x] Dice cuántas facturas con saldo hay y las lista
+- [x] Avisa cuando el cliente no debe nada, en vez de una lista vacía
+- [x] Muestra el reparto antes de guardar: salda la que más debe y pasa el resto
+- [x] No deja guardar sin medio de pago ni valor, y no escribe nada
+- [x] Guarda en cada factura la parte que le tocó
+- [x] Conserva los abonos que la factura ya tenía en vez de pisarlos
+
+### ✅ ClienteFormDialog — 13 pruebas · `ClienteFormDialog.test.jsx`
+- [x] Persona pide nombres/apellido/cédula; empresa cambia a razón social/NIT
+- [x] No guarda una persona sin nombre ni una empresa sin razón social
+- [x] Teléfono de menos de 7 dígitos no pasa; descarta letras al escribir
+- [x] El alta guarda sin espacios de más y con estado `inactivo`
+- [x] Empresa no arrastra los campos de persona, ni al revés
+- [x] Editar actualiza al cliente existente en vez de crear otro
+- [x] Eliminar solo aparece en edición
+- [x] Antes de borrar dice cuántas facturas se lleva por delante
+- [x] Al confirmar, borra facturas y cliente en una sola operación
+
+### Lo que sigue en esta fase
+- [ ] `FacturaFormDialog` — el más grande; el alta y la edición de una factura
+- [ ] `Login` y `Register`
+- [ ] `CrearEquipos`
+- [ ] `FacturaCard` / `EstadoCuentaFactura` — la tarjeta de una factura
 
 ## Fase 3 — Resto de componentes
 
@@ -129,5 +180,6 @@ grupos.
 
 ---
 
-_Última actualización: **Fase 1 (lógica pura) COMPLETA** — formato, facturaUtils, 11 slices,
-RolesPermisos y los 3 hooks. **123 tests pasando.** Sigue la Fase 2 (componentes)._
+_Última actualización (2026-08-19): **Fase 1 COMPLETA** y **Fase 2 arrancada** —
+andamiaje de render con providers + las tres primeras pantallas (BuscadorFiltro,
+AbonoDialog, ClienteFormDialog). **281 pruebas pasando** en 30 archivos._
