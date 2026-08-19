@@ -42,10 +42,17 @@ self.addEventListener("push", (event) => {
   const opciones = {
     body: datos.cuerpo || "",
     // El logo de la empresa, el mismo ícono con el que la app queda instalada.
-    icon: "/web-app-manifest-512x512.png",
-    // Sin `badge` a propósito: esa imagen chiquita Android la exige MONOCROMA
-    // y, si no lo es, la convierte en una mancha. Sin ella usa el ícono de la
-    // app, que es justo el logo.
+    icon: "/web-app-manifest-192x192.png",
+    // El ícono chiquito que Android dibuja al lado del nombre del sitio. No se
+    // puede quitar —el sistema siempre pone uno—, solo elegir cuál, y lo usa
+    // como SILUETA: se queda con la forma de lo que no es transparente y la
+    // pinta del color de acento del teléfono.
+    //
+    // Por eso va este archivo y no el favicon: de los cuatro íconos de public/
+    // es el ÚNICO con fondo transparente de verdad (los otros tienen el fondo
+    // pintado, y su silueta es un cuadrado — que fue justo lo que se vio: un
+    // cuadrito naranja al lado del nombre del sitio).
+    badge: "/web-app-manifest-512x512.png",
     // Los avisos del mismo tipo se reemplazan entre sí en vez de apilarse: con
     // cinco solicitudes seguidas queda uno solo en la pantalla, no una pila que
     // hay que ir descartando. `renotify` hace que igual suene cada vez.
