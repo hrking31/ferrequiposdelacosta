@@ -40,6 +40,18 @@ export const POR_TANDA = 50;
 // ("COT-..."), con CC adelante para no confundirlos.
 export const generarCuentaCobroId = () => `CC-${Date.now()}`;
 
+// Los estados que significan que la cuenta YA SE EMITIÓ: "creada" es Emitida,
+// y una "pagada" se emitió antes de cobrarse. Cualquier camino que deje una
+// cuenta en uno de estos dos tiene que garantizar la marca `emitida`.
+//
+// Existe porque la marca se ponía en un solo lugar (al guardar) y hay otros
+// tres caminos que cambian el estado sin pasar por ahí: soltar la cuenta al
+// salir, y marcar o desmarcar el pago. Una cuenta que llegara a "creada" por
+// esos caminos quedaba sin marca, y el recuadro del menú la dejaba de contar
+// para siempre. Mismo criterio de "varias redes para el mismo dato" que el
+// campo `cerrada` de las facturas.
+const ESTADOS_YA_EMITIDA = ["creada", "pagada"];
+
 // Lo que se guarda de una cuenta. Se parte del formulario entero y se le
 // agrega quién la hizo y cuándo; `id` no entra —es el nombre del documento,
 // no un campo— para no guardarlo dos veces y que puedan divergir.
@@ -57,7 +69,7 @@ const documentoDesdeFormulario = (cuenta, estado, usuario) => {
     // mirarles el estado acá (ver contarCuentasCobroDelMes).
     //
     // Se pone al emitir y no se saca: una vez true, se queda en true.
-    ...(estado === "creada" ? { emitida: true } : {}),
+    ...(ESTADOS_YA_EMITIDA.includes(estado) ? { emitida: true } : {}),
     actualizadoEn: Date.now(),
     // Queda registrado quién la emitió: son documentos de cobro y en algún
     // momento alguien va a preguntar quién hizo cuál.
@@ -141,8 +153,15 @@ export const marcarCuentaEnProceso = (cuentaId, statusPrevio, usuario) =>
 
 // Devuelve la cuenta al estado que tenía, sin tocar sus datos: es la salida
 // "descartar", donde lo que se escribió en esta sesión no se guarda.
+//
+// Si vuelve a un estado de cuenta ya emitida, se asegura la marca. Salir de
+// una cuenta no puede ser el momento en que se pierde de vista para el
+// recuadro del menú.
 export const liberarCuentaCobro = (cuentaId, status) =>
-  updateDoc(doc(db, COLECCION, cuentaId), { status });
+  updateDoc(doc(db, COLECCION, cuentaId), {
+    status,
+    ...(ESTADOS_YA_EMITIDA.includes(status) ? { emitida: true } : {}),
+  });
 
 export const eliminarCuentaCobro = (cuentaId) =>
   deleteDoc(doc(db, COLECCION, cuentaId));
@@ -151,16 +170,19 @@ export const eliminarCuentaCobro = (cuentaId) =>
 // marcó por error. Solo el administrador puede hacerlo (ver ListaCuentasCobro).
 //
 // Es un estado más, no un hecho aparte como `emitida`: el pago se registra a
-// mano y por eso se puede desmarcar. El conteo del mes NO se toca, justamente
-// porque cuenta por `emitida`: una cuenta pagada se emitió igual, y si el
+// mano y por eso se puede desmarcar. El conteo del mes no puede bajar por
+// esto: cuenta por `emitida`, una cuenta pagada se emitió igual, y si el
 // número bajara al cobrarla diría cuánto falta cobrar en vez de cuánto se
-// facturó.
+// facturó. Por eso los dos caminos —marcar y desmarcar— dejan la marca
+// puesta en vez de solo no tocarla: si la cuenta venía sin ella, cobrarla es
+// la prueba de que se emitió.
 //
 // Queda anotado quién la marcó y cuándo: es plata, y en algún momento alguien
 // va a preguntar quién dijo que estaba paga.
 export const marcarCuentaPagada = (cuentaId, pagada, usuario) =>
   updateDoc(doc(db, COLECCION, cuentaId), {
     status: pagada ? "pagada" : "creada",
+    emitida: true,
     pagadaEn: pagada ? Date.now() : null,
     pagadaPor: pagada
       ? { uid: usuario?.uid || null, nombre: usuario?.name || "" }

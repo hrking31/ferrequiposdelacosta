@@ -29,6 +29,7 @@ const {
   generarCuentaCobroId,
   guardarCuentaCobro,
   leerCuentasCobro,
+  liberarCuentaCobro,
   marcarCuentaPagada,
 } = await import("./cuentasCobroDb");
 
@@ -228,8 +229,43 @@ describe("marcarCuentaPagada", () => {
 
   // El conteo del mes cuenta por `emitida`, así que cobrar una cuenta no puede
   // bajar el número: diría cuánto falta cobrar en vez de cuánto se facturó.
-  it("no toca el campo emitida", async () => {
+  //
+  // Antes esto se cuidaba NO tocando el campo, y alcanzaba mientras la marca
+  // se pusiera siempre al emitir. No alcanzó: aparecieron en producción dos
+  // cuentas emitidas sin la marca —creadas por una versión de la app anterior
+  // al campo— y el recuadro contaba 4 de 6. Ahora cobrar la deja puesta: una
+  // cuenta que se cobra se emitió, y así el dato se repara solo.
+  it("deja marcado que se emitió, tanto al cobrar como al desmarcar", async () => {
     await marcarCuentaPagada("abc", true, usuario);
+    expect(mocks.updateDoc.mock.calls[0][1].emitida).toBe(true);
+
+    await marcarCuentaPagada("abc", false, usuario);
+    expect(mocks.updateDoc.mock.calls[1][1].emitida).toBe(true);
+  });
+});
+
+describe("liberarCuentaCobro", () => {
+  it("devuelve la cuenta al estado que tenía", async () => {
+    await liberarCuentaCobro("abc", "pausada");
+    expect(mocks.updateDoc.mock.calls[0][1].status).toBe("pausada");
+  });
+
+  // Salir de una cuenta ya emitida no puede ser el momento en que pierde la
+  // marca: este camino escribe solo el estado, así que si vuelve a "creada"
+  // tiene que reponerla. Sin esto, una cuenta emitida sin marca —las hubo en
+  // producción— se quedaba fuera del recuadro del menú para siempre.
+  it("al volver a una cuenta emitida, deja puesta la marca", async () => {
+    await liberarCuentaCobro("abc", "creada");
+    expect(mocks.updateDoc.mock.calls[0][1].emitida).toBe(true);
+
+    await liberarCuentaCobro("abc", "pagada");
+    expect(mocks.updateDoc.mock.calls[1][1].emitida).toBe(true);
+  });
+
+  // Y al revés: un borrador que se suelta sigue siendo un borrador. Marcarlo
+  // acá haría contar en el mes cuentas que nunca se emitieron.
+  it("un borrador que se suelta no queda marcado como emitido", async () => {
+    await liberarCuentaCobro("abc", "pausada");
     expect(mocks.updateDoc.mock.calls[0][1]).not.toHaveProperty("emitida");
   });
 });
