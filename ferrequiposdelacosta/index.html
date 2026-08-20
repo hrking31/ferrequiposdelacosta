@@ -2,7 +2,17 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./src/assets/Ferrequipos.png" />
+    <!--
+      Los iconos del sitio viven en public/ y se sirven desde la raiz. Antes
+      esta linea apuntaba a src/assets, una ruta de desarrollo, y los cuatro
+      iconos de public/ quedaban sin conectar: el .ico y el de Apple los pedia
+      el navegador por convencion, y el de 48 no lo usaba nadie.
+      El manifest de la PWA (con los de 192 y 512) lo inyecta solo
+      vite-plugin-pwa; ver la seccion "manifest" de vite.config.js.
+    -->
+    <link rel="icon" type="image/png" href="/favicon-48x48.png" sizes="48x48" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ferrequipos de la Costa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
