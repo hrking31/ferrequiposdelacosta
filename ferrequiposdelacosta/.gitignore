@@ -15,6 +15,10 @@ dist-ssr
 # El service worker que Vite genera al correr "npm run dev". Se regenera
 # solo en cada arranque, asi que versionarlo solo ensucia el git status.
 dev-dist
+
+# Lo que Firebase Hosting anota al desplegar (que archivos ya subio). Se
+# rehace en cada deploy, asi que versionarlo solo genera cambios de ruido.
+.firebase
 *.local
 
 # Editor directories and files

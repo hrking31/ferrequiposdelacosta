@@ -22,13 +22,8 @@
 //     no soporta avisos, y es cierto.
 //   · El sonido lo pone el sistema operativo, no la app. No se puede usar la
 //     campana propia (notification.mp3); esa es solo para la app abierta.
-import {
-  getMessaging,
-  getToken,
-  deleteToken,
-  isSupported,
-} from "firebase/messaging";
-import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { getMessaging, getToken, isSupported } from "firebase/messaging";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { app, db, LLAVE_AVISOS } from "../Components/Firebase/Firebase";
 
 // El ayudante que recibe los avisos con la app cerrada. Se registra en su
@@ -171,28 +166,5 @@ export const activarAvisos = async (uid) => {
     return { ok: true, mensaje: "Listo: este equipo va a recibir los avisos." };
   } catch (error) {
     return { ok: false, mensaje: `No se pudieron activar los avisos: ${error.message}` };
-  }
-};
-
-/**
- * Da de baja este aparato. El permiso del navegador queda como estaba —eso
- * solo lo cambia la persona—, pero el servidor deja de mandarle avisos.
- */
-export const desactivarAvisos = async (uid) => {
-  const token = leerRegistroLocal()?.token;
-
-  try {
-    if (token && uid) {
-      await updateDoc(doc(db, "users", uid), { avisosTokens: arrayRemove(token) });
-    }
-    if (await avisosSoportados()) await deleteToken(getMessaging(app));
-    localStorage.removeItem(CLAVE_LOCAL);
-
-    return { ok: true, mensaje: "Este equipo ya no va a recibir avisos." };
-  } catch (error) {
-    // Aunque falle el borrado remoto, se olvida la dirección local: el servidor
-    // limpia sola la que ya no responde.
-    localStorage.removeItem(CLAVE_LOCAL);
-    return { ok: false, mensaje: `No se pudieron desactivar del todo: ${error.message}` };
   }
 };
