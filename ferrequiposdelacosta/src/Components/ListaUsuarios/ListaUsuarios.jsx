@@ -455,13 +455,13 @@ export default function UsersList() {
         {/* Botón de Eliminar, Cancelar y Guardar */}
         <DialogActions
           sx={{
-            p: 2.5,
+            px: 3,
+            pb: 3,
             gap: 1,
             flexDirection: { xs: "column", sm: "row" },
             "& > :not(style)": {
               margin: "0px !important",
             },
-            // border: "2px solid red",
           }}
         >
           <Button
@@ -526,7 +526,8 @@ export default function UsersList() {
 
         <DialogActions
           sx={{
-            p: 2.5,
+            px: 3,
+            pb: 3,
             gap: 1.5,
             flexDirection: { xs: "column", sm: "row" },
             "& > :not(style)": {
