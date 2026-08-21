@@ -35,6 +35,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SavingsIcon from "@mui/icons-material/Savings";
 import {
   agruparLotesAgregados,
+  equipoDevueltoCompleto,
   listaPagos,
   calcularCuentaFactura,
   calcularEstadoFactura,
@@ -154,6 +155,16 @@ export default function FacturaCard({
   );
   const pagosOriginales = listaPagos(factura);
 
+
+  // Cuantos equipos se agregaron DE VERDAD. No es la cantidad de renglones:
+  // una devolucion parcial parte el renglon en dos —lo que volvio y lo que
+  // sigue afuera— y el mismo equipo pasaba a contarse dos veces. Se cuenta por
+  // lote y nombre, que es lo que se ve como "un equipo".
+  const cantidadEquiposAgregados = new Set(
+    equiposAgregados.map(
+      (equipo) => `${equipo.loteId || ""}|${equipo.nombre}`,
+    ),
+  ).size;
 
   const lotesAgregados = agruparLotesAgregados(equiposAgregados);
 
@@ -549,7 +560,7 @@ export default function FacturaCard({
                   }}
                 >
                   <LibraryAddIcon fontSize="small" />
-                  Equipos agregados {equiposAgregados.length}
+                  Equipos agregados {cantidadEquiposAgregados}
                 </Typography>
                 {renderToggle("equiposAgregados")}
               </Stack>
@@ -566,8 +577,20 @@ export default function FacturaCard({
                   // el equipo. Sueltos se iban a todo lo ancho y el
                   // equipo quedaba a media pantalla con los datos
                   // desalineados debajo.
+                  // Primero lo que sigue alquilado y despues lo devuelto:
+                  // lo que hay que gestionar hoy va arriba y la parte
+                  // cerrada queda al final. Sin esto el orden lo decidia el
+                  // momento en que se partio el renglon, que no le dice nada
+                  // a nadie. El sort de JS es estable, asi que dentro de cada
+                  // grupo se respeta el orden en que se cargaron.
+                  const equiposDelLote = [...lote.equipos].sort(
+                    (a, b) =>
+                      Number(equipoDevueltoCompleto(a)) -
+                      Number(equipoDevueltoCompleto(b)),
+                  );
+
                   const columnasLote = Math.min(
-                    lote.equipos.length,
+                    equiposDelLote.length,
                     2,
                   );
 
@@ -607,7 +630,7 @@ export default function FacturaCard({
                           gap: 1,
                         }}
                       >
-                        {lote.equipos.map((equipo, index) => (
+                        {equiposDelLote.map((equipo, index) => (
                           <EquipoRow
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
@@ -635,6 +658,10 @@ export default function FacturaCard({
                           tipoPago={lote.cabecera.tipoPago}
                           fecha={lote.cabecera.fechaAgregado}
                           color={colorPago}
+                          // "Pago inicial" hay uno solo y es el del alta de
+                          // la factura. Lo de un equipo agregado se paga
+                          // cuando se agrega, no al principio.
+                          rotuloTipoPago="Tipo de pago"
                         />
                       </Box>
 

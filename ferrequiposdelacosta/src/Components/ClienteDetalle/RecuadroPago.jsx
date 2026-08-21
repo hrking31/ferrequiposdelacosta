@@ -32,7 +32,16 @@ const TIPO_PAGO_LABELS = {
   sinPago: "Sin pago",
 };
 
-export default function RecuadroPago({ pagos, tipoPago, fecha, color }) {
+export default function RecuadroPago({
+  pagos,
+  tipoPago,
+  fecha,
+  color,
+  // Como se llama el renglon del tipo de pago. Por defecto "Pago inicial",
+  // que es el del alta de la factura; cada lote de equipos agregado despues
+  // pasa "Tipo de pago", porque ahi ya no hay nada de inicial (ver abajo).
+  rotuloTipoPago = "Pago inicial",
+}) {
   const tipoPagoLabel = TIPO_PAGO_LABELS[tipoPago] || null;
   if (pagos.length === 0 && !tipoPagoLabel) return null;
 
@@ -55,11 +64,15 @@ export default function RecuadroPago({ pagos, tipoPago, fecha, color }) {
     });
   }
   if (tipoPagoLabel) {
-    // "Pago inicial" y no "Pago" a secas: acá va lo que el cliente entregó
-    // al emitirse la factura, y el tipo dice cómo cubría ESE momento. Con el
-    // rótulo viejo, un "Pago: Total" de $864.000 sobre una factura que hoy
-    // vale $3.006.000 se leía como que estaba saldada.
-    datos.push({ clave: "pago", rotulo: "Pago inicial", valor: tipoPagoLabel });
+    // "Pago inicial" y no "Pago" a secas: en el alta va lo que el cliente
+    // entregó al emitirse la factura, y el tipo dice cómo cubría ESE momento.
+    // Con el rótulo viejo, un "Pago: Total" de $864.000 sobre una factura que
+    // hoy vale $3.006.000 se leía como que estaba saldada.
+    //
+    // Inicial hay UNO solo, el de la factura. Un equipo agregado después se
+    // paga cuando se agrega, así que ahí el renglón dice "Tipo de pago": lo
+    // pone quien usa el recuadro con rotuloTipoPago.
+    datos.push({ clave: "pago", rotulo: rotuloTipoPago, valor: tipoPagoLabel });
   }
   // El medio va con el logo de la marca en vez del nombre escrito. Cuando el
   // pago se repartio entre varios, siguen separados por "+".
@@ -114,6 +127,7 @@ RecuadroPago.propTypes = {
   tipoPago: PropTypes.string,
   fecha: PropTypes.string,
   color: PropTypes.string.isRequired,
+  rotuloTipoPago: PropTypes.string,
 };
 
 // Los abonos que se registraron después de emitida la factura.

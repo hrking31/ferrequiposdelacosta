@@ -186,6 +186,12 @@ export default function CargosAdicionales({
           sx={{
             mt: 0.75,
             rowGap: 0.25,
+            // El detalle se acomoda al ancho de sus renglones en vez de
+            // estirarse hasta el borde del recuadro: asi el monto queda al
+            // lado del equipo que lo explica y no contra el margen derecho,
+            // a media pantalla de distancia del nombre.
+            width: "fit-content",
+            maxWidth: "100%",
           }}
         >
           <Typography variant="rotuloDato" sx={{ color: color }}>

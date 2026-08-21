@@ -74,8 +74,8 @@ export const GESTION_INFO = {
 //
 // Que sea una sola función no es prolijidad: antes cada pantalla armaba sus
 // chips por su cuenta y terminaron contando cosas distintas de la misma
-// factura. Detalle mostraba "+2 días · $400.000" y "7 días vencidos ·
-// $1.400.000"; Seguimiento, para el mismo equipo, "+9 días · $1.800.000" y
+// factura. Detalle mostraba "+2 días $ 400.000" y "7 días vencidos
+// $ 1.400.000"; Seguimiento, para el mismo equipo, "+9 días $ 1.800.000" y
 // otra vez los 7 días vencidos al lado — porque no le restaba los días
 // abiertos al total. Se leía como si se cobraran $3.200.000 de más cuando
 // eran $1.800.000.
@@ -127,7 +127,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   const valorPorDia =
     (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
   const conValor = (monto) =>
-    valorPorDia > 0 ? ` · ${formatearMoneda(monto)}` : "";
+    valorPorDia > 0 ? ` ${formatearMoneda(monto)}` : "";
+  // El menos va PEGADO al numero y no delante del simbolo: "$ -54.000" y no
+  // "-$ 54.000". Se inserta antes del primer digito para no depender de si el
+  // formateador separa el $ con un espacio comun o con uno duro.
+  const enNegativo = (texto) => texto.replace(/\d/, (digito) => `-${digito}`);
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? "" : "s"}`;
 
   // ── TRAMO 1: qué se llevó, cuándo salió, cuándo volvió ──────────────
@@ -281,8 +285,33 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       tono: "exito",
       Icono: SavingsIcon,
       label: `${plural(ampliacion.diasSinUsar, "día")} sin usar${
-        valorPorDia > 0 ? ` · -${formatearMoneda(ampliacion.creditoSinUsar)}` : ""
+        valorPorDia > 0
+          ? ` ${enNegativo(formatearMoneda(ampliacion.creditoSinUsar))}`
+          : ""
       }`,
+    });
+  }
+
+  // El IVA sigue a la plata: si esos días no se cobran, su IVA tampoco. Va en
+  // un chip aparte y no sumado al de arriba porque son dos cifras que se miran
+  // por separado al armar la cuenta de cobro, y porque el de arriba habla de
+  // días, no de impuestos.
+  //
+  // Solo para el equipo que declara su IVA. Una factura vieja migrada del
+  // Excel no lo trae, y ahí es mejor no mostrar nada que inventar un número
+  // sobre una tasa que no sabemos si se aplicó.
+  if (
+    ampliacion.diasSinUsar > 0 &&
+    ampliacion.creditoSinUsar > 0 &&
+    equipo?.aplicaIva
+  ) {
+    chips.push({
+      clave: "ivaSinUsar",
+      tramo: TRAMO_FECHAS.VENCIDO,
+      tono: "exito",
+      label: `IVA ${enNegativo(
+        formatearMoneda(ampliacion.creditoSinUsar * 0.19),
+      )}`,
     });
   }
 

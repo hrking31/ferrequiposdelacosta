@@ -3,7 +3,7 @@
 // Existen por un motivo concreto. Seguimiento y Detalle Cliente armaban sus
 // chips por separado y terminaron contando cosas distintas de la misma
 // factura: para 10 chazas con 2 días de renovación y 7 días vencidos, Detalle
-// decía "+2 días · $400.000" y Seguimiento "+9 días · $1.800.000", con los 7
+// decía "+2 días $ 400.000" y Seguimiento "+9 días $ 1.800.000", con los 7
 // días vencidos repetidos al lado en las dos. Se leía como si se cobraran
 // $3.200.000 cuando eran $1.800.000.
 //
@@ -46,9 +46,9 @@ describe("describirFechasEquipo", () => {
     const chips = describirFechasEquipo(chazas, HOY);
 
     // Se renovó por 2 días: eso vale 10 × 2 × $20.000.
-    expect(textoDe(chips, "ampliacion")).toBe("+2 días · $ 400.000");
+    expect(textoDe(chips, "ampliacion")).toBe("+2 días $ 400.000");
     // Y desde el 7 al 15 corrieron 8 días más, que van aparte.
-    expect(textoDe(chips, "diasVencidos")).toBe("8 días vencidos · $ 1.600.000");
+    expect(textoDe(chips, "diasVencidos")).toBe("8 días vencidos $ 1.600.000");
   });
 
   it("la fecha vigente ya vencida es la única urgente; las anteriores quedan como historia", () => {
@@ -111,7 +111,7 @@ describe("describirFechasEquipo", () => {
       HOY,
     );
     // 4 días × $100.000 = $400.000, menos los $80.000 de descuento.
-    expect(textoDe(chips, "ampliacion")).toBe("+4 días · $ 320.000");
+    expect(textoDe(chips, "ampliacion")).toBe("+4 días $ 320.000");
     expect(textoDe(chips, "descuento")).toBe("Descuento $ 80.000");
   });
 
@@ -130,7 +130,7 @@ describe("describirFechasEquipo", () => {
     // Ya volvió: no tiene sentido seguir diciendo hasta cuándo tenía plazo.
     expect(textoDe(chips, "vencimiento")).toBeUndefined();
     // Pero los días que se tomó de más siguen a la vista: se cobran igual.
-    expect(textoDe(chips, "diasVencidos")).toBe("2 días vencidos · $ 200");
+    expect(textoDe(chips, "diasVencidos")).toBe("2 días vencidos $ 200");
   });
 
   // El espejo del anterior: devolvió antes y esos días no se le cobran.
@@ -149,11 +149,38 @@ describe("describirFechasEquipo", () => {
     );
     expect(textoDe(chips, "devuelto")).toBe("Devuelto 12/08/2026");
     // 2 días a 10 × $20.000: el monto va en negativo porque resta del total.
-    expect(textoDe(chips, "diasSinUsar")).toBe("2 días sin usar · -$ 400.000");
+    expect(textoDe(chips, "diasSinUsar")).toBe("2 días sin usar $ -400.000");
     // Es algo a favor del cliente, no un cargo.
     expect(tonoDe(chips, "diasSinUsar")).toBe("exito");
     // Y no es lo mismo que un día vencido: ese chip no aparece.
     expect(textoDe(chips, "diasVencidos")).toBeUndefined();
+  });
+
+  // Si esos días no se cobran, su IVA tampoco: va en su propio chip para que
+  // se pueda leer aparte al armar la cuenta de cobro.
+  it("el equipo con IVA muestra aparte el impuesto de los días que no se cobran", () => {
+    const devueltoAntes = {
+      cantidad: 10,
+      valor: 20000,
+      dias: 5,
+      cantidadDevuelta: 10,
+      fechaDespacho: "2026-08-10",
+      fechaVencimiento: "2026-08-14",
+      fechaDevolucion: "2026-08-12",
+      aplicaIva: true,
+    };
+
+    // 19% de los $400.000 que no se le cobran.
+    expect(textoDe(describirFechasEquipo(devueltoAntes, HOY), "ivaSinUsar")).toBe(
+      "IVA $ -76.000",
+    );
+
+    // Sin la marca de IVA no se inventa el número: una factura vieja migrada
+    // del Excel no la trae y no sabemos si se aplicó.
+    const sinIva = { ...devueltoAntes, aplicaIva: false };
+    expect(
+      textoDe(describirFechasEquipo(sinIva, HOY), "ivaSinUsar"),
+    ).toBeUndefined();
   });
 
   it("el que devuelve justo el día que vence no tiene días sin usar", () => {

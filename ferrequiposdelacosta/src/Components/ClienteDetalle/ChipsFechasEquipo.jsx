@@ -19,8 +19,8 @@
 //
 // Agrupados se leen de corrido:
 //
-//   Salió 03/08 · 3 días · $20.000/día  │  Vencía 05/08 → +2 días · $400.000 →
-//   Venció 07/08  │  7 días vencidos · $1.400.000
+//   Salió 03/08 · 3 días · $20.000/día  │  Vencía 05/08 → +2 días $ 400.000 →
+//   Venció 07/08  │  7 días vencidos $ 1.400.000
 //
 // Una factura al día y sin renovaciones devuelve un solo tramo: el agrupado no
 // le agrega nada al caso simple, aparece cuando hay historia que contar.

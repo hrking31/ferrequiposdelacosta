@@ -531,6 +531,14 @@ export const CustomThemeProvider = ({ children }) => {
           seccionEquipos: "#3B82F6", // azul
           seccionEquiposAgregados: "#A855F7", // violeta
           seccionAdicionales: "#F97316", // naranja
+          // Un equipo que YA VOLVIO. Va en gris azulado y no en verde: el
+          // verde en esta pantalla significa PAGO —el recuadro de pago, los
+          // chips de lo que va a favor del cliente— y un equipo devuelto no
+          // es plata, es una linea cerrada. El gris dice justamente eso: no
+          // hay nada que gestionar aca. Es el unico tono que no compite con
+          // ninguna de las secciones de arriba.
+          // Se usa en: EquipoRow.
+          seccionDevuelto: "#64748B", // gris azulado
           // La gestión de seguimiento (llamadas, prórrogas, devoluciones).
           // Va en rosa porque es el único tono que no se confunde con los de
           // arriba ni con el azul de "info" que usan los abonos: entre el
