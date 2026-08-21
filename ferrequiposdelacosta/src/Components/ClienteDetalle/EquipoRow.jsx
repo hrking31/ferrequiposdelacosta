@@ -55,6 +55,12 @@ export default function EquipoRow({ equipo, color }) {
     ? theme.palette.custom.seccionDevuelto
     : color;
 
+  // El color del HECHO de haber devuelto, que es distinto del relleno: el
+  // relleno apaga la tarjeta porque ya no hay nada que gestionar, y este
+  // resalta el rótulo. Es el rosa de la gestión de seguimiento, donde una
+  // devolución ya se pinta así.
+  const colorDevolucion = theme.palette.custom.seccionGestion;
+
   return (
     <Box
       sx={{
@@ -112,9 +118,13 @@ export default function EquipoRow({ equipo, color }) {
                 py: 0.15,
                 borderRadius: 0.5,
                 whiteSpace: "nowrap",
-                color: colorEquipo,
-                border: "1px solid",
-                borderColor: alpha(colorEquipo, 0.5),
+                // Relleno sólido y no un contorno del gris de la tarjeta: en
+                // gris sobre gris el rótulo se perdía, y es lo primero que hay
+                // que ver. Va en el rosa de la GESTIÓN —el que Seguimiento usa
+                // para las llamadas, las prórrogas y las devoluciones—, así
+                // que el mismo hecho se pinta igual en las dos pantallas.
+                bgcolor: colorDevolucion,
+                color: theme.palette.getContrastText(colorDevolucion),
               }}
             >
               DEVUELTO
