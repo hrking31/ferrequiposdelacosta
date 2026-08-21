@@ -314,7 +314,14 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
           </Alert>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
-          <Button onClick={handleCerrarConfirmacion} disabled={eliminando}>
+          <Button
+            onClick={handleCerrarConfirmacion}
+            disabled={eliminando}
+            // Sin variant MUI lo dibuja como texto plano, sin borde ni
+            // fondo: al lado del boton rojo de eliminar no parecia un boton.
+            // "outlined" es la accion neutra del tema (ver MuiButton).
+            variant="outlined"
+          >
             Cancelar
           </Button>
           <Button

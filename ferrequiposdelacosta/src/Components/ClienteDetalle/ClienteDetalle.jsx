@@ -440,6 +440,10 @@ export default function ClienteDetalle() {
           <Button
             onClick={() => setFacturaEliminando(null)}
             disabled={eliminando}
+            // Sin variant sale como texto plano, sin borde: al lado del rojo
+            // de eliminar no parece un boton. "outlined" es la accion neutra
+            // del tema (ver MuiButton).
+            variant="outlined"
           >
             Cancelar
           </Button>

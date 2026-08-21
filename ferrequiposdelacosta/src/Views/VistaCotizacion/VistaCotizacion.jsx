@@ -323,7 +323,13 @@ export default function VistaCotizacion() {
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
-          <Button onClick={() => setPendingAction(null)} disabled={loading}>
+          <Button
+            onClick={() => setPendingAction(null)}
+            disabled={loading}
+            // Sin variant sale como texto plano, sin borde ni fondo.
+            // "outlined" es la accion neutra del tema (ver MuiButton).
+            variant="outlined"
+          >
             Cancelar
           </Button>
           <Button
