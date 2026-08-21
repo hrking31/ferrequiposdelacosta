@@ -97,7 +97,12 @@ export default function EquipoRow({ equipo, color }) {
             // Antes era amarillo fijo, que en modo claro quedaba casi
             // invisible sobre el chip. Es letra chica, así que va el acento
             // en su versión oscura.
-            color: devuelto ? colorEquipo : theme.palette.custom.accent,
+            //
+            // El acento TAMBIÉN en el equipo devuelto: en el gris de esa
+            // tarjeta el número se perdía, y cuántas unidades volvieron es
+            // justamente el dato que se va a buscar. Lo que se apaga es el
+            // fondo, no la cifra.
+            color: theme.palette.custom.accent,
           }}
         />
         <Box sx={{ flex: 1, minWidth: 0 }}>
