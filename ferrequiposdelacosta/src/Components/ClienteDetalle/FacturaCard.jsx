@@ -620,26 +620,11 @@ export default function FacturaCard({
                         borderColor: alpha(colorEquiposAgregados, 0.4),
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: {
-                            xs: "1fr",
-                            sm: `repeat(${columnasLote}, 1fr)`,
-                          },
-                          gap: 1,
-                        }}
-                      >
-                        {equiposDelLote.map((equipo, index) => (
-                          <EquipoRow
-                            key={`agregado-${indiceLote}-${index}`}
-                            equipo={equipo}
-                            color={colorEquiposAgregados}
-                          />
-                        ))}
-                      </Box>
-
-                      <Box sx={{ mt: 1 }}>
+                      {/* El pago va PRIMERO, igual que en el alta de la
+                          factura: lo primero que se pregunta de un equipo
+                          agregado es si ya se pago. Antes cada bloque
+                          arrancaba distinto segun donde estuviera. */}
+                      <Box>
                         <Typography
                           variant="overline"
                           sx={{
@@ -663,6 +648,26 @@ export default function FacturaCard({
                           // cuando se agrega, no al principio.
                           rotuloTipoPago="Tipo de pago"
                         />
+                      </Box>
+
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: "grid",
+                          gridTemplateColumns: {
+                            xs: "1fr",
+                            sm: `repeat(${columnasLote}, 1fr)`,
+                          },
+                          gap: 1,
+                        }}
+                      >
+                        {equiposDelLote.map((equipo, index) => (
+                          <EquipoRow
+                            key={`agregado-${indiceLote}-${index}`}
+                            equipo={equipo}
+                            color={colorEquiposAgregados}
+                          />
+                        ))}
                       </Box>
 
                       <CargosAdicionales
