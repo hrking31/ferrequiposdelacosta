@@ -86,6 +86,12 @@ const TIPO_PAGO_INFO = {
   // El cliente entrega más de lo que dice la factura. El monto no se completa
   // solo —se escribe a mano, por encima del total— y lo que sobra se guarda
   // como abono.
+  //
+  // NO se ofrece al crear una factura: al emitirla se cobra lo que vale, y
+  // pagar de más no es una forma de pagarla. Abonar sobre lo ya cobrado es de
+  // AgregarEquipoDialog —se paga el equipo nuevo y se abona algo de la deuda
+  // vieja—, que es donde sigue estando. Acá solo aparece si la factura que se
+  // está editando ya venía guardada así (ver el Select).
   conAbono: { label: "Pago con abono" },
   // Se facturó pero el cliente todavía no pagó nada. Con esta opción no se
   // cargan medios de pago: la factura queda debiendo el total.
@@ -879,11 +885,20 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   value={form.tipoPago}
                   onChange={handleCambiarTipoPago}
                 >
-                  {Object.entries(TIPO_PAGO_INFO).map(([valor, info]) => (
-                    <MenuItem key={valor} value={valor}>
-                      {info.label}
-                    </MenuItem>
-                  ))}
+                  {Object.entries(TIPO_PAGO_INFO)
+                    // "Pago con abono" no se ofrece acá (ver TIPO_PAGO_INFO).
+                    // Se deja pasar solo si la factura ya venia guardada asi:
+                    // sin esto el Select se abriria vacio y al guardar le
+                    // cambiaria el tipo a una factura que nadie toco.
+                    .filter(
+                      ([valor]) =>
+                        valor !== "conAbono" || factura?.tipoPago === "conAbono",
+                    )
+                    .map(([valor, info]) => (
+                      <MenuItem key={valor} value={valor}>
+                        {info.label}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
 
