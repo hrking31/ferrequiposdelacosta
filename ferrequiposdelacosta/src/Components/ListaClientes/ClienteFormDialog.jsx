@@ -289,7 +289,11 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
               Eliminar
             </Button>
           )}
-          <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando} size="small">
+          {/* En contorno y no en rojo: el rojo es del que BORRA, que esta
+              en esta misma fila. Con los dos iguales, salir del formulario y
+              eliminar al cliente se veian como la misma clase de accion.
+              Mismo criterio que el dialogo de borrar usuario. */}
+          <Button variant="outlined" onClick={handleCerrar} disabled={guardando} size="small">
             Cancelar
           </Button>
           <Button variant="contained" color="success" onClick={handleGuardar} disabled={guardando} size="small">

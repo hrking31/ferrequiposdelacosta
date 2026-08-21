@@ -344,6 +344,11 @@ export default function UsersList() {
           sx: {
             backgroundColor: "background.default",
             backgroundImage: "none",
+            // Este dialogo usa el fondo de la PAGINA y no el estandar de un
+            // dialogo, asi que un campo autocompletado tiene que taparse con
+            // ese mismo: si no, queda un recuadro de otro tono. Ver la
+            // variable --ff-fondo-campo en el tema.
+            "--ff-fondo-campo": (tema) => tema.palette.background.default,
           },
         }}
       >

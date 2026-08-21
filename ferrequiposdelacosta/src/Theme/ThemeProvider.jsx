@@ -1013,6 +1013,11 @@ export const CustomThemeProvider = ({ children }) => {
                 "--ff-acento": scrollbarAcento,
                 "--ff-resplandor": alpha(scrollbarAcento, 0.7),
                 "--ff-sombra": alpha(AZUL_NOCHE, esModoClaro ? 0.15 : 0.4),
+                // Con que fondo se tapa un campo autocompletado por el
+                // navegador. Arranca con el de la PAGINA, y cada contenedor
+                // con otro tono la vuelve a declarar (ver MuiDialog). Sale
+                // del tema, asi que sirve igual de dia que de noche.
+                "--ff-fondo-campo": temaActual.palette.background.default,
               },
 
               body: {
@@ -1224,6 +1229,11 @@ export const CustomThemeProvider = ({ children }) => {
             paper: ({ theme }) => ({
               backgroundColor: theme.palette.background.elevated,
               backgroundImage: "none",
+              // Un campo DENTRO del dialogo se tapa con el fondo del DIALOGO,
+              // no con el de la pagina: son tonos distintos y por eso el
+              // recuadro del autocompletado quedaba de otro color.
+              // Ver la regla en MuiOutlinedInput.
+              "--ff-fondo-campo": theme.palette.background.elevated,
             }),
           },
         },
@@ -1521,13 +1531,24 @@ export const CustomThemeProvider = ({ children }) => {
               },
             }),
             input: ({ theme }) => ({
+              // Un campo autocompletado por el navegador (las sugerencias
+              // guardadas de Chrome) viene con SU propio fondo, que no es el
+              // de la app.
+              //
+              // Antes se tapaba con una sombra interna del color de la
+              // PAGINA, y eso solo servia mientras el campo estuviera sobre
+              // la pagina: dentro de un dialogo —que es mas claro— quedaba
+              // un recuadro oscuro que no era de nadie. Medido: la pagina es
+              // #0F172A y el dialogo #334155.
+              //
+              // Se tapa con --ff-fondo-campo, que cada contenedor declara:
+              // la pagina pone el suyo y el dialogo el suyo (ver MuiDialog),
+              // los dos desde el tema, asi que valen de dia y de noche.
               "&:-webkit-autofill": {
-                boxShadow: `0 0 0 1000px ${theme.palette.background.default} inset`,
-                WebkitTextFillColor:
-                  theme.palette.mode === "light"
-                    ? theme.palette.text.primary
-                    : theme.palette.text.secondary,
-                transition: "background-color 5000s ease-in-out 0s", // opcional para evitar parpadeo
+                boxShadow: "0 0 0 1000px var(--ff-fondo-campo) inset",
+                WebkitTextFillColor: theme.palette.text.primary,
+                caretColor: theme.palette.text.primary,
+                transition: "background-color 5000s ease-in-out 0s", // evita el parpadeo
               },
 
               // El calendarcito de los campos de fecha lo dibuja el NAVEGADOR,
