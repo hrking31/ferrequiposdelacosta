@@ -474,24 +474,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
           </Button>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            p: 2,
-            justifyContent: "space-between",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: { xs: 1.5, sm: 0 },
-            "& > :not(style) + :not(style)": {
-              marginLeft: { xs: 0, sm: 2 },
-              marginTop: { xs: 0, sm: 0 },
-            },
-          }}
-        >
+        <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button
             onClick={handleCloseModal}
             variant="contained"
             color="error"
             disabled={uploading}
-            fullWidth
           >
             Cancelar
           </Button>
@@ -503,7 +491,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             startIcon={
               uploading ? <CircularProgress size={20} color="inherit" /> : null
             }
-            fullWidth
           >
             {uploading ? "Guardando..." : "Guardar Cambios"}
           </Button>
