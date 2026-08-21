@@ -458,6 +458,7 @@ export default function UsersList() {
             px: 3,
             pb: 3,
             gap: 1,
+            justifyContent: "space-between",
             flexDirection: { xs: "column", sm: "row" },
             "& > :not(style)": {
               margin: "0px !important",
