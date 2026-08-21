@@ -212,6 +212,22 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
         };
         delete restante.fechaDevolucion;
 
+        // Los cargos del LOTE —lo que se pagó por él, su transporte y su
+        // depósito— viven en UNA sola línea, y las cuentas los suman
+        // recorriendo todos los equipos agregados (ver sumarPagosDeAgregados
+        // en facturaCalculos). Si la mitad que sigue afuera se los lleva
+        // copiados, ese pago se cuenta dos veces: la factura muestra pagado de
+        // más y termina inventando un saldo a favor que no existe.
+        //
+        // Se quedan en la línea que volvió, que es la que conserva el lugar
+        // del lote. La que sigue afuera arrastra solo lo suyo: cantidad,
+        // días, precio y fechas.
+        delete restante.pagos;
+        delete restante.tipoPago;
+        delete restante.transporte;
+        delete restante.valorTransporte;
+        delete restante.deposito;
+
         if (cambio.indefinida) {
           restante.vencimientoIndefinido = true;
         } else {

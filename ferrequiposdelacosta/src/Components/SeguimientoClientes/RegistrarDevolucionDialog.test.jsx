@@ -181,6 +181,59 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(equipos[1].fechaDevolucion).toBeUndefined();
   });
 
+  // El caso de la factura 1234: un lote de 10 gatos agregado después del alta,
+  // con su pago, su transporte y su depósito. Al devolver 4, la línea se parte
+  // — y si las dos mitades se quedan con esos cargos, la factura cuenta el
+  // pago dos veces y termina mostrando un saldo a favor que no existe.
+  it("los cargos del lote no se duplican al partir la línea", async () => {
+    const facturaConLote = {
+      ...factura,
+      equipos: [
+        {
+          nombre: "GATOS METALICOS",
+          cantidad: 10,
+          dias: 10,
+          valor: 1500,
+          fechaDespacho: "2026-08-01",
+          fechaVencimiento: "2026-08-10",
+          agregadoPosteriormente: true,
+          loteId: "lote-1",
+          tipoPago: "total",
+          pagos: [{ medio: "Bancolombia", monto: 198500 }],
+          transporte: "Solo ida",
+          valorTransporte: 20000,
+          deposito: 50000,
+        },
+      ],
+    };
+
+    const { usuario } = abrir({ factura: facturaConLote });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "4");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+
+    const equipos = loGuardadoEnLaFactura().equipos;
+    expect(equipos).toHaveLength(2);
+
+    // Los cargos del lote se quedan en la línea que volvió...
+    expect(equipos[0]).toMatchObject({
+      cantidad: 4,
+      pagos: [{ medio: "Bancolombia", monto: 198500 }],
+      valorTransporte: 20000,
+      deposito: 50000,
+    });
+
+    // ...y la que sigue afuera arrastra solo lo suyo.
+    expect(equipos[1].cantidad).toBe(6);
+    expect(equipos[1].pagos).toBeUndefined();
+    expect(equipos[1].tipoPago).toBeUndefined();
+    expect(equipos[1].transporte).toBeUndefined();
+    expect(equipos[1].valorTransporte).toBeUndefined();
+    expect(equipos[1].deposito).toBeUndefined();
+  });
+
   it("queda anotada como devolución parcial, con cuántas unidades volvieron", async () => {
     const { usuario } = abrir();
 
