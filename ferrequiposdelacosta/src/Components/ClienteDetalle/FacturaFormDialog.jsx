@@ -87,11 +87,13 @@ const TIPO_PAGO_INFO = {
   // solo —se escribe a mano, por encima del total— y lo que sobra se guarda
   // como abono.
   //
-  // NO se ofrece al crear una factura: al emitirla se cobra lo que vale, y
-  // pagar de más no es una forma de pagarla. Abonar sobre lo ya cobrado es de
-  // AgregarEquipoDialog —se paga el equipo nuevo y se abona algo de la deuda
-  // vieja—, que es donde sigue estando. Acá solo aparece si la factura que se
-  // está editando ya venía guardada así (ver el Select).
+  // NO se ofrece en este diálogo, ni al crear ni al editar: al emitir una
+  // factura se cobra lo que vale, y pagar de más no es una forma de pagarla.
+  // Abonar sobre lo ya cobrado es de AgregarEquipoDialog —se paga el equipo
+  // nuevo y se abona algo de la deuda vieja—, que es donde sigue estando.
+  //
+  // Se queda en esta lista, y no se borra, porque de acá sale el rótulo que
+  // se muestra y la lógica de más abajo la sigue nombrando.
   conAbono: { label: "Pago con abono" },
   // Se facturó pero el cliente todavía no pagó nada. Con esta opción no se
   // cargan medios de pago: la factura queda debiendo el total.
@@ -252,9 +254,15 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
 
   const handleChangePagos = (nuevosPagos) => {
     setForm((prev) => {
-      // Con "Pago con abono" los montos se escriben libres: no se reparten
-      // para cuadrar con el total, justamente porque van por encima de él.
-      if (prev.tipoPago === "conAbono") return { ...prev, pagos: nuevosPagos };
+      // El reparto automático es SOLO del pago total, que es el único que
+      // tiene que cuadrar con una cifra conocida.
+      //
+      // En "Parcial" el cliente entrega lo que puede y en "Pago con abono"
+      // entrega de más: en los dos, el monto lo decide quien carga. Antes se
+      // repartía igual, y con dos medios en Parcial pasaba esto: se escribía
+      // 500.000 en el primero y el segundo se completaba solo con el resto de
+      // la factura, inventando plata que nadie entregó.
+      if (prev.tipoPago !== "total") return { ...prev, pagos: nuevosPagos };
 
       const anteriores = prev.pagos.length > 0 ? prev.pagos : [{ medio: "", monto: "" }];
       const sumar = (pagos) =>
@@ -886,14 +894,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   onChange={handleCambiarTipoPago}
                 >
                   {Object.entries(TIPO_PAGO_INFO)
-                    // "Pago con abono" no se ofrece acá (ver TIPO_PAGO_INFO).
-                    // Se deja pasar solo si la factura ya venia guardada asi:
-                    // sin esto el Select se abriria vacio y al guardar le
-                    // cambiaria el tipo a una factura que nadie toco.
-                    .filter(
-                      ([valor]) =>
-                        valor !== "conAbono" || factura?.tipoPago === "conAbono",
-                    )
+                    // "Pago con abono" no se ofrece acá, ni al crear ni al
+                    // editar (ver TIPO_PAGO_INFO). Vive solo en el diálogo de
+                    // agregar equipos.
+                    .filter(([valor]) => valor !== "conAbono")
                     .map(([valor, info]) => (
                       <MenuItem key={valor} value={valor}>
                         {info.label}

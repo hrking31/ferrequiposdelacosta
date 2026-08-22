@@ -227,3 +227,43 @@ describe("FacturaFormDialog — editar", () => {
     expect(botonQuitarEquipo()).toBeDisabled();
   });
 });
+
+describe("FacturaFormDialog — los medios de pago", () => {
+  // Con pago TOTAL los medios tienen que sumar una cifra conocida, así que al
+  // escribir uno el otro absorbe la diferencia. Con PARCIAL no: el cliente
+  // entrega lo que puede, y completarle el segundo medio le inventaba plata
+  // que nadie recibió.
+  it("en Parcial, escribir un medio no le pone monto al otro", async () => {
+    const { usuario } = abrir();
+    await cargarEquipo(usuario);
+
+    await usuario.click(screen.getByRole("combobox", { name: "Tipo de pago" }));
+    await usuario.click(screen.getByRole("option", { name: "Parcial" }));
+
+    await usuario.click(screen.getByRole("button", { name: "Medio de pago" }));
+
+    const montos = screen.getAllByLabelText("Monto");
+    expect(montos).toHaveLength(2);
+
+    // Menos que el total (4 x 3 x 20.000 + IVA = 285.600), que es de lo que
+    // se trata un pago parcial. Con el reparto viejo el segundo medio se
+    // completaba solo con los 185.600 que faltaban.
+    await usuario.type(montos[0], "100000");
+
+    expect(montos[0]).toHaveValue("100.000");
+    expect(montos[1]).toHaveValue("");
+  });
+
+  // "Pago con abono" es entregar MÁS de lo que vale: eso pasa al agregarle un
+  // equipo a una factura viva, no al emitirla. Vive en AgregarEquipoDialog.
+  it("no ofrece Pago con abono al emitir una factura", async () => {
+    const { usuario } = abrir();
+
+    await usuario.click(screen.getByRole("combobox", { name: "Tipo de pago" }));
+
+    expect(screen.getByRole("option", { name: "Pago total" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Parcial" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Sin pago" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Pago con abono" })).toBeNull();
+  });
+});

@@ -257,9 +257,14 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
 
   const handleChangePagos = (nuevosPagos) => {
     setForm((prev) => {
-      // Con "Pago con abono" los montos se escriben libres: no se reparten
-      // para cuadrar con el total, justamente porque van por encima de él.
-      if (prev.tipoPago === "conAbono") return { ...prev, pagos: nuevosPagos };
+      // El reparto automático es SOLO del pago total, que es el único que
+      // tiene que cuadrar con una cifra conocida.
+      //
+      // En "Parcial" el cliente entrega lo que puede y en "Pago con abono"
+      // entrega de más: en los dos, el monto lo decide quien carga. Antes se
+      // repartía igual, y con dos medios en Parcial el segundo se completaba
+      // solo con el resto, inventando plata que nadie entregó.
+      if (prev.tipoPago !== "total") return { ...prev, pagos: nuevosPagos };
 
       const anteriores = prev.pagos.length > 0 ? prev.pagos : [{ medio: "", monto: "" }];
       const sumar = (pagos) =>
