@@ -25,7 +25,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
 import Footer from "../../Components/Footer/Footer";
-import RecaptchaNotice from "../../Components/RecaptchaNotice/RecaptchaNotice";
 import Search from "../../Components/Search/Search";
 import InstallApp from "../../Components/InstallApp/InstallApp.jsx";
 import ButtonContacto, {
@@ -228,8 +227,6 @@ export default function MobileDrawerLayout() {
             ? "Ferrequipos de la Costa. Todos los derechos reservados."
             : "Ferrequipos de la Costa."}
         </Typography>
-
-        <RecaptchaNotice />
       </Box>
     </Box>
   );
@@ -487,8 +484,6 @@ export default function MobileDrawerLayout() {
               © {new Date().getFullYear()} Ferrequipos de la Costa. Todos los
               derechos reservados.
             </Typography>
-
-            <RecaptchaNotice />
           </Box>
         </Grid>
 
