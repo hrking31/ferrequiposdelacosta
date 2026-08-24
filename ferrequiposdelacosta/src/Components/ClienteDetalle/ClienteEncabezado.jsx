@@ -24,9 +24,9 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import BadgeIcon from "@mui/icons-material/Badge";
 import BusinessIcon from "@mui/icons-material/Business";
 import ConstructionIcon from "@mui/icons-material/Construction";
+import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
+import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
 import EditIcon from "@mui/icons-material/Edit";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -88,10 +88,10 @@ export default function ClienteEncabezado({
   const esAncho = useMediaQuery(theme.breakpoints.up("lg"));
   const acento = theme.palette.custom.accent;
   const avatarBgPorEstado = theme.palette.custom.estadoFactura;
-  // En celular el encabezado deja a la vista solo el nombre y el resumen de
-  // cuenta: el teléfono y la dirección se despliegan con la flecha, así lo que
-  // se busca de un vistazo (cuánto es y cuánto falta) no queda debajo de todo.
-  // En computador sobra el ancho y van siempre visibles.
+  // El encabezado deja a la vista solo el nombre y el resumen de cuenta: el
+  // teléfono y la dirección se despliegan con su botón, así lo que se busca
+  // de un vistazo (cuánto es y cuánto falta) no queda debajo de todo. Vale
+  // para celular y para computador: la ficha se abre plegada en las dos.
   const [contactoAbierto, setContactoAbierto] = useState(false);
 
   const nombreCompleto = obtenerNombreCompleto(cliente);
@@ -110,23 +110,51 @@ export default function ClienteEncabezado({
   // casillas. Y por eso mismo el número no cambia si alguien pide ver el
   // historial.
   const cuentaCliente = calcularCuentaCliente(facturas);
-  // Solo se pliega en celular; en computador el contacto está siempre a la
-  // vista, así que la flecha no tiene nada que hacer.
-  const contactoVisible = !esMovil || contactoAbierto;
+  // Se pliega en cualquier pantalla: lo que se busca al abrir la ficha es
+  // cuánto debe el cliente, no su teléfono.
+  const contactoVisible = contactoAbierto;
   // Los botones del encabezado van enmarcados, iguales a los de cada factura:
   // toda la pantalla usa el mismo molde.
   const botonEncabezadoSx = { ...iconBtnSx, color: acento };
 
+  // El botón que oculta y muestra los datos del cliente. En celular va
+  // anclada a la esquina de la tarjeta, aparte de los demás botones: allá esa
+  // fila se centra, y si entrara en el grupo el centrado la correría de lugar
+  // cada vez que aparece o desaparece un botón. En computador la fila va
+  // pegada a la derecha y no se mueve, así que ahí sí entra al final, después
+  // del lápiz, y la esquina de arriba queda libre.
+  const botonPlegarContacto = (
+    <Tooltip
+      title={contactoAbierto ? "Ocultar datos del cliente" : "Ver datos del cliente"}
+    >
+      <IconButton
+        size="small"
+        onClick={() => setContactoAbierto((abierto) => !abierto)}
+        sx={botonEncabezadoSx}
+      >
+        {/* Relleno cuando los datos están a la vista y de contorno cuando
+            están plegados: así el botón dice en qué estado quedó, que es lo
+            que antes contaba la flecha. */}
+        {contactoAbierto ? (
+          <ContactPhoneIcon fontSize="small" />
+        ) : (
+          <ContactPhoneOutlinedIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Tooltip>
+  );
+
   // Las acciones del encabezado, en este orden: volver al listado, crear
-  // factura y editar el cliente, y por último plegar el contacto. La carpeta
+  // factura y editar el cliente, y por último ver el contacto. La carpeta
   // reemplaza al botón "Volver a Clientes" que ocupaba un renglón entero
   // arriba de la tarjeta; "Crear Factura" reemplaza al botón con letra que
   // vivía junto al título "Facturas N" (ese título se fue entero: el conteo
   // ahora es la insignia sobre el avatar del cliente).
   //
-  // Hasta 915px son varios y flotan en la esquina de arriba. En computador
-  // queda el lápiz solo y va dentro de la fila del nombre, después de la
-  // pizarra de valores, así queda centrado con ella.
+  // Hasta 915px se les suma la carpeta de volver al listado y la fila flota
+  // en la esquina de arriba. En computador va dentro de la fila del nombre,
+  // después de la pizarra de valores —así queda centrada con ella—, y cierra
+  // con el botón de ver el contacto; en celular ese botón va anclado aparte.
   const botonesEncabezado = (
     // Más separación en pantalla angosta: ahí se tocan con el dedo, y dos
     // íconos pegados a 8px de distancia se aprietan mal.
@@ -219,29 +247,10 @@ export default function ClienteEncabezado({
         </IconButton>
       </Tooltip>
 
+      {/* En celular no: allá va anclado a la esquina de la tarjeta, porque
+          esta fila se centra y el centrado lo correría de lugar. */}
+      {!esMovil && botonPlegarContacto}
     </Stack>
-  );
-
-  // La flecha que oculta y muestra los datos del cliente va aparte de las
-  // demás: se queda fija en su esquina mientras las otras se centran. Si
-  // entrara en el mismo grupo, el centrado la correría de lugar cada vez que
-  // aparece o desaparece un botón.
-  const botonPlegarContacto = esMovil && (
-    <Tooltip
-      title={contactoAbierto ? "Ocultar datos del cliente" : "Ver datos del cliente"}
-    >
-      <IconButton
-        size="small"
-        onClick={() => setContactoAbierto((abierto) => !abierto)}
-        sx={botonEncabezadoSx}
-      >
-        {contactoAbierto ? (
-          <ExpandLessIcon fontSize="small" />
-        ) : (
-          <ExpandMoreIcon fontSize="small" />
-        )}
-      </IconButton>
-    </Tooltip>
   );
 
   // Quién es el cliente: avatar con el conteo de facturas, nombre y estado.
@@ -359,12 +368,13 @@ export default function ClienteEncabezado({
           no entra en la misma línea y pasa debajo, a todo el ancho. Los
           botones son el mismo bloque en los dos casos (botonesEncabezado);
           lo que cambia es dónde se ubican. */}
-      {/* La flecha que oculta y muestra los datos del cliente va anclada a
-          la esquina de la tarjeta, a la altura del nombre: es el control de
-          la tarjeta entera, no una acción más del cliente. Por eso no está
-          en la fila de botones de abajo — ahí se leería como si hiciera algo
-          con el cliente, y lo que hace es plegar lo que estás mirando. */}
-      {botonPlegarContacto && (
+      {/* En celular el botón va anclado a la esquina de la tarjeta, a la
+          altura del nombre: es el control de la tarjeta entera, no una acción
+          más del cliente. Por eso no está en la fila de botones de abajo —
+          ahí se leería como si hiciera algo con el cliente, y lo que hace es
+          plegar lo que estás mirando. En computador la fila no se centra ni
+          baja, así que el botón viaja con ella (ver botonesEncabezado). */}
+      {esMovil && (
         <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
           {botonPlegarContacto}
         </Box>
