@@ -839,6 +839,10 @@ export const TIPOS_GESTION = [
 //
 //   { tipo, fecha, hora, ...datos propios del tipo }
 //
+// Un registro puede traer además `enSeguimiento: false`: se anotó cuando la
+// factura todavía estaba al día, así que cuenta como historia pero no como
+// gestión de cobranza (ver calcularGestionFactura).
+//
 // Los tipos son "llamada" (con el número marcado y si contestó o no),
 // "prorroga" (con los días dados), "parcial" y "cobro" (las devoluciones).
 // Las tres últimas se anotan solas al hacer la acción; la llamada la registra
@@ -883,6 +887,19 @@ export const calcularGestionFactura = (factura, estado) => {
   const gestiones = obtenerGestiones(factura);
   for (let i = gestiones.length - 1; i >= 0; i -= 1) {
     const registro = gestiones[i];
+
+    // Lo anotado con la factura al día no es gestión de cobranza. Una
+    // devolución se puede registrar desde Detalle Cliente, con la factura
+    // todavía vigente: el cliente devolvió antes de tiempo, y eso no es algo
+    // que se hizo para destrabar un vencimiento. Queda en la línea de tiempo
+    // —hay que poder ver cuándo devolvió— pero no fija el chip. Si lo fijara,
+    // la factura entraría a Seguimiento el día que se venza ya rotulada como
+    // trabajada, cuando nadie la ha trabajado todavía.
+    //
+    // Los registros anotados antes de que existiera la marca no la traen, y
+    // sin ella cuentan como siempre.
+    if (registro.enSeguimiento === false) continue;
+
     if (registro.tipo === "llamada") {
       // Una llamada atendida no es una gestión en sí: lo que importa es lo
       // que se acordó en ella (una prórroga, una devolución), que se anota

@@ -27,6 +27,7 @@ import {
   obtenerFechaHoyBogota,
   obtenerGestiones,
   crearRegistroGestion,
+  facturaEnSeguimiento,
   calcularDepositoTotal,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -254,11 +255,18 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
       const quedanEquipos = equiposActualizados.some(
         (equipo) => calcularCantidadPendiente(equipo) > 0,
       );
+      // Este diálogo también se abre desde Detalle Cliente, donde la factura
+      // puede estar al día: el cliente devuelve antes de que se venza. Eso se
+      // anota igual —para que quede en la línea de tiempo— pero marcado, y el
+      // chip de Seguimiento lo ignora (ver calcularGestionFactura). Se mira el
+      // estado de ANTES de esta devolución, que es cuando se hizo.
+      const esGestionDeCobranza = facturaEnSeguimiento(factura);
       const gestiones = huboCierre
         ? [
             ...obtenerGestiones(factura),
             crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
               unidades: unidadesDevueltas,
+              ...(esGestionDeCobranza ? {} : { enSeguimiento: false }),
             }),
           ]
         : obtenerGestiones(factura);

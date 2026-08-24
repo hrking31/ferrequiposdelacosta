@@ -897,6 +897,52 @@ describe("calcularGestionFactura", () => {
     const factura = { gestiones: [{ tipo: "llamada", contesto: true }] };
     expect(calcularGestionFactura(factura, "vencida")).toBe("sinGestionar");
   });
+
+  // Devolver equipos antes de que la factura se venza se registra desde
+  // Detalle Cliente y no es gestión de cobranza: nadie hizo nada para
+  // destrabar un vencimiento que todavía no había pasado. Va marcado con
+  // `enSeguimiento: false` y no debe fijar el chip, o la factura entraría a
+  // Seguimiento ya rotulada como trabajada.
+  it("una devolución hecha con la factura al día no fija el chip", () => {
+    const factura = {
+      gestiones: [{ tipo: "parcial", unidades: 3, enSeguimiento: false }],
+    };
+    expect(calcularGestionFactura(factura, "vencida")).toBe("sinGestionar");
+  });
+
+  it("la saltea y se queda con la devolución que sí fue de cobranza", () => {
+    const factura = {
+      gestiones: [
+        { tipo: "parcial", unidades: 2, enSeguimiento: false },
+        { tipo: "parcial", unidades: 1 },
+      ],
+    };
+    expect(calcularGestionFactura(factura, "vencida")).toBe("parcial");
+  });
+
+  it("una llamada posterior manda sobre la devolución que no contaba", () => {
+    const factura = {
+      gestiones: [
+        { tipo: "parcial", unidades: 3, enSeguimiento: false },
+        { tipo: "llamada", contesto: false },
+      ],
+    };
+    expect(calcularGestionFactura(factura, "vencida")).toBe("sinRespuesta");
+  });
+
+  // Las anotadas antes de que existiera la marca no la traen: sin ella cuentan
+  // como siempre.
+  it("sin la marca, la devolución cuenta como antes", () => {
+    const factura = { gestiones: [{ tipo: "parcial", unidades: 3 }] };
+    expect(calcularGestionFactura(factura, "vencida")).toBe("parcial");
+  });
+
+  it("en cobro el chip manda igual, aunque lo anotado no cuente", () => {
+    const factura = {
+      gestiones: [{ tipo: "parcial", unidades: 3, enSeguimiento: false }],
+    };
+    expect(calcularGestionFactura(factura, "cobro")).toBe("cobro");
+  });
 });
 
 describe("facturaEnSeguimiento", () => {

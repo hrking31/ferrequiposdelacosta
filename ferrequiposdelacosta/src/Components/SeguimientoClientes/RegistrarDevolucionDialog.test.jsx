@@ -1,6 +1,9 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
-import { obtenerFechaHoyBogota } from "../ClienteDetalle/facturaUtils";
+import {
+  calcularVencimiento,
+  obtenerFechaHoyBogota,
+} from "../ClienteDetalle/facturaUtils";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 
 // Registrar que el cliente devolvió equipos. Es la operación que corta la
@@ -47,6 +50,20 @@ const factura = {
   ],
   pagos: [],
   abonos: [],
+};
+
+// La misma factura pero todavía al día: salió hoy y vence dentro de 10 días.
+// Sirve para el caso en que la devolución se registra desde Detalle Cliente,
+// antes de que la factura entre a Seguimiento.
+const facturaAlDia = {
+  ...factura,
+  equipos: [
+    {
+      ...factura.equipos[0],
+      fechaDespacho: HOY,
+      fechaVencimiento: calcularVencimiento(HOY, 10),
+    },
+  ],
 };
 
 const abrir = (props = {}) =>
@@ -244,6 +261,36 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(loGuardadoEnLaFactura().gestiones[0]).toMatchObject({
       tipo: "parcial",
       unidades: 3,
+    });
+  });
+
+  // Los andamios vencían el 3 de agosto, así que esta factura ya está en
+  // Seguimiento: la devolución sí es una gestión de cobranza y va sin marca.
+  it("la de una factura vencida cuenta como gestión de cobranza", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura().gestiones[0].enSeguimiento).toBeUndefined();
+  });
+
+  // El mismo diálogo se abre desde Detalle Cliente, donde la factura puede
+  // estar vigente. Devolver antes de tiempo no es gestión de cobranza: se
+  // anota igual, pero marcado, para que el día que la factura se venza entre a
+  // Seguimiento en "Sin gestionar" y no en "Parcial".
+  it("la de una factura al día se anota marcada, y no como gestión", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura().gestiones[0]).toMatchObject({
+      tipo: "parcial",
+      unidades: 3,
+      enSeguimiento: false,
     });
   });
 
