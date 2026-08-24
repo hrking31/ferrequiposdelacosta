@@ -63,15 +63,11 @@ export default function Login({ onClose }) {
   };
 
   return (
-    <Box
-      maxWidth={400}
-      mx="auto"
-      p={2}
-      display="flex"
-      flexDirection="column"
-      gap={2}
-      sx={{ bgcolor: "background.default" }}
-    >
+    // El ancho y el fondo los pone el diálogo que lo abre (ver Drawer). Acá se
+    // limitaba a 400px centrados y se pintaba con el fondo de la PÁGINA, que es
+    // un tono distinto al del diálogo: sobraban ~22px a cada lado y se veían
+    // como dos franjas de otro color.
+    <Box p={2} display="flex" flexDirection="column" gap={2}>
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
