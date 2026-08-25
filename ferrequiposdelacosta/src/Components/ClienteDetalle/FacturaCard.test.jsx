@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
+import { calcularVencimiento, obtenerFechaHoyBogota } from "./facturaUtils";
 import FacturaCard from "./FacturaCard";
 
 // La tarjeta de una factura dentro de la ficha del cliente. No guarda nada: su
@@ -36,6 +37,22 @@ const facturaAbierta = {
   ],
   pagos: [],
   abonos: [],
+};
+
+// La misma, pero todavía vigente: salió hoy y vence dentro de 10 días. La
+// fecha se calcula desde hoy a propósito — con una fija, la prueba dejaría de
+// probar lo que dice el día que esa fecha quedara en el pasado.
+const HOY = obtenerFechaHoyBogota();
+const facturaAlDia = {
+  ...facturaAbierta,
+  fecha: HOY,
+  equipos: [
+    {
+      ...facturaAbierta.equipos[0],
+      fechaDespacho: HOY,
+      fechaVencimiento: calcularVencimiento(HOY, 10),
+    },
+  ],
 };
 
 // La misma, pero ya cobrada y con el equipo de vuelta: no queda nada por hacer.
@@ -94,10 +111,27 @@ describe("FacturaCard — lo que muestra", () => {
 
 describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
   it("deja agregar equipo, registrar devolución y editar", () => {
-    mostrar(facturaAbierta);
+    mostrar(facturaAlDia);
 
     expect(boton("AddIcon")).toBeEnabled();
     expect(boton("AssignmentReturnIcon")).toBeEnabled();
+    expect(boton("EditIcon")).toBeEnabled();
+  });
+
+  // Desde la ficha del cliente solo se registran las devoluciones que el
+  // cliente pide ANTES de que se le venza el alquiler. Vencida, la factura ya
+  // está en Seguimiento y la devolución es parte de la cobranza: se registra
+  // allá, donde queda anotada en la bitácora.
+  it("vencida, la devolución ya no se registra desde acá", () => {
+    mostrar(facturaAbierta);
+
+    expect(boton("AssignmentReturnIcon")).toBeDisabled();
+  });
+
+  it("vencida, el resto de las acciones sigue disponible", () => {
+    mostrar(facturaAbierta);
+
+    expect(boton("AddIcon")).toBeEnabled();
     expect(boton("EditIcon")).toBeEnabled();
   });
 

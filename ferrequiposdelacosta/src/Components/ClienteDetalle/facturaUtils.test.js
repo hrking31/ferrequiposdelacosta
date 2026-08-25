@@ -31,6 +31,8 @@ import {
   obtenerGestiones,
   contarLlamadasSinRespuesta,
   calcularGestionFactura,
+  gestionesDeSeguimiento,
+  estadoEnSeguimiento,
   facturaEnSeguimiento,
   etiquetaVencimiento,
 } from "./facturaUtils";
@@ -942,6 +944,43 @@ describe("calcularGestionFactura", () => {
       gestiones: [{ tipo: "parcial", unidades: 3, enSeguimiento: false }],
     };
     expect(calcularGestionFactura(factura, "cobro")).toBe("cobro");
+  });
+});
+
+describe("gestionesDeSeguimiento", () => {
+  // Lo anotado con la factura al día ya no se escribe, pero quedó guardado
+  // entre el 2026-08-24 y el 2026-08-25 con `enSeguimiento: false`. No tiene
+  // que aparecer en la línea de tiempo de Seguimiento: esa devolución no fue
+  // cobranza, y vive en el equipo de la factura.
+  it("deja fuera lo anotado con la factura al día", () => {
+    const factura = {
+      gestiones: [
+        { tipo: "llamada", contesto: false },
+        { tipo: "parcial", unidades: 4, enSeguimiento: false },
+      ],
+    };
+    expect(gestionesDeSeguimiento(factura)).toEqual([{ tipo: "llamada", contesto: false }]);
+  });
+
+  it("las anotadas sin la marca se quedan", () => {
+    const factura = { gestiones: [{ tipo: "parcial", unidades: 3 }] };
+    expect(gestionesDeSeguimiento(factura)).toHaveLength(1);
+  });
+
+  it("una factura sin gestiones da una lista vacía", () => {
+    expect(gestionesDeSeguimiento({})).toEqual([]);
+  });
+});
+
+describe("estadoEnSeguimiento", () => {
+  // Es la que decide si el botón de devolución de la ficha del cliente sigue
+  // disponible: vencida o en cobro, esa devolución se registra en Seguimiento.
+  it("solo vencida y cobro", () => {
+    expect(estadoEnSeguimiento("vencida")).toBe(true);
+    expect(estadoEnSeguimiento("cobro")).toBe(true);
+    expect(estadoEnSeguimiento("activa")).toBe(false);
+    expect(estadoEnSeguimiento("pendiente")).toBe(false);
+    expect(estadoEnSeguimiento("finalizada")).toBe(false);
   });
 });
 

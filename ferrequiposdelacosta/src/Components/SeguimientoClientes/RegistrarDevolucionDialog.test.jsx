@@ -277,21 +277,33 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   });
 
   // El mismo diálogo se abre desde Detalle Cliente, donde la factura puede
-  // estar vigente. Devolver antes de tiempo no es gestión de cobranza: se
-  // anota igual, pero marcado, para que el día que la factura se venza entre a
-  // Seguimiento en "Sin gestionar" y no en "Parcial".
-  it("la de una factura al día se anota marcada, y no como gestión", async () => {
+  // estar vigente. Devolver antes de tiempo NO es gestión de cobranza y no se
+  // anota: si se anotara, el día que la factura se venza entraría a
+  // Seguimiento rotulada como trabajada, cuando nadie la ha trabajado.
+  it("la de una factura al día no se anota como gestión", async () => {
     const { usuario } = abrir({ factura: facturaAlDia });
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    expect(loGuardadoEnLaFactura().gestiones[0]).toMatchObject({
-      tipo: "parcial",
-      unidades: 3,
-      enSeguimiento: false,
-    });
+    expect(loGuardadoEnLaFactura().gestiones).toEqual([]);
+  });
+
+  // La otra mitad de la regla: no anotar la gestión no puede significar perder
+  // la devolución. Queda en el equipo, que es de donde la ficha del cliente
+  // saca lo devuelto y cuándo.
+  it("la de una factura al día sí queda registrada en el equipo", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const devuelto = loGuardadoEnLaFactura().equipos.find(
+      (equipo) => Number(equipo.cantidadDevuelta) > 0,
+    );
+    expect(devuelto).toMatchObject({ cantidadDevuelta: 3, fechaDevolucion: HOY });
   });
 
   it("a lo que sigue afuera se le puede dar más plazo en el mismo paso", async () => {

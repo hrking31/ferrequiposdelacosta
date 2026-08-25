@@ -841,6 +841,23 @@ export const TIPOS_GESTION = [
 export const obtenerGestiones = (factura) =>
   (Array.isArray(factura?.gestiones) ? factura.gestiones : []).filter(Boolean);
 
+// Las gestiones que cuentan como cobranza: las que se hicieron con la factura
+// ya vencida, desde Seguimiento.
+//
+// Una devolución se puede registrar desde Detalle Cliente con la factura
+// todavía al día —el cliente devolvió antes de tiempo—, y eso no es cobranza:
+// nadie hizo nada para destrabar un vencimiento que no había pasado. Esa
+// devolución queda anotada donde corresponde, en el equipo de la factura, y
+// Seguimiento no la muestra ni la cuenta.
+//
+// Hoy esos registros ya no se escriben (ver RegistrarDevolucionDialog), pero
+// entre el 2026-08-24 y el 2026-08-25 se guardaron marcados con
+// `enSeguimiento: false`. Este filtro los deja fuera para que no aparezcan en
+// la línea de tiempo ni fijen el chip. Los anteriores a esa marca no se pueden
+// distinguir a posteriori y cuentan como siempre.
+export const gestionesDeSeguimiento = (factura) =>
+  obtenerGestiones(factura).filter((registro) => registro.enSeguimiento !== false);
+
 // La hora de Colombia en formato HH:MM, para sellar cada registro.
 export const obtenerHoraBogotaHHMM = () =>
   new Intl.DateTimeFormat("en-GB", {
@@ -875,21 +892,10 @@ export const contarLlamadasSinRespuesta = (factura) =>
 export const calcularGestionFactura = (factura, estado) => {
   if (estado === "cobro") return "cobro";
 
-  const gestiones = obtenerGestiones(factura);
+  // Solo lo hecho con la factura vencida cuenta (ver gestionesDeSeguimiento).
+  const gestiones = gestionesDeSeguimiento(factura);
   for (let i = gestiones.length - 1; i >= 0; i -= 1) {
     const registro = gestiones[i];
-
-    // Lo anotado con la factura al día no es gestión de cobranza. Una
-    // devolución se puede registrar desde Detalle Cliente, con la factura
-    // todavía vigente: el cliente devolvió antes de tiempo, y eso no es algo
-    // que se hizo para destrabar un vencimiento. Queda en la línea de tiempo
-    // —hay que poder ver cuándo devolvió— pero no fija el chip. Si lo fijara,
-    // la factura entraría a Seguimiento el día que se venza ya rotulada como
-    // trabajada, cuando nadie la ha trabajado todavía.
-    //
-    // Los registros anotados antes de que existiera la marca no la traen, y
-    // sin ella cuentan como siempre.
-    if (registro.enSeguimiento === false) continue;
 
     if (registro.tipo === "llamada") {
       // Una llamada atendida no es una gestión en sí: lo que importa es lo
@@ -907,8 +913,10 @@ export const calcularGestionFactura = (factura, estado) => {
 // Las facturas que se trabajan en Seguimiento: las que tienen equipos
 // vencidos afuera y las que ya devolvieron todo pero deben plata. Salen de la
 // lista al volver a "activa" (prórroga con el saldo al día) o al finalizarse.
+export const estadoEnSeguimiento = (estado) => ["vencida", "cobro"].includes(estado);
+
 export const facturaEnSeguimiento = (factura, hoyIso = obtenerFechaHoyBogota()) =>
-  ["vencida", "cobro"].includes(calcularEstadoFactura(factura, hoyIso));
+  estadoEnSeguimiento(calcularEstadoFactura(factura, hoyIso));
 
 // Etiqueta ordinal para cada fecha del historial: "1er vencimiento",
 // "2do vencimiento", etc.

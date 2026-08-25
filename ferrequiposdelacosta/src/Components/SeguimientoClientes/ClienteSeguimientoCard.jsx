@@ -38,7 +38,7 @@ import {
   equipoDevueltoCompleto,
   calcularEstadoFactura,
   calcularGestionFactura,
-  obtenerGestiones,
+  gestionesDeSeguimiento,
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
@@ -413,7 +413,10 @@ export default function ClienteSeguimientoCard({
   const gestionInfo = GESTION_INFO[gestionClave] || GESTION_INFO.sinGestionar;
   const gestionColor = coloresGestion[gestionClave] || theme.palette.custom.estadoNeutro;
   const IconoGestion = gestionInfo.Icono;
-  const gestiones = obtenerGestiones(factura);
+  // Solo lo trabajado con la factura ya vencida: una devolución registrada
+  // desde la ficha del cliente, con la factura al día, no es cobranza y no
+  // tiene por qué figurar acá (ver gestionesDeSeguimiento).
+  const gestiones = gestionesDeSeguimiento(factura);
 
   // El cálculo de las ampliaciones vive en facturaUtils, compartido con
   // ClienteDetalle y con el diálogo que las guarda: así las tres pantallas

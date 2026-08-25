@@ -39,6 +39,7 @@ import {
   listaPagos,
   calcularCuentaFactura,
   calcularEstadoFactura,
+  estadoEnSeguimiento,
   movimientosFactura,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
@@ -96,6 +97,11 @@ export default function FacturaCard({
   // agregan equipos, no se le registra devolución y no se edita. Sigue
   // viéndose completa, solo deja de tener acciones.
   const finalizada = facturaEstado === "finalizada";
+  // Desde acá solo se registran las devoluciones que el cliente pide ANTES de
+  // que se le venza el alquiler. En cuanto la factura vence pasa a
+  // Seguimiento, y esa devolución sí es parte de la cobranza: se registra allá
+  // para que quede en la bitácora (ver gestionesDeSeguimiento).
+  const seGestionaEnSeguimiento = estadoEnSeguimiento(facturaEstado);
   // Si ya tiene un abono, un equipo agregado, una ampliación o una
   // devolución parcial, borrarla de un clic se llevaría esa historia con
   // ella. Sin nada encima, borrar y volver a cargarla es la salida más
@@ -215,16 +221,24 @@ export default function FacturaCard({
           </IconButton>
         </span>
       </Tooltip>
-      {/* Para el cliente que devuelve antes de que se le venza el
-          alquiler: esa factura nunca entra a Seguimiento, así que
-          sin este botón no habría dónde anotar la devolución. */}
+      {/* Solo para el cliente que devuelve ANTES de que se le venza el
+          alquiler: esa factura nunca entra a Seguimiento, así que sin este
+          botón no habría dónde anotar la devolución. Vencida, se apaga: a
+          partir de ahí la devolución es cobranza y se registra desde
+          Seguimiento. */}
       <Tooltip
-        title={finalizada ? "Esta factura ya está finalizada" : "Registrar devolución"}
+        title={
+          finalizada
+            ? "Esta factura ya está finalizada"
+            : seGestionaEnSeguimiento
+              ? "Esta factura está vencida: la devolución se registra desde Seguimiento"
+              : "Registrar devolución"
+        }
       >
         <span>
           <IconButton
             size="small"
-            disabled={finalizada}
+            disabled={finalizada || seGestionaEnSeguimiento}
             onClick={() => onRegistrarDevolucion(factura)}
             sx={{ ...iconBtnSx, color: acento }}
           >

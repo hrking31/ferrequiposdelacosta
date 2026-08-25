@@ -256,20 +256,24 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
         (equipo) => calcularCantidadPendiente(equipo) > 0,
       );
       // Este diálogo también se abre desde Detalle Cliente, donde la factura
-      // puede estar al día: el cliente devuelve antes de que se venza. Eso se
-      // anota igual —para que quede en la línea de tiempo— pero marcado, y el
-      // chip de Seguimiento lo ignora (ver calcularGestionFactura). Se mira el
-      // estado de ANTES de esta devolución, que es cuando se hizo.
-      const esGestionDeCobranza = facturaEnSeguimiento(factura);
-      const gestiones = huboCierre
-        ? [
-            ...obtenerGestiones(factura),
-            crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
-              unidades: unidadesDevueltas,
-              ...(esGestionDeCobranza ? {} : { enSeguimiento: false }),
-            }),
-          ]
-        : obtenerGestiones(factura);
+      // puede estar al día: el cliente devuelve antes de que se venza. Eso NO
+      // se anota como gestión —no es cobranza, nadie hizo nada para destrabar
+      // un vencimiento que todavía no pasó—; queda registrado en el equipo de
+      // la factura, que es donde la ficha del cliente lo muestra. Solo lo
+      // hecho con la factura ya vencida entra a la bitácora de Seguimiento.
+      //
+      // Se mira el estado de ANTES de esta devolución, que es cuando se hizo:
+      // devolver el último equipo puede dejar la factura en cobro, y esa
+      // devolución sigue siendo la que la llevó ahí.
+      const gestiones =
+        huboCierre && facturaEnSeguimiento(factura)
+          ? [
+              ...obtenerGestiones(factura),
+              crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
+                unidades: unidadesDevueltas,
+              }),
+            ]
+          : obtenerGestiones(factura);
 
       // El estado del cliente resume TODAS sus facturas: hay que releerlas
       // de la base, no alcanza con la que tenemos en memoria.
