@@ -635,7 +635,7 @@ const fechaDespachoDe = (equipo, factura) =>
 // Un equipo está vencido si ya llegó (o pasó) su fecha de devolución. Los que
 // quedaron con entrega indefinida cuentan como vencidos: el cliente tenía que
 // avisar y no avisó, y mientras tanto corren días.
-const equipoVencido = (equipo, hoyIso) =>
+export const equipoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
   equipo?.vencimientoIndefinido ||
   (equipo?.fechaVencimiento && equipo.fechaVencimiento <= hoyIso);
 

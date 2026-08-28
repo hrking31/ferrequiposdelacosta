@@ -150,6 +150,17 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   // Y lo contrario: la factura entró a Seguimiento con los equipos que
   // QUEDARON. Mostrar los que ya habían vuelto obliga a quien cobra a
   // preguntarse cuándo y por qué volvieron, y eso no pasó en esta pantalla.
+  // La factura entra a cartera por lo que venció. Un equipo agregado después,
+  // todavía en fecha, no se le puede reclamar hoy: verlo acá hace preguntarse
+  // por qué aparece algo que nadie tiene que devolver.
+  it("no muestra los equipos que todavía están en plazo", async () => {
+    const { usuario } = mostrar([facturaConEquiposEnPlazo]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText(/GATO/)).toBeInTheDocument();
+    expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
+  });
+
   it("no muestra lo que el cliente había devuelto en plazo", async () => {
     const { usuario } = mostrar([facturaConDevueltoEnPlazo]);
     await desplegarFactura(usuario);

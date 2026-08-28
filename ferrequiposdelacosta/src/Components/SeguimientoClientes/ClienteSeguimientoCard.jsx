@@ -38,6 +38,7 @@ import {
   contarUnidadesVencidas,
   equipoDevueltoCompleto,
   equipoDevueltoEnCobranza,
+  equipoVencido,
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
@@ -55,6 +56,11 @@ import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
 // equipos en distinta situación: unos ya vencidos, otros que vencen hoy y
 // otros que todavía no. Se agrupan en ese orden, con lo urgente arriba.
+//
+// El grupo "Vence" —los que aún están en fecha— queda vacío a propósito: esta
+// pantalla solo muestra lo vencido. Se deja igual porque los grupos sin
+// equipos no se dibujan, y así un equipo mal clasificado se vería en vez de
+// desaparecer sin dejar rastro.
 const GRUPOS_VENCIMIENTO = [
   { clave: "hoy", titulo: "Vence hoy" },
   { clave: "vencido", titulo: "Vencido" },
@@ -947,8 +953,16 @@ export default function ClienteSeguimientoCard({
 
             {!facturaPlegada(factura.id) && factura.equipos?.length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
+                {/* Solo los equipos VENCIDOS que siguen afuera: son los que
+                    trajeron la factura acá y los únicos que se le pueden
+                    reclamar hoy. Los que todavía están en fecha se ven en la
+                    ficha del cliente; acá solo harían preguntarse por qué
+                    aparece algo que nadie tiene que devolver todavía. */}
                 {agruparPorVencimiento(
-                  factura.equipos.filter((equipo) => !equipoDevueltoCompleto(equipo)),
+                  factura.equipos.filter(
+                    (equipo) =>
+                      !equipoDevueltoCompleto(equipo) && equipoVencido(equipo, hoy),
+                  ),
                   hoy,
                 ).map((grupo) => (
                   <Box key={grupo.clave}>
