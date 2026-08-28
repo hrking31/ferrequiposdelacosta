@@ -35,7 +35,9 @@ import {
   calcularAmpliacionFactura,
   calcularCuentaFactura,
   calcularCantidadPendiente,
+  calcularDepositoTotal,
   calcularSaldoAntesDeAmpliar,
+  calcularTransporteTotal,
   contarUnidadesVencidas,
   equipoDevueltoCompleto,
   equipoDevueltoEnCobranza,
@@ -446,7 +448,8 @@ export default function ClienteSeguimientoCard({
   const iva = formatearMoneda(
     typeof factura.iva === "number" ? ampliacion.nuevoIva : factura.iva,
   );
-  const deposito = formatearMoneda(factura.deposito);
+  // Igual que el transporte: el de todos los lotes, no solo el del primero.
+  const deposito = formatearMoneda(calcularDepositoTotal(factura));
 
   // La cuenta de la factura sale de la MISMA función que usa Detalle Cliente:
   // recalcula todo desde los pagos, los abonos y lo que se le entregó al
@@ -470,7 +473,10 @@ export default function ClienteSeguimientoCard({
   const cuenta = calcularCuentaFactura(factura, hoy);
 
   const valorTotal = formatearMoneda(cuenta.total);
-  const transporteMonto = formatearMoneda(factura.valorTransporte);
+  // El de TODOS los despachos, no solo el del primero: cada lote agregado sale
+  // con su propio flete y la factura los cobra todos. Leyendo el campo suelto,
+  // esta pantalla mostraba menos transporte del que la cuenta estaba sumando.
+  const transporteMonto = formatearMoneda(calcularTransporteTotal(factura));
   const transporteTipo = factura.transporte || null;
   const textoTransporte =
     transporteTipo === "Sin transporte"

@@ -200,6 +200,36 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     );
   });
 
+  // Cada lote agregado sale con su propio flete y su propio depósito, y la
+  // factura los cobra todos. Leyendo el campo suelto de la factura, esta
+  // pantalla mostraba solo los del primer despacho: decía una cifra mientras
+  // la cuenta usaba otra.
+  it("suma el transporte y el depósito de todos los despachos", async () => {
+    const { usuario } = mostrar([
+      {
+        ...facturaVencida,
+        transporte: "Ida y vuelta",
+        valorTransporte: 100000,
+        deposito: 200000,
+        equipos: [
+          facturaVencida.equipos[0],
+          {
+            ...facturaVencida.equipos[0],
+            nombre: "PLUMA",
+            agregadoPosteriormente: true,
+            valorTransporte: 50000,
+            deposito: 30000,
+          },
+        ],
+      },
+    ]);
+    await desplegarFactura(usuario);
+
+    // $100.000 + $50.000 de transporte, $200.000 + $30.000 de depósito.
+    expect(screen.getByText(/150\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/230\.000/)).toBeInTheDocument();
+  });
+
   it("con todos los equipos vencidos afuera, no muestra ese aviso", async () => {
     const { usuario } = mostrar();
     await desplegarFactura(usuario);

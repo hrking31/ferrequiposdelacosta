@@ -415,6 +415,22 @@ export const sumarPagosFactura = (factura) =>
 
 // El depósito de toda la factura: el del lote original más el que haya traído
 // cada equipo agregado después.
+// El transporte de toda la factura: el del despacho inicial más el de cada
+// lote agregado después, que sale con su propio flete.
+//
+// Mismo caso que el depósito de acá abajo. Leer `factura.valorTransporte` a
+// secas muestra solo el primer despacho y esconde los demás, aunque el total
+// de la factura sí los esté cobrando: la pantalla dice una cifra y la cuenta
+// usa otra.
+export const calcularTransporteTotal = (factura) => {
+  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
+  const agregados = equipos
+    .filter((equipo) => equipo?.agregadoPosteriormente)
+    .reduce((total, equipo) => total + (Number(equipo?.valorTransporte) || 0), 0);
+
+  return (Number(factura?.valorTransporte) || 0) + agregados;
+};
+
 export const calcularDepositoTotal = (factura) => {
   const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
   const agregados = equipos
