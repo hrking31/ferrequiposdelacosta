@@ -35,6 +35,7 @@ import {
   calcularAmpliacionFactura,
   calcularCuentaFactura,
   calcularCantidadPendiente,
+  contarUnidadesVencidas,
   equipoDevueltoCompleto,
   equipoDevueltoEnCobranza,
   calcularEstadoFactura,
@@ -252,9 +253,10 @@ const construirMensajeWhatsapp = ({
   return [
     saludo,
     "",
-    `Te recordamos que hoy, ${formatearFecha(
-      hoy,
-    )}, finaliza el período de alquiler de los equipos registrados en ${laFactura}.`,
+    // "de tu factura", y no "de los equipos registrados en tu factura":
+    // pueden estar venciendo algunos y no todos, y la frase vieja los daba
+    // por vencidos a todos. Cuáles son lo dice el renglón de abajo.
+    `Te recordamos que hoy, ${formatearFecha(hoy)}, finaliza el período de alquiler de ${laFactura}.`,
     ...(situacion ? ["", `Actualmente tienes ${situacion}.`] : []),
     "",
     "Si deseas extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.",
@@ -472,12 +474,11 @@ export default function ClienteSeguimientoCard({
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
   const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
 
-  // Cuántos equipos le faltan devolver de ESTA factura, para decírselo en el
-  // mensaje. Es la suma de lo pendiente de cada línea, no la cantidad de
-  // líneas: si de una de 8 andamios devolvió 3, faltan 5.
-  const equiposPendientes = (factura.equipos || [])
-    .filter((equipo) => typeof equipo === "object")
-    .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
+  // Cuántos equipos VENCIDOS le faltan devolver de ESTA factura, para
+  // decírselo en el mensaje. Los que siguen en plazo no entran: una factura
+  // está vencida en cuanto uno de sus equipos lo está, y reclamarle los siete
+  // cuando solo venció uno le pide algo que todavía no debe.
+  const equiposVencidos = contarUnidadesVencidas(factura, hoy);
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -500,7 +501,7 @@ export default function ClienteSeguimientoCard({
     nombre: obtenerNombreCompleto(cliente),
     numeroFactura: factura.numeroFactura ?? "s/n",
     hoy,
-    equiposPendientes,
+    equiposPendientes: equiposVencidos,
     saldo: saldoPendienteNumero,
     fechaProrroga,
   });

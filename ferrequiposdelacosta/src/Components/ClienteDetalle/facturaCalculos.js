@@ -646,6 +646,16 @@ export const hayEquiposAlDia = (factura, hoyIso = obtenerFechaHoyBogota()) =>
     (equipo) => typeof equipo === "object" && equipoAlDia(equipo, hoyIso),
   );
 
+// Cuántas unidades hay afuera Y vencidas: lo que de verdad hay que reclamarle
+// al cliente hoy. Cuenta unidades y no líneas —de una línea de 8 andamios con 3
+// devueltos, faltan 5—, y deja fuera lo que sigue en plazo: un equipo que vence
+// la semana que viene no se cobra hoy, aunque su factura ya esté vencida por
+// otro. Los de entrega indefinida sí cuentan: el cliente tenía que avisar.
+export const contarUnidadesVencidas = (factura, hoyIso = obtenerFechaHoyBogota()) =>
+  (Array.isArray(factura?.equipos) ? factura.equipos : [])
+    .filter((equipo) => typeof equipo === "object" && !equipoAlDia(equipo, hoyIso))
+    .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
+
 // El estado de la factura, deducido de sus datos. Este es el único lugar
 // donde se decide: todo lo demás pregunta acá.
 export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota()) => {

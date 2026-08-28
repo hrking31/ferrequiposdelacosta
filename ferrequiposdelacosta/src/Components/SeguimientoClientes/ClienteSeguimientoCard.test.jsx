@@ -88,6 +88,30 @@ const facturaConDevueltoEnPlazo = {
   ],
 };
 
+// Vencida por UN gato, con seis mezcladoras agregadas después que todavía
+// están en plazo. Son 7 equipos afuera, pero solo 1 se le puede reclamar hoy.
+const facturaConEquiposEnPlazo = {
+  ...facturaVencida,
+  equipos: [
+    {
+      nombre: "GATO",
+      cantidad: 1,
+      dias: 3,
+      valor: 20000,
+      fechaDespacho: "2026-08-01",
+      fechaVencimiento: "2026-08-03",
+    },
+    {
+      nombre: "MEZCLADORA",
+      cantidad: 6,
+      dias: 10,
+      valor: 30000,
+      fechaDespacho: "2026-08-15",
+      fechaVencimiento: "2026-09-15",
+    },
+  ],
+};
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -175,6 +199,18 @@ describe("ClienteSeguimientoCard — el recordatorio de WhatsApp", () => {
     const mensaje = abrirWhatsapp.mock.calls[0][1];
     expect(mensaje).toContain("Ya recibimos todos los equipos");
     expect(mensaje).toContain("solo queda pendiente el pago");
+  });
+
+  // El caso real: una factura vencida por UN equipo, con seis agregados
+  // después que todavía están en plazo. El mensaje le reclamaba los siete.
+  it("solo le reclama los equipos vencidos, no los que siguen en plazo", async () => {
+    const { usuario } = mostrar([facturaConEquiposEnPlazo]);
+
+    await usuario.click(botonWhatsapp());
+
+    const mensaje = abrirWhatsapp.mock.calls[0][1];
+    expect(mensaje).toContain("1 equipo pendiente de devolución");
+    expect(mensaje).not.toContain("7 equipos");
   });
 
   it("el mensaje trae el saludo y la despedida de la empresa", async () => {
