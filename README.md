@@ -271,6 +271,25 @@ Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre
 
 Cuando la devolución es **parcial**, la línea del equipo se parte en dos: una queda cerrada con lo que volvió, y otra sigue con lo que el cliente conserva, con su propia fecha. Así cada parte lleva su historia y su cuenta por separado.
 
+> [!WARNING]
+> **Partir la línea en dos costó plata.** Las dos mitades se armaban copiando la línea entera, y con ella se copiaban cargos que son **del lote, no del renglón**: el pago, el tipo de pago, el transporte y el depósito. Como las cuentas los suman recorriendo todos los equipos, cada uno pasaba a contarse dos veces. Una factura real quedó con $1.397.000 pagados en vez de $1.198.500, y la pantalla ofrecía **devolverle** $54.060 a un cliente que todavía debía $144.440. El transporte se duplicaba igual, y por eso los renglones no sumaban el total. Esos cargos ahora quedan solo en la línea que volvió.
+
+### Devolver no significa lo mismo desde los dos lados
+
+La devolución se registra desde la ficha del cliente o desde cartera, y la diferencia no es de permisos: es qué significa esa devolución.
+
+| Desde dónde | Qué equipos deja devolver | Qué queda anotado |
+|---|---|---|
+| **Ficha del cliente** | Solo los que **no han vencido** | La devolución, en el equipo. Nada en la bitácora |
+| **Cartera / Seguimiento** | Cualquiera, también los vencidos | La devolución **y** la gestión de cobranza |
+
+Devolver un equipo que todavía está en plazo no es cobranza: nadie hizo nada para destrabar un vencimiento que no ha pasado. Si contara como gestión, la factura entraría a cartera el día que se venza **ya rotulada como trabajada**, cuando nadie la ha trabajado todavía.
+
+> [!NOTE]
+> Una factura figura vencida en cuanto **uno** de sus equipos lo está, y puede tener otros agregados después con su propia fecha. Por eso el botón de la ficha no se apaga cuando la factura vence, sino cuando ya no queda **ningún** equipo en plazo: lo que sigue en fecha se devuelve ahí, y lo vencido, en cartera.
+>
+> Por lo mismo, desde la ficha no se pregunta qué hacer con lo que el cliente se queda —darle más días, dejarlo indefinido—. Pactar un plazo se acuerda con alguien que ya está vencido: es cobranza, y se decide en cartera. Desde la ficha solo se registra lo que volvió, y lo que sigue afuera conserva su fecha.
+
 ### 5. El estado del cliente
 
 Un cliente no tiene estado propio: **hereda el más urgente de sus facturas.**
@@ -297,6 +316,13 @@ Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte 
 Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien no debe nada.
 
 **Un pago puede repartirse entre varios medios** —parte por Bancolombia, parte en efectivo— y cada uno queda registrado por separado. Los medios disponibles son Nequi, Nequi A, Bancolombia, Daviplata y efectivo; los dos Nequi son cuentas de personas distintas del negocio, y por eso van separados.
+
+Cuando el pago es **total**, escribir el primer medio completa el segundo solo: los dos tienen que sumar una cifra conocida. En cualquier otro caso **no**, y esa es la regla, no un detalle de la pantalla: en un pago parcial el cliente entrega lo que puede, y con abono entrega de más. En los dos, el monto lo decide quien está cargando.
+
+> [!WARNING]
+> **Ese autocompletado inventaba plata.** El reparto se aplicaba también en los pagos parciales: al escribir el primer medio, el segundo se llenaba con lo que faltaba para el total de la factura, y quedaba guardado como pagado dinero que nadie entregó.
+>
+> La prueba que lo destapó casi lo deja pasar. Usaba un monto **mayor** que el total, y ahí el resto da cero: el campo se veía vacío igual, con el error puesto y sin el error. Al probar un reparto, el monto tiene que ser **menor** que el total, o la prueba no distingue nada.
 
 Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedaría cobrado de más y la cuenta no cerraría— sino como un abono a su favor, que es lo que realmente es.
 
@@ -497,9 +523,13 @@ Cada tramo responde una pregunta: **qué se llevó**, **qué se pactó**, **qué
 
 Un número sumado esconde de dónde salió. El IVA de los cargos adicionales es el de todos los equipos del despacho junto: si la factura arrancó con $20.000 y después se le sumó un equipo de $30.000, muestra $50.000 sin forma de reconstruir el reparto. Una flecha lo abre y lista lo que aporta cada equipo.
 
-Aparece **solo cuando hay más de un equipo** que aporte. Con uno solo el detalle repetiría el total que ya está arriba, y una flecha que no abre nada es peor que no tenerla. Mismo criterio en el botón del historial: dice **"Ver 12 facturas finalizadas"** con el número por delante, y si no hay ninguna no se muestra — antes había que apretarlo para descubrir que la lista venía vacía.
+Aparece **solo cuando hay algo que repartir**: más de un equipo que aporte, o uno solo que se parta en varios renglones. Con un equipo y un renglón el detalle repetiría el total que ya está arriba, y una flecha que no abre nada es peor que no tenerla. Mismo criterio en el botón del historial: dice **"Ver 12 facturas finalizadas"** con el número por delante, y si no hay ninguna no se muestra — antes había que apretarlo para descubrir que la lista venía vacía.
 
-Cuando un equipo tiene días agregados, ese detalle se parte en dos renglones —*"10 chazas"* y *"10 chazas · días ampliados"*—, porque el IVA de lo que se pactó al principio y el de lo que se sumó después no son el mismo hecho.
+Cuando un equipo tiene días agregados, ese detalle se parte en varios renglones —*"10 chazas"*, *"10 chazas · días ampliados"*, *"10 chazas · días vencidos"*—, porque el IVA de lo que se pactó al principio, el de lo que se autorizó después y el de los días que el cliente se tomó sin avisar no son el mismo hecho. **Días ampliados** cuenta que alguien los autorizó; **días vencidos**, que el cliente no devolvió. Durante un tiempo la pantalla los llamaba a todos ampliados, y así contaba una autorización que nunca existió.
+
+Al lado, bajo el **Total adicionales**, va el historial de ese número: a cuánto llegaba después de cada movimiento. Es un acumulado —el despacho más el IVA hasta ahí—, no lo que aporta cada renglón suelto, y se lee al revés de como ocurrió: lo más reciente arriba, el alta abajo del todo.
+
+El renglón más nuevo va **vacío** a propósito. Su total es el que está arriba, siempre a la vista; repetirlo abajo haría creer que después pasó algo más.
 
 ### Dos números que decían lo mismo dos veces
 
