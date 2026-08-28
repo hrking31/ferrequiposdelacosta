@@ -119,6 +119,19 @@ const facturaParcial = {
   gestiones: [{ tipo: "parcial", unidades: 4, fecha: "2026-08-10" }],
 };
 
+// Le renovaron el equipo hasta 2099, así que ya no hay nada vencido, pero
+// sigue debiendo los $300.000 de antes de esa renovación.
+const facturaRenovada = {
+  ...facturaVencida,
+  equipos: [
+    {
+      ...facturaVencida.equipos[0],
+      fechaVencimiento: "2099-01-01",
+      ampliaciones: [{ dias: 30, descuento: 0 }],
+    },
+  ],
+};
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -166,6 +179,32 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
     expect(screen.getByText(/GATO/)).toBeInTheDocument();
     expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
+  });
+
+  // Le renovaron el único equipo vencido: ya no hay nada que reclamar, pero la
+  // factura sigue en cartera porque debe plata de antes de esa renovación. Sin
+  // el aviso, la tarjeta quedaba en blanco y no había forma de saber por qué
+  // seguía acá.
+  it("dice por qué sigue en cartera cuando ya no hay equipos vencidos", async () => {
+    const { usuario } = mostrar([facturaRenovada]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText("Sin equipos vencidos")).toBeInTheDocument();
+    // Debía $300.000 y no pagó nada: eso es lo exigible hoy. Los días que se
+    // le acaban de conceder los está usando y se cobran cuando devuelva.
+    expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
+      "300.000",
+    );
+    expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
+      "están en plazo",
+    );
+  });
+
+  it("con todos los equipos vencidos afuera, no muestra ese aviso", async () => {
+    const { usuario } = mostrar();
+    await desplegarFactura(usuario);
+
+    expect(screen.queryByText("Sin equipos vencidos")).not.toBeInTheDocument();
   });
 
   it("no muestra lo que el cliente había devuelto en plazo", async () => {

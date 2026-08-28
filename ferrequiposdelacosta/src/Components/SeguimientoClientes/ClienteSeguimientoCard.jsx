@@ -35,6 +35,7 @@ import {
   calcularAmpliacionFactura,
   calcularCuentaFactura,
   calcularCantidadPendiente,
+  calcularSaldoAntesDeAmpliar,
   contarUnidadesVencidas,
   equipoDevueltoCompleto,
   equipoDevueltoEnCobranza,
@@ -488,6 +489,23 @@ export default function ClienteSeguimientoCard({
   // está vencida en cuanto uno de sus equipos lo está, y reclamarle los siete
   // cuando solo venció uno le pide algo que todavía no debe.
   const equiposVencidos = contarUnidadesVencidas(factura, hoy);
+  const hayEquiposVencidos = equiposVencidos > 0;
+
+  // Si le quedan equipos afuera, están en plazo: se los renovaron o todavía no
+  // vencen.
+  const quedanEquiposAfuera = (factura.equipos || []).some(
+    (equipo) => typeof equipo === "object" && calcularCantidadPendiente(equipo) > 0,
+  );
+
+  // Lo que se le puede reclamar HOY a una factura sin equipos vencidos.
+  //
+  // Con equipos todavía afuera es lo que debía ANTES de la renovación: los días
+  // que se le acaban de conceder los está usando y se cobran cuando devuelva,
+  // así que pedírselos ahora sería cobrarle un alquiler en curso. Con todo
+  // devuelto ya no queda nada por correr y se le cobra la cuenta completa.
+  const saldoExigible = quedanEquiposAfuera
+    ? calcularSaldoAntesDeAmpliar(factura)
+    : cuenta.saldoPendiente;
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -951,6 +969,35 @@ export default function ClienteSeguimientoCard({
                     </Stack>
                   </Box>
                 )}
+              </Box>
+            )}
+
+            {/* Una factura puede seguir en cartera sin tener un solo equipo
+                vencido: le renovaron el que la trajo, o ya devolvió todo, y
+                se queda por la plata que debe. Sin este aviso la tarjeta
+                mostraba un hueco y no había forma de saber por qué seguía
+                acá. Dice lo único que queda por hacer: cobrar. */}
+            {!facturaPlegada(factura.id) && !hayEquiposVencidos && (
+              <Box sx={{ mb: 1 }}>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    lineHeight: 1.6,
+                    color: acento,
+                  }}
+                >
+                  <AccountBalanceWalletIcon fontSize="small" />
+                  Sin equipos vencidos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {`Sigue en cartera por el saldo de ${formatearMoneda(saldoExigible)}.`}
+                  {quedanEquiposAfuera
+                    ? " Los equipos que le quedan están en plazo y se ven en la ficha del cliente."
+                    : ""}
+                </Typography>
               </Box>
             )}
 

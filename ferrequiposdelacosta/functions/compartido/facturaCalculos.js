@@ -665,6 +665,22 @@ export const contarUnidadesVencidas = (factura, hoyIso = obtenerFechaHoyBogota()
     .filter((equipo) => typeof equipo === "object" && !equipoAlDia(equipo, hoyIso))
     .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
 
+// Lo que el cliente debe de ANTES de la última renovación: lo que decía la
+// factura menos lo que pagó y abonó, sin contar los días recién concedidos.
+//
+// Es el número que decide si una prórroga devuelve la factura a "activa", y
+// también lo único que se le puede reclamar hoy mientras tenga equipos afuera
+// con plazo vigente: esos días todavía los está usando y se cobran cuando
+// devuelva. Con todo devuelto ya no aplica —ahí la cuenta final es el saldo
+// completo, con el costo de todas las ampliaciones—.
+export const calcularSaldoAntesDeAmpliar = (factura) =>
+  Math.max(
+    0,
+    (Number(factura?.valorTotal) || 0) -
+      sumarPagosFactura(factura) -
+      sumarAbonos(factura?.abonos),
+  );
+
 // El estado de la factura, deducido de sus datos. Este es el único lugar
 // donde se decide: todo lo demás pregunta acá.
 export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota()) => {
@@ -716,15 +732,7 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
   // cualquier otro día de alquiler en curso. Si se contaran, ampliar el
   // vencimiento nunca alcanzaría por sí solo para poner la factura al día.
   const hayProrroga = pendientes.some((equipo) => obtenerAmpliaciones(equipo).length > 0);
-  if (hayProrroga) {
-    const pagado = sumarPagosFactura(factura);
-    const abonos = sumarAbonos(factura?.abonos);
-    const saldoAntesDeAmpliar = Math.max(
-      0,
-      (Number(factura?.valorTotal) || 0) - pagado - abonos,
-    );
-    if (saldoAntesDeAmpliar > 0) return "vencida";
-  }
+  if (hayProrroga && calcularSaldoAntesDeAmpliar(factura) > 0) return "vencida";
 
   return "activa";
 };
