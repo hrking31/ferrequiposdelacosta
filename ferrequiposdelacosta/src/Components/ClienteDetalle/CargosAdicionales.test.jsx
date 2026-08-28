@@ -188,20 +188,26 @@ describe("CargosAdicionales", () => {
     expect(sinEspacioDuro(bloqueTotal.textContent)).toContain(dinero(871000));
   });
 
-  it("descuenta en su propio renglón los días que devolvió sin usar", () => {
-    // Vencía el 10 y devolvió el 8: dos días pagados que no usó, y su IVA se
-    // devuelve con ellos.
+  it("le resta al equipo los días que devolvió sin usar, sin renglón aparte", () => {
+    // Salió por 5 días y devolvió 2 antes: se le cobran 3, o sea $300.000 y
+    // $57.000 de IVA. Un renglón de $95.000 y otro de −$38.000 dirían lo
+    // mismo, pero obligan a restar de cabeza para saber lo que se cobra.
+    //
+    // Va con un segundo equipo porque, fusionado el crédito, este solo tiene
+    // un renglón: sin nadie más, no habría nada que desglosar.
     dibujar([
       {
         ...equipoBase,
         fechaVencimiento: "2026-08-10",
         fechaDevolucion: "2026-08-08",
       },
+      otroEquipo,
     ]);
 
-    expect(ivaDelRenglon("1 BENITIN · días sin usar")).toBe(
-      dinero(-38000),
-    );
+    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(57000));
+    expect(
+      screen.queryByText("1 BENITIN · días sin usar"),
+    ).not.toBeInTheDocument();
   });
 
   it("no ofrece detalle cuando un equipo solo tiene su renta inicial", () => {

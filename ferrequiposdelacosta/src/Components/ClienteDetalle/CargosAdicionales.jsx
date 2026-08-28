@@ -10,11 +10,15 @@
 // abre debajo, también adentro.
 //
 // El desglose parte el IVA de cada equipo en los renglones que se cobran
-// distinto: la renta inicial, los días que se pactaron después, los días que
-// el equipo se quedó afuera pasada la fecha y —en negativo— los que devolvió
-// sin usar. Cada uno lleva su nombre, porque decirle "días ampliados" a un
-// vencimiento cuenta que alguien autorizó esos días, cuando lo que pasó es
-// que el cliente no devolvió.
+// distinto: la renta inicial, los días que se pactaron después y los días que
+// el equipo se quedó afuera pasada la fecha. Cada uno lleva su nombre, porque
+// decirle "días ampliados" a un vencimiento cuenta que alguien autorizó esos
+// días, cuando lo que pasó es que el cliente no devolvió.
+//
+// Lo que devolvió sin usar NO tiene renglón propio: se le resta a la renta
+// inicial, que es lo que corrige. Un equipo que salió por 3 días y volvió a 1
+// se lee como un solo renglón de 1 día —lo que se le cobra— en vez de 3 y −2,
+// que obliga a restar de cabeza para saber lo que interesa.
 //
 // El depósito y el transporte no se desglosan porque no son por equipo: se
 // cobran una vez por despacho, no importa cuántos equipos hayan salido en él.
@@ -152,7 +156,17 @@ export default function CargosAdicionales({
     const conIva = llevaIvaEquipo(equipo);
 
     return [
-      { clave: "inicial", etiqueta: nombre, valor: partes.inicial },
+      {
+        clave: "inicial",
+        etiqueta: nombre,
+        // Lo que devolvió sin usar va acá, restando, y no en un renglón
+        // propio: no es un cargo aparte sino una corrección de lo que se le
+        // facturó al salir. Lo que queda es lo que de verdad se le cobra —si
+        // salió por 3 días y devolvió a 1, este renglón vale 1 día—. El
+        // crédito sigue a la vista en los chips del equipo, que es donde se
+        // cuenta cuántos días fueron.
+        valor: partes.inicial + partes.sinUsar,
+      },
       {
         clave: "ampliados",
         etiqueta: `${nombre} · días ampliados`,
@@ -162,11 +176,6 @@ export default function CargosAdicionales({
         clave: "vencidos",
         etiqueta: `${nombre} · días vencidos`,
         valor: partes.vencidos,
-      },
-      {
-        clave: "sinUsar",
-        etiqueta: `${nombre} · días sin usar`,
-        valor: partes.sinUsar,
       },
     ]
       .filter((renglon) => renglon.valor !== 0)
