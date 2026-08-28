@@ -229,7 +229,10 @@ const construirMensajeWhatsapp = ({
       saludo,
       "",
       `Recibimos la devolución de parte de los equipos de ${laFactura}. ¡Gracias!`,
-      ...(situacion ? ["", `Todavía quedan ${situacion}.`] : []),
+      // "tienes" y no "quedan": con un solo equipo, "quedan 1 equipo" no
+      // concuerda. De paso queda igual que los otros mensajes, que ya dicen
+      // "Actualmente tienes" y "A la fecha tienes".
+      ...(situacion ? ["", `Todavía tienes ${situacion}.`] : []),
       "",
       `Cuando puedas coordinar la entrega del resto, ${contacto.toLowerCase()}`,
       "",

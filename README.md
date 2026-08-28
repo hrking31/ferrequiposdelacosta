@@ -269,6 +269,38 @@ Cada factura de la lista trae las acciones del cobro a la mano:
 
 Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre todas las del cliente: con varias facturas, los números no se podrían atribuir a ninguna.
 
+### Los cinco recordatorios de WhatsApp
+
+**Ninguno se envía solo.** El mensaje sale cuando alguien toca el botón; lo automático es **cuál** de los cinco sale, y eso lo decide la gestión vigente de esa factura.
+
+| # | Sale cuando | Cómo empieza |
+|---|---|---|
+| 1 | **Sin gestionar** — nadie la ha trabajado | *"Te recordamos que hoy… finaliza el período de alquiler…"* |
+| 2 | **Sin respuesta** — se llamó y no contestó | *"Hemos intentado comunicarnos contigo por teléfono sin lograrlo…"* |
+| 3 | **Renovación** — se le dieron más días | *"…a la que le extendimos el período de alquiler."* |
+| 4 | **Parcial** — devolvió una parte | *"Recibimos la devolución de parte de los equipos… ¡Gracias!"* |
+| 5 | **Cobro** — devolvió todo y debe plata | *"…tiene un saldo pendiente de $X."* |
+
+Los cuatro primeros dicen cuántos equipos **vencidos** le faltan y cuánto debe. El quinto no menciona equipos: ya no le queda ninguno.
+
+**Cómo se recorren, con un caso real.** Don Pedro tiene la factura 1234, que vence hoy:
+
+```
+Lunes 9:00   La factura vence hoy, nadie la trabajó  →  se le manda el 1
+Lunes 15:00  No respondió; se le insiste             →  sale el 1 otra vez
+Martes 8:00  Se le vuelve a escribir                 →  sigue saliendo el 1
+Martes 10:00 Se lo llama y NO contesta               →  a partir de acá, el 2
+Martes 16:00 Se lo llama y SÍ contesta               →  sigue el 2
+Miércoles    Se le autorizan 5 días más              →  a partir de acá, el 3
+Viernes      Devuelve 4 de los 10 equipos            →  a partir de acá, el 4
+La otra sem. Devuelve el resto, pero queda debiendo  →  a partir de acá, el 5
+```
+
+Dos cosas que se leen mal si no se explican:
+
+- **El primer mensaje se puede mandar las veces que haga falta.** No hay contador ni límite: mientras nadie registre una llamada sin respuesta, el mensaje sigue siendo el 1.
+- **Una llamada atendida no cambia el mensaje.** Lo que importa no es que el cliente haya contestado, sino **qué se acordó** en esa llamada —una prórroga, una devolución—, y eso se anota aparte y sí lo cambia. Por lo mismo, una vez que quedó en *Sin respuesta*, volver a llamar y que conteste no lo devuelve al 1: se queda ahí hasta que se registre una renovación o una devolución.
+
 Cuando la devolución es **parcial**, la línea del equipo se parte en dos: una queda cerrada con lo que volvió, y otra sigue con lo que el cliente conserva, con su propia fecha. Así cada parte lleva su historia y su cuenta por separado.
 
 > [!WARNING]

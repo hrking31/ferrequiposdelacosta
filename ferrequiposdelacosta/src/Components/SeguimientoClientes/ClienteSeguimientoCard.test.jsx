@@ -112,6 +112,13 @@ const facturaConEquiposEnPlazo = {
   ],
 };
 
+// Devolvió 4 de los 5 andamios y le queda uno afuera, ya vencido.
+const facturaParcial = {
+  ...facturaVencida,
+  equipos: [{ ...facturaVencida.equipos[0], cantidad: 1 }],
+  gestiones: [{ tipo: "parcial", unidades: 4, fecha: "2026-08-10" }],
+};
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -222,6 +229,18 @@ describe("ClienteSeguimientoCard — el recordatorio de WhatsApp", () => {
     const mensaje = abrirWhatsapp.mock.calls[0][1];
     expect(mensaje).toContain("1 equipo pendiente de devolución");
     expect(mensaje).not.toContain("7 equipos");
+  });
+
+  // "Todavía quedan 1 equipo" no concuerda. Con un equipo suelto es el caso
+  // más común al final de una devolución parcial, así que se lee seguido.
+  it("al que devolvió una parte le habla con el verbo concordado", async () => {
+    const { usuario } = mostrar([facturaParcial]);
+
+    await usuario.click(botonWhatsapp());
+
+    const mensaje = abrirWhatsapp.mock.calls[0][1];
+    expect(mensaje).toContain("Todavía tienes 1 equipo pendiente de devolución");
+    expect(mensaje).not.toContain("quedan 1 equipo");
   });
 
   it("el mensaje trae el saludo y la despedida de la empresa", async () => {
