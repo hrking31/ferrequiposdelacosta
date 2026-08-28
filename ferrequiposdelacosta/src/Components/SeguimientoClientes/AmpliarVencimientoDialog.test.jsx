@@ -75,6 +75,39 @@ describe("AmpliarVencimientoDialog — antes de guardar", () => {
     expect(screen.getByText(/03\/08\/2026/)).toBeInTheDocument();
   });
 
+  // Solo se le puede dar más plazo a lo que está afuera Y vencido. Un equipo
+  // que ya volvió no tiene vencimiento que correr, y uno en fecha no necesita
+  // que se lo corran: ofrecerlos era pedirle a quien cobra que decidiera sobre
+  // equipos que no tienen nada que ver con el vencimiento que la trajo acá.
+  it("solo ofrece los equipos vencidos que siguen afuera", () => {
+    abrir({
+      factura: {
+        ...factura,
+        equipos: [
+          factura.equipos[0],
+          // Ya volvió: no hay vencimiento que ampliar.
+          {
+            ...factura.equipos[0],
+            nombre: "PLUMA",
+            cantidad: 2,
+            cantidadDevuelta: 2,
+            fechaDevolucion: "2026-08-02",
+          },
+          // Todavía en fecha: se le amplía cuando venza, si hace falta.
+          {
+            ...factura.equipos[0],
+            nombre: "MEZCLADORA",
+            fechaVencimiento: "2099-01-01",
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
+    expect(screen.queryByText(/PLUMA/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
+  });
+
   it("sin marcar nada no guarda: no habría qué ampliar", async () => {
     const { usuario } = abrir();
 

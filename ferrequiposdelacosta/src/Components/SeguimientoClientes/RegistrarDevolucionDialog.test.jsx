@@ -298,7 +298,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   // anota: si se anotara, el día que la factura se venza entraría a
   // Seguimiento rotulada como trabajada, cuando nadie la ha trabajado.
   it("la de una factura al día no se anota como gestión", async () => {
-    const { usuario } = abrir({ factura: facturaAlDia });
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
     await guardar(usuario);
@@ -360,7 +360,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   // la devolución. Queda en el equipo, que es de donde la ficha del cliente
   // saca lo devuelto y cuándo.
   it("la de una factura al día sí queda registrada en el equipo", async () => {
-    const { usuario } = abrir({ factura: facturaAlDia });
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
     await guardar(usuario);

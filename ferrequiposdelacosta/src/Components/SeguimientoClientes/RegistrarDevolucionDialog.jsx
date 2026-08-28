@@ -24,6 +24,7 @@ import {
   obtenerAmpliaciones,
   calcularCantidadPendiente,
   equipoAlDia,
+  equipoVencido,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
   obtenerGestiones,
@@ -85,10 +86,14 @@ export default function RegistrarDevolucionDialog({
   const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
   const equiposPendientes = equipos
     .map((equipo, index) => ({ equipo, index }))
+    // Cada pantalla ofrece lo suyo y nada más: la ficha, lo que sigue en
+    // plazo; Seguimiento, lo vencido. Un equipo en fecha no se devuelve desde
+    // cartera —esa devolución no es cobranza— y así ninguna de las dos
+    // pantallas muestra equipos que no le corresponden.
     .filter(({ equipo }) =>
       desdeLaFicha
         ? equipoAlDia(equipo)
-        : calcularCantidadPendiente(equipo) > 0,
+        : calcularCantidadPendiente(equipo) > 0 && equipoVencido(equipo),
     );
 
   // Cuánto devuelve de cada línea con lo que hay escrito ahora mismo. Sirve

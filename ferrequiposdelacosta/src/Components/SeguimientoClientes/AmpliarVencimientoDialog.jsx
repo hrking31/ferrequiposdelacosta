@@ -19,7 +19,9 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
+  calcularCantidadPendiente,
   calcularVencimiento,
+  equipoVencido,
   obtenerAmpliaciones,
   obtenerGestiones,
   crearRegistroGestion,
@@ -54,6 +56,23 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
   }, [open]);
 
   const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
+
+  // A los que se les puede dar más plazo: los que están afuera Y vencidos.
+  //
+  // Un equipo que ya volvió no tiene vencimiento que ampliar —ofrecerlo era
+  // sencillamente un error—, y uno que todavía está en fecha tampoco: darle
+  // días a algo que no ha vencido es una renovación que nadie pidió. Si el
+  // cliente los quiere extender, se hace cuando venzan.
+  //
+  // Se guarda el índice ORIGINAL de cada uno: los cambios se anotan por ese
+  // índice y al guardar se recorre la lista completa. Con los índices de la
+  // lista filtrada, ampliar el segundo equipo le cambiaría la fecha a otro.
+  const equiposAmpliables = equipos
+    .map((equipo, index) => ({ equipo, index }))
+    .filter(
+      ({ equipo }) =>
+        calcularCantidadPendiente(equipo) > 0 && equipoVencido(equipo),
+    );
 
   const handleCerrar = () => {
     if (guardando) return;
@@ -183,14 +202,14 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         <DialogTitle sx={{ color: acento }}>Ampliar vencimiento</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            {equipos.length === 0 && (
+            {equiposAmpliables.length === 0 && (
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">
-                  Esta factura no tiene equipos para ampliar.
+                  Esta factura no tiene equipos vencidos para ampliar.
                 </Typography>
               </Grid>
             )}
-            {equipos.map((equipo, index) => {
+            {equiposAmpliables.map(({ equipo, index }, posicion) => {
               const cambio = cambios[index] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
@@ -284,7 +303,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                     label="Dejar indefinida (el cliente avisará)"
                   />
 
-                  {index < equipos.length - 1 && <Divider sx={{ mt: 2 }} />}
+                  {posicion < equiposAmpliables.length - 1 && <Divider sx={{ mt: 2 }} />}
                 </Grid>
               );
             })}
