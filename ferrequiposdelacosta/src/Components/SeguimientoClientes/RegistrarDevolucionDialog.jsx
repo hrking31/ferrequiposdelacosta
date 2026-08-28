@@ -23,6 +23,7 @@ import {
   calcularVencimiento,
   obtenerAmpliaciones,
   calcularCantidadPendiente,
+  equipoAlDia,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
   obtenerGestiones,
@@ -51,7 +52,23 @@ const ESTADO_INICIAL_DEPOSITO = { buenEstado: true, retenido: "", motivo: "" };
 // queda un remanente, integra en el mismo formulario la nueva fecha de
 // vencimiento (o "indefinida") para lo que sigue con el cliente — mismo
 // cálculo que usa AmpliarVencimientoDialog.
-export default function RegistrarDevolucionDialog({ open, onClose, cliente, factura, onActualizado }) {
+//
+// Se abre desde dos lados y no hace lo mismo en los dos. Desde Seguimiento es
+// una gestión de cobranza completa: se devuelve cualquier equipo y se pacta el
+// plazo de lo que queda. Desde la ficha del cliente solo se registra lo que
+// volvió en plazo, sin plazos nuevos y sin anotar nada en la bitácora (ver
+// `desdeLaFicha`).
+export default function RegistrarDevolucionDialog({
+  open,
+  onClose,
+  cliente,
+  factura,
+  onActualizado,
+  // Abierto desde la ficha del cliente: ahí solo se devuelve lo que todavía
+  // no venció. Los equipos vencidos se devuelven desde Seguimiento, que es
+  // donde esa devolución queda anotada como gestión de cobranza.
+  desdeLaFicha = false,
+}) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const [cambios, setCambios] = useState({});
@@ -68,7 +85,11 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
   const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
   const equiposPendientes = equipos
     .map((equipo, index) => ({ equipo, index }))
-    .filter(({ equipo }) => calcularCantidadPendiente(equipo) > 0);
+    .filter(({ equipo }) =>
+      desdeLaFicha
+        ? equipoAlDia(equipo)
+        : calcularCantidadPendiente(equipo) > 0,
+    );
 
   // Cuánto devuelve de cada línea con lo que hay escrito ahora mismo. Sirve
   // para saber, mientras el usuario escribe, si esta devolución deja la
@@ -265,8 +286,12 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
       // Se mira el estado de ANTES de esta devolución, que es cuando se hizo:
       // devolver el último equipo puede dejar la factura en cobro, y esa
       // devolución sigue siendo la que la llevó ahí.
+      // Y tampoco se anota lo devuelto desde la ficha cuando ahí solo se
+      // ofrecen equipos al día: la factura puede estar vencida por otro
+      // equipo, pero lo que volvió no venció, así que nadie hizo cobranza
+      // para conseguirlo.
       const gestiones =
-        huboCierre && facturaEnSeguimiento(factura)
+        huboCierre && !desdeLaFicha && facturaEnSeguimiento(factura)
           ? [
               ...obtenerGestiones(factura),
               crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
@@ -378,7 +403,13 @@ export default function RegistrarDevolucionDialog({ open, onClose, cliente, fact
                     </Typography>
                   )}
 
-                  {cantidadDevuelta > 0 && restante > 0 && (
+                  {/* Qué pasa con lo que el cliente se queda: más días o
+                      entrega indefinida. Solo desde Seguimiento. Darle plazo
+                      a un equipo es una decisión de cobranza —se pacta con el
+                      cliente que ya está vencido— y allá queda anotada; desde
+                      la ficha lo único que se hace es registrar lo que
+                      volvió, y lo que sigue afuera conserva su fecha. */}
+                  {cantidadDevuelta > 0 && restante > 0 && !desdeLaFicha && (
                     <Box sx={{ mt: 1.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
                       <Typography
                         variant="caption"
@@ -545,4 +576,5 @@ RegistrarDevolucionDialog.propTypes = {
   cliente: PropTypes.object,
   factura: PropTypes.object,
   onActualizado: PropTypes.func,
+  desdeLaFicha: PropTypes.bool,
 };

@@ -40,6 +40,7 @@ import {
   calcularCuentaFactura,
   calcularEstadoFactura,
   estadoEnSeguimiento,
+  hayEquiposAlDia,
   movimientosFactura,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
@@ -101,7 +102,14 @@ export default function FacturaCard({
   // que se le venza el alquiler. En cuanto la factura vence pasa a
   // Seguimiento, y esa devolución sí es parte de la cobranza: se registra allá
   // para que quede en la bitácora (ver gestionesDeSeguimiento).
+  //
+  // Salvo que todavía le quede algún equipo al día. Una factura vencida por un
+  // equipo puede tener otros agregados después, con fecha más adelante: esos
+  // se siguen devolviendo desde acá, porque devolverlos no es cobranza. El
+  // diálogo, en ese caso, solo ofrece los que no vencieron.
   const seGestionaEnSeguimiento = estadoEnSeguimiento(facturaEstado);
+  const devolucionSoloEnSeguimiento =
+    seGestionaEnSeguimiento && !hayEquiposAlDia(factura);
   // Si ya tiene un abono, un equipo agregado, una ampliación o una
   // devolución parcial, borrarla de un clic se llevaría esa historia con
   // ella. Sin nada encima, borrar y volver a cargarla es la salida más
@@ -223,22 +231,24 @@ export default function FacturaCard({
       </Tooltip>
       {/* Solo para el cliente que devuelve ANTES de que se le venza el
           alquiler: esa factura nunca entra a Seguimiento, así que sin este
-          botón no habría dónde anotar la devolución. Vencida, se apaga: a
-          partir de ahí la devolución es cobranza y se registra desde
-          Seguimiento. */}
+          botón no habría dónde anotar la devolución. Se apaga cuando ya no
+          queda ningún equipo al día: de ahí en adelante toda devolución es
+          cobranza y se registra desde Seguimiento. */}
       <Tooltip
         title={
           finalizada
             ? "Esta factura ya está finalizada"
-            : seGestionaEnSeguimiento
+            : devolucionSoloEnSeguimiento
               ? "Esta factura está vencida: la devolución se registra desde Seguimiento"
-              : "Registrar devolución"
+              : seGestionaEnSeguimiento
+                ? "Registrar la devolución de los equipos que no han vencido"
+                : "Registrar devolución"
         }
       >
         <span>
           <IconButton
             size="small"
-            disabled={finalizada || seGestionaEnSeguimiento}
+            disabled={finalizada || devolucionSoloEnSeguimiento}
             onClick={() => onRegistrarDevolucion(factura)}
             sx={{ ...iconBtnSx, color: acento }}
           >

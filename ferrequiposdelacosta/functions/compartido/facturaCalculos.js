@@ -625,6 +625,22 @@ const equipoVencido = (equipo, hoyIso) =>
   equipo?.vencimientoIndefinido ||
   (equipo?.fechaVencimiento && equipo.fechaVencimiento <= hoyIso);
 
+// Un equipo que sigue afuera y todavía no vence: el cliente lo puede devolver
+// sin que eso sea una gestión de cobranza.
+//
+// Una factura vencida puede tener equipos así. Basta con que se le haya
+// agregado uno después, con su propia fecha: la factura entera figura vencida
+// —le alcanza con que UNO de sus equipos lo esté— mientras el agregado
+// todavía tiene días por delante. Devolver ese no es cobranza, y por eso se
+// registra desde la ficha del cliente y no desde Seguimiento.
+export const equipoAlDia = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
+  calcularCantidadPendiente(equipo) > 0 && !equipoVencido(equipo, hoyIso);
+
+export const hayEquiposAlDia = (factura, hoyIso = obtenerFechaHoyBogota()) =>
+  (Array.isArray(factura?.equipos) ? factura.equipos : []).some(
+    (equipo) => typeof equipo === "object" && equipoAlDia(equipo, hoyIso),
+  );
+
 // El estado de la factura, deducido de sus datos. Este es el único lugar
 // donde se decide: todo lo demás pregunta acá.
 export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota()) => {

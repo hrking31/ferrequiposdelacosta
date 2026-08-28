@@ -128,6 +128,29 @@ describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
     expect(boton("AssignmentReturnIcon")).toBeDisabled();
   });
 
+  // Pero una factura figura vencida en cuanto UNO de sus equipos lo está, y
+  // puede tener otros agregados después con su propia fecha. Devolver esos no
+  // es cobranza —todavía están en plazo—, así que el botón sigue encendido y
+  // el diálogo, en ese caso, solo ofrece los que no vencieron.
+  it("vencida pero con un equipo en plazo, la devolución sigue disponible", () => {
+    mostrar({
+      ...facturaAbierta,
+      equipos: [
+        facturaAbierta.equipos[0],
+        {
+          nombre: "MEZCLADORA",
+          cantidad: 1,
+          dias: 5,
+          valor: 50000,
+          fechaDespacho: HOY,
+          fechaVencimiento: calcularVencimiento(HOY, 5),
+        },
+      ],
+    });
+
+    expect(boton("AssignmentReturnIcon")).toBeEnabled();
+  });
+
   it("vencida, el resto de las acciones sigue disponible", () => {
     mostrar(facturaAbierta);
 

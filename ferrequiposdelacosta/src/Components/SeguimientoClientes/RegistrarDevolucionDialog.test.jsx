@@ -66,6 +66,23 @@ const facturaAlDia = {
   ],
 };
 
+// Vencida por el ANDAMIO, pero con una MEZCLADORA agregada después que
+// todavía tiene días por delante.
+const facturaVencidaConEquipoEnPlazo = {
+  ...factura,
+  equipos: [
+    factura.equipos[0],
+    {
+      nombre: "MEZCLADORA",
+      cantidad: 1,
+      dias: 5,
+      valor: 50000,
+      fechaDespacho: HOY,
+      fechaVencimiento: calcularVencimiento(HOY, 5),
+    },
+  ],
+};
+
 const abrir = (props = {}) =>
   renderConProviders(
     <RegistrarDevolucionDialog
@@ -288,6 +305,55 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     expect(await exito()).toBeInTheDocument();
     expect(loGuardadoEnLaFactura().gestiones).toEqual([]);
+  });
+
+  // Una factura vencida puede tener equipos agregados después que todavía
+  // están en plazo. Esos se devuelven desde la ficha, y esa devolución
+  // tampoco es cobranza: el equipo no venció, nadie hizo nada para
+  // conseguirlo. Lo vencido se sigue devolviendo desde Seguimiento.
+  it("lo devuelto en plazo no se anota, aunque la factura esté vencida", async () => {
+    const { usuario } = abrir({
+      factura: facturaVencidaConEquipoEnPlazo,
+      desdeLaFicha: true,
+    });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "1");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura().gestiones).toEqual([]);
+  });
+
+  // Darle más días a lo que el cliente se queda es una decisión de cobranza:
+  // se pacta con quien ya está vencido y queda anotada en Seguimiento. Desde
+  // la ficha solo se registra lo que volvió.
+  it("desde la ficha no pregunta qué hacer con lo que queda afuera", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+
+    expect(screen.queryByLabelText("Días a ampliar")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Dejar indefinida (el cliente avisará)"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("desde Seguimiento sí lo pregunta", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+
+    expect(screen.getByLabelText("Días a ampliar")).toBeInTheDocument();
+  });
+
+  it("desde la ficha no ofrece los equipos que ya vencieron", async () => {
+    abrir({
+      factura: facturaVencidaConEquipoEnPlazo,
+      desdeLaFicha: true,
+    });
+
+    expect(await screen.findByText(/MEZCLADORA/)).toBeInTheDocument();
+    expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
   });
 
   // La otra mitad de la regla: no anotar la gestión no puede significar perder

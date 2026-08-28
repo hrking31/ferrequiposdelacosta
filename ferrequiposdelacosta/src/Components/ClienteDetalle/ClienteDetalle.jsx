@@ -458,12 +458,18 @@ export default function ClienteDetalle() {
         </DialogActions>
       </Dialog>
 
+      {/* Desde la ficha solo se devuelve lo que todavía no venció. Con la
+          factura al día eso es todo lo que hay afuera, así que no cambia
+          nada; con la factura vencida, deja devolver los equipos que se
+          agregaron después y siguen en fecha, sin anotar una cobranza que
+          nadie hizo. */}
       <RegistrarDevolucionDialog
         open={Boolean(facturaDevolucion)}
         onClose={() => setFacturaDevolucion(null)}
         cliente={cliente}
         factura={facturaDevolucion}
         onActualizado={() => fetchCliente(true)}
+        desdeLaFicha
       />
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
