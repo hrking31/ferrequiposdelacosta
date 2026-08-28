@@ -36,6 +36,7 @@ import {
   calcularCuentaFactura,
   calcularCantidadPendiente,
   equipoDevueltoCompleto,
+  equipoDevueltoEnCobranza,
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
@@ -994,7 +995,11 @@ export default function ClienteSeguimientoCard({
                   </Box>
                 ))}
 
-                {factura.equipos.some((equipo) => equipoDevueltoCompleto(equipo)) && (
+                {/* Solo lo que volvió DESPUÉS de vencer: eso es lo que se
+                    consiguió cobrando. Lo devuelto en plazo no entró con esta
+                    factura a Seguimiento y no se muestra acá (ver
+                    equipoDevueltoEnCobranza). */}
+                {factura.equipos.some((equipo) => equipoDevueltoEnCobranza(equipo)) && (
                   <Box>
                     <Typography
                       variant="overline"
@@ -1012,7 +1017,7 @@ export default function ClienteSeguimientoCard({
                     <Stack spacing={0.5}>
                       {factura.equipos
                         .map((equipo, index) => ({ equipo, index }))
-                        .filter(({ equipo }) => equipoDevueltoCompleto(equipo))
+                        .filter(({ equipo }) => equipoDevueltoEnCobranza(equipo))
                         .map(({ equipo, index }) =>
                           renderEquipoDevuelto(equipo, `devuelto-${equipo.nombre}-${index}`),
                         )}

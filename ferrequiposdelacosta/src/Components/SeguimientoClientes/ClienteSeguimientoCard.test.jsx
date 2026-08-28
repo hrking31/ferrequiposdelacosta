@@ -69,6 +69,25 @@ const facturaEnCobro = {
   ],
 };
 
+// Sigue vencida por el ANDAMIO que no volvió, pero la MEZCLADORA el cliente la
+// devolvió antes de que se venciera: esa devolución no fue cobranza.
+const facturaConDevueltoEnPlazo = {
+  ...facturaVencida,
+  equipos: [
+    facturaVencida.equipos[0],
+    {
+      nombre: "MEZCLADORA",
+      cantidad: 1,
+      dias: 3,
+      valor: 50000,
+      fechaDespacho: "2026-08-01",
+      fechaVencimiento: "2026-08-06",
+      cantidadDevuelta: 1,
+      fechaDevolucion: "2026-08-04",
+    },
+  ],
+};
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -76,6 +95,12 @@ const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
 
 const botonWhatsapp = () =>
   screen.getAllByTestId("WhatsAppIcon")[0].closest("button");
+
+// Las facturas arrancan plegadas —de un cliente con varias se ve la lista de un
+// vistazo—, así que el detalle de equipos ni se dibuja hasta desplegarla. Sin
+// esto, una prueba que busca lo que NO debe aparecer pasa siempre.
+const desplegarFactura = (usuario) =>
+  usuario.click(screen.getByRole("button", { name: "Mostrar factura" }));
 
 beforeEach(() => {
   abrirWhatsapp.mockClear();
@@ -87,6 +112,28 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
     expect(screen.getByText("Aida Pérez")).toBeInTheDocument();
     expect(screen.getByText(/1573/)).toBeInTheDocument();
+  });
+
+  // Cartera cuenta lo que se consiguió cobrando. Un equipo que volvió después
+  // de vencer es exactamente eso.
+  it("muestra lo que el cliente devolvió después de vencer", async () => {
+    const { usuario } = mostrar([facturaEnCobro]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText("Devuelto")).toBeInTheDocument();
+  });
+
+  // Y lo contrario: la factura entró a Seguimiento con los equipos que
+  // QUEDARON. Mostrar los que ya habían vuelto obliga a quien cobra a
+  // preguntarse cuándo y por qué volvieron, y eso no pasó en esta pantalla.
+  it("no muestra lo que el cliente había devuelto en plazo", async () => {
+    const { usuario } = mostrar([facturaConDevueltoEnPlazo]);
+    await desplegarFactura(usuario);
+
+    // El ANDAMIO sí está: es el que la tiene en cartera.
+    expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
+    expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Devuelto")).not.toBeInTheDocument();
   });
 
   it("sin un teléfono usable no ofrece escribirle: no hay a dónde", () => {

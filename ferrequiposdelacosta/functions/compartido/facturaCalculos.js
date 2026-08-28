@@ -168,6 +168,20 @@ export const calcularCantidadPendiente = (equipo) =>
 
 export const equipoDevueltoCompleto = (equipo) => calcularCantidadPendiente(equipo) <= 0;
 
+// Un equipo que volvió DESPUÉS de su fecha: esa devolución se consiguió con la
+// factura ya vencida, así que es parte de la cobranza y Seguimiento la cuenta
+// como suya.
+//
+// El que volvió en plazo no. Una factura entra a Seguimiento con los equipos
+// que QUEDARON, no con los que ya habían vuelto: mostrar esos ahí obliga a
+// quien cobra a preguntarse cuándo y por qué volvieron, y la respuesta no está
+// en esa pantalla porque no pasó ahí. Su historia vive en la ficha del cliente.
+export const equipoDevueltoEnCobranza = (equipo) =>
+  equipoDevueltoCompleto(equipo) &&
+  Boolean(equipo?.fechaDevolucion) &&
+  Boolean(equipo?.fechaVencimiento) &&
+  equipo.fechaDevolucion > equipo.fechaVencimiento;
+
 // Lo que suma una ampliación en un equipo: días agregados, cuánto valen a
 // precio de lista, cuánto se descontó y el neto que se cobraría.
 // El descuento se resta ANTES del IVA.
