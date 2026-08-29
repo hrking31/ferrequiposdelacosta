@@ -283,6 +283,96 @@ Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre
 
 Los cuatro primeros dicen cuántos equipos **vencidos** le faltan y cuánto debe. El quinto no menciona equipos: ya no le queda ninguno.
 
+Así se leen, con un caso de una factura vencida por un solo equipo:
+
+<details>
+<summary><b>1 · Sin gestionar</b> — el primer aviso, el día que vence</summary>
+
+```
+👋 Hola, Aida Maria Maury.
+
+Te recordamos que hoy, 28/08/2026, finaliza el período de alquiler de tu factura N° 1234.
+
+Actualmente tienes 1 equipo pendiente de devolución y un saldo aproximado de $ 370.540.
+
+Si deseas extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.
+
+Gracias por confiar en Ferrequipos de la Costa.
+```
+</details>
+
+<details>
+<summary><b>2 · Sin respuesta</b> — se le llamó y no contestó</summary>
+
+```
+👋 Hola, Aida Maria Maury.
+
+Hemos intentado comunicarnos contigo por teléfono sin lograrlo, por eso te escribimos por este medio.
+
+Tu factura N° 1234 tiene el período de alquiler vencido, con 1 equipo pendiente de devolución y un saldo aproximado de $ 370.540.
+
+Para extender el alquiler o coordinar la devolución, por favor comunícate con nosotros.
+
+Gracias por confiar en Ferrequipos de la Costa.
+```
+</details>
+
+<details>
+<summary><b>3 · Renovación</b> — se le dieron más días</summary>
+
+```
+👋 Hola, Aida Maria Maury.
+
+Te escribimos por tu factura N° 1234, a la que le extendimos el período de alquiler.
+
+El plazo que acordamos vence el 30/08/2026.
+
+A la fecha tienes 1 equipo pendiente de devolución y un saldo aproximado de $ 370.540.
+
+Si necesitas más tiempo o quieres coordinar la devolución, por favor comunícate con nosotros.
+
+Gracias por confiar en Ferrequipos de la Costa.
+```
+
+El renglón del plazo tiene tres formas: **"vence el 30/08/2026"** si la fecha no llegó, **"venció el 20/08/2026"** si ya pasó, y **"Habíamos acordado extender el alquiler hasta que nos avises."** si quedó como entrega indefinida.
+</details>
+
+<details>
+<summary><b>4 · Parcial</b> — devolvió una parte</summary>
+
+```
+👋 Hola, Aida Maria Maury.
+
+Recibimos la devolución de parte de los equipos de tu factura N° 1234. ¡Gracias!
+
+Todavía tienes 1 equipo pendiente de devolución y un saldo aproximado de $ 370.540.
+
+Cuando puedas coordinar la entrega del resto, por favor comunícate con nosotros.
+
+Gracias por confiar en Ferrequipos de la Costa.
+```
+
+Dice *"Todavía tienes"* y no *"Todavía quedan"*: con un solo equipo —el caso más común al final de una parcial— *"quedan 1 equipo"* no concuerda.
+</details>
+
+<details>
+<summary><b>5 · Cobro</b> — devolvió todo y solo debe plata</summary>
+
+```
+👋 Hola, Aida Maria Maury.
+
+Te recordamos que tu factura N° 1234 tiene un saldo pendiente de $ 370.540.
+
+Ya recibimos todos los equipos, así que solo queda pendiente el pago.
+
+Si ya lo realizaste o quieres coordinarlo, por favor comunícate con nosotros.
+
+Gracias por confiar en Ferrequipos de la Costa.
+```
+</details>
+
+El saldo va como **aproximado** en los cuatro primeros a propósito: los equipos que siguen afuera acumulan días, así que ese número cambia mañana. En el quinto no: ya no hay nada corriendo y la cifra es firme.
+
 **Cómo se recorren, con un caso real.** Don Pedro tiene la factura 1234, que vence hoy:
 
 ```
@@ -313,7 +403,7 @@ La devolución se registra desde la ficha del cliente o desde cartera, y la dife
 | Desde dónde | Qué equipos deja devolver | Qué queda anotado |
 |---|---|---|
 | **Ficha del cliente** | Solo los que **no han vencido** | La devolución, en el equipo. Nada en la bitácora |
-| **Cartera / Seguimiento** | Cualquiera, también los vencidos | La devolución **y** la gestión de cobranza |
+| **Cartera / Seguimiento** | Solo los **vencidos** | La devolución **y** la gestión de cobranza |
 
 Devolver un equipo que todavía está en plazo no es cobranza: nadie hizo nada para destrabar un vencimiento que no ha pasado. Si contara como gestión, la factura entraría a cartera el día que se venza **ya rotulada como trabajada**, cuando nadie la ha trabajado todavía.
 
@@ -321,6 +411,21 @@ Devolver un equipo que todavía está en plazo no es cobranza: nadie hizo nada p
 > Una factura figura vencida en cuanto **uno** de sus equipos lo está, y puede tener otros agregados después con su propia fecha. Por eso el botón de la ficha no se apaga cuando la factura vence, sino cuando ya no queda **ningún** equipo en plazo: lo que sigue en fecha se devuelve ahí, y lo vencido, en cartera.
 >
 > Por lo mismo, desde la ficha no se pregunta qué hacer con lo que el cliente se queda —darle más días, dejarlo indefinido—. Pactar un plazo se acuerda con alguien que ya está vencido: es cobranza, y se decide en cartera. Desde la ficha solo se registra lo que volvió, y lo que sigue afuera conserva su fecha.
+
+### En cartera solo se ve lo vencido
+
+Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con los equipos que quedaron vencidos, no con todo lo que tiene adentro.** Así que ahí no aparecen:
+
+- Los equipos que **todavía están en fecha**, aunque la factura figure vencida por otro. Nadie tiene que devolverlos hoy.
+- Los que el cliente **devolvió en plazo**, antes de que nada venciera. Esa devolución no se consiguió cobrando, y verla ahí obliga a preguntarse cuándo y por qué volvió ese equipo — una respuesta que esa pantalla no tiene, porque no pasó ahí.
+- En los diálogos de **registrar devolución** y **ampliar vencimiento**, tampoco: solo ofrecen los vencidos. Un equipo ya devuelto no tiene vencimiento que correr, y darle días a uno que no ha vencido es una renovación que nadie pidió.
+
+Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia completa de la factura.
+
+> [!NOTE]
+> **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí la tarjeta lo dice —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— en vez de mostrar un hueco, porque lo único que queda por hacer es cobrar.
+>
+> **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
 
 ### 5. El estado del cliente
 
@@ -508,6 +613,19 @@ Una factura real llegó a mostrar $476.000 de diferencia entre las dos pantallas
 
 Dejar de escribirlo no alcanzaba: el número viejo seguía dentro de los documentos, y aunque ningún código lo leyera, cualquiera que abriera la base lo iba a encontrar y creer. Se borró de todas las facturas que lo tenían. **Un dato que miente y nadie usa no es inofensivo: es una trampa esperando.**
 
+> [!WARNING]
+> **La misma trampa, más chica, volvió a aparecer.** Para saber si una prórroga saca la factura de cartera se mira lo que el cliente debía *antes* de esa renovación, y ese número parte del **valor guardado** de la factura — que no lleva ni las ampliaciones ni los créditos, porque los dos se calculan al vuelo. Restaba pagos y abonos, pero no lo que el cliente había devuelto sin usar: le cobraba días que el equipo no estuvo afuera. En una factura real decía **$208.700** donde el cliente debe **$144.440**.
+>
+> No basta con partir del valor guardado y restar la plata que entró: hay que restar también lo que dejó de deberse.
+
+### Lo que se cobra una vez no se lee una sola vez
+
+El **depósito** y el **transporte** se cobran por despacho, y una factura puede tener varios: cada lote de equipos agregado después sale con su propio flete y su propio depósito.
+
+Leer `valorTransporte` de la factura a secas devuelve el del **primer** despacho. La cuenta total sí los suma todos, así que la pantalla mostraba una cifra mientras el total usaba otra, y los renglones no cuadraban. Las dos se piden a una función que recorre los lotes.
+
+Es el reverso del error de la devolución parcial: allá un cargo del lote se contaba **dos veces**, acá se contaba **una sola** habiendo varios. Los dos salen de confundir *lo que se cobra por despacho* con *lo que se cobra por factura*.
+
 ---
 
 ## Arquitectura
@@ -562,6 +680,8 @@ Cuando un equipo tiene días agregados, ese detalle se parte en varios renglones
 Al lado, bajo el **Total adicionales**, va el historial de ese número: a cuánto llegaba después de cada movimiento. Es un acumulado —el despacho más el IVA hasta ahí—, no lo que aporta cada renglón suelto, y se lee al revés de como ocurrió: lo más reciente arriba, el alta abajo del todo.
 
 El renglón más nuevo va **vacío** a propósito. Su total es el que está arriba, siempre a la vista; repetirlo abajo haría creer que después pasó algo más.
+
+Lo que el cliente **devolvió sin usar no tiene renglón propio**: se le resta a la renta del equipo, que es lo que corrige. Un equipo que salió por 3 días y volvió a 1 se lee como un solo renglón de 1 día —lo que se le cobra— y no como 3 y −2, que obliga a restar de cabeza para saber lo que interesa. El crédito sigue a la vista en los chips del equipo, que son los que cuentan cuántos días fueron.
 
 ### Dos números que decían lo mismo dos veces
 
