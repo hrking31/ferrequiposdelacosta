@@ -17,6 +17,7 @@ import {
   pagoInicialFactura,
   sumarPagosDeAgregados,
   calcularCuentaFactura,
+  calcularSaldoAntesDeAmpliar,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
   calcularCuentaCliente,
@@ -253,6 +254,42 @@ describe("calcularCuentaFactura", () => {
     expect(cuenta.saldoPendiente).toBe(0);
     // Los $400.000 de los días que no usó: plata suya, que se le devuelve.
     expect(cuenta.saldoAFavor).toBe(400000);
+  });
+});
+
+describe("calcularSaldoAntesDeAmpliar", () => {
+  // El caso de la factura 1234, con sus números reales. Es lo que se le puede
+  // reclamar hoy mientras tenga equipos afuera con plazo vigente: los días
+  // recién concedidos todavía los está usando.
+  //
+  // El valor GUARDADO de la factura no lleva ni las ampliaciones ni los
+  // créditos —los dos se calculan al vuelo—, así que sin restar lo devuelto
+  // sin usar este número le cobraba 9 días que el equipo no estuvo afuera:
+  // decía $208.700 donde el cliente debía $144.440.
+  it("descuenta lo que devolvió sin usar, con su IVA", () => {
+    const factura = {
+      valorTotal: 2481200,
+      aplicaIva: true,
+      pagos: [{ monto: 1198500 }],
+      abonos: [{ monto: 600000 }, { monto: 474000 }],
+      equipos: [
+        // 4 gatos a $1.500 el día, 10 días cobrados, devueltos el mismo día
+        // que salieron: 9 días sin usar son $54.000 más $10.260 de IVA.
+        {
+          nombre: "GATOS METALICOS",
+          cantidad: 4,
+          dias: 10,
+          valor: 1500,
+          aplicaIva: true,
+          fechaDespacho: "2026-08-21",
+          fechaVencimiento: "2026-08-30",
+          cantidadDevuelta: 4,
+          fechaDevolucion: "2026-08-21",
+        },
+      ],
+    };
+
+    expect(calcularSaldoAntesDeAmpliar(factura, "2026-08-28")).toBe(144440);
   });
 });
 

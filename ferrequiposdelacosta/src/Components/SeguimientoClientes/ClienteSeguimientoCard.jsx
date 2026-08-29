@@ -510,7 +510,7 @@ export default function ClienteSeguimientoCard({
   // así que pedírselos ahora sería cobrarle un alquiler en curso. Con todo
   // devuelto ya no queda nada por correr y se le cobra la cuenta completa.
   const saldoExigible = quedanEquiposAfuera
-    ? calcularSaldoAntesDeAmpliar(factura)
+    ? calcularSaldoAntesDeAmpliar(factura, hoy)
     : cuenta.saldoPendiente;
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los

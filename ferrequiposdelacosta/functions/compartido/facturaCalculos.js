@@ -689,13 +689,27 @@ export const contarUnidadesVencidas = (factura, hoyIso = obtenerFechaHoyBogota()
 // con plazo vigente: esos días todavía los está usando y se cobran cuando
 // devuelva. Con todo devuelto ya no aplica —ahí la cuenta final es el saldo
 // completo, con el costo de todas las ampliaciones—.
-export const calcularSaldoAntesDeAmpliar = (factura) =>
-  Math.max(
+//
+// Lo que SÍ se descuenta es lo que devolvió sin usar, con su IVA. El valor
+// guardado de la factura no lleva ni las ampliaciones ni los créditos —los dos
+// se calculan al vuelo—, así que sin restarlo acá este número le cobraría los
+// días que el equipo no estuvo afuera. En la factura 1234 eso eran $64.260 de
+// más: decía $208.700 donde el cliente debía $144.440.
+export const calcularSaldoAntesDeAmpliar = (
+  factura,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const { creditoSinUsar, llevaIva } = calcularAmpliacionFactura(factura, hoyIso);
+  const credito = creditoSinUsar + (llevaIva ? creditoSinUsar * 0.19 : 0);
+
+  return Math.max(
     0,
     (Number(factura?.valorTotal) || 0) -
+      credito -
       sumarPagosFactura(factura) -
       sumarAbonos(factura?.abonos),
   );
+};
 
 // El estado de la factura, deducido de sus datos. Este es el único lugar
 // donde se decide: todo lo demás pregunta acá.
@@ -748,7 +762,7 @@ export const calcularEstadoFactura = (factura, hoyIso = obtenerFechaHoyBogota())
   // cualquier otro día de alquiler en curso. Si se contaran, ampliar el
   // vencimiento nunca alcanzaría por sí solo para poner la factura al día.
   const hayProrroga = pendientes.some((equipo) => obtenerAmpliaciones(equipo).length > 0);
-  if (hayProrroga && calcularSaldoAntesDeAmpliar(factura) > 0) return "vencida";
+  if (hayProrroga && calcularSaldoAntesDeAmpliar(factura, hoyIso) > 0) return "vencida";
 
   return "activa";
 };
