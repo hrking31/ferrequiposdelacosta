@@ -62,9 +62,14 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 | Aviso | Cuándo | De dónde sale |
 |---|---|---|
 | **Solicitud nueva** | Un cliente manda su pedido | La misma función que toca la campana — así hereda la regla de que **lo que arma el personal no avisa** |
-| **Factura en seguimiento** | Una factura vence sola, con el calendario | El repaso de las 3 de la mañana |
+| **Equipo vencido** | Un equipo cumple su fecha, con el calendario | El repaso de las 3 de la mañana |
 
-El segundo tiene una vuelta que vale la pena: para saber **cuáles son nuevas** no se guarda ninguna marca. Se pregunta si la factura está en seguimiento **hoy** y no lo estaba **ayer**. Como los cálculos reciben la fecha como parámetro, alcanza con evaluarlos dos veces — un dato menos que mantener al día.
+El segundo tiene una vuelta que vale la pena: para saber **qué es nuevo** no se guarda ninguna marca. Se pregunta si el equipo está vencido **hoy** y no lo estaba **ayer**. Como los cálculos reciben la fecha como parámetro, alcanza con evaluarlos dos veces — un dato menos que mantener al día.
+
+> [!WARNING]
+> **Avisar por factura dejaba mudo medio problema.** La primera versión preguntaba por la *factura*: entró en seguimiento hoy y ayer no. Suena equivalente, y no lo es — una factura figura vencida en cuanto **uno solo** de sus equipos lo está, así que la que ya estaba en seguimiento no volvía a "entrar" nunca más y los equipos siguientes vencían en silencio.
+>
+> Se vio en una factura de dos equipos: el inicial venció un sábado y el aviso llegó; el agregado venció el domingo y no llegó nada. Preguntar equipo por equipo detecta cada vencimiento por separado, y el mismo truco de las dos fechas sigue sirviendo sin guardar nada. La factura que entra en seguimiento **sin ningún equipo vencido** —devolvió todo y quedó debiendo— se sigue avisando igual.
 
 **El aviso no dice quién pidió ni qué pidió.** Aparece en la pantalla de bloqueo, donde lo lee cualquiera que tenga el teléfono a la vista: dice que hay una solicitud nueva y que entre a la app. Los datos están adentro, a un toque.
 

@@ -18,8 +18,10 @@ import {getStorage} from "firebase-admin/storage";
 // falla si eso pasa.
 import {
   calcularAporteFactura,
+  calcularCantidadPendiente,
   calcularEstadoCliente,
   calcularTotalesFacturas,
+  equiposQueVencieronHoy,
   facturaCerrada,
   facturaEnSeguimiento,
   obtenerFechaHoyBogota,
@@ -238,25 +240,62 @@ function nombreDeCliente(cliente) {
 }
 
 /**
- * El texto del aviso de facturas que entraron en seguimiento.
+ * El título del aviso de la madrugada.
  *
- * Con una sola se dice cuál es; con varias, de quiénes son. Más de tres no
- * entran en la pantalla del teléfono, así que se cuentan las que sobran: el
- * aviso es para que alguien abra la pantalla, no para resolverlo desde ahí.
+ * Se avisa por EQUIPO: lo normal es que la novedad del día sea que venció
+ * alguno. La factura que entra en seguimiento sin ningún equipo vencido existe
+ * igual —devolvió todo y quedó debiendo—, y ahí se dice así.
  *
- * @param {Array} entradas Facturas que entraron, con clienteId y numero.
- * @param {Map} nombres clienteId → nombre para mostrar.
- * @return {string} Texto del aviso.
+ * @param {Array} novedades Lo detectado hoy, ver describirNovedades.
+ * @return {string} Primera línea del aviso.
  */
-function describirEntradasEnSeguimiento(entradas, nombres) {
-  const deQuien = (entrada) => nombres.get(entrada.clienteId) || "Un cliente";
+function tituloDeNovedades(novedades) {
+  const equipos = novedades.filter((novedad) => novedad.equipo);
 
-  if (entradas.length === 1) {
-    return `Factura ${entradas[0].numero} de ${deQuien(entradas[0])}.`;
+  if (novedades.length === 1) {
+    return equipos.length === 1 ?
+      "Venció un equipo" :
+      "Una factura entró en seguimiento";
   }
 
-  const primeros = entradas.slice(0, 3).map(deQuien).join(", ");
-  const resto = entradas.length - 3;
+  return equipos.length === novedades.length ?
+    `${novedades.length} equipos vencieron hoy` :
+    `${novedades.length} novedades en seguimiento`;
+}
+
+/**
+ * El texto del aviso de la madrugada.
+ *
+ * Con una sola novedad se dice cuál es —qué equipo, de qué factura y de
+ * quién—; con varias, de quiénes son. Más de tres nombres no entran en la
+ * pantalla del teléfono, así que se cuentan los que sobran: el aviso es para
+ * que alguien abra la pantalla, no para resolverlo desde ahí.
+ *
+ * Los nombres no se repiten: tres equipos vencidos del mismo cliente se
+ * nombran una vez, no tres veces seguidas.
+ *
+ * @param {Array} novedades Cada una con clienteId, numero y, si es un equipo
+ *   vencido, su nombre y cuántas unidades faltan.
+ * @param {Map} nombres clienteId → nombre para mostrar.
+ * @return {string} Segunda línea del aviso.
+ */
+function describirNovedades(novedades, nombres) {
+  const deQuien = (novedad) => nombres.get(novedad.clienteId) || "Un cliente";
+
+  if (novedades.length === 1) {
+    const [novedad] = novedades;
+    if (!novedad.equipo) {
+      return `Factura ${novedad.numero} de ${deQuien(novedad)}.`;
+    }
+    return (
+      `${novedad.cantidad} ${novedad.equipo} de la factura ` +
+      `${novedad.numero}, de ${deQuien(novedad)}.`
+    );
+  }
+
+  const clientes = [...new Set(novedades.map(deQuien))];
+  const primeros = clientes.slice(0, 3).join(", ");
+  const resto = clientes.length - 3;
 
   return resto > 0 ? `${primeros} y ${resto} más.` : `${primeros}.`;
 }
@@ -679,13 +718,23 @@ export const recalcularTotalesPanel = onSchedule(
       const facturasPorCliente = new Map();
       let facturasCorregidas = 0;
 
-      // Las que ENTRARON en seguimiento con el cambio de día. Una factura vence
-      // sola, por calendario: nadie escribe nada y por eso nadie se entera. Se
-      // detectan preguntando si están en seguimiento HOY y no lo estaban AYER
-      // —los cálculos reciben la fecha, así que alcanza con evaluarlos dos
-      // veces— y no hace falta guardar ningún dato nuevo para saberlo.
+      // Lo que apareció con el cambio de día. Un equipo vence solo, por
+      // calendario: nadie escribe nada y por eso nadie se entera. Se detecta
+      // preguntando por HOY y por AYER —los cálculos reciben la fecha, así que
+      // alcanza con evaluarlos dos veces— y no hace falta guardar ningún dato
+      // nuevo para saberlo.
+      //
+      // Se cuenta un EQUIPO a la vez, no una factura. Avisar por factura dejaba
+      // ciega la mitad del problema: como una factura figura vencida en cuanto
+      // UNO de sus equipos lo está, la que ya estaba en seguimiento no volvía a
+      // "entrar" nunca y el segundo equipo vencía en silencio. Pasó de verdad
+      // con la 1234 el fin de semana del 2026-08-29: avisó el sábado por el
+      // equipo inicial y no dijo nada el domingo por el agregado.
+      //
+      // La factura que entra en seguimiento SIN ningún equipo vencido se sigue
+      // avisando igual: es la que devolvió todo y quedó debiendo.
       const ayer = restarUnDia(hoy);
-      const entraronEnSeguimiento = [];
+      const novedades = [];
 
       for (const facturaSnap of snap.docs) {
         const clienteId = facturaSnap.ref.parent.parent?.id;
@@ -696,14 +745,24 @@ export const recalcularTotalesPanel = onSchedule(
         lista.push(factura);
         facturasPorCliente.set(clienteId, lista);
 
+        const numero = factura.numeroFactura ?? "s/n";
+        const vencidosHoy = equiposQueVencieronHoy(factura, hoy, ayer);
+
+        for (const equipo of vencidosHoy) {
+          novedades.push({
+            clienteId,
+            numero,
+            equipo: equipo.nombre || "Un equipo",
+            cantidad: calcularCantidadPendiente(equipo),
+          });
+        }
+
         if (
+          vencidosHoy.length === 0 &&
           facturaEnSeguimiento(factura, hoy) &&
           !facturaEnSeguimiento(factura, ayer)
         ) {
-          entraronEnSeguimiento.push({
-            clienteId,
-            numero: factura.numeroFactura ?? "s/n",
-          });
+          novedades.push({clienteId, numero});
         }
 
         const cerrada = facturaCerrada(factura, hoy);
@@ -738,10 +797,10 @@ export const recalcularTotalesPanel = onSchedule(
           `marcas de cerrada corregidas: ${facturasCorregidas}`,
       );
 
-      // El aviso de las que entraron en seguimiento. Va acá abajo, con los
-      // clientes ya leídos, para poder decir de quién es cada factura sin
-      // volver a consultar nada.
-      if (entraronEnSeguimiento.length > 0) {
+      // El aviso de lo que apareció hoy. Va acá abajo, con los clientes ya
+      // leídos, para poder decir de quién es cada factura sin volver a
+      // consultar nada.
+      if (novedades.length > 0) {
         const nombres = new Map(
             clientesSnap.docs.map((docSnap) => [
               docSnap.id,
@@ -749,16 +808,9 @@ export const recalcularTotalesPanel = onSchedule(
             ]),
         );
 
-        const cuantas = entraronEnSeguimiento.length;
-
         await avisarAlPersonal({
-          titulo: cuantas === 1 ?
-            "Una factura entró en seguimiento" :
-            `${cuantas} facturas entraron en seguimiento`,
-          cuerpo: describirEntradasEnSeguimiento(
-              entraronEnSeguimiento,
-              nombres,
-          ),
+          titulo: tituloDeNovedades(novedades),
+          cuerpo: describirNovedades(novedades, nombres),
           url: "/vistaseguimientoclientes",
           tipo: "seguimiento",
         });

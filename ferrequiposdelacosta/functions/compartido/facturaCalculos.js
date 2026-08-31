@@ -681,6 +681,27 @@ export const contarUnidadesVencidas = (factura, hoyIso = obtenerFechaHoyBogota()
     .filter((equipo) => typeof equipo === "object" && !equipoAlDia(equipo, hoyIso))
     .reduce((total, equipo) => total + calcularCantidadPendiente(equipo), 0);
 
+// Los equipos que pasaron a vencidos con el cambio de día: hoy están vencidos,
+// ayer no lo estaban y todavía siguen afuera.
+//
+// Existe para poder avisar por EQUIPO y no por factura. Una factura figura
+// vencida en cuanto UNO de sus equipos lo está, así que la que ya está en
+// seguimiento no vuelve a "entrar" nunca más: el segundo equipo vencía en
+// silencio. Preguntando línea por línea en dos fechas, cada vencimiento se
+// detecta por separado y sigue sin hacer falta guardar ninguna marca nueva.
+//
+// Los ya devueltos quedan fuera —no hay nada que reclamar— y los de entrega
+// indefinida también: cuentan como vencidos siempre, así que nunca cambian de
+// ayer a hoy y no avisarían un día sí y otro también.
+export const equiposQueVencieronHoy = (factura, hoyIso, ayerIso) =>
+  (Array.isArray(factura?.equipos) ? factura.equipos : []).filter(
+    (equipo) =>
+      typeof equipo === "object" &&
+      calcularCantidadPendiente(equipo) > 0 &&
+      equipoVencido(equipo, hoyIso) &&
+      !equipoVencido(equipo, ayerIso),
+  );
+
 // Lo que el cliente debe de ANTES de la última renovación: lo que decía la
 // factura menos lo que pagó y abonó, sin contar los días recién concedidos.
 //

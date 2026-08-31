@@ -35,6 +35,7 @@ import {
   gestionesDeSeguimiento,
   estadoEnSeguimiento,
   facturaEnSeguimiento,
+  equiposQueVencieronHoy,
   etiquetaVencimiento,
 } from "./facturaUtils";
 
@@ -1126,5 +1127,125 @@ describe("facturaEnSeguimiento — el patrón de \"entró hoy\"", () => {
     const factura = facturaVencidaEl("2026-08-30");
 
     expect(entroEseDia(factura, "2026-08-16", "2026-08-15")).toBe(false);
+  });
+});
+
+// El caso real que lo motivó: la factura 1234, el fin de semana del
+// 2026-08-29. El sábado venció el equipo inicial y llegó el aviso; el domingo
+// venció el agregado y no llegó nada, porque la factura ya estaba en
+// seguimiento desde el sábado y no volvía a "entrar" nunca más.
+describe("equiposQueVencieronHoy", () => {
+  const facturaDeDosEquipos = () => ({
+    valorTotal: 300000,
+    pagos: [],
+    abonos: [],
+    equipos: [
+      {
+        nombre: "RANA",
+        cantidad: 2,
+        valor: 100000,
+        fechaDespacho: "2026-08-20",
+        fechaVencimiento: "2026-08-29",
+      },
+      {
+        nombre: "ANDAMIO",
+        cantidad: 1,
+        valor: 50000,
+        fechaDespacho: "2026-08-25",
+        fechaVencimiento: "2026-08-30",
+        agregadoPosteriormente: true,
+      },
+    ],
+  });
+
+  it("el sábado detecta el equipo inicial", () => {
+    const vencidos = equiposQueVencieronHoy(
+      facturaDeDosEquipos(),
+      "2026-08-29",
+      "2026-08-28",
+    );
+
+    expect(vencidos).toHaveLength(1);
+    expect(vencidos[0].nombre).toBe("RANA");
+  });
+
+  it("el domingo detecta el agregado, aunque la factura ya estaba vencida", () => {
+    const factura = facturaDeDosEquipos();
+
+    // La factura no "entra" en seguimiento: ya estaba adentro desde el sábado.
+    // Eso es justo lo que dejaba mudo al aviso viejo.
+    expect(facturaEnSeguimiento(factura, "2026-08-29")).toBe(true);
+    expect(facturaEnSeguimiento(factura, "2026-08-30")).toBe(true);
+
+    const vencidos = equiposQueVencieronHoy(
+      factura,
+      "2026-08-30",
+      "2026-08-29",
+    );
+
+    expect(vencidos).toHaveLength(1);
+    expect(vencidos[0].nombre).toBe("ANDAMIO");
+  });
+
+  it("el lunes ya no repite ninguno de los dos", () => {
+    const vencidos = equiposQueVencieronHoy(
+      facturaDeDosEquipos(),
+      "2026-08-31",
+      "2026-08-30",
+    );
+
+    expect(vencidos).toEqual([]);
+  });
+
+  it("el equipo que sigue en plazo no aparece", () => {
+    const vencidos = equiposQueVencieronHoy(
+      facturaDeDosEquipos(),
+      "2026-08-29",
+      "2026-08-28",
+    );
+
+    expect(vencidos.map((equipo) => equipo.nombre)).not.toContain("ANDAMIO");
+  });
+
+  it("el que ya se devolvió no se reclama", () => {
+    const factura = facturaDeDosEquipos();
+    factura.equipos[0].cantidadDevuelta = 2;
+
+    const vencidos = equiposQueVencieronHoy(
+      factura,
+      "2026-08-29",
+      "2026-08-28",
+    );
+
+    expect(vencidos).toEqual([]);
+  });
+
+  it("devuelto a medias: lo que falta sigue contando", () => {
+    const factura = facturaDeDosEquipos();
+    factura.equipos[0].cantidadDevuelta = 1;
+
+    const vencidos = equiposQueVencieronHoy(
+      factura,
+      "2026-08-29",
+      "2026-08-28",
+    );
+
+    expect(vencidos).toHaveLength(1);
+    expect(calcularCantidadPendiente(vencidos[0])).toBe(1);
+  });
+
+  it("el de entrega indefinida no avisa un día sí y otro también", () => {
+    // Cuenta como vencido siempre, así que nunca cambia de ayer a hoy: si no
+    // se filtrara, mandaría el mismo aviso cada madrugada para siempre.
+    const factura = {
+      equipos: [{ nombre: "MEZCLADORA", cantidad: 1, vencimientoIndefinido: true }],
+    };
+
+    expect(equiposQueVencieronHoy(factura, "2026-08-31", "2026-08-30")).toEqual([]);
+  });
+
+  it("una factura sin equipos no rompe nada", () => {
+    expect(equiposQueVencieronHoy({}, "2026-08-31", "2026-08-30")).toEqual([]);
+    expect(equiposQueVencieronHoy({ equipos: [] }, "2026-08-31", "2026-08-30")).toEqual([]);
   });
 });
