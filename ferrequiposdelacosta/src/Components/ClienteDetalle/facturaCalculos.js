@@ -615,6 +615,40 @@ export const agruparLotesAgregados = (equipos) => {
   return lotes;
 };
 
+// TODOS los lotes de la factura: el despacho original y cada grupo agregado
+// después, cada uno con su depósito.
+//
+// El depósito no es de la factura ni del equipo: es de cada DESPACHO. El
+// cliente pidió el Benetín y dejó $100.000; a los días pidió una Rana y dejó
+// otros $50.000. Son dos garantías distintas por dos entregas distintas, y la
+// única forma de decir cuánto respalda a cada equipo es saber en qué despacho
+// salió.
+//
+// Cada equipo viene con la posición que ocupa en `factura.equipos`, que es
+// como lo referencian las pantallas que dejan escribir sobre una línea.
+export const agruparLotesFactura = (factura) => {
+  const equipos = Array.isArray(factura?.equipos) ? factura.equipos : [];
+  const indiceDe = new Map(equipos.map((equipo, index) => [equipo, index]));
+  const conIndice = (lista) =>
+    lista.map((equipo) => ({ equipo, index: indiceDe.get(equipo) }));
+
+  const originales = equipos.filter((equipo) => !equipo?.agregadoPosteriormente);
+  const agregados = equipos.filter((equipo) => equipo?.agregadoPosteriormente);
+
+  const lotes = originales.length
+    ? [{ deposito: Number(factura?.deposito) || 0, equipos: conIndice(originales) }]
+    : [];
+
+  agruparLotesAgregados(agregados).forEach((lote) => {
+    lotes.push({
+      deposito: Number(lote.cabecera?.deposito) || 0,
+      equipos: conIndice(lote.equipos),
+    });
+  });
+
+  return lotes;
+};
+
 // ── El estado de una factura: se CALCULA, no se guarda ─────────────────
 //
 // El estado no vive en Firestore: sale de los datos que la factura ya tiene

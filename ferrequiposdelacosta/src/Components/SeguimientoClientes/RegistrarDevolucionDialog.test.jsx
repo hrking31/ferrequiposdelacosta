@@ -83,6 +83,27 @@ const facturaVencidaConEquipoEnPlazo = {
   ],
 };
 
+// Dos entregas con su propia garantía: el ANDAMIO salió con $100.000 y días
+// después el cliente pidió una RANA y dejó otros $50.000. Las dos vencidas.
+const facturaConDosDepositos = {
+  ...factura,
+  equipos: [
+    factura.equipos[0],
+    {
+      nombre: "RANA",
+      cantidad: 1,
+      dias: 2,
+      valor: 30000,
+      agregadoPosteriormente: true,
+      loteId: "lote2",
+      deposito: 50000,
+      fechaAgregado: "2026-08-02",
+      fechaDespacho: "2026-08-02",
+      fechaVencimiento: "2026-08-03",
+    },
+  ],
+};
+
 const abrir = (props = {}) =>
   renderConProviders(
     <RegistrarDevolucionDialog
@@ -211,6 +232,39 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
       retenido: 0,
       fecha: HOY,
     });
+  });
+});
+
+// El depósito es de cada ENTREGA, no de la factura: el cliente dejó $100.000
+// por el andamio y, cuando días después pidió la rana, otros $50.000.
+describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
+  it("cada equipo muestra el depósito de su propia entrega", () => {
+    abrir({ factura: facturaConDosDepositos });
+
+    // Con regex y no con el texto exacto: el formateador de moneda separa el
+    // signo con un espacio duro, que no se ve pero no es el espacio común.
+    expect(
+      screen.getByText(/Depósito de su entrega:.*100\.000/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Depósito de su entrega:.*50\.000/),
+    ).toBeInTheDocument();
+  });
+
+  it("no se puede retener de un equipo más de lo que dejó su entrega", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+
+    // La rana es el segundo equipo: dejó $50.000 y se intentan retener 80.000.
+    const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
+    await usuario.type(cantidades[1], "1");
+    await usuario.click(screen.getAllByLabelText(/en buen estado/)[0]);
+    await usuario.type(screen.getByLabelText("Qué le pasó"), "Sin la manguera");
+    await usuario.type(screen.getByLabelText("Se retiene del depósito"), "80000");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    // Se topa en los $50.000 de su entrega, no en los $150.000 de la factura.
+    expect(loGuardadoEnLaFactura().equipos[1].estadoDevolucion.retenido).toBe(50000);
   });
 });
 

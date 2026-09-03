@@ -23,6 +23,7 @@ import {
   calcularVencimiento,
   obtenerAmpliaciones,
   calcularCantidadPendiente,
+  agruparLotesFactura,
   equipoAlDia,
   equipoVencido,
   calcularEstadoCliente,
@@ -59,12 +60,16 @@ const ESTADO_INICIAL_CAMBIO = {
 // Lo que queda escrito en la línea del equipo que volvió. Se anota SIEMPRE,
 // también cuando volvió bien: "volvió sin novedad" es un dato, y su ausencia
 // no se distingue de una devolución vieja que nadie calificó.
-const estadoDevolucionDe = (cambio, fecha) => {
+// El tope es el depósito del DESPACHO en el que salió ese equipo: no se puede
+// retener del Benetín más de lo que el cliente dejó al llevárselo.
+const estadoDevolucionDe = (cambio, fecha, topeRetencion = Infinity) => {
   const bien = cambio?.buenEstado !== false;
   return {
     buenEstado: bien,
     motivo: bien ? "" : (cambio.motivoEstado || "").trim(),
-    retenido: bien ? 0 : Math.max(0, Number(cambio.retenidoEstado) || 0),
+    retenido: bien
+      ? 0
+      : Math.min(topeRetencion, Math.max(0, Number(cambio.retenidoEstado) || 0)),
     fecha,
   };
 };
@@ -143,10 +148,22 @@ export default function RegistrarDevolucionDialog({
   // sin registrar cómo volvió el de hoy, y para entonces ya no hay quién lo
   // recuerde.
   //
-  // LIQUIDAR el depósito sigue siendo al final. La garantía es UNA para todo
-  // el despacho —no está repartida por equipo— y se devuelve entera, así que
-  // lo retenido en cada devolución se va sumando y recién se resuelve cuando
-  // no queda nada afuera.
+  // LIQUIDAR sigue siendo al final: los depósitos se devuelven cuando la
+  // factura queda sin nada afuera, así que lo retenido en cada devolución se
+  // va sumando hasta ese momento.
+  //
+  // El depósito es de cada DESPACHO, no de la factura ni del equipo suelto: el
+  // cliente pidió el Benetín y dejó $100.000, y a los días pidió una Rana y
+  // dejó otros $50.000. Por eso cada equipo muestra el de su entrega, y de ahí
+  // sale el tope de lo que se le puede retener.
+  const lotes = agruparLotesFactura(factura);
+  const loteDelEquipo = new Map();
+  lotes.forEach((lote) =>
+    lote.equipos.forEach(({ index }) => loteDelEquipo.set(index, lote)),
+  );
+  const depositoDelEquipo = (index) => Number(loteDelEquipo.get(index)?.deposito) || 0;
+  const lotesConDeposito = lotes.filter((lote) => lote.deposito > 0);
+
   const depositoTotal = calcularDepositoTotal(factura);
   const resolverDeposito =
     hayDevolucion &&
@@ -171,7 +188,7 @@ export default function RegistrarDevolucionDialog({
       motivo: (cambios[index]?.motivoEstado || "").trim(),
       monto:
         cantidadQueDevuelve(equipo, index) > 0 && cambios[index]?.buenEstado === false
-          ? Math.max(0, Number(cambios[index].retenidoEstado) || 0)
+          ? estadoDevolucionDe(cambios[index], "", depositoDelEquipo(index)).retenido
           : 0,
     }))
     .filter(({ monto }) => monto > 0);
@@ -294,7 +311,7 @@ export default function RegistrarDevolucionDialog({
             ...equipo,
             cantidadDevuelta: Number(equipo.cantidad) || 0,
             fechaDevolucion: hoy,
-            estadoDevolucion: estadoDevolucionDe(cambio, hoy),
+            estadoDevolucion: estadoDevolucionDe(cambio, hoy, depositoDelEquipo(index)),
             vencimientoIndefinido: false,
           });
           return;
@@ -310,7 +327,7 @@ export default function RegistrarDevolucionDialog({
           cantidad: cantidadDevuelta,
           cantidadDevuelta,
           fechaDevolucion: hoy,
-          estadoDevolucion: estadoDevolucionDe(cambio, hoy),
+          estadoDevolucion: estadoDevolucionDe(cambio, hoy, depositoDelEquipo(index)),
           vencimientoIndefinido: false,
         });
 
@@ -473,11 +490,33 @@ export default function RegistrarDevolucionDialog({
                   <Typography variant="body2" fontWeight="bold">
                     {pendiente} {equipo.nombre}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                     {equipo.vencimientoIndefinido
                       ? "Entrega indefinida actualmente"
                       : `Vence: ${formatearFechaLegible(equipo.fechaVencimiento)}`}
                   </Typography>
+
+                  {/* El depósito de SU entrega. Va acá arriba, con el equipo,
+                      y no solo abajo en la liquidación: el cliente dejó
+                      $100.000 por el Benetín y $50.000 por la Rana que pidió
+                      después, y quien recibe necesita saber con cuánto está
+                      respaldado ESTE equipo antes de decidir si retiene algo.
+
+                      Cuando la entrega trajo varios equipos, el depósito es
+                      de todos juntos y hay que decirlo: repartirlo por equipo
+                      sería inventar un número que nadie pactó. */}
+                  {depositoDelEquipo(index) > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", color: "custom.accent" }}
+                    >
+                      Depósito de su entrega: {formatearMoneda(depositoDelEquipo(index))}
+                      {loteDelEquipo.get(index)?.equipos.length > 1 &&
+                        ` (por los ${loteDelEquipo.get(index).equipos.length} equipos de ese despacho)`}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mb: 1 }} />
 
                   <TextField
                     label="Cantidad que devuelve hoy"
@@ -535,10 +574,10 @@ export default function RegistrarDevolucionDialog({
                             placeholder="Ej: rayadura en el tambor, falta una manguera"
                           />
 
-                          {/* Solo si hay garantía de dónde retener. Sin
-                              depósito el daño igual queda anotado: es lo que
-                              se le reclama al cliente. */}
-                          {depositoTotal > 0 && (
+                          {/* Solo si SU entrega dejó garantía de dónde
+                              retener. Sin depósito el daño igual queda
+                              anotado: es lo que se le reclama al cliente. */}
+                          {depositoDelEquipo(index) > 0 && (
                             <TextField
                               label="Se retiene del depósito"
                               name={`estadoRetenido-${index}`}
@@ -553,7 +592,9 @@ export default function RegistrarDevolucionDialog({
                               fullWidth
                               size="small"
                               sx={{ mt: 1 }}
-                              helperText="Se puede dejar vacío y decidirlo al liquidar"
+                              helperText={`Hasta ${formatearMoneda(
+                                depositoDelEquipo(index),
+                              )}, que es lo que dejó por esta entrega. Se puede dejar vacío y decidirlo al liquidar.`}
                             />
                           )}
                         </Box>
@@ -654,6 +695,23 @@ export default function RegistrarDevolucionDialog({
                 <Typography variant="subtitle2" sx={{ color: acento }}>
                   Depósito: {formatearMoneda(depositoTotal)}
                 </Typography>
+
+                {/* De dónde sale ese total. Con una sola entrega el desglose
+                    repetiría el número de arriba; con dos o más, decir
+                    "$150.000" a secas esconde que son dos garantías por dos
+                    despachos distintos. */}
+                {lotesConDeposito.length > 1 &&
+                  lotesConDeposito.map((lote, posicion) => (
+                    <Typography
+                      key={`deposito-lote-${posicion}`}
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block" }}
+                    >
+                      · {lote.equipos.map(({ equipo }) => equipo.nombre).join(", ")}:{" "}
+                      {formatearMoneda(lote.deposito)}
+                    </Typography>
+                  ))}
 
                 {retenciones.length === 0 ? (
                   <Typography variant="body2" sx={{ mt: 0.5 }}>
