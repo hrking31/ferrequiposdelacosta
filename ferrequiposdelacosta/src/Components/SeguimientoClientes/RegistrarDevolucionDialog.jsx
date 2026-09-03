@@ -23,6 +23,7 @@ import {
   calcularVencimiento,
   obtenerAmpliaciones,
   calcularCantidadPendiente,
+  calcularAmpliacionEquipo,
   agruparLotesFactura,
   equipoAlDia,
   equipoVencido,
@@ -282,6 +283,26 @@ export default function RegistrarDevolucionDialog({
       return;
     }
 
+    // Y no se puede retener más de lo que el cliente dejó por ESA entrega.
+    // Se avisa en vez de recortarlo solo: guardar un número menor que el
+    // escrito, sin decirlo, es la forma de que alguien crea que retuvo una
+    // plata que nunca se retuvo.
+    const seExcede = equiposPendientes.find(
+      ({ equipo, index }) =>
+        cantidadQueDevuelve(equipo, index) > 0 &&
+        cambios[index]?.buenEstado === false &&
+        Number(cambios[index]?.retenidoEstado) > depositoDelEquipo(index),
+    );
+    if (seExcede) {
+      showSnackbar(
+        `Por la entrega del ${seExcede.equipo.nombre} el cliente dejó ${formatearMoneda(
+          depositoDelEquipo(seExcede.index),
+        )}.`,
+        "warning",
+      );
+      return;
+    }
+
     setGuardando(true);
     try {
       const hoy = obtenerFechaHoyBogota();
@@ -484,39 +505,38 @@ export default function RegistrarDevolucionDialog({
                 !cambio.indefinida && diasNumero > 0
                   ? calcularVencimiento(equipo.fechaVencimiento, diasNumero)
                   : null;
+              // Los días que el equipo lleva afuera pasada su fecha. Sale del
+              // mismo cálculo que los cobra, así que el diálogo no puede
+              // decir un número distinto del que termina en la cuenta.
+              const diasVencidos = calcularAmpliacionEquipo(equipo).diasAbiertos;
 
               return (
                 <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
                   <Typography variant="body2" fontWeight="bold">
                     {pendiente} {equipo.nombre}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  {/* La fecha vigente y lo que se pasó de ella. La fecha es
+                      la del ÚLTIMO acuerdo —si se amplió el plazo, la nueva—,
+                      y al lado los días que el equipo lleva afuera desde que
+                      esa fecha pasó. Sin eso hay que restar de cabeza contra
+                      el día de hoy para saber de qué tamaño es el atraso, que
+                      es justo lo que se necesita saber al recibirlo. */}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mb: 1 }}
+                  >
                     {equipo.vencimientoIndefinido
                       ? "Entrega indefinida actualmente"
                       : `Vence: ${formatearFechaLegible(equipo.fechaVencimiento)}`}
+                    {diasVencidos > 0 && (
+                      <Box component="span" sx={{ color: "error.main", fontWeight: 600 }}>
+                        {" "}
+                        - {diasVencidos} día{diasVencidos === 1 ? "" : "s"} vencido
+                        {diasVencidos === 1 ? "" : "s"}
+                      </Box>
+                    )}
                   </Typography>
-
-                  {/* El depósito de SU entrega. Va acá arriba, con el equipo,
-                      y no solo abajo en la liquidación: el cliente dejó
-                      $100.000 por el Benetín y $50.000 por la Rana que pidió
-                      después, y quien recibe necesita saber con cuánto está
-                      respaldado ESTE equipo antes de decidir si retiene algo.
-
-                      Cuando la entrega trajo varios equipos, el depósito es
-                      de todos juntos y hay que decirlo: repartirlo por equipo
-                      sería inventar un número que nadie pactó. */}
-                  {depositoDelEquipo(index) > 0 && (
-                    <Typography
-                      variant="caption"
-                      sx={{ display: "block", color: "custom.accent" }}
-                    >
-                      Depósito de su entrega: {formatearMoneda(depositoDelEquipo(index))}
-                      {loteDelEquipo.get(index)?.equipos.length > 1 &&
-                        ` (por los ${loteDelEquipo.get(index).equipos.length} equipos de ese despacho)`}
-                    </Typography>
-                  )}
-
-                  <Box sx={{ mb: 1 }} />
 
                   <TextField
                     label="Cantidad que devuelve hoy"
@@ -592,9 +612,20 @@ export default function RegistrarDevolucionDialog({
                               fullWidth
                               size="small"
                               sx={{ mt: 1 }}
-                              helperText={`Hasta ${formatearMoneda(
-                                depositoDelEquipo(index),
-                              )}, que es lo que dejó por esta entrega. Se puede dejar vacío y decidirlo al liquidar.`}
+                              // El tope sigue siendo el depósito de SU
+                              // entrega, pero no se anuncia: solo avisa a
+                              // quien se pasa. Guardar en silencio un número
+                              // menor que el escrito sería peor que no topar.
+                              error={
+                                Number(cambio.retenidoEstado) > depositoDelEquipo(index)
+                              }
+                              helperText={
+                                Number(cambio.retenidoEstado) > depositoDelEquipo(index)
+                                  ? `Por esta entrega solo dejó ${formatearMoneda(
+                                      depositoDelEquipo(index),
+                                    )}`
+                                  : "Se puede dejar vacío y decidirlo al liquidar"
+                              }
                             />
                           )}
                         </Box>

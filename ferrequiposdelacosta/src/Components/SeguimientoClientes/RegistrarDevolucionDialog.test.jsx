@@ -238,23 +238,11 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
 // El depósito es de cada ENTREGA, no de la factura: el cliente dejó $100.000
 // por el andamio y, cuando días después pidió la rana, otros $50.000.
 describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
-  it("cada equipo muestra el depósito de su propia entrega", () => {
-    abrir({ factura: facturaConDosDepositos });
-
-    // Con regex y no con el texto exacto: el formateador de moneda separa el
-    // signo con un espacio duro, que no se ve pero no es el espacio común.
-    expect(
-      screen.getByText(/Depósito de su entrega:.*100\.000/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Depósito de su entrega:.*50\.000/),
-    ).toBeInTheDocument();
-  });
-
-  it("no se puede retener de un equipo más de lo que dejó su entrega", async () => {
+  it("no deja retener de un equipo más de lo que dejó su entrega", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
-    // La rana es el segundo equipo: dejó $50.000 y se intentan retener 80.000.
+    // La rana es el segundo equipo: dejó $50.000 y se intentan retener 80.000,
+    // que sí caben en los $150.000 de la factura entera.
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[1], "1");
     await usuario.click(screen.getAllByLabelText(/en buen estado/)[0]);
@@ -262,9 +250,38 @@ describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
     await usuario.type(screen.getByLabelText("Se retiene del depósito"), "80000");
     await guardar(usuario);
 
+    // Avisa en vez de recortarlo en silencio.
+    expect(
+      await screen.findByText(/Por la entrega del RANA el cliente dejó/),
+    ).toBeInTheDocument();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+
+  it("hasta el depósito de su entrega sí lo guarda", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+
+    const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
+    await usuario.type(cantidades[1], "1");
+    await usuario.click(screen.getAllByLabelText(/en buen estado/)[0]);
+    await usuario.type(screen.getByLabelText("Qué le pasó"), "Sin la manguera");
+    await usuario.type(screen.getByLabelText("Se retiene del depósito"), "50000");
+    await guardar(usuario);
+
     expect(await exito()).toBeInTheDocument();
-    // Se topa en los $50.000 de su entrega, no en los $150.000 de la factura.
     expect(loGuardadoEnLaFactura().equipos[1].estadoDevolucion.retenido).toBe(50000);
+  });
+});
+
+// Al recibir un equipo atrasado hay que saber de qué tamaño es el atraso, y
+// restar a mano contra el día de hoy no es forma.
+describe("RegistrarDevolucionDialog — los días vencidos en la fila", () => {
+  it("muestra la fecha del último acuerdo y cuántos días se pasó", () => {
+    abrir();
+
+    // El andamio vencía el 03/08 y sigue afuera: la fila lo dice al lado de
+    // la fecha, sin obligar a contar.
+    expect(screen.getByText(/Vence: 03\/08\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/días vencidos/)).toBeInTheDocument();
   });
 });
 
