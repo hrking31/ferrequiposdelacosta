@@ -543,6 +543,7 @@ export default function FacturaCard({
                         key={`original-${index}`}
                         equipo={equipo}
                         color={colorEquipos}
+                        fechaPedido={factura.fecha}
                       />
                     ))}
                   </Box>
@@ -690,6 +691,7 @@ export default function FacturaCard({
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
                             color={colorEquiposAgregados}
+                            fechaPedido={lote.cabecera.fechaAgregado}
                           />
                         ))}
                       </Box>

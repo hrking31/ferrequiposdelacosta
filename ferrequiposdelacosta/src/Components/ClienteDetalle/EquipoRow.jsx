@@ -61,7 +61,7 @@ Cifra.propTypes = {
   principal: PropTypes.bool,
 };
 
-export default function EquipoRow({ equipo, color }) {
+export default function EquipoRow({ equipo, color, fechaPedido }) {
   const theme = useTheme();
 
   const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
@@ -175,9 +175,26 @@ export default function EquipoRow({ equipo, color }) {
               <Typography component="span" variant="body2" fontWeight="bold">
                 {equipo.nombre}
               </Typography>
-              {/* El rótulo va pegado al nombre y no como un chip más abajo: es
-                  lo primero que hay que saber de la tarjeta, y entre los chips
-                  de fechas se perdía. */}
+              {/* CUÁNDO SE PIDIÓ, que no es lo mismo que cuándo salió
+                  despachado. La traen todos los equipos, no solo los que se
+                  sumaron después: para los del despacho original es la fecha
+                  en que se creó la factura, y sin ella había que deducir de la
+                  ausencia del dato que el equipo venía de entrada. */}
+              {fechaPedido && (
+                <Typography
+                  component="span"
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ ml: 0.75, whiteSpace: "nowrap" }}
+                >
+                  agregado {formatearFecha(fechaPedido)}
+                </Typography>
+              )}
+              {/* Y CUÁNDO VOLVIÓ, pegado al rótulo. El rótulo va junto al
+                  nombre y no como un chip más abajo: es lo primero que hay que
+                  saber de la tarjeta, y entre los chips de fechas se perdía.
+                  La fecha viaja con él por lo mismo —"DEVUELTO" a secas obliga
+                  a bajar a buscar cuándo—. */}
               {devuelto && (
                 <Typography
                   component="span"
@@ -199,20 +216,7 @@ export default function EquipoRow({ equipo, color }) {
                     color: theme.palette.getContrastText(colorDevolucion),
                   }}
                 >
-                  DEVUELTO
-                </Typography>
-              )}
-              {/* Cuándo se pidió este equipo, que no es lo mismo que cuándo
-                  salió despachado. Solo lo traen los que se sumaron después de
-                  crear la factura. */}
-              {equipo.fechaAgregado && (
-                <Typography
-                  component="span"
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 0.75, whiteSpace: "nowrap" }}
-                >
-                  agregado {formatearFecha(equipo.fechaAgregado)}
+                  DEVUELTO{equipo.fechaDevolucion ? ` ${formatearFecha(equipo.fechaDevolucion)}` : ""}
                 </Typography>
               )}
             </Box>
@@ -225,7 +229,7 @@ export default function EquipoRow({ equipo, color }) {
               día viaja junto a la fecha de salida, que es de lo que es
               condición, y partirlos en dos columnas volvería a separar lo que
               se acaba de juntar. En móvil los tramos envuelven solos. */}
-          <ChipsFechasEquipo equipo={equipo} />
+          <ChipsFechasEquipo equipo={equipo} omitir={["devuelto"]} />
         </Box>
 
         {/* COLUMNA DERECHA: la plata. */}
@@ -260,4 +264,8 @@ export default function EquipoRow({ equipo, color }) {
 EquipoRow.propTypes = {
   equipo: PropTypes.object.isRequired,
   color: PropTypes.string.isRequired,
+  // Cuándo se pidió: la fecha del lote que lo trajo. Para los equipos del
+  // despacho original es la de la factura; para los agregados después, la del
+  // lote. La pone quien dibuja la fila, que es quien sabe de qué lote es.
+  fechaPedido: PropTypes.string,
 };

@@ -70,9 +70,11 @@ const FlechaCadena = () => (
   </Box>
 );
 
-const ChipsFechasEquipo = ({ equipo, hoy }) => {
+const ChipsFechasEquipo = ({ equipo, hoy, omitir = [] }) => {
   const theme = useTheme();
-  const tramos = agruparChipsFechas(describirFechasEquipo(equipo, hoy));
+  const tramos = agruparChipsFechas(
+    describirFechasEquipo(equipo, hoy).filter((chip) => !omitir.includes(chip.clave)),
+  );
 
   if (tramos.length === 0) return null;
 
@@ -117,6 +119,10 @@ ChipsFechasEquipo.propTypes = {
   // para toda la tarjeta y la pasa para no repetir la cuenta por cada equipo;
   // sin ella, el cálculo la resuelve solo.
   hoy: PropTypes.string,
+  // Claves de chips que esta pantalla ya cuenta por su cuenta y no quiere ver
+  // repetidas. La ficha del cliente omite "devuelto" porque la fecha va pegada
+  // al rótulo DEVUELTO, arriba, junto al nombre.
+  omitir: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default ChipsFechasEquipo;
