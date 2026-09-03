@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-418_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-476_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -688,11 +688,21 @@ El renglón más nuevo va **vacío** a propósito. Su total es el que está arri
 
 Lo que el cliente **devolvió sin usar no tiene renglón propio**: se le resta a la renta del equipo, que es lo que corrige. Un equipo que salió por 3 días y volvió a 1 se lee como un solo renglón de 1 día —lo que se le cobra— y no como 3 y −2, que obliga a restar de cabeza para saber lo que interesa. El crédito sigue a la vista en los chips del equipo, que son los que cuentan cuántos días fueron.
 
-### Dos números que decían lo mismo dos veces
+### La plata del equipo también tiene historia
 
 La fila de un equipo mostraba dos cifras, una debajo de la otra, y la de abajo **contenía** a la de arriba: $600.000 de renta inicial y $2.400.000 de total. Puestos así no dicen dos cosas, dicen una sola dos veces, y obligan a restar de cabeza para saber lo que interesa.
 
-Ahora el segundo número es **solo lo que se agregó**: $600.000 y $1.800.000. Se leen como "esto se cobró" y "esto se debe". Y cuando lo agregado es un crédito —una devolución anticipada— el mismo número lleva su signo y va en verde.
+Se corrigió dejando abajo **solo lo que se agregó** — pero ese número seguía sumando hechos distintos en uno. En un Benetín de $190.000 el día daba $1.330.000, y adentro había $380.000 de una ampliación que alguien autorizó y $950.000 de cinco días que el cliente se tomó sin avisar. Es la misma confusión que ya se había resuelto en el IVA de los cargos adicionales, todavía en pie acá.
+
+Ahora cada hecho tiene su propia cifra, en el orden en que ocurrió:
+
+```
+2  BENETÍN                          $ 1.330.000   ← los 7 días que se despacharon
+                                    $   380.000   ← los 2 días que se ampliaron
+                                    $   950.000   ← los 5 días vencidos
+```
+
+Van **sin rótulo**: qué es cada una ya lo cuentan los tramos de abajo —*"+2 días"*, *"5 días vencidos"*—, y el color las ata a su chip: el acento para lo pactado, el rojo para lo que corre solo. Un equipo al día muestra una sola cifra, como siempre. Y uno **ya devuelto** sigue mostrando un solo número —lo que de verdad se le cobró por los días que lo usó—, porque su cuenta está cerrada y ahí el desglose ya no ayuda a decidir nada.
 
 ### La pantalla angosta decide qué cede, no qué se rompe
 
@@ -797,7 +807,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**418 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**476 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 

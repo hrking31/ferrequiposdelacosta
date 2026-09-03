@@ -210,13 +210,12 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
   const diasPactados = ampliacion.dias - ampliacion.diasAbiertos;
   if (diasPactados > 0) {
-    const neto = Math.max(0, diasPactados * valorPorDia - ampliacion.descuento);
     chips.push({
       clave: "ampliacion",
       tramo: TRAMO_FECHAS.PLAZO,
       tono: "acento",
       enCadena: true,
-      label: `+${plural(diasPactados, "día")}${conValor(neto)}`,
+      label: `+${plural(diasPactados, "día")}${conValor(ampliacion.netoPactado)}`,
     });
   }
 
@@ -269,7 +268,7 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       tono: "urgente",
       label: `${plural(ampliacion.diasAbiertos, "día")} vencido${
         ampliacion.diasAbiertos === 1 ? "" : "s"
-      }${conValor(ampliacion.diasAbiertos * valorPorDia)}`,
+      }${conValor(ampliacion.netoVencido)}`,
     });
   }
 

@@ -259,6 +259,16 @@ export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota(
     diasAbiertos,
     diasSinUsar,
     creditoSinUsar,
+    // Y la plata de cada uno por separado, que es como se muestra el equipo:
+    // primero lo que se cobró al despachar, después lo que se pactó al ampliar
+    // y por último lo que corre solo desde que se venció. Sumar los dos
+    // últimos en un número deja una cifra que ya no dice de dónde salió, y
+    // cada pantalla que quería separarlos rehacía la misma cuenta a mano.
+    //
+    // El descuento pesa sobre lo pactado, que es donde se otorga: un día
+    // vencido nunca lleva descuento porque no se pactó ninguno.
+    netoPactado: resumen.neto,
+    netoVencido: diasAbiertos * porDia,
   };
 };
 

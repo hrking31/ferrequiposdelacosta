@@ -25,26 +25,35 @@ export default function EquipoRow({ equipo, color }) {
   const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
   const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
 
-  // Lo que el equipo suma o resta sobre su valor inicial: de más si se le
-  // amplió el plazo o se pasó de la fecha, de menos si devolvió antes y hay
-  // días que no se le cobran. Se muestra debajo del valor original —dos
-  // números que se suman, no uno que ya incluye al otro—, y con el signo
-  // adelante cuando es a favor del cliente.
+  // La HISTORIA de la plata del equipo, en las mismas partes en que ocurrió:
+  // lo que se cobró al despachar, lo que se pactó después al ampliar el plazo
+  // y lo que corre solo desde que se venció. Van una debajo de la otra, sin
+  // rótulo: qué es cada cifra ya lo dicen los chips de abajo —"+2 días",
+  // "5 días vencidos"—, y el color las separa de un vistazo.
+  //
+  // Antes iban dos números: el inicial y TODO lo demás sumado en uno. Con el
+  // Benetín eso daba "$ 1.330.000" y "$ 1.330.000", donde el segundo eran en
+  // realidad $ 380.000 de una ampliación y $ 950.000 de cinco días vencidos:
+  // dos hechos distintos —uno pactado, el otro no— escondidos en una cifra que
+  // ya no decía de dónde salía.
   const ampliacionEquipo = calcularAmpliacionEquipo(equipo);
-  const ajusteEquipo =
-    subtotalEquipo > 0 && ampliacionEquipo.neto !== 0 ? ampliacionEquipo.neto : 0;
+  const hayRenta = subtotalEquipo > 0;
+  const valorAmpliado = hayRenta ? ampliacionEquipo.netoPactado : 0;
+  const valorVencido = hayRenta ? ampliacionEquipo.netoVencido : 0;
 
   // Un equipo devuelto ya no tiene nada por presentarse: su cuenta está
   // cerrada. Por eso va UN solo número —lo que de verdad se le cobra por los
-  // días que lo usó— en vez del valor contratado con el ajuste debajo. De
-  // dónde sale el descuento lo explica el chip de días sin usar, y tenerlo
-  // también acá era decir dos veces lo mismo.
+  // días que lo usó— en vez del desglose. De dónde sale el descuento lo
+  // explica el chip de días sin usar, y tenerlo también acá era decir dos
+  // veces lo mismo.
   //
-  // Mientras sigue afuera se mantienen los dos números, que es la regla que ya
-  // se había fijado: el inicial, y aparte lo que se fue presentando.
+  // Mientras sigue afuera se muestra la historia completa.
   const devuelto = equipoDevueltoCompleto(equipo);
-  const valorMostrado = devuelto ? subtotalEquipo + ajusteEquipo : subtotalEquipo;
-  const mostrarAjusteAparte = !devuelto && ajusteEquipo !== 0;
+  const valorMostrado =
+    devuelto && hayRenta
+      ? subtotalEquipo + ampliacionEquipo.neto
+      : subtotalEquipo;
+  const mostrarHistorial = !devuelto && (valorAmpliado > 0 || valorVencido > 0);
 
   // El color del RELLENO —el resplandor de adentro y el degradado—. Un equipo
   // ya devuelto se pinta de gris por dentro: el color dice el estado sin que
@@ -154,19 +163,33 @@ export default function EquipoRow({ equipo, color }) {
             <Typography variant="body2" fontWeight="bold">
               {formatearMoneda(valorMostrado)}
             </Typography>
-            {mostrarAjusteAparte && (
+            {mostrarHistorial && valorAmpliado > 0 && (
               <Typography
                 variant="caption"
                 fontWeight="bold"
                 sx={{
-                  // A favor del cliente va en verde, no en el acento: es el
-                  // mismo criterio del chip "días sin usar".
-                  color: ajusteEquipo < 0 ? "success.main" : "custom.accent",
+                  // El acento, igual que el chip "+2 días" del que sale este
+                  // número: lo pactado se pinta del mismo color en los dos
+                  // lados de la tarjeta.
+                  color: "custom.accent",
                   lineHeight: 1.2,
                 }}
               >
-                {ajusteEquipo < 0 ? "-" : ""}
-                {formatearMoneda(Math.abs(ajusteEquipo))}
+                {formatearMoneda(valorAmpliado)}
+              </Typography>
+            )}
+            {mostrarHistorial && valorVencido > 0 && (
+              <Typography
+                variant="caption"
+                fontWeight="bold"
+                sx={{
+                  // Rojo, como el chip "5 días vencidos": esta plata no se
+                  // pactó con nadie, se está acumulando sola.
+                  color: "error.main",
+                  lineHeight: 1.2,
+                }}
+              >
+                {formatearMoneda(valorVencido)}
               </Typography>
             )}
           </Stack>

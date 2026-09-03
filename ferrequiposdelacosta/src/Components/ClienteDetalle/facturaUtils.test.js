@@ -433,6 +433,49 @@ describe("calcularAmpliacionEquipo", () => {
   });
 });
 
+// La tarjeta del equipo muestra la historia de su plata en tres cifras —lo
+// inicial, lo ampliado y lo vencido—, así que el cálculo tiene que entregar
+// las dos últimas separadas y no sumadas en una sola.
+describe("calcularAmpliacionEquipo — lo pactado y lo vencido, por separado", () => {
+  // El Benetín de la 1234: $190.000 el día, 7 días de renta inicial
+  // ($1.330.000), una ampliación de 2 días ($380.000) y 5 días vencidos
+  // ($950.000).
+  const benetin = {
+    cantidad: 1,
+    valor: 190000,
+    dias: 7,
+    ampliaciones: [{ dias: 2, descuento: 0 }],
+    fechaVencimiento: "2026-08-10",
+  };
+
+  it("distingue los días que se ampliaron de los que corren solos", () => {
+    const ampliacion = calcularAmpliacionEquipo(benetin, HOY);
+    expect(ampliacion.netoPactado).toBe(380000);
+    expect(ampliacion.netoVencido).toBe(950000);
+    // Y los dos juntos siguen dando lo mismo de antes, que es de donde salen
+    // el total de la factura y el saldo.
+    expect(ampliacion.neto).toBe(1330000);
+  });
+
+  it("el descuento pesa sobre lo pactado, nunca sobre lo vencido", () => {
+    const ampliacion = calcularAmpliacionEquipo(
+      { ...benetin, ampliaciones: [{ dias: 2, descuento: 80000 }] },
+      HOY,
+    );
+    expect(ampliacion.netoPactado).toBe(300000);
+    expect(ampliacion.netoVencido).toBe(950000);
+  });
+
+  it("un equipo en plazo y sin ampliaciones no tiene ni lo uno ni lo otro", () => {
+    const ampliacion = calcularAmpliacionEquipo(
+      { cantidad: 1, valor: 190000, dias: 7, fechaVencimiento: "2026-08-20" },
+      HOY,
+    );
+    expect(ampliacion.netoPactado).toBe(0);
+    expect(ampliacion.netoVencido).toBe(0);
+  });
+});
+
 // El espejo de los días vencidos: si el equipo vuelve ANTES de la fecha, los
 // días que el cliente pagó y no usó no se le cobran.
 describe("calcularAmpliacionEquipo — devolución anticipada", () => {
