@@ -156,37 +156,97 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     });
   });
 
-  it("si se retiene parte del depósito, exige decir por qué", async () => {
+  it("si un equipo volvió mal, exige decir qué le pasó", async () => {
     const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
-    // Se destilda "volvió en buen estado": recién ahí aparece cuánto retener.
-    await usuario.click(screen.getByLabelText(/Volvió todo completo y en buen estado/));
-    await usuario.type(screen.getByLabelText("Se retiene"), "30000");
+    // Se destilda "volvieron en buen estado": recién ahí aparece qué pasó.
+    await usuario.click(screen.getByLabelText(/en buen estado/));
+    await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
     await guardar(usuario);
 
     expect(
-      await screen.findByText("Escribí por qué se retiene parte del depósito."),
+      await screen.findByText("Escribí qué le pasó al ANDAMIO."),
     ).toBeInTheDocument();
     expect(bd.commit).not.toHaveBeenCalled();
   });
 
-  it("con el motivo escrito, guarda cuánto se retuvo y por qué", async () => {
+  it("guarda el estado en la línea del equipo y liquida el depósito con eso", async () => {
     const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
-    // Se destilda "volvió en buen estado": recién ahí aparece cuánto retener.
-    await usuario.click(screen.getByLabelText(/Volvió todo completo y en buen estado/));
-    await usuario.type(screen.getByLabelText("Se retiene"), "30000");
-    await usuario.type(screen.getByLabelText("Motivo"), "Andamio rayado");
+    await usuario.click(screen.getByLabelText(/en buen estado/));
+    await usuario.type(screen.getByLabelText("Qué le pasó"), "Andamio rayado");
+    await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    expect(loGuardadoEnLaFactura().depositoResuelto).toEqual({
-      retenido: 30000,
+
+    // El estado queda pegado al equipo que volvió, con su fecha.
+    expect(loGuardadoEnLaFactura().equipos[0].estadoDevolucion).toEqual({
+      buenEstado: false,
       motivo: "Andamio rayado",
+      retenido: 30000,
       fecha: HOY,
     });
+
+    // Y el depósito se liquida con lo anotado, diciendo por CUÁL equipo.
+    expect(loGuardadoEnLaFactura().depositoResuelto).toEqual({
+      retenido: 30000,
+      motivo: "ANDAMIO: Andamio rayado",
+      fecha: HOY,
+    });
+  });
+
+  it("cuando vuelve bien, deja anotado que volvió sin novedad", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura().equipos[0].estadoDevolucion).toEqual({
+      buenEstado: true,
+      motivo: "",
+      retenido: 0,
+      fecha: HOY,
+    });
+  });
+});
+
+// Lo que motivó todo esto: el cliente devuelve UNO de siete equipos hoy y el
+// resto en tres semanas. Calificar cómo volvió el de hoy no puede esperar al
+// último, porque para entonces no hay quién lo recuerde.
+describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
+  it("pregunta por el estado aunque queden equipos afuera", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+
+    // Quedan 3 andamios afuera y la casilla del estado igual está.
+    expect(screen.getByLabelText(/en buen estado/)).toBeInTheDocument();
+    // El depósito, en cambio, no se liquida hasta que vuelva todo.
+    expect(screen.queryByText(/al liquidar la factura/)).not.toBeInTheDocument();
+  });
+
+  it("el estado queda en la parte que volvió, no en la que sigue afuera", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await usuario.click(screen.getByLabelText(/en buen estado/));
+    await usuario.type(screen.getByLabelText("Qué le pasó"), "Uno llegó torcido");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+
+    const [devuelto, afuera] = loGuardadoEnLaFactura().equipos;
+    expect(devuelto.cantidadDevuelta).toBe(2);
+    expect(devuelto.estadoDevolucion.motivo).toBe("Uno llegó torcido");
+    // La línea que sigue afuera no volvió: no hay nada que calificar en ella.
+    expect(afuera.cantidad).toBe(3);
+    expect(afuera.estadoDevolucion).toBeUndefined();
+    // Y el depósito sigue sin resolverse.
+    expect(loGuardadoEnLaFactura().depositoResuelto).toBeUndefined();
   });
 });
 

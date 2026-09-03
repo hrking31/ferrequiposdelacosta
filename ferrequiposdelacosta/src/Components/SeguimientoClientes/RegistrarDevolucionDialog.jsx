@@ -42,12 +42,32 @@ const formatearFechaLegible = (fechaIso) => {
   return `${dia}/${mes}/${anio}`;
 };
 
-const ESTADO_INICIAL_CAMBIO = { cantidad: "", dias: "", descuento: "", indefinida: false };
+// Lo que se escribe sobre UNA línea de equipo: cuánto vuelve, en qué estado
+// volvió y —si queda un remanente afuera— qué plazo se le da a ese remanente.
+//
+// El estado arranca en "volvió bien", que es lo que pasa casi siempre.
+const ESTADO_INICIAL_CAMBIO = {
+  cantidad: "",
+  dias: "",
+  descuento: "",
+  indefinida: false,
+  buenEstado: true,
+  motivoEstado: "",
+  retenidoEstado: "",
+};
 
-// El depósito se resuelve acá porque es el único momento en que alguien tiene
-// los equipos delante y puede decir en qué estado volvieron. Arranca en "todo
-// bien", que es lo que pasa casi siempre.
-const ESTADO_INICIAL_DEPOSITO = { buenEstado: true, retenido: "", motivo: "" };
+// Lo que queda escrito en la línea del equipo que volvió. Se anota SIEMPRE,
+// también cuando volvió bien: "volvió sin novedad" es un dato, y su ausencia
+// no se distingue de una devolución vieja que nadie calificó.
+const estadoDevolucionDe = (cambio, fecha) => {
+  const bien = cambio?.buenEstado !== false;
+  return {
+    buenEstado: bien,
+    motivo: bien ? "" : (cambio.motivoEstado || "").trim(),
+    retenido: bien ? 0 : Math.max(0, Number(cambio.retenidoEstado) || 0),
+    fecha,
+  };
+};
 
 // Registra qué se devolvió de cada línea de equipo (total o parcial) y, si
 // queda un remanente, integra en el mismo formulario la nueva fecha de
@@ -73,14 +93,12 @@ export default function RegistrarDevolucionDialog({
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const [cambios, setCambios] = useState({});
-  const [deposito, setDeposito] = useState(ESTADO_INICIAL_DEPOSITO);
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
     if (!open) return;
     setCambios({});
-    setDeposito(ESTADO_INICIAL_DEPOSITO);
   }, [open]);
 
   const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
@@ -114,8 +132,21 @@ export default function RegistrarDevolucionDialog({
     ({ equipo, index }) => cantidadQueDevuelve(equipo, index) > 0,
   );
 
-  // El depósito solo se resuelve cuando vuelve el último equipo: es uno solo
-  // para toda la factura y se devuelve entero, no por partes.
+  // ── El estado en que volvió cada equipo, y la plata que eso cuesta ────
+  //
+  // Son dos cosas distintas y ocurren en momentos distintos.
+  //
+  // CALIFICAR se hace equipo por equipo, el día que ese equipo vuelve: es el
+  // único momento en que alguien lo tiene delante. Antes esto colgaba de la
+  // liquidación del depósito, así que solo aparecía con el último equipo: un
+  // cliente que devolvía uno de siete hoy y el resto en tres semanas dejaba
+  // sin registrar cómo volvió el de hoy, y para entonces ya no hay quién lo
+  // recuerde.
+  //
+  // LIQUIDAR el depósito sigue siendo al final. La garantía es UNA para todo
+  // el despacho —no está repartida por equipo— y se devuelve entera, así que
+  // lo retenido en cada devolución se va sumando y recién se resuelve cuando
+  // no queda nada afuera.
   const depositoTotal = calcularDepositoTotal(factura);
   const resolverDeposito =
     hayDevolucion &&
@@ -123,9 +154,34 @@ export default function RegistrarDevolucionDialog({
     depositoTotal > 0 &&
     !factura?.depositoResuelto;
 
-  const retenido = deposito.buenEstado
-    ? 0
-    : Math.min(depositoTotal, Math.max(0, Number(deposito.retenido) || 0));
+  // Lo anotado en devoluciones ANTERIORES, que vive en la línea de cada equipo
+  // que ya volvió.
+  const retencionesPrevias = equipos
+    .filter((equipo) => Number(equipo?.estadoDevolucion?.retenido) > 0)
+    .map((equipo) => ({
+      nombre: equipo.nombre,
+      motivo: equipo.estadoDevolucion.motivo || "",
+      monto: Number(equipo.estadoDevolucion.retenido) || 0,
+    }));
+
+  // Y lo que se está anotando en ESTA tanda.
+  const retencionesAhora = equiposPendientes
+    .map(({ equipo, index }) => ({
+      nombre: equipo.nombre,
+      motivo: (cambios[index]?.motivoEstado || "").trim(),
+      monto:
+        cantidadQueDevuelve(equipo, index) > 0 && cambios[index]?.buenEstado === false
+          ? Math.max(0, Number(cambios[index].retenidoEstado) || 0)
+          : 0,
+    }))
+    .filter(({ monto }) => monto > 0);
+
+  const retenciones = [...retencionesPrevias, ...retencionesAhora];
+  // Topado al depósito: nunca se puede retener más de lo que el cliente dejó.
+  const retenido = Math.min(
+    depositoTotal,
+    retenciones.reduce((total, { monto }) => total + monto, 0),
+  );
   const aDevolver = depositoTotal - retenido;
 
   const handleCerrar = () => {
@@ -138,6 +194,28 @@ export default function RegistrarDevolucionDialog({
     setCambios((prev) => ({
       ...prev,
       [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], cantidad: numero },
+    }));
+  };
+
+  // Al volver a marcar "buen estado" se limpian el motivo y lo retenido: si
+  // no, quedaban escritos abajo, invisibles, y se guardaban igual.
+  const handleCambiarBuenEstado = (index, bien) => {
+    setCambios((prev) => ({
+      ...prev,
+      [index]: {
+        ...ESTADO_INICIAL_CAMBIO,
+        ...prev[index],
+        buenEstado: bien,
+        motivoEstado: bien ? "" : prev[index]?.motivoEstado || "",
+        retenidoEstado: bien ? "" : prev[index]?.retenidoEstado || "",
+      },
+    }));
+  };
+
+  const handleCambiarEstado = (index, campo, valor) => {
+    setCambios((prev) => ({
+      ...prev,
+      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], [campo]: valor },
     }));
   };
 
@@ -172,17 +250,19 @@ export default function RegistrarDevolucionDialog({
       return;
     }
 
-    // Retener plata del cliente sin decir por qué no es una opción: es lo
-    // único que después justifica el descuento frente a él.
-    if (resolverDeposito && !deposito.buenEstado) {
-      if (retenido <= 0) {
-        showSnackbar("Indicá cuánto del depósito se retiene.", "warning");
-        return;
-      }
-      if (!deposito.motivo.trim()) {
-        showSnackbar("Escribí por qué se retiene parte del depósito.", "warning");
-        return;
-      }
+    // Marcar que un equipo volvió mal sin decir qué le pasó no sirve de nada:
+    // eso es lo único que después justifica el descuento frente al cliente.
+    // El monto sí puede quedar en blanco — a veces el daño se ve hoy y lo que
+    // cuesta arreglarlo recién se sabe después.
+    const sinMotivo = equiposPendientes.find(
+      ({ equipo, index }) =>
+        cantidadQueDevuelve(equipo, index) > 0 &&
+        cambios[index]?.buenEstado === false &&
+        !(cambios[index]?.motivoEstado || "").trim(),
+    );
+    if (sinMotivo) {
+      showSnackbar(`Escribí qué le pasó al ${sinMotivo.equipo.nombre}.`, "warning");
+      return;
     }
 
     setGuardando(true);
@@ -214,6 +294,7 @@ export default function RegistrarDevolucionDialog({
             ...equipo,
             cantidadDevuelta: Number(equipo.cantidad) || 0,
             fechaDevolucion: hoy,
+            estadoDevolucion: estadoDevolucionDe(cambio, hoy),
             vencimientoIndefinido: false,
           });
           return;
@@ -229,6 +310,7 @@ export default function RegistrarDevolucionDialog({
           cantidad: cantidadDevuelta,
           cantidadDevuelta,
           fechaDevolucion: hoy,
+          estadoDevolucion: estadoDevolucionDe(cambio, hoy),
           vencimientoIndefinido: false,
         });
 
@@ -238,6 +320,9 @@ export default function RegistrarDevolucionDialog({
           cantidadDevuelta: 0,
         };
         delete restante.fechaDevolucion;
+        // El estado califica lo que VOLVIÓ. Lo que sigue afuera todavía no
+        // volvió, así que arrastrar esa calificación sería inventarla.
+        delete restante.estadoDevolucion;
 
         // Los cargos del LOTE —lo que se pagó por él, su transporte y su
         // depósito— viven en UNA sola línea, y las cuentas los suman
@@ -321,7 +406,12 @@ export default function RegistrarDevolucionDialog({
       if (resolverDeposito) {
         datosFactura.depositoResuelto = {
           retenido,
-          motivo: deposito.buenEstado ? "" : deposito.motivo.trim(),
+          // El motivo ya no se escribe acá: se arma con lo que se anotó en
+          // cada equipo, para que la ficha del cliente pueda decir POR CUÁL
+          // se retuvo y no solo cuánto.
+          motivo: retenciones
+            .map(({ nombre, motivo }) => `${nombre}: ${motivo}`)
+            .join(" · "),
           fecha: hoy,
         };
         todasLasFacturas.forEach((item) => {
@@ -408,6 +498,69 @@ export default function RegistrarDevolucionDialog({
                     </Typography>
                   )}
 
+                  {/* CÓMO VOLVIÓ ESTE EQUIPO. Aparece apenas se escribe una
+                      cantidad, sin esperar al último equipo de la factura:
+                      hoy es el día en que alguien lo tiene delante y puede
+                      decirlo. */}
+                  {cantidadDevuelta > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={cambio.buenEstado !== false}
+                            onChange={(e) =>
+                              handleCambiarBuenEstado(index, e.target.checked)
+                            }
+                          />
+                        }
+                        label={`${
+                          cantidadDevuelta === 1 ? "Volvió" : "Volvieron"
+                        } completo${cantidadDevuelta === 1 ? "" : "s"} y en buen estado`}
+                      />
+
+                      {cambio.buenEstado === false && (
+                        <Box sx={{ pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
+                          <TextField
+                            label="Qué le pasó"
+                            name={`estadoMotivo-${index}`}
+                            value={cambio.motivoEstado}
+                            onChange={(e) =>
+                              handleCambiarEstado(index, "motivoEstado", e.target.value)
+                            }
+                            fullWidth
+                            size="small"
+                            multiline
+                            minRows={2}
+                            placeholder="Ej: rayadura en el tambor, falta una manguera"
+                          />
+
+                          {/* Solo si hay garantía de dónde retener. Sin
+                              depósito el daño igual queda anotado: es lo que
+                              se le reclama al cliente. */}
+                          {depositoTotal > 0 && (
+                            <TextField
+                              label="Se retiene del depósito"
+                              name={`estadoRetenido-${index}`}
+                              value={formatearMonedaInput(cambio.retenidoEstado)}
+                              onChange={(e) =>
+                                handleCambiarEstado(
+                                  index,
+                                  "retenidoEstado",
+                                  limpiarMonedaInput(e.target.value),
+                                )
+                              }
+                              fullWidth
+                              size="small"
+                              sx={{ mt: 1 }}
+                              helperText="Se puede dejar vacío y decidirlo al liquidar"
+                            />
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                   {/* Qué pasa con lo que el cliente se queda: más días o
                       entrega indefinida. Solo desde Seguimiento. Darle plazo
                       a un equipo es una decisión de cobranza —se pacta con el
@@ -490,9 +643,11 @@ export default function RegistrarDevolucionDialog({
               );
             })}
 
-            {/* Vuelve el último equipo: hay que decidir el depósito. Aparece
-                solo en ese momento porque es cuando alguien tiene los equipos
-                delante y puede decir en qué estado volvieron. */}
+            {/* Vuelve el último equipo: se liquida el depósito. Acá ya no se
+                pregunta nada —eso se respondió equipo por equipo, arriba y el
+                día que cada uno volvió—: este bloque solo muestra la cuenta
+                que sale de lo anotado, incluida la de devoluciones de otros
+                días. */}
             {resolverDeposito && (
               <Grid item xs={12}>
                 <Divider sx={{ mb: 2 }} />
@@ -500,52 +655,25 @@ export default function RegistrarDevolucionDialog({
                   Depósito: {formatearMoneda(depositoTotal)}
                 </Typography>
 
-                <FormControlLabel
-                  sx={{ mt: 0.5 }}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={deposito.buenEstado}
-                      onChange={(e) =>
-                        setDeposito({
-                          ...ESTADO_INICIAL_DEPOSITO,
-                          buenEstado: e.target.checked,
-                        })
-                      }
-                    />
-                  }
-                  label="Volvió todo completo y en buen estado"
-                />
-
-                {!deposito.buenEstado && (
-                  <Box sx={{ mt: 1 }}>
-                    <TextField
-                      label="Se retiene"
-                      name="depositoRetenido"
-                      value={formatearMonedaInput(deposito.retenido)}
-                      onChange={(e) =>
-                        setDeposito((prev) => ({
-                          ...prev,
-                          retenido: limpiarMonedaInput(e.target.value),
-                        }))
-                      }
-                      fullWidth
-                      size="small"
-                    />
-                    <TextField
-                      label="Motivo"
-                      name="depositoMotivo"
-                      value={deposito.motivo}
-                      onChange={(e) =>
-                        setDeposito((prev) => ({ ...prev, motivo: e.target.value }))
-                      }
-                      fullWidth
-                      size="small"
-                      multiline
-                      minRows={2}
-                      sx={{ mt: 1.5 }}
-                      placeholder="Ej: rayadura en el tambor, falta una manguera"
-                    />
+                {retenciones.length === 0 ? (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Volvió todo completo y en buen estado.
+                  </Typography>
+                ) : (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Typography variant="body2" fontWeight="bold">
+                      Se retienen {formatearMoneda(retenido)}:
+                    </Typography>
+                    {retenciones.map(({ nombre, motivo, monto }, posicion) => (
+                      <Typography
+                        key={`${nombre}-${posicion}`}
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block" }}
+                      >
+                        · {nombre} — {motivo} ({formatearMoneda(monto)})
+                      </Typography>
+                    ))}
                   </Box>
                 )}
 
