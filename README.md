@@ -704,6 +704,8 @@ Ahora cada hecho tiene su propia cifra, en el orden en que ocurrió:
 
 Van **sin rótulo**: qué es cada una ya lo cuentan los tramos de abajo —*"+2 días"*, *"5 días vencidos"*—, y el color las ata a su chip: el acento para lo pactado, el rojo para lo que corre solo. Un equipo al día muestra una sola cifra, como siempre. Y uno **ya devuelto** sigue mostrando un solo número —lo que de verdad se le cobró por los días que lo usó—, porque su cuenta está cerrada y ahí el desglose ya no ayuda a decidir nada.
 
+**Y la tarjeta no creció.** Contar más cosas suele costar alto, pero acá no hacía falta: las cifras vivían dentro de la fila del nombre, así que cada una nueva la estiraba hacia abajo mientras al lado de los chips de fechas sobraba lugar vacío. La tarjeta pasó a leerse en **dos columnas** —el equipo y su historia a la izquierda, la plata a la derecha— y ahora el alto lo manda la más alta de las dos. Las cifras que se sumaron caen en un espacio que ya estaba ahí.
+
 ### La pantalla angosta decide qué cede, no qué se rompe
 
 La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre. En celular, donde el nombre y seis botones ya no conviven, los botones pasan abajo y se centran.
