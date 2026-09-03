@@ -195,8 +195,10 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
       "300.000",
     );
+    // Y dice de qué saldo habla: no es el saldo pendiente de la cuenta, que
+    // incluye los días recién concedidos, sino lo que debía antes.
     expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
-      "están en plazo",
+      "deuda antes de la ampliación",
     );
   });
 

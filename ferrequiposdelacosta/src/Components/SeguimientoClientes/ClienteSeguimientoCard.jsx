@@ -998,11 +998,14 @@ export default function ClienteSeguimientoCard({
                   <AccountBalanceWalletIcon fontSize="small" />
                   Sin equipos vencidos
                 </Typography>
+                {/* Con equipos todavía afuera, ese saldo es el de ANTES de la
+                    ampliación, y hay que decirlo: si no, el número no coincide
+                    con el saldo pendiente que muestra la cuenta y parece un
+                    error. Con todo devuelto no lleva aclaración, porque ahí sí
+                    es la cuenta completa (ver saldoExigible). */}
                 <Typography variant="body2" color="text.secondary">
-                  {`Sigue en cartera por el saldo de ${formatearMoneda(saldoExigible)}.`}
-                  {quedanEquiposAfuera
-                    ? " Los equipos que le quedan están en plazo y se ven en la ficha del cliente."
-                    : ""}
+                  {`Sigue en cartera por el saldo de ${formatearMoneda(saldoExigible)}`}
+                  {quedanEquiposAfuera ? ", deuda antes de la ampliación." : "."}
                 </Typography>
               </Box>
             )}
