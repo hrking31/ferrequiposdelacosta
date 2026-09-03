@@ -221,3 +221,44 @@ describe("AmpliarVencimientoDialog — entrega indefinida", () => {
     expect(loGuardadoEnLaFactura().gestiones[0].indefinida).toBe(true);
   });
 });
+
+// La misma regla que en el diálogo de devolución (ver PlazoEquipo): la fecha
+// del último acuerdo y, si ya pasó, cuántos días lleva vencido. Al pactar el
+// plazo nuevo hay que saber de qué tamaño es el atraso que se está perdonando.
+describe("AmpliarVencimientoDialog — el plazo de cada equipo", () => {
+  it("muestra la fecha vigente y los días vencidos", () => {
+    abrir();
+
+    expect(screen.getByText(/Vence: 03\/08\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/días vencidos/)).toBeInTheDocument();
+  });
+
+  it("después de ampliar, la fecha que muestra es la nueva", () => {
+    // El mismo andamio pero ya con una ampliación encima: venció el 03, se le
+    // dieron 4 días y quedó para el 07. La fila tiene que hablar del 07, que
+    // es el acuerdo vigente, y no del 03, que ya se resolvió.
+    abrir({
+      factura: {
+        ...factura,
+        equipos: [
+          {
+            ...factura.equipos[0],
+            fechaVencimientoOriginal: "2026-08-03",
+            fechaVencimiento: "2026-08-07",
+            ampliaciones: [
+              {
+                fechaAnterior: "2026-08-03",
+                fechaNueva: "2026-08-07",
+                dias: 4,
+                descuento: 0,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByText(/Vence: 07\/08\/2026/)).toBeInTheDocument();
+    expect(screen.queryByText(/Vence: 03\/08\/2026/)).not.toBeInTheDocument();
+  });
+});

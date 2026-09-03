@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import {
+  Box,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,6 +19,7 @@ import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import PlazoEquipo from "./PlazoEquipo";
 import {
   calcularCantidadPendiente,
   calcularVencimiento,
@@ -230,11 +232,13 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                   <Typography variant="body2" fontWeight="bold">
                     {equipo.cantidad} {equipo.nombre}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                    {equipo.vencimientoIndefinido
-                      ? "Entrega indefinida actualmente"
-                      : `Vence: ${formatearFechaLegible(equipo.fechaVencimiento)}`}
-                  </Typography>
+                  {/* La fecha del último acuerdo y, si ya pasó, los días que
+                      lleva vencido. Misma línea y misma regla que en el
+                      diálogo de devolución (ver PlazoEquipo): al pactar el
+                      plazo nuevo hay que saber de qué tamaño es el atraso que
+                      se está perdonando. */}
+                  <PlazoEquipo equipo={equipo} />
+                  <Box sx={{ mb: 1 }} />
 
                   <TextField
                     label="Días a ampliar"

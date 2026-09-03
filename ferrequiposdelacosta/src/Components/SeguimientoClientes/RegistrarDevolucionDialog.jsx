@@ -19,11 +19,11 @@ import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import PlazoEquipo from "./PlazoEquipo";
 import {
   calcularVencimiento,
   obtenerAmpliaciones,
   calcularCantidadPendiente,
-  calcularAmpliacionEquipo,
   agruparLotesFactura,
   equipoAlDia,
   equipoVencido,
@@ -505,38 +505,16 @@ export default function RegistrarDevolucionDialog({
                 !cambio.indefinida && diasNumero > 0
                   ? calcularVencimiento(equipo.fechaVencimiento, diasNumero)
                   : null;
-              // Los días que el equipo lleva afuera pasada su fecha. Sale del
-              // mismo cálculo que los cobra, así que el diálogo no puede
-              // decir un número distinto del que termina en la cuenta.
-              const diasVencidos = calcularAmpliacionEquipo(equipo).diasAbiertos;
 
               return (
                 <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
                   <Typography variant="body2" fontWeight="bold">
                     {pendiente} {equipo.nombre}
                   </Typography>
-                  {/* La fecha vigente y lo que se pasó de ella. La fecha es
-                      la del ÚLTIMO acuerdo —si se amplió el plazo, la nueva—,
-                      y al lado los días que el equipo lleva afuera desde que
-                      esa fecha pasó. Sin eso hay que restar de cabeza contra
-                      el día de hoy para saber de qué tamaño es el atraso, que
-                      es justo lo que se necesita saber al recibirlo. */}
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block" }}
-                  >
-                    {equipo.vencimientoIndefinido
-                      ? "Entrega indefinida actualmente"
-                      : `Vence: ${formatearFechaLegible(equipo.fechaVencimiento)}`}
-                    {diasVencidos > 0 && (
-                      <Box component="span" sx={{ color: "error.main", fontWeight: 600 }}>
-                        {" "}
-                        - {diasVencidos} día{diasVencidos === 1 ? "" : "s"} vencido
-                        {diasVencidos === 1 ? "" : "s"}
-                      </Box>
-                    )}
-                  </Typography>
+                  {/* La fecha del último acuerdo y, si ya pasó, los días que
+                      lleva vencido. Misma línea y misma regla que en el
+                      diálogo de ampliar (ver PlazoEquipo). */}
+                  <PlazoEquipo equipo={equipo} />
 
                   {/* El depósito de la entrega en que salió ESTE equipo. El
                       cliente dejó $100.000 por el Benetín y $50.000 por la
