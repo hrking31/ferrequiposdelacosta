@@ -281,6 +281,45 @@ export const calcularAmpliacionEquipo = (equipo, hoyIso = obtenerFechaHoyBogota(
   };
 };
 
+// ── Darle más días a un equipo que ya venció ───────────────────────────
+//
+// Cuando el cliente pide "un día más" y el equipo lleva 4 días vencidos, ese
+// día que se le promete es MAÑANA. Sumar el día a la fecha vencida daba una
+// fecha que ya pasó —venció el 30/08, más un día, 31/08— así que el equipo
+// seguía figurando vencido y el cliente no tenía el día prometido.
+//
+// La fecha nueva se cuenta entonces desde hoy. Pero eso solo, sin más, sería
+// regalar plata: los días vencidos se cobran contando desde la fecha de
+// vencimiento hasta hoy, y al correr esa fecha al futuro esos 4 días
+// desaparecían de la cuenta sin que nadie lo hubiera decidido.
+//
+// Por eso la ampliación se registra por los días que la fecha corre DE VERDAD
+// —los 4 vencidos que se consolidan más el pactado, 5 en el ejemplo—. La
+// cuenta da igual que antes: lo que cambia es que la fecha queda vigente en
+// vez de vencida. Para perdonarle esos días está el descuento, que es una
+// decisión que alguien toma y queda escrita.
+//
+// Un equipo que todavía está en fecha no tiene nada que consolidar: los días
+// se le suman a su vencimiento, como siempre.
+export const proyectarAmpliacion = (
+  equipo,
+  diasPedidos,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const pedidos = Math.max(0, Number(diasPedidos) || 0);
+  const diasVencidos = calcularAmpliacionEquipo(equipo, hoyIso).diasAbiertos;
+  const desde = diasVencidos > 0 ? hoyIso : equipo?.fechaVencimiento;
+
+  return {
+    diasVencidos,
+    // Los días que se le prometieron al cliente, que es lo que él escuchó.
+    diasPactados: pedidos,
+    // Y los que la fecha corre en total, que es lo que se cobra.
+    dias: pedidos + diasVencidos,
+    fechaNueva: pedidos > 0 ? calcularVencimiento(desde, pedidos) : null,
+  };
+};
+
 // Lo mismo pero sumando todos los equipos de una factura, y proyectando cómo
 // quedaría la factura si esas ampliaciones se cobraran.
 //

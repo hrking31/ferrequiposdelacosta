@@ -513,7 +513,15 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   });
 
   it("a lo que sigue afuera se le puede dar más plazo en el mismo paso", async () => {
-    const { usuario } = abrir();
+    // Vencido ayer: lleva 1 día afuera. Las fechas van relativas a hoy porque
+    // el plazo nuevo se cuenta desde el día en que se pacta.
+    const AYER = calcularVencimiento(HOY, -1);
+    const { usuario } = abrir({
+      factura: {
+        ...factura,
+        equipos: [{ ...factura.equipos[0], fechaVencimiento: AYER }],
+      },
+    });
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
@@ -522,12 +530,15 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(await exito()).toBeInTheDocument();
 
     const restante = loGuardadoEnLaFactura().equipos[1];
-    // Vencía el 3; con 2 días más, el 5. Y queda el registro de la ampliación.
-    expect(restante.fechaVencimiento).toBe("2026-08-05");
+    // Los 2 días se cuentan desde hoy, y la ampliación consolida el día que ya
+    // estaba vencido: mismo criterio que en AmpliarVencimientoDialog.
+    expect(restante.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
     expect(restante.ampliaciones[0]).toMatchObject({
-      fechaAnterior: "2026-08-03",
-      fechaNueva: "2026-08-05",
-      dias: 2,
+      fechaAnterior: AYER,
+      fechaNueva: calcularVencimiento(HOY, 2),
+      dias: 3,
+      diasVencidos: 1,
+      diasPactados: 2,
     });
   });
 

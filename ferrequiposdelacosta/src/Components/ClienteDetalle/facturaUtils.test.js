@@ -10,6 +10,7 @@ import {
   calcularCantidadPendiente,
   equipoDevueltoCompleto,
   calcularAmpliacionEquipo,
+  proyectarAmpliacion,
   calcularAmpliacionFactura,
   sumarAbonos,
   separarExcedentePago,
@@ -1290,5 +1291,48 @@ describe("equiposQueVencieronHoy", () => {
   it("una factura sin equipos no rompe nada", () => {
     expect(equiposQueVencieronHoy({}, "2026-08-31", "2026-08-30")).toEqual([]);
     expect(equiposQueVencieronHoy({ equipos: [] }, "2026-08-31", "2026-08-30")).toEqual([]);
+  });
+});
+
+// Cuando el cliente pide "un día más" y el equipo ya lleva días vencidos, ese
+// día que se le promete es MAÑANA, no la fecha vencida más uno.
+describe("proyectarAmpliacion", () => {
+  // HOY es el 15. El andamio venció el 12: lleva 3 días afuera.
+  const vencido = { cantidad: 1, valor: 100, dias: 3, fechaVencimiento: "2026-08-12" };
+
+  it("cuenta el plazo nuevo desde hoy, no desde la fecha ya vencida", () => {
+    const proyeccion = proyectarAmpliacion(vencido, 1, HOY);
+    // Mañana (16), no el 13, que ya pasó.
+    expect(proyeccion.fechaNueva).toBe("2026-08-16");
+  });
+
+  it("consolida los días vencidos en la ampliación, para no regalarlos", () => {
+    const proyeccion = proyectarAmpliacion(vencido, 1, HOY);
+    expect(proyeccion.diasVencidos).toBe(3);
+    expect(proyeccion.diasPactados).toBe(1);
+    // Los 3 que ya estuvo afuera más el que se le prometió.
+    expect(proyeccion.dias).toBe(4);
+  });
+
+  // Lo que le da sentido a lo anterior: la plata no cambia, solo la fecha.
+  it("cobra lo mismo que antes del arreglo", () => {
+    const proyeccion = proyectarAmpliacion(vencido, 1, HOY);
+    const ampliado = {
+      ...vencido,
+      fechaVencimiento: proyeccion.fechaNueva,
+      ampliaciones: [{ dias: proyeccion.dias, descuento: 0 }],
+    };
+    // 4 días a $100: los 3 vencidos que ya se cobraban más el nuevo.
+    expect(calcularAmpliacionEquipo(ampliado, HOY).neto).toBe(400);
+    // Y ya no figura vencido, que era el problema.
+    expect(calcularAmpliacionEquipo(ampliado, HOY).diasAbiertos).toBe(0);
+  });
+
+  it("un equipo todavía en fecha suma los días a su vencimiento, como siempre", () => {
+    const enPlazo = { cantidad: 1, valor: 100, dias: 3, fechaVencimiento: "2026-08-20" };
+    const proyeccion = proyectarAmpliacion(enPlazo, 2, HOY);
+    expect(proyeccion.fechaNueva).toBe("2026-08-22");
+    expect(proyeccion.diasVencidos).toBe(0);
+    expect(proyeccion.dias).toBe(2);
   });
 });

@@ -22,7 +22,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
   calcularCantidadPendiente,
-  calcularVencimiento,
+  proyectarAmpliacion,
   equipoVencido,
   obtenerAmpliaciones,
   obtenerGestiones,
@@ -132,8 +132,11 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         const extra = Number(cambio.dias) || 0;
         if (extra <= 0) return equipo;
 
+        // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
+        // fecha corre de verdad —con los días vencidos consolidados— es lo
+        // que se cobra. Ver proyectarAmpliacion.
+        const proyeccion = proyectarAmpliacion(equipo, extra);
         diasConcedidos = Math.max(diasConcedidos, extra);
-        const fechaNueva = calcularVencimiento(equipo.fechaVencimiento, extra);
         const descuento = Math.max(0, Number(cambio.descuento) || 0);
 
         return {
@@ -149,12 +152,18 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
             ...obtenerAmpliaciones(equipo),
             {
               fechaAnterior: equipo.fechaVencimiento,
-              fechaNueva,
-              dias: extra,
+              fechaNueva: proyeccion.fechaNueva,
+              dias: proyeccion.dias,
+              // De esos días, cuántos ya se habían vencido y cuántos se
+              // pactaron de nuevo. La cuenta usa el total —son todos días de
+              // alquiler— pero el registro tiene que poder decir después que
+              // "5 días" fueron en realidad 4 vencidos y 1 acordado.
+              diasVencidos: proyeccion.diasVencidos,
+              diasPactados: proyeccion.diasPactados,
               descuento,
             },
           ],
-          fechaVencimiento: fechaNueva,
+          fechaVencimiento: proyeccion.fechaNueva,
         };
       });
 
@@ -215,18 +224,19 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
               const cambio = cambios[index] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
-              // Lo que valen los días que se están agregando, para poder ver
-              // sobre qué monto se está haciendo el descuento.
+              // La fecha en que queda el equipo y los días que se le cobran:
+              // si venía vencido, el plazo nuevo arranca HOY y los días que ya
+              // corrieron se consolidan en la ampliación (ver
+              // proyectarAmpliacion).
+              const proyeccion = proyectarAmpliacion(equipo, diasNumero);
+              // Lo que valen esos días, para poder ver sobre qué monto se está
+              // haciendo el descuento.
               const valorDias =
-                diasNumero > 0
-                  ? diasNumero *
-                    (Number(equipo.cantidad) || 0) *
-                    (Number(equipo.valor) || 0)
-                  : 0;
+                proyeccion.dias *
+                (Number(equipo.cantidad) || 0) *
+                (Number(equipo.valor) || 0);
               const nuevaFecha =
-                !cambio.indefinida && diasNumero > 0
-                  ? calcularVencimiento(equipo.fechaVencimiento, diasNumero)
-                  : null;
+                !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
               return (
                 <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
                   <Typography variant="body2" fontWeight="bold">
@@ -269,9 +279,20 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                       sx={{ mt: 1 }}
                       helperText={
                         valorDias > 0
-                          ? `${diasNumero} día${diasNumero === 1 ? "" : "s"} = ${formatearMoneda(
-                              valorDias,
-                            )}${
+                          ? `${proyeccion.dias} día${
+                              proyeccion.dias === 1 ? "" : "s"
+                            } = ${formatearMoneda(valorDias)}${
+                              // De dónde salen esos días cuando no son solo
+                              // los que se pactaron: si no se dice, el monto
+                              // parece un error de cuentas.
+                              proyeccion.diasVencidos > 0
+                                ? ` (${proyeccion.diasVencidos} vencido${
+                                    proyeccion.diasVencidos === 1 ? "" : "s"
+                                  } + ${proyeccion.diasPactados} pactado${
+                                    proyeccion.diasPactados === 1 ? "" : "s"
+                                  })`
+                                : ""
+                            }${
                               descuentoNumero > 0
                                 ? ` · queda en ${formatearMoneda(valorDias - descuentoNumero)}`
                                 : ""

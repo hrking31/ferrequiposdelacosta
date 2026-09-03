@@ -1,5 +1,9 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
+import {
+  calcularVencimiento,
+  obtenerFechaHoyBogota,
+} from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 
 // Darle más días al cliente. Es una operación de plata: los días que se agregan
@@ -42,6 +46,17 @@ const factura = {
   ],
   pagos: [],
   abonos: [],
+};
+
+// El mismo andamio pero vencido AYER, para las pruebas que miran cómo se
+// consolidan los días vencidos al dar plazo nuevo. Va relativo a hoy y no con
+// fechas fijas: el plazo nuevo se cuenta desde el día en que se pacta, así que
+// una fecha de agosto daría un resultado distinto cada día que pasa.
+const HOY = obtenerFechaHoyBogota();
+const AYER = calcularVencimiento(HOY, -1);
+const facturaVencidaAyer = {
+  ...factura,
+  equipos: [{ ...factura.equipos[0], fechaVencimiento: AYER }],
 };
 
 const abrir = (props = {}) =>
@@ -121,26 +136,36 @@ describe("AmpliarVencimientoDialog — antes de guardar", () => {
 });
 
 describe("AmpliarVencimientoDialog — al ampliar", () => {
-  it("corre la fecha y deja anotada la ampliación con su fecha anterior", async () => {
-    const { usuario } = abrir();
+  it("corre la fecha desde hoy y consolida los días ya vencidos", async () => {
+    // El andamio venció AYER: lleva 1 día afuera. Las fechas se arman
+    // relativas a hoy para que la prueba no dependa del día en que se corra.
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
 
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
 
-    const guardado = loGuardadoEnLaFactura();
-    const equipo = guardado.equipos[0];
+    const equipo = loGuardadoEnLaFactura().equipos[0];
 
-    // Vencía el 3; con 2 días más, vence el 5.
-    expect(equipo.fechaVencimiento).toBe("2026-08-05");
-    // Y queda el registro de por qué se corrió, que es lo que después permite
-    // contar la historia en tres tramos.
+    // Los 2 días prometidos se cuentan desde HOY. Sumarlos a la fecha vencida
+    // daba una fecha ya pasada, y el cliente no tenía el plazo prometido.
+    expect(equipo.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
+    // Y la ampliación registra los 3 días que la fecha corrió de verdad,
+    // diciendo cuál de ellos ya estaba vencido: sin eso, el día que el equipo
+    // estuvo afuera dejaría de cobrarse.
     expect(equipo.ampliaciones).toEqual([
-      { fechaAnterior: "2026-08-03", fechaNueva: "2026-08-05", dias: 2, descuento: 0 },
+      {
+        fechaAnterior: AYER,
+        fechaNueva: calcularVencimiento(HOY, 2),
+        dias: 3,
+        diasVencidos: 1,
+        diasPactados: 2,
+        descuento: 0,
+      },
     ]);
     // La fecha original se guarda una sola vez, para las vistas viejas.
-    expect(equipo.fechaVencimientoOriginal).toBe("2026-08-03");
+    expect(equipo.fechaVencimientoOriginal).toBe(AYER);
   });
 
   it("guarda el descuento que se le hizo a esos días", async () => {
@@ -171,14 +196,14 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
   it("acumula la ampliación nueva sobre las que ya tenía", async () => {
     const anterior = {
       fechaAnterior: "2026-08-01",
-      fechaNueva: "2026-08-03",
+      fechaNueva: AYER,
       dias: 2,
       descuento: 0,
     };
     const { usuario } = abrir({
       factura: {
-        ...factura,
-        equipos: [{ ...factura.equipos[0], ampliaciones: [anterior] }],
+        ...facturaVencidaAyer,
+        equipos: [{ ...facturaVencidaAyer.equipos[0], ampliaciones: [anterior] }],
       },
     });
 
@@ -189,7 +214,7 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
     const ampliaciones = loGuardadoEnLaFactura().equipos[0].ampliaciones;
     expect(ampliaciones).toHaveLength(2);
     expect(ampliaciones[0]).toEqual(anterior);
-    expect(ampliaciones[1].fechaNueva).toBe("2026-08-04");
+    expect(ampliaciones[1].fechaNueva).toBe(calcularVencimiento(HOY, 1));
   });
 });
 

@@ -21,7 +21,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
-  calcularVencimiento,
+  proyectarAmpliacion,
   obtenerAmpliaciones,
   calcularCantidadPendiente,
   agruparLotesFactura,
@@ -383,14 +383,24 @@ export default function RegistrarDevolucionDialog({
         } else {
           const extra = Number(cambio.dias) || 0;
           if (extra > 0) {
-            const fechaNueva = calcularVencimiento(equipo.fechaVencimiento, extra);
+            // Mismo criterio que en AmpliarVencimientoDialog: si lo que sigue
+            // afuera ya estaba vencido, el plazo nuevo arranca hoy y los días
+            // que ya corrieron se consolidan (ver proyectarAmpliacion).
+            const proyeccion = proyectarAmpliacion(equipo, extra);
             const descuento = Math.max(0, Number(cambio.descuento) || 0);
             restante.fechaVencimientoOriginal = equipo.fechaVencimientoOriginal || equipo.fechaVencimiento;
             restante.ampliaciones = [
               ...obtenerAmpliaciones(equipo),
-              { fechaAnterior: equipo.fechaVencimiento, fechaNueva, dias: extra, descuento },
+              {
+                fechaAnterior: equipo.fechaVencimiento,
+                fechaNueva: proyeccion.fechaNueva,
+                dias: proyeccion.dias,
+                diasVencidos: proyeccion.diasVencidos,
+                diasPactados: proyeccion.diasPactados,
+                descuento,
+              },
             ];
-            restante.fechaVencimiento = fechaNueva;
+            restante.fechaVencimiento = proyeccion.fechaNueva;
           }
         }
 
@@ -499,12 +509,10 @@ export default function RegistrarDevolucionDialog({
               const restante = pendiente - cantidadDevuelta;
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
-              const valorDias =
-                diasNumero > 0 ? diasNumero * restante * (Number(equipo.valor) || 0) : 0;
+              const proyeccion = proyectarAmpliacion(equipo, diasNumero);
+              const valorDias = proyeccion.dias * restante * (Number(equipo.valor) || 0);
               const nuevaFecha =
-                !cambio.indefinida && diasNumero > 0
-                  ? calcularVencimiento(equipo.fechaVencimiento, diasNumero)
-                  : null;
+                !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
 
               return (
                 <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
@@ -671,9 +679,17 @@ export default function RegistrarDevolucionDialog({
                           sx={{ mt: 1 }}
                           helperText={
                             valorDias > 0
-                              ? `${diasNumero} día${diasNumero === 1 ? "" : "s"} = ${formatearMoneda(
-                                  valorDias,
-                                )}${
+                              ? `${proyeccion.dias} día${
+                                  proyeccion.dias === 1 ? "" : "s"
+                                } = ${formatearMoneda(valorDias)}${
+                                  proyeccion.diasVencidos > 0
+                                    ? ` (${proyeccion.diasVencidos} vencido${
+                                        proyeccion.diasVencidos === 1 ? "" : "s"
+                                      } + ${proyeccion.diasPactados} pactado${
+                                        proyeccion.diasPactados === 1 ? "" : "s"
+                                      })`
+                                    : ""
+                                }${
                                   descuentoNumero > 0
                                     ? ` · queda en ${formatearMoneda(valorDias - descuentoNumero)}`
                                     : ""
