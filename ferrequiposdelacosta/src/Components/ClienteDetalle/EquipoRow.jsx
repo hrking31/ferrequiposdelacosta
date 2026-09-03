@@ -190,11 +190,9 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                   agregado {formatearFecha(fechaPedido)}
                 </Typography>
               )}
-              {/* Y CUÁNDO VOLVIÓ, pegado al rótulo. El rótulo va junto al
-                  nombre y no como un chip más abajo: es lo primero que hay que
-                  saber de la tarjeta, y entre los chips de fechas se perdía.
-                  La fecha viaja con él por lo mismo —"DEVUELTO" a secas obliga
-                  a bajar a buscar cuándo—. */}
+              {/* Y QUE VOLVIÓ. El rótulo va junto al nombre y no como un chip
+                  más abajo: es lo primero que hay que saber de la tarjeta, y
+                  entre los chips de fechas se perdía. */}
               {devuelto && (
                 <Typography
                   component="span"
@@ -216,7 +214,22 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                     color: theme.palette.getContrastText(colorDevolucion),
                   }}
                 >
-                  DEVUELTO{equipo.fechaDevolucion ? ` ${formatearFecha(equipo.fechaDevolucion)}` : ""}
+                  DEVUELTO
+                </Typography>
+              )}
+              {/* La fecha, FUERA del rótulo. Son dos datos distintos —que
+                  volvió, y cuándo— y adentro del bloque rosa se leían como uno
+                  solo; separada se lee igual que la del pedido, que es su par.
+                  Sigue acá arriba y no entre los chips de fechas: ahí obligaba
+                  a bajar a buscar cuándo había vuelto. */}
+              {devuelto && equipo.fechaDevolucion && (
+                <Typography
+                  component="span"
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ ml: 0.75, whiteSpace: "nowrap" }}
+                >
+                  {formatearFecha(equipo.fechaDevolucion)}
                 </Typography>
               )}
             </Box>
