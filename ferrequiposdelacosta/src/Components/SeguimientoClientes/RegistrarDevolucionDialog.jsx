@@ -524,7 +524,7 @@ export default function RegistrarDevolucionDialog({
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ display: "block", mb: 1 }}
+                    sx={{ display: "block" }}
                   >
                     {equipo.vencimientoIndefinido
                       ? "Entrega indefinida actualmente"
@@ -537,6 +537,27 @@ export default function RegistrarDevolucionDialog({
                       </Box>
                     )}
                   </Typography>
+
+                  {/* El depósito de la entrega en que salió ESTE equipo. El
+                      cliente dejó $100.000 por el Benetín y $50.000 por la
+                      Rana que pidió después: quien recibe necesita saber con
+                      cuánto está respaldado el que tiene delante, sin ir a
+                      buscarlo al final del diálogo.
+
+                      Cuando esa entrega trajo varios equipos el depósito es
+                      de todos juntos, y hay que decirlo: repartirlo por
+                      equipo sería inventar un número que nadie pactó. */}
+                  {depositoDelEquipo(index) > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", color: "custom.accent" }}
+                    >
+                      Depósito: {formatearMoneda(depositoDelEquipo(index))}
+                      {loteDelEquipo.get(index)?.equipos.length > 1 && " (del despacho)"}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ mb: 1 }} />
 
                   <TextField
                     label="Cantidad que devuelve hoy"

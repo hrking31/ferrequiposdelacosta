@@ -238,6 +238,15 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
 // El depósito es de cada ENTREGA, no de la factura: el cliente dejó $100.000
 // por el andamio y, cuando días después pidió la rana, otros $50.000.
 describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
+  it("cada equipo muestra el depósito de su propia entrega", () => {
+    abrir({ factura: facturaConDosDepositos });
+
+    // Con regex y no con el texto exacto: el formateador de moneda separa el
+    // signo con un espacio duro, que no se ve pero no es el espacio común.
+    expect(screen.getByText(/Depósito:.*100\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/Depósito:.*50\.000/)).toBeInTheDocument();
+  });
+
   it("no deja retener de un equipo más de lo que dejó su entrega", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
