@@ -1,13 +1,14 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AbonoDialog from "./AbonoDialog";
+import { unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // El diálogo donde se registra un pago que el cliente consigna después de
 // facturar. Es de los que más plata mueven: un solo valor puede repartirse
 // entre varias facturas, y lo que acá se muestre es lo que el usuario cree que
 // va a pasar antes de apretar Guardar.
 //
-// El reparto en sí ya está probado como función pura en facturaUtils.test.js.
+// El reparto en sí ya está probado como función pura en facturaCuentas.test.js.
 // Lo que se prueba ACÁ es lo otro: que la pantalla muestre ese reparto, que no
 // deje guardar un abono incompleto, y que al guardar escriba los abonos que
 // mostró — ni más ni menos.
@@ -29,12 +30,33 @@ vi.mock("firebase/firestore", () => ({
 
 const cliente = { id: "cli1", nombre: "Aida" };
 
-// Dos facturas sin pagar nada: una debe 500.000 y la otra 300.000. Sin equipos
-// ni fechas, para que el total sea exactamente el valor y el reparto se lea sin
-// tener que hacer cuentas de días.
+// Una factura que debe exactamente lo que se le pide, sin nada más.
+//
+// El total ya no es un campo: sale de sus equipos. Así que lleva UN equipo, de
+// un día y ya devuelto —con la línea cerrada los días no corren con el
+// calendario—, y su valor por día es el total que la prueba necesita. Sin eso,
+// mañana la factura debería más que hoy y el reparto cambiaría solo.
+const facturaQueDebe = ({ id, numero, monto, abonos = [] }) => ({
+  id,
+  ...unaFactura({
+    numeroFactura: String(numero),
+    abonos,
+    equipos: [
+      unEquipoDevuelto({
+        cantidad: 1,
+        dias: 1,
+        valorDia: monto,
+        fechaDespacho: "2026-08-10",
+        fechaVencimiento: "2026-08-10",
+        fechaDevolucion: "2026-08-10",
+      }),
+    ],
+  }),
+});
+
 const facturas = [
-  { id: "chica", numeroFactura: 1235, valorTotal: 300000, pagos: [], equipos: [], abonos: [] },
-  { id: "grande", numeroFactura: 1234, valorTotal: 500000, pagos: [], equipos: [], abonos: [] },
+  facturaQueDebe({ id: "chica", numero: 1235, monto: 300000 }),
+  facturaQueDebe({ id: "grande", numero: 1234, monto: 500000 }),
 ];
 
 const abrir = (props = {}) =>
@@ -63,7 +85,9 @@ describe("AbonoDialog", () => {
   });
 
   it("avisa cuando el cliente no debe nada, en vez de mostrar una lista vacía", () => {
-    abrir({ facturas: [{ id: "x", valorTotal: 100, pagos: [{ monto: 100 }], equipos: [] }] });
+    const saldada = facturaQueDebe({ id: "x", numero: 9, monto: 100 });
+    saldada.grupos[0].pagos = [{ medio: "Efectivo", monto: 100 }];
+    abrir({ facturas: [saldada] });
 
     expect(
       screen.getByText("Este cliente no tiene facturas con saldo pendiente."),
@@ -111,8 +135,10 @@ describe("AbonoDialog", () => {
     // A la que más debía le entra lo suyo primero…
     const [rutaGrande, cambiosGrande] = updateSimulado.mock.calls[0];
     expect(rutaGrande).toBe("clientes/cli1/facturas/grande");
+    // `tipo: "sistema"` dice quién decidió que fuera a esta factura: lo
+    // repartió la app entre las que tenían saldo, no lo pidió el cliente.
     expect(cambiosGrande.abonos).toEqual([
-      { fecha: expect.any(String), medio: "Efectivo", monto: 500000 },
+      { fecha: expect.any(String), medio: "Efectivo", monto: 500000, tipo: "sistema" },
     ]);
 
     // …y a la otra, solo el resto.
@@ -126,17 +152,15 @@ describe("AbonoDialog", () => {
   });
 
   it("conserva los abonos que la factura ya tenía en vez de pisarlos", async () => {
-    const abonoViejo = { fecha: "2026-08-01", medio: "Nequi", monto: 50000 };
+    const abonoViejo = {
+      fecha: "2026-08-01",
+      medio: "Nequi",
+      monto: 50000,
+      tipo: "cliente",
+    };
     const { usuario } = abrir({
       facturas: [
-        {
-          id: "unica",
-          numeroFactura: 1,
-          valorTotal: 300000,
-          pagos: [],
-          equipos: [],
-          abonos: [abonoViejo],
-        },
+        facturaQueDebe({ id: "unica", numero: 1, monto: 300000, abonos: [abonoViejo] }),
       ],
     });
 

@@ -216,12 +216,19 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     0,
   );
   if (diasAmpliados > 0) {
+    // El valor es el NETO de esos días: lo que de verdad se cobra por ellos,
+    // ya con el descuento restado. El descuento tiene su propio chip al lado,
+    // que dice de dónde salió la diferencia.
+    const netoAmpliado = Math.max(
+      0,
+      diasAmpliados * valorPorDia - cuenta.descuento,
+    );
     chips.push({
       clave: "ampliacion",
       tramo: TRAMO_FECHAS.PLAZO,
       tono: "acento",
       enCadena: true,
-      label: `+${plural(diasAmpliados, "día")}${conValor(diasAmpliados * valorPorDia)}`,
+      label: `+${plural(diasAmpliados, "día")}${conValor(netoAmpliado)}`,
     });
   }
 
@@ -278,26 +285,40 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     });
   }
 
-  // El espejo del anterior: devolvió antes de la fecha. Sale de comparar los
-  // días que de verdad estuvo afuera —los que quedaron congelados al volver—
-  // con los que decía su fecha de vencimiento.
+  // LO MISMO PARA EL QUE YA VOLVIÓ, que no tiene días corriendo.
   //
-  // Va SIN monto, y es a propósito. Antes acá había un crédito en negativo,
-  // porque el total llevaba cobrados los días completos y había que
-  // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta un
-  // hecho —devolvió antes— y poner una cifra haría pensar que hay una plata a
-  // favor que no existe.
+  // Sus días quedaron congelados el día que volvió, así que si se pasó o si se
+  // adelantó hay que sacarlo comparando esos días con los que decía su fecha
+  // de vencimiento.
   if (devuelto && equipo?.fechaVencimiento) {
-    const diasSinUsar =
-      diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento) -
-      (Number(equipo.diasAlquilados) || 0);
-    if (diasSinUsar > 0) {
+    const pactados = diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento);
+    const usados = Number(equipo.diasAlquilados) || 0;
+
+    if (usados > pactados) {
+      chips.push({
+        clave: "diasVencidos",
+        tramo: TRAMO_FECHAS.VENCIDO,
+        tono: "urgente",
+        label: `${plural(usados - pactados, "día")} vencido${
+          usados - pactados === 1 ? "" : "s"
+        }${conValor((usados - pactados) * valorPorDia)}`,
+      });
+    }
+
+    // El espejo: devolvió antes de la fecha.
+    //
+    // Va SIN monto, y es a propósito. Antes acá había un crédito en negativo,
+    // porque el total llevaba cobrados los días completos y había que
+    // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta
+    // un hecho —devolvió antes— y poner una cifra haría pensar que hay una
+    // plata a favor que no existe.
+    if (usados < pactados) {
       chips.push({
         clave: "diasSinUsar",
         tramo: TRAMO_FECHAS.VENCIDO,
         tono: "exito",
         Icono: SavingsIcon,
-        label: `Devolvió ${plural(diasSinUsar, "día")} antes`,
+        label: `Devolvió ${plural(pactados - usados, "día")} antes`,
       });
     }
   }

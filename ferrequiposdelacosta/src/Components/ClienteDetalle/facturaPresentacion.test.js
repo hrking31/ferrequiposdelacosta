@@ -11,6 +11,7 @@
 // que es lo que se separó; el color y la variante son de cada pantalla.
 import { describe, it, expect } from "vitest";
 import { agruparChipsFechas, describirFechasEquipo } from "./facturaPresentacion";
+import { unEquipo, unEquipoDevuelto } from "../../test/facturas";
 
 const HOY = "2026-08-15";
 
@@ -26,21 +27,27 @@ const textoDe = (chips, clave) =>
   chips
     .find((chip) => chip.clave === clave)
     ?.label.replace(/,00(?!\d)/g, "")
-    .replace(/\u00a0/g, " ");
+    .replace(/ /g, " ");
 const tonoDe = (chips, clave) => chips.find((chip) => chip.clave === clave)?.tono;
 
 describe("describirFechasEquipo", () => {
   // El caso de la factura 1573, con los números reales que lo destaparon.
-  const chazas = {
+  const chazas = unEquipo({
+    nombre: "CHAZA",
     cantidad: 10,
-    valor: 20000,
+    valorDia: 20000,
     dias: 3,
     fechaDespacho: "2026-08-03",
     fechaVencimiento: "2026-08-07",
     ampliaciones: [
-      { fechaAnterior: "2026-08-05", fechaNueva: "2026-08-07", dias: 2, descuento: 0 },
+      {
+        fechaAnterior: "2026-08-05",
+        fechaNueva: "2026-08-07",
+        diasAmpliados: 2,
+        descuentoRealizado: 0,
+      },
     ],
-  };
+  });
 
   it("no mete los días vencidos dentro de los días pactados", () => {
     const chips = describirFechasEquipo(chazas, HOY);
@@ -71,8 +78,8 @@ describe("describirFechasEquipo", () => {
         ...chazas,
         fechaVencimiento: "2026-08-11",
         ampliaciones: [
-          { fechaAnterior: "2026-08-05", fechaNueva: "2026-08-07", dias: 2, descuento: 0 },
-          { fechaAnterior: "2026-08-07", fechaNueva: "2026-08-11", dias: 4, descuento: 0 },
+          { fechaAnterior: "2026-08-05", fechaNueva: "2026-08-07", diasAmpliados: 2 },
+          { fechaAnterior: "2026-08-07", fechaNueva: "2026-08-11", diasAmpliados: 4 },
         ],
       },
       HOY,
@@ -83,7 +90,7 @@ describe("describirFechasEquipo", () => {
 
   it("el día que vence va en alerta, no en urgente", () => {
     const chips = describirFechasEquipo(
-      { cantidad: 1, valor: 100, fechaVencimiento: HOY },
+      unEquipo({ cantidad: 1, valorDia: 100, fechaVencimiento: HOY }),
       HOY,
     );
     expect(textoDe(chips, "vencimiento")).toBe("Vence hoy 15/08/2026");
@@ -92,7 +99,12 @@ describe("describirFechasEquipo", () => {
 
   it("un equipo con plazo por delante no muestra nada urgente", () => {
     const chips = describirFechasEquipo(
-      { cantidad: 1, valor: 100, fechaVencimiento: "2026-08-20" },
+      unEquipo({
+        cantidad: 1,
+        valorDia: 100,
+        fechaDespacho: "2026-08-14",
+        fechaVencimiento: "2026-08-20",
+      }),
       HOY,
     );
     expect(textoDe(chips, "vencimiento")).toBe("Devuelve 20/08/2026");
@@ -102,12 +114,14 @@ describe("describirFechasEquipo", () => {
 
   it("el descuento se resta de los días pactados y además se muestra aparte", () => {
     const chips = describirFechasEquipo(
-      {
+      unEquipo({
         cantidad: 1,
-        valor: 100000,
+        valorDia: 100000,
+        dias: 3,
+        fechaDespacho: "2026-08-05",
         fechaVencimiento: "2026-08-09",
-        ampliaciones: [{ dias: 4, descuento: 80000 }],
-      },
+        ampliaciones: [{ diasAmpliados: 4, descuentoRealizado: 80000 }],
+      }),
       HOY,
     );
     // 4 días × $100.000 = $400.000, menos los $80.000 de descuento.
@@ -117,13 +131,16 @@ describe("describirFechasEquipo", () => {
 
   it("un equipo devuelto muestra la fecha de devolución y no la de vencimiento", () => {
     const chips = describirFechasEquipo(
-      {
+      unEquipoDevuelto({
         cantidad: 1,
-        valor: 100,
-        cantidadDevuelta: 1,
+        valorDia: 100,
+        // Salió el 10 con plazo hasta el 12 —3 días— y volvió el 14: 5 días
+        // afuera, que es lo que queda escrito al cerrarlo.
+        dias: 5,
+        fechaDespacho: "2026-08-10",
         fechaVencimiento: "2026-08-12",
         fechaDevolucion: "2026-08-14",
-      },
+      }),
       HOY,
     );
     expect(textoDe(chips, "devuelto")).toBe("Devuelto 14/08/2026");
@@ -136,63 +153,37 @@ describe("describirFechasEquipo", () => {
   // El espejo del anterior: devolvió antes y esos días no se le cobran.
   it("un equipo devuelto antes de tiempo muestra los días que no se le cobran", () => {
     const chips = describirFechasEquipo(
-      {
+      unEquipoDevuelto({
         cantidad: 10,
-        valor: 20000,
-        dias: 5,
-        cantidadDevuelta: 10,
+        valorDia: 20000,
+        // Tenía hasta el 14 —5 días— y volvió el 12: estuvo 3.
+        dias: 3,
         fechaDespacho: "2026-08-10",
         fechaVencimiento: "2026-08-14",
         fechaDevolucion: "2026-08-12",
-      },
+      }),
       HOY,
     );
     expect(textoDe(chips, "devuelto")).toBe("Devuelto 12/08/2026");
-    // 2 días a 10 × $20.000: el monto va en negativo porque resta del total.
-    expect(textoDe(chips, "diasSinUsar")).toBe("2 días sin usar $ -400.000");
+    // Sin monto: esos días nunca entraron al cobro, así que no hay una plata a
+    // favor que mostrar. El chip cuenta el hecho.
+    expect(textoDe(chips, "diasSinUsar")).toBe("Devolvió 2 días antes");
     // Es algo a favor del cliente, no un cargo.
     expect(tonoDe(chips, "diasSinUsar")).toBe("exito");
     // Y no es lo mismo que un día vencido: ese chip no aparece.
     expect(textoDe(chips, "diasVencidos")).toBeUndefined();
   });
 
-  // Si esos días no se cobran, su IVA tampoco: va en su propio chip para que
-  // se pueda leer aparte al armar la cuenta de cobro.
-  it("el equipo con IVA muestra aparte el impuesto de los días que no se cobran", () => {
-    const devueltoAntes = {
-      cantidad: 10,
-      valor: 20000,
-      dias: 5,
-      cantidadDevuelta: 10,
-      fechaDespacho: "2026-08-10",
-      fechaVencimiento: "2026-08-14",
-      fechaDevolucion: "2026-08-12",
-      aplicaIva: true,
-    };
-
-    // 19% de los $400.000 que no se le cobran.
-    expect(textoDe(describirFechasEquipo(devueltoAntes, HOY), "ivaSinUsar")).toBe(
-      "IVA $ -76.000",
-    );
-
-    // Sin la marca de IVA no se inventa el número: una factura vieja migrada
-    // del Excel no la trae y no sabemos si se aplicó.
-    const sinIva = { ...devueltoAntes, aplicaIva: false };
-    expect(
-      textoDe(describirFechasEquipo(sinIva, HOY), "ivaSinUsar"),
-    ).toBeUndefined();
-  });
-
   it("el que devuelve justo el día que vence no tiene días sin usar", () => {
     const chips = describirFechasEquipo(
-      {
+      unEquipoDevuelto({
         cantidad: 1,
-        valor: 100,
+        valorDia: 100,
         dias: 5,
-        cantidadDevuelta: 1,
+        fechaDespacho: "2026-08-10",
         fechaVencimiento: "2026-08-14",
         fechaDevolucion: "2026-08-14",
-      },
+      }),
       HOY,
     );
     expect(textoDe(chips, "diasSinUsar")).toBeUndefined();
@@ -201,7 +192,12 @@ describe("describirFechasEquipo", () => {
 
   it("el que quedó sin fecha lo dice, en vez de aparentar que tiene plazo", () => {
     const chips = describirFechasEquipo(
-      { cantidad: 1, valor: 100, vencimientoIndefinido: true, fechaVencimiento: "2026-08-12" },
+      unEquipo({
+        cantidad: 1,
+        valorDia: 100,
+        vencimientoIndefinido: true,
+        fechaVencimiento: "2026-08-12",
+      }),
       HOY,
     );
     expect(tonoDe(chips, "indefinido")).toBe("indefinido");
@@ -225,14 +221,14 @@ describe("describirFechasEquipo", () => {
 });
 
 describe("agruparChipsFechas", () => {
-  const chazas = {
+  const chazas = unEquipo({
     cantidad: 10,
-    valor: 20000,
+    valorDia: 20000,
     dias: 3,
     fechaDespacho: "2026-08-03",
     fechaVencimiento: "2026-08-07",
-    ampliaciones: [{ dias: 2, descuento: 0, fechaAnterior: "2026-08-05" }],
-  };
+    ampliaciones: [{ diasAmpliados: 2, fechaAnterior: "2026-08-05" }],
+  });
 
   it("reparte la historia en trayecto, plazo y vencido", () => {
     const tramos = agruparChipsFechas(describirFechasEquipo(chazas, HOY));
@@ -249,13 +245,13 @@ describe("agruparChipsFechas", () => {
   it("una factura al día y sin renovaciones tiene dos tramos", () => {
     const tramos = agruparChipsFechas(
       describirFechasEquipo(
-        {
+        unEquipo({
           cantidad: 4,
-          valor: 30000,
+          valorDia: 30000,
           dias: 3,
           fechaDespacho: "2026-08-13",
           fechaVencimiento: "2026-08-20",
-        },
+        }),
         HOY,
       ),
     );
@@ -273,7 +269,13 @@ describe("agruparChipsFechas", () => {
     expect(conHistoria.find((chip) => chip.clave === "vencimiento").enCadena).toBe(true);
 
     const sinHistoria = describirFechasEquipo(
-      { cantidad: 1, valor: 100, dias: 2, fechaVencimiento: "2026-08-20" },
+      unEquipo({
+        cantidad: 1,
+        valorDia: 100,
+        dias: 2,
+        fechaDespacho: "2026-08-14",
+        fechaVencimiento: "2026-08-20",
+      }),
       HOY,
     );
     expect(sinHistoria.find((chip) => chip.clave === "vencimiento").enCadena).toBe(false);
@@ -283,13 +285,16 @@ describe("agruparChipsFechas", () => {
   // una condición de esos días, no un momento en el tiempo.
   it("el descuento va en el tramo del plazo, sin flecha", () => {
     const chips = describirFechasEquipo(
-      {
+      unEquipo({
         cantidad: 1,
-        valor: 100000,
+        valorDia: 100000,
         dias: 3,
+        fechaDespacho: "2026-08-05",
         fechaVencimiento: "2026-08-09",
-        ampliaciones: [{ dias: 4, descuento: 80000, fechaAnterior: "2026-08-05" }],
-      },
+        ampliaciones: [
+          { diasAmpliados: 4, descuentoRealizado: 80000, fechaAnterior: "2026-08-05" },
+        ],
+      }),
       HOY,
     );
     const descuento = chips.find((chip) => chip.clave === "descuento");

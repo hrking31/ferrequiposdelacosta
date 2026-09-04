@@ -1,7 +1,5 @@
-import {
-  calcularAporteFactura,
-  calcularTotalesFacturas,
-} from "./facturaCalculos";
+import { calcularAporteFactura, calcularTotalesFacturas } from "./facturaCuentas";
+import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // Los dos números de los recuadros "Equipos activos" y "Pagos pendientes".
 //
@@ -13,33 +11,43 @@ import {
 // reloj.
 const HOY = "2026-08-15";
 
-// Una factura simple: un equipo, sin devolver, con fecha de despacho y de
-// vencimiento, y su valor total.
+// Una factura de 10 andamios a $5.000 el día por 10 días: $500.000 redondos,
+// despachados el 10 y con vencimiento el 20.
 const factura = ({
   cantidad = 10,
-  cantidadDevuelta = 0,
-  valor = 5000,
+  devueltos = 0,
+  valorDia = 5000,
   fechaDespacho = "2026-08-10",
   fechaVencimiento = "2026-08-20",
-  valorTotal = 500000,
-  montoPagado = 0,
+  pagado = 0,
   abonos = [],
-} = {}) => ({
-  fecha: fechaDespacho,
-  valorTotal,
-  pagos: montoPagado ? [{ medio: "Efectivo", monto: montoPagado }] : [],
-  abonos,
-  equipos: [
-    {
-      descripcion: "Andamio",
-      cantidad,
-      cantidadDevuelta,
-      valor,
+} = {}) => {
+  const linea = (unidades, devuelto) =>
+    (devuelto ? unEquipoDevuelto : unEquipo)({
+      nombre: "Andamio",
+      cantidad: unidades,
+      valorDia,
+      // La línea que volvió lleva los días que de verdad estuvo afuera: se
+      // devuelve el mismo día que sale, así que es 1, no los 10 pactados.
+      dias: devuelto ? 1 : 10,
       fechaDespacho,
       fechaVencimiento,
-    },
-  ],
-});
+      ...(devuelto ? { fechaDevolucion: fechaDespacho } : {}),
+    });
+
+  // Devolver una parte no baja una cantidad: parte la línea en dos, y la que
+  // volvió se queda con los días que de verdad estuvo afuera.
+  const equipos = [];
+  if (devueltos > 0) equipos.push(linea(devueltos, true));
+  if (cantidad - devueltos > 0) equipos.push(linea(cantidad - devueltos, false));
+
+  return unaFactura({
+    fechaCreacion: fechaDespacho,
+    equipos,
+    pagos: pagado ? [{ medio: "Efectivo", monto: pagado }] : [],
+    abonos,
+  });
+};
 
 describe("calcularAporteFactura", () => {
   it("una factura activa aporta sus equipos afuera y su saldo", () => {
@@ -51,7 +59,7 @@ describe("calcularAporteFactura", () => {
 
   it("descuenta los equipos que ya volvieron", () => {
     const aporte = calcularAporteFactura(
-      factura({ cantidad: 10, cantidadDevuelta: 4 }),
+      factura({ cantidad: 10, devueltos: 4 }),
       HOY,
     );
 
@@ -80,8 +88,9 @@ describe("calcularAporteFactura", () => {
   });
 
   it("si devolvió todo y pagó todo, no aporta nada", () => {
+    // Volvieron el mismo día que salieron: 1 día × 10 × $5.000 = $50.000.
     const aporte = calcularAporteFactura(
-      factura({ cantidadDevuelta: 10, montoPagado: 500000 }),
+      factura({ devueltos: 10, pagado: 50000 }),
       HOY,
     );
 
@@ -90,12 +99,12 @@ describe("calcularAporteFactura", () => {
 
   it("si devolvió todo pero debe plata, aporta solo el saldo", () => {
     const aporte = calcularAporteFactura(
-      factura({ cantidadDevuelta: 10, montoPagado: 200000 }),
+      factura({ devueltos: 10, pagado: 20000 }),
       HOY,
     );
 
     expect(aporte.equiposActivos).toBe(0);
-    expect(aporte.pagosPendientes).toBe(300000);
+    expect(aporte.pagosPendientes).toBe(30000);
   });
 
   it("los abonos bajan el saldo", () => {
@@ -122,15 +131,16 @@ describe("calcularTotalesFacturas", () => {
     const totales = calcularTotalesFacturas(
       [
         factura(),
-        factura({ cantidad: 3, valorTotal: 200000 }),
+        factura({ cantidad: 3, valorDia: 2000 }),
         // Cerrada: no suma nada.
-        factura({ cantidadDevuelta: 10, montoPagado: 500000 }),
+        factura({ devueltos: 10, pagado: 50000 }),
       ],
       HOY,
     );
 
     expect(totales.equiposActivos).toBe(13);
-    expect(totales.pagosPendientes).toBe(700000);
+    // $500.000 de la primera y 3 × $2.000 × 10 días = $60.000 de la segunda.
+    expect(totales.pagosPendientes).toBe(560000);
   });
 
   it("sin facturas, todo en cero", () => {
@@ -144,7 +154,7 @@ describe("calcularTotalesFacturas", () => {
   // que hace que el disparador (que suma diferencias) y el repaso de madrugada
   // (que recalcula de cero) no puedan dar números distintos.
   it("el total es la suma de los aportes, uno por uno", () => {
-    const facturas = [factura(), factura({ cantidad: 7, valorTotal: 300000 })];
+    const facturas = [factura(), factura({ cantidad: 7, valorDia: 3000 })];
 
     const total = calcularTotalesFacturas(facturas, HOY);
     const sumaManual = facturas

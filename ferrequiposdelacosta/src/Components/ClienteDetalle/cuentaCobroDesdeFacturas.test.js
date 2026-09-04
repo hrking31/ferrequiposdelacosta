@@ -1,4 +1,11 @@
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
+import {
+  grupoAgregados,
+  unEquipo,
+  unEquipoDevuelto,
+  unGrupo,
+  unaFactura,
+} from "../../test/facturas";
 
 // La fecha de hoy se inyecta para que las pruebas no dependan del reloj real:
 // hay equipos cuyos días corren hasta hoy (los de devolución indefinida).
@@ -22,33 +29,35 @@ const empresa = {
   direccion: "Vía 40 # 79-100",
 };
 
-// Una factura simple: un equipo, 3 días a $100.000, con IVA y sin pagos.
+// La rana del alta: 3 días a $100.000, devuelta el día que vencía.
 //
-// El equipo se devolvió el día que vencía, a propósito: un equipo que sigue
-// afuera pasada la fecha acumula días de alquiler solos (ver
-// calcularAmpliacionEquipo), y eso ensuciaría todas las cuentas de acá abajo
-// con días que estas pruebas no están mirando.
-const facturaBase = {
+// Se devuelve a propósito: un equipo que sigue afuera pasada la fecha acumula
+// días de alquiler solo con el calendario, y eso ensuciaría todas las cuentas
+// de acá abajo con días que estas pruebas no están mirando.
+const rana = (extra = {}) =>
+  unEquipoDevuelto({
+    nombre: "RANA",
+    cantidad: 1,
+    dias: 3,
+    valorDia: 100000,
+    fechaDespacho: "2026-08-05",
+    fechaVencimiento: "2026-08-07",
+    fechaDevolucion: "2026-08-07",
+    ...extra,
+  });
+
+const facturaCon = ({ equipos = [rana()], ...resto } = {}) => ({
   id: "f1",
-  numeroFactura: 1234,
-  fecha: "2026-08-05",
-  aplicaIva: true,
-  subtotal: 300000,
-  iva: 57000,
-  valorTotal: 357000,
-  equipos: [
-    {
-      nombre: "RANA",
-      cantidad: 1,
-      dias: 3,
-      valor: 100000,
-      cantidadDevuelta: 1,
-      fechaDespacho: "2026-08-05",
-      fechaVencimiento: "2026-08-07",
-      fechaDevolucion: "2026-08-07",
-    },
-  ],
-};
+  ...unaFactura({
+    numeroFactura: "1234",
+    fechaCreacion: "2026-08-05",
+    aplicaIva: true,
+    equipos,
+    ...resto,
+  }),
+});
+
+const facturaBase = facturaCon();
 
 const construir = (facturas, quien = cliente) =>
   construirCuentaCobroDesdeFacturas({ cliente: quien, facturas, hoyIso: HOY });
@@ -92,18 +101,15 @@ describe("la columna del número de factura", () => {
   });
 
   it("una factura sin número se rotula s/n", () => {
-    const sinNumero = { ...facturaBase, numeroFactura: undefined };
+    const sinNumero = facturaCon();
+    delete sinNumero.factura.numeroFactura;
     expect(construir([sinNumero]).items[0].factura).toBe("s/n");
   });
 
   it("el mismo número se repite en cada equipo de esa factura", () => {
-    const dosEquipos = {
-      ...facturaBase,
-      equipos: [
-        facturaBase.equipos[0],
-        { ...facturaBase.equipos[0], nombre: "ANDAMIO" },
-      ],
-    };
+    const dosEquipos = facturaCon({
+      equipos: [rana(), rana({ nombre: "ANDAMIO" })],
+    });
 
     expect(construir([dosEquipos]).items.map((i) => i.factura)).toEqual([
       "1234",
@@ -125,27 +131,25 @@ describe("los equipos como ítems", () => {
   });
 
   it("suma los días de las renovaciones a los del alquiler", () => {
-    const conAmpliacion = {
-      ...facturaBase,
+    // Se le dieron 2 días más y volvió el 09: estuvo 5 días afuera, y eso es
+    // lo que quedó escrito en la línea al cerrarla.
+    const conAmpliacion = facturaCon({
       equipos: [
-        {
-          ...facturaBase.equipos[0],
+        rana({
+          dias: 5,
           fechaVencimiento: "2026-08-09",
-          // Devuelve el día que vence el plazo ya ampliado. Si quedara la
-          // fecha del alta (el 07) sería una devolución anticipada de 2
-          // días, y esta prueba mira las renovaciones, no ese crédito.
           fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
               fechaAnterior: "2026-08-07",
               fechaNueva: "2026-08-09",
-              dias: 2,
-              descuento: 0,
+              diasAmpliados: 2,
+              descuentoRealizado: 0,
             },
           ],
-        },
+        }),
       ],
-    };
+    });
 
     const [item] = construir([conAmpliacion]).items;
     expect(item.day).toBe(5);
@@ -154,82 +158,76 @@ describe("los equipos como ítems", () => {
   });
 
   it("al equipo con devolución indefinida le cobra los días hasta hoy", () => {
-    const indefinido = {
-      ...facturaBase,
+    const indefinido = facturaCon({
       equipos: [
-        {
-          ...facturaBase.equipos[0],
-          // Sigue afuera: por eso los días corren hasta hoy.
-          cantidadDevuelta: 0,
-          fechaDevolucion: undefined,
-          vencimientoIndefinido: true,
+        // Sigue afuera: por eso los días corren hasta hoy.
+        unEquipo({
+          nombre: "RANA",
+          cantidad: 1,
+          dias: 3,
+          valorDia: 100000,
+          fechaDespacho: "2026-08-05",
           fechaVencimiento: "2026-08-07",
-        },
+          vencimientoIndefinido: true,
+        }),
       ],
-    };
+    });
 
     const [item] = construir([indefinido]).items;
-    // 3 días de alquiler + los 8 que van del 7 al 15 de agosto.
+    // Del 5 al 15 de agosto, contando el día de salida, son 11 días.
     expect(item.day).toBe(11);
     expect(item.fechaDevolucion).toBe(HOY);
-    // Despacho + días - 1 tiene que dar la fecha de devolución mostrada.
     expect(item.subtotal).toBe(1100000);
   });
 
   it("pone primero los equipos del alta y después los agregados", () => {
-    const conAgregado = {
-      ...facturaBase,
-      equipos: [
-        { ...facturaBase.equipos[0], nombre: "ANDAMIO", agregadoPosteriormente: true },
-        facturaBase.equipos[0],
+    const conAgregado = facturaCon({
+      grupos: [
+        unGrupo({ fechaSolicitud: "2026-08-05", equipos: [rana()] }),
+        unGrupo({
+          grupo: grupoAgregados(1),
+          fechaSolicitud: "2026-08-06",
+          equipos: [rana({ nombre: "ANDAMIO" })],
+        }),
       ],
-    };
+    });
 
     expect(construir([conAgregado], empresa).items.map((i) => i.description)).toEqual([
       "RANA",
       "ANDAMIO",
     ]);
   });
-
-  it("acepta las facturas viejas que guardan los equipos como nombres sueltos", () => {
-    const vieja = { ...facturaBase, equipos: ["MEZCLADORA", "VIBRADOR"] };
-    const items = construir([vieja], empresa).items;
-
-    expect(items.map((i) => i.description)).toEqual(["MEZCLADORA", "VIBRADOR"]);
-    // Sin datos para calcular: quedan en cero para completarlos a mano.
-    expect(items[0].quantity).toBe(0);
-    expect(items[0].subtotal).toBe(0);
-  });
 });
 
 describe("el resumen", () => {
   it("suma subtotal, IVA, depósito y transporte de todas las facturas", () => {
     const otra = {
-      ...facturaBase,
+      ...facturaCon({
+        numeroFactura: "1235",
+        valorDeposito: 120000,
+        valorTransporte: 80000,
+        transporte: "Ida y vuelta",
+        equipos: [
+          unEquipoDevuelto({
+            nombre: "ANDAMIO",
+            cantidad: 2,
+            dias: 1,
+            valorDia: 50000,
+            fechaDespacho: "2026-08-10",
+            fechaVencimiento: "2026-08-10",
+            fechaDevolucion: "2026-08-10",
+          }),
+        ],
+      }),
       id: "f2",
-      numeroFactura: 1235,
-      deposito: 120000,
-      valorTransporte: 80000,
-      transporte: "Ida y vuelta",
-      valorTotal: 557000,
-      equipos: [
-        {
-          nombre: "ANDAMIO",
-          cantidad: 2,
-          dias: 1,
-          valor: 50000,
-          cantidadDevuelta: 2,
-          fechaDespacho: "2026-08-10",
-          fechaVencimiento: "2026-08-10",
-          fechaDevolucion: "2026-08-10",
-        },
-      ],
     };
 
     const cuenta = construir([facturaBase, otra]);
 
     expect(cuenta.subtotalNumero).toBe(400000); // 300.000 + 100.000
-    expect(cuenta.ivaNumero).toBe(114000); // 57.000 de cada una
+    // El IVA sale del subtotal de cada factura CON su flete: la segunda lleva
+    // $80.000 de transporte que también tributan.
+    expect(cuenta.ivaNumero).toBeCloseTo(300000 * 0.19 + 180000 * 0.19, 2);
     expect(cuenta.valorDeposito).toBe(120000);
     expect(cuenta.valorTransporte).toBe(80000);
     expect(cuenta.iva).toBe(true);
@@ -242,22 +240,26 @@ describe("el resumen", () => {
     expect(cuenta.valorTransporte).toBe(0);
   });
 
-  it("suma el depósito y el transporte de los equipos agregados después", () => {
-    const conAgregado = {
-      ...facturaBase,
-      deposito: 50000,
-      valorTransporte: 30000,
-      equipos: [
-        facturaBase.equipos[0],
-        {
-          ...facturaBase.equipos[0],
-          nombre: "ANDAMIO",
-          agregadoPosteriormente: true,
-          deposito: 20000,
+  it("suma el depósito y el transporte de todos los despachos", () => {
+    const conAgregado = facturaCon({
+      grupos: [
+        unGrupo({
+          fechaSolicitud: "2026-08-05",
+          valorDeposito: 50000,
+          transporte: "Solo ida",
+          valorTransporte: 30000,
+          equipos: [rana()],
+        }),
+        unGrupo({
+          grupo: grupoAgregados(1),
+          fechaSolicitud: "2026-08-06",
+          valorDeposito: 20000,
+          transporte: "Solo ida",
           valorTransporte: 10000,
-        },
+          equipos: [rana({ nombre: "ANDAMIO" })],
+        }),
       ],
-    };
+    });
 
     const cuenta = construir([conAgregado]);
     expect(cuenta.valorDeposito).toBe(70000);
@@ -265,33 +267,30 @@ describe("el resumen", () => {
   });
 
   it("saca el descuento de las renovaciones a un renglón propio", () => {
-    const conDescuento = {
-      ...facturaBase,
+    const conDescuento = facturaCon({
       equipos: [
-        {
-          ...facturaBase.equipos[0],
+        rana({
+          dias: 5,
           fechaVencimiento: "2026-08-09",
-          // Igual que arriba: devuelve al vencer el plazo ampliado, para que
-          // no se mezcle el crédito por días sin usar con el descuento.
           fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
               fechaAnterior: "2026-08-07",
               fechaNueva: "2026-08-09",
-              dias: 2,
-              descuento: 50000,
+              diasAmpliados: 2,
+              descuentoRealizado: 50000,
             },
           ],
-        },
+        }),
       ],
-    };
+    });
 
     const cuenta = construir([conDescuento]);
     // El ítem va a precio de lista: 5 días x $100.000.
     expect(cuenta.items[0].subtotal).toBe(500000);
     expect(cuenta.subtotalNumero).toBe(500000);
     expect(cuenta.descuento).toBe(50000);
-    // Y el subtotal ya descontado es el que llevó IVA en la factura.
+    // Y el subtotal ya descontado es el que lleva IVA.
     expect(cuenta.ivaNumero).toBeCloseTo((500000 - 50000) * 0.19, 2);
   });
 
@@ -302,15 +301,14 @@ describe("el resumen", () => {
 
 describe("lo que se cobra es el saldo", () => {
   it("descuenta lo pagado y los abonos del total", () => {
-    const conPagos = {
-      ...facturaBase,
-      valorTotal: 357000,
+    const conPagos = facturaCon({
       pagos: [{ medio: "Efectivo", monto: 200000 }],
-      abonos: [{ fecha: "2026-08-10", medio: "Nequi", monto: 57000 }],
-    };
+      abonos: [{ fecha: "2026-08-10", medio: "Nequi", monto: 57000, tipo: "cliente" }],
+    });
 
     const cuenta = construir([conPagos]);
 
+    // 3 días × $100.000 más el 19%.
     expect(cuenta.total).toBe(357000);
     expect(cuenta.pagado).toBe(200000);
     expect(cuenta.abonos).toBe(57000);
@@ -318,10 +316,9 @@ describe("lo que se cobra es el saldo", () => {
   });
 
   it("si el cliente pagó de más, el saldo no baja de cero", () => {
-    const sobrepagada = {
-      ...facturaBase,
+    const sobrepagada = facturaCon({
       pagos: [{ medio: "Efectivo", monto: 400000 }],
-    };
+    });
 
     expect(construir([sobrepagada]).saldo).toBe(0);
   });
@@ -334,13 +331,11 @@ describe("lo que se cobra es el saldo", () => {
   });
 
   it("el desglose cuadra con el total de las facturas", () => {
-    const completa = {
-      ...facturaBase,
-      deposito: 120000,
+    const completa = facturaCon({
+      valorDeposito: 120000,
       valorTransporte: 80000,
       transporte: "Ida y vuelta",
-      valorTotal: 557000,
-    };
+    });
 
     const cuenta = construir([completa]);
     const desglose =
