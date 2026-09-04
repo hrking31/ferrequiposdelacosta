@@ -22,6 +22,9 @@ vi.mock("../../Components/Firebase/Firebase", () => ({
   storage: {},
   auth: {},
   database: {},
+  // reCAPTCHA se enciende al entrar al carrito (ver Firebase.js). Acá no hay
+  // navegador de verdad que lo cargue, así que basta con que exista.
+  activarAppCheck: () => Promise.resolve(),
 }));
 vi.mock("firebase/functions", () => ({
   getFunctions: () => ({}),

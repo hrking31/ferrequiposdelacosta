@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   removeFromCart,
@@ -36,11 +36,21 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { Camion } from "../../Components/Camion/Camion.jsx";
 import PersonIcon from "@mui/icons-material/Person";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { activarAppCheck } from "../../Components/Firebase/Firebase.js";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
 export default function KioskCart() {
+  // reCAPTCHA se enciende ACÁ, al entrar al carrito, y no al abrir la app: es
+  // lo único que lo necesita —crearCotizacion— y así no queda analizando en
+  // segundo plano mientras nadie pide nada. Al entrar y no al apretar Enviar
+  // para que el token esté listo mientras el cliente llena sus datos.
+  // Ver Components/Firebase/Firebase.js.
+  useEffect(() => {
+    activarAppCheck();
+  }, []);
+
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
