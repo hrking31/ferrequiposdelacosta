@@ -234,15 +234,15 @@ En la ficha del cliente se ven en dos etiquetas separadas, porque son cosas dist
 
 ### Y el que devuelve antes no paga lo que no usó
 
-La misma regla, mirada desde el otro lado. Si el cliente alquiló cinco días y devolvió a los tres, **los dos días que no usó no son de la empresa**:
+La misma regla, mirada desde el otro lado. Si el cliente alquiló cinco días y devolvió a los tres, **los dos días que no usó no son de la empresa**.
 
-- **Si ya había pagado ese equipo** → se le restan esos dos días *y su IVA*, y esa plata le queda a favor.
-- **Si todavía no lo pagaba** → los días simplemente se descuentan de la factura.
+Cómo se resuelve eso cambió de raíz, y vale la pena contarlo porque es el ejemplo más claro de lo que ganó el modelo nuevo.
 
-El crédito nunca pasa de lo que ese equipo tenía cobrado: una devolución anticipada baja la cuenta, no la da vuelta. En la ficha del cliente el número aparece en verde, y tanto en la cuenta de cobro como en el PDF va como un renglón aparte —*"−2 días sin usar"*— para que la fila siga cuadrando con los días por el valor del día.
+**Antes** el equipo guardaba sus cinco días pactados para siempre. Al devolver a los tres, el total seguía cobrando cinco y había que calcular aparte un **crédito** por los dos que sobraban —con su IVA— y acordarse de restarlo en cada cuenta y en cada pantalla. Ocho lugares consultaban ese dato. En uno de ellos, la pregunta era *"¿el total es mayor que cero?"*, y un crédito da un total **negativo**: ese lugar lo descartaba en silencio y seguía cobrando los días de más.
 
-> [!NOTE]
-> Acá se escondía un error fácil de pasar por alto. El cálculo avisaba que había ajuste preguntando si el total era **mayor que cero**… y un crédito da un total **negativo**. Las ocho pantallas que consultan ese dato lo descartaban y seguían cobrando los días de más. La pregunta correcta no era *"¿es positivo?"* sino *"¿es distinto de cero?"*.
+**Ahora** el día que el equipo vuelve, sus días quedan escritos en los que de verdad estuvo afuera: tres. La cuenta de todo equipo pasa a ser la misma multiplicación —cantidad × valor del día × días— y los dos días que no usó nunca entran al cobro. No hay crédito que restar, así que tampoco hay dónde olvidarse de restarlo.
+
+En pantalla queda un chip que dice *"Devolvió 2 días antes"*, sin cifra: es un hecho, y poner un número haría pensar que hay una plata a favor que ya no existe.
 
 ### 4. Las gestiones: la bitácora del cobro
 
@@ -618,10 +618,9 @@ Una factura real llegó a mostrar $476.000 de diferencia entre las dos pantallas
 
 Dejar de escribirlo no alcanzaba: el número viejo seguía dentro de los documentos, y aunque ningún código lo leyera, cualquiera que abriera la base lo iba a encontrar y creer. Se borró de todas las facturas que lo tenían. **Un dato que miente y nadie usa no es inofensivo: es una trampa esperando.**
 
-> [!WARNING]
-> **La misma trampa, más chica, volvió a aparecer.** Para saber si una prórroga saca la factura de cartera se mira lo que el cliente debía *antes* de esa renovación, y ese número parte del **valor guardado** de la factura — que no lleva ni las ampliaciones ni los créditos, porque los dos se calculan al vuelo. Restaba pagos y abonos, pero no lo que el cliente había devuelto sin usar: le cobraba días que el equipo no estuvo afuera. En una factura real decía **$208.700** donde el cliente debe **$144.440**.
->
-> No basta con partir del valor guardado y restar la plata que entró: hay que restar también lo que dejó de deberse.
+**La misma trampa, más chica, volvió a aparecer — y se cerró con el modelo nuevo.** Para saber si una prórroga saca la factura de cartera se mira lo que el cliente debe *hoy*, y ese número partía del **valor guardado** de la factura, que no lleva ni las ampliaciones ni los días vencidos porque los dos se calculan al vuelo. En una factura real decía **$144.440** donde el cliente debía **$1.727.140**, y no era solo un texto: con pagar esos $144.440 la factura pasaba a *activa* y salía de cartera debiendo el resto.
+
+Ahora ese número no parte de ningún total guardado. Se arma sumando los días que el cliente **ya consumió** de cada equipo —los que están corriendo se cobran cuando devuelva, igual que cualquier alquiler en curso— y restando lo que entregó. La misma regla de siempre, aplicada hasta el final: **si el total no se guarda, tampoco puede guardarse nada que salga de él.**
 
 ### Lo que se cobra una vez no se lee una sola vez
 
@@ -631,23 +630,11 @@ Leer `valorTransporte` de la factura a secas devuelve el del **primer** despacho
 
 Es el reverso del error de la devolución parcial: allá un cargo del lote se contaba **dos veces**, acá se contaba **una sola** habiendo varios. Los dos salen de confundir *lo que se cobra por despacho* con *lo que se cobra por factura*.
 
-### Lo que la factura vale, en un solo nodo
+### El modelo de la factura: la plata con dueño
 
-Abrir una factura en la base era encontrarse quince campos en fila: el número y la fecha junto al subtotal, el IVA, el depósito, las listas de equipos, pagos y abonos, y las marcas de estado. Para saber qué era qué había que conocerse el modelo de memoria.
+Un primer intento agrupó los importes sueltos en un nodo `valores`. Ordenó el documento y dejó intacto el problema de fondo, así que el modelo se rehizo entero.
 
-Los ocho que dicen **lo que la factura vale** —subtotal, IVA, si lo aplica, total, tipo y valor del transporte, depósito y qué se resolvió con él— viven ahora juntos, en un nodo `valores`. El número, la fecha, el tipo de pago y la marca de cerrada se quedan en la raíz: no son importes, son la identidad del documento.
-
-En Firestore agrupar no ahorra ni una lectura —el documento se trae entero igual— ni permite buscar mejor. La ganancia es de orden, y una concreta: **hay un solo lugar que sabe dónde vive cada valor.** Todas las pantallas los piden a `valoresFactura()`, así que mover un campo ya no obliga a salir a buscarlo por las diez que lo leen.
-
-> [!WARNING]
-> **Al actualizar un solo valor hay que nombrar la ruta completa** (`"valores.deposito"`), nunca mandar el nodo entero. Un `update` con `valores: { … }` **reemplaza** el nodo: escribir solo el subtotal se llevaría por delante el transporte, el depósito y lo resuelto de él. Es la trampa clásica de guardar importes dentro de un mapa, y no avisa: los campos desaparecen y la factura pasa a valer menos.
-
-### El modelo que viene: la plata con dueño
-
-> [!NOTE]
-> **En diseño, sin implementar.** Agrupar los importes ordenó el documento, pero dejó intacto el problema de fondo, así que el modelo se está rehaciendo entero.
-
-El problema no es el desorden: es que **la plata no está donde se cobra**. El pago del alta vive en la factura, el de cada lote agregado escondido en su primer equipo, y el flete y el depósito repartidos entre los dos sitios. Cada cuenta tiene que ir a buscarlos a un lugar distinto, y ese "hay que acordarse" ya costó dos errores de plata.
+El problema no era el desorden: era que **la plata no estaba donde se cobra**. El pago del alta vivía en la factura, el de cada lote agregado escondido en su primer equipo, y el flete y el depósito repartidos entre los dos sitios. Cada cuenta tenía que ir a buscarlos a un lugar distinto, y ese "hay que acordarse" costó dos errores de plata.
 
 Dos reglas de partida: **nada suelto en la raíz del documento** —abrir una factura en Firebase tiene que ser leer cuatro nombres, no veinte campos en fila— y **la plata vive donde se cobra**, que no es el equipo: es el despacho.
 
@@ -709,6 +696,19 @@ Que los abonos no bajen al equipo tiene una consecuencia, y es deliberada: se pu
 
 Esa separación es la que ordena el resto del modelo: la plata se sigue por factura —por eso los abonos viven ahí— y los equipos se siguen por estado, no por saldo. Un equipo sale de la lista cuando **vuelve**, no cuando se paga.
 
+#### Lo que se llevó por delante
+
+Rehacer el modelo no fue traducir nombres de campo: dos mecanismos enteros dejaron de hacer falta.
+
+**Los créditos por días sin usar.** Cuando el cliente devolvía antes de tiempo, el total llevaba cobrados los días completos y había que calcular aparte, en cada cuenta y en cada pantalla, cuántos días no usó para descontarlos. Con los días congelados al volver, el cobro de todo equipo es la misma multiplicación —cantidad × valor del día × días— y no hay nada que restar después.
+
+**La foto del total como base de cálculo.** El total guardado se usaba para decidir cosas: si una prórroga sacaba la factura de cartera, cuánto entraba como abono al agregar un equipo. Hoy la foto se sigue guardando —es lo que decía el papel el día que se emitió, y eso es un hecho— pero ninguna decisión sale de ella: todas parten de los equipos.
+
+Y una tercera cosa se volvió **estructuralmente imposible** en vez de quedar "arreglada": duplicar el pago de un lote al partir una línea de equipo. La plata está en el grupo, así que partir una línea no tiene nada que copiar.
+
+> [!WARNING]
+> **Al actualizar un solo campo de un nodo hay que nombrar la ruta completa** (`"factura.cerrada"`, `"factura.total"`), nunca mandar el nodo entero. Un `update` con `factura: { … }` **reemplaza** el nodo: escribir solo el total se llevaría por delante el número, la fecha y todo lo demás. Es la trampa clásica de guardar campos dentro de un mapa, y no avisa: desaparecen en silencio.
+
 ---
 
 ## Arquitectura
@@ -764,7 +764,7 @@ Al lado, bajo el **Total adicionales**, va el historial de ese número: a cuánt
 
 El renglón más nuevo va **vacío** a propósito. Su total es el que está arriba, siempre a la vista; repetirlo abajo haría creer que después pasó algo más.
 
-Lo que el cliente **devolvió sin usar no tiene renglón propio**: se le resta a la renta del equipo, que es lo que corrige. Un equipo que salió por 3 días y volvió a 1 se lee como un solo renglón de 1 día —lo que se le cobra— y no como 3 y −2, que obliga a restar de cabeza para saber lo que interesa. El crédito sigue a la vista en los chips del equipo, que son los que cuentan cuántos días fueron.
+Lo que el cliente **devolvió sin usar no tiene renglón propio**, y ya no podría tenerlo: esos días no se cobraron nunca. Un equipo que salió por 3 días y volvió a 1 se lee como un solo renglón de 1 día —lo que se le cobra— y no como 3 y −2, que obliga a restar de cabeza para saber lo que interesa. Que devolvió antes sigue a la vista en los chips del equipo.
 
 ### La plata del equipo también tiene historia
 

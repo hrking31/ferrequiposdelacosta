@@ -40,23 +40,39 @@ De lo más valioso y estable a lo más frágil:
 - [x] `formatearFechaLegible(fechaIso)` — AAAA-MM-DD → DD/MM/AAAA
 - [x] `formatearHoraLegible(horaHHMM)` — HH:MM (24h) → "2:30 p. m."
 
-### ✅ src/Components/ClienteDetalle/facturaUtils.js — 28/28 · pruebas en `facturaUtils.test.js`
-Fechas y días:
+### ✅ El modelo y las cuentas de la factura — `facturaModelo.test.js` (12) y `facturaCuentas.test.js` (58)
+
+Son dos archivos porque son dos preguntas distintas: **dónde vive cada dato**
+—la forma del documento— y **cuánto se cobra**. Las fixturas de las dos, y las
+de todas las pruebas que arman una factura, salen de `src/test/facturas.js`.
+
+Lo que cubre el modelo (`facturaModelo.test.js`): los atajos de lectura, que
+tener el nodo `devolucion` ya signifique haber vuelto, cómo se numera el
+próximo despacho y cómo nace un documento.
+
+Lo que cubre la cuenta (`facturaCuentas.test.js`), con las fechas siempre
+inyectadas para no depender del reloj:
 - [x] `obtenerFechaHoyBogota()` — fecha de hoy en Colombia (AAAA-MM-DD)
 - [x] `obtenerFechaInicialEfectiva()` — regla de las 3pm (arranca hoy / mañana)
 - [x] `calcularFechaDevolucion(fechaIso, dias)` — despacho + días − 1
 - [x] `calcularVencimiento(fechaIso, dias)` — suma días completos (ampliar plazo)
 - [x] `diferenciaEnDias(desdeIso, hastaIso)` — días calendario entre dos fechas
 
-Cantidades y devoluciones:
-- [x] `calcularCantidadPendiente(equipo)` — unidades sin devolver (nunca < 0)
-- [x] `equipoDevueltoCompleto(equipo)` — true si no queda nada pendiente
+- [x] `diasDeAlquiler(desde, hasta)` — el día de salida cuenta como el primero
+
+La cuenta de un equipo:
+- [x] `calcularEquipo(equipo, hoy)` — cantidad × valor del día × días, y de
+      dónde salen los días: los congelados si volvió, el calendario si no
+- [x] `diasDeEquipo(equipo, hoy)` — el reparto en días del alta, ampliados y
+      vencidos, que es lo que las pantallas nombran por separado
+- [x] `calcularEstadoEquipo(equipo, hoy)` — los cinco estados, por prioridad
+- [x] `proyectarAmpliacion(equipo, dias, hoy)` — el plazo nuevo se cuenta
+      desde hoy y consolida los días ya vencidos
 
 Pagos y abonos:
-- [x] `normalizarPagos(pagos, modoPagoLegado, montoLegado)` — unifica formato viejo/nuevo
-- [x] `sumarAbonos(abonos)` — suma los montos de los abonos
+- [x] `sumarPagos(doc)` — lo que entró por cada despacho
+- [x] `sumarAbonos(doc)` / `sumarEntregas(doc)` — lo que entró y salió después
 - [x] `separarExcedentePago(pagos, total)` — recorta el sobrante y lo aísla
-- [x] `sumarPagosFactura(factura)` — pago del alta + pagos de equipos agregados
 
 Cuenta de factura y cliente:
 - [x] `calcularEstadoCuenta(factura, totalMostrado)` — total/abonos/pagado/saldo (para formularios)
@@ -312,7 +328,7 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
   `CargosAdicionales`, `RecuadroPago`, `EquipoRow`, `recuadrosCuenta`,
   `ClienteEncabezado`): reciben la cuenta **ya calculada** —esa es la regla, se
   calcula una sola vez en `FacturaCard`— y la muestran. La cuenta está probada
-  en `facturaUtils.test.js`.
+  en `facturaCuentas.test.js`.
 - **La tienda y el kiosco** (`ProductCardDetail`, `KioskProductCardDetail`,
   `Search`, `Drawer`, protector de pantalla): navegación y presentación.
 - **Las vistas contenedoras** (`Vista*`): arman el layout y delegan en los
@@ -323,7 +339,9 @@ permiso— ahí sí corresponde probarla.
 
 ---
 
-_Última actualización (2026-08-19): **Fases 1, 2 y 3 COMPLETAS** — lógica,
-nueve pantallas clave y todo lo que decide algo (plata, permisos, qué se
-guarda). **397 pruebas pasando** en 48 archivos. Lo que sigue, cuando haga
-falta: flujos completos con Cypress/Playwright._
+_Última actualización (2026-09-04): **453 pruebas pasando** en 53 archivos.
+Se rehízo el modelo de la factura entero —la plata pasó a vivir en el
+despacho— y con él las once suites que armaban facturas con la forma
+anterior. Lo que cada prueba afirma no cambió: cambió de dónde sale el dato,
+que ahora es siempre `src/test/facturas.js`. Lo que sigue, cuando haga falta:
+flujos completos con Cypress/Playwright._
