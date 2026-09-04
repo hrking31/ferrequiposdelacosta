@@ -25,6 +25,7 @@ import {
   calcularAmpliacionFactura,
   calcularDepositoTotal,
   depositoPendiente,
+  valoresFactura,
 } from "./facturaUtils";
 import { iconBtnSx } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
@@ -47,6 +48,7 @@ export default function EstadoCuentaFactura({
 
   // Mismo cálculo compartido que usa Seguimiento de Clientes.
   const ampliacionFactura = calcularAmpliacionFactura(factura);
+  const valores = valoresFactura(factura);
   // Subtotal e IVA se muestran ya con los días ampliados sumados
   // (menos el descuento): es lo que hoy se le cobraría al cliente,
   // no lo que decía la factura el día que se emitió. Si la factura
@@ -56,14 +58,12 @@ export default function EstadoCuentaFactura({
   // también la lleva: con el subtotal viejo, los renglones de la izquierda no
   // cuadrarían con él.
   const subtotal = formatearMoneda(
-    typeof factura.subtotal === "number"
+    typeof valores.subtotal === "number"
       ? ampliacionFactura.nuevoSubtotal
-      : factura.subtotal,
+      : valores.subtotal,
   );
   const iva = formatearMoneda(
-    typeof factura.iva === "number"
-      ? ampliacionFactura.nuevoIva
-      : factura.iva,
+    typeof valores.iva === "number" ? ampliacionFactura.nuevoIva : valores.iva,
   );
   const valorTotal = formatearMoneda(cuenta.total);
   const equiposAgregados = (
@@ -81,9 +81,9 @@ export default function EstadoCuentaFactura({
     0,
   );
   const depositoTotalFactura =
-    (Number(factura.deposito) || 0) + depositoAgregadosTotal;
+    (Number(valores.deposito) || 0) + depositoAgregadosTotal;
   const transporteTotalFactura =
-    (Number(factura.valorTransporte) || 0) + transporteAgregadosTotal;
+    (Number(valores.valorTransporte) || 0) + transporteAgregadosTotal;
 
   // Lo cobrado al emitir la factura más lo de cada equipo agregado
   // después, y lo que el cliente fue abonando desde entonces. Si
@@ -324,7 +324,7 @@ export default function EstadoCuentaFactura({
 
               {/* Retener plata sin decir por qué no se puede,
                 así que el motivo siempre está a la vista. */}
-              {Number(factura.depositoResuelto?.retenido) > 0 && (
+              {Number(valores.depositoResuelto?.retenido) > 0 && (
                 <Typography
                   variant="caption"
                   sx={{
@@ -335,9 +335,9 @@ export default function EstadoCuentaFactura({
                 >
                   Se retuvieron{" "}
                   {formatearMoneda(
-                    factura.depositoResuelto.retenido,
+                    valores.depositoResuelto.retenido,
                   )}{" "}
-                  del depósito: {factura.depositoResuelto.motivo}
+                  del depósito: {valores.depositoResuelto.motivo}
                 </Typography>
               )}
 

@@ -12,6 +12,7 @@ import {
   calcularAmpliacionFactura,
   calcularCuentaFactura,
   obtenerFechaHoyBogota,
+  valoresFactura,
 } from "./facturaUtils";
 
 const numero = (valor) => Number(valor) || 0;
@@ -122,20 +123,21 @@ export default function construirCuentaCobroDesdeFacturas({
 
       const ampliacion = calcularAmpliacionFactura(factura, hoyIso);
       const cuenta = calcularCuentaFactura(factura, hoyIso);
+      const valores = valoresFactura(factura);
       const equiposObjeto = sonObjetos ? equipos : [];
 
       return {
-        iva: acumulado.iva + (ampliacion.hay ? ampliacion.nuevoIva : numero(factura.iva)),
+        iva: acumulado.iva + (ampliacion.hay ? ampliacion.nuevoIva : numero(valores.iva)),
         // Lo que se descontó en las renovaciones, para restarlo una sola vez
         // al final: los ítems van a precio de lista.
         descuento: acumulado.descuento + ampliacion.descuento,
         deposito:
           acumulado.deposito +
-          numero(factura.deposito) +
+          numero(valores.deposito) +
           sumarDeAgregados(equiposObjeto, "deposito"),
         transporte:
           acumulado.transporte +
-          numero(factura.valorTransporte) +
+          numero(valores.valorTransporte) +
           sumarDeAgregados(equiposObjeto, "valorTransporte"),
         total: acumulado.total + cuenta.total,
         pagado: acumulado.pagado + cuenta.pagado,
@@ -158,12 +160,13 @@ export default function construirCuentaCobroDesdeFacturas({
   // El tipo de transporte no se suma: se toma el de la primera factura que lo
   // tenga, porque es un rótulo ("Ida y vuelta"), no un importe. Sin transporte
   // cobrado, el select queda en "Sin transporte" y su campo deshabilitado.
-  const facturaConTransporte = lista.find(
-    (factura) => factura.transporte && factura.transporte !== "Sin transporte",
-  );
+  const facturaConTransporte = lista.find((factura) => {
+    const tipo = valoresFactura(factura).transporte;
+    return tipo && tipo !== "Sin transporte";
+  });
   const transporte =
     resumen.transporte > 0
-      ? facturaConTransporte?.transporte || "Ida y vuelta"
+      ? valoresFactura(facturaConTransporte).transporte || "Ida y vuelta"
       : "Sin transporte";
 
   return {

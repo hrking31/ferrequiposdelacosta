@@ -114,8 +114,9 @@ describe("FacturaFormDialog — crear", () => {
       fechaVencimiento: "2026-08-12",
     });
 
-    // 4 andamios × 3 días × $20.000.
-    expect(datos.subtotal).toBe(240000);
+    // 4 andamios × 3 días × $20.000. Lo que la factura vale vive junto, en el
+    // nodo `valores`, no suelto en la raíz del documento.
+    expect(datos.valores.subtotal).toBe(240000);
 
     // Nace abierta: se emitió y todavía no se pagó ni se devolvió nada.
     expect(datos.cerrada).toBe(false);
@@ -148,9 +149,11 @@ describe("FacturaFormDialog — editar", () => {
     id: "f1",
     numeroFactura: "1573",
     fecha: "2026-08-01",
-    aplicaIva: false,
-    subtotal: 240000,
-    valorTotal: 240000,
+    valores: {
+      aplicaIva: false,
+      subtotal: 240000,
+      valorTotal: 240000,
+    },
     equipos: [
       {
         nombre: "ANDAMIO",

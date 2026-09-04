@@ -169,8 +169,10 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    // Volvió bien: no se retiene nada, se le devuelve todo.
-    expect(loGuardadoEnLaFactura().depositoResuelto).toEqual({
+    // Volvió bien: no se retiene nada, se le devuelve todo. Se escribe con la
+    // ruta completa dentro del nodo de valores: mandar el nodo entero borraría
+    // el total y el subtotal, que acá no se tocan.
+    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toEqual({
       retenido: 0,
       motivo: "",
       fecha: HOY,
@@ -212,7 +214,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     });
 
     // Y el depósito se liquida con lo anotado, diciendo por CUÁL equipo.
-    expect(loGuardadoEnLaFactura().depositoResuelto).toEqual({
+    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toEqual({
       retenido: 30000,
       motivo: "ANDAMIO: Andamio rayado",
       fecha: HOY,
@@ -326,7 +328,7 @@ describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
     expect(afuera.cantidad).toBe(3);
     expect(afuera.estadoDevolucion).toBeUndefined();
     // Y el depósito sigue sin resolverse.
-    expect(loGuardadoEnLaFactura().depositoResuelto).toBeUndefined();
+    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toBeUndefined();
   });
 });
 

@@ -45,6 +45,7 @@ import {
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
+  valoresFactura,
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
@@ -442,11 +443,12 @@ export default function ClienteSeguimientoCard({
   // descuento): son lo que hoy se le cobraría al cliente, no lo que decía la
   // factura el día que se emitió. Si la factura no traía el dato, se deja
   // vacío como antes en vez de mostrar un cero.
+  const valores = valoresFactura(factura);
   const subtotal = formatearMoneda(
-    typeof factura.subtotal === "number" ? ampliacion.nuevoSubtotal : factura.subtotal,
+    typeof valores.subtotal === "number" ? ampliacion.nuevoSubtotal : valores.subtotal,
   );
   const iva = formatearMoneda(
-    typeof factura.iva === "number" ? ampliacion.nuevoIva : factura.iva,
+    typeof valores.iva === "number" ? ampliacion.nuevoIva : valores.iva,
   );
   // Igual que el transporte: el de todos los lotes, no solo el del primero.
   const deposito = formatearMoneda(calcularDepositoTotal(factura));
@@ -477,7 +479,7 @@ export default function ClienteSeguimientoCard({
   // con su propio flete y la factura los cobra todos. Leyendo el campo suelto,
   // esta pantalla mostraba menos transporte del que la cuenta estaba sumando.
   const transporteMonto = formatearMoneda(calcularTransporteTotal(factura));
-  const transporteTipo = factura.transporte || null;
+  const transporteTipo = valores.transporte || null;
   const textoTransporte =
     transporteTipo === "Sin transporte"
       ? "Sin transporte"

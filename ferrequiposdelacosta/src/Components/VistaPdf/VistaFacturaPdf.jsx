@@ -10,6 +10,7 @@ import {
   calcularAmpliacionFactura,
   formatearFechaLegible,
   calcularEstadoFactura,
+  valoresFactura,
   ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
@@ -57,6 +58,9 @@ const TIPOS_PAGO = {
 // cada hoja, así que el contenido de las hojas después de la primera arranca
 // más abajo (`inicioPaginaSiguiente`), dejándole sitio.
 export default function generarFacturaPdf({ factura, cliente }) {
+  // Subtotal, IVA, total, transporte y depósito viven juntos en el documento;
+  // se leen por el lector compartido y no a mano (ver valoresFactura).
+  const valores = valoresFactura(factura);
   const doc = new jsPDF({ format: "letter" });
   const anchoHoja = doc.internal.pageSize.getWidth();
   const altoHoja = doc.internal.pageSize.getHeight();
@@ -259,7 +263,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
   // también los días que se le ampliaron, igual que en pantalla.
   const ivaDeEquipos = (lista) =>
     lista.reduce((total, equipo) => {
-      const llevaIva = equipo.aplicaIva ?? Boolean(factura.aplicaIva);
+      const llevaIva = equipo.aplicaIva ?? Boolean(valores.aplicaIva);
       if (!llevaIva) return total;
       const base =
         (Number(equipo.cantidad) || 0) *
@@ -285,9 +289,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
       tablaAdicionales({
         iva: ivaDeEquipos(originales),
-        deposito: Number(factura.deposito) || 0,
-        transporteTipo: factura.transporte,
-        transporteMonto: Number(factura.valorTransporte) || 0,
+        deposito: Number(valores.deposito) || 0,
+        transporteTipo: valores.transporte,
+        transporteMonto: Number(valores.valorTransporte) || 0,
       });
     }
 
@@ -350,11 +354,11 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const ampliacion = calcularAmpliacionFactura(factura);
   const totalFactura = ampliacion.hay
     ? ampliacion.nuevoTotal
-    : Number(factura.valorTotal) || 0;
+    : Number(valores.valorTotal) || 0;
   const subtotal = ampliacion.hay
     ? ampliacion.nuevoSubtotal
-    : Number(factura.subtotal) || 0;
-  const iva = ampliacion.hay ? ampliacion.nuevoIva : Number(factura.iva) || 0;
+    : Number(valores.subtotal) || 0;
+  const iva = ampliacion.hay ? ampliacion.nuevoIva : Number(valores.iva) || 0;
 
   const equiposAgregados = sonObjetos
     ? equipos.filter((e) => e.agregadoPosteriormente)
@@ -365,9 +369,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
       0,
     );
   const depositoTotal =
-    (Number(factura.deposito) || 0) + sumarDeAgregados("deposito");
+    (Number(valores.deposito) || 0) + sumarDeAgregados("deposito");
   const transporteTotal =
-    (Number(factura.valorTransporte) || 0) + sumarDeAgregados("valorTransporte");
+    (Number(valores.valorTransporte) || 0) + sumarDeAgregados("valorTransporte");
 
   const pagadoEnFactura = sumarPagosFactura(factura);
 

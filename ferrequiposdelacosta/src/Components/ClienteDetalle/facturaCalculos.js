@@ -25,6 +25,37 @@ export const MODOS_PAGO = ["Nequi", "Nequi A", "Bancolombia", "Daviplata", "Efec
 export const listaPagos = (origen) =>
   Array.isArray(origen?.pagos) ? origen.pagos : [];
 
+// ── Los valores del documento ─────────────────────────────────────────
+//
+// Lo que la factura VALE vive junto, en el nodo `valores`: subtotal, IVA,
+// total, transporte y depósito. Antes eran campos sueltos en la raíz del
+// documento, mezclados con las listas (equipos, pagos, abonos) y con las
+// marcas de estado, y para saber qué era qué había que conocerse el modelo de
+// memoria.
+//
+// Todo el que necesite uno de esos números lo pide ACÁ, nunca metiendo la mano
+// en el documento. Es lo que permite mover un campo de sitio sin salir a
+// buscarlo por las diez pantallas que lo leen: se cambia esta función y ya.
+//
+// Devuelve los valores TAL CUAL están guardados, sin convertir ni completar.
+// Es a propósito: que un campo falte significa algo distinto según quién
+// pregunte —el formulario asume IVA sí, la ficha del cliente deja el renglón
+// vacío en vez de mostrar $0— y ese criterio es de cada pantalla, no de acá.
+//
+// El objeto trae también el resto de la factura (equipos, pagos, abonos). Es
+// un efecto de cómo se apoya en la forma vieja, no una invitación: esos se
+// siguen leyendo de la factura.
+//
+// ── Compatibilidad, temporal ──
+// Mezcla la raíz y el nodo, con el nodo mandando. Así una factura todavía sin
+// convertir se sigue viendo bien, y una a la que se le actualizó UN valor
+// —Firestore crea el nodo con ese campo solo— no pierde los demás por el
+// camino. Cuando estén todas convertidas, esto queda en `factura?.valores`.
+export const valoresFactura = (factura) => ({
+  ...(factura ?? {}),
+  ...(factura?.valores ?? {}),
+});
+
 const obtenerHoraBogota = () =>
   Number(
     new Intl.DateTimeFormat("en-US", {
@@ -335,7 +366,8 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
     { dias: 0, bruto: 0, descuento: 0, neto: 0, diasSinUsar: 0, creditoSinUsar: 0 },
   );
 
-  const llevaIva = factura?.aplicaIva ?? Number(factura?.iva) > 0;
+  const valores = valoresFactura(factura);
+  const llevaIva = valores.aplicaIva ?? Number(valores.iva) > 0;
   const iva = llevaIva ? resumen.neto * 0.19 : 0;
   const total = resumen.neto + iva;
 
@@ -349,9 +381,9 @@ export const calcularAmpliacionFactura = (factura, hoyIso = obtenerFechaHoyBogot
     // `> 0` el crédito se ignoraba y la factura seguía cobrando los días que
     // el equipo no estuvo afuera.
     hay: total !== 0,
-    nuevoSubtotal: (Number(factura?.subtotal) || 0) + resumen.neto,
-    nuevoIva: (Number(factura?.iva) || 0) + iva,
-    nuevoTotal: (Number(factura?.valorTotal) || 0) + total,
+    nuevoSubtotal: (Number(valores.subtotal) || 0) + resumen.neto,
+    nuevoIva: (Number(valores.iva) || 0) + iva,
+    nuevoTotal: (Number(valores.valorTotal) || 0) + total,
     // Acá había un `nuevoSaldo` que hacía saldoPendiente + total, leyendo el
     // saldo GUARDADO en la factura. Se quitó porque era una trampa: ese campo
     // ya no se guarda, y mientras se guardó mentía. Se recalculaba como
@@ -458,7 +490,7 @@ export const sumarPagosFactura = (factura) =>
 // Se resuelve UNA sola vez, por el total y cuando ya no queda ningún equipo
 // afuera. Nada de devolver depósitos por partes en una devolución parcial.
 //
-//   factura.depositoResuelto = { retenido, motivo, fecha, registradoPor }
+//   factura.valores.depositoResuelto = { retenido, motivo, fecha, registradoPor }
 //
 // El motivo es texto libre y solo hace falta si se retiene algo.
 
@@ -467,7 +499,7 @@ export const sumarPagosFactura = (factura) =>
 // El transporte de toda la factura: el del despacho inicial más el de cada
 // lote agregado después, que sale con su propio flete.
 //
-// Mismo caso que el depósito de acá abajo. Leer `factura.valorTransporte` a
+// Mismo caso que el depósito de acá abajo. Leer el `valorTransporte` de la factura a
 // secas muestra solo el primer despacho y esconde los demás, aunque el total
 // de la factura sí los esté cobrando: la pantalla dice una cifra y la cuenta
 // usa otra.
@@ -477,7 +509,7 @@ export const calcularTransporteTotal = (factura) => {
     .filter((equipo) => equipo?.agregadoPosteriormente)
     .reduce((total, equipo) => total + (Number(equipo?.valorTransporte) || 0), 0);
 
-  return (Number(factura?.valorTransporte) || 0) + agregados;
+  return (Number(valoresFactura(factura).valorTransporte) || 0) + agregados;
 };
 
 export const calcularDepositoTotal = (factura) => {
@@ -486,13 +518,13 @@ export const calcularDepositoTotal = (factura) => {
     .filter((equipo) => equipo?.agregadoPosteriormente)
     .reduce((total, equipo) => total + (Number(equipo?.deposito) || 0), 0);
 
-  return (Number(factura?.deposito) || 0) + agregados;
+  return (Number(valoresFactura(factura).deposito) || 0) + agregados;
 };
 
 // Lo que le corresponde al cliente. Cero mientras no se haya resuelto: hasta
 // ese momento la garantía sigue vigente.
 export const calcularDepositoDevuelto = (factura) => {
-  const resuelto = factura?.depositoResuelto;
+  const resuelto = valoresFactura(factura).depositoResuelto;
   if (!resuelto) return 0;
 
   const total = calcularDepositoTotal(factura);
@@ -504,7 +536,7 @@ export const calcularDepositoDevuelto = (factura) => {
 // Si todavía falta definir qué pasa con el depósito. Una factura así no puede
 // terminar: la empresa está reteniendo plata que no es suya.
 export const depositoPendiente = (factura) =>
-  calcularDepositoTotal(factura) > 0 && !factura?.depositoResuelto;
+  calcularDepositoTotal(factura) > 0 && !valoresFactura(factura).depositoResuelto;
 
 // Plata que SALIÓ hacia el cliente: la devolución de un depósito que ya estaba
 // pagado, o un sobrepago que se le reintegra. Es lo contrario de un abono, y
@@ -528,7 +560,7 @@ export const calcularCuentaFactura = (
   const ampliacion = calcularAmpliacionFactura(factura, hoyIso);
   const facturado = ampliacion.hay
     ? ampliacion.nuevoTotal
-    : Number(factura?.valorTotal) || 0;
+    : Number(valoresFactura(factura).valorTotal) || 0;
 
   // El depósito que se devolvió deja de ser un cargo: si no se descontara, el
   // sistema seguiría creyendo que el cliente debe una plata que ya no debe.
@@ -675,7 +707,12 @@ export const agruparLotesFactura = (factura) => {
   const agregados = equipos.filter((equipo) => equipo?.agregadoPosteriormente);
 
   const lotes = originales.length
-    ? [{ deposito: Number(factura?.deposito) || 0, equipos: conIndice(originales) }]
+    ? [
+        {
+          deposito: Number(valoresFactura(factura).deposito) || 0,
+          equipos: conIndice(originales),
+        },
+      ]
     : [];
 
   agruparLotesAgregados(agregados).forEach((lote) => {
@@ -799,7 +836,7 @@ export const calcularSaldoAntesDeAmpliar = (
 
   return Math.max(
     0,
-    (Number(factura?.valorTotal) || 0) -
+    (Number(valoresFactura(factura).valorTotal) || 0) -
       credito -
       sumarPagosFactura(factura) -
       sumarAbonos(factura?.abonos),
@@ -1143,7 +1180,7 @@ export const movimientosFactura = (factura) => {
     (equipo) =>
       obtenerAmpliaciones(equipo).length > 0 || Number(equipo?.cantidadDevuelta) > 0,
   );
-  const depositoResuelto = Boolean(factura?.depositoResuelto);
+  const depositoResuelto = Boolean(valoresFactura(factura).depositoResuelto);
 
   return {
     cantidadAbonos,

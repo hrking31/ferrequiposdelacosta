@@ -631,6 +631,17 @@ Leer `valorTransporte` de la factura a secas devuelve el del **primer** despacho
 
 Es el reverso del error de la devolución parcial: allá un cargo del lote se contaba **dos veces**, acá se contaba **una sola** habiendo varios. Los dos salen de confundir *lo que se cobra por despacho* con *lo que se cobra por factura*.
 
+### Lo que la factura vale, en un solo nodo
+
+Abrir una factura en la base era encontrarse quince campos en fila: el número y la fecha junto al subtotal, el IVA, el depósito, las listas de equipos, pagos y abonos, y las marcas de estado. Para saber qué era qué había que conocerse el modelo de memoria.
+
+Los ocho que dicen **lo que la factura vale** —subtotal, IVA, si lo aplica, total, tipo y valor del transporte, depósito y qué se resolvió con él— viven ahora juntos, en un nodo `valores`. El número, la fecha, el tipo de pago y la marca de cerrada se quedan en la raíz: no son importes, son la identidad del documento.
+
+En Firestore agrupar no ahorra ni una lectura —el documento se trae entero igual— ni permite buscar mejor. La ganancia es de orden, y una concreta: **hay un solo lugar que sabe dónde vive cada valor.** Todas las pantallas los piden a `valoresFactura()`, así que mover un campo ya no obliga a salir a buscarlo por las diez que lo leen.
+
+> [!WARNING]
+> **Al actualizar un solo valor hay que nombrar la ruta completa** (`"valores.deposito"`), nunca mandar el nodo entero. Un `update` con `valores: { … }` **reemplaza** el nodo: escribir solo el subtotal se llevaría por delante el transporte, el depósito y lo resuelto de él. Es la trampa clásica de guardar importes dentro de un mapa, y no avisa: los campos desaparecen y la factura pasa a valer menos.
+
 ---
 
 ## Arquitectura

@@ -35,6 +35,7 @@ import {
   calcularDepositoTotal,
   formatearMonedaInput,
   limpiarMonedaInput,
+  valoresFactura,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -170,7 +171,7 @@ export default function RegistrarDevolucionDialog({
     hayDevolucion &&
     !quedanEquiposAfuera &&
     depositoTotal > 0 &&
-    !factura?.depositoResuelto;
+    !valoresFactura(factura).depositoResuelto;
 
   // Lo anotado en devoluciones ANTERIORES, que vive en la línea de cada equipo
   // que ya volvió.
@@ -452,7 +453,9 @@ export default function RegistrarDevolucionDialog({
       // liquidar con el cliente, desde el botón Abono.
       const datosFactura = { equipos: equiposActualizados, gestiones };
       if (resolverDeposito) {
-        datosFactura.depositoResuelto = {
+        // Ruta completa, no el nodo entero: acá solo se resuelve el depósito y
+        // escribir `valores: {...}` borraría el total, el subtotal y el resto.
+        datosFactura["valores.depositoResuelto"] = {
           retenido,
           // El motivo ya no se escribe acá: se arma con lo que se anotó en
           // cada equipo, para que la ficha del cliente pueda decir POR CUÁL
@@ -462,9 +465,14 @@ export default function RegistrarDevolucionDialog({
             .join(" · "),
           fecha: hoy,
         };
+        // La copia local con la que se recalcula el estado del cliente tiene
+        // que quedar igual que lo que se acaba de escribir.
         todasLasFacturas.forEach((item) => {
           if (item.id === factura.id) {
-            item.depositoResuelto = datosFactura.depositoResuelto;
+            item.valores = {
+              ...(item.valores ?? {}),
+              depositoResuelto: datosFactura["valores.depositoResuelto"],
+            };
           }
         });
       }

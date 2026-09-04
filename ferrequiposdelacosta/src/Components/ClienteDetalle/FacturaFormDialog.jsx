@@ -48,6 +48,7 @@ import {
   facturaCerrada,
   obtenerAmpliaciones,
   describirMovimientosFactura,
+  valoresFactura,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -69,16 +70,19 @@ const obtenerNombreCliente = (cliente) => {
 
 // Si se pasa `factura`, precarga sus valores (modo edición); si no, arranca
 // en blanco (modo creación).
-const obtenerEstadoInicial = (factura) => ({
-  numeroFactura: factura?.numeroFactura ?? "",
-  fecha: factura?.fecha ?? obtenerFechaInicialEfectiva(),
-  transporte: factura?.transporte ?? "",
-  valorTransporte: factura?.valorTransporte ? String(factura.valorTransporte) : "",
-  deposito: factura?.deposito ? String(factura.deposito) : "",
-  aplicaIva: factura?.aplicaIva ?? true,
-  tipoPago: factura?.tipoPago ?? "total",
-  pagos: listaPagos(factura),
-});
+const obtenerEstadoInicial = (factura) => {
+  const valores = valoresFactura(factura);
+  return {
+    numeroFactura: factura?.numeroFactura ?? "",
+    fecha: factura?.fecha ?? obtenerFechaInicialEfectiva(),
+    transporte: valores.transporte ?? "",
+    valorTransporte: valores.valorTransporte ? String(valores.valorTransporte) : "",
+    deposito: valores.deposito ? String(valores.deposito) : "",
+    aplicaIva: valores.aplicaIva ?? true,
+    tipoPago: factura?.tipoPago ?? "total",
+    pagos: listaPagos(factura),
+  };
+};
 
 const TIPO_PAGO_INFO = {
   total: { label: "Pago total" },
@@ -436,13 +440,29 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
           item.fechaVencimiento ??
           calcularFechaDevolucion(item.fechaDespacho || form.fecha, item.dias),
       })),
-      subtotal: subtotalCalculado,
-      iva: ivaCalculado,
-      aplicaIva: form.aplicaIva,
-      valorTotal: valorTotalCalculado,
-      transporte: form.transporte || "",
-      valorTransporte: Number(form.valorTransporte) || 0,
-      deposito: Number(form.deposito) || 0,
+      // Todo lo que la factura VALE va junto, en un solo nodo. Antes eran
+      // ocho campos sueltos en la raíz del documento, mezclados con las listas
+      // y con las marcas de estado. Se leen siempre por valoresFactura().
+      //
+      // Se escribe el nodo entero —y no campo por campo— porque acá se
+      // conocen todos: es el alta y la edición de la factura. Donde se toca
+      // solo uno (agregar equipo, resolver el depósito) hay que usar la ruta
+      // completa "valores.loQueSea", o Firestore reemplaza el nodo y borra el
+      // resto.
+      valores: {
+        subtotal: subtotalCalculado,
+        iva: ivaCalculado,
+        aplicaIva: form.aplicaIva,
+        valorTotal: valorTotalCalculado,
+        transporte: form.transporte || "",
+        valorTransporte: Number(form.valorTransporte) || 0,
+        deposito: Number(form.deposito) || 0,
+        // Lo que se resolvió del depósito lo escribe la devolución, no este
+        // formulario; se conserva para no perderlo al reemplazar el nodo.
+        ...(valoresFactura(factura).depositoResuelto
+          ? { depositoResuelto: valoresFactura(factura).depositoResuelto }
+          : {}),
+      },
       tipoPago: form.tipoPago,
       // Lo pagado tampoco se guarda: sale de sumar los medios de pago del alta
       // (`pagos`) más el que trae cada lote de equipos agregado después. Se
@@ -817,9 +837,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 label="Depósito"
                 value={formatearMonedaInput(form.deposito)}
                 onChange={handleChangeMoneda("deposito")}
-                disabled={Boolean(factura?.depositoResuelto)}
+                disabled={Boolean(valoresFactura(factura).depositoResuelto)}
                 helperText={
-                  factura?.depositoResuelto
+                  valoresFactura(factura).depositoResuelto
                     ? "Ya se resolvió (devuelto o retenido) al registrar la devolución."
                     : undefined
                 }

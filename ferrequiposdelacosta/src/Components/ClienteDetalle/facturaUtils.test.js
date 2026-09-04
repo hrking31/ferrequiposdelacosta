@@ -38,6 +38,7 @@ import {
   facturaEnSeguimiento,
   equiposQueVencieronHoy,
   etiquetaVencimiento,
+  valoresFactura,
 } from "./facturaUtils";
 
 // Pruebas del corazón de la lógica de facturas. Casi todas estas funciones
@@ -1334,5 +1335,53 @@ describe("proyectarAmpliacion", () => {
     expect(proyeccion.fechaNueva).toBe("2026-08-22");
     expect(proyeccion.diasVencidos).toBe(0);
     expect(proyeccion.dias).toBe(2);
+  });
+});
+
+// Lo que la factura VALE vive junto, en el nodo `valores`. Todas las cuentas
+// pasan por acá, así que un error en este lector se traduce en plata mal en
+// las diez pantallas de golpe.
+describe("valoresFactura", () => {
+  it("lee los valores del nodo", () => {
+    const factura = {
+      numeroFactura: "1234",
+      valores: { valorTotal: 2481200, deposito: 500000, aplicaIva: true },
+    };
+    const valores = valoresFactura(factura);
+    expect(valores.valorTotal).toBe(2481200);
+    expect(valores.deposito).toBe(500000);
+    expect(valores.aplicaIva).toBe(true);
+  });
+
+  // Compatibilidad, mientras queden facturas sin convertir: una de agosto no
+  // se puede ver en $0 solo porque sus valores todavía estén en la raíz.
+  it("una factura sin convertir se sigue leyendo bien", () => {
+    const vieja = { numeroFactura: "1234", valorTotal: 2481200, deposito: 500000 };
+    expect(valoresFactura(vieja).valorTotal).toBe(2481200);
+    expect(valoresFactura(vieja).deposito).toBe(500000);
+  });
+
+  // Al resolver el depósito o al agregar un equipo se escribe UN campo suelto
+  // ("valores.deposito"), y Firestore crea el nodo con ese campo solo. Los
+  // demás siguen en la raíz y tienen que seguir apareciendo.
+  it("con el nodo a medio llenar, completa con lo que quedó en la raíz", () => {
+    const aMedias = {
+      valorTotal: 2481200,
+      deposito: 500000,
+      valores: { depositoResuelto: { retenido: 0, motivo: "", fecha: "2026-09-03" } },
+    };
+    const valores = valoresFactura(aMedias);
+    expect(valores.valorTotal).toBe(2481200);
+    expect(valores.depositoResuelto.retenido).toBe(0);
+  });
+
+  it("si un valor está en los dos lados, manda el del nodo", () => {
+    const duplicada = { valorTotal: 1, valores: { valorTotal: 2481200 } };
+    expect(valoresFactura(duplicada).valorTotal).toBe(2481200);
+  });
+
+  it("sin factura no revienta", () => {
+    expect(valoresFactura(undefined).valorTotal).toBeUndefined();
+    expect(valoresFactura(null).deposito).toBeUndefined();
   });
 });

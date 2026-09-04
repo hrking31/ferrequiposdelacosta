@@ -29,9 +29,11 @@ const factura = {
   id: "f1",
   numeroFactura: 1573,
   fecha: "2026-08-01",
-  aplicaIva: false,
-  subtotal: 300000,
-  valorTotal: 300000,
+  valores: {
+    aplicaIva: false,
+    subtotal: 300000,
+    valorTotal: 300000,
+  },
   equipos: [
     {
       nombre: "ANDAMIO",
@@ -135,9 +137,12 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     await cargarEquipo(usuario);
     await guardar(usuario);
 
+    // Se escribe con la ruta completa, campo por campo: escribir el nodo
+    // `valores` entero borraría el transporte y el depósito, que acá no se
+    // tocan.
     const guardado = loGuardado();
-    expect(guardado.subtotal).toBe(540000);
-    expect(guardado.valorTotal).toBe(540000);
+    expect(guardado["valores.subtotal"]).toBe(540000);
+    expect(guardado["valores.valorTotal"]).toBe(540000);
   });
 
   it("la factura vuelve a quedar parcial: lo nuevo todavía no está pagado", async () => {

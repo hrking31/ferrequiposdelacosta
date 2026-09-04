@@ -32,6 +32,10 @@ import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
 import { addToCart } from "./Store/Slices/cartSlice.js";
 import { setCliente } from "./Store/Slices/clienteSlice";
+// TEMPORAL — la pantalla que organiza los valores de las facturas. Se importa
+// suelta y no desde Views/index.js para que se note que no es una vista del
+// menú, y solo se enruta en desarrollo: al sitio publicado no llega.
+import VistaMigrarValores from "./Views/VistaMigrarValores/VistaMigrarValores";
 
 function App() {
   const location = useLocation();
@@ -248,6 +252,16 @@ function App() {
             </ProtectedRoutes>
           }
         />
+        {import.meta.env.DEV && (
+          <Route
+            path="/migrarvalores"
+            element={
+              <ProtectedRoutes allowedRoles={["clientes"]}>
+                <VistaMigrarValores />
+              </ProtectedRoutes>
+            }
+          />
+        )}
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
         <Route exact path="/detail/:id" element={<Detail />} />

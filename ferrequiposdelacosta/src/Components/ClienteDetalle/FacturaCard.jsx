@@ -42,6 +42,7 @@ import {
   estadoEnSeguimiento,
   hayEquiposAlDia,
   movimientosFactura,
+  valoresFactura,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
@@ -122,7 +123,8 @@ export default function FacturaCard({
     theme.palette.custom.estadoNeutro;
   // El transporte es el tipo (ej. "Solo ida") y el monto vive aparte, en
   // valorTransporte.
-  const transporteTipo = factura.transporte || null;
+  const valores = valoresFactura(factura);
+  const transporteTipo = valores.transporte || null;
   // La cuenta de la factura (total, cobrado, abonado y saldo) sale toda de
   // facturaUtils: es la misma que suma el resumen del encabezado del cliente,
   // así los dos lugares dicen lo mismo. Se calcula una sola vez acá y baja
@@ -553,10 +555,10 @@ export default function FacturaCard({
                       los suyos. */}
                   <CargosAdicionales
                     equipos={equiposOriginales}
-                    deposito={Number(factura.deposito) || 0}
+                    deposito={Number(valores.deposito) || 0}
                     transporteTipo={transporteTipo}
-                    transporteMonto={Number(factura.valorTransporte) || 0}
-                    aplicaIvaFactura={Boolean(factura.aplicaIva)}
+                    transporteMonto={Number(valores.valorTransporte) || 0}
+                    aplicaIvaFactura={Boolean(valores.aplicaIva)}
                     abierto={seccionAbierta(factura.id, "adicionales-factura")}
                     onToggle={() =>
                       toggleSeccion(factura.id, "adicionales-factura")
@@ -703,7 +705,7 @@ export default function FacturaCard({
                         transporteMonto={
                           Number(lote.cabecera.valorTransporte) || 0
                         }
-                        aplicaIvaFactura={Boolean(factura.aplicaIva)}
+                        aplicaIvaFactura={Boolean(valores.aplicaIva)}
                         abierto={seccionAbierta(
                           factura.id,
                           `lote-adicionales-${indiceLote}`,

@@ -43,6 +43,7 @@ import {
   sumarPagosFactura,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
+  valoresFactura,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -100,7 +101,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
       ...ESTADO_INICIAL,
       fechaSolicitud,
       // Si la factura ya tenía IVA, se sigue aplicando por defecto al agregar.
-      aplicaIva: factura?.aplicaIva ?? true,
+      aplicaIva: valoresFactura(factura).aplicaIva ?? true,
     });
     // El despacho arranca en la misma fecha de la solicitud; se cambia solo si
     // ese equipo sale otro día.
@@ -125,34 +126,35 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     0,
   );
   const ivaNuevoEquipo = form.aplicaIva ? subtotalNuevoEquipo * 0.19 : 0;
+  const valoresDeLaFactura = valoresFactura(factura);
   const valorTransporteNuevo = Number(form.valorTransporte) || 0;
   const depositoNuevo = Number(form.deposito) || 0;
   // Lo que cuesta agregar estos equipos (antes de sumarlos a la factura).
   const totalEsteEquipo = subtotalNuevoEquipo + ivaNuevoEquipo + valorTransporteNuevo + depositoNuevo;
 
-  const nuevoSubtotal = (Number(factura?.subtotal) || 0) + subtotalNuevoEquipo;
+  const nuevoSubtotal = (Number(valoresDeLaFactura.subtotal) || 0) + subtotalNuevoEquipo;
   // El IVA se ACUMULA: al que la factura ya tenía se le suma solo el de este
   // equipo. Antes se recalculaba sobre el subtotal completo con la casilla de
   // acá, así que destildarla le borraba el IVA a los equipos que sí lo
   // llevaban (y marcarla se lo cobraba a los que no).
-  const ivaFacturaActual = Number(factura?.iva) || 0;
+  const ivaFacturaActual = Number(valoresDeLaFactura.iva) || 0;
   const nuevoIva = ivaFacturaActual + ivaNuevoEquipo;
   // La factura queda marcada "con IVA" si ya lo llevaba o si este equipo lo
   // lleva: agregar un equipo sin IVA no convierte a toda la factura en exenta.
-  const facturaLlevaIva = factura?.aplicaIva ?? ivaFacturaActual > 0;
+  const facturaLlevaIva = valoresDeLaFactura.aplicaIva ?? ivaFacturaActual > 0;
   const nuevoAplicaIva = facturaLlevaIva || form.aplicaIva;
 
-  // Depósito/transporte del lote original (factura.deposito/valorTransporte
-  // ya no crecen acá: quedan fijos como el pago original) + lo que ya traían
+  // Depósito/transporte del lote original (los del nodo `valores` de la
+  // factura ya no crecen acá: quedan fijos como el pago original) + lo que traían
   // los equipos agregados antes + lo que se suma ahora con este equipo.
   const equiposAgregadosExistentes = (factura?.equipos || []).filter(
     (equipo) => equipo?.agregadoPosteriormente,
   );
   const depositoTotalExistente =
-    (Number(factura?.deposito) || 0) +
+    (Number(valoresDeLaFactura.deposito) || 0) +
     equiposAgregadosExistentes.reduce((total, equipo) => total + (Number(equipo.deposito) || 0), 0);
   const transporteTotalExistente =
-    (Number(factura?.valorTransporte) || 0) +
+    (Number(valoresDeLaFactura.valorTransporte) || 0) +
     equiposAgregadosExistentes.reduce(
       (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
       0,
@@ -190,7 +192,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   const ampliacionFactura = calcularAmpliacionFactura(factura);
   const totalActualMostrado = ampliacionFactura.hay
     ? ampliacionFactura.nuevoTotal
-    : Number(factura?.valorTotal) || 0;
+    : Number(valoresDeLaFactura.valorTotal) || 0;
   const totalConEstosEquipos = totalActualMostrado + totalEsteEquipo;
   const saldoMostrado = Math.max(
     0,
@@ -468,10 +470,14 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
         equipos: [...(factura.equipos || []), ...nuevosEquipos],
-        subtotal: nuevoSubtotal,
-        iva: nuevoIva,
-        aplicaIva: nuevoAplicaIva,
-        valorTotal: nuevoValorTotal,
+        // Con la ruta completa ("valores.subtotal") y no con el nodo entero:
+        // escribir `valores: { subtotal, iva, ... }` REEMPLAZA el nodo, y se
+        // llevaría por delante el transporte, el depósito y lo que se haya
+        // resuelto de él, que acá no se tocan.
+        "valores.subtotal": nuevoSubtotal,
+        "valores.iva": nuevoIva,
+        "valores.aplicaIva": nuevoAplicaIva,
+        "valores.valorTotal": nuevoValorTotal,
         // El saldo ya no se guarda, se calcula al mostrarlo (ver
         // FacturaFormDialog). `saldoFinal` se sigue usando acá abajo para
         // decidir el tipo de pago, que sí es un dato del momento.

@@ -8,6 +8,7 @@ import {
   calcularCuentaFactura,
   calcularCuentaCliente,
   obtenerFechaHoyBogota,
+  valoresFactura,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 
@@ -202,23 +203,24 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     // Los importes van con los días ampliados ya sumados, igual que en la
     // pantalla: el guardado en la factura es de antes de la ampliación.
     const ampliacion = calcularAmpliacionFactura(factura);
+    const valores = valoresFactura(factura);
     const subtotal = ampliacion.hay
       ? ampliacion.nuevoSubtotal
-      : Number(factura.subtotal) || 0;
-    const iva = ampliacion.hay ? ampliacion.nuevoIva : Number(factura.iva) || 0;
+      : Number(valores.subtotal) || 0;
+    const iva = ampliacion.hay ? ampliacion.nuevoIva : Number(valores.iva) || 0;
     const descuentoTotal = ampliacion.descuento || 0;
 
     const equiposAgregados = sonObjetos
       ? equipos.filter((equipo) => equipo.agregadoPosteriormente)
       : [];
     const depositoTotal =
-      (Number(factura.deposito) || 0) +
+      (Number(valores.deposito) || 0) +
       equiposAgregados.reduce(
         (total, equipo) => total + (Number(equipo.deposito) || 0),
         0,
       );
     const transporteTotal =
-      (Number(factura.valorTransporte) || 0) +
+      (Number(valores.valorTransporte) || 0) +
       equiposAgregados.reduce(
         (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
         0,
