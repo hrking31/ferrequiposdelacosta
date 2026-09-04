@@ -669,9 +669,12 @@ documento de la factura
 │       └── DEVOLUCION{}   ── fechaDevolucion, buenEstado,
 │                             valorRetenido
 │
-├── ABONOS[]   ── fecha, medio, monto, tipo
+├── ABONOS[]   ── la plata que ENTRA después
+│                 fecha, medio, monto, tipo
 │                 (sistema · cliente · agregado)
 │                 + desdeFactura, si vino de otra
+├── ENTREGAS[] ── la plata que SALE hacia el cliente
+│                 fecha, medio, monto, nota
 └── GESTIONES[] ── la bitácora, sin cambios
 ```
 
@@ -692,6 +695,8 @@ Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igu
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
 **Los abonos se quedan en la factura**, cada uno dentro de la que lo recibió: si el cliente entrega $600.000 y se reparten entre tres, quedan tres abonos, uno en cada una. Los tres orígenes se unifican con un campo `tipo`: **sistema** (lo repartió la app entre las facturas con saldo), **cliente** (pidió aplicarlo a esta factura) y **agregado** (sobró de un pago al agregar un equipo). Es un hecho —de dónde salió esa plata—, no cambia ninguna cuenta, y permite explicar en pantalla por qué ese abono está ahí.
+
+Las **entregas** son su reverso: la plata que sale hacia el cliente cuando se le devuelve el depósito o un sobrepago. Van en su propio cajón y nunca como un abono negativo — un número en negativo se cuela en cualquier suma que no lo espere. Mientras una entrega pendiente no se registre, la factura no puede terminar: una factura *finalizada* no puede estar tapando una deuda con el cliente.
 
 Cuando ese sobrante cruza a otra factura, se lleva `desdeFactura` con el número de la que lo originó. Hoy ese dato existe pero escondido en una nota de texto libre, así que ninguna pantalla puede usarlo: solo mostrarlo.
 
