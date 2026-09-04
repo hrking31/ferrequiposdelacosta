@@ -659,24 +659,27 @@ documento de la factura
 │
 ├── EQUIPOS[] ── loteId, nombre, cantidadEquipos, valorDia,
 │   │            diasAlquilados, fechaDespacho, fechaVencimiento
-│   ├── AMPLIACIONES[] ── fechaInicio, fechaVencimiento,
-│   │                     diasAmpliados, descuentoRealizado
-│   ├── DEVOLUCION{}    ── fechaDevolucion, buenEstado, valorRetenido
+│   ├── AMPLIACIONES[]  ── fechaInicio, fechaVencimiento,
+│   │                      diasAmpliados, descuentoRealizado
+│   ├── DEVOLUCIONES[]  ── cantidad, fechaDevolucion,
+│   │                      buenEstado, valorRetenido
 │   ├── PAGOS[]         ── medio, monto, tipoPago
 │   └── ADICIONALES{}   ── transporte, valorTransporte,
 │                          deposito, valorDeposito
 │
-├── EQUIPOAGREGADOS[] ── misma forma, con su propio loteId
-└── GESTIONES[]       ── la bitácora, sin cambios
+├── EQUIPOSAGREGADOS[] ── lo pedido después, con su propio loteId
+└── GESTIONES[]        ── la bitácora, sin cambios
 ```
 
 Tres ideas lo sostienen:
 
 - **La factura se queda solo con lo suyo**, y dentro de su propio nodo: el número, la fecha y la foto de lo que se emitió. El transporte, el depósito y los pagos bajan al equipo que los generó, porque es ahí donde se cobran.
 - **`loteId` en todos los equipos**, no solo en los agregados. Un despacho es un grupo de equipos que salió el mismo día, y esa es la unidad real: el flete y el depósito se cobran por despacho, no por equipo.
-- **Una devolución parcial parte la línea en dos**, ambas con el mismo `loteId`. Los que volvieron dejan de sumar días; los que siguen afuera continúan. Nada se pisa y nada se pierde.
+- **Las devoluciones cuelgan del equipo, no crean uno nuevo.** Cada tanda que vuelve se anota en `devoluciones` con cuántos volvieron y qué día, y deja de sumar desde ahí. El equipo padre no se toca: cuántos quedan afuera es una resta, no un dato guardado.
 
 El nodo `pagos` de la factura **desaparece**.
+
+Nada se marca como "devuelto": estar dentro de `devoluciones` ya lo dice, y si la devolución fue anticipada o tardía sale de comparar su fecha con la del vencimiento. Guardar esa etiqueta sería guardar una conclusión — el error que ya costó el saldo que se comía los abonos.
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
