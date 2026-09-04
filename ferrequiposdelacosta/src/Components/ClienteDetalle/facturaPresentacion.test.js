@@ -23,11 +23,16 @@ const HOY = "2026-08-15";
 // pantalla como "$ 400.000"— y el separador que pone el formateador es un
 // espacio duro (U+00A0), no uno común. Lo que estas pruebas cuidan es la
 // CIFRA, no cómo la escribe cada motor.
+//
+// El espacio duro se nombra por su número: escrito como carácter suelto sería
+// invisible en el código.
+const ESPACIO_DURO = String.fromCharCode(160);
 const textoDe = (chips, clave) =>
   chips
     .find((chip) => chip.clave === clave)
     ?.label.replace(/,00(?!\d)/g, "")
-    .replace(/ /g, " ");
+    .split(ESPACIO_DURO)
+    .join(" ");
 const tonoDe = (chips, clave) => chips.find((chip) => chip.clave === clave)?.tono;
 
 describe("describirFechasEquipo", () => {

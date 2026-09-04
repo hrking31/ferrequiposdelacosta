@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import { formatearMoneda } from "../../Utils/formato";
 import CargosAdicionales from "./CargosAdicionales";
+import { unEquipoDevuelto } from "../../test/facturas";
 
 // El recuadro que explica lo que se cobra aparte del alquiler. Lo que se prueba
 // acá es el desglose que abre la flecha: cómo se llama cada renglón, cuánto IVA
@@ -37,34 +38,41 @@ const vecesQueAparece = (monto) => screen.getAllByText(dinero(monto)).length;
 const renglonesEnPantalla = () =>
   screen.getAllByText(/^1 (BENITIN|ANDAMIO)/).map((fila) => fila.textContent);
 
-// 1 equipo, 5 días a $100.000, con IVA: $500.000 de renta inicial, $95.000 de
-// IVA. Ya devuelto, para que la cuenta se corte en una fecha fija.
-const equipoBase = {
-  nombre: "BENITIN",
-  cantidad: 1,
-  dias: 5,
-  valor: 100000,
-  aplicaIva: true,
-  fechaDespacho: "2026-08-06",
-  cantidadDevuelta: 1,
-};
+// 1 BENITIN a $100.000 el día, con IVA, despachado el 06 y ya devuelto — así
+// la cuenta se corta en una fecha guardada y no en "hoy".
+//
+// `dias` son los que de verdad estuvo afuera, que es lo que la línea guarda al
+// cerrarse. Lo que se le había PROMETIDO lo dice su fecha de vencimiento, y de
+// comparar los dos sale el desglose.
+const benitin = ({ dias, fechaVencimiento, fechaDevolucion, ...extra } = {}) =>
+  unEquipoDevuelto({
+    nombre: "BENITIN",
+    cantidad: 1,
+    valorDia: 100000,
+    aplicaIva: true,
+    fechaDespacho: "2026-08-06",
+    dias,
+    fechaVencimiento,
+    fechaDevolucion,
+    ...extra,
+  });
 
-// Venció el 10 y volvió el 13: tres días vencidos, $300.000 más $57.000 de IVA.
-const conTresDiasVencidos = {
-  ...equipoBase,
+// Le habían dado hasta el 10 —5 días— y volvió el 13: estuvo 8, o sea 3 días
+// vencidos: $300.000 más $57.000 de IVA.
+const conTresDiasVencidos = benitin({
+  dias: 8,
   fechaVencimiento: "2026-08-10",
   fechaDevolucion: "2026-08-13",
-};
+});
 
 // Un segundo equipo del mismo despacho: 2 días a $50.000, $19.000 de IVA.
-const otroEquipo = {
-  ...equipoBase,
+const otroEquipo = benitin({
   nombre: "ANDAMIO",
+  valorDia: 50000,
   dias: 2,
-  valor: 50000,
-  fechaVencimiento: "2026-08-08",
-  fechaDevolucion: "2026-08-08",
-};
+  fechaVencimiento: "2026-08-07",
+  fechaDevolucion: "2026-08-07",
+});
 
 // El despacho del ejemplo real: $500.000 de depósito y $200.000 de transporte.
 const conCargosDelLote = {
@@ -98,14 +106,15 @@ describe("CargosAdicionales", () => {
   });
 
   it("llama ampliados a los días que sí se pactaron", () => {
-    // Se le agregaron 2 días y devolvió en la fecha nueva: nada vencido.
+    // Salió por 5 días —hasta el 10—, se le agregaron 2 y devolvió el 12 en la
+    // fecha nueva: estuvo 7 días y nada quedó vencido.
     dibujar([
-      {
-        ...equipoBase,
-        ampliaciones: [{ dias: 2, descuento: 0 }],
+      benitin({
+        dias: 7,
+        ampliaciones: [{ diasAmpliados: 2, descuentoRealizado: 0 }],
         fechaVencimiento: "2026-08-12",
         fechaDevolucion: "2026-08-12",
-      },
+      }),
     ]);
 
     expect(screen.getByText("1 BENITIN · días ampliados")).toBeInTheDocument();
@@ -115,14 +124,15 @@ describe("CargosAdicionales", () => {
   });
 
   it("separa en dos renglones lo pactado y lo vencido cuando hay de los dos", () => {
-    // Se le agregaron 2 días hasta el 12, y aun así devolvió el 15.
+    // Se le agregaron 2 días hasta el 12, y aun así devolvió el 15: 10 días
+    // afuera, de los cuales 7 estaban pactados y 3 se pasaron.
     dibujar([
-      {
-        ...equipoBase,
-        ampliaciones: [{ dias: 2, descuento: 0 }],
+      benitin({
+        dias: 10,
+        ampliaciones: [{ diasAmpliados: 2, descuentoRealizado: 0 }],
         fechaVencimiento: "2026-08-12",
         fechaDevolucion: "2026-08-15",
-      },
+      }),
     ]);
 
     // $200.000 pactados y $300.000 vencidos, cada uno con su IVA.
@@ -179,6 +189,17 @@ describe("CargosAdicionales", () => {
     expect(vecesQueAparece(871000)).toBe(1);
   });
 
+  // Un equipo que volvió TARDE sigue mostrando sus días vencidos aparte,
+  // aunque ya esté de vuelta en la bodega. Sus días quedaron congelados en uno
+  // solo al cerrar la línea, así que el desglose sale de compararlos con lo
+  // que decía su fecha de vencimiento.
+  it("al equipo devuelto tarde le separa igual los días vencidos", () => {
+    dibujar([conTresDiasVencidos, otroEquipo]);
+
+    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(95000));
+    expect(ivaDelRenglon("1 BENITIN · días vencidos")).toBe(dinero(57000));
+  });
+
   it("el Total adicionales de arriba no cambia con el desglose", () => {
     // El número que manda sigue siendo este: los $171.000 de IVA de los dos
     // equipos más los $700.000 del despacho, contado una sola vez.
@@ -196,11 +217,11 @@ describe("CargosAdicionales", () => {
     // Va con un segundo equipo porque, fusionado el crédito, este solo tiene
     // un renglón: sin nadie más, no habría nada que desglosar.
     dibujar([
-      {
-        ...equipoBase,
+      benitin({
+        dias: 3,
         fechaVencimiento: "2026-08-10",
         fechaDevolucion: "2026-08-08",
-      },
+      }),
       otroEquipo,
     ]);
 
@@ -214,11 +235,11 @@ describe("CargosAdicionales", () => {
     // Devolvió el día que vencía: no hay días de más ni de menos que explicar,
     // y el renglón solo repetiría el total que ya está arriba.
     dibujar([
-      {
-        ...equipoBase,
+      benitin({
+        dias: 5,
         fechaVencimiento: "2026-08-10",
         fechaDevolucion: "2026-08-10",
-      },
+      }),
     ]);
 
     expect(screen.queryByText("IVA POR EQUIPO")).not.toBeInTheDocument();

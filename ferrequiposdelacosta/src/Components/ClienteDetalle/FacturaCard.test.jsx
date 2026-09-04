@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import { calcularVencimiento, obtenerFechaHoyBogota } from "./facturaUtils";
 import FacturaCard from "./FacturaCard";
+import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // La tarjeta de una factura dentro de la ficha del cliente. No guarda nada: su
 // trabajo es MOSTRAR el estado y decidir qué acciones quedan disponibles.
@@ -17,50 +18,51 @@ vi.mock("../VistaPdf/VistaFacturaPdf", () => ({ default: generarPdf }));
 
 const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
 
-// Una factura corriente: despachada, sin pagar y sin devolver nada.
-const facturaAbierta = {
+const andamio = (extra = {}) =>
+  unEquipo({
+    nombre: "ANDAMIO",
+    cantidad: 1,
+    dias: 3,
+    valorDia: 100000,
+    fechaDespacho: "2026-08-01",
+    fechaVencimiento: "2026-08-03",
+    ...extra,
+  });
+
+const facturaCon = ({ equipos = [andamio()], ...resto } = {}) => ({
   id: "f1",
-  numeroFactura: 1573,
-  fecha: "2026-08-01",
-  aplicaIva: false,
-  subtotal: 100000,
-  valorTotal: 100000,
-  equipos: [
-    {
-      nombre: "ANDAMIO",
-      cantidad: 1,
-      dias: 3,
-      valor: 100000,
-      fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
-    },
-  ],
-  pagos: [],
-  abonos: [],
-};
+  ...unaFactura({ numeroFactura: "1573", fechaCreacion: "2026-08-01", equipos, ...resto }),
+});
+
+// Una factura corriente: despachada, sin pagar y sin devolver nada. Su equipo
+// venció en agosto.
+const facturaAbierta = facturaCon();
 
 // La misma, pero todavía vigente: salió hoy y vence dentro de 10 días. La
 // fecha se calcula desde hoy a propósito — con una fija, la prueba dejaría de
 // probar lo que dice el día que esa fecha quedara en el pasado.
 const HOY = obtenerFechaHoyBogota();
-const facturaAlDia = {
-  ...facturaAbierta,
-  fecha: HOY,
-  equipos: [
-    {
-      ...facturaAbierta.equipos[0],
-      fechaDespacho: HOY,
-      fechaVencimiento: calcularVencimiento(HOY, 10),
-    },
-  ],
-};
+const facturaAlDia = facturaCon({
+  fechaCreacion: HOY,
+  equipos: [andamio({ fechaDespacho: HOY, fechaVencimiento: calcularVencimiento(HOY, 10) })],
+});
 
-// La misma, pero ya cobrada y con el equipo de vuelta: no queda nada por hacer.
-const facturaFinalizada = {
-  ...facturaAbierta,
-  equipos: [{ ...facturaAbierta.equipos[0], cantidadDevuelta: 1, fechaDevolucion: "2026-08-03" }],
-  pagos: [{ medio: "Efectivo", monto: 100000 }],
-};
+// La misma, pero ya cobrada y con el equipo de vuelta: no queda nada por
+// hacer. Sus 3 días son los que de verdad estuvo afuera.
+const facturaFinalizada = facturaCon({
+  equipos: [
+    unEquipoDevuelto({
+      nombre: "ANDAMIO",
+      cantidad: 1,
+      dias: 3,
+      valorDia: 100000,
+      fechaDespacho: "2026-08-01",
+      fechaVencimiento: "2026-08-03",
+      fechaDevolucion: "2026-08-03",
+    }),
+  ],
+  pagos: [{ medio: "Efectivo", monto: 300000 }],
+});
 
 const mostrar = (factura, props = {}) => {
   const acciones = {
@@ -103,7 +105,9 @@ describe("FacturaCard — lo que muestra", () => {
   });
 
   it("una factura sin número no rompe la tarjeta", () => {
-    mostrar({ ...facturaAbierta, numeroFactura: undefined });
+    const sinNumero = facturaCon();
+    delete sinNumero.factura.numeroFactura;
+    mostrar(sinNumero);
 
     expect(screen.getByText("Factura s/n")).toBeInTheDocument();
   });
@@ -133,20 +137,21 @@ describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
   // es cobranza —todavía están en plazo—, así que el botón sigue encendido y
   // el diálogo, en ese caso, solo ofrece los que no vencieron.
   it("vencida pero con un equipo en plazo, la devolución sigue disponible", () => {
-    mostrar({
-      ...facturaAbierta,
-      equipos: [
-        facturaAbierta.equipos[0],
-        {
-          nombre: "MEZCLADORA",
-          cantidad: 1,
-          dias: 5,
-          valor: 50000,
-          fechaDespacho: HOY,
-          fechaVencimiento: calcularVencimiento(HOY, 5),
-        },
-      ],
-    });
+    mostrar(
+      facturaCon({
+        equipos: [
+          andamio(),
+          unEquipo({
+            nombre: "MEZCLADORA",
+            cantidad: 1,
+            dias: 5,
+            valorDia: 50000,
+            fechaDespacho: HOY,
+            fechaVencimiento: calcularVencimiento(HOY, 5),
+          }),
+        ],
+      }),
+    );
 
     expect(boton("AssignmentReturnIcon")).toBeEnabled();
   });
@@ -199,10 +204,13 @@ describe("FacturaCard — lo que ya no se puede tocar", () => {
 
   it("una factura con un abono ya no se borra de un clic", () => {
     // Borrarla se llevaría esa historia con ella.
-    mostrar({
-      ...facturaAbierta,
-      abonos: [{ fecha: "2026-08-05", medio: "Nequi", monto: 20000 }],
-    });
+    mostrar(
+      facturaCon({
+        abonos: [
+          { fecha: "2026-08-05", medio: "Nequi", monto: 20000, tipo: "cliente" },
+        ],
+      }),
+    );
 
     expect(boton("DeleteIcon")).toBeDisabled();
     // Pero lo demás sigue disponible: todavía es una factura viva.

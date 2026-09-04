@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
   calcularEquipo,
+  diasDeEquipo,
   calcularCuentaFactura,
   calcularCuentaCliente,
   calcularDepositoTotal,
@@ -120,7 +121,10 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
       (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
 
     const detalles = [equipo.nombre];
-    const ampliados = cuentaEquipo.diasPactados - (Number(equipo.diasAlquilados) || 0);
+    // El reparto de días es el mismo que usa el desglose de la ficha, así que
+    // el documento y la pantalla no pueden nombrar distinto la misma plata.
+    const dias = diasDeEquipo(equipo);
+    const ampliados = dias.ampliados;
     if (ampliados > 0) {
       detalles.push(
         `+${ampliados} día(s) ampliado(s): ${formatearMoneda(ampliados * porDia)}`,
@@ -129,11 +133,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (cuentaEquipo.descuento > 0) {
       detalles.push(`Descuento: ${formatearMoneda(cuentaEquipo.descuento)}`);
     }
-    if (cuentaEquipo.diasVencidos > 0) {
+    if (dias.vencidos > 0) {
       detalles.push(
-        `+${cuentaEquipo.diasVencidos} día(s) vencido(s): ${formatearMoneda(
-          cuentaEquipo.netoVencido,
-        )}`,
+        `+${dias.vencidos} día(s) vencido(s): ${formatearMoneda(dias.vencidos * porDia)}`,
       );
     }
 

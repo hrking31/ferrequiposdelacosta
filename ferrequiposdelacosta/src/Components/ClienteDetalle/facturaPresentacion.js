@@ -32,6 +32,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import {
   calcularEquipo,
   diasDeAlquiler,
+  diasDeEquipo,
   etiquetaVencimiento,
   obtenerFechaHoyBogota,
 } from "./facturaCuentas";
@@ -211,10 +212,10 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   // Los días que se le AGREGARON al ampliar, sin los que corren solos: esos
   // tienen su propio chip en el tramo siguiente.
   const cuenta = calcularEquipo(equipo, hoyIso);
-  const diasAmpliados = ampliacionesDe(equipo).reduce(
-    (total, ampliacion) => total + (Number(ampliacion?.diasAmpliados) || 0),
-    0,
-  );
+  // El reparto de días —los del alta, los ampliados y los vencidos— sale de
+  // una sola función, compartida con el desglose de la ficha y con los PDF.
+  const dias = diasDeEquipo(equipo, hoyIso);
+  const diasAmpliados = dias.ampliados;
   if (diasAmpliados > 0) {
     // El valor es el NETO de esos días: lo que de verdad se cobra por ellos,
     // ya con el descuento restado. El descuento tiene su propio chip al lado,
@@ -274,51 +275,41 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   }
 
   // ── TRAMO 3: lo que pasó con el plazo una vez cumplido ──────────────
-  if (cuenta.diasVencidos > 0) {
+  //
+  // Vale igual para el que sigue afuera y para el que ya volvió: los días de
+  // más son días vencidos aunque el equipo esté de vuelta en la bodega.
+  if (dias.vencidos > 0) {
     chips.push({
       clave: "diasVencidos",
       tramo: TRAMO_FECHAS.VENCIDO,
       tono: "urgente",
-      label: `${plural(cuenta.diasVencidos, "día")} vencido${
-        cuenta.diasVencidos === 1 ? "" : "s"
-      }${conValor(cuenta.netoVencido)}`,
+      label: `${plural(dias.vencidos, "día")} vencido${
+        dias.vencidos === 1 ? "" : "s"
+      }${conValor(dias.vencidos * valorPorDia)}`,
     });
   }
 
-  // LO MISMO PARA EL QUE YA VOLVIÓ, que no tiene días corriendo.
+  // El espejo: devolvió ANTES de la fecha, así que no usó todo lo que había
+  // pactado.
   //
-  // Sus días quedaron congelados el día que volvió, así que si se pasó o si se
-  // adelantó hay que sacarlo comparando esos días con los que decía su fecha
-  // de vencimiento.
+  // Va SIN monto, y es a propósito. Antes acá había un crédito en negativo,
+  // porque el total llevaba cobrados los días completos y había que
+  // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta un
+  // hecho —devolvió antes— y poner una cifra haría pensar que hay una plata a
+  // favor que no existe.
   if (devuelto && equipo?.fechaVencimiento) {
-    const pactados = diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento);
-    const usados = Number(equipo.diasAlquilados) || 0;
-
-    if (usados > pactados) {
-      chips.push({
-        clave: "diasVencidos",
-        tramo: TRAMO_FECHAS.VENCIDO,
-        tono: "urgente",
-        label: `${plural(usados - pactados, "día")} vencido${
-          usados - pactados === 1 ? "" : "s"
-        }${conValor((usados - pactados) * valorPorDia)}`,
-      });
-    }
-
-    // El espejo: devolvió antes de la fecha.
-    //
-    // Va SIN monto, y es a propósito. Antes acá había un crédito en negativo,
-    // porque el total llevaba cobrados los días completos y había que
-    // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta
-    // un hecho —devolvió antes— y poner una cifra haría pensar que hay una
-    // plata a favor que no existe.
-    if (usados < pactados) {
+    // Lo que le habían prometido, menos lo que alcanzó a usar de eso. Los días
+    // vencidos no entran: ahí el sobrante es cero por definición.
+    const diasSinUsar =
+      diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento) -
+      (dias.alta + dias.ampliados);
+    if (diasSinUsar > 0) {
       chips.push({
         clave: "diasSinUsar",
         tramo: TRAMO_FECHAS.VENCIDO,
         tono: "exito",
         Icono: SavingsIcon,
-        label: `Devolvió ${plural(pactados - usados, "día")} antes`,
+        label: `Devolvió ${plural(diasSinUsar, "día")} antes`,
       });
     }
   }

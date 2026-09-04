@@ -35,7 +35,7 @@ import {
 import AddCardIcon from "@mui/icons-material/AddCard";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { calcularEquipo } from "./facturaUtils";
+import { calcularEquipo, diasDeEquipo } from "./facturaUtils";
 import { iconBtnSx, renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
@@ -112,16 +112,14 @@ const partesDeEquipo = (equipo, hoyIso) => {
   const porDia =
     (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);
   const cuenta = hoyIso ? calcularEquipo(equipo, hoyIso) : calcularEquipo(equipo);
-
-  // Lo del despacho: los días con los que salió, al valor del día.
-  const inicial = (Number(equipo?.diasAlquilados) || 0) * porDia;
+  const dias = hoyIso ? diasDeEquipo(equipo, hoyIso) : diasDeEquipo(equipo);
 
   return {
-    inicial,
+    inicial: dias.alta * porDia,
     // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento.
-    ampliados: Math.max(0, cuenta.netoPactado - inicial),
+    ampliados: Math.max(0, dias.ampliados * porDia - cuenta.descuento),
     // Los días vencidos se cobran al valor del día y sin descuento.
-    vencidos: cuenta.netoVencido,
+    vencidos: dias.vencidos * porDia,
   };
 };
 

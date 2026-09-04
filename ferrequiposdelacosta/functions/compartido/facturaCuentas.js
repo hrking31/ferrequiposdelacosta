@@ -214,6 +214,52 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   };
 };
 
+// ── DE DÓNDE SALIÓ CADA DÍA que se le cobra a un equipo ────────────────
+//
+// Tres tramos, y cada uno cuenta una historia distinta sobre la misma plata:
+//
+//   alta      los que se pactaron al despacharlo
+//   ampliados los que alguien AUTORIZÓ después, al ampliarle el plazo
+//   vencidos  los que corrieron porque el cliente NO devolvió
+//
+// Las pantallas los nombran por separado —"días ampliados" no es lo mismo que
+// "días vencidos"— y esta es la única función que decide cuál es cuál, para
+// que el desglose de la ficha, los chips y el PDF no puedan discrepar.
+//
+// Para el que sigue afuera es directo. Para el que ya volvió hay que
+// reconstruirlo: sus días quedaron congelados en uno solo, así que el reparto
+// sale de comparar ese número con lo que decía su fecha de vencimiento.
+export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const cuenta = calcularEquipo(equipo, hoyIso);
+  const ampliados = ampliacionesDe(equipo).reduce(
+    (total, ampliacion) => total + numero(ampliacion.diasAmpliados),
+    0,
+  );
+
+  if (!cuenta.devuelto) {
+    return {
+      alta: numero(equipo?.diasAlquilados),
+      ampliados,
+      vencidos: cuenta.diasVencidos,
+    };
+  }
+
+  // Lo que se le había prometido en total, hasta la última fecha pactada.
+  const pactados = equipo?.fechaVencimiento
+    ? diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento)
+    : cuenta.dias;
+  const usados = cuenta.dias;
+  const alta = Math.max(0, pactados - ampliados);
+
+  return {
+    // Si devolvió antes, no alcanzó a usar ni los del alta.
+    alta: Math.min(usados, alta),
+    ampliados: Math.max(0, Math.min(usados, pactados) - alta),
+    // Y si se pasó, los de más son vencidos aunque ya haya vuelto.
+    vencidos: Math.max(0, usados - pactados),
+  };
+};
+
 // ── El estado de un equipo ─────────────────────────────────────────────
 //
 // Se resuelve en orden y gana el primero. El orden no es un detalle: un equipo
