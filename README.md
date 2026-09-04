@@ -668,8 +668,8 @@ documento de la factura
 │                          deposito, valorDeposito
 │
 ├── EQUIPOSAGREGADOS[] ── lo pedido después, con su propio loteId
-├── ABONOS[]           ── fecha, medio, monto (+ abonoAFactura
-│                         si el cliente lo dirigió a esta factura)
+├── ABONOS[]           ── fecha, medio, monto, tipo
+│                         (sistema · cliente · agregados)
 └── GESTIONES[]        ── la bitácora, sin cambios
 ```
 
@@ -689,7 +689,16 @@ Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igu
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
-**Los abonos se quedan en la factura**, en su propio nodo, con una marca `abonoAFactura` para los que el cliente pide aplicar a una factura puntual en vez de dejarlos al reparto automático. Es una decisión con una consecuencia asumida: se sabe cuánto pagó un equipo al despacharlo, pero no cuánto de los abonos posteriores le toca, así que **no se puede afirmar que un equipo esté saldado** — solo la factura. Para cobrar alcanza.
+**Los abonos se quedan en la factura**, en su propio nodo, y los tres orígenes se unifican con un campo `tipo`: **sistema** (lo repartió la app entre las facturas con saldo), **cliente** (pidió aplicarlo a esta factura) y **agregados** (sobró de un pago al agregar un equipo). Es un hecho —de dónde salió esa plata—, no cambia ninguna cuenta, y permite explicar en pantalla por qué ese abono está ahí.
+
+Que los abonos no bajen al equipo tiene una consecuencia, y es deliberada: se puede decir qué debe una factura, no qué debe un equipo. **Y no hace falta**, porque el seguimiento se parte en dos:
+
+| | Responde | Su unidad |
+|---|---|---|
+| **Seguimiento de factura** | ¿Cuánto me deben y a quién le cobro? | La factura, con su saldo |
+| **Seguimiento de equipos** | ¿Dónde están mis equipos y cuáles no vuelven? | El equipo, con sus cinco estados |
+
+Esa separación es la que ordena el resto del modelo: la plata se sigue por factura —por eso los abonos viven ahí— y los equipos se siguen por estado, no por saldo. Un equipo sale de la lista cuando **vuelve**, no cuando se paga.
 
 ---
 
