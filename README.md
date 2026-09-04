@@ -647,9 +647,9 @@ En Firestore agrupar no ahorra ni una lectura —el documento se trae entero igu
 > [!NOTE]
 > **En diseño, sin implementar.** Agrupar los importes ordenó el documento, pero dejó intacto el problema de fondo, así que el modelo se está rehaciendo entero.
 
-El problema no es el desorden: es que **los pagos no tienen dueño**. El del alta vive en la factura y el de cada lote agregado en su equipo, así que no se puede afirmar que un equipo esté saldado y otro no. Sin eso, cartera no puede sacar de la lista al equipo que ya se pagó y seguir cobrando el que no.
+El problema no es el desorden: es que **la plata no está donde se cobra**. El pago del alta vive en la factura, el de cada lote agregado escondido en su primer equipo, y el flete y el depósito repartidos entre los dos sitios. Cada cuenta tiene que ir a buscarlos a un lugar distinto, y ese "hay que acordarse" ya costó dos errores de plata.
 
-La regla de partida: **nada suelto en la raíz del documento.** Abrir una factura en Firebase tiene que ser leer cuatro nombres, no veinte campos en fila. Y dentro de esos cuatro, el modelo nuevo baja la plata al equipo:
+Dos reglas de partida: **nada suelto en la raíz del documento** —abrir una factura en Firebase tiene que ser leer cuatro nombres, no veinte campos en fila— y **la plata vive donde se cobra**, que no es el equipo: es el despacho.
 
 ```
 documento de la factura
@@ -657,30 +657,31 @@ documento de la factura
 ├── FACTURA{}  ── numeroFactura, fechaCreacion, tipoPago,
 │                 aplicaIva, subtotal, valorIva, total, cerrada
 │
-├── EQUIPOS[] ── loteId, nombre, cantidadEquipos, valorDia,
-│   │            diasAlquilados, fechaDespacho, fechaVencimiento
-│   ├── AMPLIACIONES[]  ── fechaInicio, fechaVencimiento,
-│   │                      diasAmpliados, descuentoRealizado
-│   ├── DEVOLUCION{}    ── fechaDevolucion, buenEstado,
-│   │                      valorRetenido
+├── GRUPOS[]   ── un despacho, con SU plata
+│   │            grupo: "grupo-inicial" | "grupo-agregados-N"
 │   ├── PAGOS[]         ── medio, monto, tipoPago
-│   └── ADICIONALES{}   ── transporte, valorTransporte,
-│                          deposito, valorDeposito
+│   ├── ADICIONALES{}   ── transporte, valorTransporte,
+│   │                      deposito, valorDeposito
+│   └── EQUIPOS[]  ── nombre, cantidadEquipos, valorDia,
+│       │            diasAlquilados, fechaDespacho, fechaVencimiento
+│       ├── AMPLIACIONES[] ── fechaInicio, fechaVencimiento,
+│       │                     diasAmpliados, descuentoRealizado
+│       └── DEVOLUCION{}   ── fechaDevolucion, buenEstado,
+│                             valorRetenido
 │
-├── EQUIPOSAGREGADOS[] ── lo pedido después, con su propio loteId
-├── ABONOS[]           ── fecha, medio, monto, tipo
-│                         (sistema · cliente · agregado)
-│                         + desdeFactura, si vino de otra
-└── GESTIONES[]        ── la bitácora, sin cambios
+├── ABONOS[]   ── fecha, medio, monto, tipo
+│                 (sistema · cliente · agregado)
+│                 + desdeFactura, si vino de otra
+└── GESTIONES[] ── la bitácora, sin cambios
 ```
 
 Tres ideas lo sostienen:
 
-- **La factura se queda solo con lo suyo**, y dentro de su propio nodo: el número, la fecha y la foto de lo que se emitió. El transporte, el depósito y los pagos bajan al equipo que los generó, porque es ahí donde se cobran.
-- **`loteId` en todos los equipos**, no solo en los agregados. Un despacho es un grupo de equipos que salió el mismo día, y esa es la unidad real: el flete y el depósito se cobran por despacho, no por equipo.
-- **Al devolver una parte, la línea se parte en dos**, las dos en su misma lista y con el mismo `loteId`: los que volvieron pasan a ser un equipo aparte, con su `devolucion`, y dejan de contar días; el original se queda con los que siguen afuera. El motivo es la pantalla: la app pinta cada equipo por separado, así que dos historias distintas tienen que ser dos equipos distintos. La línea nueva nace **sin pagos ni adicionales**, porque el flete y el depósito se cobraron una sola vez por el despacho.
+- **Cada despacho es un grupo.** El primero es `grupo-inicial`, lo contratado con la factura; después vienen `grupo-agregados-1`, `-2`… cada vez que el cliente pide más. **El pago, el flete y el depósito son del grupo**, porque un solo flete lleva el benitín y los gatos, y un solo pago cubre lo que salió ese día.
+- **La factura se queda solo con lo suyo**, y dentro de su propio nodo: el número, la fecha y la foto de lo que se emitió.
+- **Al devolver una parte, la línea se parte en dos**, las dos dentro de su grupo: los que volvieron pasan a ser un equipo aparte con su `devolucion` y dejan de contar días; el original sigue con los que quedan afuera. El motivo es la pantalla — la app pinta cada equipo por separado, así que dos historias distintas tienen que ser dos equipos distintos.
 
-El nodo `pagos` de la factura **desaparece**.
+Eso último es lo que hace **imposible** un error que ya ocurrió: antes había que acordarse de que el pago no se copiara a las dos mitades, o la factura lo contaba dos veces y se inventaba un saldo a favor. Con la plata en el grupo no hay nada que copiar.
 
 **La línea que vuelve se lleva los días que realmente usó**, no los pactados: si salió y volvió el mismo día, son 1 día y no 10. No es un detalle de presentación, es plata — con 10 guardado, cualquier pantalla que haga la multiplicación de siempre cobra $60.000 donde van $6.000, y para llegar al número bueno hay que acordarse de restar aparte un crédito por los días sin usar. Ese "hay que acordarse" es el origen de casi todos los errores de plata de este proyecto; con los días ya ajustados, la multiplicación simple siempre da bien. Guardarlos no contradice la regla de no guardar conclusiones: **una línea ya devuelta no cambia nunca más**, sus días quedaron congelados el día que volvió. Los de la línea que sigue afuera sí suben solos cada medianoche, y por eso esos no se guardan.
 
