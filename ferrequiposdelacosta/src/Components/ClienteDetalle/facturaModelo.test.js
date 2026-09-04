@@ -1,0 +1,205 @@
+import { describe, it, expect } from "vitest";
+import {
+  GRUPO_INICIAL,
+  grupoAgregados,
+  siguienteGrupoAgregados,
+  datosFactura,
+  gruposDe,
+  grupoInicialDe,
+  equiposDe,
+  equiposAfuera,
+  abonosDe,
+  entregasDe,
+  pagosDe,
+  adicionalesDe,
+  estaDevuelto,
+  sigueAfuera,
+  nuevaFactura,
+  nuevoGrupo,
+} from "./facturaModelo";
+
+// La factura del ejemplo: 1 benitín contratado, 10 gatos agregados después y
+// 4 de ellos devueltos el mismo día.
+const factura1240 = {
+  factura: {
+    numeroFactura: "1240",
+    fechaCreacion: "2026-09-01",
+    tipoPago: "parcial",
+    aplicaIva: false,
+    subtotal: 900000,
+    valorIva: 0,
+    total: 900000,
+    depositoResuelto: false,
+    cerrada: false,
+  },
+  grupos: [
+    {
+      grupo: GRUPO_INICIAL,
+      fechaSolicitud: "2026-09-01",
+      pagos: [{ medio: "Bancolombia", monto: 500000, tipoPago: "parcial" }],
+      adicionales: {
+        transporte: "Ida y vuelta",
+        valorTransporte: 150000,
+        deposito: true,
+        valorDeposito: 300000,
+      },
+      equipos: [
+        {
+          nombre: "BENITIN",
+          cantidadEquipos: 1,
+          valorDia: 90000,
+          diasAlquilados: 10,
+          fechaDespacho: "2026-09-01",
+          fechaVencimiento: "2026-09-10",
+          ampliaciones: [],
+        },
+      ],
+    },
+    {
+      grupo: "grupo-agregados-1",
+      fechaSolicitud: "2026-09-04",
+      pagos: [{ medio: "Efectivo", monto: 150000, tipoPago: "total" }],
+      adicionales: {
+        transporte: "Solo ida",
+        valorTransporte: 80000,
+        deposito: true,
+        valorDeposito: 200000,
+      },
+      equipos: [
+        {
+          nombre: "GATOS METALICOS",
+          cantidadEquipos: 4,
+          valorDia: 1500,
+          diasAlquilados: 1,
+          fechaDespacho: "2026-09-04",
+          fechaVencimiento: "2026-09-13",
+          ampliaciones: [],
+          devolucion: {
+            fechaDevolucion: "2026-09-04",
+            buenEstado: true,
+            valorRetenido: 0,
+          },
+        },
+        {
+          nombre: "GATOS METALICOS",
+          cantidadEquipos: 6,
+          valorDia: 1500,
+          diasAlquilados: 10,
+          fechaDespacho: "2026-09-04",
+          fechaVencimiento: "2026-09-13",
+          ampliaciones: [],
+        },
+      ],
+    },
+  ],
+  abonos: [{ fecha: "2026-09-18", medio: "Efectivo", monto: 400000, tipo: "agregado" }],
+  entregas: [],
+  gestiones: [],
+};
+
+describe("los atajos de lectura", () => {
+  it("los datos del documento salen del nodo factura", () => {
+    expect(datosFactura(factura1240).numeroFactura).toBe("1240");
+    expect(datosFactura(factura1240).total).toBe(900000);
+  });
+
+  it("sin documento devuelven vacío en vez de reventar", () => {
+    expect(datosFactura(undefined)).toEqual({});
+    expect(gruposDe(null)).toEqual([]);
+    expect(abonosDe(undefined)).toEqual([]);
+    expect(entregasDe(undefined)).toEqual([]);
+    expect(equiposDe(undefined)).toEqual([]);
+  });
+
+  it("encuentra el despacho inicial por su nombre", () => {
+    expect(grupoInicialDe(factura1240).equipos[0].nombre).toBe("BENITIN");
+  });
+
+  // Cada equipo viaja con su grupo al lado: es lo que permite saber de qué
+  // despacho salió sin volver a recorrer nada.
+  it("los equipos vienen con su grupo", () => {
+    const todos = equiposDe(factura1240);
+    expect(todos).toHaveLength(3);
+    expect(todos[0].equipo.nombre).toBe("BENITIN");
+    expect(todos[0].grupo.grupo).toBe(GRUPO_INICIAL);
+    expect(todos[1].grupo.grupo).toBe("grupo-agregados-1");
+  });
+
+  it("la plata del despacho se lee del grupo, no del equipo", () => {
+    const [, agregados] = gruposDe(factura1240);
+    expect(pagosDe(agregados)[0].monto).toBe(150000);
+    expect(adicionalesDe(agregados).valorTransporte).toBe(80000);
+    expect(adicionalesDe(agregados).valorDeposito).toBe(200000);
+    // Y no está duplicada abajo: eso es lo que hacía contar dos veces el pago.
+    agregados.equipos.forEach((equipo) => {
+      expect(equipo).not.toHaveProperty("pagos");
+      expect(equipo).not.toHaveProperty("valorTransporte");
+    });
+  });
+});
+
+describe("quién está afuera", () => {
+  // Una línea devuelta volvió entera: al devolver una parte la línea se parte
+  // en dos, así que no hay que restar cantidades para saberlo.
+  it("tener el nodo devolución ya es haber vuelto", () => {
+    const [, agregados] = gruposDe(factura1240);
+    const [cuatro, seis] = agregados.equipos;
+    expect(estaDevuelto(cuatro)).toBe(true);
+    expect(sigueAfuera(cuatro)).toBe(false);
+    expect(estaDevuelto(seis)).toBe(false);
+    expect(sigueAfuera(seis)).toBe(true);
+  });
+
+  it("los que siguen en la obra son el benitín y los 6 gatos", () => {
+    const afuera = equiposAfuera(factura1240);
+    expect(afuera).toHaveLength(2);
+    expect(afuera.map(({ equipo }) => equipo.cantidadEquipos)).toEqual([1, 6]);
+  });
+});
+
+describe("cómo se nombra el próximo despacho", () => {
+  it("el primer agregado es el 1", () => {
+    const soloInicial = { grupos: [{ grupo: GRUPO_INICIAL, equipos: [] }] };
+    expect(siguienteGrupoAgregados(soloInicial)).toBe("grupo-agregados-1");
+  });
+
+  it("sigue contando desde los que ya hay", () => {
+    expect(siguienteGrupoAgregados(factura1240)).toBe("grupo-agregados-2");
+  });
+
+  it("una factura sin grupos todavía arranca en el 1", () => {
+    expect(siguienteGrupoAgregados(undefined)).toBe("grupo-agregados-1");
+    expect(grupoAgregados(3)).toBe("grupo-agregados-3");
+  });
+});
+
+describe("cómo se arma un documento nuevo", () => {
+  it("una factura nace con su despacho y el resto vacío", () => {
+    const doc = nuevaFactura({
+      factura: { numeroFactura: "1300", total: 100000 },
+      grupoInicial: nuevoGrupo({
+        grupo: GRUPO_INICIAL,
+        fechaSolicitud: "2026-09-20",
+        equipos: [{ nombre: "ANDAMIO", cantidadEquipos: 4 }],
+      }),
+    });
+
+    expect(doc.grupos).toHaveLength(1);
+    expect(doc.grupos[0].equipos[0].nombre).toBe("ANDAMIO");
+    expect(doc.abonos).toEqual([]);
+    expect(doc.entregas).toEqual([]);
+    expect(doc.gestiones).toEqual([]);
+  });
+
+  it("un grupo sin adicionales nace con los cuatro campos en cero", () => {
+    const grupo = nuevoGrupo({ grupo: GRUPO_INICIAL, fechaSolicitud: "2026-09-20" });
+    expect(grupo.adicionales).toEqual({
+      transporte: "",
+      valorTransporte: 0,
+      deposito: false,
+      valorDeposito: 0,
+    });
+    expect(grupo.pagos).toEqual([]);
+    expect(grupo.equipos).toEqual([]);
+  });
+});
