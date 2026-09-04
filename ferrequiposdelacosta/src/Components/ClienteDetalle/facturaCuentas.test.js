@@ -326,6 +326,7 @@ describe("la cuenta de la factura", () => {
       pagos: [{ medio: "Efectivo", monto: 200000 }],
       entregas: [{ fecha: HOY, medio: "Nequi", monto: 50000, nota: "" }],
     });
+    expect(sumarEntregas(conEntrega)).toBe(50000);
     const cuenta = calcularCuentaFactura(conEntrega, HOY);
     expect(cuenta.pagado).toBe(200000);
     expect(cuenta.entregas).toBe(50000);
