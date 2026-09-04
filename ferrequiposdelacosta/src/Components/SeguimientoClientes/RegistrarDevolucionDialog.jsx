@@ -22,20 +22,23 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
   proyectarAmpliacion,
-  obtenerAmpliaciones,
-  calcularCantidadPendiente,
-  agruparLotesFactura,
   equipoAlDia,
   equipoVencido,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
+  diasDeAlquiler,
   obtenerGestiones,
   crearRegistroGestion,
   facturaEnSeguimiento,
   calcularDepositoTotal,
   formatearMonedaInput,
   limpiarMonedaInput,
-  valoresFactura,
+  datosFactura,
+  gruposDe,
+  equiposDe,
+  adicionalesDe,
+  ampliacionesDe,
+  sigueAfuera,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -59,20 +62,24 @@ const ESTADO_INICIAL_CAMBIO = {
   retenidoEstado: "",
 };
 
-// Lo que queda escrito en la línea del equipo que volvió. Se anota SIEMPRE,
-// también cuando volvió bien: "volvió sin novedad" es un dato, y su ausencia
-// no se distingue de una devolución vieja que nadie calificó.
-// El tope es el depósito del DESPACHO en el que salió ese equipo: no se puede
-// retener del Benetín más de lo que el cliente dejó al llevárselo.
-const estadoDevolucionDe = (cambio, fecha, topeRetencion = Infinity) => {
+// El nodo `devolucion` que se le pone a la línea que volvió. Su sola
+// presencia es lo que dice que ese equipo ya no está afuera —no hay que
+// restar cantidades—, y por eso se escribe SIEMPRE, también cuando volvió
+// bien: "volvió sin novedad" es un dato, y su ausencia no se distingue de una
+// devolución vieja que nadie calificó.
+//
+// El tope de lo retenido es el depósito del DESPACHO en el que salió ese
+// equipo: no se puede retener del Benetín más de lo que el cliente dejó al
+// llevárselo.
+const devolucionDe = (cambio, fecha, topeRetencion = Infinity) => {
   const bien = cambio?.buenEstado !== false;
   return {
+    fechaDevolucion: fecha,
     buenEstado: bien,
     motivo: bien ? "" : (cambio.motivoEstado || "").trim(),
-    retenido: bien
+    valorRetenido: bien
       ? 0
       : Math.min(topeRetencion, Math.max(0, Number(cambio.retenidoEstado) || 0)),
-    fecha,
   };
 };
 
@@ -108,9 +115,19 @@ export default function RegistrarDevolucionDialog({
     setCambios({});
   }, [open]);
 
-  const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
-  const equiposPendientes = equipos
-    .map((equipo, index) => ({ equipo, index }))
+  // Cada línea se identifica por su despacho y su posición dentro de él: los
+  // equipos viven repartidos en grupos, así que un número suelto no alcanza
+  // para señalar una sola.
+  const claveDe = (grupo, indice) => `${grupo?.grupo}#${indice}`;
+
+  const todosLosEquipos = equiposDe(factura);
+  const equiposPendientes = todosLosEquipos
+    .map(({ equipo, grupo, indice }) => ({
+      equipo,
+      grupo,
+      indice,
+      clave: claveDe(grupo, indice),
+    }))
     // Cada pantalla ofrece lo suyo y nada más: la ficha, lo que sigue en
     // plazo; Seguimiento, lo vencido. Un equipo en fecha no se devuelve desde
     // cartera —esa devolución no es cobranza— y así ninguna de las dos
@@ -118,25 +135,29 @@ export default function RegistrarDevolucionDialog({
     .filter(({ equipo }) =>
       desdeLaFicha
         ? equipoAlDia(equipo)
-        : calcularCantidadPendiente(equipo) > 0 && equipoVencido(equipo),
+        : sigueAfuera(equipo) && equipoVencido(equipo),
     );
+
+  // Cuántas unidades tiene todavía afuera una línea. Una línea devuelta volvió
+  // ENTERA —al devolver una parte se parte en dos—, así que no hay cantidades
+  // que restar: o está toda afuera, o no está.
+  const pendienteDe = (equipo) =>
+    sigueAfuera(equipo) ? Number(equipo.cantidadEquipos) || 0 : 0;
 
   // Cuánto devuelve de cada línea con lo que hay escrito ahora mismo. Sirve
   // para saber, mientras el usuario escribe, si esta devolución deja la
   // factura sin nada afuera.
-  const cantidadQueDevuelve = (equipo, index) => {
-    const pendiente = calcularCantidadPendiente(equipo);
-    const cambio = cambios[index];
+  const cantidadQueDevuelve = (equipo, clave) => {
+    const cambio = cambios[clave];
     if (!cambio) return 0;
-    return Math.max(0, Math.min(pendiente, Number(cambio.cantidad) || 0));
+    return Math.max(0, Math.min(pendienteDe(equipo), Number(cambio.cantidad) || 0));
   };
 
   const quedanEquiposAfuera = equiposPendientes.some(
-    ({ equipo, index }) =>
-      calcularCantidadPendiente(equipo) - cantidadQueDevuelve(equipo, index) > 0,
+    ({ equipo, clave }) => pendienteDe(equipo) - cantidadQueDevuelve(equipo, clave) > 0,
   );
   const hayDevolucion = equiposPendientes.some(
-    ({ equipo, index }) => cantidadQueDevuelve(equipo, index) > 0,
+    ({ equipo, clave }) => cantidadQueDevuelve(equipo, clave) > 0,
   );
 
   // ── El estado en que volvió cada equipo, y la plata que eso cuesta ────
@@ -158,39 +179,38 @@ export default function RegistrarDevolucionDialog({
   // cliente pidió el Benetín y dejó $100.000, y a los días pidió una Rana y
   // dejó otros $50.000. Por eso cada equipo muestra el de su entrega, y de ahí
   // sale el tope de lo que se le puede retener.
-  const lotes = agruparLotesFactura(factura);
-  const loteDelEquipo = new Map();
-  lotes.forEach((lote) =>
-    lote.equipos.forEach(({ index }) => loteDelEquipo.set(index, lote)),
+  // Ahora es una lectura directa: el depósito está arriba, en el grupo, y no
+  // escondido dentro del primer equipo del lote.
+  const depositoDelGrupo = (grupo) => Number(adicionalesDe(grupo).valorDeposito) || 0;
+  const lotesConDeposito = gruposDe(factura).filter(
+    (grupo) => depositoDelGrupo(grupo) > 0,
   );
-  const depositoDelEquipo = (index) => Number(loteDelEquipo.get(index)?.deposito) || 0;
-  const lotesConDeposito = lotes.filter((lote) => lote.deposito > 0);
 
   const depositoTotal = calcularDepositoTotal(factura);
   const resolverDeposito =
     hayDevolucion &&
     !quedanEquiposAfuera &&
     depositoTotal > 0 &&
-    !valoresFactura(factura).depositoResuelto;
+    !datosFactura(factura).depositoResuelto;
 
   // Lo anotado en devoluciones ANTERIORES, que vive en la línea de cada equipo
   // que ya volvió.
-  const retencionesPrevias = equipos
-    .filter((equipo) => Number(equipo?.estadoDevolucion?.retenido) > 0)
-    .map((equipo) => ({
+  const retencionesPrevias = todosLosEquipos
+    .filter(({ equipo }) => Number(equipo?.devolucion?.valorRetenido) > 0)
+    .map(({ equipo }) => ({
       nombre: equipo.nombre,
-      motivo: equipo.estadoDevolucion.motivo || "",
-      monto: Number(equipo.estadoDevolucion.retenido) || 0,
+      motivo: equipo.devolucion.motivo || "",
+      monto: Number(equipo.devolucion.valorRetenido) || 0,
     }));
 
   // Y lo que se está anotando en ESTA tanda.
   const retencionesAhora = equiposPendientes
-    .map(({ equipo, index }) => ({
+    .map(({ equipo, grupo, clave }) => ({
       nombre: equipo.nombre,
-      motivo: (cambios[index]?.motivoEstado || "").trim(),
+      motivo: (cambios[clave]?.motivoEstado || "").trim(),
       monto:
-        cantidadQueDevuelve(equipo, index) > 0 && cambios[index]?.buenEstado === false
-          ? estadoDevolucionDe(cambios[index], "", depositoDelEquipo(index)).retenido
+        cantidadQueDevuelve(equipo, clave) > 0 && cambios[clave]?.buenEstado === false
+          ? devolucionDe(cambios[clave], "", depositoDelGrupo(grupo)).valorRetenido
           : 0,
     }))
     .filter(({ monto }) => monto > 0);
@@ -260,8 +280,8 @@ export default function RegistrarDevolucionDialog({
   };
 
   const handleGuardar = async () => {
-    const huboCambios = equiposPendientes.some(({ index }) => {
-      const cambio = cambios[index];
+    const huboCambios = equiposPendientes.some(({ clave }) => {
+      const cambio = cambios[clave];
       return cambio && Number(cambio.cantidad) > 0;
     });
     if (!huboCambios) {
@@ -274,10 +294,10 @@ export default function RegistrarDevolucionDialog({
     // El monto sí puede quedar en blanco — a veces el daño se ve hoy y lo que
     // cuesta arreglarlo recién se sabe después.
     const sinMotivo = equiposPendientes.find(
-      ({ equipo, index }) =>
-        cantidadQueDevuelve(equipo, index) > 0 &&
-        cambios[index]?.buenEstado === false &&
-        !(cambios[index]?.motivoEstado || "").trim(),
+      ({ equipo, clave }) =>
+        cantidadQueDevuelve(equipo, clave) > 0 &&
+        cambios[clave]?.buenEstado === false &&
+        !(cambios[clave]?.motivoEstado || "").trim(),
     );
     if (sinMotivo) {
       showSnackbar(`Escribí qué le pasó al ${sinMotivo.equipo.nombre}.`, "warning");
@@ -289,15 +309,15 @@ export default function RegistrarDevolucionDialog({
     // escrito, sin decirlo, es la forma de que alguien crea que retuvo una
     // plata que nunca se retuvo.
     const seExcede = equiposPendientes.find(
-      ({ equipo, index }) =>
-        cantidadQueDevuelve(equipo, index) > 0 &&
-        cambios[index]?.buenEstado === false &&
-        Number(cambios[index]?.retenidoEstado) > depositoDelEquipo(index),
+      ({ equipo, grupo, clave }) =>
+        cantidadQueDevuelve(equipo, clave) > 0 &&
+        cambios[clave]?.buenEstado === false &&
+        Number(cambios[clave]?.retenidoEstado) > depositoDelGrupo(grupo),
     );
     if (seExcede) {
       showSnackbar(
         `Por la entrega del ${seExcede.equipo.nombre} el cliente dejó ${formatearMoneda(
-          depositoDelEquipo(seExcede.index),
+          depositoDelGrupo(seExcede.grupo),
         )}.`,
         "warning",
       );
@@ -312,108 +332,115 @@ export default function RegistrarDevolucionDialog({
       // línea de tiempo ("Devolución parcial: 3 equipos").
       let unidadesDevueltas = 0;
 
-      const equiposActualizados = [];
-      equipos.forEach((equipo, index) => {
-        const pendiente = calcularCantidadPendiente(equipo);
-        const cambio = cambios[index];
-        const cantidadDevuelta =
-          pendiente > 0 && cambio ? Math.max(0, Math.min(pendiente, Number(cambio.cantidad) || 0)) : 0;
+      // LOS DÍAS SE CONGELAN AL VOLVER.
+      //
+      // Mientras el equipo está afuera, sus días corren con el calendario:
+      // los pactados, y los de más si se pasó de la fecha. El día que vuelve,
+      // eso deja de ser una cuenta y pasa a ser un hecho — estuvo afuera
+      // tantos días—, y ese número se escribe en la línea.
+      //
+      // Devolvió antes: quedan los pocos días que lo tuvo, y no se le cobra
+      // el resto. Se pasó: quedan los que de verdad corrieron. En los dos
+      // casos, después de esto la cuenta del equipo es una sola
+      // multiplicación y no hay créditos que restar ni excepciones que
+      // recordar.
+      const diasUsados = (equipo) =>
+        Math.max(1, diasDeAlquiler(equipo.fechaDespacho, hoy));
 
-        if (cantidadDevuelta <= 0) {
-          equiposActualizados.push(equipo);
-          return;
-        }
+      const gruposActualizados = gruposDe(factura).map((grupo) => {
+        const equiposActualizados = [];
 
-        huboCierre = true;
-        unidadesDevueltas += cantidadDevuelta;
+        (grupo.equipos ?? []).forEach((equipo, indice) => {
+          const clave = claveDe(grupo, indice);
+          const pendiente = pendienteDe(equipo);
+          const cambio = cambios[clave];
+          const cantidadDevuelta =
+            pendiente > 0 && cambio
+              ? Math.max(0, Math.min(pendiente, Number(cambio.cantidad) || 0))
+              : 0;
 
-        if (cantidadDevuelta >= pendiente) {
-          // Devuelve todo lo que quedaba pendiente: la línea se cierra donde está.
+          if (cantidadDevuelta <= 0) {
+            equiposActualizados.push(equipo);
+            return;
+          }
+
+          huboCierre = true;
+          unidadesDevueltas += cantidadDevuelta;
+
+          const devolucion = devolucionDe(cambio, hoy, depositoDelGrupo(grupo));
+
+          if (cantidadDevuelta >= pendiente) {
+            // Vuelve la línea entera: se cierra donde está.
+            equiposActualizados.push({
+              ...equipo,
+              diasAlquilados: diasUsados(equipo),
+              vencimientoIndefinido: false,
+              devolucion,
+            });
+            return;
+          }
+
+          // Vuelve una parte: la línea se parte en dos, porque en la pantalla
+          // cada equipo se pinta por separado y las dos mitades ya no tienen
+          // la misma historia — una volvió hoy con los días que usó, la otra
+          // sigue afuera con su propio plazo.
+          //
+          // Nada de la plata se copia: el pago, el flete y el depósito son
+          // del GRUPO y se quedaron arriba. Con ellos abajo, partir la línea
+          // duplicaba el pago y la factura inventaba un saldo a favor.
           equiposActualizados.push({
             ...equipo,
-            cantidadDevuelta: Number(equipo.cantidad) || 0,
-            fechaDevolucion: hoy,
-            estadoDevolucion: estadoDevolucionDe(cambio, hoy, depositoDelEquipo(index)),
+            cantidadEquipos: cantidadDevuelta,
+            diasAlquilados: diasUsados(equipo),
             vencimientoIndefinido: false,
+            devolucion,
           });
-          return;
-        }
 
-        // Devuelve una parte: la línea se parte en dos. La original queda
-        // cerrada con lo que efectivamente volvió; una nueva línea sigue con
-        // lo que se queda el cliente (con su propia fecha de vencimiento, si
-        // se definió acá mismo).
-        const cantidadOriginal = Number(equipo.cantidad) || 0;
-        equiposActualizados.push({
-          ...equipo,
-          cantidad: cantidadDevuelta,
-          cantidadDevuelta,
-          fechaDevolucion: hoy,
-          estadoDevolucion: estadoDevolucionDe(cambio, hoy, depositoDelEquipo(index)),
-          vencimientoIndefinido: false,
+          const restante = {
+            ...equipo,
+            cantidadEquipos: pendiente - cantidadDevuelta,
+          };
+          // Lo que sigue afuera todavía no volvió.
+          delete restante.devolucion;
+
+          if (cambio.indefinida) {
+            restante.vencimientoIndefinido = true;
+          } else {
+            const extra = Number(cambio.dias) || 0;
+            if (extra > 0) {
+              // Mismo criterio que en AmpliarVencimientoDialog: si lo que
+              // sigue afuera ya estaba vencido, el plazo nuevo arranca hoy y
+              // los días que ya corrieron se consolidan (ver
+              // proyectarAmpliacion).
+              const proyeccion = proyectarAmpliacion(equipo, extra);
+              restante.ampliaciones = [
+                ...ampliacionesDe(equipo),
+                {
+                  fechaAnterior: equipo.fechaVencimiento,
+                  fechaNueva: proyeccion.fechaNueva,
+                  diasAmpliados: proyeccion.dias,
+                  diasPedidos: proyeccion.diasPedidos,
+                  diasVencidos: proyeccion.diasVencidos,
+                  descuentoRealizado: Math.max(0, Number(cambio.descuento) || 0),
+                  fecha: hoy,
+                },
+              ];
+              restante.fechaVencimiento = proyeccion.fechaNueva;
+            }
+          }
+
+          equiposActualizados.push(restante);
         });
 
-        const restante = {
-          ...equipo,
-          cantidad: cantidadOriginal - cantidadDevuelta,
-          cantidadDevuelta: 0,
-        };
-        delete restante.fechaDevolucion;
-        // El estado califica lo que VOLVIÓ. Lo que sigue afuera todavía no
-        // volvió, así que arrastrar esa calificación sería inventarla.
-        delete restante.estadoDevolucion;
-
-        // Los cargos del LOTE —lo que se pagó por él, su transporte y su
-        // depósito— viven en UNA sola línea, y las cuentas los suman
-        // recorriendo todos los equipos agregados (ver sumarPagosDeAgregados
-        // en facturaCalculos). Si la mitad que sigue afuera se los lleva
-        // copiados, ese pago se cuenta dos veces: la factura muestra pagado de
-        // más y termina inventando un saldo a favor que no existe.
-        //
-        // Se quedan en la línea que volvió, que es la que conserva el lugar
-        // del lote. La que sigue afuera arrastra solo lo suyo: cantidad,
-        // días, precio y fechas.
-        delete restante.pagos;
-        delete restante.tipoPago;
-        delete restante.transporte;
-        delete restante.valorTransporte;
-        delete restante.deposito;
-
-        if (cambio.indefinida) {
-          restante.vencimientoIndefinido = true;
-        } else {
-          const extra = Number(cambio.dias) || 0;
-          if (extra > 0) {
-            // Mismo criterio que en AmpliarVencimientoDialog: si lo que sigue
-            // afuera ya estaba vencido, el plazo nuevo arranca hoy y los días
-            // que ya corrieron se consolidan (ver proyectarAmpliacion).
-            const proyeccion = proyectarAmpliacion(equipo, extra);
-            const descuento = Math.max(0, Number(cambio.descuento) || 0);
-            restante.fechaVencimientoOriginal = equipo.fechaVencimientoOriginal || equipo.fechaVencimiento;
-            restante.ampliaciones = [
-              ...obtenerAmpliaciones(equipo),
-              {
-                fechaAnterior: equipo.fechaVencimiento,
-                fechaNueva: proyeccion.fechaNueva,
-                dias: proyeccion.dias,
-                diasVencidos: proyeccion.diasVencidos,
-                diasPactados: proyeccion.diasPactados,
-                descuento,
-              },
-            ];
-            restante.fechaVencimiento = proyeccion.fechaNueva;
-          }
-        }
-
-        equiposActualizados.push(restante);
+        return { ...grupo, equipos: equiposActualizados };
       });
 
       // El estado de la factura ya no se guarda: sale solo de los equipos y
       // del saldo (ver calcularEstadoFactura). Lo que sí se anota es la
       // gestión — si volvió todo o solo una parte—, que es el registro de lo
       // que se hizo.
-      const quedanEquipos = equiposActualizados.some(
-        (equipo) => calcularCantidadPendiente(equipo) > 0,
+      const quedanEquipos = gruposActualizados.some((grupo) =>
+        (grupo.equipos ?? []).some((equipo) => sigueAfuera(equipo)),
       );
       // Este diálogo también se abre desde Detalle Cliente, donde la factura
       // puede estar al día: el cliente devuelve antes de que se venza. Eso NO
@@ -433,9 +460,10 @@ export default function RegistrarDevolucionDialog({
         huboCierre && !desdeLaFicha && facturaEnSeguimiento(factura)
           ? [
               ...obtenerGestiones(factura),
-              crearRegistroGestion(quedanEquipos ? "parcial" : "total", {
-                unidades: unidadesDevueltas,
-              }),
+              crearRegistroGestion(
+                quedanEquipos ? "devolucionParcial" : "devolucionTotal",
+                { unidades: unidadesDevueltas },
+              ),
             ]
           : obtenerGestiones(factura);
 
@@ -444,18 +472,16 @@ export default function RegistrarDevolucionDialog({
       const facturasSnap = await getDocs(collection(db, "clientes", cliente.id, "facturas"));
       const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
         docSnap.id === factura.id
-          ? { id: docSnap.id, ...docSnap.data(), equipos: equiposActualizados, gestiones }
+          ? { id: docSnap.id, ...docSnap.data(), grupos: gruposActualizados, gestiones }
           : { id: docSnap.id, ...docSnap.data() },
       );
 
       // Con el último equipo de vuelta se define qué pasa con el depósito.
       // Queda escrito acá, pero la plata todavía no se movió: eso se hace al
       // liquidar con el cliente, desde el botón Abono.
-      const datosFactura = { equipos: equiposActualizados, gestiones };
+      const cambiosFactura = { grupos: gruposActualizados, gestiones };
       if (resolverDeposito) {
-        // Ruta completa, no el nodo entero: acá solo se resuelve el depósito y
-        // escribir `valores: {...}` borraría el total, el subtotal y el resto.
-        datosFactura["valores.depositoResuelto"] = {
+        const resuelto = {
           retenido,
           // El motivo ya no se escribe acá: se arma con lo que se anotó en
           // cada equipo, para que la ficha del cliente pueda decir POR CUÁL
@@ -465,14 +491,14 @@ export default function RegistrarDevolucionDialog({
             .join(" · "),
           fecha: hoy,
         };
+        // Ruta completa, no el nodo entero: acá solo se resuelve el depósito
+        // y escribir `factura: {...}` borraría el número, el total y el resto.
+        cambiosFactura["factura.depositoResuelto"] = resuelto;
         // La copia local con la que se recalcula el estado del cliente tiene
         // que quedar igual que lo que se acaba de escribir.
         todasLasFacturas.forEach((item) => {
           if (item.id === factura.id) {
-            item.valores = {
-              ...(item.valores ?? {}),
-              depositoResuelto: datosFactura["valores.depositoResuelto"],
-            };
+            item.factura = { ...(item.factura ?? {}), depositoResuelto: resuelto };
           }
         });
       }
@@ -480,7 +506,7 @@ export default function RegistrarDevolucionDialog({
       const batch = writeBatch(db);
       batch.update(
         doc(db, "clientes", cliente.id, "facturas", factura.id),
-        datosFactura,
+        cambiosFactura,
       );
       batch.update(doc(db, "clientes", cliente.id), {
         estado: calcularEstadoCliente(todasLasFacturas),
@@ -510,20 +536,21 @@ export default function RegistrarDevolucionDialog({
                 </Typography>
               </Grid>
             )}
-            {equiposPendientes.map(({ equipo, index }, posicion) => {
-              const pendiente = calcularCantidadPendiente(equipo);
-              const cambio = cambios[index] || ESTADO_INICIAL_CAMBIO;
+            {equiposPendientes.map(({ equipo, grupo, clave }, posicion) => {
+              const pendiente = pendienteDe(equipo);
+              const deposito = depositoDelGrupo(grupo);
+              const cambio = cambios[clave] || ESTADO_INICIAL_CAMBIO;
               const cantidadDevuelta = cambio.cantidad === "" ? 0 : Number(cambio.cantidad) || 0;
               const restante = pendiente - cantidadDevuelta;
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
               const proyeccion = proyectarAmpliacion(equipo, diasNumero);
-              const valorDias = proyeccion.dias * restante * (Number(equipo.valor) || 0);
+              const valorDias = proyeccion.dias * restante * (Number(equipo.valorDia) || 0);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
 
               return (
-                <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
+                <Grid item xs={12} key={clave}>
                   <Typography variant="body2" fontWeight="bold">
                     {pendiente} {equipo.nombre}
                   </Typography>
@@ -541,13 +568,13 @@ export default function RegistrarDevolucionDialog({
                       Cuando esa entrega trajo varios equipos el depósito es
                       de todos juntos, y hay que decirlo: repartirlo por
                       equipo sería inventar un número que nadie pactó. */}
-                  {depositoDelEquipo(index) > 0 && (
+                  {deposito > 0 && (
                     <Typography
                       variant="caption"
                       sx={{ display: "block", color: "custom.accent" }}
                     >
-                      Depósito: {formatearMoneda(depositoDelEquipo(index))}
-                      {loteDelEquipo.get(index)?.equipos.length > 1 && " (del despacho)"}
+                      Depósito: {formatearMoneda(deposito)}
+                      {(grupo.equipos ?? []).length > 1 && " (del despacho)"}
                     </Typography>
                   )}
 
@@ -558,7 +585,7 @@ export default function RegistrarDevolucionDialog({
                     type="number"
                     inputProps={{ min: 0, max: pendiente }}
                     value={cambio.cantidad}
-                    onChange={(e) => handleCambiarCantidad(index, e.target.value, pendiente)}
+                    onChange={(e) => handleCambiarCantidad(clave, e.target.value, pendiente)}
                     fullWidth
                     size="small"
                   />
@@ -584,7 +611,7 @@ export default function RegistrarDevolucionDialog({
                             size="small"
                             checked={cambio.buenEstado !== false}
                             onChange={(e) =>
-                              handleCambiarBuenEstado(index, e.target.checked)
+                              handleCambiarBuenEstado(clave, e.target.checked)
                             }
                           />
                         }
@@ -597,10 +624,10 @@ export default function RegistrarDevolucionDialog({
                         <Box sx={{ pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
                           <TextField
                             label="Qué le pasó"
-                            name={`estadoMotivo-${index}`}
+                            name={`estadoMotivo-${clave}`}
                             value={cambio.motivoEstado}
                             onChange={(e) =>
-                              handleCambiarEstado(index, "motivoEstado", e.target.value)
+                              handleCambiarEstado(clave, "motivoEstado", e.target.value)
                             }
                             fullWidth
                             size="small"
@@ -612,14 +639,14 @@ export default function RegistrarDevolucionDialog({
                           {/* Solo si SU entrega dejó garantía de dónde
                               retener. Sin depósito el daño igual queda
                               anotado: es lo que se le reclama al cliente. */}
-                          {depositoDelEquipo(index) > 0 && (
+                          {deposito > 0 && (
                             <TextField
                               label="Se retiene del depósito"
-                              name={`estadoRetenido-${index}`}
+                              name={`estadoRetenido-${clave}`}
                               value={formatearMonedaInput(cambio.retenidoEstado)}
                               onChange={(e) =>
                                 handleCambiarEstado(
-                                  index,
+                                  clave,
                                   "retenidoEstado",
                                   limpiarMonedaInput(e.target.value),
                                 )
@@ -631,14 +658,10 @@ export default function RegistrarDevolucionDialog({
                               // entrega, pero no se anuncia: solo avisa a
                               // quien se pasa. Guardar en silencio un número
                               // menor que el escrito sería peor que no topar.
-                              error={
-                                Number(cambio.retenidoEstado) > depositoDelEquipo(index)
-                              }
+                              error={Number(cambio.retenidoEstado) > deposito}
                               helperText={
-                                Number(cambio.retenidoEstado) > depositoDelEquipo(index)
-                                  ? `Por esta entrega solo dejó ${formatearMoneda(
-                                      depositoDelEquipo(index),
-                                    )}`
+                                Number(cambio.retenidoEstado) > deposito
+                                  ? `Por esta entrega solo dejó ${formatearMoneda(deposito)}`
                                   : "Se puede dejar vacío y decidirlo al liquidar"
                               }
                             />
@@ -669,7 +692,7 @@ export default function RegistrarDevolucionDialog({
                         type="number"
                         inputProps={{ min: 1 }}
                         value={cambio.dias}
-                        onChange={(e) => handleCambiarDias(index, e.target.value)}
+                        onChange={(e) => handleCambiarDias(clave, e.target.value)}
                         disabled={cambio.indefinida}
                         fullWidth
                         size="small"
@@ -681,7 +704,7 @@ export default function RegistrarDevolucionDialog({
                           type="number"
                           inputProps={{ min: 0 }}
                           value={cambio.descuento}
-                          onChange={(e) => handleCambiarDescuento(index, e.target.value)}
+                          onChange={(e) => handleCambiarDescuento(clave, e.target.value)}
                           fullWidth
                           size="small"
                           sx={{ mt: 1 }}
@@ -693,8 +716,8 @@ export default function RegistrarDevolucionDialog({
                                   proyeccion.diasVencidos > 0
                                     ? ` (${proyeccion.diasVencidos} vencido${
                                         proyeccion.diasVencidos === 1 ? "" : "s"
-                                      } + ${proyeccion.diasPactados} pactado${
-                                        proyeccion.diasPactados === 1 ? "" : "s"
+                                      } + ${proyeccion.diasPedidos} pactado${
+                                        proyeccion.diasPedidos === 1 ? "" : "s"
                                       })`
                                     : ""
                                 }${
@@ -725,7 +748,7 @@ export default function RegistrarDevolucionDialog({
                           <Checkbox
                             size="small"
                             checked={cambio.indefinida}
-                            onChange={(e) => handleCambiarIndefinida(index, e.target.checked)}
+                            onChange={(e) => handleCambiarIndefinida(clave, e.target.checked)}
                           />
                         }
                         label="Dejar indefinida (el cliente avisará)"

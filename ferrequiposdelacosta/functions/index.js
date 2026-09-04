@@ -11,21 +11,21 @@ import {getDatabase, ServerValue} from "firebase-admin/database";
 import {getStorage} from "firebase-admin/storage";
 
 // Las cuentas de las facturas, TAL CUAL las usa la app. No es una version
-// aparte: compartido/facturaCalculos.js es una copia generada de
-// src/Components/ClienteDetalle/facturaCalculos.js, que se rehace sola en cada
-// despliegue (ver scripts/sincronizar-calculos.js). Si las dos se separaran, el
-// menu y la ficha del cliente mostrarian numeros distintos; hay una prueba que
-// falla si eso pasa.
+// aparte: compartido/ lleva copias generadas de
+// src/Components/ClienteDetalle/facturaModelo.js y facturaCuentas.js, que se
+// rehacen solas en cada despliegue (ver scripts/sincronizar-calculos.js). Si
+// se separaran, el menu y la ficha del cliente mostrarian numeros distintos;
+// hay una prueba que falla si eso pasa.
 import {
   calcularAporteFactura,
-  calcularCantidadPendiente,
   calcularEstadoCliente,
   calcularTotalesFacturas,
   equiposQueVencieronHoy,
   facturaCerrada,
   facturaEnSeguimiento,
   obtenerFechaHoyBogota,
-} from "./compartido/facturaCalculos.js";
+} from "./compartido/facturaCuentas.js";
+import {datosFactura} from "./compartido/facturaModelo.js";
 
 initializeApp();
 
@@ -594,9 +594,14 @@ export const ajustarTotalesPanel = onDocumentWritten(
       // nada y la cadena se corta ahí. Pasa una o dos veces en la vida de cada
       // factura —cuando se cierra, y si alguna vez se reabre—, así que no vale
       // la pena una salvaguarda más enredada que el propio caso.
-      if (despues && facturaCerrada(despues, hoy) !== despues.cerrada) {
+      if (
+        despues &&
+        facturaCerrada(despues, hoy) !== datosFactura(despues).cerrada
+      ) {
+        // Con notacion de punto: escribir el nodo entero lo reemplazaria y se
+        // perderia todo lo demas que vive adentro.
         await event.data.after.ref.update({
-          cerrada: facturaCerrada(despues, hoy),
+          "factura.cerrada": facturaCerrada(despues, hoy),
         });
       }
 
@@ -745,7 +750,7 @@ export const recalcularTotalesPanel = onSchedule(
         lista.push(factura);
         facturasPorCliente.set(clienteId, lista);
 
-        const numero = factura.numeroFactura ?? "s/n";
+        const numero = datosFactura(factura).numeroFactura ?? "s/n";
         const vencidosHoy = equiposQueVencieronHoy(factura, hoy, ayer);
 
         for (const equipo of vencidosHoy) {
@@ -753,7 +758,7 @@ export const recalcularTotalesPanel = onSchedule(
             clienteId,
             numero,
             equipo: equipo.nombre || "Un equipo",
-            cantidad: calcularCantidadPendiente(equipo),
+            cantidad: equipo.cantidadEquipos ?? 1,
           });
         }
 
@@ -766,8 +771,8 @@ export const recalcularTotalesPanel = onSchedule(
         }
 
         const cerrada = facturaCerrada(factura, hoy);
-        if (cerrada !== factura.cerrada) {
-          await anotarEnLote(facturaSnap.ref, {cerrada});
+        if (cerrada !== datosFactura(factura).cerrada) {
+          await anotarEnLote(facturaSnap.ref, {"factura.cerrada": cerrada});
           facturasCorregidas += 1;
         }
       }

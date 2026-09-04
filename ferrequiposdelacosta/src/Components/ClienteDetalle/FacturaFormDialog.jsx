@@ -41,14 +41,23 @@ import {
   formatearMonedaInput,
   limpiarMonedaInput,
   formatearFechaLegible,
-  listaPagos,
   sumarAbonos,
   separarExcedentePago,
   calcularEstadoCliente,
   facturaCerrada,
-  obtenerAmpliaciones,
   describirMovimientosFactura,
-  valoresFactura,
+  GRUPO_INICIAL,
+  IVA,
+  datosFactura,
+  gruposDe,
+  grupoInicialDe,
+  pagosDe,
+  adicionalesDe,
+  ampliacionesDe,
+  entregasDe,
+  gestionesDe,
+  estaDevuelto,
+  nuevoGrupo,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -68,19 +77,70 @@ const obtenerNombreCliente = (cliente) => {
 };
 
 
+// EL FORMULARIO Y EL DOCUMENTO HABLAN DISTINTO.
+//
+// Acá adentro un equipo es `cantidad / dias / valor` —lo que dicen las tres
+// casillas de la pantalla— y en la base es `cantidadEquipos / diasAlquilados /
+// valorDia`. Las dos funciones de abajo son la traducción, y son el único
+// lugar donde los dos vocabularios se tocan.
+//
+// La de ida se lleva también lo que este formulario NO edita —las
+// ampliaciones, la devolución— para no perderlo al guardar: editar vuelve a
+// armar la factura entera desde cero, así que lo que no entre al estado
+// desaparece.
+const aFormulario = (equipo) => ({
+  nombre: equipo?.nombre ?? "",
+  cantidad: equipo?.cantidadEquipos ?? "",
+  dias: equipo?.diasAlquilados ?? "",
+  valor: equipo?.valorDia ?? "",
+  fechaDespacho: equipo?.fechaDespacho ?? "",
+  fechaVencimiento: equipo?.fechaVencimiento ?? "",
+  aplicaIva: equipo?.aplicaIva,
+  vencimientoIndefinido: equipo?.vencimientoIndefinido,
+  ampliaciones: equipo?.ampliaciones,
+  devolucion: equipo?.devolucion,
+});
+
+const alDocumento = (item, fechaFactura) => {
+  const fechaDespacho = item.fechaDespacho || fechaFactura;
+  const equipo = {
+    nombre: item.nombre,
+    cantidadEquipos: Number(item.cantidad) || 0,
+    valorDia: Number(item.valor) || 0,
+    diasAlquilados: Number(item.dias) || 0,
+    fechaDespacho,
+    // El vencimiento ya calculado se conserva —pudo haberse ampliado— y solo
+    // se saca de nuevo para los que todavía no lo tienen.
+    fechaVencimiento:
+      item.fechaVencimiento ||
+      calcularFechaDevolucion(fechaDespacho, Number(item.dias)),
+    ampliaciones: item.ampliaciones ?? [],
+  };
+  if (item.aplicaIva !== undefined) equipo.aplicaIva = item.aplicaIva;
+  if (item.vencimientoIndefinido) equipo.vencimientoIndefinido = true;
+  if (item.devolucion) equipo.devolucion = item.devolucion;
+  return equipo;
+};
+
 // Si se pasa `factura`, precarga sus valores (modo edición); si no, arranca
-// en blanco (modo creación).
-const obtenerEstadoInicial = (factura) => {
-  const valores = valoresFactura(factura);
+// en blanco (modo creación). Este formulario edita SOLO el despacho inicial:
+// lo que se agregó después es de AgregarEquipoDialog y viene con su propia
+// plata.
+const obtenerEstadoInicial = (documento) => {
+  const datos = datosFactura(documento);
+  const inicial = grupoInicialDe(documento);
+  const adicionales = adicionalesDe(inicial);
   return {
-    numeroFactura: factura?.numeroFactura ?? "",
-    fecha: factura?.fecha ?? obtenerFechaInicialEfectiva(),
-    transporte: valores.transporte ?? "",
-    valorTransporte: valores.valorTransporte ? String(valores.valorTransporte) : "",
-    deposito: valores.deposito ? String(valores.deposito) : "",
-    aplicaIva: valores.aplicaIva ?? true,
-    tipoPago: factura?.tipoPago ?? "total",
-    pagos: listaPagos(factura),
+    numeroFactura: datos.numeroFactura ?? "",
+    fecha: datos.fechaCreacion ?? obtenerFechaInicialEfectiva(),
+    transporte: adicionales.transporte ?? "",
+    valorTransporte: adicionales.valorTransporte
+      ? String(adicionales.valorTransporte)
+      : "",
+    deposito: adicionales.valorDeposito ? String(adicionales.valorDeposito) : "",
+    aplicaIva: datos.aplicaIva ?? true,
+    tipoPago: datos.tipoPago ?? "total",
+    pagos: pagosDe(inicial),
   };
 };
 
@@ -126,11 +186,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     if (!open) return;
     const estadoInicial = obtenerEstadoInicial(factura);
     setForm(estadoInicial);
-    setEquipos(
-      factura?.equipos?.length > 0 && typeof factura.equipos[0] === "object"
-        ? factura.equipos
-        : [],
-    );
+    setEquipos((grupoInicialDe(factura)?.equipos ?? []).map(aFormulario));
     setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: estadoInicial.fecha });
     setErrors({});
   }, [open, factura]);
@@ -164,30 +220,52 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     return total + (llevaIva ? subtotalItem * 0.19 : 0);
   }, 0);
 
-  // Los equipos que se sumaron después traen su propio depósito, transporte y
-  // pago. Si no se cuentan acá, guardar esta pantalla los borra del total y
-  // hace reaparecer un saldo que el cliente ya había pagado.
-  const equiposAgregados = equipos.filter((item) => item?.agregadoPosteriormente);
-  const sumarDeAgregados = (campo) =>
-    equiposAgregados.reduce((total, item) => total + (Number(item[campo]) || 0), 0);
-  const depositoAgregados = sumarDeAgregados("deposito");
-  const transporteAgregados = sumarDeAgregados("valorTransporte");
-  const pagosAgregados = equiposAgregados.reduce(
-    (total, item) =>
-      total +
-      listaPagos(item).reduce(
-        (suma, pago) => suma + (Number(pago.monto) || 0),
-        0,
-      ),
-    0,
+  // Los despachos que se sumaron después traen su propio depósito, transporte
+  // y pago. No se editan acá, pero sí se cuentan: sin ellos, guardar esta
+  // pantalla los borraría del total y haría reaparecer un saldo que el cliente
+  // ya pagó.
+  const gruposAgregados = gruposDe(factura).filter(
+    (grupo) => grupo?.grupo !== GRUPO_INICIAL,
+  );
+  const sumarDeAgregados = (deCadaGrupo) =>
+    gruposAgregados.reduce((total, grupo) => total + deCadaGrupo(grupo), 0);
+
+  const porDiaDe = (equipo) =>
+    (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
+  const alquilerDe = (equipo) => porDiaDe(equipo) * (Number(equipo.diasAlquilados) || 0);
+
+  const depositoAgregados = sumarDeAgregados(
+    (grupo) => Number(adicionalesDe(grupo).valorDeposito) || 0,
+  );
+  const transporteAgregados = sumarDeAgregados(
+    (grupo) => Number(adicionalesDe(grupo).valorTransporte) || 0,
+  );
+  const pagosAgregados = sumarDeAgregados((grupo) =>
+    pagosDe(grupo).reduce((suma, pago) => suma + (Number(pago.monto) || 0), 0),
+  );
+
+  // Y lo que valen sus equipos, con el IVA de cada uno. Es lo pactado al
+  // despacharlos: los días vencidos se cobran al devolver, no en la emisión.
+  const alquilerAgregados = sumarDeAgregados((grupo) =>
+    (grupo.equipos ?? []).reduce((total, equipo) => total + alquilerDe(equipo), 0),
+  );
+  const ivaAgregados = sumarDeAgregados((grupo) =>
+    (grupo.equipos ?? []).reduce(
+      (total, equipo) =>
+        total +
+        ((equipo.aplicaIva ?? form.aplicaIva) ? alquilerDe(equipo) * IVA : 0),
+      0,
+    ),
   );
 
   const depositoTotal = (Number(form.deposito) || 0) + depositoAgregados;
   const transporteTotal = (Number(form.valorTransporte) || 0) + transporteAgregados;
+  const subtotalTotal = subtotalCalculado + alquilerAgregados;
+  const ivaTotal = ivaCalculado + ivaAgregados;
 
   // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
   // no se digita a mano.
-  const valorTotalCalculado = subtotalCalculado + ivaCalculado + transporteTotal + depositoTotal;
+  const valorTotalCalculado = subtotalTotal + ivaTotal + transporteTotal + depositoTotal;
 
   // Qué tiene la factura encima, para el aviso de arriba del formulario. Se
   // calcula sobre `factura` (lo que ya está guardado), no sobre `form`: es
@@ -208,7 +286,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
   // Los abonos posteriores no se editan acá, pero sí cuentan para el saldo:
   // sin esto, guardar la factura los borraría de la cuenta y volvería a
   // aparecer una deuda que el cliente ya pagó.
-  const totalAbonos = sumarAbonos(factura?.abonos);
+  const totalAbonos = sumarAbonos(factura);
   const totalRecibido = montoPagadoCalculado + totalAbonos;
 
   const saldoPendienteCalculado = Math.max(0, valorTotalCalculado - totalRecibido);
@@ -384,11 +462,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     setEquipos((prev) => prev.filter((_, index) => index !== indexAQuitar));
   };
 
-  // Con ampliaciones o una devolución parcial ya registradas, esta línea no
-  // se puede sacar: es la única forma que tiene este formulario de "editar"
-  // un equipo, y sacarlo perdería esa historia sin dejar rastro.
+  // Con ampliaciones o una devolución ya registradas, esta línea no se puede
+  // sacar: es la única forma que tiene este formulario de "editar" un equipo,
+  // y sacarlo perdería esa historia sin dejar rastro.
   const equipoTieneHistoria = (equipo) =>
-    obtenerAmpliaciones(equipo).length > 0 || Number(equipo?.cantidadDevuelta) > 0;
+    ampliacionesDe(equipo).length > 0 || estaDevuelto(equipo);
 
   const validar = () => {
     const errores = {};
@@ -423,103 +501,95 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       excedente > 0
         ? [
             ...(factura?.abonos || []),
-            { fecha: form.fecha, medio: medioExcedente, monto: excedente },
+            {
+              fecha: form.fecha,
+              medio: medioExcedente,
+              monto: excedente,
+              // Lo entregado de más en el alta: no lo decidió el cliente ni
+              // vino de un despacho agregado, lo dedujo la app del pago.
+              tipo: "sistema",
+            },
           ]
         : factura?.abonos || [];
 
-    const datosFactura = {
-      numeroFactura: form.numeroFactura.trim(),
-      fecha: form.fecha,
-      // Cada equipo tiene su propia fecha de despacho (pudo agregarse en un
-      // día distinto al de la factura); el vencimiento ya calculado se
-      // conserva, y solo se recalcula para los que todavía no lo tienen.
-      equipos: equipos.map((item) => ({
-        ...item,
-        fechaDespacho: item.fechaDespacho || form.fecha,
-        fechaVencimiento:
-          item.fechaVencimiento ??
-          calcularFechaDevolucion(item.fechaDespacho || form.fecha, item.dias),
-      })),
-      // Todo lo que la factura VALE va junto, en un solo nodo. Antes eran
-      // ocho campos sueltos en la raíz del documento, mezclados con las listas
-      // y con las marcas de estado. Se leen siempre por valoresFactura().
-      //
-      // Se escribe el nodo entero —y no campo por campo— porque acá se
-      // conocen todos: es el alta y la edición de la factura. Donde se toca
-      // solo uno (agregar equipo, resolver el depósito) hay que usar la ruta
-      // completa "valores.loQueSea", o Firestore reemplaza el nodo y borra el
-      // resto.
-      valores: {
-        subtotal: subtotalCalculado,
-        iva: ivaCalculado,
-        aplicaIva: form.aplicaIva,
-        valorTotal: valorTotalCalculado,
+    // El despacho inicial: sus equipos, su flete, su depósito y lo que se
+    // pagó ese día. Todo lo del alta vive acá adentro y nada suelto al lado.
+    const grupoInicial = nuevoGrupo({
+      grupo: GRUPO_INICIAL,
+      fechaSolicitud: form.fecha,
+      pagos: pagosGuardados,
+      adicionales: {
         transporte: form.transporte || "",
         valorTransporte: Number(form.valorTransporte) || 0,
-        deposito: Number(form.deposito) || 0,
-        // Lo que se resolvió del depósito lo escribe la devolución, no este
-        // formulario; se conserva para no perderlo al reemplazar el nodo.
-        ...(valoresFactura(factura).depositoResuelto
-          ? { depositoResuelto: valoresFactura(factura).depositoResuelto }
-          : {}),
+        deposito: (Number(form.deposito) || 0) > 0,
+        valorDeposito: Number(form.deposito) || 0,
       },
-      tipoPago: form.tipoPago,
-      // Lo pagado tampoco se guarda: sale de sumar los medios de pago del alta
-      // (`pagos`) más el que trae cada lote de equipos agregado después. Se
-      // guardaba en `montoPagado`, un número acumulado que ya nadie lee y que,
-      // por venir sumado, hacía contar dos veces el pago de un equipo agregado.
-      //
-      // El saldo NO se guarda. Se guardan los hechos —lo que se emitió, lo que
-      // el cliente entregó— y el saldo se calcula al mostrarlo, porque es una
-      // conclusión que cambia SOLA con el calendario: cada día que un equipo
-      // sigue afuera la deuda sube y nadie escribe nada en la base. Es el mismo
-      // motivo por el que el campo `estado` dejó de guardarse.
-      //
-      // Guardado, además, no solo quedaba viejo: quedaba mal. Se recalculaba
-      // como valorTotal − pagado − abonos, y como lo guardado no lleva los días
-      // ampliados, en una factura con el alta paga ya daba cero y ahí se
-      // quedaba: los abonos posteriores restaban contra cero y desaparecían.
-      pagos: pagosGuardados,
+      equipos: equipos.map((item) => alDocumento(item, form.fecha)),
+    });
+
+    // El documento entero. Cuatro nombres en la raíz y nada más: lo que la
+    // factura ES (`factura`), lo que salió (`grupos`), la plata que entró y
+    // salió después (`abonos`, `entregas`) y la bitácora (`gestiones`).
+    const documento = {
+      factura: {
+        numeroFactura: form.numeroFactura.trim(),
+        fechaCreacion: form.fecha,
+        tipoPago: form.tipoPago,
+        aplicaIva: form.aplicaIva,
+        // La foto de lo que se emitió. No es el saldo ni el total de hoy: eso
+        // se calcula, porque sube solo con cada día que un equipo sigue
+        // afuera y nadie escribe nada en la base. Esto es lo que decía el
+        // papel el día que se hizo.
+        subtotal: subtotalTotal,
+        valorIva: ivaTotal,
+        total: valorTotalCalculado,
+        // Lo que se resolvió del depósito lo escribe la devolución, no este
+        // formulario; se conserva para no perderlo al rearmar la factura.
+        depositoResuelto: Boolean(datosFactura(factura).depositoResuelto),
+        // La marca de "cerrada" es el único pedazo del estado que se guarda,
+        // porque es el único que no cambia solo con el calendario. Se llena
+        // abajo, con el documento ya armado.
+        cerrada: false,
+      },
+      // Los despachos posteriores no se editan acá, pero viajan enteros: este
+      // formulario reescribe la factura completa.
+      grupos: [grupoInicial, ...gruposAgregados],
       abonos,
+      entregas: entregasDe(factura),
+      gestiones: gestionesDe(factura),
     };
+    documento.factura.cerrada = facturaCerrada(documento);
 
     setGuardando(true);
     try {
       if (factura) {
-        await updateDoc(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-          ...datosFactura,
-          cerrada: facturaCerrada(datosFactura),
-        });
+        await updateDoc(
+          doc(db, "clientes", cliente.id, "facturas", factura.id),
+          documento,
+        );
         showSnackbar("Factura actualizada correctamente.", "success");
-        onGuardado?.({ id: factura.id, ...factura, ...datosFactura });
+        onGuardado?.({ id: factura.id, ...documento });
       } else {
         const facturaRef = doc(collection(db, "clientes", cliente.id, "facturas"));
-        // La factura no guarda su estado —se calcula a partir de sus fechas,
-        // de lo que se haya devuelto y del saldo (ver calcularEstadoFactura)—
-        // con una sola excepción: la marca de "cerrada".
-        //
-        // Nace acá y no se deja para el servidor a propósito. Las pantallas
-        // piden "las facturas abiertas", así que una factura sin la marca no
-        // aparecería en ninguna. El servidor la pone un segundo después, pero
-        // la pantalla se refresca antes: la factura recién creada parpadearía
-        // y por un momento no estaría. Del resto de los cambios sí se encarga
-        // el servidor.
-        const nuevaFactura = {
-          ...datosFactura,
-          cerrada: facturaCerrada(datosFactura),
-        };
+        // La marca de "cerrada" nace acá y no se deja para el servidor a
+        // propósito. Las pantallas piden "las facturas abiertas", así que una
+        // factura sin la marca no aparecería en ninguna. El servidor la
+        // pondría un segundo después, pero la pantalla se refresca antes: la
+        // factura recién creada parpadearía y por un momento no estaría. Del
+        // resto de los cambios sí se encarga el servidor.
         const batch = writeBatch(db);
-        batch.set(facturaRef, nuevaFactura);
-        // El del CLIENTE sí se guarda, para que la lista pueda filtrar sin
-        // leer las facturas de todos. Se recalcula con la nueva incluida: no
-        // alcanza con suponer que la recién creada manda, porque una vencida
-        // que el cliente ya tenía es más urgente que una por despachar.
+        batch.set(facturaRef, documento);
+        // El estado del CLIENTE sí se guarda, para que la lista pueda filtrar
+        // sin leer las facturas de todos. Se recalcula con la nueva incluida:
+        // no alcanza con suponer que la recién creada manda, porque una
+        // vencida que el cliente ya tenía es más urgente que una por
+        // despachar.
         const anterioresSnap = await getDocs(
           collection(db, "clientes", cliente.id, "facturas"),
         );
         const todasLasFacturas = [
           ...anterioresSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })),
-          nuevaFactura,
+          documento,
         ];
         batch.update(doc(db, "clientes", cliente.id), {
           estado: calcularEstadoCliente(todasLasFacturas),
@@ -527,7 +597,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
         await batch.commit();
 
         showSnackbar("Factura creada correctamente.", "success");
-        onGuardado?.({ id: facturaRef.id, ...nuevaFactura });
+        onGuardado?.({ id: facturaRef.id, ...documento });
       }
       onClose();
     } catch (error) {
@@ -837,9 +907,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 label="Depósito"
                 value={formatearMonedaInput(form.deposito)}
                 onChange={handleChangeMoneda("deposito")}
-                disabled={Boolean(valoresFactura(factura).depositoResuelto)}
+                disabled={Boolean(datosFactura(factura).depositoResuelto)}
                 helperText={
-                  valoresFactura(factura).depositoResuelto
+                  datosFactura(factura).depositoResuelto
                     ? "Ya se resolvió (devuelto o retenido) al registrar la devolución."
                     : undefined
                 }
@@ -860,13 +930,13 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
               <Paper variant="totales">
                 <Box className="fila">
                   <Typography variant="body2">Subtotal</Typography>
-                  <Typography variant="body2">{formatearMoneda(subtotalCalculado)}</Typography>
+                  <Typography variant="body2">{formatearMoneda(subtotalTotal)}</Typography>
                 </Box>
 
                 {form.aplicaIva && (
                   <Box className="fila">
                     <Typography variant="body2">IVA (19%)</Typography>
-                    <Typography variant="body2">{formatearMoneda(ivaCalculado)}</Typography>
+                    <Typography variant="body2">{formatearMoneda(ivaTotal)}</Typography>
                   </Box>
                 )}
 

@@ -30,6 +30,8 @@ import {
   limpiarMonedaInput,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
+  abonosDe,
+  datosFactura,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -105,8 +107,16 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
       const batch = writeBatch(db);
       aplicaciones.forEach(({ factura, aplicado }) => {
         const abonos = [
-          ...(factura.abonos || []),
-          { fecha: form.fecha, medio: form.medio, monto: aplicado },
+          ...abonosDe(factura),
+          {
+            fecha: form.fecha,
+            medio: form.medio,
+            monto: aplicado,
+            // Lo repartio la app entre las facturas con saldo. Cuando el
+            // cliente elija a cual va —todavia no esta hecho— ese abono se
+            // guardara con tipo "cliente".
+            tipo: "sistema",
+          },
         ];
         // Solo los abonos: el saldo ya no se guarda, se calcula al mostrarlo
         // (ver FacturaFormDialog). Guardarlo acá era justo donde más daño
@@ -244,7 +254,7 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
                       <Box key={factura.id}>
                         <Box className="fila total">
                           <Typography variant="body2">
-                            Factura {factura.numeroFactura ?? "s/n"}
+                            Factura {datosFactura(factura).numeroFactura ?? "s/n"}
                           </Typography>
                           <Typography variant="body2">
                             {formatearMoneda(cuenta.total)}

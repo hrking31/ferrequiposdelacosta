@@ -37,13 +37,16 @@ import {
   formatearMonedaInput,
   limpiarMonedaInput,
   formatearFechaLegible,
-  calcularAmpliacionFactura,
-  sumarAbonos,
   separarExcedentePago,
-  sumarPagosFactura,
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
-  valoresFactura,
+  calcularCuentaFactura,
+  IVA,
+  datosFactura,
+  abonosDe,
+  gruposDe,
+  siguienteGrupoAgregados,
+  nuevoGrupo,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -101,7 +104,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
       ...ESTADO_INICIAL,
       fechaSolicitud,
       // Si la factura ya tenía IVA, se sigue aplicando por defecto al agregar.
-      aplicaIva: valoresFactura(factura).aplicaIva ?? true,
+      aplicaIva: datosFactura(factura).aplicaIva ?? true,
     });
     // El despacho arranca en la misma fecha de la solicitud; se cambia solo si
     // ese equipo sale otro día.
@@ -125,44 +128,19 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     (total, item) => total + subtotalDeItem(item),
     0,
   );
-  const ivaNuevoEquipo = form.aplicaIva ? subtotalNuevoEquipo * 0.19 : 0;
-  const valoresDeLaFactura = valoresFactura(factura);
+  const ivaNuevoEquipo = form.aplicaIva ? subtotalNuevoEquipo * IVA : 0;
+  const datosDeLaFactura = datosFactura(factura);
   const valorTransporteNuevo = Number(form.valorTransporte) || 0;
   const depositoNuevo = Number(form.deposito) || 0;
   // Lo que cuesta agregar estos equipos (antes de sumarlos a la factura).
   const totalEsteEquipo = subtotalNuevoEquipo + ivaNuevoEquipo + valorTransporteNuevo + depositoNuevo;
 
-  const nuevoSubtotal = (Number(valoresDeLaFactura.subtotal) || 0) + subtotalNuevoEquipo;
-  // El IVA se ACUMULA: al que la factura ya tenía se le suma solo el de este
-  // equipo. Antes se recalculaba sobre el subtotal completo con la casilla de
-  // acá, así que destildarla le borraba el IVA a los equipos que sí lo
-  // llevaban (y marcarla se lo cobraba a los que no).
-  const ivaFacturaActual = Number(valoresDeLaFactura.iva) || 0;
-  const nuevoIva = ivaFacturaActual + ivaNuevoEquipo;
-  // La factura queda marcada "con IVA" si ya lo llevaba o si este equipo lo
-  // lleva: agregar un equipo sin IVA no convierte a toda la factura en exenta.
-  const facturaLlevaIva = valoresDeLaFactura.aplicaIva ?? ivaFacturaActual > 0;
-  const nuevoAplicaIva = facturaLlevaIva || form.aplicaIva;
-
-  // Depósito/transporte del lote original (los del nodo `valores` de la
-  // factura ya no crecen acá: quedan fijos como el pago original) + lo que traían
-  // los equipos agregados antes + lo que se suma ahora con este equipo.
-  const equiposAgregadosExistentes = (factura?.equipos || []).filter(
-    (equipo) => equipo?.agregadoPosteriormente,
-  );
-  const depositoTotalExistente =
-    (Number(valoresDeLaFactura.deposito) || 0) +
-    equiposAgregadosExistentes.reduce((total, equipo) => total + (Number(equipo.deposito) || 0), 0);
-  const transporteTotalExistente =
-    (Number(valoresDeLaFactura.valorTransporte) || 0) +
-    equiposAgregadosExistentes.reduce(
-      (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
-      0,
-    );
-
-  const nuevoDepositoTotal = depositoTotalExistente + depositoNuevo;
-  const nuevoTransporteTotal = transporteTotalExistente + valorTransporteNuevo;
-  const nuevoValorTotal = nuevoSubtotal + nuevoIva + nuevoTransporteTotal + nuevoDepositoTotal;
+  // La cuenta de la factura tal como está HOY. Sale entera de sus grupos: el
+  // alquiler de cada equipo con sus días, el flete y el depósito de cada
+  // despacho, y todo lo que el cliente entregó. Antes acá se iban acumulando
+  // a mano un subtotal, un IVA, un depósito y un transporte "totales", y cada
+  // uno era una oportunidad de contar algo dos veces.
+  const cuenta = calcularCuentaFactura(factura);
 
   // Solo cuenta como pago el renglón que tenga medio Y monto: son los mismos
   // que se guardan, así lo que muestra el diálogo no puede diferir de lo que
@@ -172,31 +150,16 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   // varios). Se acumula sobre lo que la factura ya tenía pagado — no lo
   // reemplaza, para no perder pagos previos registrados.
   const pagoEsteEquipo = pagosValidos.reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
-  const nuevoMontoPagado = sumarPagosFactura(factura) + pagoEsteEquipo;
-  // Los abonos ya registrados también cuentan para el saldo: sin esto, agregar
-  // un equipo los borraría de la cuenta y reaparecería una deuda ya pagada.
-  // (El saldo definitivo se calcula al guardar, porque ahí puede sumarse un
-  // abono nuevo con lo que se haya pagado de más.)
-  const totalAbonos = sumarAbonos(factura?.abonos);
 
-  // ── Lo que se MUESTRA vs. lo que se GUARDA ─────────────────────────────
-  //
-  // Los valores de arriba son los que se escriben en la factura, y NO llevan
-  // los días ampliados: esos días todavía no están facturados, así que si se
-  // guardaran acá quedarían cobrados y el cálculo de ampliaciones los volvería
-  // a sumar encima.
-  //
-  // Pero para mostrar hay que partir del total que hoy se ve en la factura,
-  // que sí los incluye; si no, este diálogo diría un total y la pantalla de
-  // atrás otro distinto.
-  const ampliacionFactura = calcularAmpliacionFactura(factura);
-  const totalActualMostrado = ampliacionFactura.hay
-    ? ampliacionFactura.nuevoTotal
-    : Number(valoresDeLaFactura.valorTotal) || 0;
+  // Lo que se ve en la pizarra: el total de hoy, el de después de agregar
+  // estos equipos, y lo que quedaría debiendo. Sale todo de la misma cuenta
+  // que muestra la pantalla de atrás, así que los dos números no pueden
+  // discrepar.
+  const totalActualMostrado = cuenta.total;
   const totalConEstosEquipos = totalActualMostrado + totalEsteEquipo;
   const saldoMostrado = Math.max(
     0,
-    totalConEstosEquipos - nuevoMontoPagado - totalAbonos,
+    totalConEstosEquipos - (cuenta.recibido + pagoEsteEquipo),
   );
 
   // Con "Total de estos equipos" el monto se completa solo: es todo lo que
@@ -377,48 +340,45 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   const handleAgregar = async () => {
     if (!validar()) return;
 
-    // El transporte, el depósito y el pago son del lote completo, así que se
-    // guardan una sola vez, en el primer equipo. Los demás quedan sin esos
-    // campos para no contar el mismo monto varias veces al sumar la factura.
-    // Marca a los equipos que se guardan juntos, para poder mostrarlos
-    // después como un solo grupo con su pago y sus adicionales.
-    const loteId = `lote-${Date.now()}`;
-
-    // Lo que se entregó de más no se guarda como pago del lote: se convierte
-    // en un abono, con la fecha de solicitud de estos equipos. Primero
-    // satura el saldo de ESTA factura; si sobra, se reparte entre las demás
-    // facturas del cliente con saldo (de mayor a menor), igual que el botón
-    // Abono — así deja de quedar pegado como saldo a favor de esta factura.
+    // Lo que se entregó de más no se guarda como pago del despacho: se
+    // convierte en un abono, con la fecha de solicitud de estos equipos.
+    // Primero satura el saldo de ESTA factura; si sobra, se reparte entre las
+    // demás facturas del cliente con saldo (de mayor a menor), igual que el
+    // botón Abono — así deja de quedar pegado como saldo a favor de esta.
     const { pagos: pagosGuardados, excedente, medio: medioExcedente } =
       separarExcedentePago(form.pagos, totalEsteEquipo);
 
     const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
 
-    // Lo que quedaría debiendo con este lote ya sumado, sobre los valores
-    // CRUDOS de la factura (sin los días ampliados, igual que lo que se
-    // guarda). Sirve para saber cuánto del excedente entra como abono acá.
+    // Lo que quedaría debiendo con este despacho ya sumado.
     const saldoSinExcedente = Math.max(
       0,
-      nuevoValorTotal -
-        (sumarPagosFactura(factura) + pagadoEnLote) -
-        sumarAbonos(factura?.abonos),
+      totalConEstosEquipos - (cuenta.recibido + pagadoEnLote),
     );
     const abonoEnEstaFactura = Math.min(excedente, saldoSinExcedente);
     const sobranteExcedente = excedente - abonoEnEstaFactura;
 
+    // `tipo: "agregado"` dice de dónde salió esta plata: sobró de lo que se
+    // pagó por unos equipos agregados. Sin `desdeFactura`, porque nació en
+    // esta misma factura; los de abajo, que cruzaron a otra, sí lo llevan.
     const abonos =
       abonoEnEstaFactura > 0
         ? [
-            ...(factura?.abonos || []),
-            { fecha: form.fechaSolicitud, medio: medioExcedente, monto: abonoEnEstaFactura },
+            ...abonosDe(factura),
+            {
+              fecha: form.fechaSolicitud,
+              medio: medioExcedente,
+              monto: abonoEnEstaFactura,
+              tipo: "agregado",
+            },
           ]
-        : factura?.abonos || [];
+        : abonosDe(factura);
 
     const saldoFinal = saldoSinExcedente - abonoEnEstaFactura;
 
     // El resto del excedente (si esta factura ya quedó saldada y sobró
     // plata) se reparte en las demás facturas del cliente con saldo,
-    // dejando en cada una un abono con una nota de dónde vino.
+    // dejando en cada una un abono que dice de dónde vino.
     const otrasFacturasConSaldo = ordenarFacturasConSaldo(
       (facturas || []).filter((f) => f.id !== factura.id),
     );
@@ -429,88 +389,87 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
           )
         : [];
 
-    const nuevosEquipos = equiposNuevos.map((item, index) => {
-      const equipo = {
+    // ── EL DESPACHO NUEVO ────────────────────────────────────────────────
+    //
+    // Cada tanda de equipos agregados es un GRUPO, con su flete, su depósito
+    // y su pago arriba, una sola vez. Antes todo eso se guardaba dentro del
+    // primer equipo del lote y los demás quedaban sin esos campos, para que
+    // el monto no se contara varias veces al sumar la factura; y bastaba con
+    // partir esa línea en dos —una devolución parcial— para que el pago se
+    // duplicara y apareciera un saldo a favor que no existía.
+    const grupoNuevo = nuevoGrupo({
+      grupo: siguienteGrupoAgregados(factura),
+      fechaSolicitud: form.fechaSolicitud,
+      pagos: pagosGuardados,
+      adicionales: {
+        transporte:
+          form.transporte && form.transporte !== "Sin transporte" ? form.transporte : "",
+        valorTransporte:
+          form.transporte && form.transporte !== "Sin transporte" ? valorTransporteNuevo : 0,
+        deposito: depositoNuevo > 0,
+        valorDeposito: depositoNuevo,
+      },
+      equipos: equiposNuevos.map((item) => ({
         nombre: item.nombre,
-        cantidad: item.cantidad,
-        dias: item.dias,
-        valor: item.valor,
+        cantidadEquipos: Number(item.cantidad) || 0,
+        valorDia: Number(item.valor) || 0,
+        diasAlquilados: Number(item.dias) || 0,
         fechaDespacho: item.fechaDespacho,
         fechaVencimiento: calcularFechaDevolucion(item.fechaDespacho, item.dias),
-        // Cuándo se pidió el equipo. Es del lote entero y se muestra en la
-        // factura al lado del nombre ("agregado el ..."), para distinguirlo de
-        // la fecha en que salió despachado.
-        fechaAgregado: form.fechaSolicitud,
-        // Marca que este equipo se sumó después de crear la factura (no en el
-        // alta original), para poder diferenciarlo en el historial.
-        agregadoPosteriormente: true,
-        loteId,
         // Cada equipo guarda si lleva IVA o no. Así una factura puede tener
         // equipos con IVA y sin IVA sin que uno le pise el cálculo al otro.
         aplicaIva: form.aplicaIva,
-      };
-
-      if (index === 0) {
-        equipo.tipoPago = form.tipoPago;
-        equipo.pagos = pagosGuardados;
-        if (form.transporte && form.transporte !== "Sin transporte") {
-          equipo.transporte = form.transporte;
-          equipo.valorTransporte = valorTransporteNuevo;
-        }
-        if (depositoNuevo > 0) {
-          equipo.deposito = depositoNuevo;
-        }
-      }
-
-      return equipo;
+        ampliaciones: [],
+      })),
     });
 
     setGuardando(true);
     try {
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-        equipos: [...(factura.equipos || []), ...nuevosEquipos],
-        // Con la ruta completa ("valores.subtotal") y no con el nodo entero:
-        // escribir `valores: { subtotal, iva, ... }` REEMPLAZA el nodo, y se
-        // llevaría por delante el transporte, el depósito y lo que se haya
-        // resuelto de él, que acá no se tocan.
-        "valores.subtotal": nuevoSubtotal,
-        "valores.iva": nuevoIva,
-        "valores.aplicaIva": nuevoAplicaIva,
-        "valores.valorTotal": nuevoValorTotal,
-        // El saldo ya no se guarda, se calcula al mostrarlo (ver
-        // FacturaFormDialog). `saldoFinal` se sigue usando acá abajo para
-        // decidir el tipo de pago, que sí es un dato del momento.
+        // Los grupos viajan enteros: no hay forma de agregarle uno a un array
+        // de Firestore sin reescribirlo.
+        grupos: [...gruposDe(factura), grupoNuevo],
         abonos,
-        // El estado de pago de la factura sale de si queda saldo pendiente o no,
-        // ya no de lo que se elija acá (eso es solo el pago de este equipo puntual).
-        tipoPago: saldoFinal > 0 ? "parcial" : "total",
+        // La foto de lo que se emitió crece con lo que se acaba de despachar.
+        // No es el total de hoy —ese se calcula, y sube solo con cada día que
+        // un equipo sigue afuera—: es lo que dice el papel.
+        "factura.subtotal": (Number(datosDeLaFactura.subtotal) || 0) + subtotalNuevoEquipo,
+        "factura.valorIva": (Number(datosDeLaFactura.valorIva) || 0) + ivaNuevoEquipo,
+        // La factura queda marcada "con IVA" si ya lo llevaba o si este
+        // despacho lo lleva: agregar un equipo sin IVA no convierte a toda la
+        // factura en exenta.
+        "factura.aplicaIva": Boolean(datosDeLaFactura.aplicaIva) || form.aplicaIva,
+        "factura.total": (Number(datosDeLaFactura.total) || 0) + totalEsteEquipo,
+        // El estado de pago sale de si queda saldo o no, no de lo que se elija
+        // acá (eso es solo el pago de este despacho puntual).
+        "factura.tipoPago": saldoFinal > 0 ? "parcial" : "total",
       });
 
       // El resto del excedente, si lo hay, queda como abono en cada factura
-      // destino, con una nota de que vino de acá (para no confundirlo con un
-      // abono que el cliente haya hecho directamente sobre esa factura).
+      // destino. `desdeFactura` dice de cuál vino, para no confundirlo con un
+      // abono que el cliente haya hecho directamente sobre esa factura.
       repartoSobrante.forEach(({ factura: facturaDestino, aplicado }) => {
-        const abonosDestino = [
-          ...(facturaDestino.abonos || []),
-          {
-            fecha: form.fechaSolicitud,
-            medio: medioExcedente,
-            monto: aplicado,
-            nota: `Abono trasladado desde la factura ${factura.numeroFactura ?? "s/n"} (equipo agregado)`,
-          },
-        ];
         batch.update(doc(db, "clientes", cliente.id, "facturas", facturaDestino.id), {
-          abonos: abonosDestino,
+          abonos: [
+            ...abonosDe(facturaDestino),
+            {
+              fecha: form.fechaSolicitud,
+              medio: medioExcedente,
+              monto: aplicado,
+              tipo: "agregado",
+              desdeFactura: datosDeLaFactura.numeroFactura ?? "s/n",
+            },
+          ],
         });
       });
 
       await batch.commit();
 
       showSnackbar(
-        nuevosEquipos.length === 1
+        equiposNuevos.length === 1
           ? "Equipo agregado a la factura."
-          : `${nuevosEquipos.length} equipos agregados a la factura.`,
+          : `${equiposNuevos.length} equipos agregados a la factura.`,
         "success",
       );
       onAgregado?.();

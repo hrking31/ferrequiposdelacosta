@@ -28,6 +28,7 @@ import {
   limpiarMonedaInput,
   calcularCuentaFactura,
   calcularDepositoDevuelto,
+  entregasDe,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -95,7 +96,7 @@ export default function EntregarSaldoDialog({
     setGuardando(true);
     try {
       const entregas = [
-        ...(Array.isArray(factura.entregas) ? factura.entregas : []),
+        ...entregasDe(factura),
         {
           fecha: form.fecha,
           medio: form.medio,

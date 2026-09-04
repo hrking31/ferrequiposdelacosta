@@ -21,13 +21,16 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
-  calcularCantidadPendiente,
   proyectarAmpliacion,
   equipoVencido,
-  obtenerAmpliaciones,
+  ampliacionesDe,
   obtenerGestiones,
   crearRegistroGestion,
   calcularEstadoCliente,
+  obtenerFechaHoyBogota,
+  gruposDe,
+  equiposDe,
+  sigueAfuera,
 } from "../ClienteDetalle/facturaUtils";
 import {
   formatearMoneda,
@@ -57,7 +60,11 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
     setCambios({});
   }, [open]);
 
-  const equipos = factura?.equipos?.filter((equipo) => typeof equipo === "object") || [];
+  // Cada línea se identifica por su despacho y su posición dentro de él: los
+  // equipos viven repartidos en grupos, así que un número suelto no alcanza
+  // para señalar una sola. Con un índice de la lista filtrada, ampliar el
+  // segundo equipo le cambiaría la fecha a otro.
+  const claveDe = (grupo, indice) => `${grupo?.grupo}#${indice}`;
 
   // A los que se les puede dar más plazo: los que están afuera Y vencidos.
   //
@@ -65,48 +72,45 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
   // sencillamente un error—, y uno que todavía está en fecha tampoco: darle
   // días a algo que no ha vencido es una renovación que nadie pidió. Si el
   // cliente los quiere extender, se hace cuando venzan.
-  //
-  // Se guarda el índice ORIGINAL de cada uno: los cambios se anotan por ese
-  // índice y al guardar se recorre la lista completa. Con los índices de la
-  // lista filtrada, ampliar el segundo equipo le cambiaría la fecha a otro.
-  const equiposAmpliables = equipos
-    .map((equipo, index) => ({ equipo, index }))
-    .filter(
-      ({ equipo }) =>
-        calcularCantidadPendiente(equipo) > 0 && equipoVencido(equipo),
-    );
+  const equiposAmpliables = equiposDe(factura)
+    .map(({ equipo, grupo, indice }) => ({
+      equipo,
+      grupo,
+      indice,
+      clave: claveDe(grupo, indice),
+    }))
+    .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo));
 
   const handleCerrar = () => {
     if (guardando) return;
     onClose();
   };
 
-  const handleCambiarIndefinida = (index, marcada) => {
+  const handleCambiarIndefinida = (clave, marcada) => {
     setCambios((prev) => ({
       ...prev,
-      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], indefinida: marcada, dias: "" },
+      [clave]: { ...ESTADO_INICIAL_CAMBIO, ...prev[clave], indefinida: marcada, dias: "" },
     }));
   };
 
-  const handleCambiarDias = (index, valor) => {
+  const handleCambiarDias = (clave, valor) => {
     setCambios((prev) => ({
       ...prev,
-      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], dias: valor },
+      [clave]: { ...ESTADO_INICIAL_CAMBIO, ...prev[clave], dias: valor },
     }));
   };
 
-  const handleCambiarDescuento = (index, valor) => {
+  const handleCambiarDescuento = (clave, valor) => {
     setCambios((prev) => ({
       ...prev,
-      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], descuento: valor },
+      [clave]: { ...ESTADO_INICIAL_CAMBIO, ...prev[clave], descuento: valor },
     }));
   };
 
   const handleGuardar = async () => {
-    const huboCambios = equipos.some((_, index) => {
-      const cambio = cambios[index];
-      return cambio && (cambio.indefinida || Number(cambio.dias) > 0);
-    });
+    const huboCambios = Object.values(cambios).some(
+      (cambio) => cambio && (cambio.indefinida || Number(cambio.dias) > 0),
+    );
     if (!huboCambios) {
       showSnackbar("Marcá al menos un equipo para ampliar o dejar indefinido.", "warning");
       return;
@@ -120,52 +124,56 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
       let diasConcedidos = 0;
       let quedoIndefinida = false;
 
-      const equiposActualizados = equipos.map((equipo, index) => {
-        const cambio = cambios[index];
-        if (!cambio) return equipo;
+      const hoy = obtenerFechaHoyBogota();
 
-        if (cambio.indefinida) {
-          quedoIndefinida = true;
-          return { ...equipo, vencimientoIndefinido: true };
-        }
+      const gruposActualizados = gruposDe(factura).map((grupo) => ({
+        ...grupo,
+        equipos: (grupo.equipos ?? []).map((equipo, indice) => {
+          const cambio = cambios[claveDe(grupo, indice)];
+          if (!cambio) return equipo;
 
-        const extra = Number(cambio.dias) || 0;
-        if (extra <= 0) return equipo;
+          if (cambio.indefinida) {
+            quedoIndefinida = true;
+            return { ...equipo, vencimientoIndefinido: true };
+          }
 
-        // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
-        // fecha corre de verdad —con los días vencidos consolidados— es lo
-        // que se cobra. Ver proyectarAmpliacion.
-        const proyeccion = proyectarAmpliacion(equipo, extra);
-        diasConcedidos = Math.max(diasConcedidos, extra);
-        const descuento = Math.max(0, Number(cambio.descuento) || 0);
+          const extra = Number(cambio.dias) || 0;
+          if (extra <= 0) return equipo;
 
-        return {
-          ...equipo,
-          vencimientoIndefinido: false,
-          // Se conserva por compatibilidad con las facturas viejas y con
-          // cualquier vista que todavía lo lea. Solo se escribe la primera vez.
-          fechaVencimientoOriginal: equipo.fechaVencimientoOriginal || equipo.fechaVencimiento,
-          // El registro completo de la ampliación: desde qué fecha, hasta
-          // cuál, cuántos días se sumaron y qué descuento se les hizo. Se
-          // acumulan todas, no solo la primera.
-          ampliaciones: [
-            ...obtenerAmpliaciones(equipo),
-            {
-              fechaAnterior: equipo.fechaVencimiento,
-              fechaNueva: proyeccion.fechaNueva,
-              dias: proyeccion.dias,
-              // De esos días, cuántos ya se habían vencido y cuántos se
-              // pactaron de nuevo. La cuenta usa el total —son todos días de
-              // alquiler— pero el registro tiene que poder decir después que
-              // "5 días" fueron en realidad 4 vencidos y 1 acordado.
-              diasVencidos: proyeccion.diasVencidos,
-              diasPactados: proyeccion.diasPactados,
-              descuento,
-            },
-          ],
-          fechaVencimiento: proyeccion.fechaNueva,
-        };
-      });
+          // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
+          // fecha corre de verdad —con los días vencidos consolidados— es lo
+          // que se cobra. Ver proyectarAmpliacion.
+          const proyeccion = proyectarAmpliacion(equipo, extra);
+          diasConcedidos = Math.max(diasConcedidos, extra);
+
+          return {
+            ...equipo,
+            vencimientoIndefinido: false,
+            // El registro completo de la ampliación: desde qué fecha, hasta
+            // cuál, cuántos días se sumaron y qué descuento se les hizo. Se
+            // acumulan todas, no solo la primera.
+            ampliaciones: [
+              ...ampliacionesDe(equipo),
+              {
+                fechaAnterior: equipo.fechaVencimiento,
+                fechaNueva: proyeccion.fechaNueva,
+                // Los días que la fecha corre de verdad: es lo que se cobra.
+                diasAmpliados: proyeccion.dias,
+                // De esos días, cuántos se le prometieron al cliente y
+                // cuántos ya se habían vencido. La cuenta usa el total —son
+                // todos días de alquiler— pero el registro tiene que poder
+                // decir después que "5 días" fueron en realidad 4 vencidos y
+                // 1 acordado.
+                diasPedidos: proyeccion.diasPedidos,
+                diasVencidos: proyeccion.diasVencidos,
+                descuentoRealizado: Math.max(0, Number(cambio.descuento) || 0),
+                fecha: hoy,
+              },
+            ],
+            fechaVencimiento: proyeccion.fechaNueva,
+          };
+        }),
+      }));
 
       // La prórroga queda anotada en la línea de tiempo de la factura: es la
       // gestión que explica por qué se le corrió la fecha.
@@ -183,13 +191,13 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
       const facturasSnap = await getDocs(collection(db, "clientes", cliente.id, "facturas"));
       const todasLasFacturas = facturasSnap.docs.map((docSnap) =>
         docSnap.id === factura.id
-          ? { id: docSnap.id, ...docSnap.data(), equipos: equiposActualizados, gestiones }
+          ? { id: docSnap.id, ...docSnap.data(), grupos: gruposActualizados, gestiones }
           : { id: docSnap.id, ...docSnap.data() },
       );
 
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-        equipos: equiposActualizados,
+        grupos: gruposActualizados,
         gestiones,
       });
       batch.update(doc(db, "clientes", cliente.id), {
@@ -220,8 +228,8 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                 </Typography>
               </Grid>
             )}
-            {equiposAmpliables.map(({ equipo, index }, posicion) => {
-              const cambio = cambios[index] || ESTADO_INICIAL_CAMBIO;
+            {equiposAmpliables.map(({ equipo, clave }, posicion) => {
+              const cambio = cambios[clave] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
               // La fecha en que queda el equipo y los días que se le cobran:
@@ -233,14 +241,14 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
               // haciendo el descuento.
               const valorDias =
                 proyeccion.dias *
-                (Number(equipo.cantidad) || 0) *
-                (Number(equipo.valor) || 0);
+                (Number(equipo.cantidadEquipos) || 0) *
+                (Number(equipo.valorDia) || 0);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
               return (
-                <Grid item xs={12} key={`${equipo.nombre}-${index}`}>
+                <Grid item xs={12} key={clave}>
                   <Typography variant="body2" fontWeight="bold">
-                    {equipo.cantidad} {equipo.nombre}
+                    {equipo.cantidadEquipos} {equipo.nombre}
                   </Typography>
                   {/* La fecha del último acuerdo y, si ya pasó, los días que
                       lleva vencido. Misma línea y misma regla que en el
@@ -255,7 +263,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                     type="number"
                     inputProps={{ min: 1 }}
                     value={cambio.dias}
-                    onChange={(e) => handleCambiarDias(index, e.target.value)}
+                    onChange={(e) => handleCambiarDias(clave, e.target.value)}
                     disabled={cambio.indefinida}
                     fullWidth
                     size="small"
@@ -272,7 +280,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                       inputProps={{ inputMode: "numeric" }}
                       value={formatearMonedaInput(cambio.descuento)}
                       onChange={(e) =>
-                        handleCambiarDescuento(index, limpiarMonedaInput(e.target.value))
+                        handleCambiarDescuento(clave, limpiarMonedaInput(e.target.value))
                       }
                       fullWidth
                       size="small"
@@ -288,8 +296,8 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                               proyeccion.diasVencidos > 0
                                 ? ` (${proyeccion.diasVencidos} vencido${
                                     proyeccion.diasVencidos === 1 ? "" : "s"
-                                  } + ${proyeccion.diasPactados} pactado${
-                                    proyeccion.diasPactados === 1 ? "" : "s"
+                                  } + ${proyeccion.diasPedidos} pactado${
+                                    proyeccion.diasPedidos === 1 ? "" : "s"
                                   })`
                                 : ""
                             }${
@@ -322,7 +330,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                       <Checkbox
                         size="small"
                         checked={cambio.indefinida}
-                        onChange={(e) => handleCambiarIndefinida(index, e.target.checked)}
+                        onChange={(e) => handleCambiarIndefinida(clave, e.target.checked)}
                       />
                     }
                     label="Dejar indefinida (el cliente avisará)"
