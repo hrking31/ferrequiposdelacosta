@@ -668,6 +668,8 @@ documento de la factura
 │                          deposito, valorDeposito
 │
 ├── EQUIPOSAGREGADOS[] ── lo pedido después, con su propio loteId
+├── ABONOS[]           ── fecha, medio, monto (+ abonoAFactura
+│                         si el cliente lo dirigió a esta factura)
 └── GESTIONES[]        ── la bitácora, sin cambios
 ```
 
@@ -687,7 +689,7 @@ Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igu
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
-Lo que queda por resolver son **los abonos**: la plata que el cliente entrega después sigue sin dueño, y es lo único que todavía impide decir "este equipo está saldado".
+**Los abonos se quedan en la factura**, en su propio nodo, con una marca `abonoAFactura` para los que el cliente pide aplicar a una factura puntual en vez de dejarlos al reparto automático. Es una decisión con una consecuencia asumida: se sabe cuánto pagó un equipo al despacharlo, pero no cuánto de los abonos posteriores le toca, así que **no se puede afirmar que un equipo esté saldado** — solo la factura. Para cobrar alcanza.
 
 ---
 
