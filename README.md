@@ -669,7 +669,8 @@ documento de la factura
 │
 ├── EQUIPOSAGREGADOS[] ── lo pedido después, con su propio loteId
 ├── ABONOS[]           ── fecha, medio, monto, tipo
-│                         (sistema · cliente · agregados)
+│                         (sistema · cliente · agregado)
+│                         + desdeFactura, si vino de otra
 └── GESTIONES[]        ── la bitácora, sin cambios
 ```
 
@@ -689,7 +690,9 @@ Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igu
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
-**Los abonos se quedan en la factura**, en su propio nodo, y los tres orígenes se unifican con un campo `tipo`: **sistema** (lo repartió la app entre las facturas con saldo), **cliente** (pidió aplicarlo a esta factura) y **agregados** (sobró de un pago al agregar un equipo). Es un hecho —de dónde salió esa plata—, no cambia ninguna cuenta, y permite explicar en pantalla por qué ese abono está ahí.
+**Los abonos se quedan en la factura**, cada uno dentro de la que lo recibió: si el cliente entrega $600.000 y se reparten entre tres, quedan tres abonos, uno en cada una. Los tres orígenes se unifican con un campo `tipo`: **sistema** (lo repartió la app entre las facturas con saldo), **cliente** (pidió aplicarlo a esta factura) y **agregado** (sobró de un pago al agregar un equipo). Es un hecho —de dónde salió esa plata—, no cambia ninguna cuenta, y permite explicar en pantalla por qué ese abono está ahí.
+
+Cuando ese sobrante cruza a otra factura, se lleva `desdeFactura` con el número de la que lo originó. Hoy ese dato existe pero escondido en una nota de texto libre, así que ninguna pantalla puede usarlo: solo mostrarlo.
 
 Que los abonos no bajen al equipo tiene una consecuencia, y es deliberada: se puede decir qué debe una factura, no qué debe un equipo. **Y no hace falta**, porque el seguimiento se parte en dos:
 
