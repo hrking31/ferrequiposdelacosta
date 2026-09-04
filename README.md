@@ -661,8 +661,8 @@ documento de la factura
 │   │            diasAlquilados, fechaDespacho, fechaVencimiento
 │   ├── AMPLIACIONES[]  ── fechaInicio, fechaVencimiento,
 │   │                      diasAmpliados, descuentoRealizado
-│   ├── DEVOLUCIONES[]  ── cantidad, fechaDevolucion,
-│   │                      buenEstado, valorRetenido
+│   ├── DEVOLUCION{}    ── fechaDevolucion, buenEstado,
+│   │                      valorRetenido
 │   ├── PAGOS[]         ── medio, monto, tipoPago
 │   └── ADICIONALES{}   ── transporte, valorTransporte,
 │                          deposito, valorDeposito
@@ -675,11 +675,13 @@ Tres ideas lo sostienen:
 
 - **La factura se queda solo con lo suyo**, y dentro de su propio nodo: el número, la fecha y la foto de lo que se emitió. El transporte, el depósito y los pagos bajan al equipo que los generó, porque es ahí donde se cobran.
 - **`loteId` en todos los equipos**, no solo en los agregados. Un despacho es un grupo de equipos que salió el mismo día, y esa es la unidad real: el flete y el depósito se cobran por despacho, no por equipo.
-- **Las devoluciones cuelgan del equipo, no crean uno nuevo.** Cada tanda que vuelve se anota en `devoluciones` con cuántos volvieron y qué día, y deja de sumar desde ahí. El equipo padre no se toca: cuántos quedan afuera es una resta, no un dato guardado.
+- **Al devolver una parte, la línea se parte en dos**, las dos en su misma lista y con el mismo `loteId`: los que volvieron pasan a ser un equipo aparte, con su `devolucion`, y dejan de contar días; el original se queda con los que siguen afuera. El motivo es la pantalla: la app pinta cada equipo por separado, así que dos historias distintas tienen que ser dos equipos distintos. La línea nueva nace **sin pagos ni adicionales**, porque el flete y el depósito se cobraron una sola vez por el despacho.
 
 El nodo `pagos` de la factura **desaparece**.
 
-Nada se marca como "devuelto": estar dentro de `devoluciones` ya lo dice, y si la devolución fue anticipada o tardía sale de comparar su fecha con la del vencimiento. Guardar esa etiqueta sería guardar una conclusión — el error que ya costó el saldo que se comía los abonos.
+Nada se marca como "devuelto": tener el nodo `devolucion` ya lo dice, y si la devolución fue anticipada o tardía sale de comparar su fecha con la del vencimiento. Guardar esa etiqueta sería guardar una conclusión — el error que ya costó el saldo que se comía los abonos.
+
+Por el mismo motivo, **cada equipo pasa a tener estado propio** —devuelto, pendiente, vencido, ampliación, activo— y se calcula igual que el de la factura, en ese orden de prioridad: un equipo devuelto no figura como vencido aunque haya vuelto tarde, y uno que se pasó de su fecha ampliada es vencido, no "ampliación".
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
