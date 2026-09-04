@@ -681,7 +681,7 @@ El nodo `pagos` de la factura **desaparece**.
 
 Nada se marca como "devuelto": tener el nodo `devolucion` ya lo dice, y si la devolución fue anticipada o tardía sale de comparar su fecha con la del vencimiento. Guardar esa etiqueta sería guardar una conclusión — el error que ya costó el saldo que se comía los abonos.
 
-Por el mismo motivo, **cada equipo pasa a tener estado propio** —devuelto, pendiente, vencido, ampliación, activo— y se calcula igual que el de la factura, en ese orden de prioridad: un equipo devuelto no figura como vencido aunque haya vuelto tarde, y uno que se pasó de su fecha ampliada es vencido, no "ampliación".
+Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igual que el de la factura, con su mismo vocabulario: **pendiente** (todavía no sale), **activo** (afuera y al día), **ampliación** (al día, con días agregados), **vencido** (se le pasó la fecha vigente) y **devuelto**. Se resuelven en ese orden de prioridad, y el orden no es un detalle: un equipo devuelto no figura como vencido aunque haya vuelto tarde, y uno que se pasó de su fecha ampliada es vencido, no "ampliación".
 
 `cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
