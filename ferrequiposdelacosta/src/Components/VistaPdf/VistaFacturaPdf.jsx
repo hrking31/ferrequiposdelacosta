@@ -65,7 +65,7 @@ const TIPOS_PAGO = {
 // más abajo (`inicioPaginaSiguiente`), dejándole sitio.
 export default function generarFacturaPdf({ factura, cliente }) {
   // Subtotal, IVA, total, transporte y depósito viven juntos en el documento;
-  // se leen por el lector compartido y no a mano (ver valoresFactura).
+  // se leen por el lector compartido y no a mano (ver datosFactura).
   const datos = datosFactura(factura);
   // La cuenta de HOY: el alquiler con sus días corridos, los fletes, el
   // depósito y lo que el cliente entregó. Es la misma que muestra la pantalla.
