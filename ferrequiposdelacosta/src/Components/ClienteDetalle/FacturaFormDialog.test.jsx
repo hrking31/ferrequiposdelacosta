@@ -1,12 +1,13 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import FacturaFormDialog from "./FacturaFormDialog";
+import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // El formulario de alta y edición de una factura: el más grande de la app y el
 // que decide qué queda escrito en la base sobre la plata de un alquiler.
 //
 // Lo que se fija acá no son las cuentas —eso ya está probado en
-// facturaUtils.test.js— sino las decisiones de este formulario:
+// facturaCuentas.test.js— sino las decisiones de este formulario:
 //
 //   · qué NO deja guardar,
 //   · qué escribe exactamente al crear y al editar,
@@ -98,28 +99,40 @@ describe("FacturaFormDialog — crear", () => {
     await usuario.click(botonGuardar());
 
     expect(bd.set).toHaveBeenCalledTimes(1);
-    const [ruta, datos] = bd.set.mock.calls[0];
+    const [ruta, documento] = bd.set.mock.calls[0];
     expect(ruta).toBe("clientes/cli1/facturas/nueva");
-    expect(datos.numeroFactura).toBe("1600");
+    expect(documento.factura.numeroFactura).toBe("1600");
+
+    // El documento nace con sus cuatro nodos y nada suelto en la raíz.
+    expect(Object.keys(documento).sort()).toEqual([
+      "abonos",
+      "entregas",
+      "factura",
+      "grupos",
+      "gestiones",
+    ].sort());
+
+    // Un solo despacho, el del alta, con el equipo adentro.
+    expect(documento.grupos).toHaveLength(1);
+    expect(documento.grupos[0].grupo).toBe("grupo-inicial");
 
     // El equipo queda con lo que se cargó y con su fecha de entrega YA
     // calculada: despacho + días − 1. Nadie la digita.
-    expect(datos.equipos).toHaveLength(1);
-    expect(datos.equipos[0]).toMatchObject({
+    expect(documento.grupos[0].equipos).toHaveLength(1);
+    expect(documento.grupos[0].equipos[0]).toMatchObject({
       nombre: "ANDAMIO",
-      cantidad: 4,
-      dias: 3,
-      valor: 20000,
+      cantidadEquipos: 4,
+      diasAlquilados: 3,
+      valorDia: 20000,
       fechaDespacho: "2026-08-10",
       fechaVencimiento: "2026-08-12",
     });
 
-    // 4 andamios × 3 días × $20.000. Lo que la factura vale vive junto, en el
-    // nodo `valores`, no suelto en la raíz del documento.
-    expect(datos.valores.subtotal).toBe(240000);
+    // 4 andamios × 3 días × $20.000, en la foto de lo que se emitió.
+    expect(documento.factura.subtotal).toBe(240000);
 
     // Nace abierta: se emitió y todavía no se pagó ni se devolvió nada.
-    expect(datos.cerrada).toBe(false);
+    expect(documento.factura.cerrada).toBe(false);
 
     // El estado del cliente sí se guarda, para que la lista pueda filtrar sin
     // leer las facturas de todos.
@@ -136,37 +149,39 @@ describe("FacturaFormDialog — crear", () => {
     await cargarEquipo(usuario);
     await usuario.click(botonGuardar());
 
-    const [, datos] = bd.set.mock.calls[0];
+    const [, documento] = bd.set.mock.calls[0];
     // Ni el saldo ni el estado ni lo pagado acumulado: se calculan al mostrar.
-    expect(datos).not.toHaveProperty("saldoPendiente");
-    expect(datos).not.toHaveProperty("estado");
-    expect(datos).not.toHaveProperty("montoPagado");
+    expect(documento.factura).not.toHaveProperty("saldoPendiente");
+    expect(documento.factura).not.toHaveProperty("estado");
+    expect(documento.factura).not.toHaveProperty("montoPagado");
   });
 });
 
 describe("FacturaFormDialog — editar", () => {
-  const facturaExistente = {
+  const andamio = (extra = {}) =>
+    unEquipo({
+      nombre: "ANDAMIO",
+      cantidad: 4,
+      dias: 3,
+      valorDia: 20000,
+      fechaDespacho: "2026-08-01",
+      fechaVencimiento: "2026-08-03",
+      ...extra,
+    });
+
+  const existente = ({ equipos = [andamio()], ...resto } = {}) => ({
     id: "f1",
-    numeroFactura: "1573",
-    fecha: "2026-08-01",
-    valores: {
-      aplicaIva: false,
+    ...unaFactura({
+      numeroFactura: "1573",
+      fechaCreacion: "2026-08-01",
       subtotal: 240000,
-      valorTotal: 240000,
-    },
-    equipos: [
-      {
-        nombre: "ANDAMIO",
-        cantidad: 4,
-        dias: 3,
-        valor: 20000,
-        fechaDespacho: "2026-08-01",
-        fechaVencimiento: "2026-08-03",
-      },
-    ],
-    pagos: [],
-    abonos: [],
-  };
+      total: 240000,
+      equipos,
+      ...resto,
+    }),
+  });
+
+  const facturaExistente = existente();
 
   it("abre con los datos cargados y actualiza la factura que ya existe", async () => {
     const { usuario } = abrir({ factura: facturaExistente });
@@ -180,29 +195,30 @@ describe("FacturaFormDialog — editar", () => {
     // Editar actualiza; no crea otra factura ni toca el estado del cliente
     // (de eso se encarga el servidor cuando la factura cambia).
     expect(bd.set).not.toHaveBeenCalled();
-    const [ruta, datos] = bd.updateDoc.mock.calls[0];
+    const [ruta, documento] = bd.updateDoc.mock.calls[0];
     expect(ruta).toBe("clientes/cli1/facturas/f1");
-    expect(datos.numeroFactura).toBe("1574");
+    expect(documento.factura.numeroFactura).toBe("1574");
   });
 
   it("lo que el cliente entregó de más se guarda como abono, no como pago", async () => {
     // Total 240.000 y el cliente entregó 300.000: sobran 60.000.
     const { usuario } = abrir({
-      factura: {
-        ...facturaExistente,
+      factura: existente({
         tipoPago: "conAbono",
         pagos: [{ medio: "Efectivo", monto: 300000 }],
-      },
+      }),
     });
 
     await usuario.click(botonGuardar());
 
-    const [, datos] = bd.updateDoc.mock.calls[0];
+    const [, documento] = bd.updateDoc.mock.calls[0];
     // El pago queda recortado justo hasta cubrir el total…
-    expect(datos.pagos.reduce((suma, p) => suma + Number(p.monto), 0)).toBe(240000);
-    // …y el sobrante pasa a ser un abono con la fecha de la factura.
-    expect(datos.abonos).toEqual([
-      { fecha: "2026-08-01", medio: "Efectivo", monto: 60000 },
+    const pagos = documento.grupos[0].pagos;
+    expect(pagos.reduce((suma, p) => suma + Number(p.monto), 0)).toBe(240000);
+    // …y el sobrante pasa a ser un abono con la fecha de la factura. Lo dedujo
+    // la app del pago, así que el tipo es "sistema".
+    expect(documento.abonos).toEqual([
+      { fecha: "2026-08-01", medio: "Efectivo", monto: 60000, tipo: "sistema" },
     ]);
   });
 
@@ -221,10 +237,19 @@ describe("FacturaFormDialog — editar", () => {
     // Quitarlo perdería esa historia sin dejar rastro: es la única forma que
     // tiene este formulario de "editar" un equipo.
     abrir({
-      factura: {
-        ...facturaExistente,
-        equipos: [{ ...facturaExistente.equipos[0], cantidadDevuelta: 2 }],
-      },
+      factura: existente({
+        equipos: [
+          unEquipoDevuelto({
+            nombre: "ANDAMIO",
+            cantidad: 4,
+            dias: 3,
+            valorDia: 20000,
+            fechaDespacho: "2026-08-01",
+            fechaVencimiento: "2026-08-03",
+            fechaDevolucion: "2026-08-03",
+          }),
+        ],
+      }),
     });
 
     expect(botonQuitarEquipo()).toBeDisabled();

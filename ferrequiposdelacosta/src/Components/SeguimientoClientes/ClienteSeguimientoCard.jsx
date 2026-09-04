@@ -144,10 +144,14 @@ const describirGestion = (registro) => {
     return registro.indefinida ? `${texto} y entrega indefinida` : texto;
   }
 
-  if (registro.tipo === "parcial" || registro.tipo === "total") {
+  if (
+    registro.tipo === "devolucionParcial" ||
+    registro.tipo === "devolucionTotal"
+  ) {
     const unidades = Number(registro.unidades) || 0;
     const cuantos = unidades > 0 ? `: ${unidades} equipo${unidades === 1 ? "" : "s"}` : "";
-    return `Devolución ${registro.tipo === "total" ? "total" : "parcial"}${cuantos}`;
+    const cuanto = registro.tipo === "devolucionTotal" ? "total" : "parcial";
+    return `Devolución ${cuanto}${cuantos}`;
   }
 
   return registro.tipo;
@@ -231,7 +235,7 @@ const construirMensajeWhatsapp = ({
 
   // Devolvió una parte. Primero se le reconoce lo que entregó: si no, el
   // mensaje suena a que no se registró su devolución.
-  if (gestion === "parcial") {
+  if (gestion === "devolucionParcial") {
     return [
       saludo,
       "",
@@ -780,7 +784,7 @@ export default function ClienteSeguimientoCard({
                       transition: "background-color 0.15s ease",
                     }}
                   >
-                    Fact. {f.numeroFactura ?? "s/n"}
+                    Fact. {datosFactura(f).numeroFactura ?? "s/n"}
                   </Box>
                 );
               })}

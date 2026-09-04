@@ -1,14 +1,16 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
+import { unEquipo, unaFactura } from "../../test/facturas";
 
 // Sumarle equipos a una factura que ya existe, sin abrir otra. Los equipos que
-// se piden juntos forman un LOTE, con su propio pago, transporte y depósito.
+// se piden juntos forman un DESPACHO —un grupo—, con su propio pago, su
+// transporte y su depósito arriba.
 //
-// Lo que se prueba: que los equipos nuevos entren sin pisar a los que ya
-// estaban, que queden marcados como agregados después (si no, se confunden con
-// los del alta), que el total de la factura se rehaga, y que el pago del lote
-// viaje con el lote y no se sume dos veces.
+// Lo que se prueba: que el despacho nuevo entre sin tocar los que ya estaban,
+// que sus equipos queden adentro con su fecha de entrega calculada, que la
+// foto de lo emitido crezca con lo que se sumó, y que el pago del despacho
+// viaje UNA sola vez.
 const bd = vi.hoisted(() => ({
   update: vi.fn(),
   commit: vi.fn(() => Promise.resolve()),
@@ -24,28 +26,27 @@ vi.mock("firebase/firestore", () => ({
 const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
 
 // Una factura con un equipo del alta, sin IVA para que las cuentas se lean
-// directo.
+// directo, y con el alta ya paga.
 const factura = {
   id: "f1",
-  numeroFactura: 1573,
-  fecha: "2026-08-01",
-  valores: {
-    aplicaIva: false,
+  ...unaFactura({
+    numeroFactura: "1573",
+    fechaCreacion: "2026-08-01",
+    tipoPago: "total",
     subtotal: 300000,
-    valorTotal: 300000,
-  },
-  equipos: [
-    {
-      nombre: "ANDAMIO",
-      cantidad: 5,
-      dias: 3,
-      valor: 20000,
-      fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
-    },
-  ],
-  pagos: [{ medio: "Efectivo", monto: 300000 }],
-  abonos: [],
+    total: 300000,
+    equipos: [
+      unEquipo({
+        nombre: "ANDAMIO",
+        cantidad: 5,
+        dias: 3,
+        valorDia: 20000,
+        fechaDespacho: "2026-08-01",
+        fechaVencimiento: "2026-08-03",
+      }),
+    ],
+    pagos: [{ medio: "Efectivo", monto: 300000 }],
+  }),
 };
 
 const estadoInicial = {
@@ -65,7 +66,7 @@ const abrir = (props = {}) =>
     { estadoInicial },
   );
 
-// Carga un equipo en la lista del lote (todavía no lo guarda en la factura).
+// Carga un equipo en la lista del despacho (todavía no lo guarda en la factura).
 const cargarEquipo = async (usuario, { cantidad = "2", dias = "4", valor = "30000" } = {}) => {
   await usuario.type(screen.getByLabelText("Equipo (del catálogo o nuevo)"), "MEZCLADORA");
   await usuario.type(screen.getByLabelText("Cantidad"), cantidad);
@@ -80,6 +81,8 @@ const guardar = (usuario) =>
   usuario.click(screen.getByRole("button", { name: "Guardar en la factura" }));
 
 const loGuardado = () => bd.update.mock.calls[0][1];
+// El despacho recién creado: el último de la lista.
+const despachoNuevo = () => loGuardado().grupos.at(-1);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -97,40 +100,43 @@ describe("AgregarEquipoDialog — antes de guardar", () => {
 });
 
 describe("AgregarEquipoDialog — al sumar equipos", () => {
-  it("los agrega sin tocar los que ya estaban", async () => {
+  it("abre un despacho nuevo sin tocar el que ya estaba", async () => {
     const { usuario } = abrir();
 
     await cargarEquipo(usuario);
     await guardar(usuario);
 
-    const guardado = loGuardado();
-    expect(guardado.equipos).toHaveLength(2);
-    // El del alta queda igual que antes.
-    expect(guardado.equipos[0]).toMatchObject({ nombre: "ANDAMIO", cantidad: 5 });
-    expect(guardado.equipos[1]).toMatchObject({
+    const grupos = loGuardado().grupos;
+    expect(grupos).toHaveLength(2);
+
+    // El del alta queda igual que antes, con su equipo y su pago.
+    expect(grupos[0].grupo).toBe("grupo-inicial");
+    expect(grupos[0].equipos[0]).toMatchObject({ nombre: "ANDAMIO", cantidadEquipos: 5 });
+
+    // Y el nuevo se numera solo.
+    expect(grupos[1].grupo).toBe("grupo-agregados-1");
+    expect(grupos[1].equipos[0]).toMatchObject({
       nombre: "MEZCLADORA",
-      cantidad: 2,
-      dias: 4,
-      valor: 30000,
+      cantidadEquipos: 2,
+      diasAlquilados: 4,
+      valorDia: 30000,
     });
   });
 
-  it("marca al equipo nuevo como agregado después y le calcula su entrega", async () => {
+  it("el despacho dice cuándo se pidió y le calcula la entrega a su equipo", async () => {
     const { usuario } = abrir();
 
     await cargarEquipo(usuario);
     await guardar(usuario);
 
-    const nuevo = loGuardado().equipos[1];
-    // Sin esta marca, en el historial se confundiría con los del alta.
-    expect(nuevo.agregadoPosteriormente).toBe(true);
+    const despacho = despachoNuevo();
+    // La fecha del pedido es del despacho entero, no de cada equipo.
+    expect(despacho.fechaSolicitud).toBeTruthy();
     // Despacho 10 + 4 días − 1.
-    expect(nuevo.fechaVencimiento).toBe("2026-08-13");
-    // Y el lote, que es lo que después permite agrupar lo que se pidió junto.
-    expect(nuevo.loteId).toBeTruthy();
+    expect(despacho.equipos[0].fechaVencimiento).toBe("2026-08-13");
   });
 
-  it("rehace el total de la factura con lo que se sumó", async () => {
+  it("rehace la foto de lo emitido con lo que se sumó", async () => {
     const { usuario } = abrir();
 
     // 2 mezcladoras × 4 días × $30.000 = $240.000, sobre los $300.000 que ya había.
@@ -138,11 +144,10 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     await guardar(usuario);
 
     // Se escribe con la ruta completa, campo por campo: escribir el nodo
-    // `valores` entero borraría el transporte y el depósito, que acá no se
-    // tocan.
+    // `factura` entero borraría el número, la fecha y el resto.
     const guardado = loGuardado();
-    expect(guardado["valores.subtotal"]).toBe(540000);
-    expect(guardado["valores.valorTotal"]).toBe(540000);
+    expect(guardado["factura.subtotal"]).toBe(540000);
+    expect(guardado["factura.total"]).toBe(540000);
   });
 
   it("la factura vuelve a quedar parcial: lo nuevo todavía no está pagado", async () => {
@@ -152,21 +157,29 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     await guardar(usuario);
 
     // El alta estaba paga, pero lo que se acaba de agregar no.
-    expect(loGuardado().tipoPago).toBe("parcial");
+    expect(loGuardado()["factura.tipoPago"]).toBe("parcial");
   });
 
-  it("dos equipos pedidos el mismo día comparten el lote", async () => {
+  it("dos equipos pedidos el mismo día comparten el despacho, y su pago va una sola vez", async () => {
     const { usuario } = abrir();
 
     await cargarEquipo(usuario);
     await cargarEquipo(usuario, { cantidad: "1", dias: "2", valor: "10000" });
     await guardar(usuario);
 
-    const equipos = loGuardado().equipos;
-    expect(equipos).toHaveLength(3);
-    expect(equipos[1].loteId).toBe(equipos[2].loteId);
-    // El pago del lote viaja SOLO en el primero: contarlo en los dos haría que
-    // el pagado de la factura suba el doble.
-    expect(equipos[2].pagos).toBeUndefined();
+    const despacho = despachoNuevo();
+    expect(despacho.equipos).toHaveLength(2);
+
+    // El pago, el flete y el depósito viven ARRIBA, en el despacho. Antes
+    // colgaban del primer equipo del lote y había que acordarse de no
+    // copiarlos al partir una línea; si se copiaban, la factura contaba el
+    // pago dos veces y se inventaba un saldo a favor.
+    expect(despacho).toHaveProperty("pagos");
+    expect(despacho).toHaveProperty("adicionales");
+    despacho.equipos.forEach((equipo) => {
+      expect(equipo).not.toHaveProperty("pagos");
+      expect(equipo).not.toHaveProperty("valorTransporte");
+      expect(equipo).not.toHaveProperty("deposito");
+    });
   });
 });

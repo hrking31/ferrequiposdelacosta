@@ -1,6 +1,13 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
+import {
+  grupoAgregados,
+  unEquipo,
+  unEquipoDevuelto,
+  unGrupo,
+  unaFactura,
+} from "../../test/facturas";
 
 // La tarjeta de cartera: un cliente al que hay que cobrarle, con la factura que
 // lo tiene ahí y lo que se puede hacer para destrabarla.
@@ -35,102 +42,104 @@ const cliente = {
   telefono: "3116576633",
 };
 
-// Vencida hace rato, sin pagar y con el equipo todavía afuera.
-const facturaVencida = {
+const andamio = (extra = {}) =>
+  unEquipo({
+    nombre: "ANDAMIO",
+    cantidad: 5,
+    dias: 3,
+    valorDia: 20000,
+    fechaDespacho: "2026-08-01",
+    fechaVencimiento: "2026-08-03",
+    ...extra,
+  });
+
+const facturaCon = (extra = {}) => ({
   id: "f1",
-  numeroFactura: 1573,
-  fecha: "2026-08-01",
-  aplicaIva: false,
-  subtotal: 300000,
-  valorTotal: 300000,
+  ...unaFactura({
+    numeroFactura: "1573",
+    fechaCreacion: "2026-08-01",
+    subtotal: 300000,
+    total: 300000,
+    equipos: [andamio()],
+    ...extra,
+  }),
+});
+
+// Vencida hace rato, sin pagar y con el equipo todavía afuera.
+const facturaVencida = facturaCon();
+
+// Ya devolvió todo, pero quedó debiendo: esto es cobranza pura. Volvió el 05,
+// dos días después de vencer, así que estuvo 5 días afuera.
+const facturaEnCobro = facturaCon({
   equipos: [
-    {
+    unEquipoDevuelto({
       nombre: "ANDAMIO",
       cantidad: 5,
-      dias: 3,
-      valor: 20000,
+      dias: 5,
+      valorDia: 20000,
       fechaDespacho: "2026-08-01",
       fechaVencimiento: "2026-08-03",
-    },
-  ],
-  pagos: [],
-  abonos: [],
-};
-
-// Ya devolvió todo, pero quedó debiendo: esto es cobranza pura.
-const facturaEnCobro = {
-  ...facturaVencida,
-  equipos: [
-    {
-      ...facturaVencida.equipos[0],
-      cantidadDevuelta: 5,
       fechaDevolucion: "2026-08-05",
-    },
+    }),
   ],
-};
+});
 
 // Sigue vencida por el ANDAMIO que no volvió, pero la MEZCLADORA el cliente la
 // devolvió antes de que se venciera: esa devolución no fue cobranza.
-const facturaConDevueltoEnPlazo = {
-  ...facturaVencida,
+const facturaConDevueltoEnPlazo = facturaCon({
   equipos: [
-    facturaVencida.equipos[0],
-    {
+    andamio(),
+    unEquipoDevuelto({
       nombre: "MEZCLADORA",
       cantidad: 1,
-      dias: 3,
-      valor: 50000,
+      dias: 4,
+      valorDia: 50000,
       fechaDespacho: "2026-08-01",
       fechaVencimiento: "2026-08-06",
-      cantidadDevuelta: 1,
       fechaDevolucion: "2026-08-04",
-    },
+    }),
   ],
-};
+});
 
 // Vencida por UN gato, con seis mezcladoras agregadas después que todavía
 // están en plazo. Son 7 equipos afuera, pero solo 1 se le puede reclamar hoy.
-const facturaConEquiposEnPlazo = {
-  ...facturaVencida,
+const facturaConEquiposEnPlazo = facturaCon({
   equipos: [
-    {
+    unEquipo({
       nombre: "GATO",
       cantidad: 1,
       dias: 3,
-      valor: 20000,
+      valorDia: 20000,
       fechaDespacho: "2026-08-01",
       fechaVencimiento: "2026-08-03",
-    },
-    {
+    }),
+    unEquipo({
       nombre: "MEZCLADORA",
       cantidad: 6,
       dias: 10,
-      valor: 30000,
+      valorDia: 30000,
       fechaDespacho: "2026-08-15",
       fechaVencimiento: "2026-09-15",
-    },
+    }),
   ],
-};
+});
 
 // Devolvió 4 de los 5 andamios y le queda uno afuera, ya vencido.
-const facturaParcial = {
-  ...facturaVencida,
-  equipos: [{ ...facturaVencida.equipos[0], cantidad: 1 }],
-  gestiones: [{ tipo: "parcial", unidades: 4, fecha: "2026-08-10" }],
-};
+const facturaParcial = facturaCon({
+  equipos: [andamio({ cantidad: 1 })],
+  gestiones: [{ tipo: "devolucionParcial", unidades: 4, fecha: "2026-08-10" }],
+});
 
 // Le renovaron el equipo hasta 2099, así que ya no hay nada vencido, pero
-// sigue debiendo los $300.000 de antes de esa renovación.
-const facturaRenovada = {
-  ...facturaVencida,
+// sigue debiendo lo de antes de esa renovación.
+const facturaRenovada = facturaCon({
   equipos: [
-    {
-      ...facturaVencida.equipos[0],
+    andamio({
       fechaVencimiento: "2099-01-01",
-      ampliaciones: [{ dias: 30, descuento: 0 }],
-    },
+      ampliaciones: [{ diasAmpliados: 30, descuentoRealizado: 0 }],
+    }),
   ],
-};
+});
 
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
@@ -190,10 +199,16 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     await desplegarFactura(usuario);
 
     expect(screen.getByText("Sin equipos vencidos")).toBeInTheDocument();
-    // Debía $300.000 y no pagó nada: eso es lo exigible hoy. Los días que se
+    // Lo exigible hoy son los días que el equipo YA estuvo afuera: 5 andamios
+    // a $20.000 desde el 01 hasta el 20 de agosto, o sea 20 días. Los que se
     // le acaban de conceder los está usando y se cobran cuando devuelva.
+    //
+    // Antes este número salía del total GUARDADO de la factura, que no llevaba
+    // ni las ampliaciones ni los días vencidos: en la 1234 decía $144.440
+    // donde el cliente debía $1.727.140, y con pagar esos $144.440 la factura
+    // salía de cartera debiendo el resto.
     expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
-      "300.000",
+      "2.000.000",
     );
     // Y dice de qué saldo habla: no es el saldo pendiente de la cuenta, que
     // incluye los días recién concedidos, sino lo que debía antes.
@@ -208,28 +223,33 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   // la cuenta usaba otra.
   it("suma el transporte y el depósito de todos los despachos", async () => {
     const { usuario } = mostrar([
-      {
-        ...facturaVencida,
-        transporte: "Ida y vuelta",
-        valorTransporte: 100000,
-        deposito: 200000,
-        equipos: [
-          facturaVencida.equipos[0],
-          {
-            ...facturaVencida.equipos[0],
-            nombre: "PLUMA",
-            agregadoPosteriormente: true,
-            valorTransporte: 50000,
-            deposito: 30000,
-          },
+      facturaCon({
+        grupos: [
+          unGrupo({
+            transporte: "Ida y vuelta",
+            valorTransporte: 100000,
+            valorDeposito: 200000,
+            equipos: [andamio()],
+          }),
+          unGrupo({
+            grupo: grupoAgregados(1),
+            transporte: "Solo ida",
+            valorTransporte: 55000,
+            valorDeposito: 33000,
+            equipos: [andamio({ nombre: "PLUMA" })],
+          }),
         ],
-      },
+      }),
     ]);
     await desplegarFactura(usuario);
 
-    // $100.000 + $50.000 de transporte, $200.000 + $30.000 de depósito.
-    expect(screen.getByText(/150\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/230\.000/)).toBeInTheDocument();
+    // $100.000 + $55.000 de transporte, $200.000 + $33.000 de depósito.
+    //
+    // Se buscan por su rótulo y no por la cifra suelta: el subtotal de la
+    // factura la contiene como parte de un número más largo ($ 4.155.000) y
+    // la prueba encontraba los dos.
+    expect(screen.getByText(/^Transporte/)).toHaveTextContent("155.000");
+    expect(screen.getByText(/^Depósito/)).toHaveTextContent("233.000");
   });
 
   it("con todos los equipos vencidos afuera, no muestra ese aviso", async () => {

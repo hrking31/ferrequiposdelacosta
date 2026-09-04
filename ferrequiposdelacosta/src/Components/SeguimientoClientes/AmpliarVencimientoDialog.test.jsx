@@ -5,6 +5,7 @@ import {
   obtenerFechaHoyBogota,
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
+import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // Darle más días al cliente. Es una operación de plata: los días que se agregan
 // se cobran, salvo que se les haga un descuento, y la ampliación queda anotada
@@ -29,24 +30,29 @@ vi.mock("firebase/firestore", () => ({
 
 const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
 
-const factura = {
+const andamio = (extra = {}) =>
+  unEquipo({
+    nombre: "ANDAMIO",
+    cantidad: 5,
+    dias: 3,
+    valorDia: 20000,
+    fechaDespacho: "2026-08-01",
+    fechaVencimiento: "2026-08-03",
+    ...extra,
+  });
+
+const facturaCon = ({ equipos = [andamio()], ...resto } = {}) => ({
   id: "f1",
-  numeroFactura: 1573,
-  fecha: "2026-08-01",
-  valorTotal: 300000,
-  equipos: [
-    {
-      nombre: "ANDAMIO",
-      cantidad: 5,
-      dias: 3,
-      valor: 20000,
-      fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
-    },
-  ],
-  pagos: [],
-  abonos: [],
-};
+  ...unaFactura({
+    numeroFactura: "1573",
+    fechaCreacion: "2026-08-01",
+    total: 300000,
+    equipos,
+    ...resto,
+  }),
+});
+
+const factura = facturaCon();
 
 // El mismo andamio pero vencido AYER, para las pruebas que miran cómo se
 // consolidan los días vencidos al dar plazo nuevo. Va relativo a hoy y no con
@@ -54,10 +60,16 @@ const factura = {
 // una fecha de agosto daría un resultado distinto cada día que pasa.
 const HOY = obtenerFechaHoyBogota();
 const AYER = calcularVencimiento(HOY, -1);
-const facturaVencidaAyer = {
-  ...factura,
-  equipos: [{ ...factura.equipos[0], fechaVencimiento: AYER }],
-};
+// Se le corre la fecha de DESPACHO, no solo la de vencimiento: los días
+// pactados y la fecha en que vencen tienen que decir lo mismo. Con el despacho
+// en agosto y el vencimiento ayer, el equipo llevaría un mes vencido en vez de
+// un día, y la cuenta lo cobraría así.
+const DESPACHO_VENCIDO_AYER = calcularVencimiento(AYER, -2);
+const facturaVencidaAyer = facturaCon({
+  equipos: [
+    andamio({ fechaDespacho: DESPACHO_VENCIDO_AYER, fechaVencimiento: AYER }),
+  ],
+});
 
 const abrir = (props = {}) =>
   renderConProviders(
@@ -76,6 +88,9 @@ const guardar = (usuario) =>
 // Lo que quedó escrito en la factura (la primera de las dos escrituras del
 // lote; la segunda es el estado del cliente).
 const loGuardadoEnLaFactura = () => bd.update.mock.calls[0][1];
+// El primer equipo de la factura, sin importar en qué despacho esté.
+const primerEquipo = () =>
+  loGuardadoEnLaFactura().grupos.flatMap((grupo) => grupo.equipos)[0];
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -96,26 +111,23 @@ describe("AmpliarVencimientoDialog — antes de guardar", () => {
   // equipos que no tienen nada que ver con el vencimiento que la trajo acá.
   it("solo ofrece los equipos vencidos que siguen afuera", () => {
     abrir({
-      factura: {
-        ...factura,
+      factura: facturaCon({
         equipos: [
-          factura.equipos[0],
+          andamio(),
           // Ya volvió: no hay vencimiento que ampliar.
-          {
-            ...factura.equipos[0],
+          unEquipoDevuelto({
             nombre: "PLUMA",
             cantidad: 2,
-            cantidadDevuelta: 2,
+            dias: 2,
+            valorDia: 20000,
+            fechaDespacho: "2026-08-01",
+            fechaVencimiento: "2026-08-03",
             fechaDevolucion: "2026-08-02",
-          },
+          }),
           // Todavía en fecha: se le amplía cuando venza, si hace falta.
-          {
-            ...factura.equipos[0],
-            nombre: "MEZCLADORA",
-            fechaVencimiento: "2099-01-01",
-          },
+          andamio({ nombre: "MEZCLADORA", fechaVencimiento: "2099-01-01" }),
         ],
-      },
+      }),
     });
 
     expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
@@ -146,26 +158,25 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
 
-    const equipo = loGuardadoEnLaFactura().equipos[0];
+    const equipo = primerEquipo();
 
     // Los 2 días prometidos se cuentan desde HOY. Sumarlos a la fecha vencida
     // daba una fecha ya pasada, y el cliente no tenía el plazo prometido.
     expect(equipo.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
     // Y la ampliación registra los 3 días que la fecha corrió de verdad,
-    // diciendo cuál de ellos ya estaba vencido: sin eso, el día que el equipo
-    // estuvo afuera dejaría de cobrarse.
+    // diciendo cuáles ya estaban vencidos: sin eso, los días que el equipo
+    // estuvo afuera dejarían de cobrarse.
     expect(equipo.ampliaciones).toEqual([
       {
         fechaAnterior: AYER,
         fechaNueva: calcularVencimiento(HOY, 2),
-        dias: 3,
+        diasAmpliados: 3,
+        diasPedidos: 2,
         diasVencidos: 1,
-        diasPactados: 2,
-        descuento: 0,
+        descuentoRealizado: 0,
+        fecha: HOY,
       },
     ]);
-    // La fecha original se guarda una sola vez, para las vistas viejas.
-    expect(equipo.fechaVencimientoOriginal).toBe(AYER);
   });
 
   it("guarda el descuento que se le hizo a esos días", async () => {
@@ -177,7 +188,7 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
-    expect(loGuardadoEnLaFactura().equipos[0].ampliaciones[0].descuento).toBe(50000);
+    expect(primerEquipo().ampliaciones[0].descuentoRealizado).toBe(50000);
   });
 
   it("anota la prórroga en la línea de tiempo de la factura", async () => {
@@ -197,21 +208,28 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
     const anterior = {
       fechaAnterior: "2026-08-01",
       fechaNueva: AYER,
-      dias: 2,
-      descuento: 0,
+      diasAmpliados: 2,
+      descuentoRealizado: 0,
     };
     const { usuario } = abrir({
-      factura: {
-        ...facturaVencidaAyer,
-        equipos: [{ ...facturaVencidaAyer.equipos[0], ampliaciones: [anterior] }],
-      },
+      factura: facturaCon({
+        equipos: [
+          andamio({
+            // 3 días del alta más los 2 de la ampliación anterior: para que
+            // venza AYER, tuvo que salir cuatro días antes.
+            fechaDespacho: calcularVencimiento(AYER, -4),
+            fechaVencimiento: AYER,
+            ampliaciones: [anterior],
+          }),
+        ],
+      }),
     });
 
     await usuario.type(screen.getByLabelText("Días a ampliar"), "1");
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
-    const ampliaciones = loGuardadoEnLaFactura().equipos[0].ampliaciones;
+    const ampliaciones = primerEquipo().ampliaciones;
     expect(ampliaciones).toHaveLength(2);
     expect(ampliaciones[0]).toEqual(anterior);
     expect(ampliaciones[1].fechaNueva).toBe(calcularVencimiento(HOY, 1));
@@ -229,11 +247,11 @@ describe("AmpliarVencimientoDialog — entrega indefinida", () => {
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
-    const equipo = loGuardadoEnLaFactura().equipos[0];
+    const equipo = primerEquipo();
     expect(equipo.vencimientoIndefinido).toBe(true);
     // No se le inventa una fecha nueva ni una ampliación: el cliente avisará.
     expect(equipo.fechaVencimiento).toBe("2026-08-03");
-    expect(equipo.ampliaciones).toBeUndefined();
+    expect(equipo.ampliaciones).toEqual([]);
   });
 
   it("la prórroga queda anotada igual, marcada como indefinida", async () => {
@@ -263,24 +281,21 @@ describe("AmpliarVencimientoDialog — el plazo de cada equipo", () => {
     // dieron 4 días y quedó para el 07. La fila tiene que hablar del 07, que
     // es el acuerdo vigente, y no del 03, que ya se resolvió.
     abrir({
-      factura: {
-        ...factura,
+      factura: facturaCon({
         equipos: [
-          {
-            ...factura.equipos[0],
-            fechaVencimientoOriginal: "2026-08-03",
+          andamio({
             fechaVencimiento: "2026-08-07",
             ampliaciones: [
               {
                 fechaAnterior: "2026-08-03",
                 fechaNueva: "2026-08-07",
-                dias: 4,
-                descuento: 0,
+                diasAmpliados: 4,
+                descuentoRealizado: 0,
               },
             ],
-          },
+          }),
         ],
-      },
+      }),
     });
 
     expect(screen.getByText(/Vence: 07\/08\/2026/)).toBeInTheDocument();

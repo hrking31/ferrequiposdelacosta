@@ -21,6 +21,13 @@ export { GRUPO_INICIAL, grupoAgregados };
 
 // Una línea de equipo. `devolucion` se pasa solo cuando la prueba necesita un
 // equipo que ya volvió: su sola presencia es lo que dice que no está afuera.
+//
+// OJO CON LAS FECHAS. Los días pactados y la fecha en que vencen tienen que
+// decir lo mismo: `fechaVencimiento` sale de `fechaDespacho` más los días —los
+// del alta más los de cada ampliación— menos uno. Si se pasa una fecha suelta
+// que no cuadra, la cuenta le va a creer a los DÍAS y el equipo va a figurar
+// vencido por un mes donde la prueba quería un día. Para mover el vencimiento,
+// mové también el despacho.
 export const unEquipo = ({
   nombre = "ANDAMIO",
   cantidad = 1,

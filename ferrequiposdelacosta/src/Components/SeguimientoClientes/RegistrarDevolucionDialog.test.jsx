@@ -2,12 +2,14 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import {
   calcularVencimiento,
+  diasDeAlquiler,
   obtenerFechaHoyBogota,
 } from "../ClienteDetalle/facturaUtils";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
+import { grupoAgregados, unEquipo, unGrupo, unaFactura } from "../../test/facturas";
 
 // Registrar que el cliente devolvió equipos. Es la operación que corta la
-// cuenta: desde el día de la devolución el equipo deja de sumar días.
+// cuenta: al volver, los días del equipo dejan de correr y quedan escritos.
 //
 // Lo más delicado es la devolución PARCIAL: la línea del equipo se parte en
 // dos, una cerrada con lo que volvió y otra que sigue corriendo con lo que el
@@ -31,25 +33,26 @@ const HOY = obtenerFechaHoyBogota();
 
 const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
 
-// 5 andamios afuera, ninguno devuelto todavía.
+const andamio = (extra = {}) =>
+  unEquipo({
+    nombre: "ANDAMIO",
+    cantidad: 5,
+    dias: 3,
+    valorDia: 20000,
+    fechaDespacho: "2026-08-01",
+    fechaVencimiento: "2026-08-03",
+    ...extra,
+  });
+
+// 5 andamios afuera y vencidos, con $100.000 de depósito en su despacho.
 const factura = {
   id: "f1",
-  numeroFactura: 1573,
-  fecha: "2026-08-01",
-  valorTotal: 300000,
-  deposito: 100000,
-  equipos: [
-    {
-      nombre: "ANDAMIO",
-      cantidad: 5,
-      dias: 3,
-      valor: 20000,
-      fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
-    },
-  ],
-  pagos: [],
-  abonos: [],
+  ...unaFactura({
+    numeroFactura: "1573",
+    fechaCreacion: "2026-08-01",
+    valorDeposito: 100000,
+    equipos: [andamio()],
+  }),
 };
 
 // La misma factura pero todavía al día: salió hoy y vence dentro de 10 días.
@@ -57,51 +60,67 @@ const factura = {
 // antes de que la factura entre a Seguimiento.
 const facturaAlDia = {
   ...factura,
-  equipos: [
-    {
-      ...factura.equipos[0],
-      fechaDespacho: HOY,
-      fechaVencimiento: calcularVencimiento(HOY, 10),
-    },
-  ],
+  ...unaFactura({
+    numeroFactura: "1573",
+    valorDeposito: 100000,
+    equipos: [
+      andamio({ fechaDespacho: HOY, fechaVencimiento: calcularVencimiento(HOY, 10) }),
+    ],
+  }),
 };
 
 // Vencida por el ANDAMIO, pero con una MEZCLADORA agregada después que
 // todavía tiene días por delante.
 const facturaVencidaConEquipoEnPlazo = {
   ...factura,
-  equipos: [
-    factura.equipos[0],
-    {
-      nombre: "MEZCLADORA",
-      cantidad: 1,
-      dias: 5,
-      valor: 50000,
-      fechaDespacho: HOY,
-      fechaVencimiento: calcularVencimiento(HOY, 5),
-    },
-  ],
+  ...unaFactura({
+    numeroFactura: "1573",
+    valorDeposito: 100000,
+    grupos: [
+      unGrupo({ valorDeposito: 100000, equipos: [andamio()] }),
+      unGrupo({
+        grupo: grupoAgregados(1),
+        fechaSolicitud: HOY,
+        equipos: [
+          unEquipo({
+            nombre: "MEZCLADORA",
+            cantidad: 1,
+            dias: 5,
+            valorDia: 50000,
+            fechaDespacho: HOY,
+            fechaVencimiento: calcularVencimiento(HOY, 5),
+          }),
+        ],
+      }),
+    ],
+  }),
 };
 
-// Dos entregas con su propia garantía: el ANDAMIO salió con $100.000 y días
-// después el cliente pidió una RANA y dejó otros $50.000. Las dos vencidas.
+// Dos despachos con su propia garantía: el ANDAMIO salió con $100.000 y días
+// después el cliente pidió una RANA y dejó otros $50.000. Los dos vencidos.
 const facturaConDosDepositos = {
   ...factura,
-  equipos: [
-    factura.equipos[0],
-    {
-      nombre: "RANA",
-      cantidad: 1,
-      dias: 2,
-      valor: 30000,
-      agregadoPosteriormente: true,
-      loteId: "lote2",
-      deposito: 50000,
-      fechaAgregado: "2026-08-02",
-      fechaDespacho: "2026-08-02",
-      fechaVencimiento: "2026-08-03",
-    },
-  ],
+  ...unaFactura({
+    numeroFactura: "1573",
+    grupos: [
+      unGrupo({ valorDeposito: 100000, equipos: [andamio()] }),
+      unGrupo({
+        grupo: grupoAgregados(1),
+        fechaSolicitud: "2026-08-02",
+        valorDeposito: 50000,
+        equipos: [
+          unEquipo({
+            nombre: "RANA",
+            cantidad: 1,
+            dias: 2,
+            valorDia: 30000,
+            fechaDespacho: "2026-08-02",
+            fechaVencimiento: "2026-08-03",
+          }),
+        ],
+      }),
+    ],
+  }),
 };
 
 const abrir = (props = {}) =>
@@ -119,6 +138,10 @@ const guardar = (usuario) =>
   usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
 const loGuardadoEnLaFactura = () => bd.update.mock.calls[0][1];
+// Los equipos de todos los despachos, aplanados: casi todas estas pruebas
+// miran una sola línea y no les importa de qué grupo salió.
+const equiposGuardados = () =>
+  loGuardadoEnLaFactura().grupos.flatMap((grupo) => grupo.equipos);
 
 const exito = () => screen.findByText("Devolución registrada correctamente.");
 
@@ -151,28 +174,29 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
 
     expect(await exito()).toBeInTheDocument();
 
-    const guardado = loGuardadoEnLaFactura();
-    expect(guardado.equipos).toHaveLength(1);
-    expect(guardado.equipos[0].cantidadDevuelta).toBe(5);
-    expect(guardado.equipos[0].fechaDevolucion).toBe(HOY);
+    const equipos = equiposGuardados();
+    expect(equipos).toHaveLength(1);
+    expect(equipos[0].devolucion.fechaDevolucion).toBe(HOY);
 
-    expect(guardado.gestiones[0].tipo).toBe("total");
-    expect(guardado.gestiones[0].unidades).toBe(5);
+    // Y sus días quedan congelados en los que de verdad estuvo afuera, no en
+    // los 3 que decía el contrato: salió el 1 de agosto y volvió hoy.
+    expect(equipos[0].diasAlquilados).toBe(diasDeAlquiler("2026-08-01", HOY));
+
+    expect(loGuardadoEnLaFactura().gestiones[0].tipo).toBe("devolucionTotal");
+    expect(loGuardadoEnLaFactura().gestiones[0].unidades).toBe(5);
   });
 
   it("con el último equipo de vuelta se resuelve el depósito", async () => {
     const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
-    // "Volvió todo completo y en buen estado" ya viene marcado: es el caso
-    // normal, y tocarlo sería decir que hay algo que retener.
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
     // Volvió bien: no se retiene nada, se le devuelve todo. Se escribe con la
-    // ruta completa dentro del nodo de valores: mandar el nodo entero borraría
-    // el total y el subtotal, que acá no se tocan.
-    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toEqual({
+    // ruta completa dentro del nodo de la factura: mandar el nodo entero
+    // borraría el número, el total y el resto.
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toEqual({
       retenido: 0,
       motivo: "",
       fecha: HOY,
@@ -206,15 +230,15 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     expect(await exito()).toBeInTheDocument();
 
     // El estado queda pegado al equipo que volvió, con su fecha.
-    expect(loGuardadoEnLaFactura().equipos[0].estadoDevolucion).toEqual({
+    expect(equiposGuardados()[0].devolucion).toEqual({
+      fechaDevolucion: HOY,
       buenEstado: false,
       motivo: "Andamio rayado",
-      retenido: 30000,
-      fecha: HOY,
+      valorRetenido: 30000,
     });
 
     // Y el depósito se liquida con lo anotado, diciendo por CUÁL equipo.
-    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toEqual({
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toEqual({
       retenido: 30000,
       motivo: "ANDAMIO: Andamio rayado",
       fecha: HOY,
@@ -228,19 +252,19 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    expect(loGuardadoEnLaFactura().equipos[0].estadoDevolucion).toEqual({
+    expect(equiposGuardados()[0].devolucion).toEqual({
+      fechaDevolucion: HOY,
       buenEstado: true,
       motivo: "",
-      retenido: 0,
-      fecha: HOY,
+      valorRetenido: 0,
     });
   });
 });
 
-// El depósito es de cada ENTREGA, no de la factura: el cliente dejó $100.000
+// El depósito es de cada DESPACHO, no de la factura: el cliente dejó $100.000
 // por el andamio y, cuando días después pidió la rana, otros $50.000.
-describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
-  it("cada equipo muestra el depósito de su propia entrega", () => {
+describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
+  it("cada equipo muestra el depósito de su propio despacho", () => {
     abrir({ factura: facturaConDosDepositos });
 
     // Con regex y no con el texto exacto: el formateador de moneda separa el
@@ -249,7 +273,7 @@ describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
     expect(screen.getByText(/Depósito:.*50\.000/)).toBeInTheDocument();
   });
 
-  it("no deja retener de un equipo más de lo que dejó su entrega", async () => {
+  it("no deja retener de un equipo más de lo que dejó su despacho", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
     // La rana es el segundo equipo: dejó $50.000 y se intentan retener 80.000,
@@ -268,7 +292,7 @@ describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
     expect(bd.commit).not.toHaveBeenCalled();
   });
 
-  it("hasta el depósito de su entrega sí lo guarda", async () => {
+  it("hasta el depósito de su despacho sí lo guarda", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
@@ -279,7 +303,8 @@ describe("RegistrarDevolucionDialog — un depósito por entrega", () => {
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    expect(loGuardadoEnLaFactura().equipos[1].estadoDevolucion.retenido).toBe(50000);
+    const rana = equiposGuardados().find((equipo) => equipo.nombre === "RANA");
+    expect(rana.devolucion.valorRetenido).toBe(50000);
   });
 });
 
@@ -321,14 +346,14 @@ describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
 
     expect(await exito()).toBeInTheDocument();
 
-    const [devuelto, afuera] = loGuardadoEnLaFactura().equipos;
-    expect(devuelto.cantidadDevuelta).toBe(2);
-    expect(devuelto.estadoDevolucion.motivo).toBe("Uno llegó torcido");
+    const [devuelto, afuera] = equiposGuardados();
+    expect(devuelto.cantidadEquipos).toBe(2);
+    expect(devuelto.devolucion.motivo).toBe("Uno llegó torcido");
     // La línea que sigue afuera no volvió: no hay nada que calificar en ella.
-    expect(afuera.cantidad).toBe(3);
-    expect(afuera.estadoDevolucion).toBeUndefined();
+    expect(afuera.cantidadEquipos).toBe(3);
+    expect(afuera.devolucion).toBeUndefined();
     // Y el depósito sigue sin resolverse.
-    expect(loGuardadoEnLaFactura()["valores.depositoResuelto"]).toBeUndefined();
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toBeUndefined();
   });
 });
 
@@ -341,46 +366,54 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     expect(await exito()).toBeInTheDocument();
 
-    const equipos = loGuardadoEnLaFactura().equipos;
+    const equipos = equiposGuardados();
     expect(equipos).toHaveLength(2);
 
-    // La primera queda cerrada con las 3 que volvieron hoy.
+    // La primera queda cerrada con las 3 que volvieron hoy, y con los días que
+    // de verdad estuvieron afuera.
     expect(equipos[0]).toMatchObject({
-      cantidad: 3,
-      cantidadDevuelta: 3,
-      fechaDevolucion: HOY,
+      cantidadEquipos: 3,
+      diasAlquilados: diasDeAlquiler("2026-08-01", HOY),
     });
+    expect(equipos[0].devolucion.fechaDevolucion).toBe(HOY);
 
-    // La segunda sigue corriendo con las 2 que el cliente se quedó, y no
-    // arrastra la fecha de devolución de la otra.
-    expect(equipos[1]).toMatchObject({ cantidad: 2, cantidadDevuelta: 0 });
-    expect(equipos[1].fechaDevolucion).toBeUndefined();
+    // La segunda sigue corriendo con las 2 que el cliente se quedó, con sus
+    // días originales, y no arrastra la devolución de la otra.
+    expect(equipos[1]).toMatchObject({ cantidadEquipos: 2, diasAlquilados: 3 });
+    expect(equipos[1].devolucion).toBeUndefined();
   });
 
-  // El caso de la factura 1234: un lote de 10 gatos agregado después del alta,
-  // con su pago, su transporte y su depósito. Al devolver 4, la línea se parte
-  // — y si las dos mitades se quedan con esos cargos, la factura cuenta el
-  // pago dos veces y termina mostrando un saldo a favor que no existe.
-  it("los cargos del lote no se duplican al partir la línea", async () => {
+  // El caso de la factura 1234: un despacho de 10 gatos agregado después del
+  // alta, con su pago, su transporte y su depósito. Al devolver 4, la línea se
+  // parte — y con esos cargos ADENTRO del equipo, las dos mitades se los
+  // llevaban copiados: la factura contaba el pago dos veces y mostraba un
+  // saldo a favor que no existía.
+  it("los cargos del despacho no se pueden duplicar al partir la línea", async () => {
     const facturaConLote = {
       ...factura,
-      equipos: [
-        {
-          nombre: "GATOS METALICOS",
-          cantidad: 10,
-          dias: 10,
-          valor: 1500,
-          fechaDespacho: "2026-08-01",
-          fechaVencimiento: "2026-08-10",
-          agregadoPosteriormente: true,
-          loteId: "lote-1",
-          tipoPago: "total",
-          pagos: [{ medio: "Bancolombia", monto: 198500 }],
-          transporte: "Solo ida",
-          valorTransporte: 20000,
-          deposito: 50000,
-        },
-      ],
+      ...unaFactura({
+        numeroFactura: "1234",
+        grupos: [
+          unGrupo({
+            grupo: grupoAgregados(1),
+            fechaSolicitud: "2026-08-01",
+            pagos: [{ medio: "Bancolombia", monto: 198500 }],
+            transporte: "Solo ida",
+            valorTransporte: 20000,
+            valorDeposito: 50000,
+            equipos: [
+              unEquipo({
+                nombre: "GATOS METALICOS",
+                cantidad: 10,
+                dias: 10,
+                valorDia: 1500,
+                fechaDespacho: "2026-08-01",
+                fechaVencimiento: "2026-08-10",
+              }),
+            ],
+          }),
+        ],
+      }),
     };
 
     const { usuario } = abrir({ factura: facturaConLote });
@@ -390,24 +423,22 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     expect(await exito()).toBeInTheDocument();
 
-    const equipos = loGuardadoEnLaFactura().equipos;
-    expect(equipos).toHaveLength(2);
+    const [despacho] = loGuardadoEnLaFactura().grupos;
+    expect(despacho.equipos).toHaveLength(2);
+    expect(despacho.equipos[0].cantidadEquipos).toBe(4);
+    expect(despacho.equipos[1].cantidadEquipos).toBe(6);
 
-    // Los cargos del lote se quedan en la línea que volvió...
-    expect(equipos[0]).toMatchObject({
-      cantidad: 4,
-      pagos: [{ medio: "Bancolombia", monto: 198500 }],
-      valorTransporte: 20000,
-      deposito: 50000,
+    // Los cargos siguen ARRIBA, en el despacho, intactos y una sola vez.
+    expect(despacho.pagos).toEqual([{ medio: "Bancolombia", monto: 198500 }]);
+    expect(despacho.adicionales.valorTransporte).toBe(20000);
+    expect(despacho.adicionales.valorDeposito).toBe(50000);
+
+    // Y ninguna de las dos mitades los tiene: no hay nada que copiar.
+    despacho.equipos.forEach((equipo) => {
+      expect(equipo).not.toHaveProperty("pagos");
+      expect(equipo).not.toHaveProperty("valorTransporte");
+      expect(equipo).not.toHaveProperty("deposito");
     });
-
-    // ...y la que sigue afuera arrastra solo lo suyo.
-    expect(equipos[1].cantidad).toBe(6);
-    expect(equipos[1].pagos).toBeUndefined();
-    expect(equipos[1].tipoPago).toBeUndefined();
-    expect(equipos[1].transporte).toBeUndefined();
-    expect(equipos[1].valorTransporte).toBeUndefined();
-    expect(equipos[1].deposito).toBeUndefined();
   });
 
   it("queda anotada como devolución parcial, con cuántas unidades volvieron", async () => {
@@ -418,7 +449,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     expect(await exito()).toBeInTheDocument();
     expect(loGuardadoEnLaFactura().gestiones[0]).toMatchObject({
-      tipo: "parcial",
+      tipo: "devolucionParcial",
       unidades: 3,
     });
   });
@@ -508,10 +539,11 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    const devuelto = loGuardadoEnLaFactura().equipos.find(
-      (equipo) => Number(equipo.cantidadDevuelta) > 0,
-    );
-    expect(devuelto).toMatchObject({ cantidadDevuelta: 3, fechaDevolucion: HOY });
+    const devuelto = equiposGuardados().find((equipo) => equipo.devolucion);
+    expect(devuelto.cantidadEquipos).toBe(3);
+    expect(devuelto.devolucion.fechaDevolucion).toBe(HOY);
+    // Devolvió el mismo día que salió: se le cobra 1 día, no los 10 pactados.
+    expect(devuelto.diasAlquilados).toBe(1);
   });
 
   it("a lo que sigue afuera se le puede dar más plazo en el mismo paso", async () => {
@@ -521,7 +553,11 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     const { usuario } = abrir({
       factura: {
         ...factura,
-        equipos: [{ ...factura.equipos[0], fechaVencimiento: AYER }],
+        ...unaFactura({
+          numeroFactura: "1573",
+          valorDeposito: 100000,
+          equipos: [andamio({ fechaVencimiento: AYER })],
+        }),
       },
     });
 
@@ -531,17 +567,18 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     expect(await exito()).toBeInTheDocument();
 
-    const restante = loGuardadoEnLaFactura().equipos[1];
+    const restante = equiposGuardados()[1];
     // Los 2 días se cuentan desde hoy, y la ampliación consolida el día que ya
     // estaba vencido: mismo criterio que en AmpliarVencimientoDialog.
     expect(restante.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
     expect(restante.ampliaciones[0]).toMatchObject({
       fechaAnterior: AYER,
       fechaNueva: calcularVencimiento(HOY, 2),
-      dias: 3,
-      diasVencidos: 1,
-      diasPactados: 2,
+      diasPedidos: 2,
     });
+    // Los días que la fecha corre de verdad incluyen los ya vencidos, que se
+    // consolidan: es lo que se cobra.
+    expect(restante.ampliaciones[0].diasAmpliados).toBeGreaterThan(2);
   });
 
   it("no se puede devolver más de lo que hay afuera", async () => {
@@ -552,8 +589,9 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
-    const equipos = loGuardadoEnLaFactura().equipos;
+    const equipos = equiposGuardados();
     expect(equipos).toHaveLength(1);
-    expect(equipos[0].cantidadDevuelta).toBe(5);
+    expect(equipos[0].cantidadEquipos).toBe(5);
+    expect(equipos[0].devolucion).toBeTruthy();
   });
 });
