@@ -164,20 +164,31 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             // es una pieza flotante a pantalla completa, no una superficie.
             boxShadow: (theme) =>
               `0px 10px 30px ${alpha(theme.palette.common.black, 0.5)}`,
+            // El latido, SOLO con transform. Es la animación más cara que
+            // puede tener esta app: corre para siempre y, siendo el protector
+            // de pantalla, corre justo cuando nadie usa el kiosco — o sea la
+            // mayor parte del día.
+            //
+            // Antes también animaba el boxShadow: un halo blanco que se
+            // expandía 20px. Mover o escalar algo lo resuelve la tarjeta
+            // gráfica sola; cambiar una sombra obliga a la CPU a repintar los
+            // píxeles, 60 veces por segundo y sobre un área más grande que el
+            // botón. En un PC no se nota, en el equipo del local sí.
+            //
+            // Es el mismo criterio que ya siguen las otras cuatro animaciones
+            // infinitas del proyecto (el ripple de ListaUsuarios, el pulseDot
+            // de AdminCotizaciones, ButtonContacto y AnimatedBox): solo
+            // transform y opacity. Esta era la única que se salía.
             animation: "pulse 2s infinite",
             "@keyframes pulse": {
-              "0%": {
-                transform: "scale(1)",
-                boxShadow: "0 0 0 0 rgba(255,255,255,0.4)",
-              },
-              "70%": {
-                transform: "scale(1.05)",
-                boxShadow: "0 0 0 20px rgba(255,255,255,0)",
-              },
-              "100%": {
-                transform: "scale(1)",
-                boxShadow: "0 0 0 0 rgba(255,255,255,0)",
-              },
+              "0%": { transform: "scale(1)" },
+              "70%": { transform: "scale(1.05)" },
+              "100%": { transform: "scale(1)" },
+            },
+            // Y se apaga para quien pidió menos movimiento en su sistema,
+            // igual que las del logo de carga (ver loadingLogo.css).
+            "@media (prefers-reduced-motion: reduce)": {
+              animation: "none",
             },
           }}
         >
