@@ -65,6 +65,19 @@ export default function KioskScreensaver({ timeout = 60000 }) {
 
   if (!isActive || images.length === 0) return null;
 
+  // Las únicas fotos que hace falta tener cargadas: la que se está viendo, la
+  // ANTERIOR —que todavía se está desvaneciendo, si la quitáramos de golpe la
+  // transición se cortaría— y la SIGUIENTE, para que llegue cargada a su turno
+  // y no aparezca en blanco.
+  //
+  // Es un conjunto y no una lista porque con una o dos fotos los tres índices
+  // se repiten, y no hay que dibujar la misma dos veces.
+  const vecinas = new Set([
+    (currentIndex - 1 + images.length) % images.length,
+    currentIndex,
+    (currentIndex + 1) % images.length,
+  ]);
+
   return (
     <Box
       sx={{
@@ -79,21 +92,36 @@ export default function KioskScreensaver({ timeout = 60000 }) {
       }}
       onClick={() => setIsActive(false)}
     >
-      {images.map((url, i) => (
-        <Box
-          key={i}
-          component="img"
-          src={url}
-          sx={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transition: "opacity 1.5s ease-in-out",
-            opacity: i === currentIndex ? 1 : 0,
-          }}
-        />
-      ))}
+      {/* SOLO TRES FOTOS VIVAS a la vez (ver `vecinas`), no el catálogo
+          entero. El kiosco corre en una Raspberry Pi y cada foto a pantalla
+          completa ocupa unos 8 MB de memoria ya descomprimida: con 30 equipos
+          eran cientos de megas sostenidos todo el día, en una máquina que
+          tiene 1 GB.
+
+          Las que no están en la ventana se DESMONTAN, así el navegador puede
+          soltar su memoria. Antes estaban todas dibujadas siempre y solo
+          cambiaba cuál era visible, que para el navegador es lo mismo que
+          tenerlas todas a la vista. */}
+      {images.map((url, i) =>
+        vecinas.has(i) ? (
+          <Box
+            key={i}
+            component="img"
+            src={url}
+            // Que la decodificación no bloquee: en la Pi, decodificar una foto
+            // grande frena el dibujado de todo lo demás.
+            decoding="async"
+            sx={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transition: "opacity 1.5s ease-in-out",
+              opacity: i === currentIndex ? 1 : 0,
+            }}
+          />
+        ) : null,
+      )}
 
       <Box
         sx={{
