@@ -679,6 +679,8 @@ Tres ideas lo sostienen:
 
 El nodo `pagos` de la factura **desaparece**.
 
+**La línea que vuelve se lleva los días que realmente usó**, no los pactados: si salió y volvió el mismo día, son 1 día y no 10. No es un detalle de presentación, es plata — con 10 guardado, cualquier pantalla que haga la multiplicación de siempre cobra $60.000 donde van $6.000, y para llegar al número bueno hay que acordarse de restar aparte un crédito por los días sin usar. Ese "hay que acordarse" es el origen de casi todos los errores de plata de este proyecto; con los días ya ajustados, la multiplicación simple siempre da bien. Guardarlos no contradice la regla de no guardar conclusiones: **una línea ya devuelta no cambia nunca más**, sus días quedaron congelados el día que volvió. Los de la línea que sigue afuera sí suben solos cada medianoche, y por eso esos no se guardan.
+
 Nada se marca como "devuelto": tener el nodo `devolucion` ya lo dice, y si la devolución fue anticipada o tardía sale de comparar su fecha con la del vencimiento. Guardar esa etiqueta sería guardar una conclusión — el error que ya costó el saldo que se comía los abonos.
 
 Por el mismo motivo, **cada equipo pasa a tener estado propio** y se calcula igual que el de la factura, con su mismo vocabulario: **pendiente** (todavía no sale), **activo** (afuera y al día), **ampliación** (al día, con días agregados), **vencido** (se le pasó la fecha vigente) y **devuelto**. Se resuelven en ese orden de prioridad, y el orden no es un detalle: un equipo devuelto no figura como vencido aunque haya vuelto tarde, y uno que se pasó de su fecha ampliada es vencido, no "ampliación".
