@@ -8,11 +8,15 @@
 // No se copia el teléfono —la cuenta de cobro no lo lleva— ni el "por concepto
 // de", que lo escribe quien emite el documento.
 import {
-  calcularAmpliacionEquipo,
-  calcularAmpliacionFactura,
+  calcularEquipo,
   calcularCuentaFactura,
+  calcularDepositoTotal,
+  calcularTransporteTotal,
   obtenerFechaHoyBogota,
-  valoresFactura,
+  datosFactura,
+  equiposDe,
+  adicionalesDe,
+  grupoInicialDe,
 } from "./facturaUtils";
 
 const numero = (valor) => Number(valor) || 0;
@@ -29,13 +33,6 @@ const obtenerNombreCliente = (cliente) => {
   );
 };
 
-// Los equipos que se agregaron después del alta traen su propio depósito y
-// transporte, cargados en el primero de cada lote. Suman a los de la factura.
-const sumarDeAgregados = (equipos, campo) =>
-  equipos
-    .filter((equipo) => equipo?.agregadoPosteriormente)
-    .reduce((total, equipo) => total + numero(equipo[campo]), 0);
-
 // Un renglón de la cuenta de cobro por cada línea de equipo de la factura.
 //
 // Los días de las renovaciones se suman a los días del alquiler, así el ítem
@@ -48,48 +45,36 @@ const sumarDeAgregados = (equipos, campo) =>
 // aparte, como un renglón del resumen, para que la suma de los ítems siga
 // cuadrando con el subtotal.
 const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
-  const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
-  const cantidad = numero(equipo.cantidad);
-  // Los días que se cobran de verdad: los del alta, más los ampliados y los
-  // vencidos, menos los que devolvió sin usar. Si no se restaran, el
-  // documento cobraría días que el equipo no estuvo afuera.
-  const dias = Math.max(
-    0,
-    numero(equipo.dias) + ampliacion.dias - ampliacion.diasSinUsar,
-  );
-  const valor = numero(equipo.valor);
+  const datos = datosFactura(factura);
+  // Los días que se cobran de verdad. Ya no hay que armarlos sumando y
+  // restando: la cuenta del equipo los da hechos —lo pactado más lo vencido si
+  // sigue afuera, o los que de verdad estuvo si ya volvió—.
+  const cuenta = calcularEquipo(equipo, hoyIso);
+  const cantidad = numero(equipo.cantidadEquipos);
+  const valor = numero(equipo.valorDia);
 
   return {
     // El número de factura tiene columna propia en el documento y se repite en
     // cada equipo que venga de ella. Vacío cuando no se rotula: ahí el
     // documento no dibuja la columna.
-    factura: rotularFactura ? String(factura.numeroFactura ?? "s/n") : "",
+    factura: rotularFactura ? String(datos.numeroFactura ?? "s/n") : "",
     description: equipo.nombre || "",
     quantity: cantidad,
-    day: dias,
+    day: cuenta.dias,
     price: valor,
-    subtotal: cantidad * dias * valor,
-    fechaDespacho: equipo.fechaDespacho || factura.fecha || "",
-    fechaDevolucion: equipo.vencimientoIndefinido
-      ? hoyIso
-      : equipo.fechaVencimiento || "",
+    subtotal: cantidad * cuenta.dias * valor,
+    fechaDespacho: equipo.fechaDespacho || datos.fechaCreacion || "",
+    fechaDevolucion: equipo.devolucion?.fechaDevolucion
+      ? equipo.devolucion.fechaDevolucion
+      : equipo.vencimientoIndefinido
+        ? hoyIso
+        : equipo.fechaVencimiento || "",
   };
 };
 
 // Las facturas viejas migradas del Excel guardan los equipos como simples
 // nombres, sin cantidad ni valor. Entran igual, con el renglón en blanco para
 // que se complete a mano.
-const itemDeNombreSuelto = (nombre, factura, { rotularFactura }) => ({
-  factura: rotularFactura ? String(factura.numeroFactura ?? "s/n") : "",
-  description: nombre,
-  quantity: 0,
-  day: 0,
-  price: 0,
-  subtotal: 0,
-  fechaDespacho: factura.fecha || "",
-  fechaDevolucion: "",
-});
-
 export default function construirCuentaCobroDesdeFacturas({
   cliente,
   facturas,
@@ -104,41 +89,22 @@ export default function construirCuentaCobroDesdeFacturas({
   const items = [];
   const resumen = lista.reduce(
     (acumulado, factura) => {
-      const equipos = Array.isArray(factura.equipos) ? factura.equipos : [];
-      const sonObjetos = equipos.length > 0 && typeof equipos[0] === "object";
+      // Los equipos vienen ya en el orden de los despachos: primero el del
+      // alta y después lo que se fue agregando.
+      equiposDe(factura).forEach(({ equipo }) => {
+        items.push(itemDeEquipo(equipo, factura, opciones));
+      });
 
-      if (sonObjetos) {
-        // Igual que en el reporte: primero los del alta, después los que se
-        // agregaron a la factura más tarde.
-        const originales = equipos.filter((equipo) => !equipo.agregadoPosteriormente);
-        const agregados = equipos.filter((equipo) => equipo.agregadoPosteriormente);
-        [...originales, ...agregados].forEach((equipo) => {
-          items.push(itemDeEquipo(equipo, factura, opciones));
-        });
-      } else {
-        equipos.forEach((nombre) => {
-          items.push(itemDeNombreSuelto(nombre, factura, opciones));
-        });
-      }
-
-      const ampliacion = calcularAmpliacionFactura(factura, hoyIso);
       const cuenta = calcularCuentaFactura(factura, hoyIso);
-      const valores = valoresFactura(factura);
-      const equiposObjeto = sonObjetos ? equipos : [];
 
       return {
-        iva: acumulado.iva + (ampliacion.hay ? ampliacion.nuevoIva : numero(valores.iva)),
+        iva: acumulado.iva + cuenta.iva,
         // Lo que se descontó en las renovaciones, para restarlo una sola vez
         // al final: los ítems van a precio de lista.
-        descuento: acumulado.descuento + ampliacion.descuento,
-        deposito:
-          acumulado.deposito +
-          numero(valores.deposito) +
-          sumarDeAgregados(equiposObjeto, "deposito"),
-        transporte:
-          acumulado.transporte +
-          numero(valores.valorTransporte) +
-          sumarDeAgregados(equiposObjeto, "valorTransporte"),
+        descuento: acumulado.descuento + cuenta.descuento,
+        // El de TODOS los despachos, cada uno con el suyo.
+        deposito: acumulado.deposito + calcularDepositoTotal(factura),
+        transporte: acumulado.transporte + calcularTransporteTotal(factura),
         total: acumulado.total + cuenta.total,
         pagado: acumulado.pagado + cuenta.pagado,
         abonos: acumulado.abonos + cuenta.abonos,
@@ -160,13 +126,15 @@ export default function construirCuentaCobroDesdeFacturas({
   // El tipo de transporte no se suma: se toma el de la primera factura que lo
   // tenga, porque es un rótulo ("Ida y vuelta"), no un importe. Sin transporte
   // cobrado, el select queda en "Sin transporte" y su campo deshabilitado.
+  const tipoTransporteDe = (factura) =>
+    adicionalesDe(grupoInicialDe(factura)).transporte;
   const facturaConTransporte = lista.find((factura) => {
-    const tipo = valoresFactura(factura).transporte;
+    const tipo = tipoTransporteDe(factura);
     return tipo && tipo !== "Sin transporte";
   });
   const transporte =
     resumen.transporte > 0
-      ? valoresFactura(facturaConTransporte).transporte || "Ida y vuelta"
+      ? tipoTransporteDe(facturaConTransporte) || "Ida y vuelta"
       : "Sin transporte";
 
   return {

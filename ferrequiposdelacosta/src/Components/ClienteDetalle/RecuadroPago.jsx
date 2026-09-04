@@ -130,6 +130,27 @@ RecuadroPago.propTypes = {
   rotuloTipoPago: PropTypes.string,
 };
 
+// DE DÓNDE SALIÓ ESTA PLATA. Todo abono entra por el mismo nodo, venga de
+// donde venga, y `tipo` dice cuál fue su origen:
+//
+//   sistema   el botón Abono, repartido por la app entre las facturas con saldo
+//   cliente   el botón Abono, y el cliente pidió que fuera a esta factura
+//   agregado  sobró de lo que se pagó al agregar equipos
+//
+// Y `desdeFactura` distingue el sobrante que nació acá del que cruzó desde
+// otra factura. Solo se escribe una línea cuando hay algo que explicar: un
+// abono que el cliente hizo sobre esta factura no necesita aclaración.
+const origenDelAbono = (abono) => {
+  if (abono?.tipo === "agregado") {
+    return abono.desdeFactura
+      ? `Abono proveniente de los equipos agregados de la factura ${abono.desdeFactura}`
+      : "Abono proveniente de los equipos agregados";
+  }
+  if (abono?.tipo === "sistema") return "Repartido por el sistema entre las facturas con saldo";
+  // Una nota escrita a mano, si alguna vez la hubo.
+  return abono?.nota || "";
+};
+
 // Los abonos que se registraron después de emitida la factura.
 export function ListaAbonos({ abonos, color }) {
   if (!abonos || abonos.length === 0) return null;
@@ -154,19 +175,17 @@ export function ListaAbonos({ abonos, color }) {
             valor: formatearMoneda(Number(abono.monto) || 0),
           },
         ];
+        const origen = origenDelAbono(abono);
         return (
           <Box key={`abono-${indice}`}>
             {renderFilaDatos(color, datos)}
-            {/* Cuando el abono no lo hizo el cliente directamente sobre
-                esta factura, sino que llegó como sobrante de otra (ver
-                AgregarEquipoDialog), queda esta nota para no confundirlo. */}
-            {abono.nota && (
+            {origen && (
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}
               >
-                {abono.nota}
+                {origen}
               </Typography>
             )}
           </Box>

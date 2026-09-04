@@ -21,19 +21,16 @@
 // tamaño es el atraso, que es justo lo que hace falta saber al recibir el
 // equipo o al pactar el plazo nuevo.
 //
-// Los días salen del mismo cálculo que los COBRA (calcularAmpliacionEquipo),
+// Los días salen del mismo cálculo que los COBRA (calcularEquipo),
 // así que el diálogo no puede decir un número distinto del que termina en la
 // cuenta del cliente.
 import PropTypes from "prop-types";
 import { Box, Typography } from "@mui/material";
-import { calcularAmpliacionEquipo } from "../ClienteDetalle/facturaUtils";
+import { calcularEquipo } from "../ClienteDetalle/facturaUtils";
 import { formatearFechaLegible } from "../../Utils/formato";
 
 const PlazoEquipo = ({ equipo, hoy }) => {
-  const diasVencidos = calcularAmpliacionEquipo(
-    equipo,
-    ...(hoy ? [hoy] : []),
-  ).diasAbiertos;
+  const diasVencidos = calcularEquipo(equipo, ...(hoy ? [hoy] : [])).diasVencidos;
 
   return (
     <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>

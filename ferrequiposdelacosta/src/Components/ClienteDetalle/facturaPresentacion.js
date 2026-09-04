@@ -30,16 +30,16 @@ import EventIcon from "@mui/icons-material/Event";
 import SavingsIcon from "@mui/icons-material/Savings";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import {
-  calcularAmpliacionEquipo,
-  equipoDevueltoCompleto,
+  calcularEquipo,
+  diasDeAlquiler,
   etiquetaVencimiento,
   obtenerFechaHoyBogota,
-  obtenerHistorialVencimientos,
-} from "./facturaCalculos";
+} from "./facturaCuentas";
+import { ampliacionesDe, estaDevuelto } from "./facturaModelo";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
 
 // El nombre y el ícono de cada estado de factura. Los estados en sí, y el
-// orden en que van, viven en facturaCalculos.js (ESTADOS_FACTURA_EN_ORDEN).
+// orden en que van, viven en facturaCuentas.js (ESTADOS_FACTURA_EN_ORDEN).
 export const ESTADO_FACTURA_INFO = {
   pendiente: { label: "Pendiente", Icono: HourglassTopIcon },
   activa: { label: "Activa", Icono: AgricultureIcon },
@@ -56,15 +56,23 @@ export const ESTADO_CLIENTE_INFO = {
 };
 
 // El nombre y el ícono de cada gestión. Los tipos en sí viven en
-// facturaCalculos.js (TIPOS_GESTION), porque calcularGestionFactura los
+// facturaCuentas.js (TIPOS_GESTION), porque calcularGestionFactura los
 // necesita y no puede depender de estos íconos.
 export const GESTION_INFO = {
   sinGestionar: { label: "Sin gestionar", Icono: RadioButtonUncheckedIcon },
   sinRespuesta: { label: "Sin respuesta", Icono: PhoneMissedIcon },
   prorroga: { label: "Renovación", Icono: EventRepeatIcon },
-  parcial: { label: "Parcial", Icono: AssignmentReturnIcon },
+  devolucionParcial: { label: "Devolución parcial", Icono: AssignmentReturnIcon },
+  devolucionTotal: { label: "Devolución total", Icono: AssignmentReturnIcon },
   cobro: { label: "Cobro", Icono: PaidIcon },
 };
+
+// Las fechas de vencimiento por las que ya pasó un equipo: la que tenía antes
+// de cada ampliación. La vigente no está acá — esa la pinta su propio chip.
+const historialVencimientos = (equipo) =>
+  ampliacionesDe(equipo)
+    .map((ampliacion) => ampliacion?.fechaAnterior)
+    .filter(Boolean);
 
 // ── La historia de fechas de un equipo ─────────────────────────────────
 //
@@ -123,15 +131,11 @@ export const TRAMO_FECHAS = {
 
 export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const chips = [];
-  const devuelto = equipoDevueltoCompleto(equipo);
+  const devuelto = estaDevuelto(equipo);
   const valorPorDia =
-    (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
+    (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);
   const conValor = (monto) =>
     valorPorDia > 0 ? ` ${formatearMoneda(monto)}` : "";
-  // El menos va PEGADO al numero y no delante del simbolo: "$ -54.000" y no
-  // "-$ 54.000". Se inserta antes del primer digito para no depender de si el
-  // formateador separa el $ con un espacio comun o con uno duro.
-  const enNegativo = (texto) => texto.replace(/\d/, (digito) => `-${digito}`);
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? "" : "s"}`;
 
   // ── TRAMO 1: qué se llevó, cuándo salió, cuándo volvió ──────────────
@@ -150,33 +154,33 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     });
   }
 
-  if (Number(equipo?.dias) > 0) {
+  if (Number(equipo?.diasAlquilados) > 0) {
     chips.push({
       clave: "dias",
       tramo: TRAMO_FECHAS.TRAYECTO,
       tono: "neutro",
       Icono: EventIcon,
-      label: plural(Number(equipo.dias), "día"),
+      label: plural(Number(equipo.diasAlquilados), "día"),
     });
   }
 
-  if (Number(equipo?.valor) > 0) {
+  if (Number(equipo?.valorDia) > 0) {
     chips.push({
       clave: "valorDia",
       tramo: TRAMO_FECHAS.TRAYECTO,
       tono: "neutro",
       Icono: AttachMoneyIcon,
-      label: `${formatearMoneda(Number(equipo.valor))}/día`,
+      label: `${formatearMoneda(Number(equipo.valorDia))}/día`,
     });
   }
 
-  if (devuelto && equipo?.fechaDevolucion) {
+  if (devuelto && equipo?.devolucion?.fechaDevolucion) {
     chips.push({
       clave: "devuelto",
       tramo: TRAMO_FECHAS.TRAYECTO,
       tono: "exito",
       Icono: AssignmentReturnIcon,
-      label: `Devuelto ${formatearFechaLegible(equipo.fechaDevolucion)}`,
+      label: `Devuelto ${formatearFechaLegible(equipo.devolucion.fechaDevolucion)}`,
     });
   }
 
@@ -189,7 +193,7 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   // Con una sola ampliación dice "Vencía 05/08" —en pasado, que es lo que se
   // entiende sin explicación—. Recién si hubo varias se numeran, porque ahí sí
   // hace falta saber cuál fue primero.
-  const historial = obtenerHistorialVencimientos(equipo);
+  const historial = historialVencimientos(equipo);
   historial.forEach((fecha, indice) => {
     chips.push({
       clave: `vencimiento-${indice}`,
@@ -204,29 +208,31 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     });
   });
 
-  // Los días que se PACTARON al ampliar, sin los que corren solos: el total que
-  // devuelve el cálculo los trae sumados, y los abiertos tienen su propio chip
-  // en el tramo siguiente.
-  const ampliacion = calcularAmpliacionEquipo(equipo, hoyIso);
-  const diasPactados = ampliacion.dias - ampliacion.diasAbiertos;
-  if (diasPactados > 0) {
+  // Los días que se le AGREGARON al ampliar, sin los que corren solos: esos
+  // tienen su propio chip en el tramo siguiente.
+  const cuenta = calcularEquipo(equipo, hoyIso);
+  const diasAmpliados = ampliacionesDe(equipo).reduce(
+    (total, ampliacion) => total + (Number(ampliacion?.diasAmpliados) || 0),
+    0,
+  );
+  if (diasAmpliados > 0) {
     chips.push({
       clave: "ampliacion",
       tramo: TRAMO_FECHAS.PLAZO,
       tono: "acento",
       enCadena: true,
-      label: `+${plural(diasPactados, "día")}${conValor(ampliacion.netoPactado)}`,
+      label: `+${plural(diasAmpliados, "día")}${conValor(diasAmpliados * valorPorDia)}`,
     });
   }
 
   // Sin flecha: no es un paso de la cadena, es una condición de esos días.
-  if (ampliacion.descuento > 0) {
+  if (cuenta.descuento > 0) {
     chips.push({
       clave: "descuento",
       tramo: TRAMO_FECHAS.PLAZO,
       tono: "exito",
       Icono: SavingsIcon,
-      label: `Descuento ${formatearMoneda(ampliacion.descuento)}`,
+      label: `Descuento ${formatearMoneda(cuenta.descuento)}`,
     });
   }
 
@@ -237,7 +243,7 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       clave: "indefinido",
       tramo: TRAMO_FECHAS.PLAZO,
       tono: "indefinido",
-      enCadena: historial.length > 0 || diasPactados > 0,
+      enCadena: historial.length > 0 || diasAmpliados > 0,
       Icono: EventIcon,
       label: "Entrega indefinida — el cliente debe avisar",
     });
@@ -252,7 +258,7 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       tono: vencido ? "urgente" : venceHoy ? "alerta" : "neutro",
       // La flecha solo si hay de dónde venir: en una factura sin renovaciones
       // este chip es el único del tramo y una flecha suelta no ataría nada.
-      enCadena: historial.length > 0 || diasPactados > 0,
+      enCadena: historial.length > 0 || diasAmpliados > 0,
       Icono: vencido ? EventBusyIcon : AssignmentReturnIcon,
       label: `${vencido ? "Venció" : venceHoy ? "Vence hoy" : "Devuelve"} ${formatearFechaLegible(
         equipo.fechaVencimiento,
@@ -260,58 +266,40 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
     });
   }
 
-  // ── TRAMO 3: lo que corre solo ──────────────────────────────────────
-  if (ampliacion.diasAbiertos > 0) {
+  // ── TRAMO 3: lo que pasó con el plazo una vez cumplido ──────────────
+  if (cuenta.diasVencidos > 0) {
     chips.push({
       clave: "diasVencidos",
       tramo: TRAMO_FECHAS.VENCIDO,
       tono: "urgente",
-      label: `${plural(ampliacion.diasAbiertos, "día")} vencido${
-        ampliacion.diasAbiertos === 1 ? "" : "s"
-      }${conValor(ampliacion.netoVencido)}`,
+      label: `${plural(cuenta.diasVencidos, "día")} vencido${
+        cuenta.diasVencidos === 1 ? "" : "s"
+      }${conValor(cuenta.netoVencido)}`,
     });
   }
 
-  // El espejo del anterior: devolvió antes de la fecha y esos días no se le
-  // cobran. Va en el mismo tramo porque responde la misma pregunta —qué pasó
-  // con el plazo una vez vencido o cumplido— pero en tono de algo a favor del
-  // cliente, y con el monto en negativo para que se lea como lo que es: una
-  // resta al total, no un cargo más.
-  if (ampliacion.diasSinUsar > 0) {
-    chips.push({
-      clave: "diasSinUsar",
-      tramo: TRAMO_FECHAS.VENCIDO,
-      tono: "exito",
-      Icono: SavingsIcon,
-      label: `${plural(ampliacion.diasSinUsar, "día")} sin usar${
-        valorPorDia > 0
-          ? ` ${enNegativo(formatearMoneda(ampliacion.creditoSinUsar))}`
-          : ""
-      }`,
-    });
-  }
-
-  // El IVA sigue a la plata: si esos días no se cobran, su IVA tampoco. Va en
-  // un chip aparte y no sumado al de arriba porque son dos cifras que se miran
-  // por separado al armar la cuenta de cobro, y porque el de arriba habla de
-  // días, no de impuestos.
+  // El espejo del anterior: devolvió antes de la fecha. Sale de comparar los
+  // días que de verdad estuvo afuera —los que quedaron congelados al volver—
+  // con los que decía su fecha de vencimiento.
   //
-  // Solo para el equipo que declara su IVA. Una factura vieja migrada del
-  // Excel no lo trae, y ahí es mejor no mostrar nada que inventar un número
-  // sobre una tasa que no sabemos si se aplicó.
-  if (
-    ampliacion.diasSinUsar > 0 &&
-    ampliacion.creditoSinUsar > 0 &&
-    equipo?.aplicaIva
-  ) {
-    chips.push({
-      clave: "ivaSinUsar",
-      tramo: TRAMO_FECHAS.VENCIDO,
-      tono: "exito",
-      label: `IVA ${enNegativo(
-        formatearMoneda(ampliacion.creditoSinUsar * 0.19),
-      )}`,
-    });
+  // Va SIN monto, y es a propósito. Antes acá había un crédito en negativo,
+  // porque el total llevaba cobrados los días completos y había que
+  // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta un
+  // hecho —devolvió antes— y poner una cifra haría pensar que hay una plata a
+  // favor que no existe.
+  if (devuelto && equipo?.fechaVencimiento) {
+    const diasSinUsar =
+      diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento) -
+      (Number(equipo.diasAlquilados) || 0);
+    if (diasSinUsar > 0) {
+      chips.push({
+        clave: "diasSinUsar",
+        tramo: TRAMO_FECHAS.VENCIDO,
+        tono: "exito",
+        Icono: SavingsIcon,
+        label: `Devolvió ${plural(diasSinUsar, "día")} antes`,
+      });
+    }
   }
 
   return chips;

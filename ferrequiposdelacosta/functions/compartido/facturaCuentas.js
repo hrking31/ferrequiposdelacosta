@@ -247,6 +247,19 @@ export const equipoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
 export const equipoAlDia = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
   ["activo", "ampliacion"].includes(calcularEstadoEquipo(equipo, hoyIso));
 
+// Un equipo que volvió DESPUÉS de su fecha: esa devolución se consiguió con la
+// factura ya vencida, así que es parte de la cobranza y Seguimiento la cuenta
+// como suya.
+//
+// El que volvió en plazo no. Una factura entra a Seguimiento con los equipos
+// que QUEDARON, no con los que ya habían vuelto: mostrar esos ahí obliga a
+// quien cobra a preguntarse cuándo y por qué volvieron, y la respuesta no está
+// en esa pantalla porque no pasó ahí. Su historia vive en la ficha del cliente.
+export const equipoDevueltoEnCobranza = (equipo) =>
+  Boolean(equipo?.devolucion?.fechaDevolucion) &&
+  Boolean(equipo?.fechaVencimiento) &&
+  equipo.devolucion.fechaDevolucion > equipo.fechaVencimiento;
+
 // ── Lo que se le da a un equipo al ampliarle el plazo ──────────────────
 //
 // Cuando el cliente pide "un día más" y el equipo lleva 4 días vencidos, ese

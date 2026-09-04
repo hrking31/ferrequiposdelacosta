@@ -34,15 +34,19 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SavingsIcon from "@mui/icons-material/Savings";
 import {
-  agruparLotesAgregados,
-  equipoDevueltoCompleto,
-  listaPagos,
+  estaDevuelto,
   calcularCuentaFactura,
   calcularEstadoFactura,
   estadoEnSeguimiento,
   hayEquiposAlDia,
   movimientosFactura,
-  valoresFactura,
+  GRUPO_INICIAL,
+  datosFactura,
+  gruposDe,
+  grupoInicialDe,
+  pagosDe,
+  adicionalesDe,
+  abonosDe,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
@@ -121,10 +125,14 @@ export default function FacturaCard({
   const facturaEstadoColor =
     avatarBgPorEstado[facturaEstado] ||
     theme.palette.custom.estadoNeutro;
+  const datos = datosFactura(factura);
+  // El despacho inicial: lo que salió con el alta de la factura. Su flete, su
+  // depósito y su pago viven en él, no sueltos en la factura.
+  const grupoInicial = grupoInicialDe(factura);
+  const adicionalesInicial = adicionalesDe(grupoInicial);
   // El transporte es el tipo (ej. "Solo ida") y el monto vive aparte, en
   // valorTransporte.
-  const valores = valoresFactura(factura);
-  const transporteTipo = valores.transporte || null;
+  const transporteTipo = adicionalesInicial.transporte || null;
   // La cuenta de la factura (total, cobrado, abonado y saldo) sale toda de
   // facturaUtils: es la misma que suma el resumen del encabezado del cliente,
   // así los dos lugares dicen lo mismo. Se calcula una sola vez acá y baja
@@ -134,7 +142,7 @@ export default function FacturaCard({
   // hoy se le cobraría al cliente, no lo que decía la factura el día que se
   // emitió.
   const cuenta = calcularCuentaFactura(factura);
-  const fecha = formatearFecha(factura.fecha);
+  const fecha = formatearFecha(datos.fechaCreacion);
   // Solo importa en móvil (en PC siempre se muestra todo).
   const mostrar = (seccion) =>
     !esMovil || seccionAbierta(factura.id, seccion);
@@ -152,37 +160,33 @@ export default function FacturaCard({
         )}
       </IconButton>
     );
-  // Equipos originales (creados con la factura) vs. agregados
-  // después con el botón "Agregar equipo" — cada lote muestra su
-  // propio pago.
-  const equipos = Array.isArray(factura.equipos) ? factura.equipos : [];
-  const equiposOriginales = equipos.filter(
-    (equipo) => !equipo.agregadoPosteriormente,
+  // Los equipos del alta y los que se agregaron después con el botón
+  // "Agregar equipo". Ya no hay que separarlos con una marca en cada equipo:
+  // son grupos distintos, y cada uno muestra su propio pago.
+  const equiposOriginales = grupoInicial?.equipos ?? [];
+  const gruposAgregados = gruposDe(factura).filter(
+    (grupo) => grupo?.grupo !== GRUPO_INICIAL,
   );
-  const equiposAgregados = equipos.filter(
-    (equipo) => equipo.agregadoPosteriormente,
-  );
-  // Misma regla que los lotes agregados: con un solo equipo el bloque
+  // Misma regla que los despachos agregados: con un solo equipo el bloque
   // ocupa media grilla, con dos o más se va a todo el ancho. El "|| 1"
   // evita un repeat(0, 1fr) inválido cuando la lista viene vacía.
   const columnasOriginales = Math.min(
     equiposOriginales.length || 1,
     2,
   );
-  const pagosOriginales = listaPagos(factura);
+  const pagosOriginales = pagosDe(grupoInicial);
 
-
-  // Cuantos equipos se agregaron DE VERDAD. No es la cantidad de renglones:
-  // una devolucion parcial parte el renglon en dos —lo que volvio y lo que
+  // Cuántos equipos se agregaron DE VERDAD. No es la cantidad de renglones:
+  // una devolución parcial parte el renglón en dos —lo que volvió y lo que
   // sigue afuera— y el mismo equipo pasaba a contarse dos veces. Se cuenta por
-  // lote y nombre, que es lo que se ve como "un equipo".
+  // despacho y nombre, que es lo que se ve como "un equipo".
   const cantidadEquiposAgregados = new Set(
-    equiposAgregados.map(
-      (equipo) => `${equipo.loteId || ""}|${equipo.nombre}`,
+    gruposAgregados.flatMap((grupo) =>
+      (grupo.equipos ?? []).map((equipo) => `${grupo.grupo}|${equipo.nombre}`),
     ),
   ).size;
 
-  const lotesAgregados = agruparLotesAgregados(equiposAgregados);
+  const abonos = abonosDe(factura);
 
   // El estado no se toca a mano: sale de las fechas, de lo que se
   // devolvió y del saldo (ver calcularEstadoFactura). Para moverlo
@@ -370,7 +374,7 @@ export default function FacturaCard({
       >
         <Box>
           <Typography fontWeight="bold">
-            Factura {factura.numeroFactura ?? "s/n"}
+            Factura {datos.numeroFactura ?? "s/n"}
           </Typography>
           {/* Antes ocupaba una columna dentro del cuadro de pago. */}
           {fecha && (
@@ -500,8 +504,8 @@ export default function FacturaCard({
               {mostrar("pagoGeneral") && (
                 <RecuadroPago
                   pagos={pagosOriginales}
-                  tipoPago={factura.tipoPago}
-                  fecha={factura.fecha}
+                  tipoPago={datos.tipoPago}
+                  fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                   color={colorPago}
                 />
               )}
@@ -545,7 +549,7 @@ export default function FacturaCard({
                         key={`original-${index}`}
                         equipo={equipo}
                         color={colorEquipos}
-                        fechaPedido={factura.fecha}
+                        fechaPedido={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                       />
                     ))}
                   </Box>
@@ -555,10 +559,10 @@ export default function FacturaCard({
                       los suyos. */}
                   <CargosAdicionales
                     equipos={equiposOriginales}
-                    deposito={Number(valores.deposito) || 0}
+                    deposito={Number(adicionalesInicial.valorDeposito) || 0}
                     transporteTipo={transporteTipo}
-                    transporteMonto={Number(valores.valorTransporte) || 0}
-                    aplicaIvaFactura={Boolean(valores.aplicaIva)}
+                    transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
+                    aplicaIvaFactura={Boolean(datos.aplicaIva)}
                     abierto={seccionAbierta(factura.id, "adicionales-factura")}
                     onToggle={() =>
                       toggleSeccion(factura.id, "adicionales-factura")
@@ -569,7 +573,7 @@ export default function FacturaCard({
             </Box>
           )}
 
-          {equiposAgregados.length > 0 && (
+          {gruposAgregados.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Stack
                 direction="row"
@@ -595,7 +599,7 @@ export default function FacturaCard({
                   con sus equipos, después su pago y después sus
                   adicionales. */}
               {mostrar("equiposAgregados") &&
-                lotesAgregados.map((lote, indiceLote) => {
+                gruposAgregados.map((lote, indiceLote) => {
                   // Cuántas columnas ocupa este lote: una sola si
                   // trae un equipo, dos si trae dos o más. El ancho
                   // se le pone al lote COMPLETO —no solo a la fila de
@@ -610,11 +614,10 @@ export default function FacturaCard({
                   // momento en que se partio el renglon, que no le dice nada
                   // a nadie. El sort de JS es estable, asi que dentro de cada
                   // grupo se respeta el orden en que se cargaron.
-                  const equiposDelLote = [...lote.equipos].sort(
-                    (a, b) =>
-                      Number(equipoDevueltoCompleto(a)) -
-                      Number(equipoDevueltoCompleto(b)),
+                  const equiposDelLote = [...(lote.equipos ?? [])].sort(
+                    (a, b) => Number(estaDevuelto(a)) - Number(estaDevuelto(b)),
                   );
+                  const adicionalesLote = adicionalesDe(lote);
 
                   const columnasLote = Math.min(
                     equiposDelLote.length,
@@ -666,9 +669,9 @@ export default function FacturaCard({
                           Información de pago
                         </Typography>
                         <RecuadroPago
-                          pagos={listaPagos(lote.cabecera)}
-                          tipoPago={lote.cabecera.tipoPago}
-                          fecha={lote.cabecera.fechaAgregado}
+                          pagos={pagosDe(lote)}
+                          tipoPago={datos.tipoPago}
+                          fecha={lote.fechaSolicitud}
                           color={colorPago}
                           // "Pago inicial" hay uno solo y es el del alta de
                           // la factura. Lo de un equipo agregado se paga
@@ -693,19 +696,19 @@ export default function FacturaCard({
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
                             color={colorEquiposAgregados}
-                            fechaPedido={lote.cabecera.fechaAgregado}
+                            fechaPedido={lote.fechaSolicitud}
                           />
                         ))}
                       </Box>
 
                       <CargosAdicionales
-                        equipos={lote.equipos}
-                        deposito={Number(lote.cabecera.deposito) || 0}
-                        transporteTipo={lote.cabecera.transporte || null}
+                        equipos={lote.equipos ?? []}
+                        deposito={Number(adicionalesLote.valorDeposito) || 0}
+                        transporteTipo={adicionalesLote.transporte || null}
                         transporteMonto={
-                          Number(lote.cabecera.valorTransporte) || 0
+                          Number(adicionalesLote.valorTransporte) || 0
                         }
-                        aplicaIvaFactura={Boolean(valores.aplicaIva)}
+                        aplicaIvaFactura={Boolean(datos.aplicaIva)}
                         abierto={seccionAbierta(
                           factura.id,
                           `lote-adicionales-${indiceLote}`,
@@ -726,7 +729,7 @@ export default function FacturaCard({
           {/* Los abonos van al final de todo lo que se despachó:
               después de los equipos agregados si los hay, y si no,
               después de los equipos de la factura. */}
-          {(factura.abonos || []).length > 0 && (
+          {abonos.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Stack
                 direction="row"
@@ -750,7 +753,7 @@ export default function FacturaCard({
               </Stack>
               {mostrar("abonos") && (
                 <Box sx={{ mt: 0.5 }}>
-                  <ListaAbonos abonos={factura.abonos} color={colorAbonos} />
+                  <ListaAbonos abonos={abonos} color={colorAbonos} />
                 </Box>
               )}
             </Box>

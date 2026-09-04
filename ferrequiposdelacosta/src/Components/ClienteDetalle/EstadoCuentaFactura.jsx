@@ -22,10 +22,10 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import {
-  calcularAmpliacionFactura,
   calcularDepositoTotal,
   depositoPendiente,
-  valoresFactura,
+  calcularTransporteTotal,
+  datosFactura,
 } from "./facturaUtils";
 import { iconBtnSx } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
@@ -46,44 +46,20 @@ export default function EstadoCuentaFactura({
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const acento = theme.palette.custom.accent;
 
-  // Mismo cálculo compartido que usa Seguimiento de Clientes.
-  const ampliacionFactura = calcularAmpliacionFactura(factura);
-  const valores = valoresFactura(factura);
-  // Subtotal e IVA se muestran ya con los días ampliados sumados
-  // (menos el descuento): es lo que hoy se le cobraría al cliente,
-  // no lo que decía la factura el día que se emitió. Si la factura
-  // no traía el dato, se deja vacío como antes en vez de un cero.
+  // Subtotal e IVA son los de HOY —con los días ampliados y los vencidos ya
+  // sumados—, no los que decía la factura el día que se emitió. Tienen que
+  // serlo porque el total de la derecha también lo es: con el subtotal de la
+  // emisión, los renglones de la izquierda no cuadrarían con él.
   //
-  // Tienen que ir con la ampliación sumada porque el total de la derecha
-  // también la lleva: con el subtotal viejo, los renglones de la izquierda no
-  // cuadrarían con él.
-  const subtotal = formatearMoneda(
-    typeof valores.subtotal === "number"
-      ? ampliacionFactura.nuevoSubtotal
-      : valores.subtotal,
-  );
-  const iva = formatearMoneda(
-    typeof valores.iva === "number" ? ampliacionFactura.nuevoIva : valores.iva,
-  );
+  // Ya no hay que armarlos a mano: la misma cuenta que da el total los trae.
+  const datos = datosFactura(factura);
+  const subtotal = formatearMoneda(cuenta.subtotal);
+  const iva = formatearMoneda(datos.aplicaIva ? cuenta.iva : undefined);
   const valorTotal = formatearMoneda(cuenta.total);
-  const equiposAgregados = (
-    Array.isArray(factura.equipos) ? factura.equipos : []
-  ).filter((equipo) => equipo.agregadoPosteriormente);
 
-  // Depósito/transporte de TODA la factura = lo del lote original
-  // (fijo, no crece) + lo que haya traído cada equipo agregado.
-  const depositoAgregadosTotal = equiposAgregados.reduce(
-    (total, equipo) => total + (Number(equipo.deposito) || 0),
-    0,
-  );
-  const transporteAgregadosTotal = equiposAgregados.reduce(
-    (total, equipo) => total + (Number(equipo.valorTransporte) || 0),
-    0,
-  );
-  const depositoTotalFactura =
-    (Number(valores.deposito) || 0) + depositoAgregadosTotal;
-  const transporteTotalFactura =
-    (Number(valores.valorTransporte) || 0) + transporteAgregadosTotal;
+  // Depósito y transporte de TODA la factura: el de cada despacho, sumado.
+  const depositoTotalFactura = calcularDepositoTotal(factura);
+  const transporteTotalFactura = calcularTransporteTotal(factura);
 
   // Lo cobrado al emitir la factura más lo de cada equipo agregado
   // después, y lo que el cliente fue abonando desde entonces. Si
@@ -324,7 +300,7 @@ export default function EstadoCuentaFactura({
 
               {/* Retener plata sin decir por qué no se puede,
                 así que el motivo siempre está a la vista. */}
-              {Number(valores.depositoResuelto?.retenido) > 0 && (
+              {Number(datos.depositoResuelto?.retenido) > 0 && (
                 <Typography
                   variant="caption"
                   sx={{
@@ -335,9 +311,9 @@ export default function EstadoCuentaFactura({
                 >
                   Se retuvieron{" "}
                   {formatearMoneda(
-                    valores.depositoResuelto.retenido,
+                    datos.depositoResuelto.retenido,
                   )}{" "}
-                  del depósito: {valores.depositoResuelto.motivo}
+                  del depósito: {datos.depositoResuelto.motivo}
                 </Typography>
               )}
 

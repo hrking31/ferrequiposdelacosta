@@ -35,7 +35,7 @@ import {
 import AddCardIcon from "@mui/icons-material/AddCard";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { calcularAmpliacionEquipo } from "./facturaUtils";
+import { calcularEquipo } from "./facturaUtils";
 import { iconBtnSx, renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
@@ -101,30 +101,27 @@ const datosAdicionales = ({
   return datos;
 };
 
-// Lo que vale cada parte de un equipo, separada por concepto. Los días
-// pactados, los vencidos y los devueltos sin usar salen todos de la misma
-// cuenta —calcularAmpliacionEquipo—, que ya los expone por separado
-// justamente para que una pantalla los pueda nombrar distinto.
+// Lo que vale cada parte de un equipo, separada por concepto. Sale todo de la
+// misma cuenta —calcularEquipo—, que ya expone lo pactado y lo vencido por
+// separado justamente para que una pantalla los pueda nombrar distinto.
+//
+// Ya no hay una parte "sin usar". Un equipo que volvió antes trae en sus días
+// los que de verdad estuvo afuera, así que lo que no usó nunca entró al
+// cobro: no hay nada que restar después.
 const partesDeEquipo = (equipo, hoyIso) => {
-  const porDia = (Number(equipo?.cantidad) || 0) * (Number(equipo?.valor) || 0);
-  const ampliacion = hoyIso
-    ? calcularAmpliacionEquipo(equipo, hoyIso)
-    : calcularAmpliacionEquipo(equipo);
+  const porDia =
+    (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);
+  const cuenta = hoyIso ? calcularEquipo(equipo, hoyIso) : calcularEquipo(equipo);
 
-  // Los días vencidos se cobran al valor del día y sin descuento: es
-  // exactamente lo que la cuenta le suma al neto por cada día de más.
-  const vencidos = ampliacion.diasAbiertos * porDia;
-  // Lo que queda del neto es lo que se pactó, ya con sus descuentos
-  // aplicados. El crédito por los días sin usar sale como su propio renglón,
-  // así que acá se suma de vuelta para no restarlo dos veces.
-  const ampliados = ampliacion.neto - vencidos + ampliacion.creditoSinUsar;
+  // Lo del despacho: los días con los que salió, al valor del día.
+  const inicial = (Number(equipo?.diasAlquilados) || 0) * porDia;
 
   return {
-    inicial: (Number(equipo?.dias) || 0) * porDia,
-    ampliados,
-    vencidos,
-    // En negativo: es plata que se le devuelve al cliente, y su IVA también.
-    sinUsar: -ampliacion.creditoSinUsar,
+    inicial,
+    // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento.
+    ampliados: Math.max(0, cuenta.netoPactado - inicial),
+    // Los días vencidos se cobran al valor del día y sin descuento.
+    vencidos: cuenta.netoVencido,
   };
 };
 
@@ -152,20 +149,16 @@ export default function CargosAdicionales({
   // sola línea, la suya.
   const renglonesDeEquipo = (equipo) => {
     const partes = partesDeEquipo(equipo);
-    const nombre = `${equipo.cantidad} ${equipo.nombre}`;
+    const nombre = `${equipo.cantidadEquipos} ${equipo.nombre}`;
     const conIva = llevaIvaEquipo(equipo);
 
     return [
       {
         clave: "inicial",
         etiqueta: nombre,
-        // Lo que devolvió sin usar va acá, restando, y no en un renglón
-        // propio: no es un cargo aparte sino una corrección de lo que se le
-        // facturó al salir. Lo que queda es lo que de verdad se le cobra —si
-        // salió por 3 días y devolvió a 1, este renglón vale 1 día—. El
-        // crédito sigue a la vista en los chips del equipo, que es donde se
-        // cuenta cuántos días fueron.
-        valor: partes.inicial + partes.sinUsar,
+        // Si salió por 3 días y devolvió a 1, este renglón vale 1 día: los
+        // días que quedaron escritos al volver son los que estuvo afuera.
+        valor: partes.inicial,
       },
       {
         clave: "ampliados",
@@ -190,10 +183,7 @@ export default function CargosAdicionales({
   const ivaDeUnEquipo = (equipo) => {
     if (!llevaIvaEquipo(equipo)) return 0;
     const partes = partesDeEquipo(equipo);
-    return (
-      (partes.inicial + partes.ampliados + partes.vencidos + partes.sinUsar) *
-      IVA
-    );
+    return (partes.inicial + partes.ampliados + partes.vencidos) * IVA;
   };
 
   const ivaDeEquipos = (lista) =>
@@ -231,8 +221,7 @@ export default function CargosAdicionales({
 
   // Los renglones en el orden en que ocurrieron: primero el alta —todos los
   // equipos salieron en el mismo despacho— y después lo que fue pasando con
-  // cada uno, los días que se pactaron, los que se vencieron y lo que volvió
-  // sin usar.
+  // cada uno, los días que se pactaron y los que se vencieron.
   const conClave = (equipo, indice, renglon) => ({
     ...renglon,
     clave: `${equipo.nombre}-${indice}-${renglon.clave}`,

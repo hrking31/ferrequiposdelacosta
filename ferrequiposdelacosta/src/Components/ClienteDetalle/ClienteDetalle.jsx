@@ -40,7 +40,11 @@ import FacturaCard from "./FacturaCard";
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
 import { abrirCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
-import { calcularEstadoCliente, calcularEstadoFactura } from "./facturaUtils";
+import {
+  calcularEstadoCliente,
+  calcularEstadoFactura,
+  datosFactura,
+} from "./facturaUtils";
 import RegistrarDevolucionDialog from "../SeguimientoClientes/RegistrarDevolucionDialog";
 
 export default function ClienteDetalle() {
@@ -143,12 +147,16 @@ export default function ClienteDetalle() {
         // entera para recibir una lista vacía.
         const facturasRef = collection(db, "clientes", id, "facturas");
         const [facturasSnap, conteoCerradas] = await Promise.all([
-          getDocs(query(facturasRef, where("cerrada", "==", false))),
-          getCountFromServer(query(facturasRef, where("cerrada", "==", true))),
+          getDocs(query(facturasRef, where("factura.cerrada", "==", false))),
+          getCountFromServer(query(facturasRef, where("factura.cerrada", "==", true))),
         ]);
         const listaFacturas = facturasSnap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+          .sort((a, b) =>
+            (datosFactura(b).fechaCreacion || "").localeCompare(
+              datosFactura(a).fechaCreacion || "",
+            ),
+          );
 
         // El estado del cliente es el único que se guarda, para que la lista
         // de clientes pueda filtrar sin leer las facturas de todos. De
@@ -193,13 +201,17 @@ export default function ClienteDetalle() {
       const snap = await getDocs(
         query(
           collection(db, "clientes", id, "facturas"),
-          where("cerrada", "==", true),
+          where("factura.cerrada", "==", true),
         ),
       );
       setFacturasCerradas(
         snap.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")),
+          .sort((a, b) =>
+            (datosFactura(b).fechaCreacion || "").localeCompare(
+              datosFactura(a).fechaCreacion || "",
+            ),
+          ),
       );
       setCerradasCargadas(true);
     } catch (error) {
@@ -432,7 +444,7 @@ export default function ClienteDetalle() {
         <DialogContent>
           <DialogContentText>
             ¿Seguro que querés eliminar la factura{" "}
-            {facturaEliminando?.numeroFactura ?? "s/n"}? Esta acción no se puede
+            {datosFactura(facturaEliminando).numeroFactura ?? "s/n"}? Esta acción no se puede
             deshacer.
           </DialogContentText>
         </DialogContent>

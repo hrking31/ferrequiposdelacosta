@@ -32,20 +32,23 @@ import HistoryIcon from "@mui/icons-material/History";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import {
-  calcularAmpliacionFactura,
   calcularCuentaFactura,
-  calcularCantidadPendiente,
   calcularDepositoTotal,
-  calcularSaldoAntesDeAmpliar,
+  calcularExigible,
   calcularTransporteTotal,
   contarUnidadesVencidas,
-  equipoDevueltoCompleto,
   equipoDevueltoEnCobranza,
   equipoVencido,
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
-  valoresFactura,
+  GRUPO_INICIAL,
+  datosFactura,
+  equiposDe,
+  equiposAfuera,
+  adicionalesDe,
+  grupoInicialDe,
+  sigueAfuera,
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
@@ -368,7 +371,7 @@ export default function ClienteSeguimientoCard({
         <Stack direction="row" alignItems="center" gap={1}>
           <Chip
             variant="meta"
-            label={equipo.cantidad}
+            label={equipo.cantidadEquipos}
             size="small"
             sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accent" }}
           />
@@ -384,12 +387,12 @@ export default function ClienteSeguimientoCard({
 
   // Línea de equipo ya devuelta del todo: se muestra aparte y atenuada, para
   // no mezclarla con lo que todavía hay que seguir.
-  const renderEquipoDevuelto = (equipo, key) => (
+  const renderEquipoDevuelto = (equipo, grupo, key) => (
     <Box
       key={key}
       sx={{
         ...recuadroDeBloque(
-          equipo.agregadoPosteriormente ? colorEquiposAgregados : colorEquipos,
+          grupo?.grupo === GRUPO_INICIAL ? colorEquipos : colorEquiposAgregados,
         ),
         // Atenuado: ya no hay nada que hacer con este equipo, pero se sigue
         // viendo para saber qué se devolvió y cuándo.
@@ -399,7 +402,7 @@ export default function ClienteSeguimientoCard({
       <Stack direction="row" alignItems="center" gap={1}>
         <Chip
           variant="meta"
-          label={equipo.cantidad}
+          label={equipo.cantidadEquipos}
           size="small"
           sx={{ fontWeight: "bold", flexShrink: 0 }}
         />
@@ -411,7 +414,7 @@ export default function ClienteSeguimientoCard({
           variant="meta"
           icon={<AssignmentReturnIcon />}
           sx={{ color: "success.main", "& .MuiChip-icon": { color: "inherit" } }}
-          label={`Devuelto ${formatearFecha(equipo.fechaDevolucion) || ""}`}
+          label={`Devuelto ${formatearFecha(equipo.devolucion?.fechaDevolucion) || ""}`}
         />
       </Stack>
     </Box>
@@ -434,22 +437,7 @@ export default function ClienteSeguimientoCard({
   // tiene por qué figurar acá (ver gestionesDeSeguimiento).
   const gestiones = gestionesDeSeguimiento(factura);
 
-  // El cálculo de las ampliaciones vive en facturaUtils, compartido con
-  // ClienteDetalle y con el diálogo que las guarda: así las tres pantallas
-  // no pueden dar números distintos.
-  const ampliacion = calcularAmpliacionFactura(factura, hoy);
-
-  // Subtotal e IVA se muestran ya con los días ampliados sumados (menos el
-  // descuento): son lo que hoy se le cobraría al cliente, no lo que decía la
-  // factura el día que se emitió. Si la factura no traía el dato, se deja
-  // vacío como antes en vez de mostrar un cero.
-  const valores = valoresFactura(factura);
-  const subtotal = formatearMoneda(
-    typeof valores.subtotal === "number" ? ampliacion.nuevoSubtotal : valores.subtotal,
-  );
-  const iva = formatearMoneda(
-    typeof valores.iva === "number" ? ampliacion.nuevoIva : valores.iva,
-  );
+  const datos = datosFactura(factura);
   // Igual que el transporte: el de todos los lotes, no solo el del primero.
   const deposito = formatearMoneda(calcularDepositoTotal(factura));
 
@@ -474,17 +462,22 @@ export default function ClienteSeguimientoCard({
   // su momento tuvo el campo `estado` (ver facturaCalculos).
   const cuenta = calcularCuentaFactura(factura, hoy);
 
+  // Subtotal e IVA son los de HOY —con los días ampliados y los vencidos ya
+  // sumados—, no los que decía la factura el día que se emitió. Salen de la
+  // misma cuenta que el total, así que no pueden discrepar con él.
+  const subtotal = formatearMoneda(cuenta.subtotal);
+  const iva = formatearMoneda(datos.aplicaIva ? cuenta.iva : undefined);
   const valorTotal = formatearMoneda(cuenta.total);
   // El de TODOS los despachos, no solo el del primero: cada lote agregado sale
   // con su propio flete y la factura los cobra todos. Leyendo el campo suelto,
   // esta pantalla mostraba menos transporte del que la cuenta estaba sumando.
   const transporteMonto = formatearMoneda(calcularTransporteTotal(factura));
-  const transporteTipo = valores.transporte || null;
+  const transporteTipo = adicionalesDe(grupoInicialDe(factura)).transporte || null;
   const textoTransporte =
     transporteTipo === "Sin transporte"
       ? "Sin transporte"
       : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ");
-  const fecha = formatearFecha(factura.fecha);
+  const fecha = formatearFecha(datos.fechaCreacion);
 
   const saldoPendienteNumero = cuenta.saldoPendiente;
   const saldoPendiente = formatearMoneda(saldoPendienteNumero);
@@ -501,9 +494,7 @@ export default function ClienteSeguimientoCard({
 
   // Si le quedan equipos afuera, están en plazo: se los renovaron o todavía no
   // vencen.
-  const quedanEquiposAfuera = (factura.equipos || []).some(
-    (equipo) => typeof equipo === "object" && calcularCantidadPendiente(equipo) > 0,
-  );
+  const quedanEquiposAfuera = equiposAfuera(factura).length > 0;
 
   // Lo que se le puede reclamar HOY a una factura sin equipos vencidos.
   //
@@ -512,29 +503,25 @@ export default function ClienteSeguimientoCard({
   // así que pedírselos ahora sería cobrarle un alquiler en curso. Con todo
   // devuelto ya no queda nada por correr y se le cobra la cuenta completa.
   const saldoExigible = quedanEquiposAfuera
-    ? calcularSaldoAntesDeAmpliar(factura, hoy)
+    ? calcularExigible(factura, hoy)
     : cuenta.saldoPendiente;
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
   // indefinida (esos no tienen fecha que recordarle).
   const fechaProrroga =
-    (factura.equipos || [])
+    equiposAfuera(factura)
       .filter(
-        (equipo) =>
-          typeof equipo === "object" &&
-          calcularCantidadPendiente(equipo) > 0 &&
-          !equipo.vencimientoIndefinido &&
-          equipo.fechaVencimiento,
+        ({ equipo }) => !equipo.vencimientoIndefinido && equipo.fechaVencimiento,
       )
-      .map((equipo) => equipo.fechaVencimiento)
+      .map(({ equipo }) => equipo.fechaVencimiento)
       .sort()
       .pop() || null;
 
   const mensajeWhatsapp = construirMensajeWhatsapp({
     gestion: gestionClave,
     nombre: obtenerNombreCompleto(cliente),
-    numeroFactura: factura.numeroFactura ?? "s/n",
+    numeroFactura: datos.numeroFactura ?? "s/n",
     hoy,
     equiposPendientes: equiposVencidos,
     saldo: saldoPendienteNumero,
@@ -1012,7 +999,7 @@ export default function ClienteSeguimientoCard({
               </Box>
             )}
 
-            {!facturaPlegada(factura.id) && factura.equipos?.length > 0 && (
+            {!facturaPlegada(factura.id) && equiposDe(factura).length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
                 {/* Solo los equipos VENCIDOS que siguen afuera: son los que
                     trajeron la factura acá y los únicos que se le pueden
@@ -1020,10 +1007,12 @@ export default function ClienteSeguimientoCard({
                     ficha del cliente; acá solo harían preguntarse por qué
                     aparece algo que nadie tiene que devolver todavía. */}
                 {agruparPorVencimiento(
-                  factura.equipos.filter(
-                    (equipo) =>
-                      !equipoDevueltoCompleto(equipo) && equipoVencido(equipo, hoy),
-                  ),
+                  equiposDe(factura)
+                    .filter(
+                      ({ equipo }) =>
+                        sigueAfuera(equipo) && equipoVencido(equipo, hoy),
+                    )
+                    .map(({ equipo }) => equipo),
                   hoy,
                 ).map((grupo) => (
                   <Box key={grupo.clave}>
@@ -1075,7 +1064,9 @@ export default function ClienteSeguimientoCard({
                     consiguió cobrando. Lo devuelto en plazo no entró con esta
                     factura a Seguimiento y no se muestra acá (ver
                     equipoDevueltoEnCobranza). */}
-                {factura.equipos.some((equipo) => equipoDevueltoEnCobranza(equipo)) && (
+                {equiposDe(factura).some(({ equipo }) =>
+                  equipoDevueltoEnCobranza(equipo),
+                ) && (
                   <Box>
                     <Typography
                       variant="overline"
@@ -1091,11 +1082,14 @@ export default function ClienteSeguimientoCard({
                       Devuelto
                     </Typography>
                     <Stack spacing={0.5}>
-                      {factura.equipos
-                        .map((equipo, index) => ({ equipo, index }))
+                      {equiposDe(factura)
                         .filter(({ equipo }) => equipoDevueltoEnCobranza(equipo))
-                        .map(({ equipo, index }) =>
-                          renderEquipoDevuelto(equipo, `devuelto-${equipo.nombre}-${index}`),
+                        .map(({ equipo, grupo, indice }) =>
+                          renderEquipoDevuelto(
+                            equipo,
+                            grupo,
+                            `devuelto-${grupo.grupo}-${indice}`,
+                          ),
                         )}
                     </Stack>
                   </Box>

@@ -79,7 +79,7 @@ export default function SeguimientoClientes() {
             const facturasSnap = await getDocs(
               query(
                 collection(db, "clientes", cliente.id, "facturas"),
-                where("cerrada", "==", false),
+                where("factura.cerrada", "==", false),
               ),
             );
             const facturasAbiertas = facturasSnap.docs.map((docSnap) => ({

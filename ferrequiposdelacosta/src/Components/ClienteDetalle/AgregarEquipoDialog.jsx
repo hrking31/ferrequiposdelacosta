@@ -502,7 +502,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                   whiteSpace: "nowrap",
                 }}
               >
-                Factura {factura.numeroFactura ?? "s/n"}
+                Factura {datosDeLaFactura.numeroFactura ?? "s/n"}
               </Typography>
             )}
           </Stack>

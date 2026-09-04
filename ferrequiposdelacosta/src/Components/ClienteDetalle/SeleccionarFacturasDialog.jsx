@@ -17,6 +17,7 @@ import {
   useTheme,
 } from "@mui/material";
 import {
+  datosFactura,
   calcularCuentaFactura,
   calcularEstadoFactura,
   ESTADO_FACTURA_INFO,
@@ -135,7 +136,9 @@ export default function SeleccionarFacturasDialog({
                         />
                       </ListItemIcon>
                       <ListItemText
-                        primary={`Factura ${factura.numeroFactura ?? "s/n"} · ${formatearFechaLegible(factura.fecha) || ""}`}
+                        primary={`Factura ${datosFactura(factura).numeroFactura ?? "s/n"} · ${
+                          formatearFechaLegible(datosFactura(factura).fechaCreacion) || ""
+                        }`}
                         secondary={`${estadoInfo?.label || ""} · ${formatearMoneda(cuenta.total)} · ${saldoTexto}`}
                       />
                     </ListItemButton>

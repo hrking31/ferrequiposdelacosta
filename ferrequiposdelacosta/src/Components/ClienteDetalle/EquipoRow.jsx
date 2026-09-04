@@ -12,7 +12,7 @@ import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
 import { Box, Chip, Stack, Typography, useTheme } from "@mui/material";
 import ChipsFechasEquipo from "./ChipsFechasEquipo";
-import { calcularAmpliacionEquipo, equipoDevueltoCompleto } from "./facturaUtils";
+import { calcularEquipo, estaDevuelto } from "./facturaUtils";
 // Con alias para que se lean como lo que son acá: la moneda que deja el hueco
 // vacío si no hay número, y la fecha DD/MM/AAAA.
 import {
@@ -64,8 +64,11 @@ Cifra.propTypes = {
 export default function EquipoRow({ equipo, color, fechaPedido }) {
   const theme = useTheme();
 
-  const porDia = (Number(equipo.cantidad) || 0) * (Number(equipo.valor) || 0);
-  const subtotalEquipo = porDia * (Number(equipo.dias) || 0);
+  const porDia =
+    (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
+  // Lo que se cobró al despachar: los días con los que salió, sin lo que se
+  // le agregó después.
+  const subtotalEquipo = porDia * (Number(equipo.diasAlquilados) || 0);
 
   // La HISTORIA de la plata del equipo, en las mismas partes en que ocurrió:
   // lo que se cobró al despachar, lo que se pactó después al ampliar el plazo
@@ -78,10 +81,15 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
   // realidad $ 380.000 de una ampliación y $ 950.000 de cinco días vencidos:
   // dos hechos distintos —uno pactado, el otro no— escondidos en una cifra que
   // ya no decía de dónde salía.
-  const ampliacionEquipo = calcularAmpliacionEquipo(equipo);
+  const cuentaEquipo = calcularEquipo(equipo);
   const hayRenta = subtotalEquipo > 0;
-  const valorAmpliado = hayRenta ? ampliacionEquipo.netoPactado : 0;
-  const valorVencido = hayRenta ? ampliacionEquipo.netoVencido : 0;
+  // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento
+  // aplicado. La cuenta del equipo da lo pactado completo; acá interesa la
+  // diferencia con lo del despacho, que es lo que la ampliación agregó.
+  const valorAmpliado = hayRenta
+    ? Math.max(0, cuentaEquipo.netoPactado - subtotalEquipo)
+    : 0;
+  const valorVencido = hayRenta ? cuentaEquipo.netoVencido : 0;
 
   // Un equipo devuelto ya no tiene nada por presentarse: su cuenta está
   // cerrada. Por eso va UN solo número —lo que de verdad se le cobra por los
@@ -90,11 +98,11 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
   // veces lo mismo.
   //
   // Mientras sigue afuera se muestra la historia completa.
-  const devuelto = equipoDevueltoCompleto(equipo);
-  const valorMostrado =
-    devuelto && hayRenta
-      ? subtotalEquipo + ampliacionEquipo.neto
-      : subtotalEquipo;
+  const devuelto = estaDevuelto(equipo);
+  // Un equipo devuelto ya trae en `diasAlquilados` los días que de verdad
+  // usó, así que su cuenta neta ES el número: no hay nada que sumarle ni que
+  // restarle.
+  const valorMostrado = devuelto && hayRenta ? cuentaEquipo.neto : subtotalEquipo;
   const mostrarHistorial = !devuelto && (valorAmpliado > 0 || valorVencido > 0);
 
   // El color del RELLENO —el resplandor de adentro y el degradado—. Un equipo
@@ -155,7 +163,7 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
           <Stack direction="row" alignItems="center" gap={1}>
             <Chip
               variant="meta"
-              label={equipo.cantidad}
+              label={equipo.cantidadEquipos}
               size="small"
               sx={{
                 fontWeight: "bold",
@@ -222,14 +230,14 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                   solo; separada se lee igual que la del pedido, que es su par.
                   Sigue acá arriba y no entre los chips de fechas: ahí obligaba
                   a bajar a buscar cuándo había vuelto. */}
-              {devuelto && equipo.fechaDevolucion && (
+              {devuelto && equipo.devolucion?.fechaDevolucion && (
                 <Typography
                   component="span"
                   variant="caption"
                   color="text.secondary"
                   sx={{ ml: 0.75, whiteSpace: "nowrap" }}
                 >
-                  {formatearFecha(equipo.fechaDevolucion)}
+                  {formatearFecha(equipo.devolucion.fechaDevolucion)}
                 </Typography>
               )}
             </Box>

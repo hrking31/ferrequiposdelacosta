@@ -18,6 +18,7 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
+  datosFactura,
   obtenerGestiones,
   crearRegistroGestion,
   obtenerFechaHoyBogota,
@@ -176,7 +177,7 @@ export default function RegistrarLlamadaDialog({ open, onClose, cliente, factura
                 pestañas y la llamada queda solo en la que está abierta. */}
             {factura?.numeroFactura != null && (
               <Typography variant="caption" color="text.secondary">
-                Queda registrada en la factura N° {factura.numeroFactura}.
+                Queda registrada en la factura N° {datosFactura(factura).numeroFactura}.
               </Typography>
             )}
           </Stack>

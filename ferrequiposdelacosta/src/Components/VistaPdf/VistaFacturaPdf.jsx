@@ -2,15 +2,20 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
-  agruparLotesAgregados,
-  listaPagos,
-  sumarPagosFactura,
-  sumarAbonos,
-  calcularAmpliacionEquipo,
-  calcularAmpliacionFactura,
+  calcularEquipo,
+  calcularCuentaFactura,
+  calcularDepositoTotal,
+  calcularTransporteTotal,
   formatearFechaLegible,
   calcularEstadoFactura,
-  valoresFactura,
+  IVA,
+  GRUPO_INICIAL,
+  datosFactura,
+  gruposDe,
+  grupoInicialDe,
+  pagosDe,
+  adicionalesDe,
+  abonosDe,
   ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
@@ -60,7 +65,10 @@ const TIPOS_PAGO = {
 export default function generarFacturaPdf({ factura, cliente }) {
   // Subtotal, IVA, total, transporte y depósito viven juntos en el documento;
   // se leen por el lector compartido y no a mano (ver valoresFactura).
-  const valores = valoresFactura(factura);
+  const datos = datosFactura(factura);
+  // La cuenta de HOY: el alquiler con sus días corridos, los fletes, el
+  // depósito y lo que el cliente entregó. Es la misma que muestra la pantalla.
+  const cuenta = calcularCuentaFactura(factura);
   const doc = new jsPDF({ format: "letter" });
   const anchoHoja = doc.internal.pageSize.getWidth();
   const altoHoja = doc.internal.pageSize.getHeight();
@@ -78,7 +86,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   doc.setFontSize(9);
   doc.setTextColor(180, 180, 180);
-  doc.text(`Factura ${factura.numeroFactura ?? "s/n"}`, 200, 12, {
+  doc.text(`Factura ${datos.numeroFactura ?? "s/n"}`, 200, 12, {
     align: "right",
   });
 
@@ -86,7 +94,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
   doc.setFontSize(10);
   doc.setTextColor(...GRIS);
   doc.text(
-    `Barranquilla, ${formatearFechaLegible(factura.fecha) || ""}`,
+    `Barranquilla, ${formatearFechaLegible(datos.fechaCreacion) || ""}`,
     20,
     45,
   );
@@ -103,7 +111,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   doc.setFontSize(16);
   doc.setTextColor(...GRIS);
-  doc.text(`FACTURA ${factura.numeroFactura ?? "s/n"}`, centro, 80, {
+  doc.text(`FACTURA ${datos.numeroFactura ?? "s/n"}`, centro, 80, {
     align: "center",
   });
 
@@ -150,49 +158,52 @@ export default function generarFacturaPdf({ factura, cliente }) {
     y = doc.lastAutoTable.finalY + 8;
   };
 
-  const equipos = Array.isArray(factura.equipos) ? factura.equipos : [];
-  const sonObjetos = equipos.length > 0 && typeof equipos[0] === "object";
+  // Los despachos: el del alta primero y después los agregados, cada uno con
+  // sus equipos, su pago y sus cargos.
+  const grupoInicial = grupoInicialDe(factura);
+  const gruposAgregados = gruposDe(factura).filter(
+    (grupo) => grupo?.grupo !== GRUPO_INICIAL,
+  );
 
   // Cada equipo en su fila: cantidad, nombre (con los días ampliados y el
   // descuento como nota si los tiene), despacho y devolución en su propia
   // columna, días, valor por día y subtotal.
   const filaDeEquipo = (equipo) => {
-    const ampliacion = calcularAmpliacionEquipo(equipo);
-    const subtotal =
-      (Number(equipo.cantidad) || 0) *
-      (Number(equipo.dias) || 0) *
-      (Number(equipo.valor) || 0);
+    const cuentaEquipo = calcularEquipo(equipo);
+    const porDia =
+      (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
 
     const detalles = [equipo.nombre];
-    if (ampliacion.dias > 0) {
-      detalles.push(
-        `+${ampliacion.dias} día(s) ampliado(s): ${moneda(ampliacion.neto)}`,
-      );
+    const ampliados = cuentaEquipo.diasPactados - (Number(equipo.diasAlquilados) || 0);
+    if (ampliados > 0) {
+      detalles.push(`+${ampliados} día(s) ampliado(s): ${moneda(ampliados * porDia)}`);
     }
-    if (ampliacion.descuento > 0) {
-      detalles.push(`Descuento: ${moneda(ampliacion.descuento)}`);
+    if (cuentaEquipo.descuento > 0) {
+      detalles.push(`Descuento: ${moneda(cuentaEquipo.descuento)}`);
     }
-    // Devolvió antes de la fecha: esos días no se le cobran. Va escrito en el
-    // documento porque si no, el subtotal de la fila sale más bajo de lo que
-    // dicen los días y el valor por día, sin explicación a la vista.
-    if (ampliacion.diasSinUsar > 0) {
+    if (cuentaEquipo.diasVencidos > 0) {
       detalles.push(
-        `-${ampliacion.diasSinUsar} día(s) sin usar: -${moneda(
-          ampliacion.creditoSinUsar,
+        `+${cuentaEquipo.diasVencidos} día(s) vencido(s): ${moneda(
+          cuentaEquipo.netoVencido,
         )}`,
       );
     }
 
+    // La columna de días muestra los que se COBRAN, que para un equipo ya
+    // devuelto son los que de verdad estuvo afuera. Así los días por el valor
+    // por día vuelven a dar el subtotal de la fila, sin nota que lo explique.
     return [
-      equipo.cantidad ?? "",
+      equipo.cantidadEquipos ?? "",
       detalles.join("\n"),
       formatearFechaLegible(equipo.fechaDespacho) || "—",
-      equipo.vencimientoIndefinido
-        ? "Indefinida"
-        : formatearFechaLegible(equipo.fechaVencimiento) || "—",
-      equipo.dias ?? "",
-      moneda(equipo.valor),
-      moneda(subtotal + ampliacion.neto),
+      equipo.devolucion?.fechaDevolucion
+        ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
+        : equipo.vencimientoIndefinido
+          ? "Indefinida"
+          : formatearFechaLegible(equipo.fechaVencimiento) || "—",
+      cuentaEquipo.dias ?? "",
+      moneda(equipo.valorDia),
+      moneda(cuentaEquipo.neto),
     ];
   };
 
@@ -263,74 +274,49 @@ export default function generarFacturaPdf({ factura, cliente }) {
   // también los días que se le ampliaron, igual que en pantalla.
   const ivaDeEquipos = (lista) =>
     lista.reduce((total, equipo) => {
-      const llevaIva = equipo.aplicaIva ?? Boolean(valores.aplicaIva);
-      if (!llevaIva) return total;
-      const base =
-        (Number(equipo.cantidad) || 0) *
-          (Number(equipo.dias) || 0) *
-          (Number(equipo.valor) || 0) +
-        calcularAmpliacionEquipo(equipo).neto;
-      return total + base * 0.19;
+      const llevaIva = equipo.aplicaIva ?? Boolean(datos.aplicaIva);
+      return llevaIva ? total + calcularEquipo(equipo).neto * IVA : total;
     }, 0);
 
-  if (sonObjetos) {
-    const originales = equipos.filter((e) => !e.agregadoPosteriormente);
-    const agregados = equipos.filter((e) => e.agregadoPosteriormente);
+  // El despacho inicial y después cada tanda agregada, todos con la misma
+  // forma: los equipos, el pago de ese despacho y sus cargos.
+  const bloqueDeGrupo = (grupo, rotulo) => {
+    const equiposDelGrupo = grupo?.equipos ?? [];
+    if (equiposDelGrupo.length === 0) return;
 
-    if (originales.length > 0) {
-      y = titulo(`EQUIPOS (${originales.length})`);
-      tablaEquipos(originales);
+    const adicionales = adicionalesDe(grupo);
+    y = titulo(rotulo(equiposDelGrupo.length));
+    tablaEquipos(equiposDelGrupo);
 
-      tablaPago({
-        pagos: listaPagos(factura),
-        tipoPago: factura.tipoPago,
-        fecha: factura.fecha,
-      });
-
-      tablaAdicionales({
-        iva: ivaDeEquipos(originales),
-        deposito: Number(valores.deposito) || 0,
-        transporteTipo: valores.transporte,
-        transporteMonto: Number(valores.valorTransporte) || 0,
-      });
-    }
-
-    // Cada lote agregado va completo: sus equipos, su pago y sus cargos.
-    agruparLotesAgregados(agregados).forEach((lote, indice) => {
-      const solicitud = lote.cabecera.fechaAgregado
-        ? ` · solicitado el ${formatearFechaLegible(lote.cabecera.fechaAgregado)}`
-        : "";
-      y = titulo(
-        `EQUIPOS AGREGADOS ${indice + 1} (${lote.equipos.length})${solicitud}`,
-      );
-      tablaEquipos(lote.equipos);
-
-      tablaPago({
-        pagos: listaPagos(lote.cabecera),
-        tipoPago: lote.cabecera.tipoPago,
-        fecha: lote.cabecera.fechaAgregado,
-      });
-
-      tablaAdicionales({
-        iva: ivaDeEquipos(lote.equipos),
-        deposito: Number(lote.cabecera.deposito) || 0,
-        transporteTipo: lote.cabecera.transporte,
-        transporteMonto: Number(lote.cabecera.valorTransporte) || 0,
-      });
+    tablaPago({
+      pagos: pagosDe(grupo),
+      tipoPago: datos.tipoPago,
+      fecha: grupo.fechaSolicitud,
     });
-  } else if (equipos.length > 0) {
-    // Facturas viejas migradas del Excel: los equipos son solo nombres.
-    y = titulo(`EQUIPOS (${equipos.length})`);
-    tabla({
-      head: [["Equipo"]],
-      body: equipos.map((nombre) => [nombre]),
-      startY: y,
+
+    tablaAdicionales({
+      iva: ivaDeEquipos(equiposDelGrupo),
+      deposito: Number(adicionales.valorDeposito) || 0,
+      transporteTipo: adicionales.transporte,
+      transporteMonto: Number(adicionales.valorTransporte) || 0,
     });
-  }
+  };
+
+  bloqueDeGrupo(grupoInicial, (cantidad) => `EQUIPOS (${cantidad})`);
+
+  gruposAgregados.forEach((grupo, indice) => {
+    const solicitud = grupo.fechaSolicitud
+      ? ` · solicitado el ${formatearFechaLegible(grupo.fechaSolicitud)}`
+      : "";
+    bloqueDeGrupo(
+      grupo,
+      (cantidad) => `EQUIPOS AGREGADOS ${indice + 1} (${cantidad})${solicitud}`,
+    );
+  });
 
   // ── Abonos ─────────────────────────────────────────────────────────────
-  const abonos = Array.isArray(factura.abonos) ? factura.abonos : [];
-  const totalAbonos = sumarAbonos(abonos);
+  const abonos = abonosDe(factura);
+  const totalAbonos = cuenta.abonos;
   if (abonos.length > 0) {
     y = titulo("ABONOS");
     tabla({
@@ -351,33 +337,14 @@ export default function generarFacturaPdf({ factura, cliente }) {
   //
   // Los importes van con los días ampliados ya sumados, igual que en la
   // pantalla: el guardado en la factura es de antes de la ampliación.
-  const ampliacion = calcularAmpliacionFactura(factura);
-  const totalFactura = ampliacion.hay
-    ? ampliacion.nuevoTotal
-    : Number(valores.valorTotal) || 0;
-  const subtotal = ampliacion.hay
-    ? ampliacion.nuevoSubtotal
-    : Number(valores.subtotal) || 0;
-  const iva = ampliacion.hay ? ampliacion.nuevoIva : Number(valores.iva) || 0;
-
-  const equiposAgregados = sonObjetos
-    ? equipos.filter((e) => e.agregadoPosteriormente)
-    : [];
-  const sumarDeAgregados = (campo) =>
-    equiposAgregados.reduce(
-      (total, equipo) => total + (Number(equipo[campo]) || 0),
-      0,
-    );
-  const depositoTotal =
-    (Number(valores.deposito) || 0) + sumarDeAgregados("deposito");
-  const transporteTotal =
-    (Number(valores.valorTransporte) || 0) + sumarDeAgregados("valorTransporte");
-
-  const pagadoEnFactura = sumarPagosFactura(factura);
-
-  const recibido = pagadoEnFactura + totalAbonos;
-  const saldoPendiente = Math.max(0, totalFactura - recibido);
-  const saldoAFavor = Math.max(0, recibido - totalFactura);
+  const totalFactura = cuenta.total;
+  const subtotal = cuenta.subtotal;
+  const iva = cuenta.iva;
+  const depositoTotal = calcularDepositoTotal(factura);
+  const transporteTotal = calcularTransporteTotal(factura);
+  const pagadoEnFactura = cuenta.pagado;
+  const saldoPendiente = cuenta.saldoPendiente;
+  const saldoAFavor = cuenta.saldoAFavor;
 
   const filasTotales = [];
   if (subtotal > 0) filasTotales.push(["Subtotal", moneda(subtotal)]);
@@ -454,5 +421,5 @@ export default function generarFacturaPdf({ factura, cliente }) {
     });
   }
 
-  doc.save(`Factura-${factura.numeroFactura ?? "s-n"}.pdf`);
+  doc.save(`Factura-${datos.numeroFactura ?? "s-n"}.pdf`);
 }
