@@ -649,11 +649,13 @@ En Firestore agrupar no ahorra ni una lectura —el documento se trae entero igu
 
 El problema no es el desorden: es que **los pagos no tienen dueño**. El del alta vive en la factura y el de cada lote agregado en su equipo, así que no se puede afirmar que un equipo esté saldado y otro no. Sin eso, cartera no puede sacar de la lista al equipo que ya se pagó y seguir cobrando el que no.
 
-El modelo nuevo baja la plata al equipo:
+La regla de partida: **nada suelto en la raíz del documento.** Abrir una factura en Firebase tiene que ser leer cuatro nombres, no veinte campos en fila. Y dentro de esos cuatro, el modelo nuevo baja la plata al equipo:
 
 ```
-FACTURA ── numeroFactura, fechaCreacion, tipoPago,
-│          aplicaIva, subtotal, valorIva, total, cerrada
+documento de la factura
+│
+├── FACTURA{}  ── numeroFactura, fechaCreacion, tipoPago,
+│                 aplicaIva, subtotal, valorIva, total, cerrada
 │
 ├── EQUIPOS[] ── loteId, nombre, cantidadEquipos, valorDia,
 │   │            diasAlquilados, fechaDespacho, fechaVencimiento
@@ -670,11 +672,13 @@ FACTURA ── numeroFactura, fechaCreacion, tipoPago,
 
 Tres ideas lo sostienen:
 
-- **La factura se queda solo con lo suyo.** Su número, su fecha y la foto de lo que se emitió. El transporte, el depósito y los pagos bajan al equipo que los generó, porque es ahí donde se cobran.
+- **La factura se queda solo con lo suyo**, y dentro de su propio nodo: el número, la fecha y la foto de lo que se emitió. El transporte, el depósito y los pagos bajan al equipo que los generó, porque es ahí donde se cobran.
 - **`loteId` en todos los equipos**, no solo en los agregados. Un despacho es un grupo de equipos que salió el mismo día, y esa es la unidad real: el flete y el depósito se cobran por despacho, no por equipo.
 - **Una devolución parcial parte la línea en dos**, ambas con el mismo `loteId`. Los que volvieron dejan de sumar días; los que siguen afuera continúan. Nada se pisa y nada se pierde.
 
 El nodo `pagos` de la factura **desaparece**.
+
+`cerrada` es el único de esos campos que se consulta contra la base —es como se piden "las facturas abiertas"—, así que pasa a nombrarse `factura.cerrada`. Funciona sin declarar ningún índice: Firestore indexa solo los campos que están dentro de un nodo. Los que están dentro de una **lista** no, y por eso nada que se consulte puede vivir en `equipos[]`.
 
 Lo que queda por resolver son **los abonos**: la plata que el cliente entrega después sigue sin dueño, y es lo único que todavía impide decir "este equipo está saldado".
 
