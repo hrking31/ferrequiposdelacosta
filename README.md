@@ -447,6 +447,8 @@ Este estado sí se guarda en la base, por una razón concreta: la lista de clien
 
 ### 6. Los abonos: un pago, varias facturas
 
+**El abono se registra desde cartera**, no desde la ficha del cliente. El momento real en que entra la plata es la llamada: se marca al cliente, se le pacta el plazo y en la misma conversación se le pide el abono. Con el botón solo en la ficha había que salir de cartera, buscar al cliente y volver.
+
 Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte sola** entre las que tienen saldo, con un orden que no es el cronológico:
 
 1. Primero **la que más debe**. Si dos deben lo mismo, la más antigua.
@@ -456,6 +458,14 @@ Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte 
 **Ejemplo.** Don Pedro debe $300.000 en una factura y $500.000 en otra, y entrega $600.000. Se salda primero la de $500.000, y los $100.000 restantes van contra la otra, que queda debiendo $200.000.
 
 Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien no debe nada.
+
+#### Salvo que el cliente diga otra cosa
+
+Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para la 1234". Cada factura de la lista tiene su casilla, pegada al número, que es justo lo que él nombra por teléfono. Marcando una o varias, el abono va solo a esas —con el mismo criterio de mayor saldo primero— y el sobrante **le queda a favor a la que él eligió**: no se le pasa a otra, porque él dijo dónde iba esa plata.
+
+Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostrando **todas** las facturas con saldo, porque hay que poder elegir entre ellas y ver cómo queda cada una; y un renglón dice **quién está decidiendo ahora mismo**, porque una lista de casillas vacías se lee como "no va a ninguna parte" cuando en realidad ese es el caso normal.
+
+Cada abono guarda de dónde salió esa decisión: **`sistema`** cuando repartió la app, **`cliente`** cuando lo pidió él, y **`agregado`** cuando sobró de pagar unos equipos agregados (con `desdeFactura`, si el sobrante cruzó desde otra). No cambia ninguna cuenta —para el saldo los tres son un abono igual— pero un mes después permite explicar por qué esa plata terminó ahí, que es lo que no se podía cuando el reparto automático era la única forma.
 
 **Un pago puede repartirse entre varios medios** —parte por Bancolombia, parte en efectivo— y cada uno queda registrado por separado. Los medios disponibles son Nequi, Nequi A, Bancolombia, Daviplata y efectivo; los dos Nequi son cuentas de personas distintas del negocio, y por eso van separados.
 
