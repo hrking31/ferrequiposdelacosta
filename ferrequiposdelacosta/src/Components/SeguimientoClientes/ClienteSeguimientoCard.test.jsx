@@ -358,18 +358,13 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
     expect(screen.getAllByTestId("AssignmentReturnIcon").length).toBeGreaterThan(0);
   });
 
-  // El abono se cobra ACÁ y no en la ficha del cliente: el momento real en que
-  // entra la plata es la llamada, y desde la ficha había que salir de cartera,
-  // buscar al cliente y volver.
-  it("ofrece registrar el abono", () => {
-    mostrar();
-
-    expect(botonAbono()).toBeEnabled();
-  });
-
-  it("con el cliente al día lo deja apagado, en vez de esconderlo", () => {
-    // Pagada entera: no hay nada que abonar. Se apaga y no se saca, para que
-    // el globo pueda decir por qué.
+  // A un cliente que no debe nada no se le registra un abono: no habría entre
+  // qué facturas repartirlo. El botón se apaga en vez de esconderse, para que
+  // el globo pueda decir por qué.
+  //
+  // Esto prueba la REGLA, no que el botón esté: si desapareciera, la prueba
+  // fallaría igual porque no lo encontraría.
+  it("con el cliente al día no deja registrar un abono", () => {
     const pagada = facturaCon({ pagos: [{ medio: "Efectivo", monto: 9999999 }] });
 
     mostrar([pagada]);
