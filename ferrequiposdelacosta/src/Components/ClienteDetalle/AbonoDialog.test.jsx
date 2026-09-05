@@ -151,6 +151,89 @@ describe("AbonoDialog", () => {
     expect(alCerrar).toHaveBeenCalled();
   });
 
+// Por defecto reparte la app, pero el cliente puede pedir otra cosa —"esto es
+// para la 1234"— y entonces manda él. Es una decisión de plata: si se ignora,
+// el abono termina en una factura que el cliente no nombró.
+describe("AbonoDialog — cuando el cliente elige la factura", () => {
+  const marcar = (usuario, numero) =>
+    usuario.click(screen.getByLabelText(`Abonar a la factura ${numero}`));
+
+  const cargarAbono = async (usuario, monto) => {
+    await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+    await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    await usuario.type(screen.getByLabelText("Valor del abono"), monto);
+  };
+
+  it("va entero a la que se marcó, aunque otra deba más", async () => {
+    const { usuario } = abrir();
+
+    // La 1235 debe $300.000 y la 1234 debe $500.000. Sin marcar nada, estos
+    // $600.000 saldarían primero la grande; el cliente pidió la chica.
+    await marcar(usuario, 1235);
+    await cargarAbono(usuario, "600000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    expect(updateSimulado).toHaveBeenCalledTimes(1);
+    const [ruta, cambios] = updateSimulado.mock.calls[0];
+    expect(ruta).toBe("clientes/cli1/facturas/chica");
+    expect(cambios.abonos[0].monto).toBe(600000);
+    // Y queda escrito que lo decidió él, no el reparto.
+    expect(cambios.abonos[0].tipo).toBe("cliente");
+  });
+
+  it("con dos marcadas reparte solo entre esas, de mayor a menor saldo", async () => {
+    const { usuario } = abrir({
+      facturas: [
+        ...facturas,
+        facturaQueDebe({ id: "tercera", numero: 1236, monto: 900000 }),
+      ],
+    });
+
+    await marcar(usuario, 1234);
+    await marcar(usuario, 1235);
+    await cargarAbono(usuario, "600000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    // La tercera es la que más debe, pero no se marcó: no recibe nada.
+    expect(updateSimulado).toHaveBeenCalledTimes(2);
+    const rutas = updateSimulado.mock.calls.map(([ruta]) => ruta);
+    expect(rutas).toEqual([
+      "clientes/cli1/facturas/grande",
+      "clientes/cli1/facturas/chica",
+    ]);
+    expect(updateSimulado.mock.calls[0][1].abonos[0].monto).toBe(500000);
+    expect(updateSimulado.mock.calls[1][1].abonos[0].monto).toBe(100000);
+  });
+
+  it("desmarcar todo vuelve al reparto automático", async () => {
+    const { usuario } = abrir();
+
+    await marcar(usuario, 1235);
+    await marcar(usuario, 1235);
+    await cargarAbono(usuario, "600000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    // Las dos reciben, empezando por la que más debe, y el tipo vuelve a decir
+    // que lo decidió la app.
+    expect(updateSimulado).toHaveBeenCalledTimes(2);
+    expect(updateSimulado.mock.calls[0][1].abonos[0].tipo).toBe("sistema");
+  });
+
+  it("lo que sobra queda a favor de la que el cliente eligió", async () => {
+    const { usuario } = abrir();
+
+    // Pidió que fuera a la chica, que debe $300.000, y entregó $400.000.
+    await marcar(usuario, 1235);
+    await cargarAbono(usuario, "400000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    // No se le pasa el sobrante a la otra: él dijo dónde iba esta plata.
+    expect(updateSimulado).toHaveBeenCalledTimes(1);
+    expect(updateSimulado.mock.calls[0][1].abonos[0].monto).toBe(400000);
+  });
+});
+
+describe("AbonoDialog — lo que ya tenía", () => {
   it("conserva los abonos que la factura ya tenía en vez de pisarlos", async () => {
     const abonoViejo = {
       fecha: "2026-08-01",
@@ -174,4 +257,5 @@ describe("AbonoDialog", () => {
     expect(cambios.abonos[0]).toEqual(abonoViejo);
     expect(cambios.abonos[1].monto).toBe(10000);
   });
+});
 });

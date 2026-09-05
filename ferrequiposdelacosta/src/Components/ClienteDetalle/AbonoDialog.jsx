@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Checkbox,
   TextField,
   FormControl,
   InputLabel,
@@ -19,6 +20,7 @@ import {
   useTheme,
 } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -39,15 +41,30 @@ const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 
 // Registra un pago que el cliente consigna después de facturar, y que puede
 // alcanzar para varias facturas a la vez: el usuario ingresa un solo valor
-// (una sola fecha, un solo medio) y acá se reparte solo entre las facturas
-// que todavía tienen saldo. Se le da primero a la de MÁS saldo hasta
-// saldarla, y si sobra se sigue con la siguiente en ese orden; si el abono
-// alcanza para saldar todas, lo que sobre queda como saldo a favor en la
-// última que se tocó (la de menor saldo).
+// —una sola fecha, un solo medio— y acá se decide a cuáles va.
+//
+// ── QUIÉN DECIDE A QUÉ FACTURA VA ─────────────────────────────────────
+//
+// Por defecto lo decide la app: reparte entre TODAS las que tengan saldo,
+// empezando por la que más debe, y si sobra sigue con la siguiente. Si el
+// abono alcanza para saldarlas todas, lo que sobre queda como saldo a favor en
+// la última que se tocó.
+//
+// Pero el cliente puede pedir otra cosa —"esto es para la 1234"—, y entonces
+// manda él: se marcan las facturas que dijo y el abono se reparte solo entre
+// esas, con el mismo criterio de mayor saldo primero.
+//
+// La diferencia queda escrita en el abono: `tipo: "sistema"` cuando repartió la
+// app, `tipo: "cliente"` cuando lo pidió él. No cambia ninguna cuenta —para el
+// saldo los dos son un abono igual— pero deja explicar después por qué esa
+// plata terminó ahí, que es justo lo que no se podía cuando el reparto era la
+// única forma.
 export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonado }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const [form, setForm] = useState(ESTADO_INICIAL);
+  // Las facturas que el cliente eligió. Vacío = la app reparte.
+  const [elegidas, setElegidas] = useState([]);
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
@@ -59,6 +76,10 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
     // siguiente— y un pago recibido a las 4 de la tarde quedaba fechado
     // mañana.
     setForm({ ...ESTADO_INICIAL, fecha: obtenerFechaHoyBogota() });
+    // Cada abono arranca sin nada elegido, o sea en automático: es lo que pasa
+    // casi siempre, y dejar marcada la elección del abono anterior mandaría
+    // este a una factura que nadie nombró.
+    setElegidas([]);
     setErrors({});
   }, [open]);
 
@@ -71,12 +92,33 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
 
   const montoNuevo = Number(form.monto) || 0;
 
-  // La simulación del reparto: a cada factura, en el orden de más a menos
-  // saldo, se le asigna lo que le falta hasta saldarla. La última que llega a
-  // recibir algo se lleva TODO lo que quede del abono, así que si sobra
-  // después de saldar a todas, ese sobrante queda ahí como saldo a favor en
+  // Adónde va este abono: a las que el cliente eligió, o a todas si no eligió
+  // ninguna. El orden lo puso `ordenarFacturasConSaldo` y se respeta: mayor
+  // saldo primero, también dentro de las elegidas.
+  const loEligioElCliente = elegidas.length > 0;
+  const destinos = loEligioElCliente
+    ? facturasConSaldo.filter(({ factura }) => elegidas.includes(factura.id))
+    : facturasConSaldo;
+
+  // La simulación del reparto: a cada factura destino, en el orden de más a
+  // menos saldo, se le asigna lo que le falta hasta saldarla. La última que
+  // llega a recibir algo se lleva TODO lo que quede del abono, así que si
+  // sobra después de saldarlas, ese sobrante queda ahí como saldo a favor en
   // vez de perderse.
-  const reparto = repartirEntreFacturas(facturasConSaldo, montoNuevo);
+  const reparto = repartirEntreFacturas(destinos, montoNuevo);
+
+  // Para dibujar: la lista de abajo muestra TODAS las facturas con saldo —hay
+  // que poder elegir entre ellas— pero solo las destino reciben algo.
+  const aplicadoEn = new Map(
+    reparto.map(({ factura, aplicado }) => [factura.id, aplicado]),
+  );
+
+  const alternarElegida = (facturaId) =>
+    setElegidas((previas) =>
+      previas.includes(facturaId)
+        ? previas.filter((id) => id !== facturaId)
+        : [...previas, facturaId],
+    );
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -112,10 +154,10 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
             fecha: form.fecha,
             medio: form.medio,
             monto: aplicado,
-            // Lo repartio la app entre las facturas con saldo. Cuando el
-            // cliente elija a cual va —todavia no esta hecho— ese abono se
-            // guardara con tipo "cliente".
-            tipo: "sistema",
+            // De dónde salió la decisión de que fuera a ESTA factura: el
+            // cliente lo pidió, o lo repartió la app entre las que tenían
+            // saldo.
+            tipo: loEligioElCliente ? "cliente" : "sistema",
           },
         ];
         // Solo los abonos: el saldo ya no se guarda, se calcula al mostrarlo
@@ -240,22 +282,63 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
                 Facturas con saldo
               </Typography>
 
+              {/* Quién está decidiendo ahora mismo. Sin esto, una lista con
+                  casillas sin marcar se lee como "no va a ninguna". */}
+              {facturasConSaldo.length > 0 && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
+                >
+                  {loEligioElCliente ? (
+                    `Va solo a ${
+                      elegidas.length === 1
+                        ? "la factura marcada"
+                        : `las ${elegidas.length} facturas marcadas`
+                    }`
+                  ) : (
+                    <>
+                      <AutoAwesomeIcon sx={{ fontSize: 14 }} />
+                      Se reparte solo, de mayor a menor saldo. Marcá una factura
+                      si el cliente pidió que fuera a esa.
+                    </>
+                  )}
+                </Typography>
+              )}
+
               {facturasConSaldo.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   Este cliente no tiene facturas con saldo pendiente.
                 </Typography>
               ) : (
                 <Paper variant="totales">
-                  {reparto.map(({ factura, cuenta, aplicado }) => {
+                  {facturasConSaldo.map(({ factura, cuenta }) => {
+                    const aplicado = aplicadoEn.get(factura.id) ?? 0;
                     const quedaSaldo = Math.max(0, cuenta.saldoPendiente - aplicado);
                     const quedaAFavor = Math.max(0, aplicado - cuenta.saldoPendiente);
+                    const elegida = elegidas.includes(factura.id);
 
                     return (
                       <Box key={factura.id}>
                         <Box className="fila total">
-                          <Typography variant="body2">
-                            Factura {datosFactura(factura).numeroFactura ?? "s/n"}
-                          </Typography>
+                          <Stack direction="row" alignItems="center" gap={0.5}>
+                            {/* La casilla va pegada al número de la factura,
+                                que es lo que el cliente nombra por teléfono. */}
+                            <Checkbox
+                              size="small"
+                              checked={elegida}
+                              onChange={() => alternarElegida(factura.id)}
+                              inputProps={{
+                                "aria-label": `Abonar a la factura ${
+                                  datosFactura(factura).numeroFactura ?? "s/n"
+                                }`,
+                              }}
+                              sx={{ p: 0.25, color: "inherit" }}
+                            />
+                            <Typography variant="body2">
+                              Factura {datosFactura(factura).numeroFactura ?? "s/n"}
+                            </Typography>
+                          </Stack>
                           <Typography variant="body2">
                             {formatearMoneda(cuenta.total)}
                           </Typography>
