@@ -44,7 +44,11 @@ import {
   gruposDe,
   pagosDe,
   sigueAfuera,
-} from "./facturaModelo";
+// Con la extensión .js, y es obligatorio: este archivo viaja como copia al
+// servidor, y allá lo carga Node directamente. Node exige la extensión en los
+// imports relativos; Vite la completa solo, así que sin ella funciona en la
+// app y el despliegue de las funciones falla.
+} from "./facturaModelo.js";
 
 // Medios de pago que maneja la empresa (Nequi y Nequi A son cuentas Nequi
 // distintas, de dos personas diferentes).

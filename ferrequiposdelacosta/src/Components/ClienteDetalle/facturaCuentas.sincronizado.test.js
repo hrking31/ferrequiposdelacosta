@@ -45,7 +45,7 @@ describe("los archivos compartidos con el servidor", () => {
     // Lo único que pueden importarse es entre ellos: las cuentas leen el
     // documento a través del modelo, y por eso los dos viajan juntos.
     const copia = readFileSync(rutaDestino(archivo), "utf8");
-    const permitidos = ARCHIVOS.map((nombre) => `./${nombre.replace(/\.js$/, "")}`);
+    const permitidos = ARCHIVOS.map((nombre) => `./${nombre}`);
 
     const externos = (copia.match(/from\s+"([^"]+)"/g) || [])
       .map((linea) => linea.replace(/^from\s+"|"$/g, ""))
