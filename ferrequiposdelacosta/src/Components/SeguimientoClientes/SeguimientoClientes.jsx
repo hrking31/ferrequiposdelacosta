@@ -90,7 +90,14 @@ export default function SeguimientoClientes() {
             const facturas = facturasAbiertas.filter((factura) =>
               facturaEnSeguimiento(factura, hoy),
             );
-            return facturas.length > 0 ? { cliente, facturas } : null;
+            // `facturas` son las que están en cartera, que es lo que la
+            // tarjeta muestra. `facturasAbiertas` van igual porque el abono se
+            // reparte entre TODAS las que tienen saldo, estén en cartera o no:
+            // con las de cartera nada más, un cliente que entrega de más
+            // dejaría sin tocar una factura vigente que también debe.
+            return facturas.length > 0
+              ? { cliente, facturas, facturasAbiertas }
+              : null;
           }),
         );
 
@@ -234,11 +241,12 @@ export default function SeguimientoClientes() {
           </Typography>
         ) : (
           <Stack spacing={2.5}>
-            {visibles.map(({ cliente, facturas }) => (
+            {visibles.map(({ cliente, facturas, facturasAbiertas }) => (
               <ClienteSeguimientoCard
                 key={cliente.id}
                 cliente={cliente}
                 facturas={facturas}
+                facturasConSaldo={facturasAbiertas}
                 hoy={obtenerFechaHoyBogota()}
                 onEquiposActualizados={() => fetchSeguimiento(true)}
               />

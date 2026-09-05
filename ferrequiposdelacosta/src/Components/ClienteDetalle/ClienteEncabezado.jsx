@@ -20,7 +20,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import BadgeIcon from "@mui/icons-material/Badge";
 import BusinessIcon from "@mui/icons-material/Business";
 import ConstructionIcon from "@mui/icons-material/Construction";
@@ -71,7 +70,6 @@ export default function ClienteEncabezado({
   hayFacturasParaReporte,
   onVolver,
   onCrearFactura,
-  onAbonar,
   onDescargarReporte,
   onPasarACuentaCobro,
   onEditarCliente,
@@ -181,31 +179,10 @@ export default function ClienteEncabezado({
         </IconButton>
       </Tooltip>
 
-      {/* Un solo botón para todo el cliente: el abono se reparte solo entre
-          las facturas que tengan saldo (ver AbonoDialog). El span es porque
-          un botón deshabilitado no emite eventos de mouse y sin él el globo
-          de ayuda no aparece. */}
-      <Tooltip
-        title={
-          cuentaCliente.saldoPendiente > 0
-            ? "Registrar abono"
-            : "El cliente no tiene saldo pendiente"
-        }
-      >
-        <span>
-          <IconButton
-            size="small"
-            disabled={cuentaCliente.saldoPendiente === 0}
-            onClick={onAbonar}
-            sx={{
-              ...botonEncabezadoSx,
-              "&.Mui-disabled": { color: "action.disabled" },
-            }}
-          >
-            <AttachMoneyIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
+      {/* EL ABONO YA NO ESTÁ ACÁ: se registra desde Seguimiento de cobro.
+          El momento real en que entra la plata es la llamada, y con el botón
+          acá había que salir de cartera, buscar al cliente y volver. Ver
+          ClienteSeguimientoCard. */}
 
       {/* El span es necesario para que el tooltip funcione con el botón
           deshabilitado: un botón así no emite eventos de mouse. */}
@@ -561,7 +538,6 @@ ClienteEncabezado.propTypes = {
   hayFacturasParaReporte: PropTypes.bool,
   onVolver: PropTypes.func.isRequired,
   onCrearFactura: PropTypes.func.isRequired,
-  onAbonar: PropTypes.func.isRequired,
   onDescargarReporte: PropTypes.func.isRequired,
   onPasarACuentaCobro: PropTypes.func.isRequired,
   onEditarCliente: PropTypes.func.isRequired,

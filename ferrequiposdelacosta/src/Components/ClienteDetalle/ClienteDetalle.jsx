@@ -32,7 +32,6 @@ import { invalidarCopiaClientes } from "../ListaClientes/clientesCache";
 import FacturaFormDialog from "./FacturaFormDialog";
 import EntregarSaldoDialog from "./EntregarSaldoDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
-import AbonoDialog from "./AbonoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
 import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
 import ClienteEncabezado from "./ClienteEncabezado";
@@ -74,7 +73,6 @@ export default function ClienteDetalle() {
   const [reporteOpen, setReporteOpen] = useState(false);
   const [cuentaCobroOpen, setCuentaCobroOpen] = useState(false);
   const [facturaAgregarEquipo, setFacturaAgregarEquipo] = useState(null);
-  const [abonoOpen, setAbonoOpen] = useState(false);
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
@@ -292,7 +290,6 @@ export default function ClienteDetalle() {
         hayFacturasParaReporte={facturasParaReporte.length > 0}
         onVolver={() => navigate("/vistaclientes")}
         onCrearFactura={() => setCrearFacturaOpen(true)}
-        onAbonar={() => setAbonoOpen(true)}
         onDescargarReporte={() => setReporteOpen(true)}
         onPasarACuentaCobro={() => setCuentaCobroOpen(true)}
         onEditarCliente={() => setEditarOpen(true)}
@@ -426,14 +423,6 @@ export default function ClienteDetalle() {
         factura={facturaAgregarEquipo}
         facturas={facturas}
         onAgregado={() => fetchCliente(true)}
-      />
-
-      <AbonoDialog
-        open={abonoOpen}
-        onClose={() => setAbonoOpen(false)}
-        cliente={cliente}
-        facturas={facturas}
-        onAbonado={() => fetchCliente(true)}
       />
 
       <Dialog

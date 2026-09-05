@@ -149,6 +149,9 @@ const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
 const botonWhatsapp = () =>
   screen.getAllByTestId("WhatsAppIcon")[0].closest("button");
 
+const botonAbono = () =>
+  screen.getAllByTestId("AttachMoneyIcon")[0].closest("button");
+
 // Las facturas arrancan plegadas —de un cliente con varias se ve la lista de un
 // vistazo—, así que el detalle de equipos ni se dibuja hasta desplegarla. Sin
 // esto, una prueba que busca lo que NO debe aparecer pasa siempre.
@@ -353,5 +356,24 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
     expect(screen.getAllByTestId("PhoneIcon").length).toBeGreaterThan(0);
     expect(screen.getAllByTestId("UpdateIcon").length).toBeGreaterThan(0);
     expect(screen.getAllByTestId("AssignmentReturnIcon").length).toBeGreaterThan(0);
+  });
+
+  // El abono se cobra ACÁ y no en la ficha del cliente: el momento real en que
+  // entra la plata es la llamada, y desde la ficha había que salir de cartera,
+  // buscar al cliente y volver.
+  it("ofrece registrar el abono", () => {
+    mostrar();
+
+    expect(botonAbono()).toBeEnabled();
+  });
+
+  it("con el cliente al día lo deja apagado, en vez de esconderlo", () => {
+    // Pagada entera: no hay nada que abonar. Se apaga y no se saca, para que
+    // el globo pueda decir por qué.
+    const pagada = facturaCon({ pagos: [{ medio: "Efectivo", monto: 9999999 }] });
+
+    mostrar([pagada]);
+
+    expect(botonAbono()).toBeDisabled();
   });
 });

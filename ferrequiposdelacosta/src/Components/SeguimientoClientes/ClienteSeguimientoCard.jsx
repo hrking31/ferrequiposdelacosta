@@ -28,10 +28,12 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 // distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
 // registrar una devolución en ninguna otra parte de la app.
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import {
+  calcularCuentaCliente,
   calcularCuentaFactura,
   calcularDepositoTotal,
   calcularExigible,
@@ -58,6 +60,7 @@ import { abrirWhatsapp } from "../../Utils/whatsapp";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
+import AbonoDialog from "../ClienteDetalle/AbonoDialog";
 
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
@@ -288,6 +291,7 @@ const construirMensajeWhatsapp = ({
 export default function ClienteSeguimientoCard({
   cliente,
   facturas,
+  facturasConSaldo,
   hoy,
   onEquiposActualizados,
 }) {
@@ -311,6 +315,12 @@ export default function ClienteSeguimientoCard({
   const [ampliarOpen, setAmpliarOpen] = useState(false);
   const [devolucionOpen, setDevolucionOpen] = useState(false);
   const [llamadaOpen, setLlamadaOpen] = useState(false);
+  const [abonoOpen, setAbonoOpen] = useState(false);
+
+  // El abono es del CLIENTE: se reparte entre todas sus facturas con saldo,
+  // estén o no en cartera. Si la pantalla no las manda, se usan las de acá.
+  const facturasDelCliente = facturasConSaldo ?? facturas;
+  const hayQueCobrar = calcularCuentaCliente(facturasDelCliente, hoy).saldoPendiente > 0;
 
   // Acá se muestra la GESTIÓN, no el estado: el estado de la factura se ve en
   // Clientes y en Detalle Cliente. Son dos escalas distintas y no se mezclan
@@ -820,6 +830,44 @@ export default function ClienteSeguimientoCard({
               {/* Acciones de la factura arriba a la derecha, junto al chip de
                   estado — mismo patrón que las facturas de ClienteDetalle. */}
               <Stack direction="row" spacing={0.75} alignItems="center">
+                {/* EL ABONO SE COBRA ACÁ, no en la ficha del cliente.
+                    El momento real en que entra la plata es la llamada: se
+                    marca al cliente, se le pacta el plazo y en la misma
+                    conversación se le pide el abono. Con el botón solo en la
+                    ficha había que salir de cartera, buscar al cliente y
+                    volver.
+
+                    Es del CLIENTE, no de esta factura: se reparte entre todas
+                    las que tengan saldo (ver AbonoDialog). Por eso se apaga
+                    cuando no debe nada en ninguna. */}
+                <Tooltip
+                  title={
+                    hayQueCobrar
+                      ? "Registrar abono"
+                      : "El cliente no tiene saldo pendiente"
+                  }
+                >
+                  {/* El span es porque un botón deshabilitado no emite eventos
+                      de mouse, y sin él el globo de ayuda no aparece. */}
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={!hayQueCobrar}
+                      onClick={() => setAbonoOpen(true)}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        p: 0.5,
+                        color: acento,
+                        "&.Mui-disabled": { color: "action.disabled" },
+                      }}
+                    >
+                      <AttachMoneyIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
                 <Tooltip title="Ampliar vencimiento">
                   <IconButton
                     size="small"
@@ -1209,6 +1257,14 @@ export default function ClienteSeguimientoCard({
         factura={factura}
         onActualizado={onEquiposActualizados}
       />
+
+      <AbonoDialog
+        open={abonoOpen}
+        onClose={() => setAbonoOpen(false)}
+        cliente={cliente}
+        facturas={facturasDelCliente}
+        onAbonado={onEquiposActualizados}
+      />
     </Box>
   );
 }
@@ -1216,6 +1272,10 @@ export default function ClienteSeguimientoCard({
 ClienteSeguimientoCard.propTypes = {
   cliente: PropTypes.object.isRequired,
   facturas: PropTypes.array.isRequired,
+  // Todas las facturas abiertas del cliente, no solo las que están en cartera:
+  // el abono se reparte entre las que tengan saldo, estén acá o no. Si no
+  // llega, se usan las de cartera.
+  facturasConSaldo: PropTypes.array,
   hoy: PropTypes.string,
   onEquiposActualizados: PropTypes.func,
 };
