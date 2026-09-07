@@ -140,7 +140,7 @@ const obtenerEstadoInicial = (documento) => {
       : "",
     deposito: adicionales.valorDeposito ? String(adicionales.valorDeposito) : "",
     aplicaIva: datos.aplicaIva ?? true,
-    tipoPago: documento ? tipoPagoDe(inicial, documento) : "total",
+    tipoPago: documento ? tipoPagoDe(inicial) : "total",
     pagos: pagosDe(inicial),
   };
 };

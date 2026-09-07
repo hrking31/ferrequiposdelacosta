@@ -93,11 +93,8 @@ export const datosFactura = (doc) => doc?.factura ?? {};
 
 export const gruposDe = (doc) => lista(doc?.grupos);
 
-// El tipo de pago de un despacho. Las facturas guardadas antes de que el dato
-// se mudara al grupo lo tienen arriba, en el nodo `factura`: de ahí sale el
-// respaldo, que se puede quitar cuando ya no queden facturas de esas.
-export const tipoPagoDe = (grupo, doc) =>
-  grupo?.tipoPago ?? datosFactura(doc).tipoPago ?? "sinPago";
+// El tipo de pago de un despacho.
+export const tipoPagoDe = (grupo) => grupo?.tipoPago ?? "sinPago";
 
 export const grupoInicialDe = (doc) =>
   gruposDe(doc).find((grupo) => grupo?.grupo === GRUPO_INICIAL) ?? null;

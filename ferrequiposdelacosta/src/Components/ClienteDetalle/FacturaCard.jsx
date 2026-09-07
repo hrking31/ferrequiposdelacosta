@@ -505,7 +505,7 @@ export default function FacturaCard({
               {mostrar("pagoGeneral") && (
                 <RecuadroPago
                   pagos={pagosOriginales}
-                  tipoPago={tipoPagoDe(grupoInicial, factura)}
+                  tipoPago={tipoPagoDe(grupoInicial)}
                   fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                   color={colorPago}
                 />
@@ -671,7 +671,7 @@ export default function FacturaCard({
                         </Typography>
                         <RecuadroPago
                           pagos={pagosDe(lote)}
-                          tipoPago={tipoPagoDe(lote, factura)}
+                          tipoPago={tipoPagoDe(lote)}
                           fecha={lote.fechaSolicitud}
                           color={colorPago}
                           // "Pago inicial" hay uno solo y es el del alta de

@@ -293,7 +293,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
     tablaPago({
       pagos: pagosDe(grupo),
-      tipoPago: tipoPagoDe(grupo, factura),
+      tipoPago: tipoPagoDe(grupo),
       fecha: grupo.fechaSolicitud,
     });
 
