@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-476_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-474_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -749,6 +749,16 @@ Todos los cálculos de dinero y estados están en un único archivo, que se **co
 Lo mismo vale para **lo que se dibuja**. La historia de fechas de un equipo —cuándo salió, hasta cuándo tenía plazo, cuántos días se le agregaron, cuántos lleva de más— la arma un solo componente que usan tanto cartera como la ficha del cliente.
 
 No es prolijidad. Cuando cada pantalla armaba lo suyo, terminaron contando cosas distintas de la misma factura: para 10 equipos con 2 días de renovación y 7 días vencidos, una mostraba "+2 días · $400.000" y la otra "+9 días · $1.800.000", con los días vencidos repetidos al lado en ambas. Se leía como si se cobraran $3.200.000 cuando eran $1.800.000. Hay pruebas que fijan el texto de cada dato para que no vuelva a pasar.
+
+### Los cuatro cargos se suman una sola vez
+
+Una factura cierra con cuatro números: **subtotal, IVA, transporte y depósito**. Son cuatro cosas independientes y cada una entra al total una vez.
+
+Suena obvio, y estuvo mal. El **subtotal traía el flete adentro** y el flete además salía en su propio renglón, así que los cuatro números que mostraba la pantalla no daban el total escrito abajo: en una factura con $60.000 de transporte, sumarlos a mano daba $60.000 de más. Y como el IVA se sacaba de ese subtotal, **se le cobraba IVA al flete**.
+
+El IVA tampoco es el 19% del total. Se grava el alquiler y nada más —el depósito es una garantía, no una venta— y **cada equipo decide por su cuenta**: uno exento puede ir al lado de uno gravado en la misma factura. El PDF ya lo calculaba así, equipo por equipo; la función del total no, y miraba una sola marca de la factura entera. Dos lugares, dos respuestas para el mismo número.
+
+Ahora el subtotal es el alquiler pelado, el IVA se suma equipo por equipo y el total suma los cuatro por separado. Lo mismo en **lo exigible hoy**, que arrastraba el mismo error y es el número que decide si una factura sale de cartera.
 
 ### La historia se cuenta en tres tramos
 

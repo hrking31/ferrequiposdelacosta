@@ -225,9 +225,9 @@ describe("el resumen", () => {
     const cuenta = construir([facturaBase, otra]);
 
     expect(cuenta.subtotalNumero).toBe(400000); // 300.000 + 100.000
-    // El IVA sale del subtotal de cada factura CON su flete: la segunda lleva
-    // $80.000 de transporte que también tributan.
-    expect(cuenta.ivaNumero).toBeCloseTo(300000 * 0.19 + 180000 * 0.19, 2);
+    // El IVA sale del ALQUILER de cada factura, y de nada más: los $80.000 de
+    // flete de la segunda no tributan, ni tributa el depósito.
+    expect(cuenta.ivaNumero).toBeCloseTo(300000 * 0.19 + 100000 * 0.19, 2);
     expect(cuenta.valorDeposito).toBe(120000);
     expect(cuenta.valorTransporte).toBe(80000);
     expect(cuenta.iva).toBe(true);

@@ -54,7 +54,7 @@ export default function EstadoCuentaFactura({
   // Ya no hay que armarlos a mano: la misma cuenta que da el total los trae.
   const datos = datosFactura(factura);
   const subtotal = formatearMoneda(cuenta.subtotal);
-  const iva = formatearMoneda(datos.aplicaIva ? cuenta.iva : undefined);
+  const iva = formatearMoneda(cuenta.iva > 0 ? cuenta.iva : undefined);
   const valorTotal = formatearMoneda(cuenta.total);
 
   // Depósito y transporte de TODA la factura: el de cada despacho, sumado.

@@ -480,7 +480,7 @@ export default function ClienteSeguimientoCard({
   // sumados—, no los que decía la factura el día que se emitió. Salen de la
   // misma cuenta que el total, así que no pueden discrepar con él.
   const subtotal = formatearMoneda(cuenta.subtotal);
-  const iva = formatearMoneda(datos.aplicaIva ? cuenta.iva : undefined);
+  const iva = formatearMoneda(cuenta.iva > 0 ? cuenta.iva : undefined);
   const valorTotal = formatearMoneda(cuenta.total);
   // El de TODOS los despachos, no solo el del primero: cada lote agregado sale
   // con su propio flete y la factura los cobra todos. Leyendo el campo suelto,

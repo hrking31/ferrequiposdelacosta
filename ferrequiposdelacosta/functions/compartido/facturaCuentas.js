@@ -358,6 +358,28 @@ export const calcularAlquiler = (doc, hoyIso = obtenerFechaHoyBogota()) =>
     { bruto: 0, descuento: 0, neto: 0, netoPactado: 0, netoVencido: 0 },
   );
 
+// ── El IVA: de cada EQUIPO, no de la factura ───────────────────────────
+//
+// No es el 19% del total. Se grava el alquiler y nada más: el flete y el
+// depósito quedan afuera —el depósito porque es una garantía, no una venta—
+// y cada equipo decide por su cuenta, con su propia marca `aplicaIva`. Un
+// equipo exento puede ir al lado de uno que sí lo lleva en la misma factura.
+//
+// Si el equipo no trae marca propia, hereda la de la factura: así quedaron
+// los despachos viejos, que solo tenían la de arriba.
+export const equipoLlevaIva = (equipo, doc) =>
+  equipo?.aplicaIva ?? Boolean(datosFactura(doc).aplicaIva);
+
+// La suma de los IVA de todos los equipos que lo llevan.
+export const calcularIvaEquipos = (doc, hoyIso = obtenerFechaHoyBogota()) =>
+  equiposDe(doc).reduce(
+    (total, { equipo }) =>
+      equipoLlevaIva(equipo, doc)
+        ? total + calcularEquipo(equipo, hoyIso).neto * IVA
+        : total,
+    0,
+  );
+
 // El transporte de TODA la factura: el de cada despacho, porque cada uno sale
 // con su propio flete.
 export const calcularTransporteTotal = (doc) =>
@@ -417,14 +439,20 @@ export const sumarEntregas = (doc) => sumar(entregasDe(doc), "monto");
 // fletes, el depósito que todavía está en la empresa, y lo que el cliente
 // entregó. Si pagó de más, el sobrante no baja el saldo —que nunca es
 // negativo— sino que sale aparte como saldo a favor.
+//
+// Los cuatro cargos son INDEPENDIENTES y entran al total una sola vez cada
+// uno: el subtotal es el alquiler pelado, sin el flete adentro. Antes el flete
+// iba dentro del subtotal Y en su propio renglón, así que los cuatro números
+// de la pantalla no daban el total; y el IVA salía de ese subtotal, con lo que
+// se le cobraba IVA al flete.
 export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   const alquiler = calcularAlquiler(doc, hoyIso);
   const transporte = calcularTransporteTotal(doc);
-  const subtotal = alquiler.neto + transporte;
+  const subtotal = alquiler.neto;
 
-  const iva = datosFactura(doc).aplicaIva ? subtotal * IVA : 0;
+  const iva = calcularIvaEquipos(doc, hoyIso);
   const deposito = calcularDepositoTotal(doc) - calcularDepositoDevuelto(doc);
-  const total = subtotal + iva + deposito;
+  const total = subtotal + iva + transporte + deposito;
 
   const pagado = sumarPagos(doc);
   const abonos = sumarAbonos(doc);
@@ -460,25 +488,36 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
 // el cliente debía $1.727.140, y con pagar esos $144.440 la factura salía de
 // cartera debiendo el resto.
 export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
-  const consumido = equiposDe(doc).reduce((total, { equipo }) => {
-    const cuenta = calcularEquipo(equipo, hoyIso);
-    if (cuenta.devuelto) return total + cuenta.neto;
+  // El alquiler ya consumido y su IVA se acumulan juntos: el IVA es de cada
+  // equipo, con su propia marca, así que hay que saber cuánto puso cada uno
+  // antes de sumarlos. Al flete no se le cobra IVA.
+  const { consumido, iva } = equiposDe(doc).reduce(
+    (acumulado, { equipo }) => {
+      const cuenta = calcularEquipo(equipo, hoyIso);
 
-    // Sigue afuera: solo los días que ya transcurrieron.
-    const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
-    const usados = Math.min(
-      cuenta.dias,
-      diasDeAlquiler(equipo?.fechaDespacho, hoyIso),
-    );
-    return total + Math.max(0, usados * porDia - cuenta.descuento);
-  }, 0);
+      // Sigue afuera: solo los días que ya transcurrieron.
+      const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
+      const usados = Math.min(
+        cuenta.dias,
+        diasDeAlquiler(equipo?.fechaDespacho, hoyIso),
+      );
+      const monto = cuenta.devuelto
+        ? cuenta.neto
+        : Math.max(0, usados * porDia - cuenta.descuento);
 
-  const subtotal = consumido + calcularTransporteTotal(doc);
-  const iva = datosFactura(doc).aplicaIva ? subtotal * IVA : 0;
+      return {
+        consumido: acumulado.consumido + monto,
+        iva: acumulado.iva + (equipoLlevaIva(equipo, doc) ? monto * IVA : 0),
+      };
+    },
+    { consumido: 0, iva: 0 },
+  );
+
+  const transporte = calcularTransporteTotal(doc);
   const deposito = calcularDepositoTotal(doc) - calcularDepositoDevuelto(doc);
   const cuenta = calcularCuentaFactura(doc, hoyIso);
 
-  return Math.max(0, subtotal + iva + deposito - cuenta.recibido);
+  return Math.max(0, consumido + iva + transporte + deposito - cuenta.recibido);
 };
 
 // ── El estado de la factura ────────────────────────────────────────────

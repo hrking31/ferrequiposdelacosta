@@ -6,6 +6,8 @@ import {
   equipoAlDia,
   proyectarAmpliacion,
   calcularAlquiler,
+  calcularIvaEquipos,
+  equipoLlevaIva,
   calcularTransporteTotal,
   calcularDepositoTotal,
   calcularRetenido,
@@ -310,15 +312,135 @@ describe("la cuenta de la factura", () => {
     expect(calcularDepositoTotal(conDos)).toBe(500000);
   });
 
-  it("el IVA se aplica sobre el alquiler más el transporte", () => {
-    const conIva = facturaCon([equipo({ cantidadEquipos: 1, valorDia: 100000, diasAlquilados: 10 })], {
+  // ── Los cuatro cargos ────────────────────────────────────────────────
+  //
+  // El bug que arreglaron: el flete iba dentro del subtotal Y en su propio
+  // renglón, así que los cuatro números de la pantalla no daban el total; y
+  // como el IVA salía de ese subtotal, se le cobraba IVA al flete.
+  const unEquipoDe = (extra = {}) =>
+    equipo({ cantidadEquipos: 1, valorDia: 100000, diasAlquilados: 10, ...extra });
+
+  const conFlete = { transporte: "Solo ida", valorTransporte: 100000, deposito: false, valorDeposito: 0 };
+
+  it("el subtotal es el alquiler pelado: el flete no va adentro", () => {
+    const doc = facturaCon([unEquipoDe()], { adicionales: conFlete });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.subtotal).toBe(1000000);
+    expect(cuenta.transporte).toBe(100000);
+  });
+
+  it("al flete no se le cobra IVA", () => {
+    const doc = facturaCon([unEquipoDe()], {
       factura: { aplicaIva: true },
-      adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: false, valorDeposito: 0 },
+      adicionales: conFlete,
     });
-    const cuenta = calcularCuentaFactura(conIva, HOY);
-    expect(cuenta.subtotal).toBe(1100000);
-    expect(cuenta.iva).toBe(209000);
-    expect(cuenta.total).toBe(1309000);
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.subtotal).toBe(1000000);
+    expect(cuenta.iva).toBe(190000); // el 19% del alquiler, no de 1.100.000
+    expect(cuenta.total).toBe(1290000);
+  });
+
+  it("los cuatro cargos suman el total, cada uno una sola vez", () => {
+    const doc = facturaCon([unEquipoDe()], {
+      factura: { aplicaIva: true },
+      adicionales: { transporte: "Ida y vuelta", valorTransporte: 100000, deposito: true, valorDeposito: 300000 },
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.subtotal + cuenta.iva + cuenta.transporte + cuenta.deposito).toBe(cuenta.total);
+    expect(cuenta.total).toBe(1590000); // 1.000.000 + 190.000 + 100.000 + 300.000
+  });
+
+  it("al depósito tampoco se le cobra IVA", () => {
+    const doc = facturaCon([unEquipoDe()], {
+      factura: { aplicaIva: true },
+      adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 300000 },
+    });
+    expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
+  });
+
+  it("sin IVA el total es alquiler, flete y depósito", () => {
+    const doc = facturaCon([unEquipoDe()], {
+      adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: true, valorDeposito: 300000 },
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.iva).toBe(0);
+    expect(cuenta.total).toBe(1400000);
+  });
+
+  // ── El IVA es de cada equipo ─────────────────────────────────────────
+
+  it("el IVA se suma equipo por equipo, no de un total", () => {
+    const doc = facturaCon(
+      [
+        unEquipoDe({ aplicaIva: true }),
+        unEquipoDe({ valorDia: 50000, aplicaIva: true }),
+      ],
+      { adicionales: conFlete },
+    );
+    // 1.000.000 y 500.000 de alquiler → 190.000 + 95.000
+    expect(calcularIvaEquipos(doc, HOY)).toBe(285000);
+  });
+
+  it("un equipo exento al lado de uno gravado: solo paga el gravado", () => {
+    const doc = facturaCon([
+      unEquipoDe({ aplicaIva: true }),
+      unEquipoDe({ aplicaIva: false }),
+    ]);
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.subtotal).toBe(2000000);
+    expect(cuenta.iva).toBe(190000);
+  });
+
+  it("el equipo sin marca propia hereda la de la factura", () => {
+    const doc = facturaCon([unEquipoDe()], { factura: { aplicaIva: true } });
+    expect(equipoLlevaIva(doc.grupos[0].equipos[0], doc)).toBe(true);
+    expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
+  });
+
+  it("el equipo marcado sin IVA no paga, aunque la factura sí lo tenga", () => {
+    const doc = facturaCon([unEquipoDe({ aplicaIva: false })], {
+      factura: { aplicaIva: true },
+    });
+    expect(equipoLlevaIva(doc.grupos[0].equipos[0], doc)).toBe(false);
+    expect(calcularCuentaFactura(doc, HOY).iva).toBe(0);
+  });
+
+  it("el equipo marcado con IVA paga, aunque la factura no lo tenga", () => {
+    const doc = facturaCon([unEquipoDe({ aplicaIva: true })]);
+    expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
+  });
+
+  it("una factura sin equipos no tiene IVA que cobrar", () => {
+    const doc = facturaCon([], { factura: { aplicaIva: true }, adicionales: conFlete });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.iva).toBe(0);
+    expect(cuenta.total).toBe(100000); // solo el flete
+  });
+
+  it("el IVA corre con los días vencidos, como el alquiler", () => {
+    // Pactó 2 días desde el 4 y hoy es 8: lleva 5 afuera.
+    const doc = facturaCon([unEquipoDe({ diasAlquilados: 2, aplicaIva: true })]);
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.subtotal).toBe(500000);
+    expect(cuenta.iva).toBe(95000);
+  });
+
+  it("el flete de cada despacho entra al total una sola vez", () => {
+    const doc = facturaCon([unEquipoDe()], {
+      adicionales: conFlete,
+      grupos: [
+        {
+          grupo: "grupo-agregados-1",
+          fechaSolicitud: "2026-09-06",
+          pagos: [],
+          adicionales: { transporte: "Solo ida", valorTransporte: 80000, deposito: false, valorDeposito: 0 },
+          equipos: [],
+        },
+      ],
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.transporte).toBe(180000);
+    expect(cuenta.total).toBe(1180000);
   });
 
   it("las entregas restan de lo recibido", () => {
@@ -431,6 +553,42 @@ describe("lo exigible hoy", () => {
       pagos: [{ medio: "Efectivo", monto: 50000 }],
     });
     expect(calcularExigible(pagada, HOY)).toBe(0);
+  });
+
+  // Lo exigible arrastraba el mismo error que el total: le cobraba IVA al
+  // flete y decidía el IVA con la marca de la factura, no con la del equipo.
+  it("el IVA de lo exigible sale de lo consumido, no de lo pactado", () => {
+    const doc = facturaCon([
+      equipo({ cantidadEquipos: 1, valorDia: 100000, aplicaIva: true }),
+    ]);
+    // 5 días consumidos de 10 → 500.000 y su 19%
+    expect(calcularExigible(doc, HOY)).toBe(595000);
+  });
+
+  it("al flete no se le cobra IVA en lo exigible", () => {
+    const doc = facturaCon(
+      [equipo({ cantidadEquipos: 1, valorDia: 100000, aplicaIva: true })],
+      {
+        adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: false, valorDeposito: 0 },
+      },
+    );
+    expect(calcularExigible(doc, HOY)).toBe(695000);
+  });
+
+  it("el flete y el depósito se exigen enteros: no se reparten por día", () => {
+    const doc = facturaCon([equipo({ cantidadEquipos: 1, valorDia: 10000 })], {
+      adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: true, valorDeposito: 300000 },
+    });
+    // 50.000 consumidos + 100.000 de flete + 300.000 de depósito
+    expect(calcularExigible(doc, HOY)).toBe(450000);
+  });
+
+  it("el equipo exento no suma IVA a lo exigible", () => {
+    const doc = facturaCon(
+      [equipo({ cantidadEquipos: 1, valorDia: 100000, aplicaIva: false })],
+      { factura: { aplicaIva: true } },
+    );
+    expect(calcularExigible(doc, HOY)).toBe(500000);
   });
 });
 
