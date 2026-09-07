@@ -68,6 +68,7 @@ export const unEquipoDevuelto = ({
 export const unGrupo = ({
   grupo = GRUPO_INICIAL,
   fechaSolicitud = "2026-08-10",
+  tipoPago = "sinPago",
   pagos = [],
   transporte = "",
   valorTransporte = 0,
@@ -76,6 +77,7 @@ export const unGrupo = ({
 } = {}) => ({
   grupo,
   fechaSolicitud,
+  tipoPago,
   pagos,
   adicionales: {
     transporte,
@@ -93,9 +95,6 @@ export const unaFactura = ({
   fechaCreacion = "2026-08-10",
   tipoPago = "sinPago",
   aplicaIva = false,
-  subtotal = 0,
-  valorIva = 0,
-  total = 0,
   depositoResuelto = false,
   cerrada = false,
   grupos,
@@ -112,11 +111,7 @@ export const unaFactura = ({
   factura: {
     numeroFactura,
     fechaCreacion,
-    tipoPago,
     aplicaIva,
-    subtotal,
-    valorIva,
-    total,
     depositoResuelto,
     cerrada,
   },
@@ -125,6 +120,7 @@ export const unaFactura = ({
     [
       unGrupo({
         fechaSolicitud: fechaCreacion,
+        tipoPago,
         ...(equipos ? { equipos } : {}),
         ...(pagos ? { pagos } : {}),
         ...(transporte ? { transporte } : {}),

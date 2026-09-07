@@ -47,6 +47,7 @@ import {
   pagosDe,
   adicionalesDe,
   abonosDe,
+  tipoPagoDe,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
@@ -504,7 +505,7 @@ export default function FacturaCard({
               {mostrar("pagoGeneral") && (
                 <RecuadroPago
                   pagos={pagosOriginales}
-                  tipoPago={datos.tipoPago}
+                  tipoPago={tipoPagoDe(grupoInicial, factura)}
                   fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                   color={colorPago}
                 />
@@ -670,7 +671,7 @@ export default function FacturaCard({
                         </Typography>
                         <RecuadroPago
                           pagos={pagosDe(lote)}
-                          tipoPago={datos.tipoPago}
+                          tipoPago={tipoPagoDe(lote, factura)}
                           fecha={lote.fechaSolicitud}
                           color={colorPago}
                           // "Pago inicial" hay uno solo y es el del alta de

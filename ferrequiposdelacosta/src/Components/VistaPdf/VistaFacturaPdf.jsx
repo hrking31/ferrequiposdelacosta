@@ -17,6 +17,7 @@ import {
   pagosDe,
   adicionalesDe,
   abonosDe,
+  tipoPagoDe,
   ESTADO_FACTURA_INFO,
 } from "../ClienteDetalle/facturaUtils";
 
@@ -292,7 +293,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
     tablaPago({
       pagos: pagosDe(grupo),
-      tipoPago: datos.tipoPago,
+      tipoPago: tipoPagoDe(grupo, factura),
       fecha: grupo.fechaSolicitud,
     });
 

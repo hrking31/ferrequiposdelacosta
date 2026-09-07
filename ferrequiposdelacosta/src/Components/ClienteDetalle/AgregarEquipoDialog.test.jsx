@@ -33,8 +33,6 @@ const factura = {
     numeroFactura: "1573",
     fechaCreacion: "2026-08-01",
     tipoPago: "total",
-    subtotal: 300000,
-    total: 300000,
     equipos: [
       unEquipo({
         nombre: "ANDAMIO",
@@ -136,28 +134,48 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     expect(despacho.equipos[0].fechaVencimiento).toBe("2026-08-13");
   });
 
-  it("rehace la foto de lo emitido con lo que se sumó", async () => {
+  it("no escribe plata en el nodo factura", async () => {
     const { usuario } = abrir();
 
-    // 2 mezcladoras × 4 días × $30.000 = $240.000, sobre los $300.000 que ya había.
     await cargarEquipo(usuario);
     await guardar(usuario);
 
-    // Se escribe con la ruta completa, campo por campo: escribir el nodo
-    // `factura` entero borraría el número, la fecha y el resto.
-    const guardado = loGuardado();
-    expect(guardado["factura.subtotal"]).toBe(540000);
-    expect(guardado["factura.total"]).toBe(540000);
+    // El subtotal, el IVA y el total se calculan al mostrarlos. Guardados
+    // nacían vencidos: suben solos con cada día que un equipo sigue afuera.
+    //
+    // Se compara contra las claves y no con toHaveProperty: acá los nombres
+    // llevan un punto adentro —son rutas de Firestore, "factura.subtotal"— y
+    // toHaveProperty leería ese punto como si fuera un objeto anidado, así
+    // que pasaría incluso con el campo escrito.
+    const claves = Object.keys(loGuardado());
+    expect(claves).not.toContain("factura.subtotal");
+    expect(claves).not.toContain("factura.valorIva");
+    expect(claves).not.toContain("factura.total");
+    expect(claves).not.toContain("factura.tipoPago");
   });
 
-  it("la factura vuelve a quedar parcial: lo nuevo todavía no está pagado", async () => {
+  it("el despacho guarda cómo se pagó ÉL, sin pisar al del alta", async () => {
+    const { usuario } = abrir();
+
+    await cargarEquipo(usuario);
+    // Estos equipos se llevan sin pagar, aunque el alta se pagó completa.
+    await usuario.click(screen.getByRole("combobox", { name: "Pago de estos equipos" }));
+    await usuario.click(screen.getByRole("option", { name: "Sin pago" }));
+    await guardar(usuario);
+
+    const grupos = loGuardado().grupos;
+    expect(grupos[0].tipoPago).toBe("total"); // el alta, intacta
+    expect(grupos[1].tipoPago).toBe("sinPago"); // lo que se acaba de agregar
+  });
+
+  it("el tipo de pago elegido es el que queda en el despacho", async () => {
     const { usuario } = abrir();
 
     await cargarEquipo(usuario);
     await guardar(usuario);
 
-    // El alta estaba paga, pero lo que se acaba de agregar no.
-    expect(loGuardado()["factura.tipoPago"]).toBe("parcial");
+    // Sin tocar el selector se queda en "total", que es su valor de arranque.
+    expect(despachoNuevo().tipoPago).toBe("total");
   });
 
   it("dos equipos pedidos el mismo día comparten el despacho, y su pago va una sola vez", async () => {

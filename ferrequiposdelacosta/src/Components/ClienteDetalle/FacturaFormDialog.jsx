@@ -51,6 +51,7 @@ import {
   datosFactura,
   gruposDe,
   grupoInicialDe,
+  tipoPagoDe,
   pagosDe,
   adicionalesDe,
   ampliacionesDe,
@@ -139,7 +140,7 @@ const obtenerEstadoInicial = (documento) => {
       : "",
     deposito: adicionales.valorDeposito ? String(adicionales.valorDeposito) : "",
     aplicaIva: datos.aplicaIva ?? true,
-    tipoPago: datos.tipoPago ?? "total",
+    tipoPago: documento ? tipoPagoDe(inicial, documento) : "total",
     pagos: pagosDe(inicial),
   };
 };
@@ -517,6 +518,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     const grupoInicial = nuevoGrupo({
       grupo: GRUPO_INICIAL,
       fechaSolicitud: form.fecha,
+      tipoPago: form.tipoPago,
       pagos: pagosGuardados,
       adicionales: {
         transporte: form.transporte || "",
@@ -534,15 +536,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       factura: {
         numeroFactura: form.numeroFactura.trim(),
         fechaCreacion: form.fecha,
-        tipoPago: form.tipoPago,
         aplicaIva: form.aplicaIva,
-        // La foto de lo que se emitió. No es el saldo ni el total de hoy: eso
-        // se calcula, porque sube solo con cada día que un equipo sigue
-        // afuera y nadie escribe nada en la base. Esto es lo que decía el
-        // papel el día que se hizo.
-        subtotal: subtotalTotal,
-        valorIva: ivaTotal,
-        total: valorTotalCalculado,
+        // Acá no va plata. El subtotal, el IVA y el total se calculan al
+        // mostrarlos: guardados nacían vencidos, porque suben solos con cada
+        // día que un equipo sigue afuera. Y el tipo de pago se mudó al grupo,
+        // que es de donde sale el pago de cada despacho.
+        //
         // Lo que se resolvió del depósito lo escribe la devolución, no este
         // formulario; se conserva para no perderlo al rearmar la factura.
         depositoResuelto: Boolean(datosFactura(factura).depositoResuelto),

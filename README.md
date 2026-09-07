@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-474_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-475_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -652,7 +652,7 @@ Dos reglas de partida: **nada suelto en la raíz del documento** —abrir una fa
 documento de la factura
 │
 ├── FACTURA{}  ── numeroFactura, fechaCreacion, tipoPago,
-│                 aplicaIva, subtotal, valorIva, total, cerrada
+│                 aplicaIva, depositoResuelto, cerrada
 │
 ├── GRUPOS[]   ── un despacho, con SU plata
 │   │            grupo: "grupo-inicial" | "grupo-agregados-N"
@@ -749,6 +749,14 @@ Todos los cálculos de dinero y estados están en un único archivo, que se **co
 Lo mismo vale para **lo que se dibuja**. La historia de fechas de un equipo —cuándo salió, hasta cuándo tenía plazo, cuántos días se le agregaron, cuántos lleva de más— la arma un solo componente que usan tanto cartera como la ficha del cliente.
 
 No es prolijidad. Cuando cada pantalla armaba lo suyo, terminaron contando cosas distintas de la misma factura: para 10 equipos con 2 días de renovación y 7 días vencidos, una mostraba "+2 días · $400.000" y la otra "+9 días · $1.800.000", con los días vencidos repetidos al lado en ambas. Se leía como si se cobraran $3.200.000 cuando eran $1.800.000. Hay pruebas que fijan el texto de cada dato para que no vuelva a pasar.
+
+### En la factura no se guarda plata
+
+El nodo `factura` llegó a guardar el `subtotal`, el `valorIva` y el `total` como *"la foto de lo que se emitió"*. Se sacaron los tres.
+
+Un total guardado **nace vencido**: al día siguiente el equipo sigue afuera, corre un día más y el número ya miente. No es teórico — ese campo **es el bug de los $144.440**: lo exigible salía del total viejo, que no llevaba ni las ampliaciones ni los días vencidos, y con pagar $144.440 una factura salía de cartera debiendo $1.727.140. Cuando se revisaron, no los leía ninguna pantalla: se escribían y se leían a sí mismos.
+
+El **tipo de pago** también salió de ahí, pero por otro motivo: **es del despacho, no de la factura**. Un solo dato arriba no puede contar que el alta se pagó completa y que el lote agregado la semana pasada quedó a deber. La tarjeta y el PDF ya mostraban un renglón de pago por despacho —y el selector ya se llamaba *"Pago de estos equipos"*—, pero les ponían a todos el mismo valor. Ahora cada grupo guarda el suyo, al lado de sus pagos, su flete y su depósito.
 
 ### Los cuatro cargos se suman una sola vez
 

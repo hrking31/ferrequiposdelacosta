@@ -17,14 +17,16 @@
 //
 //   clientes/{clienteId}/facturas/{facturaId}
 //
-//   factura{}     lo del documento: numeroFactura, fechaCreacion, tipoPago,
-//                 aplicaIva, la foto de lo que se emitió (subtotal, valorIva,
-//                 total) y las dos marcas que sí se guardan:
-//                 depositoResuelto y cerrada.
+//   factura{}     lo del documento: numeroFactura, fechaCreacion, aplicaIva
+//                 y las dos marcas que sí se guardan: depositoResuelto y
+//                 cerrada. Nada de plata: el subtotal, el IVA y el total
+//                 vivían acá como "la foto de lo que se emitió" y se
+//                 sacaron —ver abajo.
 //
 //   grupos[]      un despacho cada uno:
 //                   grupo            "grupo-inicial" | "grupo-agregados-N"
 //                   fechaSolicitud
+//                   tipoPago         cómo se pagó ESTE despacho
 //                   pagos[]          { medio, monto, tipoPago }
 //                   adicionales{}    { transporte, valorTransporte,
 //                                      deposito, valorDeposito }
@@ -59,6 +61,18 @@
 // el de cada equipo no están acá: se calculan al mostrarlos, porque cambian
 // solos con el calendario. Las dos excepciones son `cerrada` y
 // `depositoResuelto`, que solo cambian si alguien escribe.
+//
+// Por eso salieron el `subtotal`, el `valorIva` y el `total` del nodo
+// `factura`. Se guardaban como "la foto de lo que se emitió", pero un total
+// guardado nace vencido: al día siguiente el equipo sigue afuera, corre un día
+// más y el número ya miente. No era teórico —ese campo es el bug de los
+// $144.440, donde lo exigible salía del total viejo y una factura se iba de
+// cartera debiendo $1.727.140—. Al final no los leía ninguna pantalla: se
+// escribían y se leían a sí mismos.
+//
+// **El tipo de pago es del despacho, no de la factura.** Un solo dato arriba
+// no puede contar que el alta se pagó completa y que el lote agregado la
+// semana pasada quedó a deber.
 
 export const GRUPO_INICIAL = "grupo-inicial";
 
@@ -78,6 +92,12 @@ const lista = (valor) => (Array.isArray(valor) ? valor.filter(Boolean) : []);
 export const datosFactura = (doc) => doc?.factura ?? {};
 
 export const gruposDe = (doc) => lista(doc?.grupos);
+
+// El tipo de pago de un despacho. Las facturas guardadas antes de que el dato
+// se mudara al grupo lo tienen arriba, en el nodo `factura`: de ahí sale el
+// respaldo, que se puede quitar cuando ya no queden facturas de esas.
+export const tipoPagoDe = (grupo, doc) =>
+  grupo?.tipoPago ?? datosFactura(doc).tipoPago ?? "sinPago";
 
 export const grupoInicialDe = (doc) =>
   gruposDe(doc).find((grupo) => grupo?.grupo === GRUPO_INICIAL) ?? null;
@@ -122,9 +142,21 @@ export const nuevaFactura = ({ factura, grupoInicial }) => ({
 });
 
 // Un despacho: su plata y sus equipos.
-export const nuevoGrupo = ({ grupo, fechaSolicitud, pagos, adicionales, equipos }) => ({
+export const nuevoGrupo = ({
   grupo,
   fechaSolicitud,
+  tipoPago,
+  pagos,
+  adicionales,
+  equipos,
+}) => ({
+  grupo,
+  fechaSolicitud,
+  // Cómo se pagó ESTE despacho. Estaba en la factura, uno solo para todos, y
+  // no alcanzaba: el alta puede ir pagada completa y el lote que se agregó a
+  // los días quedar sin pagar. La tarjeta y el PDF ya mostraban un renglón
+  // por despacho, con el mismo valor repetido en todos.
+  tipoPago: tipoPago ?? "sinPago",
   pagos: lista(pagos),
   adicionales: adicionales ?? {
     transporte: "",

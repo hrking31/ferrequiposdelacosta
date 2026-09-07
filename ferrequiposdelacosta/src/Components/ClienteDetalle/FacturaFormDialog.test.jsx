@@ -128,8 +128,17 @@ describe("FacturaFormDialog — crear", () => {
       fechaVencimiento: "2026-08-12",
     });
 
-    // 4 andamios × 3 días × $20.000, en la foto de lo que se emitió.
-    expect(documento.factura.subtotal).toBe(240000);
+    // El nodo `factura` no lleva plata: el subtotal, el IVA y el total se
+    // calculan al mostrarlos, porque suben solos con cada día que un equipo
+    // sigue afuera. Guardados, mentían al día siguiente.
+    expect(documento.factura).not.toHaveProperty("subtotal");
+    expect(documento.factura).not.toHaveProperty("valorIva");
+    expect(documento.factura).not.toHaveProperty("total");
+
+    // Y el tipo de pago es del despacho, no de la factura: el alta puede ir
+    // pagada y el lote que se agregue después quedar a deber.
+    expect(documento.factura).not.toHaveProperty("tipoPago");
+    expect(documento.grupos[0].tipoPago).toBeTruthy();
 
     // Nace abierta: se emitió y todavía no se pagó ni se devolvió nada.
     expect(documento.factura.cerrada).toBe(false);

@@ -374,8 +374,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
           ]
         : abonosDe(factura);
 
-    const saldoFinal = saldoSinExcedente - abonoEnEstaFactura;
-
     // El resto del excedente (si esta factura ya quedó saldada y sobró
     // plata) se reparte en las demás facturas del cliente con saldo,
     // dejando en cada una un abono que dice de dónde vino.
@@ -398,6 +396,9 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     // partir esa línea en dos —una devolución parcial— para que el pago se
     // duplicara y apareciera un saldo a favor que no existía.
     const grupoNuevo = nuevoGrupo({
+      // Cómo se pagó ESTE despacho, no la factura entera: el alta pudo ir
+      // pagada completa y este lote quedar a deber.
+      tipoPago: form.tipoPago,
       grupo: siguienteGrupoAgregados(factura),
       fechaSolicitud: form.fechaSolicitud,
       pagos: pagosGuardados,
@@ -431,19 +432,10 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         // de Firestore sin reescribirlo.
         grupos: [...gruposDe(factura), grupoNuevo],
         abonos,
-        // La foto de lo que se emitió crece con lo que se acaba de despachar.
-        // No es el total de hoy —ese se calcula, y sube solo con cada día que
-        // un equipo sigue afuera—: es lo que dice el papel.
-        "factura.subtotal": (Number(datosDeLaFactura.subtotal) || 0) + subtotalNuevoEquipo,
-        "factura.valorIva": (Number(datosDeLaFactura.valorIva) || 0) + ivaNuevoEquipo,
         // La factura queda marcada "con IVA" si ya lo llevaba o si este
         // despacho lo lleva: agregar un equipo sin IVA no convierte a toda la
         // factura en exenta.
         "factura.aplicaIva": Boolean(datosDeLaFactura.aplicaIva) || form.aplicaIva,
-        "factura.total": (Number(datosDeLaFactura.total) || 0) + totalEsteEquipo,
-        // El estado de pago sale de si queda saldo o no, no de lo que se elija
-        // acá (eso es solo el pago de este despacho puntual).
-        "factura.tipoPago": saldoFinal > 0 ? "parcial" : "total",
       });
 
       // El resto del excedente, si lo hay, queda como abono en cada factura
