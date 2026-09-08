@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-488_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-496_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -420,6 +420,16 @@ Devolver un equipo que todavía está en plazo no es cobranza: nadie hizo nada p
 > Por lo mismo, desde la ficha no se pregunta qué hacer con lo que el cliente se queda —darle más días, dejarlo indefinido—. Pactar un plazo se acuerda con alguien que ya está vencido: es cobranza, y se decide en cartera. Desde la ficha solo se registra lo que volvió, y lo que sigue afuera conserva su fecha.
 
 Y desde la ficha se pregunta algo más: **por qué lo devuelve**. Un campo opcional, uno solo para toda la tanda —el cliente trae lo que trae por un mismo motivo—, que queda escrito en cada equipo que volvió y se lee debajo de su fecha. No se pregunta desde cartera: ahí el equipo ya venció y el motivo es el vencimiento. No hay que confundirlo con *"qué le pasó"*, que solo aparece cuando el equipo vuelve dañado: un equipo puede volver impecable y aun así importar que la obra terminó.
+
+### Cada equipo dice en qué anda
+
+En la ficha del cliente, cada equipo lleva el chip de **uno de sus cinco estados** — pendiente, activo, ampliación, vencido, devuelto — junto al nombre. Antes solo se rotulaba el devuelto, y los otros cuatro había que deducirlos leyendo las fechas.
+
+Los cinco ya se calculaban; lo que faltaba era mostrarlos. Y **ningún color es nuevo**: cada uno es el que el tema ya le da a esa misma idea en otra parte — el ámbar de la factura pendiente, el verde de la activa, el azul de la gestión *prórroga*, el rojo de la vencida y el gris azulado de lo devuelto. Un equipo vencido se ve del mismo rojo que una factura vencida, porque es el mismo hecho a otra escala.
+
+Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas en una factura, y diez etiquetas sólidas convierten la lista en un semáforo ilegible.
+
+**En cartera no aparecen**, y no por olvido: ahí solo entran los vencidos, así que los cinco estados no tendrían a quién describir. Es la regla de la sección siguiente.
 
 ### En cartera solo se ve lo vencido
 
@@ -956,7 +966,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**488 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**496 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

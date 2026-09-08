@@ -24,6 +24,7 @@ import {
   calcularEstadoFactura,
   facturaCerrada,
   contarUnidadesVencidas,
+  plazoVencidoFactura,
   hayEquiposAlDia,
   equiposQueVencieronHoy,
   calcularCuentaCliente,
@@ -801,6 +802,42 @@ describe("qué hay que reclamar", () => {
     const nuevos = equiposQueVencieronHoy(doc, "2026-09-08", "2026-09-07");
     expect(nuevos).toHaveLength(1);
     expect(nuevos[0].fechaVencimiento).toBe("2026-09-08");
+  });
+});
+
+describe("el plazo de la factura", () => {
+  // El de la factura sale del equipo que la trajo a cartera: la fecha más
+  // antigua entre los vencidos, y los días del que más lleva.
+  it("toma la fecha más vieja y los días del que más se pasó", () => {
+    const doc = facturaCon([
+      // El vencimiento tiene que cuadrar con los días: despacho + días − 1.
+      equipo({ diasAlquilados: 2, fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-02" }),
+      equipo({ diasAlquilados: 5, fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-05" }),
+    ]);
+    const plazo = plazoVencidoFactura(doc, HOY);
+    expect(plazo.fecha).toBe("2026-09-02");
+    // Del 2 al 8 son 6 días de más para el primero, 3 para el segundo.
+    expect(plazo.dias).toBe(6);
+  });
+
+  it("sin equipos vencidos no hay plazo que mostrar", () => {
+    // Sigue en cartera por la plata, no por un equipo afuera.
+    const alDia = facturaCon([
+      equipo({ diasAlquilados: 30, fechaDespacho: "2026-09-04", fechaVencimiento: "2026-10-03" }),
+    ]);
+    expect(plazoVencidoFactura(alDia, HOY)).toBeNull();
+  });
+
+  it("lo devuelto no cuenta, aunque haya vuelto tarde", () => {
+    const doc = facturaCon([
+      equipo({
+        diasAlquilados: 2,
+        fechaDespacho: "2026-09-01",
+        fechaVencimiento: "2026-09-02",
+        devolucion: { fechaDevolucion: "2026-09-07", buenEstado: true, valorRetenido: 0 },
+      }),
+    ]);
+    expect(plazoVencidoFactura(doc, HOY)).toBeNull();
   });
 });
 

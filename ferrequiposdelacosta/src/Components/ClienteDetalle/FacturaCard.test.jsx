@@ -89,6 +89,59 @@ const mostrar = (factura, props = {}) => {
 // trae su propio identificador.
 const boton = (icono) => screen.getAllByTestId(icono)[0].closest("button");
 
+describe("FacturaCard — el estado de cada equipo", () => {
+  // La ficha del cliente es donde se ven los cinco estados: en cartera solo
+  // entran los vencidos. El chip los dice sin que haya que deducirlos leyendo
+  // las fechas, que es lo que tocaba hacer antes.
+  //
+  // El nombre del estado se fija acá a propósito: un cálculo correcto mal
+  // contado en pantalla se cobra igual de caro que uno equivocado.
+  it("el que ya volvió dice Devuelto", () => {
+    mostrar(facturaFinalizada);
+    expect(screen.getByText("Devuelto")).toBeInTheDocument();
+  });
+
+  it("el que se pasó de la fecha dice Vencido", () => {
+    mostrar(facturaAbierta);
+    expect(screen.getByText("Vencido")).toBeInTheDocument();
+  });
+
+  it("el que está en fecha dice Activo", () => {
+    mostrar(facturaAlDia);
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+  });
+
+  it("el que todavía no sale de bodega dice Pendiente", () => {
+    const maniana = calcularVencimiento(HOY, 1);
+    mostrar(
+      facturaCon({
+        equipos: [
+          andamio({ fechaDespacho: maniana, fechaVencimiento: calcularVencimiento(maniana, 2) }),
+        ],
+      }),
+    );
+    // Sale DOS veces, y está bien: el equipo no salió de bodega, así que la
+    // factura entera también está pendiente. Es el único estado en que el
+    // equipo y su factura usan la misma palabra.
+    expect(screen.getAllByText("Pendiente")).toHaveLength(2);
+  });
+
+  it("el que tiene días agregados dice Ampliación", () => {
+    // Sigue en fecha porque se los dieron: sin la ampliación estaría vencido.
+    mostrar(
+      facturaCon({
+        equipos: [
+          andamio({
+            fechaVencimiento: calcularVencimiento(HOY, 5),
+            ampliaciones: [{ diasAmpliados: 30, descuentoRealizado: 0 }],
+          }),
+        ],
+      }),
+    );
+    expect(screen.getByText("Ampliación")).toBeInTheDocument();
+  });
+});
+
 describe("FacturaCard — lo que muestra", () => {
   it("dice de qué factura se trata", () => {
     mostrar(facturaAbierta);

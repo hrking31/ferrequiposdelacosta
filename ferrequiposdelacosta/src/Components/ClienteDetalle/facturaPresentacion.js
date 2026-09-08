@@ -49,6 +49,21 @@ export const ESTADO_FACTURA_INFO = {
   finalizada: { label: "Finalizada", Icono: CheckCircleIcon },
 };
 
+// El nombre de cada estado de EQUIPO. Los estados y su orden viven en
+// facturaCuentas.js (ESTADOS_EQUIPO_EN_ORDEN); el color, en el tema
+// (custom.estadoEquipo).
+//
+// Sin ícono, a diferencia de los de factura: van en la lista de equipos de la
+// ficha, uno por renglón, y ahí el color del borde ya distingue. Un ícono por
+// fila sería ruido en una lista de diez equipos.
+export const ESTADO_EQUIPO_INFO = {
+  pendiente: { label: "Pendiente" },
+  activo: { label: "Activo" },
+  ampliacion: { label: "Ampliación" },
+  vencido: { label: "Vencido" },
+  devuelto: { label: "Devuelto" },
+};
+
 // El cliente usa el mismo vocabulario que sus facturas, más "inactivo" para
 // cuando no tiene ninguna.
 export const ESTADO_CLIENTE_INFO = {

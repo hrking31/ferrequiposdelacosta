@@ -515,6 +515,22 @@ export const CustomThemeProvider = ({ children }) => {
             cobro: "#EA580C", // naranja — devolvió todo, debe plata
           },
 
+          // LOS CINCO ESTADOS DE UN EQUIPO. Ninguno es un color nuevo: cada
+          // uno es el que el tema ya le da a esa misma idea en otra parte, y
+          // por eso están escritos como referencia y no como hexadecimal
+          // suelto. Un equipo vencido tiene que verse del mismo rojo que una
+          // factura vencida.
+          //
+          // Se usan en: ClienteDetalle (la ficha, donde se ven los cinco).
+          // En cartera solo hay vencidos, así que ahí no hacen falta.
+          estadoEquipo: {
+            pendiente: "#F59E0B", // el ámbar de la factura pendiente: falta despachar
+            activo: "#16A34A", // el verde de la factura activa: alquiler vigente
+            ampliacion: "#2563EB", // el azul de la gestión prórroga: se le dio más tiempo
+            vencido: "#DC2626", // el rojo de la factura vencida: se pasó la fecha
+            devuelto: "#64748B", // el gris azulado de seccionDevuelto: ya volvió
+          },
+
           // El gris de respaldo para un estado o una gestión que no esté en
           // las listas de arriba. Antes este mismo cálculo estaba copiado en
           // ClienteDetalle y ClienteSeguimientoCard.

@@ -12,7 +12,12 @@ import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
 import { Box, Chip, Stack, Typography, useTheme } from "@mui/material";
 import ChipsFechasEquipo from "./ChipsFechasEquipo";
-import { calcularEquipo, estaDevuelto } from "./facturaUtils";
+import {
+  calcularEquipo,
+  calcularEstadoEquipo,
+  estaDevuelto,
+  ESTADO_EQUIPO_INFO,
+} from "./facturaUtils";
 // Con alias para que se lean como lo que son acá: la moneda que deja el hueco
 // vacío si no hay número, y la fecha DD/MM/AAAA.
 import {
@@ -99,6 +104,13 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
   //
   // Mientras sigue afuera se muestra la historia completa.
   const devuelto = estaDevuelto(equipo);
+  // Cuál de los cinco, y con qué color. El color sale del tema —no se arma
+  // acá— para que un equipo vencido se vea del mismo rojo que una factura
+  // vencida en Clientes.
+  const estadoEquipo = calcularEstadoEquipo(equipo);
+  const colorEstado =
+    theme.palette.custom.estadoEquipo[estadoEquipo] ??
+    theme.palette.custom.estadoNeutro;
   // Un equipo devuelto ya trae en `diasAlquilados` los días que de verdad
   // usó, así que su cuenta neta ES el número: no hay nada que sumarle ni que
   // restarle.
@@ -114,11 +126,6 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
     ? theme.palette.custom.seccionDevuelto
     : color;
 
-  // El color del HECHO de haber devuelto, que es distinto del relleno: el
-  // relleno apaga la tarjeta porque ya no hay nada que gestionar, y este
-  // resalta el rótulo. Es el rosa de la gestión de seguimiento, donde una
-  // devolución ya se pinta así.
-  const colorDevolucion = theme.palette.custom.seccionGestion;
 
   return (
     <Box
@@ -198,33 +205,39 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                   agregado {formatearFecha(fechaPedido)}
                 </Typography>
               )}
-              {/* Y QUE VOLVIÓ. El rótulo va junto al nombre y no como un chip
-                  más abajo: es lo primero que hay que saber de la tarjeta, y
-                  entre los chips de fechas se perdía. */}
-              {devuelto && (
-                <Typography
-                  component="span"
-                  variant="caption"
-                  fontWeight="bold"
-                  sx={{
-                    ml: 0.75,
-                    px: 0.75,
-                    py: 0.15,
-                    borderRadius: 0.5,
-                    whiteSpace: "nowrap",
-                    // Relleno sólido y no un contorno del gris de la tarjeta:
-                    // en gris sobre gris el rótulo se perdía, y es lo primero
-                    // que hay que ver. Va en el rosa de la GESTIÓN —el que
-                    // Seguimiento usa para las llamadas, las prórrogas y las
-                    // devoluciones—, así que el mismo hecho se pinta igual en
-                    // las dos pantallas.
-                    bgcolor: colorDevolucion,
-                    color: theme.palette.getContrastText(colorDevolucion),
-                  }}
-                >
-                  DEVUELTO
-                </Typography>
-              )}
+              {/* EN QUÉ ANDA ESTE EQUIPO. Uno de los cinco estados que la app
+                  ya calcula, junto al nombre y no entre los chips de fechas de
+                  abajo: es lo primero que hay que saber de la fila.
+                  
+                  Reemplazó al rótulo "DEVUELTO", que decía uno solo de los
+                  cinco casos. Un equipo que no ha vuelto también tiene algo
+                  que decir —está en fecha, se pasó, le dieron más días, ni
+                  salió de bodega— y antes eso había que deducirlo leyendo las
+                  fechas.
+
+                  Contorno del color y no relleno sólido: son hasta diez filas
+                  en una factura, y diez etiquetas macizas convierten la lista
+                  en un semáforo ilegible. El fondo tenue del mismo color evita
+                  el problema que tenía el rótulo viejo —gris sobre gris se
+                  perdía— sin gritar. */}
+              <Box
+                component="span"
+                sx={{
+                  ml: 0.75,
+                  px: 0.75,
+                  py: 0.15,
+                  borderRadius: 0.5,
+                  whiteSpace: "nowrap",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  border: "1px solid",
+                  borderColor: colorEstado,
+                  bgcolor: alpha(colorEstado, 0.12),
+                  color: colorEstado,
+                }}
+              >
+                {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
+              </Box>
               {/* La fecha, FUERA del rótulo. Son dos datos distintos —que
                   volvió, y cuándo— y adentro del bloque rosa se leían como uno
                   solo; separada se lee igual que la del pedido, que es su par.

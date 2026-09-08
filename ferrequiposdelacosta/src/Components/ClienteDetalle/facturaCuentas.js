@@ -597,6 +597,34 @@ export const contarUnidadesVencidas = (doc, hoyIso = obtenerFechaHoyBogota()) =>
     .filter(({ equipo }) => equipoVencido(equipo, hoyIso))
     .reduce((total, { equipo }) => total + numero(equipo?.cantidadEquipos), 0);
 
+// EL PLAZO DE LA FACTURA, dicho como se dice el de un equipo: hasta cuándo
+// era y cuánto se pasó.
+//
+// Una factura no tiene un vencimiento propio —lo tienen sus equipos— así que
+// se toma el del que la trajo a cartera: la fecha MÁS ANTIGUA entre los que
+// siguen afuera y ya vencieron, y los días del que más lleva. Con eso la
+// tarjeta contesta "hasta cuándo era" sin hacer restar de cabeza.
+//
+// Sin equipos vencidos devuelve `null`: esa factura sigue en cartera por la
+// plata, y ahí no hay plazo que mostrar.
+export const plazoVencidoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
+  const vencidos = equiposDe(doc)
+    .map(({ equipo }) => equipo)
+    .filter((equipo) => sigueAfuera(equipo) && equipoVencido(equipo, hoyIso));
+
+  if (vencidos.length === 0) return null;
+
+  return {
+    fecha: vencidos
+      .map((equipo) => equipo?.fechaVencimiento)
+      .filter(Boolean)
+      .sort()[0] ?? null,
+    dias: Math.max(
+      ...vencidos.map((equipo) => calcularEquipo(equipo, hoyIso).diasVencidos),
+    ),
+  };
+};
+
 export const hayEquiposAlDia = (doc, hoyIso = obtenerFechaHoyBogota()) =>
   equiposDe(doc).some(({ equipo }) => equipoAlDia(equipo, hoyIso));
 
