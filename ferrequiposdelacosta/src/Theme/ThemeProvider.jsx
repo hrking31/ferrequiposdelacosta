@@ -1133,21 +1133,25 @@ export const CustomThemeProvider = ({ children }) => {
                 [theme.breakpoints.up("sm")]: {
                   gridTemplateColumns: "repeat(4, 1fr)",
                 },
-                // El fondo del contenedor es el color de la línea, y cada celda
-                // tapa lo suyo: lo que queda a la vista son los separadores de
-                // 1px, sin dibujar un borde por celda.
-                backgroundColor: theme.palette.divider,
-                gap: "1px",
+                // El fondo de la APP, no el de la tarjeta: así el bloque se
+                // despega del panel que lo contiene, igual que en el diseño,
+                // donde las celdas tienen un fondo distinto del de su panel.
+                backgroundColor: theme.palette.background.default,
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: theme.shape.borderRadius,
                 overflow: "hidden",
                 boxShadow: "none",
 
                 "& .celda": {
-                  backgroundColor: theme.palette.background.paper,
                   padding: theme.spacing(1.25, 2),
                   minWidth: 0,
+                  // La línea que la separa de la anterior lleva EL COLOR DE SU
+                  // CIFRA: la franja verde anuncia lo pagado, la roja el saldo.
+                  // Así el color se lee incluso de reojo, sin llegar a la cifra.
+                  borderLeft: `2px solid ${theme.palette.divider}`,
                 },
+
+                "& .celda:first-of-type": { borderLeft: "none" },
 
                 "& .rotulo": {
                   fontSize: 11,
@@ -1174,14 +1178,21 @@ export const CustomThemeProvider = ({ children }) => {
                 // tokens, que están calculados para leerse sobre el fondo
                 // oscuro de la pizarra y acá el fondo es el de la tarjeta.
                 //
-                // El total va sin color, como en el diseño: es el número de
-                // referencia, no una alerta. En la pizarra puede ir en amarillo
-                // porque ahí el fondo siempre es oscuro; sobre una tarjeta
-                // clara ese amarillo no se lee.
+                // El total conserva SU amarillo, el mismo que le da la pizarra
+                // de la ficha del cliente: las cuatro cifras de una cuenta se
+                // leen del mismo color en las dos pantallas.
+                "& .celda.total .cifra": { color: theme.palette.custom.totalText },
                 "& .celda.pagado .cifra": { color: theme.palette.success.main },
                 "& .celda.abono .cifra": { color: theme.palette.info.main },
                 "& .celda.alerta .cifra": { color: theme.palette.error.main },
                 "& .celda.ok .cifra": { color: theme.palette.success.main },
+
+                // Y la línea de cada una, del mismo color que su cifra.
+                "& .celda.total": { borderLeftColor: theme.palette.custom.totalText },
+                "& .celda.pagado": { borderLeftColor: theme.palette.success.main },
+                "& .celda.abono": { borderLeftColor: theme.palette.info.main },
+                "& .celda.alerta": { borderLeftColor: theme.palette.error.main },
+                "& .celda.ok": { borderLeftColor: theme.palette.success.main },
               }),
             },
             {
