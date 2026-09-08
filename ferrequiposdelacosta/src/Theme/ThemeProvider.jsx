@@ -1116,15 +1116,14 @@ export const CustomThemeProvider = ({ children }) => {
               // "total" agrega la línea punteada y pinta el renglón de
               // amarillo. Para un renglón de alerta (saldo pendiente,
               // vencido) se agrega "alerta" y sale en rojo legible.
-              // LA MISMA PIZARRA, EN CELDAS. Las cuatro cifras de una cuenta
-              // una al lado de la otra, con el rótulo chico encima — lo que
-              // Seguimiento lee durante la llamada, donde apiladas obligaban a
-              // recorrerlas.
+              // LAS CUATRO CIFRAS DE UNA CUENTA, EN CELDAS. Una al lado de
+              // la otra, con el rótulo chico encima — lo que Seguimiento lee
+              // durante la llamada, donde apiladas obligaban a recorrerlas.
               //
-              // Los colores son los MISMOS que los de la variante "totales" de
-              // aquí abajo: amarillo el total, verde lo pagado, azul los abonos
-              // y rojo lo que queda debiendo. La misma plata no puede verse de
-              // dos colores según la pantalla.
+              // NO es la pizarra oscura de la variante "totales": las celdas
+              // usan el mismo fondo de la tarjeta que las contiene, y el color
+              // entra solo por las cifras. Un recuadro oscuro acá se leía como
+              // una barra negra pegada al resto de la tarjeta.
               props: { variant: "totalesCeldas" },
               style: ({ theme }) => ({
                 display: "grid",
@@ -1134,30 +1133,27 @@ export const CustomThemeProvider = ({ children }) => {
                 [theme.breakpoints.up("sm")]: {
                   gridTemplateColumns: "repeat(4, 1fr)",
                 },
-                backgroundColor: theme.palette.custom.panelBackground,
-                boxShadow: theme.palette.custom.panelShadow,
-                borderRadius: theme.shape.borderRadius * 2,
+                // El fondo del contenedor es el color de la línea, y cada celda
+                // tapa lo suyo: lo que queda a la vista son los separadores de
+                // 1px, sin dibujar un borde por celda.
+                backgroundColor: theme.palette.divider,
+                gap: "1px",
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: theme.shape.borderRadius,
                 overflow: "hidden",
-                color: theme.palette.custom.panelText,
+                boxShadow: "none",
 
                 "& .celda": {
+                  backgroundColor: theme.palette.background.paper,
                   padding: theme.spacing(1.25, 2),
                   minWidth: 0,
-                  // La línea sale del propio texto de la pizarra, atenuado: un
-                  // color suelto se lee como una barra oscura entre las celdas.
-                  borderLeft: `1px solid ${alpha(
-                    theme.palette.custom.panelText,
-                    0.15,
-                  )}`,
                 },
-
-                "& .celda:first-of-type": { borderLeft: "none" },
 
                 "& .rotulo": {
                   fontSize: 11,
                   letterSpacing: 0.5,
                   lineHeight: 1.5,
-                  color: alpha(theme.palette.custom.panelText, 0.7),
+                  color: theme.palette.text.secondary,
                 },
 
                 "& .cifra": {
@@ -1165,21 +1161,27 @@ export const CustomThemeProvider = ({ children }) => {
                   fontWeight: 700,
                   lineHeight: 1.3,
                   // Números de ancho fijo, como en el diseño: cada dígito ocupa
-                  // lo mismo, así las cuatro cifras quedan alineadas entre sí y
-                  // ninguna se ve más angosta por tener más unos. Es lo que ya
-                  // usa la bitácora de gestión para sus fechas.
+                  // lo mismo y las cuatro cifras quedan alineadas entre sí.
                   fontVariantNumeric: "tabular-nums",
-                  letterSpacing: 0.3,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 },
 
-                "& .celda.total .cifra": { color: theme.palette.custom.totalText },
-                "& .celda.pagado .cifra": { color: theme.palette.custom.saldadoText },
-                "& .celda.abono .cifra": { color: theme.palette.info.light },
-                "& .celda.alerta .cifra": { color: theme.palette.custom.saldoText },
-                "& .celda.ok .cifra": { color: theme.palette.custom.saldadoText },
+                // El mismo criterio que la pizarra de la ficha del cliente:
+                // verde lo pagado, azul los abonos, rojo lo que queda
+                // debiendo. Pero con los tonos de ESTADO del tema y no con sus
+                // tokens, que están calculados para leerse sobre el fondo
+                // oscuro de la pizarra y acá el fondo es el de la tarjeta.
+                //
+                // El total va sin color, como en el diseño: es el número de
+                // referencia, no una alerta. En la pizarra puede ir en amarillo
+                // porque ahí el fondo siempre es oscuro; sobre una tarjeta
+                // clara ese amarillo no se lee.
+                "& .celda.pagado .cifra": { color: theme.palette.success.main },
+                "& .celda.abono .cifra": { color: theme.palette.info.main },
+                "& .celda.alerta .cifra": { color: theme.palette.error.main },
+                "& .celda.ok .cifra": { color: theme.palette.success.main },
               }),
             },
             {
