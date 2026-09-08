@@ -39,6 +39,7 @@ import {
   calcularExigible,
   calcularTransporteTotal,
   contarUnidadesVencidas,
+  plazoVencidoFactura,
   equipoDevueltoEnCobranza,
   equipoVencido,
   calcularEstadoFactura,
@@ -438,6 +439,9 @@ export default function ClienteSeguimientoCard({
 
   const indiceActivo = Math.min(tabFactura, facturas.length - 1);
   const factura = facturas[indiceActivo];
+  // Hasta cuándo era el plazo de ESTA factura y cuánto se pasó. Null si no
+  // tiene equipos vencidos: sigue en cartera por la plata.
+  const plazo = plazoVencidoFactura(factura, hoy);
 
   // La gestión vigente: lo último que se hizo con esta factura, salvo que ya
   // haya devuelto todo y solo deba plata —ahí manda "Cobro"—.
@@ -544,6 +548,32 @@ export default function ClienteSeguimientoCard({
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
+  const celdaDePlata = (rotulo, valor, { color, franja } = {}) => (
+    <Box
+      sx={{
+        bgcolor: "background.paper",
+        px: 1.5,
+        py: 1,
+        ...(franja ? { boxShadow: `inset 3px 0 0 ${franja}` } : {}),
+      }}
+    >
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", lineHeight: 1.4 }}
+      >
+        {rotulo}
+      </Typography>
+      <Typography
+        variant="subtitle1"
+        fontWeight="bold"
+        sx={{ lineHeight: 1.3, ...(color ? { color } : {}) }}
+      >
+        {valor}
+      </Typography>
+    </Box>
+  );
+
   const cuadroTotales = valorTotal && (
     <Box>
       {/* El acento del tema, no el color de un bloque: esto resume TODO lo de
@@ -562,38 +592,47 @@ export default function ClienteSeguimientoCard({
         <AccountBalanceWalletIcon fontSize="small" />
         Estado de cuenta
       </Typography>
-      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
-      <Box className="fila total">
-        <Typography variant="subtitle1" fontWeight="bold">
-          Total factura
-        </Typography>
-        <Typography variant="subtitle1" fontWeight="bold">
-          {valorTotal}
-        </Typography>
+      {/* LOS CUATRO NÚMEROS DE LA LLAMADA, en celdas y no apilados: cuánto
+          es, cuánto entró por el despacho, cuánto abonó después y cuánto
+          falta. En renglones había que recorrerlos de arriba abajo para
+          encontrar uno; acá los cuatro se ven de una.
+          En el celular van de a dos: cuatro columnas en 360 píxeles dejan las
+          cifras cortadas. */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
+          gap: "1px",
+          bgcolor: "divider",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1,
+          overflow: "hidden",
+          mb: 1,
+        }}
+      >
+        {/* "Total" y no "Total factura": el rótulo del bloque que lo contiene
+            ya dice eso, y la misma frase dos veces a pocos centímetros se lee
+            como dos números que tendrían que coincidir. */}
+        {celdaDePlata("Total", valorTotal)}
+        {celdaDePlata("Pagado", formatearMoneda(cuenta.pagado))}
+        {celdaDePlata("Abonos", formatearMoneda(cuenta.abonos), {
+          color: cuenta.abonos > 0 ? theme.palette.success.main : undefined,
+        })}
+        {cuenta.saldoAFavor > 0
+          ? celdaDePlata("Saldo a favor", formatearMoneda(cuenta.saldoAFavor), {
+              color: theme.palette.success.main,
+              franja: theme.palette.success.main,
+            })
+          : celdaDePlata("Saldo pendiente", saldoPendiente, {
+              color: saldoPendienteNumero > 0 ? theme.palette.error.main : undefined,
+              franja: saldoPendienteNumero > 0 ? theme.palette.error.main : undefined,
+            })}
       </Box>
 
-      {/* Lo ya cobrado. Solo aparece cuando queda saldo o cuando hubo abonos:
-          con la factura saldada de una sola vez sería el mismo número del
-          total, repetido. La clase "pagado" es la que lo pinta verde —sin ella
-          cae en el blanco tiza del renglón común—. Mismos renglones y mismas
-          condiciones que en Detalle Cliente: las dos pantallas muestran la
-          misma cuenta, y separarlas fue justo lo que las hizo divergir. */}
-      {(saldoPendienteNumero > 0 || cuenta.abonos > 0) && (
-        <Box className="fila pagado">
-          <Typography variant="body2">Pagado</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.pagado)}</Typography>
-        </Box>
-      )}
-
-      {/* Solo el total de lo abonado: el detalle de cada abono, con su fecha y
-          su medio, se ve en Detalle Cliente. */}
-      {cuenta.abonos > 0 && (
-        <Box className="fila abono">
-          <Typography variant="body2">Abonos</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.abonos)}</Typography>
-        </Box>
-      )}
-
+      {/* Lo que no toda factura tiene, y que igual hay que poder ver: sigue
+          como renglón. En celdas fijas obligaría a mostrar vacíos. */}
+      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
       {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
           porque si no el total cambiaría sin explicación. */}
       {cuenta.depositoDevuelto > 0 && (
@@ -615,31 +654,6 @@ export default function ClienteSeguimientoCard({
       {/* Si el cliente pagó de más, el sobrante queda a su favor en vez de
           mostrarse como saldo. Acá va solo el dato: devolverlo se hace desde
           Detalle Cliente, que es donde están las acciones de plata. */}
-      {cuenta.saldoAFavor > 0 ? (
-        <Box className="fila ok" sx={{ mt: 1 }}>
-          <Typography variant="body2" fontWeight="bold">
-            Saldo a favor
-          </Typography>
-          <Typography variant="body2" fontWeight="bold">
-            {formatearMoneda(cuenta.saldoAFavor)}
-          </Typography>
-        </Box>
-      ) : (
-        /* Siempre visible: rojo si queda algo por cobrar, verde si la factura
-           ya está saldada. Así se lee de un vistazo en qué situación está. */
-        <Box
-          className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
-          sx={{ mt: 1 }}
-        >
-          <Typography variant="body2" fontWeight="bold">
-            Saldo pendiente
-          </Typography>
-          <Typography variant="body2" fontWeight="bold">
-            {saldoPendiente}
-          </Typography>
-        </Box>
-      )}
-
       </Paper>
     </Box>
   );
@@ -841,10 +855,50 @@ export default function ClienteSeguimientoCard({
               alignItems="center"
               sx={{ mb: 1 }}
             >
-              {fecha && (
-                <Typography variant="body2" color="text.secondary">
-                  Fecha despacho: {fecha}
-                </Typography>
+              {/* HASTA CUÁNDO ERA, y cuánto se pasó. Antes acá iba la fecha de
+                  despacho, que en cartera no decide nada: lo que hay que saber
+                  al llamar es desde cuándo se pasó el plazo. La fecha sale del
+                  equipo que trajo la factura acá y los días, del que más lleva
+                  (ver plazoVencidoFactura).
+
+                  Sin equipos vencidos no hay plazo que mostrar: esa factura
+                  sigue en cartera por la plata, y eso lo dice el renglón de
+                  abajo. */}
+              {plazo ? (
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Vencía
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {formatearFecha(plazo.fecha)}
+                    </Typography>
+                  </Stack>
+
+                  {plazo.dias > 0 && (
+                    <>
+                      <Box
+                        sx={{ width: "1px", height: 16, bgcolor: "divider" }}
+                        aria-hidden
+                      />
+                      <Typography
+                        variant="body2"
+                        fontWeight="bold"
+                        sx={{ color: "error.main" }}
+                      >
+                        {plazo.dias} día{plazo.dias === 1 ? "" : "s"} vencido
+                        {plazo.dias === 1 ? "" : "s"}
+                      </Typography>
+                    </>
+                  )}
+                </Stack>
+              ) : (
+                fecha && (
+                  <Typography variant="body2" color="text.secondary">
+                    Fecha despacho: {fecha}
+                  </Typography>
+                )
               )}
 
               {/* Acciones de la factura arriba a la derecha, junto al chip de
@@ -989,9 +1043,18 @@ export default function ClienteSeguimientoCard({
                     <HistoryIcon fontSize="small" />
                     Gestión {gestiones.length}
                   </Typography>
-                  <Tooltip title={gestionAbierta ? "Ocultar gestión" : "Ver gestión"}>
+                  <Tooltip
+                    title={
+                      gestionAbierta
+                        ? "Ver solo las últimas"
+                        : `Ver las ${gestiones.length} gestiones`
+                    }
+                  >
                     <IconButton
                       size="small"
+                      // Con dos o menos ya están todas a la vista: el botón no
+                      // tendría nada que desplegar.
+                      disabled={gestiones.length <= 2}
                       onClick={() => setGestionAbierta((prev) => !prev)}
                       sx={{
                         border: "1px solid",
@@ -1010,10 +1073,16 @@ export default function ClienteSeguimientoCard({
                   </Tooltip>
                 </Stack>
 
-                {gestionAbierta && (
-                  <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
-                    <Stack spacing={0.25}>
-                      {gestiones.map((registro, i) => (
+                {/* LAS DOS ÚLTIMAS, siempre. Antes la bitácora arrancaba
+                    cerrada del todo y había que abrirla para saber si a este
+                    cliente ya lo habían llamado — que es lo primero que se
+                    pregunta quien va a llamarlo. Con las dos más recientes a
+                    la vista, la pregunta está contestada de entrada, y el
+                    botón queda para el historial completo, que con varias
+                    llamadas ocupa la pantalla entera. */}
+                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
+                  <Stack spacing={0.25}>
+                    {(gestionAbierta ? gestiones : gestiones.slice(-2)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
                           direction="row"
@@ -1033,9 +1102,8 @@ export default function ClienteSeguimientoCard({
                           </Typography>
                         </Stack>
                       ))}
-                    </Stack>
-                  </Box>
-                )}
+                  </Stack>
+                </Box>
               </Box>
             )}
 
