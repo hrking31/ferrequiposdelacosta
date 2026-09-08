@@ -794,6 +794,26 @@ export default function ClienteSeguimientoCard({
                       transition: "background-color 0.15s ease",
                     }}
                   >
+                    {/* El punto del estado de ESA factura. Con él la fila de
+                        pestañas se lee como un semáforo: de un vistazo se ve
+                        cuál de las tres es la urgente, sin abrir ninguna. Los
+                        colores son los que el tema ya le da a esos estados en
+                        Clientes y en la ficha — no son nuevos. */}
+                    <Box
+                      component="span"
+                      sx={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        display: "inline-block",
+                        mr: 0.9,
+                        verticalAlign: "middle",
+                        bgcolor:
+                          theme.palette.custom.estadoFactura[
+                            calcularEstadoFactura(f, hoy)
+                          ] ?? theme.palette.custom.estadoNeutro,
+                      }}
+                    />
                     Fact. {datosFactura(f).numeroFactura ?? "s/n"}
                   </Box>
                 );
