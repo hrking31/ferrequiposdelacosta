@@ -321,17 +321,18 @@ export default function generarFacturaPdf({ factura, cliente }) {
     });
   };
 
-  // Lo agregado va ARRIBA y el despacho del alta queda al final: con un
-  // despacho agregado el alta es el segundo bloque, con dos es el tercero. Lo
-  // último que salió es lo que se está mirando; el alta ya se conoce.
+  // Los despachos van en el orden en que ocurrieron: el alta primero y después
+  // cada tanda agregada, 1, 2, 3. Es el orden de los movimientos de la
+  // factura, el mismo de los grupos en la base. Lo único que se reordena es la
+  // lista DENTRO de cada grupo, donde lo devuelto baja al final.
   //
   // La fecha del pedido no va en el rótulo: cada despacho la muestra en su
   // propia tabla de pago, que es donde se lee junto a lo que se pagó ese día.
+  bloqueDeGrupo(grupoInicial, "EQUIPOS");
+
   gruposAgregados.forEach((grupo, indice) => {
     bloqueDeGrupo(grupo, `EQUIPOS AGREGADOS ${indice + 1}`);
   });
-
-  bloqueDeGrupo(grupoInicial, "EQUIPOS");
 
   // ── Abonos ─────────────────────────────────────────────────────────────
   const abonos = abonosDe(factura);
