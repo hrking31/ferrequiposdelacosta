@@ -356,16 +356,21 @@ export const calcularAlquiler = (doc, hoyIso = obtenerFechaHoyBogota()) =>
 // y cada equipo decide por su cuenta, con su propia marca `aplicaIva`. Un
 // equipo exento puede ir al lado de uno que sí lo lleva en la misma factura.
 //
-// Si el equipo no trae marca propia, hereda la de la factura: así quedaron
-// los despachos viejos, que solo tenían la de arriba.
-export const equipoLlevaIva = (equipo, doc) =>
-  equipo?.aplicaIva ?? Boolean(datosFactura(doc).aplicaIva);
+// La marca la escribe SIEMPRE quien crea el equipo, así que acá no hay a quién
+// preguntarle si falta: la factura ya no guarda una marca de arriba que sirva
+// de respaldo.
+export const equipoLlevaIva = (equipo) => Boolean(equipo?.aplicaIva);
+
+// Si la factura lleva IVA es una conclusión de sus equipos, no un dato suyo.
+// La usan los dos formularios para dejar marcada la casilla al abrirlos.
+export const facturaLlevaIva = (doc) =>
+  equiposDe(doc).some(({ equipo }) => equipoLlevaIva(equipo));
 
 // La suma de los IVA de todos los equipos que lo llevan.
 export const calcularIvaEquipos = (doc, hoyIso = obtenerFechaHoyBogota()) =>
   equiposDe(doc).reduce(
     (total, { equipo }) =>
-      equipoLlevaIva(equipo, doc)
+      equipoLlevaIva(equipo)
         ? total + calcularEquipo(equipo, hoyIso).neto * IVA
         : total,
     0,
@@ -498,7 +503,7 @@ export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
 
       return {
         consumido: acumulado.consumido + monto,
-        iva: acumulado.iva + (equipoLlevaIva(equipo, doc) ? monto * IVA : 0),
+        iva: acumulado.iva + (equipoLlevaIva(equipo) ? monto * IVA : 0),
       };
     },
     { consumido: 0, iva: 0 },

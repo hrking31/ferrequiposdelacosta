@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-475_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-478_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -652,7 +652,7 @@ Dos reglas de partida: **nada suelto en la raíz del documento** —abrir una fa
 documento de la factura
 │
 ├── FACTURA{}  ── numeroFactura, fechaCreacion, tipoPago,
-│                 aplicaIva, depositoResuelto, cerrada
+│                 depositoResuelto, cerrada
 │
 ├── GRUPOS[]   ── un despacho, con SU plata
 │   │            grupo: "grupo-inicial" | "grupo-agregados-N"
@@ -756,7 +756,18 @@ El nodo `factura` llegó a guardar el `subtotal`, el `valorIva` y el `total` com
 
 Un total guardado **nace vencido**: al día siguiente el equipo sigue afuera, corre un día más y el número ya miente. No es teórico — ese campo **es el bug de los $144.440**: lo exigible salía del total viejo, que no llevaba ni las ampliaciones ni los días vencidos, y con pagar $144.440 una factura salía de cartera debiendo $1.727.140. Cuando se revisaron, no los leía ninguna pantalla: se escribían y se leían a sí mismos.
 
-El **tipo de pago** también salió de ahí, pero por otro motivo: **es del despacho, no de la factura**. Un solo dato arriba no puede contar que el alta se pagó completa y que el lote agregado la semana pasada quedó a deber. La tarjeta y el PDF ya mostraban un renglón de pago por despacho —y el selector ya se llamaba *"Pago de estos equipos"*—, pero les ponían a todos el mismo valor. Ahora cada grupo guarda el suyo, al lado de sus pagos, su flete y su depósito.
+El **tipo de pago** también salió de ahí, pero por otro motivo: **es del despacho, no de la factura**. Un solo dato arriba no puede contar que el alta se pagó completa y que el lote agregado la semana pasada quedó a deber. La tarjeta y el PDF ya mostraban un renglón de pago por despacho —y el selector ya se llamaba *"Pago de estos equipos"*—, pero les ponían a todos el mismo valor.
+
+Ahora vive **dentro de `pagos`**, junto a los medios, y no suelto al lado: un despacho tiene un tipo de pago con uno o varios medios —parte por Nequi, parte en efectivo—, no un tipo por medio. Colgado de cada medio se habría perdido justo en el caso *"sin pago"*, donde no hay ningún medio que anotar.
+
+```
+pagos: {
+  tipoPago: "parcial",
+  medios: [ { medio: "Nequi", monto: 200000 } ],
+}
+```
+
+Y por último salió **`aplicaIva`**, que era el último interruptor único para toda la factura. La marca es de **cada equipo** y ahora se le escribe siempre al crearlo. Antes solo la llevaban los equipos agregados después: los del despacho inicial nacían sin ella y su IVA se decidía mirando el dato de arriba. Dos criterios distintos según por dónde hubiera entrado el equipo, en la misma factura. Que la factura lleve IVA pasó a ser una conclusión de sus equipos, y un equipo exento puede ir al lado de uno gravado.
 
 ### Los cuatro cargos se suman una sola vez
 

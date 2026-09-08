@@ -563,7 +563,6 @@ export default function FacturaCard({
                     deposito={Number(adicionalesInicial.valorDeposito) || 0}
                     transporteTipo={transporteTipo}
                     transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
-                    aplicaIvaFactura={Boolean(datos.aplicaIva)}
                     abierto={seccionAbierta(factura.id, "adicionales-factura")}
                     onToggle={() =>
                       toggleSeccion(factura.id, "adicionales-factura")
@@ -709,7 +708,6 @@ export default function FacturaCard({
                         transporteMonto={
                           Number(adicionalesLote.valorTransporte) || 0
                         }
-                        aplicaIvaFactura={Boolean(datos.aplicaIva)}
                         abierto={seccionAbierta(
                           factura.id,
                           `lote-adicionales-${indiceLote}`,

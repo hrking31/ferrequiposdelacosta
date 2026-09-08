@@ -138,7 +138,12 @@ describe("FacturaFormDialog — crear", () => {
     // Y el tipo de pago es del despacho, no de la factura: el alta puede ir
     // pagada y el lote que se agregue después quedar a deber.
     expect(documento.factura).not.toHaveProperty("tipoPago");
-    expect(documento.grupos[0].tipoPago).toBeTruthy();
+    expect(documento.grupos[0].pagos.tipoPago).toBeTruthy();
+
+    // Y la marca del IVA queda en cada equipo, no arriba.
+    expect(documento.factura).not.toHaveProperty("aplicaIva");
+    expect(documento.factura).not.toHaveProperty("valorIva");
+    expect(documento.grupos[0].equipos[0]).toHaveProperty("aplicaIva");
 
     // Nace abierta: se emitió y todavía no se pagó ni se devolvió nada.
     expect(documento.factura.cerrada).toBe(false);
@@ -222,8 +227,8 @@ describe("FacturaFormDialog — editar", () => {
 
     const [, documento] = bd.updateDoc.mock.calls[0];
     // El pago queda recortado justo hasta cubrir el total…
-    const pagos = documento.grupos[0].pagos;
-    expect(pagos.reduce((suma, p) => suma + Number(p.monto), 0)).toBe(240000);
+    const { medios } = documento.grupos[0].pagos;
+    expect(medios.reduce((suma, p) => suma + Number(p.monto), 0)).toBe(240000);
     // …y el sobrante pasa a ser un abono con la fecha de la factura. Lo dedujo
     // la app del pago, así que el tipo es "sistema".
     expect(documento.abonos).toEqual([

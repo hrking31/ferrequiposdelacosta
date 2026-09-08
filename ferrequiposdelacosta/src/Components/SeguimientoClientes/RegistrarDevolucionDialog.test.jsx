@@ -429,7 +429,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(despacho.equipos[1].cantidadEquipos).toBe(6);
 
     // Los cargos siguen ARRIBA, en el despacho, intactos y una sola vez.
-    expect(despacho.pagos).toEqual([{ medio: "Bancolombia", monto: 198500 }]);
+    expect(despacho.pagos.medios).toEqual([{ medio: "Bancolombia", monto: 198500 }]);
     expect(despacho.adicionales.valorTransporte).toBe(20000);
     expect(despacho.adicionales.valorDeposito).toBe(50000);
 

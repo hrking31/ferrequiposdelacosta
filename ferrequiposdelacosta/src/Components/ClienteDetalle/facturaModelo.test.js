@@ -11,6 +11,7 @@ import {
   abonosDe,
   entregasDe,
   pagosDe,
+  tipoPagoDe,
   adicionalesDe,
   estaDevuelto,
   sigueAfuera,
@@ -21,14 +22,11 @@ import {
 // La factura del ejemplo: 1 benitín contratado, 10 gatos agregados después y
 // 4 de ellos devueltos el mismo día.
 const factura1240 = {
+  // El nodo NO lleva plata ni tipo de pago ni marca de IVA: eso vive en el
+  // despacho y en cada equipo.
   factura: {
     numeroFactura: "1240",
     fechaCreacion: "2026-09-01",
-    tipoPago: "parcial",
-    aplicaIva: false,
-    subtotal: 900000,
-    valorIva: 0,
-    total: 900000,
     depositoResuelto: false,
     cerrada: false,
   },
@@ -36,7 +34,10 @@ const factura1240 = {
     {
       grupo: GRUPO_INICIAL,
       fechaSolicitud: "2026-09-01",
-      pagos: [{ medio: "Bancolombia", monto: 500000, tipoPago: "parcial" }],
+      pagos: {
+        tipoPago: "parcial",
+        medios: [{ medio: "Bancolombia", monto: 500000 }],
+      },
       adicionales: {
         transporte: "Ida y vuelta",
         valorTransporte: 150000,
@@ -58,7 +59,10 @@ const factura1240 = {
     {
       grupo: "grupo-agregados-1",
       fechaSolicitud: "2026-09-04",
-      pagos: [{ medio: "Efectivo", monto: 150000, tipoPago: "total" }],
+      pagos: {
+        tipoPago: "total",
+        medios: [{ medio: "Efectivo", monto: 150000 }],
+      },
       adicionales: {
         transporte: "Solo ida",
         valorTransporte: 80000,
@@ -100,7 +104,12 @@ const factura1240 = {
 describe("los atajos de lectura", () => {
   it("los datos del documento salen del nodo factura", () => {
     expect(datosFactura(factura1240).numeroFactura).toBe("1240");
-    expect(datosFactura(factura1240).total).toBe(900000);
+    expect(datosFactura(factura1240).fechaCreacion).toBe("2026-09-01");
+    // Y ahí no hay plata: el total es una conclusión, no un dato guardado.
+    expect(datosFactura(factura1240)).not.toHaveProperty("total");
+    expect(datosFactura(factura1240)).not.toHaveProperty("subtotal");
+    expect(datosFactura(factura1240)).not.toHaveProperty("valorIva");
+    expect(datosFactura(factura1240)).not.toHaveProperty("aplicaIva");
   });
 
   it("sin documento devuelven vacío en vez de reventar", () => {
@@ -123,6 +132,26 @@ describe("los atajos de lectura", () => {
     expect(todos[0].equipo.nombre).toBe("BENITIN");
     expect(todos[0].grupo.grupo).toBe(GRUPO_INICIAL);
     expect(todos[1].grupo.grupo).toBe("grupo-agregados-1");
+  });
+
+  it("el tipo de pago y los medios salen del mismo nodo", () => {
+    const [inicial, agregados] = gruposDe(factura1240);
+    expect(tipoPagoDe(inicial)).toBe("parcial");
+    expect(tipoPagoDe(agregados)).toBe("total");
+    // Cada despacho el suyo: no hay un tipo de pago de la factura entera.
+    expect(datosFactura(factura1240)).not.toHaveProperty("tipoPago");
+  });
+
+  it("un despacho sin pagar conserva su tipo, aunque no tenga medios", () => {
+    // Es el caso que se perdía si el tipo colgara de cada medio: sin medios
+    // no habría dónde anotarlo.
+    const grupo = nuevoGrupo({
+      grupo: GRUPO_INICIAL,
+      fechaSolicitud: "2026-09-20",
+      tipoPago: "sinPago",
+    });
+    expect(tipoPagoDe(grupo)).toBe("sinPago");
+    expect(pagosDe(grupo)).toEqual([]);
   });
 
   it("la plata del despacho se lee del grupo, no del equipo", () => {
@@ -199,7 +228,9 @@ describe("cómo se arma un documento nuevo", () => {
       deposito: false,
       valorDeposito: 0,
     });
-    expect(grupo.pagos).toEqual([]);
+    // Todo lo del pago junto: sin medios, pero con el tipo, que es el dato que
+    // se perdería en un despacho "sin pago".
+    expect(grupo.pagos).toEqual({ tipoPago: "sinPago", medios: [] });
     expect(grupo.equipos).toEqual([]);
   });
 });

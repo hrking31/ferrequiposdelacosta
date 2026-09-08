@@ -7,6 +7,7 @@ import {
   proyectarAmpliacion,
   calcularAlquiler,
   calcularIvaEquipos,
+  facturaLlevaIva,
   equipoLlevaIva,
   calcularTransporteTotal,
   calcularDepositoTotal,
@@ -61,8 +62,6 @@ const facturaCon = (equipos, extra = {}) => ({
   factura: {
     numeroFactura: "1240",
     fechaCreacion: "2026-09-04",
-    tipoPago: "parcial",
-    aplicaIva: false,
     depositoResuelto: false,
     cerrada: false,
     ...(extra.factura ?? {}),
@@ -71,14 +70,19 @@ const facturaCon = (equipos, extra = {}) => ({
     {
       grupo: GRUPO_INICIAL,
       fechaSolicitud: "2026-09-04",
-      pagos: extra.pagos ?? [],
+      pagos: { tipoPago: extra.tipoPago ?? "parcial", medios: extra.pagos ?? [] },
       adicionales: extra.adicionales ?? {
         transporte: "",
         valorTransporte: 0,
         deposito: false,
         valorDeposito: 0,
       },
-      equipos,
+      // La marca del IVA se le escribe a cada equipo que no traiga la suya,
+      // que es lo que hace el formulario al guardar. La factura no la tiene.
+      equipos: equipos.map((eq) => ({
+        aplicaIva: eq.aplicaIva ?? Boolean(extra.factura?.aplicaIva),
+        ...eq,
+      })),
     },
     ...(extra.grupos ?? []),
   ],
@@ -297,7 +301,7 @@ describe("la cuenta de la factura", () => {
         {
           grupo: "grupo-agregados-1",
           fechaSolicitud: "2026-09-06",
-          pagos: [],
+          pagos: { tipoPago: "sinPago", medios: [] },
           adicionales: {
             transporte: "Solo ida",
             valorTransporte: 80000,
@@ -391,23 +395,37 @@ describe("la cuenta de la factura", () => {
     expect(cuenta.iva).toBe(190000);
   });
 
-  it("el equipo sin marca propia hereda la de la factura", () => {
-    const doc = facturaCon([unEquipoDe()], { factura: { aplicaIva: true } });
-    expect(equipoLlevaIva(doc.grupos[0].equipos[0], doc)).toBe(true);
-    expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
+  it("el equipo sin marca no lleva IVA: no hay a quién heredarle", () => {
+    // La factura ya no guarda una marca de arriba. Quien crea el equipo se la
+    // escribe siempre, así que un equipo sin ella es un equipo exento.
+    const doc = facturaCon([{ ...unEquipoDe(), aplicaIva: undefined }]);
+    expect(equipoLlevaIva(doc.grupos[0].equipos[0])).toBe(false);
+    expect(calcularCuentaFactura(doc, HOY).iva).toBe(0);
   });
 
   it("el equipo marcado sin IVA no paga, aunque la factura sí lo tenga", () => {
     const doc = facturaCon([unEquipoDe({ aplicaIva: false })], {
       factura: { aplicaIva: true },
     });
-    expect(equipoLlevaIva(doc.grupos[0].equipos[0], doc)).toBe(false);
+    expect(equipoLlevaIva(doc.grupos[0].equipos[0])).toBe(false);
     expect(calcularCuentaFactura(doc, HOY).iva).toBe(0);
   });
 
   it("el equipo marcado con IVA paga, aunque la factura no lo tenga", () => {
     const doc = facturaCon([unEquipoDe({ aplicaIva: true })]);
     expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
+  });
+
+  it("que la factura lleve IVA se deduce de sus equipos", () => {
+    const conIva = facturaCon([unEquipoDe({ aplicaIva: true }), unEquipoDe({ aplicaIva: false })]);
+    const sinIva = facturaCon([unEquipoDe({ aplicaIva: false })]);
+    const vacia = facturaCon([]);
+
+    // Alcanza con que UNO lo lleve: es lo que decide si la casilla de los
+    // formularios arranca marcada.
+    expect(facturaLlevaIva(conIva)).toBe(true);
+    expect(facturaLlevaIva(sinIva)).toBe(false);
+    expect(facturaLlevaIva(vacia)).toBe(false);
   });
 
   it("una factura sin equipos no tiene IVA que cobrar", () => {
@@ -432,7 +450,7 @@ describe("la cuenta de la factura", () => {
         {
           grupo: "grupo-agregados-1",
           fechaSolicitud: "2026-09-06",
-          pagos: [],
+          pagos: { tipoPago: "sinPago", medios: [] },
           adicionales: { transporte: "Solo ida", valorTransporte: 80000, deposito: false, valorDeposito: 0 },
           equipos: [],
         },
@@ -473,7 +491,7 @@ describe("la cuenta de la factura", () => {
         {
           grupo: "grupo-agregados-1",
           fechaSolicitud: "2026-09-06",
-          pagos: [{ medio: "Efectivo", monto: 150000 }],
+          pagos: { tipoPago: "total", medios: [{ medio: "Efectivo", monto: 150000 }] },
           adicionales: {},
           equipos: [],
         },
@@ -902,7 +920,7 @@ describe("qué tiene la factura encima", () => {
           {
             grupo: "grupo-agregados-1",
             fechaSolicitud: "2026-09-06",
-            pagos: [],
+            pagos: { tipoPago: "sinPago", medios: [] },
             adicionales: {},
             equipos: [],
           },

@@ -52,6 +52,7 @@ import {
   gruposDe,
   grupoInicialDe,
   tipoPagoDe,
+  facturaLlevaIva,
   pagosDe,
   adicionalesDe,
   ampliacionesDe,
@@ -102,7 +103,7 @@ const aFormulario = (equipo) => ({
   devolucion: equipo?.devolucion,
 });
 
-const alDocumento = (item, fechaFactura) => {
+const alDocumento = (item, fechaFactura, aplicaIvaFactura) => {
   const fechaDespacho = item.fechaDespacho || fechaFactura;
   const equipo = {
     nombre: item.nombre,
@@ -116,8 +117,13 @@ const alDocumento = (item, fechaFactura) => {
       item.fechaVencimiento ||
       calcularFechaDevolucion(fechaDespacho, Number(item.dias)),
     ampliaciones: item.ampliaciones ?? [],
+    // La marca del IVA se escribe SIEMPRE, aunque el equipo no traiga la suya:
+    // ahí toma la de la casilla del formulario. Antes solo se escribía si el
+    // equipo ya la tenía, así que una factura creada acá dejaba a sus equipos
+    // sin marca y el IVA salía de un dato de la factura. Con la marca puesta,
+    // cada equipo se cobra solo y la factura no necesita guardar nada.
+    aplicaIva: item.aplicaIva ?? Boolean(aplicaIvaFactura),
   };
-  if (item.aplicaIva !== undefined) equipo.aplicaIva = item.aplicaIva;
   if (item.vencimientoIndefinido) equipo.vencimientoIndefinido = true;
   if (item.devolucion) equipo.devolucion = item.devolucion;
   return equipo;
@@ -139,7 +145,9 @@ const obtenerEstadoInicial = (documento) => {
       ? String(adicionales.valorTransporte)
       : "",
     deposito: adicionales.valorDeposito ? String(adicionales.valorDeposito) : "",
-    aplicaIva: datos.aplicaIva ?? true,
+    // Si la factura lleva IVA se deduce de sus equipos: ya no hay una marca
+    // suya que consultar. Una factura nueva arranca con la casilla marcada.
+    aplicaIva: documento ? facturaLlevaIva(documento) : true,
     tipoPago: documento ? tipoPagoDe(inicial) : "total",
     pagos: pagosDe(inicial),
   };
@@ -526,7 +534,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
         deposito: (Number(form.deposito) || 0) > 0,
         valorDeposito: Number(form.deposito) || 0,
       },
-      equipos: equipos.map((item) => alDocumento(item, form.fecha)),
+      equipos: equipos.map((item) => alDocumento(item, form.fecha, form.aplicaIva)),
     });
 
     // El documento entero. Cuatro nombres en la raíz y nada más: lo que la
@@ -536,7 +544,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       factura: {
         numeroFactura: form.numeroFactura.trim(),
         fechaCreacion: form.fecha,
-        aplicaIva: form.aplicaIva,
         // Acá no va plata. El subtotal, el IVA y el total se calculan al
         // mostrarlos: guardados nacían vencidos, porque suben solos con cada
         // día que un equipo sigue afuera. Y el tipo de pago se mudó al grupo,

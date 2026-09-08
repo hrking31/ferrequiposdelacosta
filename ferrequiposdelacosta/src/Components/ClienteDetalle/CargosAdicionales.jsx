@@ -35,7 +35,7 @@ import {
 import AddCardIcon from "@mui/icons-material/AddCard";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { calcularEquipo, diasDeEquipo } from "./facturaUtils";
+import { calcularEquipo, diasDeEquipo, equipoLlevaIva } from "./facturaUtils";
 import { iconBtnSx, renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
@@ -130,7 +130,6 @@ export default function CargosAdicionales({
   transporteMonto,
   // La marca de IVA de la factura: vale para los equipos que no traen la suya
   // propia (las facturas viejas, migradas del Excel).
-  aplicaIvaFactura,
   abierto,
   onToggle,
 }) {
@@ -140,7 +139,7 @@ export default function CargosAdicionales({
   // Cada equipo respeta su propia marca de IVA (o la de la factura, si no
   // trae la suya). El de un lote es solo el de sus equipos, sin contar el de
   // otro lote agregado después.
-  const llevaIvaEquipo = (equipo) => equipo.aplicaIva ?? Boolean(aplicaIvaFactura);
+  const llevaIvaEquipo = (equipo) => equipoLlevaIva(equipo);
 
   // Los renglones que se ven al desplegar, cada uno con su valor y su IVA.
   // El que no mueve plata no se dibuja: un equipo sin días de más tiene una
@@ -418,7 +417,6 @@ CargosAdicionales.propTypes = {
   deposito: PropTypes.number,
   transporteTipo: PropTypes.string,
   transporteMonto: PropTypes.number,
-  aplicaIvaFactura: PropTypes.bool,
   abierto: PropTypes.bool,
   onToggle: PropTypes.func.isRequired,
 };

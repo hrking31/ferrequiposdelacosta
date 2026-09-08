@@ -47,6 +47,7 @@ import {
   gruposDe,
   siguienteGrupoAgregados,
   nuevoGrupo,
+  facturaLlevaIva,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -103,8 +104,9 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     setForm({
       ...ESTADO_INICIAL,
       fechaSolicitud,
-      // Si la factura ya tenía IVA, se sigue aplicando por defecto al agregar.
-      aplicaIva: datosFactura(factura).aplicaIva ?? true,
+      // Si los equipos que ya están llevan IVA, se sigue aplicando por defecto
+      // al agregar. La factura no guarda una marca propia que consultar.
+      aplicaIva: facturaLlevaIva(factura),
     });
     // El despacho arranca en la misma fecha de la solicitud; se cambia solo si
     // ese equipo sale otro día.
@@ -432,10 +434,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         // de Firestore sin reescribirlo.
         grupos: [...gruposDe(factura), grupoNuevo],
         abonos,
-        // La factura queda marcada "con IVA" si ya lo llevaba o si este
-        // despacho lo lleva: agregar un equipo sin IVA no convierte a toda la
-        // factura en exenta.
-        "factura.aplicaIva": Boolean(datosDeLaFactura.aplicaIva) || form.aplicaIva,
       });
 
       // El resto del excedente, si lo hay, queda como abono en cada factura

@@ -17,22 +17,22 @@
 //
 //   clientes/{clienteId}/facturas/{facturaId}
 //
-//   factura{}     lo del documento: numeroFactura, fechaCreacion, aplicaIva
-//                 y las dos marcas que sí se guardan: depositoResuelto y
-//                 cerrada. Nada de plata: el subtotal, el IVA y el total
-//                 vivían acá como "la foto de lo que se emitió" y se
-//                 sacaron —ver abajo.
+//   factura{}     lo del documento: numeroFactura, fechaCreacion y las dos
+//                 marcas que sí se guardan: depositoResuelto y cerrada. Nada
+//                 más. El subtotal, el IVA, el total, el tipo de pago y la
+//                 marca de IVA vivían acá y se fueron —ver abajo.
 //
 //   grupos[]      un despacho cada uno:
 //                   grupo            "grupo-inicial" | "grupo-agregados-N"
 //                   fechaSolicitud
-//                   tipoPago         cómo se pagó ESTE despacho
-//                   pagos[]          { medio, monto, tipoPago }
+//                   pagos{}          cómo se pagó ESTE despacho:
+//                                      tipoPago  total|parcial|conAbono|sinPago
+//                                      medios[]  { medio, monto }
 //                   adicionales{}    { transporte, valorTransporte,
 //                                      deposito, valorDeposito }
 //                   equipos[]        { nombre, cantidadEquipos, valorDia,
 //                                      diasAlquilados, fechaDespacho,
-//                                      fechaVencimiento, aplicaIva?,
+//                                      fechaVencimiento, aplicaIva,
 //                                      vencimientoIndefinido?,
 //                                      ampliaciones[], devolucion{}? }
 //
@@ -72,7 +72,15 @@
 //
 // **El tipo de pago es del despacho, no de la factura.** Un solo dato arriba
 // no puede contar que el alta se pagó completa y que el lote agregado la
-// semana pasada quedó a deber.
+// semana pasada quedó a deber. Va dentro de `pagos`, con los medios, porque
+// es parte de cómo se pagó ese despacho y no un dato suelto al lado.
+//
+// **El IVA es de cada equipo.** La marca `aplicaIva` se escribe siempre, en
+// cada equipo, al crearlo. La factura tenía la suya y los equipos del alta se
+// guardaban sin ninguna, así que el IVA se decidía mirando hacia arriba: un
+// solo interruptor para toda la factura, y dos criterios distintos según por
+// dónde hubiera entrado el equipo. Con la marca puesta en cada uno, un equipo
+// exento puede ir al lado de uno gravado.
 
 export const GRUPO_INICIAL = "grupo-inicial";
 
@@ -93,8 +101,8 @@ export const datosFactura = (doc) => doc?.factura ?? {};
 
 export const gruposDe = (doc) => lista(doc?.grupos);
 
-// El tipo de pago de un despacho.
-export const tipoPagoDe = (grupo) => grupo?.tipoPago ?? "sinPago";
+// Cómo se pagó un despacho: total, parcial, con abono o sin pago.
+export const tipoPagoDe = (grupo) => grupo?.pagos?.tipoPago ?? "sinPago";
 
 export const grupoInicialDe = (doc) =>
   gruposDe(doc).find((grupo) => grupo?.grupo === GRUPO_INICIAL) ?? null;
@@ -111,7 +119,9 @@ export const abonosDe = (doc) => lista(doc?.abonos);
 export const entregasDe = (doc) => lista(doc?.entregas);
 export const gestionesDe = (doc) => lista(doc?.gestiones);
 
-export const pagosDe = (grupo) => lista(grupo?.pagos);
+// Los medios con los que se pagó un despacho. Sigue devolviendo una lista, así
+// que quien recorre pagos no se entera de que ahora cuelgan de un nodo.
+export const pagosDe = (grupo) => lista(grupo?.pagos?.medios);
 export const adicionalesDe = (grupo) => grupo?.adicionales ?? {};
 export const ampliacionesDe = (equipo) => lista(equipo?.ampliaciones);
 
@@ -149,12 +159,18 @@ export const nuevoGrupo = ({
 }) => ({
   grupo,
   fechaSolicitud,
-  // Cómo se pagó ESTE despacho. Estaba en la factura, uno solo para todos, y
-  // no alcanzaba: el alta puede ir pagada completa y el lote que se agregó a
-  // los días quedar sin pagar. La tarjeta y el PDF ya mostraban un renglón
-  // por despacho, con el mismo valor repetido en todos.
-  tipoPago: tipoPago ?? "sinPago",
-  pagos: lista(pagos),
+  // Todo lo del pago de ESTE despacho junto: cómo se pagó y con qué medios.
+  //
+  // El tipo estaba arriba, en la factura, uno solo para todos, y no alcanzaba:
+  // el alta puede ir pagada completa y el lote agregado a los días quedar sin
+  // pagar. Y va acá y no suelto al lado porque un despacho tiene UN tipo de
+  // pago con uno o varios medios —parte por Nequi, parte en efectivo—, no un
+  // tipo por medio. Repetido en cada medio, además, se perdería justo en el
+  // caso "sin pago", donde no hay ningún medio que anotar.
+  pagos: {
+    tipoPago: tipoPago ?? "sinPago",
+    medios: lista(pagos),
+  },
   adicionales: adicionales ?? {
     transporte: "",
     valorTransporte: 0,

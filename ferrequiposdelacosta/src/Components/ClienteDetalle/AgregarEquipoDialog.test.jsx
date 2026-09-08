@@ -164,8 +164,8 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     await guardar(usuario);
 
     const grupos = loGuardado().grupos;
-    expect(grupos[0].tipoPago).toBe("total"); // el alta, intacta
-    expect(grupos[1].tipoPago).toBe("sinPago"); // lo que se acaba de agregar
+    expect(grupos[0].pagos.tipoPago).toBe("total"); // el alta, intacta
+    expect(grupos[1].pagos.tipoPago).toBe("sinPago"); // lo recién agregado
   });
 
   it("el tipo de pago elegido es el que queda en el despacho", async () => {
@@ -175,7 +175,7 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     await guardar(usuario);
 
     // Sin tocar el selector se queda en "total", que es su valor de arranque.
-    expect(despachoNuevo().tipoPago).toBe("total");
+    expect(despachoNuevo().pagos.tipoPago).toBe("total");
   });
 
   it("dos equipos pedidos el mismo día comparten el despacho, y su pago va una sola vez", async () => {

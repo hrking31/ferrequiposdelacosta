@@ -73,12 +73,12 @@ export const unGrupo = ({
   transporte = "",
   valorTransporte = 0,
   valorDeposito = 0,
-  equipos = [unEquipo()],
+  aplicaIva = false,
+  equipos = [unEquipo({ aplicaIva })],
 } = {}) => ({
   grupo,
   fechaSolicitud,
-  tipoPago,
-  pagos,
+  pagos: { tipoPago, medios: pagos },
   adicionales: {
     transporte,
     valorTransporte,
@@ -94,6 +94,10 @@ export const unaFactura = ({
   numeroFactura = "1000",
   fechaCreacion = "2026-08-10",
   tipoPago = "sinPago",
+  // La marca del IVA es de cada EQUIPO, no de la factura. Se acepta acá por
+  // comodidad —una prueba dice `aplicaIva: true` y listo— y se le baja a los
+  // equipos que no traigan la suya, que es exactamente lo que hace el
+  // formulario al guardar.
   aplicaIva = false,
   depositoResuelto = false,
   cerrada = false,
@@ -111,7 +115,6 @@ export const unaFactura = ({
   factura: {
     numeroFactura,
     fechaCreacion,
-    aplicaIva,
     depositoResuelto,
     cerrada,
   },
@@ -121,7 +124,14 @@ export const unaFactura = ({
       unGrupo({
         fechaSolicitud: fechaCreacion,
         tipoPago,
-        ...(equipos ? { equipos } : {}),
+        ...(equipos
+          ? {
+              equipos: equipos.map((equipo) => ({
+                aplicaIva: equipo.aplicaIva ?? aplicaIva,
+                ...equipo,
+              })),
+            }
+          : {}),
         ...(pagos ? { pagos } : {}),
         ...(transporte ? { transporte } : {}),
         ...(valorTransporte ? { valorTransporte } : {}),

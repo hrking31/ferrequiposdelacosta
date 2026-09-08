@@ -86,7 +86,10 @@ describe("AbonoDialog", () => {
 
   it("avisa cuando el cliente no debe nada, en vez de mostrar una lista vacía", () => {
     const saldada = facturaQueDebe({ id: "x", numero: 9, monto: 100 });
-    saldada.grupos[0].pagos = [{ medio: "Efectivo", monto: 100 }];
+    saldada.grupos[0].pagos = {
+      tipoPago: "total",
+      medios: [{ medio: "Efectivo", monto: 100 }],
+    };
     abrir({ facturas: [saldada] });
 
     expect(

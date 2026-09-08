@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
   calcularEquipo,
+  equipoLlevaIva,
   diasDeEquipo,
   calcularCuentaFactura,
   calcularDepositoTotal,
@@ -276,10 +277,11 @@ export default function generarFacturaPdf({ factura, cliente }) {
   // El IVA de un grupo de equipos: cada uno respeta su propia marca y suma
   // también los días que se le ampliaron, igual que en pantalla.
   const ivaDeEquipos = (lista) =>
-    lista.reduce((total, equipo) => {
-      const llevaIva = equipo.aplicaIva ?? Boolean(datos.aplicaIva);
-      return llevaIva ? total + calcularEquipo(equipo).neto * IVA : total;
-    }, 0);
+    lista.reduce(
+      (total, equipo) =>
+        equipoLlevaIva(equipo) ? total + calcularEquipo(equipo).neto * IVA : total,
+      0,
+    );
 
   // El despacho inicial y después cada tanda agregada, todos con la misma
   // forma: los equipos, el pago de ese despacho y sus cargos.
