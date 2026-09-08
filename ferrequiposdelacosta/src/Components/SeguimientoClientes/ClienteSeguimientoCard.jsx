@@ -9,7 +9,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -30,14 +29,11 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import {
   calcularCuentaCliente,
   calcularCuentaFactura,
-  calcularDepositoTotal,
   calcularExigible,
-  calcularTransporteTotal,
   contarUnidadesVencidas,
   plazoVencidoFactura,
   equipoDevueltoEnCobranza,
@@ -49,8 +45,6 @@ import {
   datosFactura,
   equiposDe,
   equiposAfuera,
-  adicionalesDe,
-  grupoInicialDe,
   sigueAfuera,
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
@@ -299,9 +293,7 @@ export default function ClienteSeguimientoCard({
   const theme = useTheme();
   const acento =
     theme.palette.custom.accent;
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const [tabFactura, setTabFactura] = useState(0);
-  const [detalleAbierto, setDetalleAbierto] = useState(false);
   // La bitácora de gestión arranca plegada: con varias llamadas registradas
   // la lista completa puede ocupar la pantalla entera, en PC igual que en
   // móvil. Se pliega/despliega aparte del resto de la factura.
@@ -456,8 +448,6 @@ export default function ClienteSeguimientoCard({
   const gestiones = gestionesDeSeguimiento(factura);
 
   const datos = datosFactura(factura);
-  // Igual que el transporte: el de todos los lotes, no solo el del primero.
-  const deposito = formatearMoneda(calcularDepositoTotal(factura));
 
   // La cuenta de la factura sale de la MISMA función que usa Detalle Cliente:
   // recalcula todo desde los pagos, los abonos y lo que se le entregó al
@@ -480,21 +470,7 @@ export default function ClienteSeguimientoCard({
   // su momento tuvo el campo `estado` (ver facturaCalculos).
   const cuenta = calcularCuentaFactura(factura, hoy);
 
-  // Subtotal e IVA son los de HOY —con los días ampliados y los vencidos ya
-  // sumados—, no los que decía la factura el día que se emitió. Salen de la
-  // misma cuenta que el total, así que no pueden discrepar con él.
-  const subtotal = formatearMoneda(cuenta.subtotal);
-  const iva = formatearMoneda(cuenta.iva > 0 ? cuenta.iva : undefined);
   const valorTotal = formatearMoneda(cuenta.total);
-  // El de TODOS los despachos, no solo el del primero: cada lote agregado sale
-  // con su propio flete y la factura los cobra todos. Leyendo el campo suelto,
-  // esta pantalla mostraba menos transporte del que la cuenta estaba sumando.
-  const transporteMonto = formatearMoneda(calcularTransporteTotal(factura));
-  const transporteTipo = adicionalesDe(grupoInicialDe(factura)).transporte || null;
-  const textoTransporte =
-    transporteTipo === "Sin transporte"
-      ? "Sin transporte"
-      : ["Transporte", transporteTipo, transporteMonto].filter(Boolean).join(" ");
   const fecha = formatearFecha(datos.fechaCreacion);
 
   const saldoPendienteNumero = cuenta.saldoPendiente;
@@ -548,87 +524,37 @@ export default function ClienteSeguimientoCard({
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
-  const celdaDePlata = (rotulo, valor, { color, franja } = {}) => (
-    <Box
-      sx={{
-        bgcolor: "background.paper",
-        px: 1.5,
-        py: 1,
-        ...(franja ? { boxShadow: `inset 3px 0 0 ${franja}` } : {}),
-      }}
-    >
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", lineHeight: 1.4 }}
-      >
-        {rotulo}
-      </Typography>
-      <Typography
-        variant="subtitle1"
-        fontWeight="bold"
-        sx={{ lineHeight: 1.3, ...(color ? { color } : {}) }}
-      >
-        {valor}
-      </Typography>
+  // UNA CELDA DE LA PIZARRA: el rótulo chico arriba y la cifra grande abajo.
+  // Los estilos y los colores viven en el tema (Paper variant="totalesCeldas"),
+  // como los del recuadro de totales de la ficha del cliente: acá solo se dice
+  // qué dato va en cada celda y de cuál de las cuatro se trata.
+  const celdaDePlata = (clase, rotulo, valor) => (
+    <Box className={`celda ${clase}`}>
+      <Typography className="rotulo">{rotulo}</Typography>
+      <Typography className="cifra">{valor}</Typography>
     </Box>
   );
 
   const cuadroTotales = valorTotal && (
     <Box>
-      {/* El acento del tema, no el color de un bloque: esto resume TODO lo de
-          arriba (pago, equipos, adicionales), no una sección puntual. Mismo
-          criterio que en Detalle Cliente. */}
-      <Typography
-        variant="overline"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          lineHeight: 1.6,
-          color: "custom.accent",
-        }}
-      >
-        <AccountBalanceWalletIcon fontSize="small" />
-        Estado de cuenta
-      </Typography>
       {/* LOS CUATRO NÚMEROS DE LA LLAMADA, en celdas y no apilados: cuánto
           es, cuánto entró por el despacho, cuánto abonó después y cuánto
           falta. En renglones había que recorrerlos de arriba abajo para
           encontrar uno; acá los cuatro se ven de una.
           En el celular van de a dos: cuatro columnas en 360 píxeles dejan las
           cifras cortadas. */}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
-          gap: "1px",
-          bgcolor: "divider",
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 1,
-          overflow: "hidden",
-          mb: 1,
-        }}
-      >
-        {/* "Total" y no "Total factura": el rótulo del bloque que lo contiene
-            ya dice eso, y la misma frase dos veces a pocos centímetros se lee
-            como dos números que tendrían que coincidir. */}
-        {celdaDePlata("Total", valorTotal)}
-        {celdaDePlata("Pagado", formatearMoneda(cuenta.pagado))}
-        {celdaDePlata("Abonos", formatearMoneda(cuenta.abonos), {
-          color: cuenta.abonos > 0 ? theme.palette.success.main : undefined,
-        })}
+      <Paper variant="totalesCeldas" sx={{ mb: 1 }}>
+        {celdaDePlata("total", "Total", valorTotal)}
+        {celdaDePlata("pagado", "Pagado", formatearMoneda(cuenta.pagado))}
+        {celdaDePlata("abono", "Abonos", formatearMoneda(cuenta.abonos))}
         {cuenta.saldoAFavor > 0
-          ? celdaDePlata("Saldo a favor", formatearMoneda(cuenta.saldoAFavor), {
-              color: theme.palette.success.main,
-              franja: theme.palette.success.main,
-            })
-          : celdaDePlata("Saldo pendiente", saldoPendiente, {
-              color: saldoPendienteNumero > 0 ? theme.palette.error.main : undefined,
-              franja: saldoPendienteNumero > 0 ? theme.palette.error.main : undefined,
-            })}
-      </Box>
+          ? celdaDePlata("ok", "Saldo a favor", formatearMoneda(cuenta.saldoAFavor))
+          : celdaDePlata(
+              saldoPendienteNumero > 0 ? "alerta" : "ok",
+              "Saldo pendiente",
+              saldoPendiente,
+            )}
+      </Paper>
 
       {/* Lo que no toda factura tiene, y que igual hay que poder ver: sigue
           como renglón. En celdas fijas obligaría a mostrar vacíos. */}
@@ -1107,6 +1033,12 @@ export default function ClienteSeguimientoCard({
               </Box>
             )}
 
+            {/* LA PLATA, apenas termina la gestión y antes de los equipos:
+                es lo que se lee mientras se habla con el cliente. Las celdas
+                SON el estado de cuenta; no llevan rótulo encima porque no
+                necesitan que un renglón anuncie lo que ya dicen. */}
+            {!facturaPlegada(factura.id) && cuadroTotales}
+
             {/* Una factura puede seguir en cartera sin tener un solo equipo
                 vencido: le renovaron el que la trajo, o ya devolvió todo, y
                 se queda por la plata que debe. Sin este aviso la tarjeta
@@ -1237,87 +1169,6 @@ export default function ClienteSeguimientoCard({
               </Stack>
             )}
 
-            {facturaPlegada(factura.id) ? null : esMovil ? (
-              <Box>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography
-                    variant="overline"
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      lineHeight: 1.6,
-                      color: "custom.accent",
-                    }}
-                  >
-                    <ReceiptLongIcon fontSize="small" />
-                    Total factura
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => setDetalleAbierto((prev) => !prev)}
-                  >
-                    {detalleAbierto ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Stack>
-                {detalleAbierto && (
-                  <Stack spacing={0.5} sx={{ mt: 1 }}>
-                    {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
-                    {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
-                    {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
-                    {(transporteTipo || transporteMonto) && (
-                      <Typography variant="body2">{textoTransporte}</Typography>
-                    )}
-                    {cuadroTotales}
-                  </Stack>
-                )}
-              </Box>
-            ) : (
-              <Box>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    lineHeight: 1.6,
-                    color: "custom.accent",
-                  }}
-                >
-                  <ReceiptLongIcon fontSize="small" />
-                  Total factura
-                </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "space-between",
-                    // Arriba, no al fondo: así el subtotal y el IVA quedan
-                    // justo debajo del rótulo "Total factura" en vez de caer al
-                    // pie del recuadro de estado de cuenta, que es más alto y
-                    // dejaba un hueco en blanco. Mismo criterio que en Detalle
-                    // Cliente.
-                    alignItems: "flex-start",
-                    gap: 2,
-                  }}
-                >
-                  <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="flex-start">
-                    {subtotal && <Typography variant="body2">Subtotal {subtotal}</Typography>}
-                    {iva && <Typography variant="body2">IVA (19%) {iva}</Typography>}
-                    {deposito && <Typography variant="body2">Depósito {deposito}</Typography>}
-                    {(transporteTipo || transporteMonto) && (
-                      <Typography variant="body2">{textoTransporte}</Typography>
-                    )}
-                  </Stack>
-
-                  {cuadroTotales}
-                </Box>
-              </Box>
-            )}
           </Box>
         </Box>
       </Box>

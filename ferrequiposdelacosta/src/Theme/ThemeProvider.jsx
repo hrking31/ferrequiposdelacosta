@@ -1116,6 +1116,73 @@ export const CustomThemeProvider = ({ children }) => {
               // "total" agrega la línea punteada y pinta el renglón de
               // amarillo. Para un renglón de alerta (saldo pendiente,
               // vencido) se agrega "alerta" y sale en rojo legible.
+              // LA MISMA PIZARRA, EN CELDAS. Las cuatro cifras de una cuenta
+              // una al lado de la otra, con el rótulo chico encima — lo que
+              // Seguimiento lee durante la llamada, donde apiladas obligaban a
+              // recorrerlas.
+              //
+              // Los colores son los MISMOS que los de la variante "totales" de
+              // aquí abajo: amarillo el total, verde lo pagado, azul los abonos
+              // y rojo lo que queda debiendo. La misma plata no puede verse de
+              // dos colores según la pantalla.
+              props: { variant: "totalesCeldas" },
+              style: ({ theme }) => ({
+                display: "grid",
+                // En el celular de a dos: cuatro columnas en 360 píxeles dejan
+                // las cifras cortadas.
+                gridTemplateColumns: "repeat(2, 1fr)",
+                [theme.breakpoints.up("sm")]: {
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                },
+                backgroundColor: theme.palette.custom.panelBackground,
+                boxShadow: theme.palette.custom.panelShadow,
+                borderRadius: theme.shape.borderRadius * 2,
+                overflow: "hidden",
+                color: theme.palette.custom.panelText,
+
+                "& .celda": {
+                  padding: theme.spacing(1.25, 2),
+                  minWidth: 0,
+                  // La línea sale del propio texto de la pizarra, atenuado: un
+                  // color suelto se lee como una barra oscura entre las celdas.
+                  borderLeft: `1px solid ${alpha(
+                    theme.palette.custom.panelText,
+                    0.15,
+                  )}`,
+                },
+
+                "& .celda:first-of-type": { borderLeft: "none" },
+
+                "& .rotulo": {
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  lineHeight: 1.5,
+                  color: alpha(theme.palette.custom.panelText, 0.7),
+                },
+
+                "& .cifra": {
+                  fontSize: 19,
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  // Números de ancho fijo, como en el diseño: cada dígito ocupa
+                  // lo mismo, así las cuatro cifras quedan alineadas entre sí y
+                  // ninguna se ve más angosta por tener más unos. Es lo que ya
+                  // usa la bitácora de gestión para sus fechas.
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: 0.3,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                },
+
+                "& .celda.total .cifra": { color: theme.palette.custom.totalText },
+                "& .celda.pagado .cifra": { color: theme.palette.custom.saldadoText },
+                "& .celda.abono .cifra": { color: theme.palette.info.light },
+                "& .celda.alerta .cifra": { color: theme.palette.custom.saldoText },
+                "& .celda.ok .cifra": { color: theme.palette.custom.saldadoText },
+              }),
+            },
+            {
               props: { variant: "totales" },
               style: ({ theme }) => ({
                 backgroundColor: theme.palette.custom.panelBackground,

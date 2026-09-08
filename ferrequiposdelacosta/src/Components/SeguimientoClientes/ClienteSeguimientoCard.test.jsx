@@ -2,10 +2,8 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
 import {
-  grupoAgregados,
   unEquipo,
   unEquipoDevuelto,
-  unGrupo,
   unaFactura,
 } from "../../test/facturas";
 
@@ -224,37 +222,6 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   // factura los cobra todos. Leyendo el campo suelto de la factura, esta
   // pantalla mostraba solo los del primer despacho: decía una cifra mientras
   // la cuenta usaba otra.
-  it("suma el transporte y el depósito de todos los despachos", async () => {
-    const { usuario } = mostrar([
-      facturaCon({
-        grupos: [
-          unGrupo({
-            transporte: "Ida y vuelta",
-            valorTransporte: 100000,
-            valorDeposito: 200000,
-            equipos: [andamio()],
-          }),
-          unGrupo({
-            grupo: grupoAgregados(1),
-            transporte: "Solo ida",
-            valorTransporte: 55000,
-            valorDeposito: 33000,
-            equipos: [andamio({ nombre: "PLUMA" })],
-          }),
-        ],
-      }),
-    ]);
-    await desplegarFactura(usuario);
-
-    // $100.000 + $55.000 de transporte, $200.000 + $33.000 de depósito.
-    //
-    // Se buscan por su rótulo y no por la cifra suelta: el subtotal de la
-    // factura la contiene como parte de un número más largo ($ 4.155.000) y
-    // la prueba encontraba los dos.
-    expect(screen.getByText(/^Transporte/)).toHaveTextContent("155.000");
-    expect(screen.getByText(/^Depósito/)).toHaveTextContent("233.000");
-  });
-
   it("con todos los equipos vencidos afuera, no muestra ese aviso", async () => {
     const { usuario } = mostrar();
     await desplegarFactura(usuario);
