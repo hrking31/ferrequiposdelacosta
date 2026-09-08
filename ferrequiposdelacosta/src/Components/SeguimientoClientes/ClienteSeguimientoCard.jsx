@@ -525,69 +525,103 @@ export default function ClienteSeguimientoCard({
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
-  // UNA CELDA DE LA PIZARRA: el rótulo chico arriba y la cifra grande abajo.
-  // Los estilos y los colores viven en el tema (Paper variant="totalesCeldas"),
-  // como los del recuadro de totales de la ficha del cliente: acá solo se dice
-  // qué dato va en cada celda y de cuál de las cuatro se trata.
-  const celdaDePlata = (clase, rotulo, valor) => (
-    <Box className={`celda ${clase}`}>
-      <Typography className="rotulo">{rotulo}</Typography>
-      <Typography className="cifra">{valor}</Typography>
-    </Box>
-  );
-
   const cuadroTotales = valorTotal && (
     <Box>
-      {/* LOS CUATRO NÚMEROS DE LA LLAMADA, en celdas y no apilados: cuánto
-          es, cuánto entró por el despacho, cuánto abonó después y cuánto
-          falta. En renglones había que recorrerlos de arriba abajo para
-          encontrar uno; acá los cuatro se ven de una.
-          En el celular van de a dos: cuatro columnas en 360 píxeles dejan las
-          cifras cortadas. */}
-      <Paper variant="totalesCeldas" sx={{ mb: 1 }}>
-        {celdaDePlata("total", "Total", valorTotal)}
-        {celdaDePlata("pagado", "Pagado", formatearMoneda(cuenta.pagado))}
-        {celdaDePlata("abono", "Abonos", formatearMoneda(cuenta.abonos))}
-        {cuenta.saldoAFavor > 0
-          ? celdaDePlata("ok", "Saldo a favor", formatearMoneda(cuenta.saldoAFavor))
-          : celdaDePlata(
-              saldoPendienteNumero > 0 ? "alerta" : "ok",
-              "Saldo pendiente",
-              saldoPendiente,
-            )}
-      </Paper>
+      {/* El acento del tema, no el color de un bloque: esto resume TODO lo de
+          arriba (pago, equipos, adicionales), no una sección puntual. Mismo
+          criterio que en Detalle Cliente. */}
+      <Typography
+        variant="overline"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          lineHeight: 1.6,
+          color: "custom.accent",
+        }}
+      >
+        <AccountBalanceWalletIcon fontSize="small" />
+        Estado de cuenta
+      </Typography>
+      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
+      <Box className="fila total">
+        <Typography variant="subtitle1" fontWeight="bold">
+          Total factura
+        </Typography>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {valorTotal}
+        </Typography>
+      </Box>
 
-      {/* Lo que no toda factura tiene, y que igual hay que poder ver: sigue
-          como renglón, en su propio recuadro. En celdas fijas obligaría a
-          mostrar vacíos.
-
-          El recuadro entero aparece SOLO si hay alguno de los dos. Sin esta
-          condición se dibujaba igual, con su fondo y su relleno, y una factura
-          sin depósito devuelto ni entregas mostraba una barra oscura vacía
-          debajo de las celdas. */}
-      {(cuenta.depositoDevuelto > 0 || cuenta.entregas > 0) && (
-        <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
-          {/* El depósito devuelto ya salió del total de arriba. Se muestra
-              igual, porque si no el total cambiaría sin explicación. */}
-          {cuenta.depositoDevuelto > 0 && (
-            <Box className="fila abono">
-              <Typography variant="body2">Depósito devuelto</Typography>
-              <Typography variant="body2">
-                {formatearMoneda(cuenta.depositoDevuelto)}
-              </Typography>
-            </Box>
-          )}
-
-          {cuenta.entregas > 0 && (
-            <Box className="fila">
-              <Typography variant="body2">Entregado al cliente</Typography>
-              <Typography variant="body2">
-                {formatearMoneda(cuenta.entregas)}
-              </Typography>
-            </Box>
-          )}
-        </Paper>
+      {/* Lo ya cobrado. Solo aparece cuando queda saldo o cuando hubo abonos:
+          con la factura saldada de una sola vez sería el mismo número del
+          total, repetido. La clase "pagado" es la que lo pinta verde —sin ella
+          cae en el blanco tiza del renglón común—. Mismos renglones y mismas
+          condiciones que en Detalle Cliente: las dos pantallas muestran la
+          misma cuenta, y separarlas fue justo lo que las hizo divergir. */}
+      {(saldoPendienteNumero > 0 || cuenta.abonos > 0) && (
+        <Box className="fila pagado">
+          <Typography variant="body2">Pagado</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.pagado)}</Typography>
+        </Box>
       )}
+
+      {/* Solo el total de lo abonado: el detalle de cada abono, con su fecha y
+          su medio, se ve en Detalle Cliente. */}
+      {cuenta.abonos > 0 && (
+        <Box className="fila abono">
+          <Typography variant="body2">Abonos</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.abonos)}</Typography>
+        </Box>
+      )}
+
+      {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
+          porque si no el total cambiaría sin explicación. */}
+      {cuenta.depositoDevuelto > 0 && (
+        <Box className="fila abono">
+          <Typography variant="body2">Depósito devuelto</Typography>
+          <Typography variant="body2">
+            {formatearMoneda(cuenta.depositoDevuelto)}
+          </Typography>
+        </Box>
+      )}
+
+      {cuenta.entregas > 0 && (
+        <Box className="fila">
+          <Typography variant="body2">Entregado al cliente</Typography>
+          <Typography variant="body2">{formatearMoneda(cuenta.entregas)}</Typography>
+        </Box>
+      )}
+
+      {/* Si el cliente pagó de más, el sobrante queda a su favor en vez de
+          mostrarse como saldo. Acá va solo el dato: devolverlo se hace desde
+          Detalle Cliente, que es donde están las acciones de plata. */}
+      {cuenta.saldoAFavor > 0 ? (
+        <Box className="fila ok" sx={{ mt: 1 }}>
+          <Typography variant="body2" fontWeight="bold">
+            Saldo a favor
+          </Typography>
+          <Typography variant="body2" fontWeight="bold">
+            {formatearMoneda(cuenta.saldoAFavor)}
+          </Typography>
+        </Box>
+      ) : (
+        /* Siempre visible: rojo si queda algo por cobrar, verde si la factura
+           ya está saldada. Así se lee de un vistazo en qué situación está. */
+        <Box
+          className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
+          sx={{ mt: 1 }}
+        >
+          <Typography variant="body2" fontWeight="bold">
+            Saldo pendiente
+          </Typography>
+          <Typography variant="body2" fontWeight="bold">
+            {saldoPendiente}
+          </Typography>
+        </Box>
+      )}
+
+      </Paper>
     </Box>
   );
 
