@@ -557,30 +557,36 @@ export default function ClienteSeguimientoCard({
       </Paper>
 
       {/* Lo que no toda factura tiene, y que igual hay que poder ver: sigue
-          como renglón. En celdas fijas obligaría a mostrar vacíos. */}
-      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
-      {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
-          porque si no el total cambiaría sin explicación. */}
-      {cuenta.depositoDevuelto > 0 && (
-        <Box className="fila abono">
-          <Typography variant="body2">Depósito devuelto</Typography>
-          <Typography variant="body2">
-            {formatearMoneda(cuenta.depositoDevuelto)}
-          </Typography>
-        </Box>
-      )}
+          como renglón, en su propio recuadro. En celdas fijas obligaría a
+          mostrar vacíos.
 
-      {cuenta.entregas > 0 && (
-        <Box className="fila">
-          <Typography variant="body2">Entregado al cliente</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.entregas)}</Typography>
-        </Box>
-      )}
+          El recuadro entero aparece SOLO si hay alguno de los dos. Sin esta
+          condición se dibujaba igual, con su fondo y su relleno, y una factura
+          sin depósito devuelto ni entregas mostraba una barra oscura vacía
+          debajo de las celdas. */}
+      {(cuenta.depositoDevuelto > 0 || cuenta.entregas > 0) && (
+        <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
+          {/* El depósito devuelto ya salió del total de arriba. Se muestra
+              igual, porque si no el total cambiaría sin explicación. */}
+          {cuenta.depositoDevuelto > 0 && (
+            <Box className="fila abono">
+              <Typography variant="body2">Depósito devuelto</Typography>
+              <Typography variant="body2">
+                {formatearMoneda(cuenta.depositoDevuelto)}
+              </Typography>
+            </Box>
+          )}
 
-      {/* Si el cliente pagó de más, el sobrante queda a su favor en vez de
-          mostrarse como saldo. Acá va solo el dato: devolverlo se hace desde
-          Detalle Cliente, que es donde están las acciones de plata. */}
-      </Paper>
+          {cuenta.entregas > 0 && (
+            <Box className="fila">
+              <Typography variant="body2">Entregado al cliente</Typography>
+              <Typography variant="body2">
+                {formatearMoneda(cuenta.entregas)}
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      )}
     </Box>
   );
 
