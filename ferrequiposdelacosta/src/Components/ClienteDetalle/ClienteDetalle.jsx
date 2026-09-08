@@ -310,7 +310,6 @@ export default function ClienteDetalle() {
             <FacturaCard
               key={factura.id}
               factura={factura}
-              cliente={cliente}
               facturaColapsada={facturaColapsada}
               toggleFacturaColapsada={toggleFacturaColapsada}
               seccionAbierta={seccionAbierta}

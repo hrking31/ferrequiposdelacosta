@@ -11,12 +11,9 @@ import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 // botones: una factura finalizada no se toca más, y una que ya tiene historia
 // encima no se puede borrar de un clic.
 //
-// El PDF va como doble: generarlo abriría jsPDF, que no aporta nada a esta
-// prueba.
-const generarPdf = vi.hoisted(() => vi.fn());
-vi.mock("../VistaPdf/VistaFacturaPdf", () => ({ default: generarPdf }));
-
-const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
+// El PDF ya no se baja desde acá: hay un solo botón, en el encabezado del
+// cliente, que decide qué documento armar según cuántas facturas se marquen
+// (ver ReporteFacturasDialog).
 
 const andamio = (extra = {}) =>
   unEquipo({
@@ -77,7 +74,6 @@ const mostrar = (factura, props = {}) => {
   const utilidades = renderConProviders(
     <FacturaCard
       factura={factura}
-      cliente={cliente}
       facturaColapsada={() => false}
       toggleFacturaColapsada={() => {}}
       seccionAbierta={() => false}
@@ -92,10 +88,6 @@ const mostrar = (factura, props = {}) => {
 // Los botones de acción son solo íconos: se los ubica por el ícono de MUI, que
 // trae su propio identificador.
 const boton = (icono) => screen.getAllByTestId(icono)[0].closest("button");
-
-beforeEach(() => {
-  generarPdf.mockClear();
-});
 
 describe("FacturaCard — lo que muestra", () => {
   it("dice de qué factura se trata", () => {
@@ -177,13 +169,6 @@ describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
     expect(boton("DeleteIcon")).toBeEnabled();
   });
 
-  it("el PDF se descarga con la factura y su cliente", async () => {
-    const { usuario } = mostrar(facturaAbierta);
-
-    await usuario.click(boton("PictureAsPdfIcon"));
-
-    expect(generarPdf).toHaveBeenCalledWith({ factura: facturaAbierta, cliente });
-  });
 });
 
 describe("FacturaCard — lo que ya no se puede tocar", () => {
@@ -194,12 +179,6 @@ describe("FacturaCard — lo que ya no se puede tocar", () => {
     expect(boton("AddIcon")).toBeDisabled();
     expect(boton("AssignmentReturnIcon")).toBeDisabled();
     expect(boton("EditIcon")).toBeDisabled();
-  });
-
-  it("el PDF sí se puede descargar aunque esté finalizada", () => {
-    mostrar(facturaFinalizada);
-
-    expect(boton("PictureAsPdfIcon")).toBeEnabled();
   });
 
   it("una factura con un abono ya no se borra de un clic", () => {

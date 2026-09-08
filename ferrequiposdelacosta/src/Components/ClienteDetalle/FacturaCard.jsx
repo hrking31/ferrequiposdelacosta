@@ -31,7 +31,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
 import PaymentsIcon from "@mui/icons-material/Payments";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SavingsIcon from "@mui/icons-material/Savings";
 import {
   estaDevuelto,
@@ -50,7 +49,6 @@ import {
   tipoPagoDe,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
-import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
 import EquipoRow from "./EquipoRow";
 import RecuadroPago, { ListaAbonos } from "./RecuadroPago";
 import CargosAdicionales from "./CargosAdicionales";
@@ -64,7 +62,6 @@ import { formatearFechaLegible as formatearFecha } from "../../Utils/formato";
 // `color` de MUI— para no repetir colores ya usados en otros botones.
 export default function FacturaCard({
   factura,
-  cliente,
   // El plegado de la factura entera y el de cada una de sus secciones se
   // guarda en la pantalla, no acá: así sobrevive a que la lista se recargue.
   facturaColapsada,
@@ -262,15 +259,6 @@ export default function FacturaCard({
             <AssignmentReturnIcon fontSize="small" />
           </IconButton>
         </span>
-      </Tooltip>
-      <Tooltip title="Descargar PDF">
-        <IconButton
-          size="small"
-          onClick={() => generarFacturaPdf({ factura, cliente })}
-          sx={{ ...iconBtnSx, color: acento }}
-        >
-          <PictureAsPdfIcon fontSize="small" />
-        </IconButton>
       </Tooltip>
       <Tooltip title={finalizada ? "Esta factura ya está finalizada" : "Editar factura"}>
         <span>
@@ -774,7 +762,6 @@ export default function FacturaCard({
 
 FacturaCard.propTypes = {
   factura: PropTypes.object.isRequired,
-  cliente: PropTypes.object,
   facturaColapsada: PropTypes.func.isRequired,
   toggleFacturaColapsada: PropTypes.func.isRequired,
   seccionAbierta: PropTypes.func.isRequired,

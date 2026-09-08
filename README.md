@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-482_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-483_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -553,6 +553,17 @@ Lo único que se reordena es la lista **dentro** de cada despacho, con la misma 
 
 Y los rótulos no anuncian cuántos equipos trae el despacho. Ese número contaba **renglones**, y una devolución parcial parte el renglón en dos: un despacho de un solo equipo con una devolución encima anunciaba *"EQUIPOS AGREGADOS 1 (2)"*, donde el 1 era el despacho y el 2 el mismo equipo contado dos veces. La fecha del pedido tampoco va en el rótulo: cada despacho ya la muestra en su tabla de pago, junto a lo que se pagó ese día.
 
+### Un solo botón para los dos PDF
+
+La ficha del cliente tenía dos botones de PDF: uno en cada tarjeta de factura y otro arriba, para el reporte. Eran el mismo documento por dos caminos y no se distinguían — mismo ícono, misma palabra.
+
+Quedó **uno solo**, arriba, y lo que decide qué armar es **cuántas facturas se marquen**, no qué botón se apriete:
+
+- **Una** → la factura completa, con sus equipos, el pago de cada despacho y sus cargos. Es lo que se le manda al cliente.
+- **Varias** → el reporte con el detalle de cada una y la discriminación de todas juntas al final.
+
+Un cliente con una sola factura abierta marca esa y baja exactamente el documento que antes salía del botón de la tarjeta.
+
 ## Lo que hace el servidor solo
 
 Guardar un dato que se calcula trae un problema conocido: **se queda viejo**. Una factura que venció anoche no la escribió nadie, así que nada avisa del cambio. Estas automatizaciones existen para resolver exactamente eso.
@@ -936,7 +947,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**482 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**483 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 

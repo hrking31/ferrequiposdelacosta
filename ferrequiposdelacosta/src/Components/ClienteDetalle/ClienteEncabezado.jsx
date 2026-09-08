@@ -186,7 +186,7 @@ export default function ClienteEncabezado({
 
       {/* El span es necesario para que el tooltip funcione con el botón
           deshabilitado: un botón así no emite eventos de mouse. */}
-      <Tooltip title="Descargar reporte de facturas">
+      <Tooltip title="Descargar facturas en PDF">
         <span>
           <IconButton
             size="small"
