@@ -545,6 +545,14 @@ La cuenta de cobro se puede armar **desde las facturas del cliente**: se eligen 
 
 ---
 
+### El PDF de la factura se lee al revés
+
+Los despachos salen **del último al primero**: lo que se agregó esta semana arriba y el despacho del alta al final. Con un despacho agregado el alta es el segundo bloque; con dos, el tercero. Lo último que salió es lo que se está mirando — el alta ya se conoce.
+
+Dentro de cada bloque manda la misma regla que en la ficha del cliente: **lo que sigue alquilado arriba, lo devuelto al final**. Antes el orden lo decidía el momento en que se partió el renglón, que no le dice nada a nadie.
+
+Y los rótulos no anuncian cuántos equipos trae el despacho. Ese número contaba **renglones**, y una devolución parcial parte el renglón en dos: un despacho de un solo equipo con una devolución encima anunciaba *"EQUIPOS AGREGADOS 1 (2)"*, donde el 1 era el despacho y el 2 el mismo equipo contado dos veces. La fecha del pedido tampoco va en el rótulo: cada despacho ya la muestra en su tabla de pago, junto a lo que se pagó ese día.
+
 ## Lo que hace el servidor solo
 
 Guardar un dato que se calcula trae un problema conocido: **se queda viejo**. Una factura que venció anoche no la escribió nadie, así que nada avisa del cambio. Estas automatizaciones existen para resolver exactamente eso.
@@ -928,7 +936,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**476 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**482 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 

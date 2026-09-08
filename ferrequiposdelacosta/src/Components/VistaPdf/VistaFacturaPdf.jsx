@@ -4,6 +4,7 @@ import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
   calcularEquipo,
   equipoLlevaIva,
+  estaDevuelto,
   diasDeEquipo,
   calcularCuentaFactura,
   calcularDepositoTotal,
@@ -283,15 +284,28 @@ export default function generarFacturaPdf({ factura, cliente }) {
       0,
     );
 
-  // El despacho inicial y después cada tanda agregada, todos con la misma
-  // forma: los equipos, el pago de ese despacho y sus cargos.
+  // Cada despacho, todos con la misma forma: los equipos, el pago de ese
+  // despacho y sus cargos.
+  //
+  // El rótulo no lleva la cantidad entre paréntesis. Contaba RENGLONES, y una
+  // devolución parcial parte el renglón en dos —lo que volvió y lo que sigue
+  // afuera—, así que un despacho de un solo equipo con una devolución encima
+  // anunciaba "(2)". La ficha del cliente ya cuenta por despacho y nombre por
+  // esto mismo; acá directamente no se anuncia.
   const bloqueDeGrupo = (grupo, rotulo) => {
     const equiposDelGrupo = grupo?.equipos ?? [];
     if (equiposDelGrupo.length === 0) return;
 
     const adicionales = adicionalesDe(grupo);
-    y = titulo(rotulo(equiposDelGrupo.length));
-    tablaEquipos(equiposDelGrupo);
+    y = titulo(rotulo);
+    // Primero lo que sigue alquilado y después lo devuelto, igual que en la
+    // ficha del cliente: lo que está en la calle va arriba y la parte ya
+    // cerrada queda al final. Sin esto el orden lo decidía el momento en que
+    // se partió el renglón, que no le dice nada a nadie. El sort de JS es
+    // estable, así que dentro de cada mitad se respeta el orden de carga.
+    tablaEquipos(
+      [...equiposDelGrupo].sort((a, b) => Number(estaDevuelto(a)) - Number(estaDevuelto(b))),
+    );
 
     tablaPago({
       pagos: pagosDe(grupo),
@@ -307,17 +321,17 @@ export default function generarFacturaPdf({ factura, cliente }) {
     });
   };
 
-  bloqueDeGrupo(grupoInicial, (cantidad) => `EQUIPOS (${cantidad})`);
-
+  // Lo agregado va ARRIBA y el despacho del alta queda al final: con un
+  // despacho agregado el alta es el segundo bloque, con dos es el tercero. Lo
+  // último que salió es lo que se está mirando; el alta ya se conoce.
+  //
+  // La fecha del pedido no va en el rótulo: cada despacho la muestra en su
+  // propia tabla de pago, que es donde se lee junto a lo que se pagó ese día.
   gruposAgregados.forEach((grupo, indice) => {
-    const solicitud = grupo.fechaSolicitud
-      ? ` · solicitado el ${formatearFechaLegible(grupo.fechaSolicitud)}`
-      : "";
-    bloqueDeGrupo(
-      grupo,
-      (cantidad) => `EQUIPOS AGREGADOS ${indice + 1} (${cantidad})${solicitud}`,
-    );
+    bloqueDeGrupo(grupo, `EQUIPOS AGREGADOS ${indice + 1}`);
   });
+
+  bloqueDeGrupo(grupoInicial, "EQUIPOS");
 
   // ── Abonos ─────────────────────────────────────────────────────────────
   const abonos = abonosDe(factura);
