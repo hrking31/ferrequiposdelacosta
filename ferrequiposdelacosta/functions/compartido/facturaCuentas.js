@@ -97,9 +97,19 @@ export const obtenerFechaHoyBogota = () => {
   return `${anio}-${mes}-${dia}`;
 };
 
-// Regla de negocio: antes de las 3pm (hora Colombia) el alquiler arranca el
-// mismo día; a partir de las 3pm arranca al día siguiente.
-export const obtenerFechaInicialEfectiva = () => {
+// CUÁNDO SALE UN EQUIPO que se despacha ahora mismo.
+//
+// Regla de negocio: antes de las 3pm (hora Colombia) alcanza a salir y su
+// alquiler arranca hoy; a partir de las 3pm sale mañana y arranca mañana.
+//
+// Es la fecha del DESPACHO y de nada más. Se llamaba
+// `obtenerFechaInicialEfectiva`, un nombre que no decía de qué era la fecha, y
+// terminó usada para fechar cosas que pasaron HOY: la creación de una factura
+// hecha a las 4 de la tarde nacía fechada mañana, y lo mismo la solicitud de
+// un despacho agregado y el pago que venía con él. Para eso está
+// `obtenerFechaHoyBogota`: lo que ya ocurrió se fecha hoy, sin importar la
+// hora.
+export const obtenerFechaDespachoSugerida = () => {
   const horaBogota = obtenerHoraBogota();
   const [anio, mes, dia] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Bogota",

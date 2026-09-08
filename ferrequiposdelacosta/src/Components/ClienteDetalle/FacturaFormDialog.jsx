@@ -36,7 +36,8 @@ import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
-  obtenerFechaInicialEfectiva,
+  obtenerFechaDespachoSugerida,
+  obtenerFechaHoyBogota,
   calcularFechaDevolucion,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -71,6 +72,15 @@ const ESTADO_INICIAL_ITEM = {
   valor: "",
   fechaDespacho: "",
 };
+
+// Cuándo se le sugiere que SALE a un equipo que se está cargando. Acá sí vale
+// la regla de las 3 p.m.: pasada esa hora el equipo ya no alcanza a salir y su
+// alquiler arranca mañana.
+//
+// Editando una factura vieja se sugiere la fecha de esa factura, no hoy: lo
+// que se está haciendo ahí es corregir lo que salió ese día.
+const despachoSugerido = (documento, fechaDeLaFactura) =>
+  documento ? fechaDeLaFactura : obtenerFechaDespachoSugerida();
 
 const obtenerNombreCliente = (cliente) => {
   if (!cliente) return "";
@@ -139,7 +149,11 @@ const obtenerEstadoInicial = (documento) => {
   const adicionales = adicionalesDe(inicial);
   return {
     numeroFactura: datos.numeroFactura ?? "",
-    fecha: datos.fechaCreacion ?? obtenerFechaInicialEfectiva(),
+    // La fecha en que se hace la factura es HOY, y punto. Antes salía de la
+    // regla de las 3 p.m. —la que corre el alquiler al día siguiente— y una
+    // factura hecha a las 4 de la tarde nacía fechada mañana. Esa regla es del
+    // DESPACHO, no del documento: ver `despachoSugerido`.
+    fecha: datos.fechaCreacion ?? obtenerFechaHoyBogota(),
     transporte: adicionales.transporte ?? "",
     valorTransporte: adicionales.valorTransporte
       ? String(adicionales.valorTransporte)
@@ -196,7 +210,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     const estadoInicial = obtenerEstadoInicial(factura);
     setForm(estadoInicial);
     setEquipos((grupoInicialDe(factura)?.equipos ?? []).map(aFormulario));
-    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: estadoInicial.fecha });
+    setNuevoItem({
+      ...ESTADO_INICIAL_ITEM,
+      fechaDespacho: despachoSugerido(factura, estadoInicial.fecha),
+    });
     setErrors({});
   }, [open, factura]);
 
@@ -455,7 +472,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       ...prev,
       { nombre, cantidad, dias, valor, fechaDespacho: nuevoItem.fechaDespacho },
     ]);
-    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: form.fecha });
+    setNuevoItem({
+      ...ESTADO_INICIAL_ITEM,
+      fechaDespacho: despachoSugerido(factura, form.fecha),
+    });
     setErrors((prev) => ({
       ...prev,
       nombreEquipo: undefined,
@@ -760,9 +780,11 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
               {fechaEntregaNuevoItem && (
                 <Typography
                   variant="caption"
-                  color="text.secondary"
                   sx={{
-                    opacity: 0.35,
+                    // Con el acento del tema: es el único dato de esta fila
+                    // que la app calcula sola, y con el gris al 35% se perdía
+                    // justo cuando aparecía.
+                    color: acento,
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     userSelect: "none",

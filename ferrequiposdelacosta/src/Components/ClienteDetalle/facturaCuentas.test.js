@@ -1,10 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   calcularEquipo,
   calcularEstadoEquipo,
   equipoVencido,
   equipoAlDia,
   proyectarAmpliacion,
+  obtenerFechaDespachoSugerida,
+  obtenerFechaHoyBogota,
   calcularAlquiler,
   calcularIvaEquipos,
   facturaLlevaIva,
@@ -89,6 +91,48 @@ const facturaCon = (equipos, extra = {}) => ({
   abonos: extra.abonos ?? [],
   entregas: extra.entregas ?? [],
   gestiones: extra.gestiones ?? [],
+});
+
+describe("la regla de las 3 p.m.", () => {
+  // Bogotá es UTC−5, así que las 3 p.m. de allá son las 20:00 UTC. Se fija el
+  // reloj para que la prueba no dependa de a qué hora se corra.
+  const alasHoraBogota = (isoUtc) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(isoUtc));
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("antes de las 3 el equipo sale hoy", () => {
+    alasHoraBogota("2026-09-08T19:00:00Z"); // 14:00 en Bogotá
+    expect(obtenerFechaDespachoSugerida()).toBe("2026-09-08");
+  });
+
+  it("a las 3 en punto ya sale mañana", () => {
+    alasHoraBogota("2026-09-08T20:00:00Z"); // 15:00 en Bogotá
+    expect(obtenerFechaDespachoSugerida()).toBe("2026-09-09");
+  });
+
+  it("y de noche también, contando el día de Bogotá y no el de UTC", () => {
+    // 04:00 UTC del 9 son las 23:00 del 8 en Bogotá: el día es el 8, y como ya
+    // pasaron las 3, el equipo sale el 9.
+    alasHoraBogota("2026-09-09T04:00:00Z");
+    expect(obtenerFechaDespachoSugerida()).toBe("2026-09-09");
+    expect(obtenerFechaHoyBogota()).toBe("2026-09-08");
+  });
+
+  // Lo que YA PASÓ se fecha hoy, sin importar la hora. Es la distinción que
+  // faltaba: la misma función servía para las dos cosas y una factura hecha a
+  // las 4 de la tarde nacía fechada mañana, igual que la solicitud de un
+  // despacho agregado y el pago que venía con ella.
+  it("lo que ya pasó se fecha hoy, aunque sean las 4 de la tarde", () => {
+    alasHoraBogota("2026-09-08T21:00:00Z"); // 16:00 en Bogotá
+    expect(obtenerFechaHoyBogota()).toBe("2026-09-08");
+    // Y el despacho de esos equipos sí es mañana: son dos fechas distintas.
+    expect(obtenerFechaDespachoSugerida()).toBe("2026-09-09");
+  });
 });
 
 describe("los días de alquiler", () => {

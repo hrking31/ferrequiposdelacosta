@@ -32,7 +32,8 @@ import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
-  obtenerFechaInicialEfectiva,
+  obtenerFechaDespachoSugerida,
+  obtenerFechaHoyBogota,
   calcularFechaDevolucion,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -100,17 +101,24 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
 
   useEffect(() => {
     if (!open) return;
-    const fechaSolicitud = obtenerFechaInicialEfectiva();
     setForm({
       ...ESTADO_INICIAL,
-      fechaSolicitud,
+      // El cliente PIDIÓ hoy, aunque los equipos salgan mañana. Esta fecha
+      // también le pone fecha al pago que entra con el despacho, así que con
+      // la regla de las 3 p.m. acá una llamada de las 4 de la tarde quedaba
+      // registrada mañana y la plata también.
+      fechaSolicitud: obtenerFechaHoyBogota(),
       // Si los equipos que ya están llevan IVA, se sigue aplicando por defecto
       // al agregar. La factura no guarda una marca propia que consultar.
       aplicaIva: facturaLlevaIva(factura),
     });
-    // El despacho arranca en la misma fecha de la solicitud; se cambia solo si
-    // ese equipo sale otro día.
-    setNuevoItem({ ...ESTADO_INICIAL_ITEM, fechaDespacho: fechaSolicitud });
+    // El despacho SÍ sigue la regla de las 3 p.m.: pasada esa hora el equipo ya
+    // no alcanza a salir y su alquiler arranca mañana. Se cambia a mano si ese
+    // equipo sale otro día.
+    setNuevoItem({
+      ...ESTADO_INICIAL_ITEM,
+      fechaDespacho: obtenerFechaDespachoSugerida(),
+    });
     setEquiposNuevos([]);
     setErrors({});
   }, [open, factura]);

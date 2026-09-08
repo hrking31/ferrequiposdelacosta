@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-484_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-488_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -170,7 +170,9 @@ stateDiagram-v2
 > [!NOTE]
 > **Por qué importa el estado pasajero:** sin él, una cotización que alguien abrió y dejó a medias quedaba marcada como "la tiene fulano" para siempre, y nadie más se atrevía a tocarla. Ahora ninguna salida la deja colgada.
 
-**Regla de las 3 p.m.** — Al armar una factura, el alquiler arranca el mismo día si se carga antes de las 3:00 p.m. (hora de Colombia); desde esa hora, arranca al día siguiente. La app propone la fecha correcta sola.
+**Regla de las 3 p.m.** — Un equipo despachado antes de las 3:00 p.m. (hora de Colombia) alcanza a salir y su alquiler arranca ese mismo día; desde esa hora sale mañana y arranca mañana. La app propone la fecha correcta sola.
+
+Es la fecha del **despacho**, y de nada más. El cliente puede llegar a las 4 de la tarde, pedir diez equipos y recibirlos al otro día: **su factura es de hoy**, porque hoy fue cuando pidió. Lo mismo la solicitud de un despacho agregado y el pago que entra con él. Durante un tiempo las tres salían de la misma función —que se llamaba `obtenerFechaInicialEfectiva`, un nombre que no decía de qué era la fecha— y una factura hecha a las 4 de la tarde nacía fechada mañana, con su plata fechada mañana. Ahora la función se llama `obtenerFechaDespachoSugerida` y lo que ya ocurrió se fecha con `obtenerFechaHoyBogota`.
 
 ### 2. La cuenta de cobro
 
@@ -954,9 +956,9 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**484 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**488 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
-Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
+Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 
 También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
