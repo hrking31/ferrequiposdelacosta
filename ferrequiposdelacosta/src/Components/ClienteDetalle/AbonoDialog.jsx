@@ -14,6 +14,7 @@ import {
   MenuItem,
   Grid,
   Box,
+  Divider,
   Paper,
   Stack,
   Typography,
@@ -46,13 +47,17 @@ const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 // ── QUIÉN DECIDE A QUÉ FACTURA VA ─────────────────────────────────────
 //
 // Por defecto lo decide la app: reparte entre TODAS las que tengan saldo,
-// empezando por la que más debe, y si sobra sigue con la siguiente. Si el
-// abono alcanza para saldarlas todas, lo que sobre queda como saldo a favor en
-// la última que se tocó.
+// empezando por la MÁS ANTIGUA, y si sobra sigue con la siguiente. Si el abono
+// alcanza para saldarlas todas, lo que sobre queda como saldo a favor en la
+// última que se tocó.
+//
+// La más antigua primero, y no la que más debe, porque es la que está más
+// cerca de volverse incobrable y la que dispara la cobranza —y porque es como
+// se imputa un pago cuando el deudor no elige—.
 //
 // Pero el cliente puede pedir otra cosa —"esto es para la 1234"—, y entonces
 // manda él: se marcan las facturas que dijo y el abono se reparte solo entre
-// esas, con el mismo criterio de mayor saldo primero.
+// esas, con el mismo criterio de la más antigua primero.
 //
 // La diferencia queda escrita en el abono: `tipo: "sistema"` cuando repartió la
 // app, `tipo: "cliente"` cuando lo pidió él. No cambia ninguna cuenta —para el
@@ -86,15 +91,23 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
   // Solo entran las facturas que todavía deben algo: son las únicas que
   // pueden recibir parte de este abono. El total ya trae los días ampliados
   // sumados, igual que en la tarjeta de cada factura, para que la cifra que
-  // se ve acá sea la misma que se ve afuera. Empatadas en saldo, gana la más
-  // antigua.
+  // se ve acá sea la misma que se ve afuera. Van de la más antigua a la más
+  // nueva, que es el orden en que las va saldando.
   const facturasConSaldo = ordenarFacturasConSaldo(facturas);
 
   const montoNuevo = Number(form.monto) || 0;
 
+  // Lo que el cliente debe HOY, sumando sus facturas con saldo. Sale de las
+  // mismas cuentas que la lista de abajo: si se calculara aparte, el total y
+  // el detalle podrían discrepar.
+  const deudaActual = facturasConSaldo.reduce(
+    (total, { cuenta }) => total + cuenta.saldoPendiente,
+    0,
+  );
+
   // Adónde va este abono: a las que el cliente eligió, o a todas si no eligió
-  // ninguna. El orden lo puso `ordenarFacturasConSaldo` y se respeta: mayor
-  // saldo primero, también dentro de las elegidas.
+  // ninguna. El orden lo puso `ordenarFacturasConSaldo` y se respeta: la más
+  // antigua primero, también dentro de las elegidas.
   const loEligioElCliente = elegidas.length > 0;
   const destinos = loEligioElCliente
     ? facturasConSaldo.filter(({ factura }) => elegidas.includes(factura.id))
@@ -264,6 +277,49 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
               />
             </Grid>
 
+            {/* LA DEUDA DEL CLIENTE, que es como se piensa un abono: no se
+                paga una factura, se baja lo que se debe. El reparto entre
+                facturas viene abajo y lo hace la app; acá arriba va la cuenta
+                que el cliente tiene en la cabeza cuando entrega la plata. */}
+            {facturasConSaldo.length > 0 && (
+              <Grid item xs={12}>
+                <Paper variant="totales">
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2">Deuda actual</Typography>
+                    <Typography variant="body2">
+                      {formatearMoneda(deudaActual)}
+                    </Typography>
+                  </Stack>
+                  {montoNuevo > 0 && (
+                    <>
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="body2">Abono</Typography>
+                        <Typography variant="body2">
+                          −{formatearMoneda(montoNuevo)}
+                        </Typography>
+                      </Stack>
+                      <Divider sx={{ my: 0.75 }} />
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          {/* No dice "Queda debiendo" a secas: cada factura
+                              de la lista de abajo usa ese mismo rótulo para
+                              LO SUYO, y dos veces la misma frase con dos
+                              significados se lee como si tuvieran que
+                              coincidir. */}
+                          {deudaActual > montoNuevo
+                            ? "Deuda después del abono"
+                            : "Saldo a favor"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          {formatearMoneda(Math.abs(deudaActual - montoNuevo))}
+                        </Typography>
+                      </Stack>
+                    </>
+                  )}
+                </Paper>
+              </Grid>
+            )}
+
             {/* El reparto automático: cada factura con saldo, en el orden en
                 que se le va aplicando la plata, y cómo queda si se guarda
                 este abono. */}
@@ -299,8 +355,8 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
                   ) : (
                     <>
                       <AutoAwesomeIcon sx={{ fontSize: 14 }} />
-                      Se reparte solo, de mayor a menor saldo. Marcá una factura
-                      si el cliente pidió que fuera a esa.
+                      Se reparte solo, de la más antigua a la más nueva. Marcá
+                      una factura si el cliente pidió que fuera a esa.
                     </>
                   )}
                 </Typography>

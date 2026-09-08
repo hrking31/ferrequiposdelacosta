@@ -345,7 +345,8 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     // Lo que se entregó de más no se guarda como pago del despacho: se
     // convierte en un abono, con la fecha de solicitud de estos equipos.
     // Primero satura el saldo de ESTA factura; si sobra, se reparte entre las
-    // demás facturas del cliente con saldo (de mayor a menor), igual que el
+    // demás facturas del cliente con saldo (de la más antigua a la más nueva),
+    // igual que el
     // botón Abono — así deja de quedar pegado como saldo a favor de esta.
     const { pagos: pagosGuardados, excedente, medio: medioExcedente } =
       separarExcedentePago(form.pagos, totalEsteEquipo);

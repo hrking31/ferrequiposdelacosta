@@ -641,18 +641,31 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
   };
 };
 
-// Las facturas de un cliente que todavía tienen saldo, de mayor a menor
-// (empate: la más antigua primero). Es el orden en que se les va aplicando un
-// abono: primero a la que más debe.
+// Las facturas de un cliente que todavía tienen saldo, de la MÁS ANTIGUA a la
+// más nueva. Es el orden en que se les va aplicando un abono cuando el cliente
+// no dice a cuál va.
+//
+// Antes se ordenaban por saldo, de mayor a menor: primero a la que más debe.
+// Con ese criterio una factura chica y vieja podía quedarse abierta
+// indefinidamente mientras los abonos se iban a una grande y reciente, y la
+// vieja es justamente la que está más cerca de volverse incobrable y la que
+// dispara la cobranza. La más antigua primero es además cómo se imputa un pago
+// cuando el deudor no elige.
+//
+// Empate de fechas: por número de factura, que también corre en el tiempo.
 export const ordenarFacturasConSaldo = (facturas, hoyIso = obtenerFechaHoyBogota()) =>
   (Array.isArray(facturas) ? facturas : [])
     .map((doc) => ({ factura: doc, cuenta: calcularCuentaFactura(doc, hoyIso) }))
     .filter(({ cuenta }) => cuenta.saldoPendiente > 0)
     .sort((a, b) => {
-      const porSaldo = b.cuenta.saldoPendiente - a.cuenta.saldoPendiente;
-      if (porSaldo !== 0) return porSaldo;
-      return (datosFactura(a.factura).fechaCreacion || "").localeCompare(
+      const porFecha = (datosFactura(a.factura).fechaCreacion || "").localeCompare(
         datosFactura(b.factura).fechaCreacion || "",
+      );
+      if (porFecha !== 0) return porFecha;
+      return String(datosFactura(a.factura).numeroFactura || "").localeCompare(
+        String(datosFactura(b.factura).numeroFactura || ""),
+        undefined,
+        { numeric: true },
       );
     });
 

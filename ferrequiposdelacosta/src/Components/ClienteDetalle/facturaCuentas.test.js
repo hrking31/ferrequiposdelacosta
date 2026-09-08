@@ -793,11 +793,38 @@ describe("la cuenta del cliente y el reparto de abonos", () => {
     expect(cuenta.saldoPendiente).toBe(70000); // 100.000 − 30.000 a favor
   });
 
-  it("el abono va primero a la que MÁS debe, no a la más grande", () => {
-    const grande = conSaldo(500000, "2026-09-01");
-    const pequena = conSaldo(800000, "2026-09-02");
-    const orden = ordenarFacturasConSaldo([grande, pequena], HOY);
-    expect(orden[0].cuenta.saldoPendiente).toBe(800000);
+  it("el abono va primero a la MÁS ANTIGUA, aunque deba menos", () => {
+    // La vieja debe 500.000 y la nueva 800.000: manda la fecha, no el monto.
+    // Con el criterio anterior —primero la que más debe— una factura chica y
+    // vieja se quedaba abierta mientras los abonos se iban a una grande y
+    // reciente, y la vieja es la que está más cerca de volverse incobrable.
+    const vieja = conSaldo(500000, "2026-09-01");
+    const nueva = conSaldo(800000, "2026-09-02");
+    const orden = ordenarFacturasConSaldo([nueva, vieja], HOY);
+    expect(orden[0].cuenta.saldoPendiente).toBe(500000);
+    expect(orden[1].cuenta.saldoPendiente).toBe(800000);
+  });
+
+  it("dos del mismo día se ordenan por número de factura", () => {
+    const conNumero = (numero, monto) =>
+      facturaCon(
+        [
+          equipo({
+            cantidadEquipos: 1,
+            valorDia: monto,
+            diasAlquilados: 1,
+            devolucion: { fechaDevolucion: "2026-09-04", buenEstado: true, valorRetenido: 0 },
+          }),
+        ],
+        { factura: { fechaCreacion: "2026-09-01", numeroFactura: numero } },
+      );
+
+    // Como números, no como texto: la 9 va antes que la 10.
+    const orden = ordenarFacturasConSaldo(
+      [conNumero("10", 300000), conNumero("9", 700000)],
+      HOY,
+    );
+    expect(orden.map(({ factura }) => factura.factura.numeroFactura)).toEqual(["9", "10"]);
   });
 
   it("lo que sobra pasa a la siguiente, y el remanente no se pierde", () => {

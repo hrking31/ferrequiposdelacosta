@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-483_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-484_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -449,21 +449,28 @@ Este estado sí se guarda en la base, por una razón concreta: la lista de clien
 
 ### 6. Los abonos: un pago, varias facturas
 
-**El abono se registra desde cartera**, no desde la ficha del cliente. El momento real en que entra la plata es la llamada: se marca al cliente, se le pacta el plazo y en la misma conversación se le pide el abono. Con el botón solo en la ficha había que salir de cartera, buscar al cliente y volver.
+**El abono se registra desde dos lados, y cada uno responde a un momento distinto.** Desde cartera, porque cuando la plata entra suele ser durante la llamada de cobro: se marca al cliente, se le pacta el plazo y en la misma conversación se le pide el abono. Y desde la ficha del cliente, porque hay un pago que ese botón no alcanza — **el del cliente que paga por su cuenta antes de que se le venza**. Esa factura no está en cartera, no hay nada que cobrarle todavía, y su plata no tenía por dónde entrar.
 
-Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte sola** entre las que tienen saldo, con un orden que no es el cronológico:
+En los dos casos el botón está **en el cliente, no en cada factura**: un abono baja lo que se debe, y a qué factura se imputa lo decide la app.
 
-1. Primero **la que más debe**. Si dos deben lo mismo, la más antigua.
+**El abono se piensa como deuda.** El diálogo abre mostrando cuánto debe el cliente en total y, apenas se escribe el monto, cuánto queda debiendo. Es la cuenta que él tiene en la cabeza cuando entrega la plata; el reparto entre facturas va debajo.
+
+Un cliente rara vez debe una sola factura. Cuando abona, esa plata **se reparte sola** entre las que tienen saldo:
+
+1. Primero **la más antigua**. Si dos son del mismo día, la de número menor.
 2. A cada una se le aplica lo que le falta para saldarse; lo que sobra pasa a la siguiente.
 3. Si después de saldarlas a todas todavía sobra, ese remanente **queda a favor** en la última, en vez de perderse.
 
-**Ejemplo.** Don Pedro debe $300.000 en una factura y $500.000 en otra, y entrega $600.000. Se salda primero la de $500.000, y los $100.000 restantes van contra la otra, que queda debiendo $200.000.
+**Ejemplo.** Don Pedro debe $500.000 de una factura de agosto y $300.000 de una de septiembre, y entrega $600.000. Se salda primero la de agosto, y los $100.000 restantes van contra la de septiembre, que queda debiendo $200.000.
+
+> [!NOTE]
+> **Antes se repartía por saldo: primero la que más debía.** Con ese criterio una factura chica y vieja podía quedarse abierta indefinidamente mientras los abonos se iban a una grande y reciente — y la vieja es justamente la que está más cerca de volverse incobrable y la que dispara la cobranza. La más antigua primero es además cómo se imputa un pago cuando el deudor no elige a qué deuda va.
 
 Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien no debe nada.
 
 #### Salvo que el cliente diga otra cosa
 
-Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para la 1234". Cada factura de la lista tiene su casilla, pegada al número, que es justo lo que él nombra por teléfono. Marcando una o varias, el abono va solo a esas —con el mismo criterio de mayor saldo primero— y el sobrante **le queda a favor a la que él eligió**: no se le pasa a otra, porque él dijo dónde iba esa plata.
+Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para la 1234". Cada factura de la lista tiene su casilla, pegada al número, que es justo lo que él nombra por teléfono. Marcando una o varias, el abono va solo a esas —con el mismo criterio de la más antigua primero— y el sobrante **le queda a favor a la que él eligió**: no se le pasa a otra, porque él dijo dónde iba esa plata.
 
 Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostrando **todas** las facturas con saldo, porque hay que poder elegir entre ellas y ver cómo queda cada una; y un renglón dice **quién está decidiendo ahora mismo**, porque una lista de casillas vacías se lee como "no va a ninguna parte" cuando en realidad ese es el caso normal.
 
@@ -947,7 +954,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**483 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**484 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj.
 

@@ -36,10 +36,11 @@ const cliente = { id: "cli1", nombre: "Aida" };
 // un día y ya devuelto —con la línea cerrada los días no corren con el
 // calendario—, y su valor por día es el total que la prueba necesita. Sin eso,
 // mañana la factura debería más que hoy y el reparto cambiaría solo.
-const facturaQueDebe = ({ id, numero, monto, abonos = [] }) => ({
+const facturaQueDebe = ({ id, numero, monto, abonos = [], fecha = "2026-08-10" }) => ({
   id,
   ...unaFactura({
     numeroFactura: String(numero),
+    fechaCreacion: fecha,
     abonos,
     equipos: [
       unEquipoDevuelto({
@@ -54,9 +55,11 @@ const facturaQueDebe = ({ id, numero, monto, abonos = [] }) => ({
   }),
 });
 
+// La "grande" es además la MÁS ANTIGUA, que es lo que decide el reparto. Van
+// desordenadas a propósito: el orden lo tiene que poner la app, no la lista.
 const facturas = [
-  facturaQueDebe({ id: "chica", numero: 1235, monto: 300000 }),
-  facturaQueDebe({ id: "grande", numero: 1234, monto: 500000 }),
+  facturaQueDebe({ id: "chica", numero: 1235, monto: 300000, fecha: "2026-08-20" }),
+  facturaQueDebe({ id: "grande", numero: 1234, monto: 500000, fecha: "2026-08-10" }),
 ];
 
 const abrir = (props = {}) =>
@@ -100,16 +103,24 @@ describe("AbonoDialog", () => {
     expect(screen.queryByText(/^\d+ facturas? con saldo$/)).not.toBeInTheDocument();
   });
 
-  it("muestra el reparto antes de guardar: salda la que más debe y pasa el resto", async () => {
+  it("muestra el reparto antes de guardar: salda la más antigua y pasa el resto", async () => {
     const { usuario } = abrir();
 
-    // 600.000 alcanzan para saldar la de 500.000 y dejar 100.000 en la otra.
+    // 600.000 alcanzan para saldar la más antigua —que debe 500.000— y dejar
+    // 100.000 en la otra.
     await usuario.type(screen.getByLabelText("Valor del abono"), "600000");
 
     expect(screen.getByText("Queda saldada")).toBeInTheDocument();
     expect(screen.getByText("Queda debiendo")).toBeInTheDocument();
-    // Lo que le queda debiendo a la chica: 300.000 − 100.000.
-    expect(screen.getByText(/200[.,]000/)).toBeInTheDocument();
+
+    // Arriba, la deuda del cliente entera: 800.000 y lo que queda después.
+    expect(screen.getByText("Deuda después del abono")).toBeInTheDocument();
+    expect(screen.getByText(/800[.,]000/)).toBeInTheDocument();
+
+    // Los 200.000 salen DOS veces, y por casualidad: lo que queda debiendo el
+    // cliente (800.000 − 600.000) y lo que le queda debiendo la factura chica
+    // (300.000 − 100.000).
+    expect(screen.getAllByText(/200[.,]000/)).toHaveLength(2);
   });
 
   it("no deja guardar sin medio de pago ni valor, y no escribe nada", async () => {
@@ -184,7 +195,7 @@ describe("AbonoDialog — cuando el cliente elige la factura", () => {
     expect(cambios.abonos[0].tipo).toBe("cliente");
   });
 
-  it("con dos marcadas reparte solo entre esas, de mayor a menor saldo", async () => {
+  it("con dos marcadas reparte solo entre esas, de la más antigua a la más nueva", async () => {
     const { usuario } = abrir({
       facturas: [
         ...facturas,
@@ -216,7 +227,7 @@ describe("AbonoDialog — cuando el cliente elige la factura", () => {
     await cargarAbono(usuario, "600000");
     await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
-    // Las dos reciben, empezando por la que más debe, y el tipo vuelve a decir
+    // Las dos reciben, empezando por la más antigua, y el tipo vuelve a decir
     // que lo decidió la app.
     expect(updateSimulado).toHaveBeenCalledTimes(2);
     expect(updateSimulado.mock.calls[0][1].abonos[0].tipo).toBe("sistema");

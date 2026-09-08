@@ -29,6 +29,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PlaceIcon from "@mui/icons-material/Place";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -71,6 +72,7 @@ export default function ClienteEncabezado({
   onVolver,
   onCrearFactura,
   onDescargarReporte,
+  onRegistrarAbono,
   onPasarACuentaCobro,
   onEditarCliente,
 }) {
@@ -179,10 +181,33 @@ export default function ClienteEncabezado({
         </IconButton>
       </Tooltip>
 
-      {/* EL ABONO YA NO ESTÁ ACÁ: se registra desde Seguimiento de cobro.
-          El momento real en que entra la plata es la llamada, y con el botón
-          acá había que salir de cartera, buscar al cliente y volver. Ver
-          ClienteSeguimientoCard. */}
+      {/* EL ABONO, en los dos lados y a propósito.
+          En cartera porque el momento en que entra la plata suele ser la
+          llamada de cobro. Y acá porque hay un cliente que ese botón no
+          alcanza: el que paga por su cuenta ANTES de que se le venza. Esa
+          factura no está en cartera —no hay nada que cobrar todavía— y su
+          plata no tenía por dónde entrar.
+          El abono es del CLIENTE, no de una factura: por eso está acá arriba
+          y no en cada tarjeta. Baja su deuda y la app lo reparte entre las
+          facturas con saldo, de la más antigua a la más nueva. */}
+      <Tooltip
+        title={
+          hayFacturasParaReporte
+            ? "Registrar abono"
+            : "Este cliente no tiene facturas con saldo"
+        }
+      >
+        <span>
+          <IconButton
+            size="small"
+            onClick={onRegistrarAbono}
+            disabled={!hayFacturasParaReporte}
+            sx={botonEncabezadoSx}
+          >
+            <AttachMoneyIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
 
       {/* El span es necesario para que el tooltip funcione con el botón
           deshabilitado: un botón así no emite eventos de mouse. */}
@@ -539,6 +564,7 @@ ClienteEncabezado.propTypes = {
   onVolver: PropTypes.func.isRequired,
   onCrearFactura: PropTypes.func.isRequired,
   onDescargarReporte: PropTypes.func.isRequired,
+  onRegistrarAbono: PropTypes.func.isRequired,
   onPasarACuentaCobro: PropTypes.func.isRequired,
   onEditarCliente: PropTypes.func.isRequired,
 };
