@@ -27,6 +27,12 @@
 //                                      vencimientoIndefinido?,
 //                                      ampliaciones[], devolucion{}? }
 //
+//                   devolucion{}    fechaDevolucion, buenEstado,
+//                                   motivo          qué le PASÓ (si volvió mal)
+//                                   valorRetenido
+//                                   motivoDevolucion?  por qué lo DEVUELVE,
+//                                                      solo si lo anotaron
+//
 //   abonos[]      la plata que ENTRA después:
 //                   { fecha, medio, monto, tipo, desdeFactura? }
 //                   tipo: "sistema" | "cliente" | "agregado"

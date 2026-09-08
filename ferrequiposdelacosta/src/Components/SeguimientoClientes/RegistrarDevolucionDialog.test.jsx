@@ -480,6 +480,57 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(loGuardadoEnLaFactura().gestiones).toEqual([]);
   });
 
+  // POR QUÉ DEVUELVE. Solo se pregunta desde la ficha: ahí lo que vuelve está
+  // en plazo, así que devolver es una decisión del cliente y el motivo es un
+  // dato. Desde Seguimiento el equipo ya venció y el motivo es el vencimiento.
+  it("desde la ficha se pregunta por qué devuelve", async () => {
+    abrir({ factura: facturaAlDia, desdeLaFicha: true });
+
+    expect(
+      screen.getByLabelText("Motivo de la devolución (opcional)"),
+    ).toBeInTheDocument();
+  });
+
+  it("desde Seguimiento no se pregunta", () => {
+    abrir({ factura });
+
+    expect(
+      screen.queryByLabelText("Motivo de la devolución (opcional)"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("el motivo queda escrito en cada equipo que volvió", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
+
+    await usuario.type(
+      screen.getByLabelText("Motivo de la devolución (opcional)"),
+      "terminó la obra",
+    );
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [despacho] = loGuardadoEnLaFactura().grupos;
+    const devuelto = despacho.equipos.find((equipo) => equipo.devolucion);
+    expect(devuelto.devolucion.motivoDevolucion).toBe("terminó la obra");
+    // Y no se confunde con lo otro: el equipo volvió bien, así que "qué le
+    // pasó" queda vacío.
+    expect(devuelto.devolucion.buenEstado).toBe(true);
+    expect(devuelto.devolucion.motivo).toBe("");
+  });
+
+  it("sin motivo escrito, el campo no se guarda", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [despacho] = loGuardadoEnLaFactura().grupos;
+    const devuelto = despacho.equipos.find((equipo) => equipo.devolucion);
+    expect(devuelto.devolucion).not.toHaveProperty("motivoDevolucion");
+  });
+
   // Una factura vencida puede tener equipos agregados después que todavía
   // están en plazo. Esos se devuelven desde la ficha, y esa devolución
   // tampoco es cobranza: el equipo no venció, nadie hizo nada para

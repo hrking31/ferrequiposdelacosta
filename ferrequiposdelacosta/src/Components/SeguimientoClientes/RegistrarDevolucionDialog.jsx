@@ -71,16 +71,24 @@ const ESTADO_INICIAL_CAMBIO = {
 // El tope de lo retenido es el depósito del DESPACHO en el que salió ese
 // equipo: no se puede retener del Benetín más de lo que el cliente dejó al
 // llevárselo.
-const devolucionDe = (cambio, fecha, topeRetencion = Infinity) => {
+const devolucionDe = (cambio, fecha, topeRetencion = Infinity, motivoDevolucion = "") => {
   const bien = cambio?.buenEstado !== false;
-  return {
+  const devolucion = {
     fechaDevolucion: fecha,
     buenEstado: bien,
+    // `motivo` es qué le PASÓ al equipo: solo se llena si volvió mal.
     motivo: bien ? "" : (cambio.motivoEstado || "").trim(),
     valorRetenido: bien
       ? 0
       : Math.min(topeRetencion, Math.max(0, Number(cambio.retenidoEstado) || 0)),
   };
+  // Y este es por qué lo DEVUELVE, que es otra cosa: un equipo puede volver
+  // impecable y aun así importar saber que la obra terminó. Se escribe solo
+  // si alguien lo anotó, para no llenar de campos vacíos las devoluciones
+  // hechas desde Seguimiento, donde ni se pregunta.
+  const porQue = (motivoDevolucion || "").trim();
+  if (porQue) devolucion.motivoDevolucion = porQue;
+  return devolucion;
 };
 
 // Registra qué se devolvió de cada línea de equipo (total o parcial) y, si
@@ -107,12 +115,20 @@ export default function RegistrarDevolucionDialog({
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const [cambios, setCambios] = useState({});
+  // Por qué el cliente devuelve. Es UNO para toda la tanda —trae lo que trae
+  // por un mismo motivo, terminó la obra— y no uno por equipo, que sería el
+  // mismo texto repetido. Solo se pregunta desde la ficha del cliente: ahí lo
+  // que vuelve está EN PLAZO, así que devolver es una decisión suya y saber
+  // por qué es un dato. Desde Seguimiento el equipo ya venció y el motivo es
+  // el vencimiento.
+  const [motivoDevolucion, setMotivoDevolucion] = useState("");
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
     if (!open) return;
     setCambios({});
+    setMotivoDevolucion("");
   }, [open]);
 
   // Cada línea se identifica por su despacho y su posición dentro de él: los
@@ -367,7 +383,12 @@ export default function RegistrarDevolucionDialog({
           huboCierre = true;
           unidadesDevueltas += cantidadDevuelta;
 
-          const devolucion = devolucionDe(cambio, hoy, depositoDelGrupo(grupo));
+          const devolucion = devolucionDe(
+            cambio,
+            hoy,
+            depositoDelGrupo(grupo),
+            desdeLaFicha ? motivoDevolucion : "",
+          );
 
           if (cantidadDevuelta >= pendiente) {
             // Vuelve la línea entera: se cierra donde está.
@@ -529,6 +550,22 @@ export default function RegistrarDevolucionDialog({
         <DialogTitle sx={{ color: acento }}>Registrar devolución</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            {/* POR QUÉ DEVUELVE. Va arriba de todo y una sola vez: es del
+                cliente que trae los equipos, no de cada equipo. Solo en la
+                ficha, donde lo que vuelve está en plazo. */}
+            {desdeLaFicha && equiposPendientes.length > 0 && (
+              <Grid item xs={12}>
+                <TextField
+                  label="Motivo de la devolución (opcional)"
+                  name="motivoDevolucion"
+                  value={motivoDevolucion}
+                  onChange={(e) => setMotivoDevolucion(e.target.value)}
+                  fullWidth
+                  size="small"
+                  placeholder="Ej: terminó la obra, ya no los necesita"
+                />
+              </Grid>
+            )}
             {equiposPendientes.length === 0 && (
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">

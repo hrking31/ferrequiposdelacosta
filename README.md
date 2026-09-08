@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-478_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-482_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -416,6 +416,8 @@ Devolver un equipo que todavía está en plazo no es cobranza: nadie hizo nada p
 > Una factura figura vencida en cuanto **uno** de sus equipos lo está, y puede tener otros agregados después con su propia fecha. Por eso el botón de la ficha no se apaga cuando la factura vence, sino cuando ya no queda **ningún** equipo en plazo: lo que sigue en fecha se devuelve ahí, y lo vencido, en cartera.
 >
 > Por lo mismo, desde la ficha no se pregunta qué hacer con lo que el cliente se queda —darle más días, dejarlo indefinido—. Pactar un plazo se acuerda con alguien que ya está vencido: es cobranza, y se decide en cartera. Desde la ficha solo se registra lo que volvió, y lo que sigue afuera conserva su fecha.
+
+Y desde la ficha se pregunta algo más: **por qué lo devuelve**. Un campo opcional, uno solo para toda la tanda —el cliente trae lo que trae por un mismo motivo—, que queda escrito en cada equipo que volvió y se lee debajo de su fecha. No se pregunta desde cartera: ahí el equipo ya venció y el motivo es el vencimiento. No hay que confundirlo con *"qué le pasó"*, que solo aparece cuando el equipo vuelve dañado: un equipo puede volver impecable y aun así importar que la obra terminó.
 
 ### En cartera solo se ve lo vencido
 
