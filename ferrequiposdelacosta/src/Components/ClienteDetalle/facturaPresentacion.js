@@ -268,7 +268,7 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       tono: "indefinido",
       enCadena: historial.length > 0 || diasAmpliados > 0,
       Icono: EventIcon,
-      label: "Entrega indefinida — el cliente debe avisar",
+      label: "Entrega indefinida",
     });
   } else if (!devuelto && equipo?.fechaVencimiento) {
     // Misma regla que usa Seguimiento para agrupar: hoy es ámbar, antes de hoy
