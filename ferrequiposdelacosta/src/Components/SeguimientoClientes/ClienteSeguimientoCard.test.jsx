@@ -168,6 +168,19 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText(/1573/)).toBeInTheDocument();
   });
 
+  // La barra de valores es la MISMA que la del encabezado del cliente en su
+  // ficha: sale de casillasDeCuenta y renderPizarraTotales, no se arma acá.
+  // Así la misma cuenta no puede mostrarse de dos formas según la pantalla.
+  it("muestra la barra con los cuatro valores de la cuenta", async () => {
+    const { usuario } = mostrar();
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("Pagado")).toBeInTheDocument();
+    expect(screen.getByText("Abonos")).toBeInTheDocument();
+    expect(screen.getByText("Saldo")).toBeInTheDocument();
+  });
+
   // Cartera cuenta lo que se consiguió cobrando. Un equipo que volvió después
   // de vencer es exactamente eso.
   it("muestra lo que el cliente devolvió después de vencer", async () => {

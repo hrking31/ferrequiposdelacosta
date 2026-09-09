@@ -5,6 +5,7 @@ import {
   Box,
   Chip,
   Divider,
+  useMediaQuery,
   IconButton,
   Paper,
   Stack,
@@ -51,6 +52,10 @@ import {
   COLOR_ENTREGA_INDEFINIDA,
 } from "../ClienteDetalle/facturaUtils";
 import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
+import {
+  casillasDeCuenta,
+  renderPizarraTotales,
+} from "../ClienteDetalle/recuadrosCuenta";
 import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
 import { abrirWhatsapp } from "../../Utils/whatsapp";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
@@ -292,6 +297,7 @@ export default function ClienteSeguimientoCard({
   onEquiposActualizados,
 }) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const acento =
     theme.palette.custom.accent;
   const [tabFactura, setTabFactura] = useState(0);
@@ -475,7 +481,6 @@ export default function ClienteSeguimientoCard({
   const fecha = formatearFecha(datos.fechaCreacion);
 
   const saldoPendienteNumero = cuenta.saldoPendiente;
-  const saldoPendiente = formatearMoneda(saldoPendienteNumero);
 
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
   const numeroWhatsapp = telefonoValido ? String(cliente.telefono).replace(/\D/g, "") : "";
@@ -525,56 +530,27 @@ export default function ClienteSeguimientoCard({
 
   // La pizarra de totales: el aspecto lo pone el tema, acá solo van las filas.
   // Los renglones "nuevo" solo aparecen si la factura tiene ampliaciones.
-  const cuadroTotales = valorTotal && (
-    <Box>
-      {/* El acento del tema, no el color de un bloque: esto resume TODO lo de
-          arriba (pago, equipos, adicionales), no una sección puntual. Mismo
-          criterio que en Detalle Cliente. */}
-      <Typography
-        variant="overline"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          lineHeight: 1.6,
-          color: "custom.accent",
-        }}
-      >
-        <AccountBalanceWalletIcon fontSize="small" />
-        Estado de cuenta
-      </Typography>
-      <Paper variant="totales" sx={{ minWidth: { sm: 260 } }}>
-      <Box className="fila total">
-        <Typography variant="subtitle1" fontWeight="bold">
-          Total factura
-        </Typography>
-        <Typography variant="subtitle1" fontWeight="bold">
-          {valorTotal}
-        </Typography>
-      </Box>
+  // LA BARRA DE VALORES, la misma que el encabezado del cliente en su ficha:
+  // Total, Pagado, Abonos y Saldo en fila, cada uno con su ícono, su rótulo
+  // chico y su cifra. No se arma acá — sale de `casillasDeCuenta` y
+  // `renderPizarraTotales`, que son las que dibujan esa barra en la ficha—,
+  // así que las dos pantallas no pueden mostrar la misma cuenta de dos formas.
+  //
+  // Antes iba como renglones apilados dentro de la misma pizarra: los mismos
+  // cuatro números, pero había que recorrerlos de arriba abajo para encontrar
+  // uno, que es justo lo que no se puede hacer con el cliente al teléfono.
+  const cuadroTotales =
+    valorTotal &&
+    renderPizarraTotales(casillasDeCuenta(cuenta, { resumida: esMovil }), {
+      width: "100%",
+      mb: 1,
+    });
 
-      {/* Lo ya cobrado. Solo aparece cuando queda saldo o cuando hubo abonos:
-          con la factura saldada de una sola vez sería el mismo número del
-          total, repetido. La clase "pagado" es la que lo pinta verde —sin ella
-          cae en el blanco tiza del renglón común—. Mismos renglones y mismas
-          condiciones que en Detalle Cliente: las dos pantallas muestran la
-          misma cuenta, y separarlas fue justo lo que las hizo divergir. */}
-      {(saldoPendienteNumero > 0 || cuenta.abonos > 0) && (
-        <Box className="fila pagado">
-          <Typography variant="body2">Pagado</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.pagado)}</Typography>
-        </Box>
-      )}
-
-      {/* Solo el total de lo abonado: el detalle de cada abono, con su fecha y
-          su medio, se ve en Detalle Cliente. */}
-      {cuenta.abonos > 0 && (
-        <Box className="fila abono">
-          <Typography variant="body2">Abonos</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.abonos)}</Typography>
-        </Box>
-      )}
-
+  // Lo que no toda factura tiene, y que igual hay que poder ver. Aparece solo
+  // si hay alguno de los dos: dibujado siempre, una factura sin ninguno
+  // mostraba un recuadro oscuro vacío.
+  const extrasDeCuenta = (cuenta.depositoDevuelto > 0 || cuenta.entregas > 0) && (
+    <Paper variant="totales" sx={{ minWidth: { sm: 260 }, mb: 1 }}>
       {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
           porque si no el total cambiaría sin explicación. */}
       {cuenta.depositoDevuelto > 0 && (
@@ -592,37 +568,7 @@ export default function ClienteSeguimientoCard({
           <Typography variant="body2">{formatearMoneda(cuenta.entregas)}</Typography>
         </Box>
       )}
-
-      {/* Si el cliente pagó de más, el sobrante queda a su favor en vez de
-          mostrarse como saldo. Acá va solo el dato: devolverlo se hace desde
-          Detalle Cliente, que es donde están las acciones de plata. */}
-      {cuenta.saldoAFavor > 0 ? (
-        <Box className="fila ok" sx={{ mt: 1 }}>
-          <Typography variant="body2" fontWeight="bold">
-            Saldo a favor
-          </Typography>
-          <Typography variant="body2" fontWeight="bold">
-            {formatearMoneda(cuenta.saldoAFavor)}
-          </Typography>
-        </Box>
-      ) : (
-        /* Siempre visible: rojo si queda algo por cobrar, verde si la factura
-           ya está saldada. Así se lee de un vistazo en qué situación está. */
-        <Box
-          className={saldoPendienteNumero > 0 ? "fila alerta" : "fila ok"}
-          sx={{ mt: 1 }}
-        >
-          <Typography variant="body2" fontWeight="bold">
-            Saldo pendiente
-          </Typography>
-          <Typography variant="body2" fontWeight="bold">
-            {saldoPendiente}
-          </Typography>
-        </Box>
-      )}
-
-      </Paper>
-    </Box>
+    </Paper>
   );
 
   // Capas detrás de la carpeta activa: sugieren que hay más facturas "debajo".
@@ -1079,6 +1025,7 @@ export default function ClienteSeguimientoCard({
                 SON el estado de cuenta; no llevan rótulo encima porque no
                 necesitan que un renglón anuncie lo que ya dicen. */}
             {!facturaPlegada(factura.id) && cuadroTotales}
+            {!facturaPlegada(factura.id) && extrasDeCuenta}
 
             {/* La línea que separa el cobro de los equipos, como en el diseño.
                 Toma el color de `divider` del tema —el azul acero—, que es el
