@@ -843,10 +843,7 @@ export default function ClienteSeguimientoCard({
                       disabled={!hayQueCobrar}
                       onClick={() => setAbonoOpen(true)}
                       sx={{
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        p: 0.5,
+                        ...iconBtnSx,
                         color: acento,
                         "&.Mui-disabled": { color: "action.disabled" },
                       }}
@@ -860,13 +857,7 @@ export default function ClienteSeguimientoCard({
                   <IconButton
                     size="small"
                     onClick={() => setAmpliarOpen(true)}
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 0.5,
-                      color: acento,
-                    }}
+                    sx={{ ...iconBtnSx, color: acento }}
                   >
                     <UpdateIcon fontSize="small" />
                   </IconButton>
@@ -876,13 +867,7 @@ export default function ClienteSeguimientoCard({
                   <IconButton
                     size="small"
                     onClick={() => setDevolucionOpen(true)}
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 0.5,
-                      color: acento,
-                    }}
+                    sx={{ ...iconBtnSx, color: acento }}
                   >
                     <AssignmentReturnIcon fontSize="small" />
                   </IconButton>
@@ -917,13 +902,7 @@ export default function ClienteSeguimientoCard({
                   <IconButton
                     size="small"
                     onClick={() => togglePlegarFactura(factura.id)}
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      p: 0.5,
-                      color: acento,
-                    }}
+                    sx={{ ...iconBtnSx, color: acento }}
                   >
                     {facturaPlegada(factura.id) ? (
                       <ExpandMoreIcon fontSize="small" />
