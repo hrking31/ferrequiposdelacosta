@@ -1102,7 +1102,10 @@ export default function ClienteSeguimientoCard({
                       {grupo.titulo} {grupo.items.length}
                     </Typography>
 
-                    <Stack spacing={0.5}>
+                    {/* La misma separación con su rótulo que el recuadro de la
+                        gestión: pegados, los tres bloques no se leían a la
+                        misma altura. */}
+                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                       {grupo.items.map(({ equipo, index }) =>
                         renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
                       )}
@@ -1131,7 +1134,7 @@ export default function ClienteSeguimientoCard({
                       <AssignmentReturnIcon fontSize="small" />
                       Devuelto
                     </Typography>
-                    <Stack spacing={0.5}>
+                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                       {equiposDe(factura)
                         .filter(({ equipo }) => equipoDevueltoEnCobranza(equipo))
                         .map(({ equipo, grupo, indice }) =>
