@@ -981,7 +981,11 @@ export default function ClienteSeguimientoCard({
                         onClick={() => setGestionAbierta((prev) => !prev)}
                         sx={{
                           position: "absolute",
-                          top: 4,
+                          // Centrado en el alto del recuadro: con una sola
+                          // línea o con diez, queda a la misma altura que lo
+                          // que abre.
+                          top: "50%",
+                          transform: "translateY(-50%)",
                           right: 4,
                           border: "1px solid",
                           borderColor: "divider",
