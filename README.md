@@ -427,6 +427,16 @@ En la ficha del cliente, cada equipo lleva el chip de **uno de sus cinco estados
 
 Los cinco ya se calculaban; lo que faltaba era mostrarlos. Y **ningún color es nuevo**: cada uno es el que el tema ya le da a esa misma idea en otra parte — el ámbar de la factura pendiente, el verde de la activa, el azul de la gestión *prórroga*, el rojo de la vencida y el gris azulado de lo devuelto. Un equipo vencido se ve del mismo rojo que una factura vencida, porque es el mismo hecho a otra escala.
 
+Se resuelven **en orden y gana el primero que aplique**, y el orden no es un detalle:
+
+- **Pendiente** — ámbar `#F59E0B` — todavía no salió de la bodega: su fecha de despacho es futura.
+- **Activo** — verde `#16A34A` — está afuera y dentro del plazo.
+- **Ampliación** — azul `#2563EB` — se le concedieron días de más y todavía no se pasó.
+- **Vencido** — rojo `#DC2626` — se pasó de su fecha, o quedó con **entrega indefinida**: tenía que avisar y no avisó, y mientras tanto corren días.
+- **Devuelto** — gris azulado `#64748B` — ya volvió.
+
+Un equipo devuelto **no figura vencido** aunque haya vuelto tarde: ya volvió, no hay nada que reclamarle. Y uno que se pasó de su fecha ampliada es **vencido**, no *ampliación* — el atraso se comió la prórroga. Si alguna vez apareciera un estado que no está en la lista, se pinta con un gris de respaldo en vez de quedarse sin color.
+
 Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas en una factura, y diez etiquetas sólidas convierten la lista en un semáforo ilegible.
 
 **En cartera no aparecen**, y no por olvido: ahí solo entran los vencidos, así que los cinco estados no tendrían a quién describir. Es la regla de la sección siguiente.
@@ -445,6 +455,11 @@ Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia 
 > **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí la tarjeta lo dice —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— en vez de mostrar un hueco, porque lo único que queda por hacer es cobrar.
 >
 > **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
+
+**En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos: **Vencido** en rojo, **Vence hoy** en ámbar y **Entrega indefinida** en el teal `#0D9488`. Ese teal existe porque la entrega indefinida iba antes con el mismo gris de "Vence", y dos situaciones distintas —una con fecha futura conocida, la otra sin ninguna— se veían idénticas.
+
+> [!NOTE]
+> **Hay un cuarto grupo, "Vence", que no debería llenarse nunca.** Es el de los equipos que todavía están en fecha, y por la regla de esta sección a cartera no entra ninguno. Se deja igual porque el reparto **descarta lo que no cae en ningún grupo**: un equipo mal clasificado —una fecha futura marcada como vencida, o un día de hoy que no llegó— desaparecería de la tarjeta sin dejar rastro y la factura mostraría menos equipos de los que tiene. Con el grupo puesto aparece en gris bajo *Vence* y el error se ve. Los grupos vacíos no se dibujan, así que en el día a día no cuesta un píxel.
 
 ### 5. El estado del cliente
 
