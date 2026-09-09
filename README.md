@@ -456,7 +456,13 @@ Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia 
 >
 > **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
 
-**En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos: 🔴 **Vencido** en el rojo del tema —`#DC2626`, que de noche se aclara a `#EF4444`—, 🟠 **Vence hoy** en ámbar `#F59E0B` y 🟦 **Entrega indefinida** en el teal `#0D9488` (no hay círculo teal entre los emoji, de ahí el cuadrado). Ese teal existe porque la entrega indefinida iba antes con el mismo gris de "Vence", y dos situaciones distintas —una con fecha futura conocida, la otra sin ninguna— se veían idénticas.
+**En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos:
+
+- 🔴 **Vencido** — rojo `#DC2626` — el del tema, que de noche se aclara a `#EF4444`.
+- 🟠 **Vence hoy** — ámbar `#F59E0B` — hay que actuar antes de que pase a rojo.
+- 🟦 **Entrega indefinida** — teal `#0D9488` — no tiene fecha: el cliente quedó de avisar. *(Cuadrado y no círculo porque no hay uno teal entre los emoji.)*
+
+Ese teal existe porque la entrega indefinida iba antes con el mismo gris de "Vence", y dos situaciones distintas —una con fecha futura conocida, la otra sin ninguna— se veían idénticas.
 
 > [!NOTE]
 > **Hay un cuarto grupo, "Vence", que no debería llenarse nunca.** Es el de los equipos que todavía están en fecha, y por la regla de esta sección a cartera no entra ninguno. Se deja igual porque el reparto **descarta lo que no cae en ningún grupo**: un equipo mal clasificado —una fecha futura marcada como vencida, o un día de hoy que no llegó— desaparecería de la tarjeta sin dejar rastro y la factura mostraría menos equipos de los que tiene. Con el grupo puesto aparece en gris bajo *Vence* y el error se ve. Los grupos vacíos no se dibujan, así que en el día a día no cuesta un píxel.
