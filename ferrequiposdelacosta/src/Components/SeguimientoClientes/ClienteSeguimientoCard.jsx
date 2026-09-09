@@ -942,49 +942,19 @@ export default function ClienteSeguimientoCard({
                 cada vez que se abre la factura, ni en PC ni en móvil. */}
             {!facturaPlegada(factura.id) && gestiones.length > 0 && (
               <Box sx={{ mb: 1 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography
-                    variant="overline"
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      lineHeight: 1.6,
-                      color: colorGestion,
-                    }}
-                  >
-                    <HistoryIcon fontSize="small" />
-                    Gestión {gestiones.length}
-                  </Typography>
-                  <Tooltip
-                    title={
-                      gestionAbierta
-                        ? "Ver solo las últimas"
-                        : `Ver las ${gestiones.length} gestiones`
-                    }
-                  >
-                    <IconButton
-                      size="small"
-                      // Con dos o menos ya están todas a la vista: el botón no
-                      // tendría nada que desplegar.
-                      disabled={gestiones.length <= 2}
-                      onClick={() => setGestionAbierta((prev) => !prev)}
-                      sx={{
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        p: 0.5,
-                        color: acento,
-                      }}
-                    >
-                      {gestionAbierta ? (
-                        <ExpandLessIcon fontSize="small" />
-                      ) : (
-                        <ExpandMoreIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    lineHeight: 1.6,
+                    color: colorGestion,
+                  }}
+                >
+                  <HistoryIcon fontSize="small" />
+                  Gestión {gestiones.length}
+                </Typography>
 
                 {/* LAS DOS ÚLTIMAS, siempre. Antes la bitácora arrancaba
                     cerrada del todo y había que abrirla para saber si a este
@@ -992,9 +962,47 @@ export default function ClienteSeguimientoCard({
                     pregunta quien va a llamarlo. Con las dos más recientes a
                     la vista, la pregunta está contestada de entrada, y el
                     botón queda para el historial completo, que con varias
-                    llamadas ocupa la pantalla entera. */}
-                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
-                  <Stack spacing={0.25}>
+                    llamadas ocupa la pantalla entera.
+
+                    El botón va DENTRO del recuadro, en su esquina: es lo que
+                    abre y cierra esta caja, y afuera quedaba flotando al lado
+                    del rótulo sin decir sobre qué actuaba. */}
+                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5, position: "relative" }}>
+                  {gestiones.length > 2 && (
+                    <Tooltip
+                      title={
+                        gestionAbierta
+                          ? "Ver solo las últimas"
+                          : `Ver las ${gestiones.length} gestiones`
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => setGestionAbierta((prev) => !prev)}
+                        sx={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          p: 0.25,
+                          color: acento,
+                          bgcolor: "background.paper",
+                        }}
+                      >
+                        {gestionAbierta ? (
+                          <ExpandLessIcon fontSize="small" />
+                        ) : (
+                          <ExpandMoreIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {/* Sitio para el botón: sin esto la primera línea le pasa
+                      por debajo. */}
+                  <Stack spacing={0.25} sx={{ pr: gestiones.length > 2 ? 4 : 0 }}>
                     {(gestionAbierta ? gestiones : gestiones.slice(-2)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
