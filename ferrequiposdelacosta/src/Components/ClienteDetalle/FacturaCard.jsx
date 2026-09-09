@@ -491,19 +491,23 @@ export default function FacturaCard({
                 {renderToggle("pagoGeneral")}
               </Stack>
               {mostrar("pagoGeneral") && (
-                <RecuadroPago
-                  pagos={pagosOriginales}
-                  tipoPago={tipoPagoDe(grupoInicial)}
-                  fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
-                  color={colorPago}
-                />
+                /* La misma separación con su rótulo que el resto: el recuadro
+                   no traía ninguna y quedaba pegado al texto. */
+                <Box sx={{ mt: 0.5 }}>
+                  <RecuadroPago
+                    pagos={pagosOriginales}
+                    tipoPago={tipoPagoDe(grupoInicial)}
+                    fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
+                    color={colorPago}
+                  />
+                </Box>
               )}
 
               <Stack
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
-                sx={{ mt: 0.5 }}
+                sx={{ mt: 1 }}
               >
                 <Typography
                   variant="overline"
@@ -562,7 +566,7 @@ export default function FacturaCard({
           )}
 
           {gruposAgregados.length > 0 && (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 1 }}>
               <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -656,16 +660,18 @@ export default function FacturaCard({
                           <PaymentsIcon fontSize="small" />
                           Información de pago
                         </Typography>
-                        <RecuadroPago
-                          pagos={pagosDe(lote)}
-                          tipoPago={tipoPagoDe(lote)}
-                          fecha={lote.fechaSolicitud}
-                          color={colorPago}
-                          // "Pago inicial" hay uno solo y es el del alta de
-                          // la factura. Lo de un equipo agregado se paga
-                          // cuando se agrega, no al principio.
-                          rotuloTipoPago="Tipo de pago"
-                        />
+                        <Box sx={{ mt: 0.5 }}>
+                          <RecuadroPago
+                            pagos={pagosDe(lote)}
+                            tipoPago={tipoPagoDe(lote)}
+                            fecha={lote.fechaSolicitud}
+                            color={colorPago}
+                            // "Pago inicial" hay uno solo y es el del alta de
+                            // la factura. Lo de un equipo agregado se paga
+                            // cuando se agrega, no al principio.
+                            rotuloTipoPago="Tipo de pago"
+                          />
+                        </Box>
                       </Box>
 
                       <Box
