@@ -620,7 +620,12 @@ export default function FacturaCard({
                     <Box
                       key={`lote-${indiceLote}`}
                       sx={{
-                        mt: 1,
+                        // El primero no lleva: ya lo separa el margen del
+                        // bloque "Equipos agregados" que lo contiene, y los
+                        // dos juntos lo dejaban al doble de distancia que
+                        // cualquier otro bloque de la tarjeta. Del segundo en
+                        // adelante sí, para separar un lote del anterior.
+                        mt: indiceLote === 0 ? 0 : 1,
                         // gap 1 = 8px, así que media pantalla es 50%
                         // menos la mitad de esa separación.
                         width: {
