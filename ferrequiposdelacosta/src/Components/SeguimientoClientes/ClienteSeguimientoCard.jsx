@@ -967,46 +967,13 @@ export default function ClienteSeguimientoCard({
                     El botón va DENTRO del recuadro, en su esquina: es lo que
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
-                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5, position: "relative" }}>
-                  {gestiones.length > 2 && (
-                    <Tooltip
-                      title={
-                        gestionAbierta
-                          ? "Ver solo las últimas"
-                          : `Ver las ${gestiones.length} gestiones`
-                      }
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={() => setGestionAbierta((prev) => !prev)}
-                        sx={{
-                          position: "absolute",
-                          // Centrado en el alto del recuadro: con una sola
-                          // línea o con diez, queda a la misma altura que lo
-                          // que abre.
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          right: 4,
-                          border: "1px solid",
-                          borderColor: "divider",
-                          borderRadius: 1,
-                          p: 0.25,
-                          color: acento,
-                          bgcolor: "background.paper",
-                        }}
-                      >
-                        {gestionAbierta ? (
-                          <ExpandLessIcon fontSize="small" />
-                        ) : (
-                          <ExpandMoreIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {/* Sitio para el botón: sin esto la primera línea le pasa
-                      por debajo. */}
-                  <Stack spacing={0.25} sx={{ pr: gestiones.length > 2 ? 4 : 0 }}>
+                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
+                  {/* El botón al lado de la lista y centrado con ella, en una
+                      fila: puesto en absoluto quedaba arriba, porque el alto
+                      del recuadro lo define el contenido y no había contra qué
+                      centrarlo. */}
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <Stack spacing={0.25} sx={{ flexGrow: 1, minWidth: 0 }}>
                     {(gestionAbierta ? gestiones : gestiones.slice(-2)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
@@ -1027,6 +994,36 @@ export default function ClienteSeguimientoCard({
                           </Typography>
                         </Stack>
                       ))}
+                  </Stack>
+
+                  {gestiones.length > 2 && (
+                    <Tooltip
+                      title={
+                        gestionAbierta
+                          ? "Ver solo las últimas"
+                          : `Ver las ${gestiones.length} gestiones`
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => setGestionAbierta((prev) => !prev)}
+                        sx={{
+                          flexShrink: 0,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          p: 0.25,
+                          color: acento,
+                        }}
+                      >
+                        {gestionAbierta ? (
+                          <ExpandLessIcon fontSize="small" />
+                        ) : (
+                          <ExpandMoreIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   </Stack>
                 </Box>
               </Box>
