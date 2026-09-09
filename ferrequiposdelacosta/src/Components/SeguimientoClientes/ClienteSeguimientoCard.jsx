@@ -968,13 +968,16 @@ export default function ClienteSeguimientoCard({
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
                 <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
-                  {/* La flecha con el mismo estilo de icono que la del IVA en
-                      la ficha (iconBtnSx), y el renglón centrado con ella: sin
-                      esto la única gestión visible quedaba pegada arriba,
-                      contra el borde, y la flecha —más alta que una línea de
-                      texto— se veía descolgada. */}
-                  <Stack direction="row" alignItems="center" sx={{ gap: 1 }}>
-                  <Stack spacing={0.25} sx={{ flexGrow: 1, minWidth: 0 }}>
+                  {/* Igual que el botón del IVA en la ficha: la flecha arriba,
+                      con el mismo estilo de icono (iconBtnSx). Lo que se centra
+                      es el TEXTO, con su propio alignSelf: la flecha es más
+                      alta que una línea, y sin eso el renglón quedaba pegado
+                      al borde de arriba. */}
+                  <Stack direction="row" alignItems="flex-start" sx={{ gap: 1 }}>
+                  <Stack
+                    spacing={0.25}
+                    sx={{ flexGrow: 1, minWidth: 0, alignSelf: "center" }}
+                  >
                     {(gestionAbierta ? gestiones : gestiones.slice(-1)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
