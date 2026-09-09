@@ -229,6 +229,9 @@ export default function EstadoCuentaFactura({
             <Paper
               variant="totales"
               sx={{
+                // La misma separación con su rótulo que el resto de los
+                // bloques de la tarjeta: sin ella quedaba pegado.
+                mt: 1,
                 width: { xs: "100%", sm: "auto" },
                 minWidth: { sm: 240 },
               }}

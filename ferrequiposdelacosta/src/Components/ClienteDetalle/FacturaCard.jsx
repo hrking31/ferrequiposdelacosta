@@ -739,7 +739,7 @@ export default function FacturaCard({
                 {renderToggle("abonos")}
               </Stack>
               {mostrar("abonos") && (
-                <Box sx={{ mt: 0.5 }}>
+                <Box sx={{ mt: 1 }}>
                   <ListaAbonos abonos={abonos} color={colorAbonos} />
                 </Box>
               )}
