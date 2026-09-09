@@ -957,24 +957,25 @@ export default function ClienteSeguimientoCard({
                   Gestión {gestiones.length}
                 </Typography>
 
-                {/* LAS DOS ÚLTIMAS, siempre. Antes la bitácora arrancaba
-                    cerrada del todo y había que abrirla para saber si a este
-                    cliente ya lo habían llamado — que es lo primero que se
-                    pregunta quien va a llamarlo. Con las dos más recientes a
-                    la vista, la pregunta está contestada de entrada, y el
-                    botón queda para el historial completo, que con varias
-                    llamadas ocupa la pantalla entera.
+                {/* LA ÚLTIMA, siempre. Antes la bitácora arrancaba cerrada del
+                    todo y había que abrirla para saber si a este cliente ya lo
+                    habían llamado — que es lo primero que se pregunta quien va
+                    a llamarlo. Con la más reciente a la vista la pregunta está
+                    contestada de entrada, y el botón queda para el historial
+                    completo, que con varias llamadas ocupa la pantalla entera.
 
                     El botón va DENTRO del recuadro, en su esquina: es lo que
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
                 <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
-                  {/* Igual que el botón del IVA en la ficha del cliente: la
-                      lista y la flecha en una fila, la flecha arriba y con el
-                      mismo estilo de icono (iconBtnSx). */}
-                  <Stack direction="row" alignItems="flex-start" sx={{ gap: 1 }}>
+                  {/* La flecha con el mismo estilo de icono que la del IVA en
+                      la ficha (iconBtnSx), y el renglón centrado con ella: sin
+                      esto la única gestión visible quedaba pegada arriba,
+                      contra el borde, y la flecha —más alta que una línea de
+                      texto— se veía descolgada. */}
+                  <Stack direction="row" alignItems="center" sx={{ gap: 1 }}>
                   <Stack spacing={0.25} sx={{ flexGrow: 1, minWidth: 0 }}>
-                    {(gestionAbierta ? gestiones : gestiones.slice(-2)).map((registro, i) => (
+                    {(gestionAbierta ? gestiones : gestiones.slice(-1)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
                           direction="row"
@@ -996,11 +997,11 @@ export default function ClienteSeguimientoCard({
                       ))}
                   </Stack>
 
-                  {gestiones.length > 2 && (
+                  {gestiones.length > 1 && (
                     <Tooltip
                       title={
                         gestionAbierta
-                          ? "Ver solo las últimas"
+                          ? "Ver solo la última"
                           : `Ver las ${gestiones.length} gestiones`
                       }
                     >
