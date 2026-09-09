@@ -231,7 +231,7 @@ export default function EstadoCuentaFactura({
               sx={{
                 // La misma separación con su rótulo que el resto de los
                 // bloques de la tarjeta: sin ella quedaba pegado.
-                mt: 1,
+                mt: 0.5,
                 width: { xs: "100%", sm: "auto" },
                 minWidth: { sm: 240 },
               }}

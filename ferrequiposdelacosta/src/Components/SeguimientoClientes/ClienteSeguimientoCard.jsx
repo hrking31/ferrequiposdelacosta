@@ -946,7 +946,7 @@ export default function ClienteSeguimientoCard({
                     El botón va DENTRO del recuadro, en su esquina: es lo que
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
-                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 1 }}>
+                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
                   {/* Igual que el botón del IVA en la ficha: la flecha arriba,
                       con el mismo estilo de icono (iconBtnSx). Lo que se centra
                       es el TEXTO, con su propio alignSelf: la flecha es más
@@ -1105,7 +1105,7 @@ export default function ClienteSeguimientoCard({
                     {/* La misma separación con su rótulo que el recuadro de la
                         gestión: pegados, los tres bloques no se leían a la
                         misma altura. */}
-                    <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                       {grupo.items.map(({ equipo, index }) =>
                         renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
                       )}
@@ -1134,7 +1134,7 @@ export default function ClienteSeguimientoCard({
                       <AssignmentReturnIcon fontSize="small" />
                       Devuelto
                     </Typography>
-                    <Stack spacing={0.5} sx={{ mt: 1 }}>
+                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
                       {equiposDe(factura)
                         .filter(({ equipo }) => equipoDevueltoEnCobranza(equipo))
                         .map(({ equipo, grupo, indice }) =>

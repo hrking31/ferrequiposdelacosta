@@ -405,7 +405,7 @@ export default function CargosAdicionales({
         Cargos adicionales
       </Typography>
 
-      <Box sx={{ mt: 1 }}>
+      <Box sx={{ mt: 0.5 }}>
         {renderRecuadroBloque(color, contenidoRecuadro)}
       </Box>
     </Box>

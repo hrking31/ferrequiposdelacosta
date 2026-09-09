@@ -503,7 +503,7 @@ export default function FacturaCard({
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
-                sx={{ mt: 1 }}
+                sx={{ mt: 0.5 }}
               >
                 <Typography
                   variant="overline"
@@ -530,7 +530,7 @@ export default function FacturaCard({
                         sm: `repeat(${columnasOriginales}, 1fr)`,
                       },
                       gap: 1,
-                      mt: 1,
+                      mt: 0.5,
                     }}
                   >
                     {equiposOriginales.map((equipo, index) => (
@@ -670,7 +670,7 @@ export default function FacturaCard({
 
                       <Box
                         sx={{
-                          mt: 1,
+                          mt: 0.5,
                           display: "grid",
                           gridTemplateColumns: {
                             xs: "1fr",
@@ -739,7 +739,7 @@ export default function FacturaCard({
                 {renderToggle("abonos")}
               </Stack>
               {mostrar("abonos") && (
-                <Box sx={{ mt: 1 }}>
+                <Box sx={{ mt: 0.5 }}>
                   <ListaAbonos abonos={abonos} color={colorAbonos} />
                 </Box>
               )}
