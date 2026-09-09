@@ -54,6 +54,7 @@ import {
 import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
 import {
   casillasDeCuenta,
+  iconBtnSx,
   renderPizarraTotales,
 } from "../ClienteDetalle/recuadrosCuenta";
 import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
@@ -968,11 +969,10 @@ export default function ClienteSeguimientoCard({
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
                 <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
-                  {/* El botón al lado de la lista y centrado con ella, en una
-                      fila: puesto en absoluto quedaba arriba, porque el alto
-                      del recuadro lo define el contenido y no había contra qué
-                      centrarlo. */}
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  {/* Igual que el botón del IVA en la ficha del cliente: la
+                      lista y la flecha en una fila, la flecha arriba y con el
+                      mismo estilo de icono (iconBtnSx). */}
+                  <Stack direction="row" alignItems="flex-start" sx={{ gap: 1 }}>
                   <Stack spacing={0.25} sx={{ flexGrow: 1, minWidth: 0 }}>
                     {(gestionAbierta ? gestiones : gestiones.slice(-2)).map((registro, i) => (
                         <Stack
@@ -1007,14 +1007,7 @@ export default function ClienteSeguimientoCard({
                       <IconButton
                         size="small"
                         onClick={() => setGestionAbierta((prev) => !prev)}
-                        sx={{
-                          flexShrink: 0,
-                          border: "1px solid",
-                          borderColor: "divider",
-                          borderRadius: 1,
-                          p: 0.25,
-                          color: acento,
-                        }}
+                        sx={{ ...iconBtnSx, color: colorGestion, flexShrink: 0 }}
                       >
                         {gestionAbierta ? (
                           <ExpandLessIcon fontSize="small" />
