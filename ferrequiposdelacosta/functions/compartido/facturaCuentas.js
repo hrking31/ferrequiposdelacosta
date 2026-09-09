@@ -245,15 +245,23 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
 // sale de comparar ese número con lo que decía su fecha de vencimiento.
 export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const cuenta = calcularEquipo(equipo, hoyIso);
-  const ampliados = ampliacionesDe(equipo).reduce(
+  const consolidados = ampliacionesDe(equipo).reduce(
     (total, ampliacion) => total + numero(ampliacion.diasAmpliados),
     0,
   );
+  // De los consolidados, los que ya se cobraron al sellar un pago. No se le
+  // concedieron: se le vencieron y los pagó, y por eso se cuentan aparte (ver
+  // sellarDiasVencidos).
+  const pagados = ampliacionesDe(equipo)
+    .filter(esPagoDeVencidos)
+    .reduce((total, ampliacion) => total + numero(ampliacion.diasAmpliados), 0);
+  const ampliados = Math.max(0, consolidados - pagados);
 
   if (!cuenta.devuelto) {
     return {
       alta: numero(equipo?.diasAlquilados),
       ampliados,
+      pagados,
       vencidos: cuenta.diasVencidos,
     };
   }
@@ -263,12 +271,20 @@ export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     ? diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento)
     : cuenta.dias;
   const usados = cuenta.dias;
-  const alta = Math.max(0, pactados - ampliados);
+  // Los del alta son los que quedan al sacarle a lo pactado TODO lo que se le
+  // consolidó después, sin importar si fue concedido o sellado por un pago.
+  const alta = Math.min(usados, Math.max(0, pactados - consolidados));
+  // Los que usó dentro de lo pactado y no son del alta: salieron de las
+  // consolidaciones. Los sellados se cuentan primero, que es el orden en que
+  // ocurrieron —se cerró lo vencido y recién después se le pudo conceder algo.
+  const extra = Math.max(0, Math.min(usados, pactados) - alta);
+  const pagadosUsados = Math.min(extra, pagados);
 
   return {
     // Si devolvió antes, no alcanzó a usar ni los del alta.
-    alta: Math.min(usados, alta),
-    ampliados: Math.max(0, Math.min(usados, pactados) - alta),
+    alta,
+    ampliados: extra - pagadosUsados,
+    pagados: pagadosUsados,
     // Y si se pasó, los de más son vencidos aunque ya haya vuelto.
     vencidos: Math.max(0, usados - pactados),
   };
@@ -348,6 +364,78 @@ export const proyectarAmpliacion = (
     dias: pedidos + diasVencidos,
     fechaNueva: pedidos > 0 ? calcularVencimiento(desde, pedidos) : null,
   };
+};
+
+// ── SELLAR LOS DÍAS VENCIDOS QUE EL CLIENTE YA PAGÓ ────────────────────
+//
+// El caso: el equipo lleva 2 días pasado de su fecha y el cliente paga todo
+// lo que debe. Esos 2 días quedan cobrados, pero el equipo NO volvió y no
+// tiene fecha nueva, así que al día siguiente el calendario los vuelve a
+// contar: el contador diría 3 días vencidos y el rojo pediría $450.000 cuando
+// lo que falta cobrar son $150.000.
+//
+// Sellar es dar esos días por cerrados: dejan de contarse como vencidos y el
+// contador arranca de cero desde el pago. Se hace con el MISMO mecanismo de
+// la renovación —los días se consolidan y la fecha del equipo pasa a hoy—,
+// con una sola diferencia: no se le concedió ningún día nuevo (`diasPedidos`
+// en cero) y queda marcado `porPago`, que es lo que después pinta el chip en
+// verde en vez de azul.
+//
+// LA PLATA NO SE MUEVE, y es la razón por la que se consolida en vez de
+// restar: esos días siguen cobrándose igual —pasan de "vencidos" a "pactados"
+// y el total da lo mismo—. Si se descontaran, aparecería un saldo a favor que
+// nadie entregó.
+//
+// El equipo con entrega indefinida CONSERVA su marca: el cliente pagó, pero
+// sigue sin decir cuándo devuelve, así que sigue siendo un equipo sin fecha
+// de retorno y no se mueve de seguimiento.
+export const esPagoDeVencidos = (ampliacion) => Boolean(ampliacion?.porPago);
+
+export const sellarDiasVencidos = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  if (!sigueAfuera(equipo)) return equipo;
+
+  const { diasVencidos } = calcularEquipo(equipo, hoyIso);
+  if (diasVencidos <= 0) return equipo;
+
+  return {
+    ...equipo,
+    // Los días y la fecha tienen que decir lo mismo: despacho + días pactados
+    // cae justo en hoy, que es hasta donde el cliente pagó.
+    fechaVencimiento: hoyIso,
+    ampliaciones: [
+      ...ampliacionesDe(equipo),
+      {
+        fechaAnterior: equipo?.fechaVencimiento ?? null,
+        fechaNueva: hoyIso,
+        // Los que la fecha corre de verdad, que es lo que ya se cobró.
+        diasAmpliados: diasVencidos,
+        // Ninguno: no se le prometió nada, solo se cerró lo que ya pasó.
+        diasPedidos: 0,
+        diasVencidos,
+        descuentoRealizado: 0,
+        porPago: true,
+        fecha: hoyIso,
+      },
+    ],
+  };
+};
+
+// Los mismos grupos de la factura, con los días vencidos de cada equipo que
+// sigue afuera ya sellados. Devuelve `null` cuando no había nada que sellar,
+// para que quien guarda no escriba de gusto.
+export const sellarFacturaPagada = (doc, hoyIso = obtenerFechaHoyBogota()) => {
+  let hubo = false;
+
+  const grupos = gruposDe(doc).map((grupo) => ({
+    ...grupo,
+    equipos: (grupo?.equipos ?? []).map((equipo) => {
+      const sellado = sellarDiasVencidos(equipo, hoyIso);
+      if (sellado !== equipo) hubo = true;
+      return sellado;
+    }),
+  }));
+
+  return hubo ? grupos : null;
 };
 
 // ── La cuenta de la factura ────────────────────────────────────────────

@@ -5,6 +5,9 @@ import {
   equipoVencido,
   equipoAlDia,
   proyectarAmpliacion,
+  sellarDiasVencidos,
+  sellarFacturaPagada,
+  diasDeEquipo,
   obtenerFechaDespachoSugerida,
   obtenerFechaHoyBogota,
   calcularAlquiler,
@@ -304,6 +307,113 @@ describe("ampliar el plazo de un equipo vencido", () => {
     const proyeccion = proyectarAmpliacion(equipo(), 2, HOY);
     expect(proyeccion.diasVencidos).toBe(0);
     expect(proyeccion.fechaNueva).toBe("2026-09-15");
+  });
+});
+
+describe("sellar los días vencidos que el cliente ya pagó", () => {
+  // El caso real: un compresor de $150.000 el día, despachado el 01/09 por 7
+  // días, vencido el 07. Al 09 lleva 2 días de más y el cliente paga todo.
+  const compresor = (extra = {}) => ({
+    nombre: "COMPRESOR NEUMATICO",
+    cantidadEquipos: 1,
+    valorDia: 150000,
+    diasAlquilados: 7,
+    fechaDespacho: "2026-09-01",
+    fechaVencimiento: "2026-09-07",
+    ampliaciones: [],
+    ...extra,
+  });
+
+  it("cierra los días vencidos y deja la fecha del equipo en hoy", () => {
+    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
+
+    expect(sellado.fechaVencimiento).toBe("2026-09-09");
+    expect(sellado.ampliaciones).toHaveLength(1);
+    expect(sellado.ampliaciones[0]).toMatchObject({
+      fechaAnterior: "2026-09-07",
+      fechaNueva: "2026-09-09",
+      diasAmpliados: 2,
+      // No se le concedió ni un día: solo se cerró lo que ya había pasado.
+      diasPedidos: 0,
+      diasVencidos: 2,
+      porPago: true,
+    });
+  });
+
+  // La razón de consolidar en vez de restar: esos días ya están cobrados, y
+  // descontarlos inventaría un saldo a favor que nadie entregó.
+  it("no mueve la cuenta ni un peso", () => {
+    const antes = facturaCon([compresor()]);
+    const despues = facturaCon([sellarDiasVencidos(compresor(), "2026-09-09")]);
+
+    expect(calcularCuentaFactura(antes, "2026-09-09").total).toBe(1350000);
+    expect(calcularCuentaFactura(despues, "2026-09-09").total).toBe(1350000);
+  });
+
+  it("el contador de vencidos arranca de cero y suma UNO al día siguiente", () => {
+    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
+
+    expect(calcularEquipo(sellado, "2026-09-09").diasVencidos).toBe(0);
+    expect(calcularEquipo(sellado, "2026-09-10").diasVencidos).toBe(1);
+    // Y lo que se le cobra de más es UN día, no los tres que lleva afuera.
+    expect(calcularCuentaFactura(facturaCon([sellado]), "2026-09-10").total).toBe(
+      1500000,
+    );
+  });
+
+  it("los días pagados se cuentan aparte de los concedidos", () => {
+    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
+    const dias = diasDeEquipo(sellado, "2026-09-09");
+
+    expect(dias).toMatchObject({ alta: 7, ampliados: 0, pagados: 2, vencidos: 0 });
+  });
+
+  it("el que sigue afuera pero no debe días no se toca", () => {
+    // Los días y la fecha tienen que decir lo mismo: 20 días desde el 01/09
+    // vencen el 20/09. La cuenta le cree a los días.
+    const alDia = compresor({ diasAlquilados: 20, fechaVencimiento: "2026-09-20" });
+    expect(sellarDiasVencidos(alDia, "2026-09-09")).toBe(alDia);
+  });
+
+  it("el que ya volvió no se toca: sus días quedaron congelados al devolver", () => {
+    const devuelto = compresor({
+      devolucion: { fechaDevolucion: "2026-09-09", buenEstado: true },
+    });
+    expect(sellarDiasVencidos(devuelto, "2026-09-09")).toBe(devuelto);
+  });
+
+  // El cliente pagó, pero sigue sin decir cuándo devuelve: el equipo no tiene
+  // fecha de retorno y por eso no se mueve de seguimiento.
+  it("el de entrega indefinida conserva su marca y sigue vencido", () => {
+    const indefinido = sellarDiasVencidos(
+      compresor({ vencimientoIndefinido: true }),
+      "2026-09-09",
+    );
+
+    expect(indefinido.vencimientoIndefinido).toBe(true);
+    expect(calcularEstadoEquipo(indefinido, "2026-09-09")).toBe("vencido");
+    expect(calcularEquipo(indefinido, "2026-09-09").diasVencidos).toBe(0);
+    expect(calcularEquipo(indefinido, "2026-09-10").diasVencidos).toBe(1);
+  });
+
+  it("sella todos los equipos de la factura y avisa cuando no hubo nada que sellar", () => {
+    const factura = facturaCon([compresor(), compresor({ nombre: "MEZCLADORA" })]);
+    const grupos = sellarFacturaPagada(factura, "2026-09-09");
+
+    expect(grupos[0].equipos.every((eq) => eq.ampliaciones[0]?.porPago)).toBe(true);
+    // Ya sellada, una segunda pasada no tiene nada que hacer.
+    expect(sellarFacturaPagada({ ...factura, grupos }, "2026-09-09")).toBeNull();
+  });
+
+  // La factura sigue en seguimiento: el equipo no volvió y no tiene fecha.
+  it("la factura pagada al día sigue vencida mientras el equipo esté afuera", () => {
+    const factura = facturaCon([sellarDiasVencidos(compresor(), "2026-09-09")], {
+      abonos: [{ fecha: "2026-09-09", medio: "Nequi", monto: 1350000 }],
+    });
+
+    expect(calcularCuentaFactura(factura, "2026-09-09").saldoPendiente).toBe(0);
+    expect(calcularExigible(factura, "2026-09-09")).toBe(0);
+    expect(calcularEstadoFactura(factura, "2026-09-09")).toBe("vencida");
   });
 });
 

@@ -291,6 +291,26 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
 
   // ── TRAMO 3: lo que pasó con el plazo una vez cumplido ──────────────
   //
+  // Los días que se le vencieron y el cliente YA PAGÓ. Van en verde y con su
+  // valor: la cifra ahí no reclama nada, cuenta lo que entró.
+  //
+  // Es el registro de que ese equipo estuvo afuera de fecha, y tiene que
+  // sobrevivir al pago: sin él, una vez sellados los días, la pantalla no
+  // podría distinguir a un cliente que devolvió a tiempo de otro que se pasó
+  // dos días y los pagó. Lo que no sobrevive es el rojo — ver
+  // sellarDiasVencidos.
+  if (dias.pagados > 0) {
+    chips.push({
+      clave: "diasVencidosPagados",
+      tramo: TRAMO_FECHAS.VENCIDO,
+      tono: "exito",
+      Icono: PaidIcon,
+      label: `${plural(dias.pagados, "día")} vencido${
+        dias.pagados === 1 ? "" : "s"
+      } pagado${dias.pagados === 1 ? "" : "s"}${conValor(dias.pagados * valorPorDia)}`,
+    });
+  }
+
   // Vale igual para el que sigue afuera y para el que ya volvió: los días de
   // más son días vencidos aunque el equipo esté de vuelta en la bodega.
   if (dias.vencidos > 0) {

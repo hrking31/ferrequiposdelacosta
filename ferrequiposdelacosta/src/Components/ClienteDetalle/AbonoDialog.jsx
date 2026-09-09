@@ -35,6 +35,8 @@ import {
   repartirEntreFacturas,
   abonosDe,
   datosFactura,
+  calcularExigible,
+  sellarFacturaPagada,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -159,6 +161,10 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
 
     setGuardando(true);
     try {
+      // El día de HOY, no la fecha que el usuario le puso al abono: los días
+      // vencidos se cuentan contra el calendario real, y un abono cargado con
+      // fecha de ayer no cierra los días que corrieron desde entonces.
+      const hoy = obtenerFechaHoyBogota();
       const batch = writeBatch(db);
       aplicaciones.forEach(({ factura, aplicado }) => {
         const abonos = [
@@ -173,12 +179,28 @@ export default function AbonoDialog({ open, onClose, cliente, facturas, onAbonad
             tipo: loEligioElCliente ? "cliente" : "sistema",
           },
         ];
-        // Solo los abonos: el saldo ya no se guarda, se calcula al mostrarlo
-        // (ver FacturaFormDialog). Guardarlo acá era justo donde más daño
-        // hacía: el recálculo daba cero en cuanto el alta estaba paga, y el
-        // abono que se acababa de registrar se perdía sin dejar rastro.
+        // Si con este abono la factura queda sin nada que reclamarle HOY, los
+        // días que sus equipos llevan vencidos quedan cobrados: se sellan para
+        // que el contador arranque de cero desde acá y no se le vuelvan a
+        // pedir mañana sumados a los nuevos (ver sellarDiasVencidos).
+        //
+        // Se mira lo EXIGIBLE y no el saldo porque un equipo que sigue afuera
+        // tiene días por delante ya pactados: esos se cobran cuando devuelva,
+        // y esperarlos dejaría el sellado para nunca.
+        const conAbono = { ...factura, abonos };
+        const grupos =
+          calcularExigible(conAbono, hoy) === 0
+            ? sellarFacturaPagada(conAbono, hoy)
+            : null;
+
+        // Los abonos y, si hubo, los equipos sellados: el saldo no se guarda,
+        // se calcula al mostrarlo (ver FacturaFormDialog). Guardarlo acá era
+        // justo donde más daño hacía: el recálculo daba cero en cuanto el alta
+        // estaba paga, y el abono que se acababa de registrar se perdía sin
+        // dejar rastro.
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,
+          ...(grupos ? { grupos } : {}),
         });
       });
       await batch.commit();

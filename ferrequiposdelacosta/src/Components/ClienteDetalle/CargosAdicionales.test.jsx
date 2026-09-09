@@ -144,6 +144,44 @@ describe("CargosAdicionales", () => {
     );
   });
 
+  // Los días que se le vencieron y el cliente pagó dejan de contarse como
+  // vencidos, pero se cobran igual: si el desglose no los nombrara, sumaría
+  // menos que el total del equipo y la resta no cerraría por ningún lado.
+  it("nombra y cobra los días vencidos que ya se pagaron", () => {
+    // Le habían dado hasta el 10 —5 días—; el 13 pagó los 3 vencidos y esos
+    // días quedaron sellados, así que volvió el 13 con 8 días y nada abierto.
+    dibujar([
+      benitin({
+        dias: 8,
+        ampliaciones: [
+          {
+            fechaAnterior: "2026-08-10",
+            fechaNueva: "2026-08-13",
+            diasAmpliados: 3,
+            diasPedidos: 0,
+            diasVencidos: 3,
+            descuentoRealizado: 0,
+            porPago: true,
+          },
+        ],
+        fechaVencimiento: "2026-08-13",
+        fechaDevolucion: "2026-08-13",
+      }),
+    ]);
+
+    expect(
+      screen.getByText("1 BENITIN · días vencidos pagados"),
+    ).toBeInTheDocument();
+    // No son días que alguien haya concedido, ni quedan abiertos.
+    expect(screen.queryByText("1 BENITIN · días ampliados")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 BENITIN · días vencidos")).not.toBeInTheDocument();
+
+    // Y la plata está toda: esos 3 días valen $300.000 y pagan $57.000 de IVA,
+    // que es lo que los separa de no cobrarse.
+    expect(ivaDelRenglon("1 BENITIN · días vencidos pagados")).toBe(dinero(57000));
+    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(95000));
+  });
+
   it("muestra el IVA que le toca a cada renglón", () => {
     dibujar([conTresDiasVencidos]);
 

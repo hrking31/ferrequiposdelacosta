@@ -1,7 +1,11 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AbonoDialog from "./AbonoDialog";
-import { unEquipoDevuelto, unaFactura } from "../../test/facturas";
+import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
+import {
+  calcularCuentaFactura,
+  obtenerFechaHoyBogota,
+} from "./facturaCuentas";
 
 // El diálogo donde se registra un pago que el cliente consigna después de
 // facturar. Es de los que más plata mueven: un solo valor puede repartirse
@@ -248,6 +252,78 @@ describe("AbonoDialog — cuando el cliente elige la factura", () => {
 });
 
 describe("AbonoDialog — lo que ya tenía", () => {
+  // ── El sellado de los días vencidos ────────────────────────────────
+  //
+  // Un equipo que sigue afuera y pasado de fecha acumula días. Si el cliente
+  // paga todo lo que se le puede reclamar hoy, esos días quedan cobrados y
+  // tienen que cerrarse acá mismo: mañana el calendario los volvería a contar
+  // y se le pedirían de nuevo, sumados a los nuevos.
+  describe("cuando el abono salda una factura con equipos vencidos afuera", () => {
+    // Un compresor despachado hace 4 días por 3: lleva 2 días vencidos y
+    // sigue en la obra. Las fechas se cuentan contra HOY porque el diálogo usa
+    // el día real al guardar.
+    const haceDias = (dias) => {
+      const fecha = new Date(`${obtenerFechaHoyBogota()}T00:00:00Z`);
+      fecha.setUTCDate(fecha.getUTCDate() - dias);
+      return fecha.toISOString().slice(0, 10);
+    };
+
+    const conCompresorVencido = () => ({
+      id: "5698",
+      ...unaFactura({
+        numeroFactura: "5698",
+        fechaCreacion: haceDias(4),
+        equipos: [
+          unEquipo({
+            nombre: "COMPRESOR",
+            cantidad: 1,
+            valorDia: 150000,
+            dias: 3,
+            fechaDespacho: haceDias(4),
+          }),
+        ],
+      }),
+    });
+
+    const abonarSobre = async (factura, monto) => {
+      const { usuario } = abrir({ facturas: [factura] });
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+      return updateSimulado.mock.calls[0]?.[1];
+    };
+
+    it("sella los días vencidos junto con el abono", async () => {
+      const factura = conCompresorVencido();
+      const total = calcularCuentaFactura(factura, obtenerFechaHoyBogota()).total;
+
+      const cambios = await abonarSobre(factura, total);
+
+      // Se escriben las dos cosas en la misma operación: el abono y los
+      // equipos con sus días ya cerrados.
+      expect(cambios.abonos).toHaveLength(1);
+      const [ampliacion] = cambios.grupos[0].equipos[0].ampliaciones;
+      expect(ampliacion).toMatchObject({
+        diasAmpliados: 2,
+        diasPedidos: 0,
+        diasVencidos: 2,
+        porPago: true,
+      });
+      // Y la fecha del equipo queda en hoy: hasta ahí pagó.
+      expect(cambios.grupos[0].equipos[0].fechaVencimiento).toBe(
+        obtenerFechaHoyBogota(),
+      );
+    });
+
+    it("no sella nada si el abono no alcanza a cubrir lo que se le reclama hoy", async () => {
+      const cambios = await abonarSobre(conCompresorVencido(), 100000);
+
+      expect(cambios.abonos).toHaveLength(1);
+      expect(cambios.grupos).toBeUndefined();
+    });
+  });
+
   it("conserva los abonos que la factura ya tenía en vez de pisarlos", async () => {
     const abonoViejo = {
       fecha: "2026-08-01",

@@ -133,6 +133,15 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (cuentaEquipo.descuento > 0) {
       detalles.push(`Descuento: ${formatearMoneda(cuentaEquipo.descuento)}`);
     }
+    // Los que se le vencieron y ya pagó: se cobran igual que los otros, así
+    // que el documento los nombra aparte en vez de esconderlos.
+    if (dias.pagados > 0) {
+      detalles.push(
+        `+${dias.pagados} día(s) vencido(s) pagado(s): ${formatearMoneda(
+          dias.pagados * porDia,
+        )}`,
+      );
+    }
     if (dias.vencidos > 0) {
       detalles.push(
         `+${dias.vencidos} día(s) vencido(s): ${formatearMoneda(dias.vencidos * porDia)}`,

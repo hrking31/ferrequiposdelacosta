@@ -11,6 +11,7 @@
 // que es lo que se separó; el color y la variante son de cada pantalla.
 import { describe, it, expect } from "vitest";
 import { agruparChipsFechas, describirFechasEquipo } from "./facturaPresentacion";
+import { sellarDiasVencidos } from "./facturaCuentas";
 import { unEquipo, unEquipoDevuelto } from "../../test/facturas";
 
 const HOY = "2026-08-15";
@@ -91,6 +92,43 @@ describe("describirFechasEquipo", () => {
     );
     expect(textoDe(chips, "vencimiento-0")).toBe("1er vencimiento 05/08/2026");
     expect(textoDe(chips, "vencimiento-1")).toBe("2do vencimiento 07/08/2026");
+  });
+
+  // Los días que se le vencieron y el cliente ya pagó: van en verde y con su
+  // valor, porque esa cifra no reclama nada, cuenta lo que entró.
+  it("los días vencidos ya pagados van aparte y en verde", () => {
+    const compresor = unEquipo({
+      cantidad: 1,
+      valorDia: 150000,
+      dias: 7,
+      fechaDespacho: "2026-08-08",
+    });
+    const sellado = sellarDiasVencidos(compresor, HOY);
+    const chips = describirFechasEquipo(sellado, HOY);
+
+    expect(textoDe(chips, "diasVencidosPagados")).toBe("1 día vencido pagado $ 150.000");
+    expect(tonoDe(chips, "diasVencidosPagados")).toBe("exito");
+    // Y no quedan días vencidos abiertos ni se cuentan como días concedidos.
+    expect(textoDe(chips, "diasVencidos")).toBeUndefined();
+    expect(textoDe(chips, "ampliacion")).toBeUndefined();
+  });
+
+  // Al día siguiente vuelve a correr el reloj: lo pagado se queda en verde y
+  // lo nuevo sale en rojo, cada uno con lo suyo.
+  it("el día siguiente al sellado suma UN día vencido, no todos otra vez", () => {
+    const compresor = unEquipo({
+      cantidad: 1,
+      valorDia: 150000,
+      dias: 7,
+      fechaDespacho: "2026-08-08",
+    });
+    const chips = describirFechasEquipo(
+      sellarDiasVencidos(compresor, HOY),
+      "2026-08-16",
+    );
+
+    expect(textoDe(chips, "diasVencidosPagados")).toBe("1 día vencido pagado $ 150.000");
+    expect(textoDe(chips, "diasVencidos")).toBe("1 día vencido $ 150.000");
   });
 
   it("el día que vence va en alerta, no en urgente", () => {
