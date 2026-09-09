@@ -728,7 +728,7 @@ export default function FacturaCard({
               después de los equipos agregados si los hay, y si no,
               después de los equipos de la factura. */}
           {abonos.length > 0 && (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 1 }}>
               <Stack
                 direction="row"
                 justifyContent="space-between"
