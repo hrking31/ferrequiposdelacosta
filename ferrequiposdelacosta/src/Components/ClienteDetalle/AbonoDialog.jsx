@@ -279,9 +279,9 @@ export default function AbonoDialog({
         // tiene días por delante ya pactados: esos se cobran cuando devuelva,
         // y esperarlos dejaría el sellado para nunca.
         //
-        // Cuando se le dieron días no queda nada que sellar —la renovación ya
-        // consolidó los vencidos—; cuando quedó indefinido, sí: el equipo
-        // sigue sin fecha y los días vuelven a correr mañana.
+        // En la práctica esto solo actúa cuando el equipo quedó con ENTREGA
+        // INDEFINIDA: darle días consolida los vencidos y devolverlo los
+        // congela, así que en esos dos casos no queda nada abierto que sellar.
         const conAbono = {
           ...factura,
           abonos,

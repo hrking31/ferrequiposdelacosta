@@ -236,7 +236,9 @@ En la ficha del cliente se ven en dos etiquetas separadas, porque son cosas dist
 
 ### Y los días vencidos que el cliente paga quedan sellados
 
-El cliente que no devolvió puede **ponerse al día sin devolver nada**: paga los días que se le vencieron y sigue con el equipo en la obra. Ahí aparece un problema que el calendario solo no resuelve: al día siguiente esos días se vuelven a contar, y el contador diría *"3 días vencidos · $450.000"* cuando lo que falta cobrar son $150.000.
+El cliente que no devolvió puede **ponerse al día sin devolver nada**: paga los días que se le vencieron y deja el equipo con **entrega indefinida** — se lo queda y avisará cuándo lo devuelve. Ahí aparece un problema que el calendario solo no resuelve: al día siguiente esos días se vuelven a contar, y el contador diría *"3 días vencidos · $450.000"* cuando lo que falta cobrar son $150.000.
+
+Esa es su **única** situación, y no por casualidad: al cobrar hay que decir qué pasa con el equipo, y de las tres respuestas posibles las otras dos no dejan días abiertos — la renovación los consolida, la devolución los congela.
 
 **Cuando un pago deja la factura sin nada que reclamarle hoy, sus días vencidos se sellan:** quedan cobrados, dejan de contarse como vencidos y el contador arranca de cero desde el pago.
 
@@ -247,7 +249,7 @@ Mañana            Venció 09/09     │  2 días pagados · 1 día vencido · $
 
 Se sella con el **mismo mecanismo de la renovación** —los días se consolidan y la fecha del equipo pasa a hoy—, con una diferencia: no se concedió ningún día nuevo. Por eso **la plata no se mueve**: esos días pasan de *vencidos* a *pactados* y el total da exactamente lo mismo. Descontarlos habría inventado un saldo a favor que nadie entregó.
 
-Lo que el sello **no** hace es soltar el equipo. Sigue afuera, sin fecha de retorno, y por eso su factura **sigue en cartera**: sale cuando le pactan un plazo o cuando el equipo vuelve, no cuando se paga. El equipo con *entrega indefinida* conserva su marca por lo mismo — el cliente pagó, pero sigue sin decir cuándo devuelve.
+Lo que el sello **no** hace es soltar el equipo. Sigue afuera, sin fecha de retorno, y por eso su factura **sigue en cartera**: sale cuando le pactan un plazo o cuando el equipo vuelve, no cuando se paga. Y conserva su marca de indefinido por lo mismo — el cliente pagó, pero sigue sin decir cuándo devuelve.
 
 El chip verde es el registro de que ese equipo estuvo afuera de fecha, y tiene que sobrevivir al pago: sin él, la pantalla no podría distinguir a un cliente que devolvió a tiempo de otro que se pasó dos días y los pagó.
 

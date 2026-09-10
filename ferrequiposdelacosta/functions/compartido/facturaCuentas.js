@@ -368,11 +368,16 @@ export const proyectarAmpliacion = (
 
 // ── SELLAR LOS DÍAS VENCIDOS QUE EL CLIENTE YA PAGÓ ────────────────────
 //
-// El caso: el equipo lleva 2 días pasado de su fecha y el cliente paga todo
-// lo que debe. Esos 2 días quedan cobrados, pero el equipo NO volvió y no
-// tiene fecha nueva, así que al día siguiente el calendario los vuelve a
-// contar: el contador diría 3 días vencidos y el rojo pediría $450.000 cuando
-// lo que falta cobrar son $150.000.
+// El caso: el cliente paga todo lo que debe y deja el equipo con ENTREGA
+// INDEFINIDA —se lo queda y avisará cuándo lo devuelve—. Esos días quedan
+// cobrados, pero el equipo no tiene fecha, así que al día siguiente el
+// calendario los vuelve a contar: el contador diría 3 días vencidos y el rojo
+// pediría $450.000 cuando lo que falta cobrar son $150.000.
+//
+// La entrega indefinida es su ÚNICO caso, y no por casualidad: al cobrar hay
+// que decir qué pasa con el equipo (ver aplicarAcuerdoDeEquipos), y de las
+// tres respuestas posibles las otras dos no dejan días vencidos abiertos —la
+// renovación los consolida, la devolución los congela—.
 //
 // Sellar es dar esos días por cerrados: dejan de contarse como vencidos y el
 // contador arranca de cero desde el pago. Se hace con el MISMO mecanismo de
@@ -386,7 +391,7 @@ export const proyectarAmpliacion = (
 // y el total da lo mismo—. Si se descontaran, aparecería un saldo a favor que
 // nadie entregó.
 //
-// El equipo con entrega indefinida CONSERVA su marca: el cliente pagó, pero
+// El equipo CONSERVA su marca de entrega indefinida: el cliente pagó, pero
 // sigue sin decir cuándo devuelve, así que sigue siendo un equipo sin fecha
 // de retorno y no se mueve de seguimiento.
 export const esPagoDeVencidos = (ampliacion) => Boolean(ampliacion?.porPago);
