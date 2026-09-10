@@ -338,6 +338,56 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
     expect(screen.getAllByTestId("AssignmentReturnIcon").length).toBeGreaterThan(0);
   });
 
+  // El orden de los botones cuenta el flujo del cobro: primero se resuelve el
+  // EQUIPO —devolver, o pactarle plazo— y recién después la PLATA. Al revés se
+  // cobraba primero y el equipo quedaba sin definir.
+  it("pone los botones en el orden en que ocurre el cobro", () => {
+    mostrar();
+
+    // Los tres íconos, en el orden en que salen en el documento. La factura
+    // arranca plegada, así que los únicos de la tarjeta son los de esta fila.
+    const deLaFila = ["AssignmentReturnIcon", "UpdateIcon", "AttachMoneyIcon"];
+    const orden = Array.from(document.querySelectorAll("svg[data-testid]"))
+      .map((icono) => icono.getAttribute("data-testid"))
+      .filter((nombre) => deLaFila.includes(nombre));
+
+    expect(orden).toEqual(deLaFila);
+  });
+
+  // La plata que sale hacia el cliente: el depósito que vuelve, o lo que pagó
+  // de más. Vivía solo en la ficha del cliente, y esa era la falla — la
+  // factura se queda en cartera justamente por eso, así que se tiene que poder
+  // resolver acá.
+  it("ofrece devolverle la plata al cliente cuando la factura le quedó debiendo", () => {
+    // Devolvió todo y había pagado de más: le quedan $100.000 a favor.
+    const aFavor = facturaCon({
+      equipos: [
+        unEquipoDevuelto({
+          nombre: "ANDAMIO",
+          cantidad: 5,
+          dias: 3,
+          valorDia: 20000,
+          fechaDespacho: "2026-08-01",
+          fechaVencimiento: "2026-08-03",
+          fechaDevolucion: "2026-08-03",
+        }),
+      ],
+      pagos: [{ medio: "Efectivo", monto: 400000 }],
+    });
+
+    mostrar([aFavor]);
+
+    expect(
+      screen.getAllByTestId("CurrencyExchangeIcon")[0].closest("button"),
+    ).toBeInTheDocument();
+  });
+
+  it("y no lo ofrece cuando no hay nada que devolverle", () => {
+    mostrar();
+
+    expect(screen.queryByTestId("CurrencyExchangeIcon")).not.toBeInTheDocument();
+  });
+
   // A un cliente que no debe nada no se le registra un abono: no habría entre
   // qué facturas repartirlo. El botón se apaga en vez de esconderse, para que
   // el globo pueda decir por qué.

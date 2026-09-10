@@ -285,11 +285,17 @@ describe("AbonoDialog — lo que ya tenía", () => {
       }),
     });
 
+    // Con equipos vencidos afuera el diálogo exige decir qué pasa con ellos,
+    // así que estas pruebas eligen la entrega indefinida: es la opción que
+    // deja al equipo como estaba y permite mirar solo lo del sellado.
     const abonarSobre = async (factura, monto) => {
       const { usuario } = abrir({ facturas: [factura] });
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
+      await usuario.click(
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+      );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
     };
@@ -316,11 +322,122 @@ describe("AbonoDialog — lo que ya tenía", () => {
       );
     });
 
+    // Cobrar sin definir qué pasa con el equipo es como una factura termina
+    // pagada con el equipo en la obra y sin fecha de retorno. Por eso el
+    // acuerdo es obligatorio: sin él no se puede guardar.
+    it("no deja guardar hasta que se diga qué pasa con el equipo", async () => {
+      const factura = conCompresorVencido();
+      const { usuario } = abrir({ facturas: [factura] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+
+      expect(screen.getByText(/sigue afuera y ya venció/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Registrar abono" })).toBeDisabled();
+
+      await usuario.click(
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+      );
+
+      expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
+    });
+
+    // Una factura sin equipos vencidos no pregunta nada: el diálogo sigue
+    // siendo el de siempre.
+    it("no pregunta por el equipo cuando no hay ninguno vencido afuera", async () => {
+      const { usuario } = abrir();
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+
+      expect(screen.queryByText(/sigue afuera y ya venció/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
+    });
+
+    it("con días de plazo renueva el equipo y lo deja anotado como renovación", async () => {
+      const factura = conCompresorVencido();
+      const { usuario } = abrir({ facturas: [factura] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+      await usuario.type(screen.getByLabelText(/Días de plazo/), "4");
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      const cambios = updateSimulado.mock.calls[0][1];
+      const [equipo] = cambios.grupos[0].equipos;
+      // Los 2 días vencidos se consolidan con los 4 pedidos, como cualquier
+      // renovación: la fecha corre 6 días.
+      expect(equipo.ampliaciones[0]).toMatchObject({
+        diasAmpliados: 6,
+        diasPedidos: 4,
+        diasVencidos: 2,
+      });
+      expect(cambios.gestiones.at(-1)).toMatchObject({
+        tipo: "prorroga",
+        dias: 4,
+        indefinida: false,
+      });
+    });
+
+    it("con entrega indefinida marca el equipo y sella los días si quedó al día", async () => {
+      const factura = conCompresorVencido();
+      const total = calcularCuentaFactura(factura, obtenerFechaHoyBogota()).total;
+      const { usuario } = abrir({ facturas: [factura] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), String(total));
+      await usuario.click(
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+      );
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      const cambios = updateSimulado.mock.calls[0][1];
+      const [equipo] = cambios.grupos[0].equipos;
+      // Sigue sin fecha de retorno, pero lo que ya pagó queda cerrado.
+      expect(equipo.vencimientoIndefinido).toBe(true);
+      expect(equipo.ampliaciones.at(-1)).toMatchObject({ porPago: true, diasPedidos: 0 });
+      expect(cambios.gestiones.at(-1)).toMatchObject({
+        tipo: "prorroga",
+        indefinida: true,
+      });
+    });
+
+    // La devolución define el estado del equipo y el depósito, y eso cambia
+    // cuánto hay que cobrar: se resuelve en su propio diálogo, no acá.
+    it("manda a la devolución y cierra el abono, sin escribir nada", async () => {
+      const alDevolver = vi.fn();
+      const alCerrar = vi.fn();
+      const { usuario } = abrir({
+        facturas: [conCompresorVencido()],
+        onRegistrarDevolucion: alDevolver,
+        onClose: alCerrar,
+      });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+      await usuario.click(
+        screen.getByRole("button", { name: "Registrar devolución" }),
+      );
+
+      expect(alDevolver).toHaveBeenCalledTimes(1);
+      expect(alCerrar).toHaveBeenCalledTimes(1);
+      expect(updateSimulado).not.toHaveBeenCalled();
+    });
+
     it("no sella nada si el abono no alcanza a cubrir lo que se le reclama hoy", async () => {
       const cambios = await abonarSobre(conCompresorVencido(), 100000);
 
       expect(cambios.abonos).toHaveLength(1);
-      expect(cambios.grupos).toBeUndefined();
+      // El equipo se escribe igual —quedó indefinido, que es lo que se
+      // acordó—, pero sus días vencidos siguen abiertos: todavía debe.
+      const [equipo] = cambios.grupos[0].equipos;
+      expect(equipo.vencimientoIndefinido).toBe(true);
+      expect(equipo.ampliaciones).toHaveLength(0);
     });
   });
 

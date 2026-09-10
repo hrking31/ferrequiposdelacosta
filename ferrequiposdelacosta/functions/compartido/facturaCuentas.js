@@ -420,6 +420,81 @@ export const sellarDiasVencidos = (equipo, hoyIso = obtenerFechaHoyBogota()) => 
   };
 };
 
+// ── EL ACUERDO POR EL EQUIPO, al cobrar ────────────────────────────────
+//
+// Cobrar y no preguntar por el equipo es cómo una factura termina pagada con
+// el equipo afuera y sin fecha de retorno: nadie decidió nada, simplemente no
+// se preguntó. Por eso el abono exige un acuerdo, y acá vive lo que ese
+// acuerdo le hace a los equipos.
+//
+// Le da plazo a TODOS los equipos vencidos que siguen afuera —no a los que
+// están en fecha, que no hay nada que acordarles—: con días, corriendo el
+// vencimiento desde hoy como cualquier renovación; sin ellos, dejándolos con
+// entrega indefinida.
+//
+// Devuelve `null` si no había ninguno vencido: ahí no hay nada que acordar y
+// quien guarda no escribe de más.
+export const aplicarAcuerdoDeEquipos = (
+  doc,
+  { dias, indefinida } = {},
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const pedidos = Math.max(0, numero(dias));
+  if (!indefinida && pedidos <= 0) return null;
+
+  let hubo = false;
+  let diasConcedidos = 0;
+
+  const grupos = gruposDe(doc).map((grupo) => ({
+    ...grupo,
+    equipos: (grupo?.equipos ?? []).map((equipo) => {
+      if (!sigueAfuera(equipo) || !equipoVencido(equipo, hoyIso)) return equipo;
+      hubo = true;
+
+      if (indefinida) {
+        return { ...equipo, vencimientoIndefinido: true };
+      }
+
+      // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
+      // fecha corre de verdad —con los días vencidos consolidados— es lo que
+      // se cobra. Misma regla que el diálogo de ampliar (ver
+      // proyectarAmpliacion).
+      const proyeccion = proyectarAmpliacion(equipo, pedidos, hoyIso);
+      diasConcedidos = Math.max(diasConcedidos, pedidos);
+
+      return {
+        ...equipo,
+        vencimientoIndefinido: false,
+        ampliaciones: [
+          ...ampliacionesDe(equipo),
+          {
+            fechaAnterior: equipo?.fechaVencimiento ?? null,
+            fechaNueva: proyeccion.fechaNueva,
+            diasAmpliados: proyeccion.dias,
+            diasPedidos: proyeccion.diasPedidos,
+            diasVencidos: proyeccion.diasVencidos,
+            descuentoRealizado: 0,
+            fecha: hoyIso,
+          },
+        ],
+        fechaVencimiento: proyeccion.fechaNueva,
+      };
+    }),
+  }));
+
+  if (!hubo) return null;
+
+  return {
+    grupos,
+    // El registro que va a la bitácora: es una renovación, igual que la que se
+    // pacta desde su propio diálogo. Lo que la distingue es de dónde salió.
+    gestion: crearRegistroGestion("prorroga", {
+      dias: diasConcedidos,
+      indefinida: Boolean(indefinida),
+    }),
+  };
+};
+
 // Los mismos grupos de la factura, con los días vencidos de cada equipo que
 // sigue afuera ya sellados. Devuelve `null` cuando no había nada que sellar,
 // para que quien guarda no escriba de gusto.

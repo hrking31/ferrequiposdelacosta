@@ -32,6 +32,7 @@ import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
   calcularCuentaCliente,
   calcularCuentaFactura,
@@ -63,6 +64,7 @@ import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
 import AbonoDialog from "../ClienteDetalle/AbonoDialog";
+import EntregarSaldoDialog from "../ClienteDetalle/EntregarSaldoDialog";
 
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
@@ -317,6 +319,10 @@ export default function ClienteSeguimientoCard({
   const [devolucionOpen, setDevolucionOpen] = useState(false);
   const [llamadaOpen, setLlamadaOpen] = useState(false);
   const [abonoOpen, setAbonoOpen] = useState(false);
+  const [entregarOpen, setEntregarOpen] = useState(false);
+  // La devolución que se abrió DESDE el abono: al cerrarla hay que volver a
+  // ofrecer el cobro, con la cuenta ya recalculada.
+  const [volverAlAbono, setVolverAlAbono] = useState(false);
 
   // El abono es del CLIENTE: se reparte entre todas sus facturas con saldo,
   // estén o no en cartera. Si la pantalla no las manda, se usan las de acá.
@@ -818,6 +824,32 @@ export default function ClienteSeguimientoCard({
               {/* Acciones de la factura arriba a la derecha, junto al chip de
                   estado — mismo patrón que las facturas de ClienteDetalle. */}
               <Stack direction="row" spacing={0.75} alignItems="center">
+                {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
+                    el EQUIPO —devolver, o pactarle plazo— y recién después la
+                    PLATA. Al revés, que es como estaba, se cobraba primero y
+                    el equipo quedaba sin definir: una factura podía quedar
+                    pagada con el equipo afuera y sin fecha de retorno, que es
+                    justo lo que hay que evitar. */}
+                <Tooltip title="Registrar devolución">
+                  <IconButton
+                    size="small"
+                    onClick={() => setDevolucionOpen(true)}
+                    sx={{ ...iconBtnSx, color: acento }}
+                  >
+                    <AssignmentReturnIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Ampliar vencimiento">
+                  <IconButton
+                    size="small"
+                    onClick={() => setAmpliarOpen(true)}
+                    sx={{ ...iconBtnSx, color: acento }}
+                  >
+                    <UpdateIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
                 {/* EL ABONO SE COBRA ACÁ, no en la ficha del cliente.
                     El momento real en que entra la plata es la llamada: se
                     marca al cliente, se le pacta el plazo y en la misma
@@ -853,25 +885,28 @@ export default function ClienteSeguimientoCard({
                   </span>
                 </Tooltip>
 
-                <Tooltip title="Ampliar vencimiento">
-                  <IconButton
-                    size="small"
-                    onClick={() => setAmpliarOpen(true)}
-                    sx={{ ...iconBtnSx, color: acento }}
-                  >
-                    <UpdateIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {/* LA PLATA QUE SALE: el depósito que vuelve al cliente, o lo
+                    que pagó de más. Aparece solo cuando la factura le quedó
+                    debiendo a ÉL, y por eso cierra la fila —es el único botón
+                    que mueve plata en la otra dirección—.
 
-                <Tooltip title="Registrar devolución">
-                  <IconButton
-                    size="small"
-                    onClick={() => setDevolucionOpen(true)}
-                    sx={{ ...iconBtnSx, color: acento }}
+                    Vivía únicamente en la ficha del cliente, y esa era la
+                    falla: mientras no se entregue, la factura no puede
+                    terminar, así que se queda en cartera mostrando un
+                    pendiente que solo se podía resolver en otra pantalla. */}
+                {cuenta.saldoAFavor > 0 && (
+                  <Tooltip
+                    title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}
                   >
-                    <AssignmentReturnIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => setEntregarOpen(true)}
+                      sx={{ ...iconBtnSx, color: theme.palette.warning.main }}
+                    >
+                      <CurrencyExchangeIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
 
                 {/* La gestión vigente. No se puede cambiar a mano: la ponen
                     las acciones de arriba (llamar, ampliar, devolver). Sin
@@ -1172,7 +1207,18 @@ export default function ClienteSeguimientoCard({
 
       <RegistrarDevolucionDialog
         open={devolucionOpen}
-        onClose={() => setDevolucionOpen(false)}
+        onClose={() => {
+          setDevolucionOpen(false);
+          // Si se llegó acá desde el cobro, el abono vuelve a abrirse EN
+          // BLANCO. No se le arrastra el valor que se había escrito: la
+          // devolución cambió la cuenta —el depósito que vuelve se canjea
+          // contra lo que el cliente debía— y ese número ya no es el que hay
+          // que cobrar.
+          if (volverAlAbono) {
+            setVolverAlAbono(false);
+            setAbonoOpen(true);
+          }
+        }}
         cliente={cliente}
         factura={factura}
         onActualizado={onEquiposActualizados}
@@ -1184,6 +1230,18 @@ export default function ClienteSeguimientoCard({
         cliente={cliente}
         facturas={facturasDelCliente}
         onAbonado={onEquiposActualizados}
+        onRegistrarDevolucion={() => {
+          setVolverAlAbono(true);
+          setDevolucionOpen(true);
+        }}
+      />
+
+      <EntregarSaldoDialog
+        open={entregarOpen}
+        onClose={() => setEntregarOpen(false)}
+        cliente={cliente}
+        factura={factura}
+        onEntregado={onEquiposActualizados}
       />
     </Box>
   );

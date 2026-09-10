@@ -251,6 +251,24 @@ Lo que el sello **no** hace es soltar el equipo. Sigue afuera, sin fecha de reto
 
 El chip verde es el registro de que ese equipo estuvo afuera de fecha, y tiene que sobrevivir al pago: sin él, la pantalla no podría distinguir a un cliente que devolvió a tiempo de otro que se pasó dos días y los pagó.
 
+### No se cobra sin decir qué pasa con el equipo
+
+El caso que destapó esto: se llamó al cliente, pagó todo, y **nadie le preguntó por el equipo**. La factura quedó saldada con el compresor en la obra y sin fecha de retorno — no porque alguien lo decidiera, sino porque no se preguntó. La falla no fue del cliente: fue del orden en que la pantalla pedía las cosas.
+
+Ahora el momento del cobro es el momento de definir el equipo, que es cuando el cliente está al teléfono. Al registrar un abono sobre una factura con equipos vencidos afuera, el diálogo **no deja guardar** hasta elegir una de tres:
+
+| Lo que dice el cliente | Qué pasa |
+|---|---|
+| *"Me lo llevo N días más"* | Renovación: la fecha corre desde hoy y los días vencidos se consolidan |
+| *"Todavía no sé, te aviso"* | Entrega indefinida — y sus días vencidos se sellan |
+| *"Ya te lo devuelvo"* | Abre la devolución, que es donde se define el depósito |
+
+Las tres quedan anotadas en la bitácora como **renovación**, así que el chip de gestión deja de mostrar el *"sin respuesta"* de una llamada vieja cuando el cliente ya contestó y pagó.
+
+> **La devolución no vive dentro del abono, y es por la plata.** Define el estado del equipo, cuánto se retiene y cuánto depósito vuelve — y eso cambia lo que hay que cobrar. Así que se abre en su propio diálogo y, al cerrarlo, el abono vuelve **en blanco**: el depósito que volvió se canjea contra lo que el cliente debía, y el número que se iba a cobrar ya no es el que corresponde.
+
+**Y el orden de los botones cuenta el mismo flujo:** devolución, renovación, abono. Primero el equipo, después la plata. Al revés se cobraba primero, que es exactamente como se llegó al problema.
+
 ### Y el que devuelve antes no paga lo que no usó
 
 La misma regla, mirada desde el otro lado. Si el cliente alquiló cinco días y devolvió a los tres, **los dos días que no usó no son de la empresa**.
@@ -545,6 +563,8 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 En el alquiler de equipos, el cliente deja un depósito como garantía. Se le cobra junto con el alquiler, **pero no es plata de la empresa**: vuelve a su bolsillo cuando entrega los equipos en buen estado.
 
 **Don Pedro** alquila una mezcladora en $400.000 con $100.000 de depósito. Paga $500.000 y se lleva el equipo.
+
+El botón para entregarle esa plata **vive en las dos pantallas**: en la ficha del cliente y en la fila de cartera. Estaba solo en la ficha, y esa era la falla — mientras no se entregue, la factura no puede terminar, así que se queda en cartera mostrando un pendiente que solo se podía resolver saliendo a otra pantalla.
 
 **Cuando devuelve la mezcladora**, quien la recibe la tiene delante y es el único momento en que alguien puede decir en qué estado volvió. Así que ahí mismo, al registrar la devolución, se define el depósito:
 
