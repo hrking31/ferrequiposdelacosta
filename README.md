@@ -495,11 +495,11 @@ Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia 
 >
 > **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
 
-**En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos:
+**En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos, cada uno con su icono de calendario del color que le toca —tachado el de los vencidos—:
 
 - 🔴 **Vencido** — rojo `#DC2626` — el del tema, que de noche se aclara a `#EF4444`.
 - 🟠 **Vence hoy** — ámbar `#F59E0B` — hay que actuar antes de que pase a rojo.
-- 🟦 **Entrega indefinida** — teal `#0D9488` — no tiene fecha: el cliente quedó de avisar. *(Cuadrado y no círculo porque no hay uno teal entre los emoji.)*
+- 🟦 **Entrega indefinida** — teal `#0D9488` — no tiene fecha: el cliente quedó de avisar.
 
 Ese teal existe porque la entrega indefinida iba antes con el mismo gris de "Vence", y dos situaciones distintas —una con fecha futura conocida, la otra sin ninguna— se veían idénticas.
 
