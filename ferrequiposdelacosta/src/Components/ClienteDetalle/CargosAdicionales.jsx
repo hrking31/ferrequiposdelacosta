@@ -124,7 +124,24 @@ const partesDeEquipo = (equipo, hoyIso) => {
     pagados: dias.pagados * porDia,
     // Los días vencidos se cobran al valor del día y sin descuento.
     vencidos: dias.vencidos * porDia,
+    // Los días de cada tramo, para poder nombrarlos: un renglón que dice
+    // "3 días vencidos · $57.000" se entiende sin dividir de cabeza.
+    dias,
   };
+};
+
+// Cómo se llama cada tramo, con su número de días por delante. En singular
+// cuando es uno solo: "1 día vencido" y no "1 días vencidos".
+const NOMBRES_DE_TRAMO = {
+  inicial: { uno: "día renta inicial", varios: "días renta inicial" },
+  ampliados: { uno: "día ampliado", varios: "días ampliados" },
+  pagados: { uno: "día vencido pagado", varios: "días vencidos pagados" },
+  vencidos: { uno: "día vencido", varios: "días vencidos" },
+};
+
+const conceptoDelTramo = (clave, dias) => {
+  const nombre = NOMBRES_DE_TRAMO[clave];
+  return `${dias} ${dias === 1 ? nombre.uno : nombre.varios}`;
 };
 
 export default function CargosAdicionales({
@@ -163,34 +180,40 @@ export default function CargosAdicionales({
     return [
       {
         clave: "inicial",
-        concepto: "renta inicial",
         // Si salió por 3 días y devolvió a 1, este renglón vale 1 día: los
         // días que quedaron escritos al volver son los que estuvo afuera.
         valor: partes.inicial,
       },
       {
         clave: "ampliados",
-        concepto: "días ampliados",
         valor: partes.ampliados,
       },
       {
         clave: "pagados",
-        concepto: "días vencidos pagados",
         valor: partes.pagados,
       },
       {
         clave: "vencidos",
-        concepto: "días vencidos",
         valor: partes.vencidos,
       },
     ]
       .filter((renglon) => renglon.valor !== 0)
-      .map((renglon) => ({
-        ...renglon,
-        equipo: nombre,
-        etiqueta: `${nombre} · ${renglon.concepto}`,
-        iva: conIva ? renglon.valor * IVA : 0,
-      }));
+      .map((renglon) => {
+        const concepto = conceptoDelTramo(
+          renglon.clave,
+          renglon.clave === "inicial"
+            ? partes.dias.alta
+            : partes.dias[renglon.clave],
+        );
+
+        return {
+          ...renglon,
+          concepto,
+          equipo: nombre,
+          etiqueta: `${nombre} · ${concepto}`,
+          iva: conIva ? renglon.valor * IVA : 0,
+        };
+      });
   };
 
   // El IVA de UN equipo completo. Sale de las mismas partes que el desglose,
@@ -327,17 +350,20 @@ export default function CargosAdicionales({
             // por otro—, una línea de más corría todos los totales y dejaban
             // de explicar nada.
             //
-            // La última columna mide lo mismo que una de la fila de arriba
-            // —el ancho del recuadro menos los divisores, repartido entre
-            // tantas partes como datos haya—, así que los totales caen justo
-            // bajo el "Total adicionales" que explican.
+            // Las dos primeras columnas miden lo que mide su contenido, así
+            // que el IVA queda pegado al concepto que lo explica en vez de
+            // irse a media pantalla; el hueco que sobra lo absorbe una tercera
+            // columna vacía. La última mide lo mismo que una de la fila de
+            // arriba —el ancho del recuadro menos los divisores, repartido
+            // entre tantas partes como datos haya—, así que los totales caen
+            // justo bajo el "Total adicionales" que explican.
             <Box
               sx={{
                 mt: 0.75,
                 display: "grid",
                 gridTemplateColumns: {
-                  xs: "minmax(0, 1fr) max-content max-content",
-                  sm: `minmax(0, 1fr) max-content calc((100% - ${
+                  xs: "minmax(0, max-content) max-content 1fr max-content",
+                  sm: `minmax(0, max-content) max-content 1fr calc((100% - ${
                     datos.length - 1
                   }px) / ${datos.length})`,
                 },
@@ -346,7 +372,7 @@ export default function CargosAdicionales({
             >
               <Typography
                 variant="rotuloDato"
-                sx={{ color: color, gridColumn: "1 / 3", px: { sm: 0.75 } }}
+                sx={{ color: color, gridColumn: "1 / 4", px: { sm: 0.75 } }}
               >
                 IVA POR EQUIPO
               </Typography>
@@ -358,7 +384,7 @@ export default function CargosAdicionales({
                     key={fila.clave}
                     variant="body2"
                     sx={{
-                      gridColumn: "1 / 3",
+                      gridColumn: "1 / 4",
                       px: { sm: 0.75 },
                       mt: 0.5,
                       fontWeight: 600,
@@ -400,7 +426,7 @@ export default function CargosAdicionales({
                       <Typography
                         variant="body2"
                         sx={{
-                          gridColumn: 3,
+                          gridColumn: 4,
                           pl: { sm: 0.75 },
                           whiteSpace: "nowrap",
                           fontWeight: 600,
