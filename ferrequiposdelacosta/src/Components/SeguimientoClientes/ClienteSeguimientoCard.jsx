@@ -509,9 +509,20 @@ export default function ClienteSeguimientoCard({
   // que se le acaban de conceder los está usando y se cobran cuando devuelva,
   // así que pedírselos ahora sería cobrarle un alquiler en curso. Con todo
   // devuelto ya no queda nada por correr y se le cobra la cuenta completa.
-  const saldoExigible = quedanEquiposAfuera
-    ? calcularExigible(factura, hoy)
-    : cuenta.saldoPendiente;
+  const exigibleHoy = calcularExigible(factura, hoy);
+
+  // Y si ya se puso al día con eso, lo que la mantiene acá es el resto del
+  // saldo —los días que contrató al renovar—: una factura a la que se le
+  // venció la fecha no sale de cartera hasta cancelar todo. Mostrar el "$0"
+  // de lo exigible dejaría la tarjeta explicando que sigue por nada.
+  const saldoExigible =
+    quedanEquiposAfuera && exigibleHoy > 0 ? exigibleHoy : cuenta.saldoPendiente;
+
+  const detalleSaldo = !quedanEquiposAfuera
+    ? "."
+    : exigibleHoy > 0
+      ? ", deuda antes de la ampliación."
+      : ", que es lo que renovó y todavía no paga.";
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -1072,14 +1083,14 @@ export default function ClienteSeguimientoCard({
                   <AccountBalanceWalletIcon fontSize="small" />
                   Sin equipos vencidos
                 </Typography>
-                {/* Con equipos todavía afuera, ese saldo es el de ANTES de la
-                    ampliación, y hay que decirlo: si no, el número no coincide
-                    con el saldo pendiente que muestra la cuenta y parece un
-                    error. Con todo devuelto no lleva aclaración, porque ahí sí
-                    es la cuenta completa (ver saldoExigible). */}
+                {/* De qué saldo habla, que no siempre es el mismo: con deuda
+                    vieja es la de ANTES de la ampliación —si no, el número no
+                    coincide con el saldo de la cuenta y parece un error—; ya
+                    al día, es lo que contrató al renovar; y con todo devuelto,
+                    la cuenta completa (ver saldoExigible). */}
                 <Typography variant="body2" color="text.secondary">
                   {`Sigue en cartera por el saldo de ${formatearMoneda(saldoExigible)}`}
-                  {quedanEquiposAfuera ? ", deuda antes de la ampliación." : "."}
+                  {detalleSaldo}
                 </Typography>
               </Box>
             )}

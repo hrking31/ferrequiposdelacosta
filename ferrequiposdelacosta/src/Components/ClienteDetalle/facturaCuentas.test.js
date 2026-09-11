@@ -863,6 +863,9 @@ describe("el estado de la factura", () => {
     expect(calcularEstadoFactura(conDeuda, HOY)).toBe("vencida");
   });
 
+  // Una prórroga que nunca llegó tarde: al cliente se le dieron más días
+  // antes de que venciera, así que no hay mora que arrastrar y ponerse al día
+  // con lo vivido alcanza.
   it("con lo viejo pago, la prórroga sí la devuelve a activa", () => {
     const alDia = facturaCon(
       [
@@ -877,6 +880,63 @@ describe("el estado de la factura", () => {
     );
     expect(calcularExigible(alDia, HOY)).toBe(0);
     expect(calcularEstadoFactura(alDia, HOY)).toBe("activa");
+  });
+
+  // El caso de la 5698: al compresor se le vencieron 2 días, se le renovaron
+  // 3 y esos 2 se consolidaron. El cliente se puso al día con lo ya vivido,
+  // y con eso la factura salía de cartera debiendo los días que acababa de
+  // contratar, con el equipo todavía afuera.
+  //
+  // Ahora se queda hasta que cancele TODO. El equipo sí sale: renovado deja
+  // de estar vencido y desaparece de la lista de lo que hay que reclamar.
+  const conMoraRenovada = (pagado) =>
+    facturaCon(
+      [
+        equipo({
+          cantidadEquipos: 1,
+          valorDia: 150000,
+          // 7 del alta; los 5 de la renovación se suman aparte.
+          diasAlquilados: 7,
+          fechaDespacho: "2026-09-01",
+          // La renovación dice de qué está hecha: 3 días pedidos y 2 que ya
+          // venían vencidos. Es la huella de que la fecha se venció.
+          ampliaciones: [
+            {
+              fechaAnterior: "2026-09-05",
+              fechaNueva: "2026-09-11",
+              diasAmpliados: 5,
+              diasPedidos: 3,
+              diasVencidos: 2,
+              descuentoRealizado: 0,
+            },
+          ],
+          fechaVencimiento: "2026-09-11",
+        }),
+      ],
+      { pagos: [{ medio: "Efectivo", monto: pagado }] },
+    );
+
+  it("a la que se le venció la fecha no la saca de cartera ponerse al día", () => {
+    // Los 8 días ya vividos, del 01 al 08, pagados: no queda nada exigible
+    // hoy y el equipo tiene fecha por delante.
+    const alDiaConLoVivido = conMoraRenovada(1200000);
+
+    expect(calcularExigible(alDiaConLoVivido, HOY)).toBe(0);
+    expect(calcularEstadoEquipo(alDiaConLoVivido.grupos[0].equipos[0], HOY)).toBe(
+      "ampliacion",
+    );
+    // Le faltan los 4 días que ya contrató y todavía no usa.
+    expect(calcularCuentaFactura(alDiaConLoVivido, HOY).saldoPendiente).toBe(
+      600000,
+    );
+    expect(calcularEstadoFactura(alDiaConLoVivido, HOY)).toBe("vencida");
+  });
+
+  it("cancelado todo —lo que debía y lo que renovó— vuelve a activa", () => {
+    const cancelada = conMoraRenovada(1800000);
+
+    expect(calcularCuentaFactura(cancelada, HOY).saldoPendiente).toBe(0);
+    expect(calcularEstadoFactura(cancelada, HOY)).toBe("activa");
   });
 });
 

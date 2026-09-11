@@ -139,6 +139,24 @@ const facturaRenovada = facturaCon({
   ],
 });
 
+// La misma renovada, pero con lo viejo ya cobrado: al cliente se le vencieron
+// días, se le renovó consolidándolos y pagó todo lo que llevaba usado. No
+// queda nada exigible hoy y sigue en cartera solo por lo que contrató al
+// renovar.
+const facturaRenovadaYAlDia = facturaCon({
+  equipos: [
+    andamio({
+      fechaVencimiento: "2099-01-01",
+      ampliaciones: [
+        { diasAmpliados: 30, diasPedidos: 28, diasVencidos: 2, descuentoRealizado: 0 },
+      ],
+    }),
+  ],
+  // Los 20 días que el andamio ya estuvo afuera, del 01 al 20 de agosto:
+  // 5 × $20.000 × 20.
+  pagos: [{ medio: "Efectivo", monto: 2000000 }],
+});
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -229,6 +247,18 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
       "deuda antes de la ampliación",
     );
+  });
+
+  // Y cuando ya se puso al día con eso, lo que la mantiene en cartera es lo
+  // que contrató al renovar. Mostrar ahí lo exigible —que es cero— dejaba la
+  // tarjeta diciendo que sigue acá por $0.
+  it("ya al día, dice que sigue por lo que renovó y no ha pagado", async () => {
+    const { usuario } = mostrar([facturaRenovadaYAlDia]);
+    await desplegarFactura(usuario);
+
+    const aviso = screen.getByText(/Sigue en cartera por el saldo de/);
+    expect(aviso).toHaveTextContent("1.300.000");
+    expect(aviso).toHaveTextContent("lo que renovó y todavía no paga");
   });
 
   // Cada lote agregado sale con su propio flete y su propio depósito, y la

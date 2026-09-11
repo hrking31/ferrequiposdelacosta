@@ -703,6 +703,35 @@ export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   return Math.max(0, consumido + iva + transporte + deposito - cuenta.recibido);
 };
 
+// ── ¿A esta factura se le venció la fecha alguna vez? ──────────────────
+//
+// El estado no se guarda: se recalcula cada vez mirando el día de hoy. Así
+// que una factura a la que se le renovó el equipo vencido queda igual a una
+// recién despachada —fecha por delante, nada vencido— y la mora que hubo en
+// el medio desaparece de la vista. Con eso salía de cartera con el equipo
+// afuera y días ya pactados sin pagar.
+//
+// Acá se la busca en las huellas que SÍ quedaron escritas, que son tres:
+//
+//   - un equipo vencido hoy, o sin fecha por decisión del cliente;
+//   - uno que volvió después de su fecha;
+//   - una renovación que se llevó días vencidos adentro —los consolida— o un
+//     pago que los selló: las dos guardan cuántos venían vencidos.
+//
+// No hace falta ningún dato nuevo: todo esto ya se escribe desde antes.
+export const facturaSeVencioAlgunaVez = (
+  doc,
+  hoyIso = obtenerFechaHoyBogota(),
+) =>
+  equiposDe(doc).some(
+    ({ equipo }) =>
+      equipoVencido(equipo, hoyIso) ||
+      equipoDevueltoEnCobranza(equipo) ||
+      ampliacionesDe(equipo).some(
+        (ampliacion) => numero(ampliacion?.diasVencidos) > 0,
+      ),
+  );
+
 // ── El estado de la factura ────────────────────────────────────────────
 
 export const ESTADOS_FACTURA_EN_ORDEN = [
@@ -740,12 +769,24 @@ export const calcularEstadoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   if (estados.every((estado) => estado === "pendiente")) return "pendiente";
   if (estados.includes("vencido")) return "vencida";
 
-  // Regla de la prórroga: darle más días solo la devuelve a "activa" si el
-  // cliente quedó al día con lo que YA debía. Lo que valen los días recién
-  // agregados no cuenta acá: esos se cobran cuando devuelva, igual que
-  // cualquier otro día de alquiler en curso. Si contaran, ampliar el
-  // vencimiento nunca alcanzaría por sí solo para poner la factura al día.
+  // Regla de la prórroga: darle más días no alcanza para volver a "activa"
+  // mientras quede algo por cobrar de lo ya vivido.
   if (estados.includes("ampliacion") && calcularExigible(doc, hoyIso) > 0) {
+    return "vencida";
+  }
+
+  // Y a la que se le venció la fecha alguna vez no la devuelve ni ponerse al
+  // día: vuelve a "activa" recién cuando se cancela TODO —lo que debía y lo
+  // que contrató al renovar—.
+  //
+  // Antes salía apenas el cliente cubría los días ya consumidos: la factura
+  // desaparecía de cartera con el equipo todavía afuera y los días recién
+  // pactados sin pagar. El equipo sí sale —renovado deja de estar vencido—,
+  // que es lo que hay que dejar de reclamar; la plata no.
+  if (
+    facturaSeVencioAlgunaVez(doc, hoyIso) &&
+    calcularCuentaFactura(doc, hoyIso).saldoPendiente > 0
+  ) {
     return "vencida";
   }
 

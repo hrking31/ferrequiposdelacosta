@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-520_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-524_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -491,9 +491,15 @@ Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con l
 Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia completa de la factura.
 
 > [!NOTE]
-> **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí la tarjeta lo dice —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— en vez de mostrar un hueco, porque lo único que queda por hacer es cobrar.
+> **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí la tarjeta lo dice —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— en vez de mostrar un hueco, porque lo único que queda por hacer es cobrar. Y dice de qué saldo habla, que no siempre es el mismo: con deuda vieja es la de antes de la ampliación; ya al día, lo que contrató al renovar.
 >
 > **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
+
+**A la factura que se venció no la saca ponerse al día: la saca cancelar todo.** Al cliente que se atrasó y pidió más días se le corre la fecha, y con eso el equipo deja de estar vencido y sale de la lista de lo que hay que reclamar — es lo correcto, ya tiene plazo. Pero la factura salía con él, apenas el cliente cubría los días que ya había usado, y desaparecía de cartera con el equipo todavía afuera y los días recién contratados sin pagar.
+
+Ahora la factura vuelve a **activa** recién cuando el saldo llega a cero: lo que debía **y** lo que contrató al renovar. Salen por separado, que es lo que son: el equipo ya no se reclama, la plata sí.
+
+Para saberlo no hace falta guardar nada nuevo. El estado se recalcula cada vez mirando el día de hoy, así que una factura renovada se ve igual que una recién despachada; que la fecha se venció alguna vez se lee en las huellas que ya quedaban escritas — un equipo vencido o sin fecha, uno que volvió tarde, o una renovación que se llevó días vencidos adentro.
 
 **En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos, cada uno con su icono de calendario del color que le toca —tachado el de los vencidos—:
 
@@ -1034,7 +1040,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**520 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**524 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 
