@@ -599,10 +599,16 @@ export default function AbonoDialog({
                   >
                     <Stack direction="row" gap={1} sx={{ mb: 1 }}>
                       <WarningAmberIcon fontSize="small" color="warning" />
+                      {/* El nombre en su renglón y el aviso abajo, dicho como
+                          se lo diría un compañero: el equipo está donde el
+                          cliente y la fecha ya pasó. */}
                       <Typography variant="body2">
-                        <strong>{nombres}</strong> sigue afuera y ya venció
-                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}.
-                        ¿Qué pasa con {equipos.length === 1 ? "él" : "ellos"}?
+                        <strong>{nombres}</strong>
+                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}
+                        <Box component="span" sx={{ display: "block" }}>
+                          {equipos.length === 1 ? "Sigue" : "Siguen"} con el
+                          cliente y el plazo ya terminó.
+                        </Box>
                       </Typography>
                     </Stack>
 
@@ -617,7 +623,7 @@ export default function AbonoDialog({
                           }}
                           sx={{ p: 0.25 }}
                         />
-                        <Typography variant="body2">Le dieron</Typography>
+                        <Typography variant="body2">Le dieron más días →</Typography>
                         <TextField
                           size="small"
                           value={acuerdo.dias}
@@ -632,13 +638,17 @@ export default function AbonoDialog({
                           sx={{ width: 64, "& input": { textAlign: "center", py: 0.5 } }}
                         />
                         <Typography variant="body2">
-                          días más
+                          días
+                          {/* La fecha en que quedaría, que es la que el
+                              cliente escucha por teléfono. Entre paréntesis y
+                              no con otra flecha: la del renglón ya separa lo
+                              que se elige de lo que se escribe. */}
                           {proyeccion && (
                             <Box
                               component="span"
                               sx={{ color: "text.secondary", ml: 0.5 }}
                             >
-                              → vence el {formatearFechaLegible(proyeccion)}
+                              (vence el {formatearFechaLegible(proyeccion)})
                             </Box>
                           )}
                         </Typography>
@@ -650,18 +660,27 @@ export default function AbonoDialog({
                           checked={acuerdo.tipo === "indefinida"}
                           onChange={() => elegirAcuerdo(factura.id, "indefinida")}
                           inputProps={{
-                            "aria-label": `Entrega indefinida, factura ${numero}`,
+                            "aria-label": `Quedó sin fecha de entrega, factura ${numero}`,
                           }}
                           sx={{ p: 0.25 }}
                         />
                         <Typography variant="body2">
-                          Entrega indefinida — el cliente avisará
+                          Quedó sin fecha de entrega → El cliente avisará
                         </Typography>
                       </Stack>
 
+                      {/* La devolución va aparte de las dos opciones: no es
+                          algo que se elija acá, es otro diálogo que se abre y
+                          define depósito y retención. */}
+                      <Typography
+                        variant="body2"
+                        sx={{ mt: 0.5, color: "text.secondary" }}
+                      >
+                        Devolución:
+                      </Typography>
                       <Stack direction="row" alignItems="center" gap={1}>
                         <Typography variant="body2" sx={{ pl: 0.5 }}>
-                          ¿Lo devolvió?
+                          ¿Ya lo devolvieron? →
                         </Typography>
                         <Button
                           size="small"
