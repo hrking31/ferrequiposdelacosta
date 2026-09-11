@@ -294,7 +294,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
       await usuario.click(
-        screen.getByRole("radio", { name: /sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
@@ -337,7 +337,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeDisabled();
 
       await usuario.click(
-        screen.getByRole("radio", { name: /sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
 
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
@@ -356,6 +356,25 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
     });
 
+    // Las tres opciones se leen de un vistazo —renovación, entrega indefinida
+    // y devolución— y solo la que se elige pide algo. Un campo de días
+    // siempre a la vista invita a llenarlo sin haber elegido nada.
+    it("pide los días recién cuando se elige la renovación", async () => {
+      const { usuario } = abrir({ facturas: [conCompresorVencido()] });
+
+      // El acuerdo recién se pregunta cuando hay plata que repartir: sin
+      // monto no hay factura destino y no hay nada que definir.
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+
+      expect(screen.queryByLabelText(/Días de plazo/)).not.toBeInTheDocument();
+
+      await usuario.click(screen.getByRole("radio", { name: /Renovación/ }));
+
+      expect(screen.getByLabelText(/Días de plazo/)).toBeInTheDocument();
+    });
+
     it("con días de plazo renueva el equipo y lo deja anotado como renovación", async () => {
       const factura = conCompresorVencido();
       const { usuario } = abrir({ facturas: [factura] });
@@ -363,6 +382,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+      await usuario.click(screen.getByRole("radio", { name: /Renovación/ }));
       await usuario.type(screen.getByLabelText(/Días de plazo/), "4");
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -391,7 +411,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(total));
       await usuario.click(
-        screen.getByRole("radio", { name: /sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -421,7 +441,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
       await usuario.click(
-        screen.getByRole("button", { name: "Registrar devolución" }),
+        screen.getByRole("button", { name: "Devolución" }),
       );
 
       expect(alDevolver).toHaveBeenCalledTimes(1);

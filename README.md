@@ -267,7 +267,7 @@ Ahora el momento del cobro es el momento de definir el equipo, que es cuando el 
 
 Las tres quedan anotadas en la bitácora como **renovación**, así que el chip de gestión deja de mostrar el *"sin respuesta"* de una llamada vieja cuando el cliente ya contestó y pagó.
 
-Y el diálogo lo dice **como se habla por teléfono**, no como lo nombra el sistema: el equipo se anuncia por su nombre y debajo *"Sigue con el cliente y el plazo ya terminó."*; las dos opciones son *"Le dieron más días → [ ] días"* y *"Quedó sin fecha de entrega → El cliente avisará"*, y la devolución va aparte, *"¿Ya lo devolvieron? → Registrar devolución"*. Antes decía *"sigue afuera y ya venció"* y *"Entrega indefinida"*: correcto y ajeno a la conversación que está ocurriendo mientras se llena.
+El equipo se anuncia por su nombre y debajo *"Sigue con el cliente y el plazo ya terminó."*, y las tres salidas se nombran **como el estado en que dejan la factura**: **Renovación**, **Entrega indefinida** y **Devolución**. Los días y la fecha nueva aparecen recién al elegir la renovación — un campo siempre a la vista invita a llenarlo sin haber elegido nada, y las tres opciones dejan de leerse de un vistazo.
 
 > **La devolución no vive dentro del abono, y es por la plata.** Define el estado del equipo, cuánto se retiene y cuánto depósito vuelve — y eso cambia lo que hay que cobrar. Así que se abre en su propio diálogo y, al cerrarlo, el abono vuelve **en blanco**: el depósito que volvió se canjea contra lo que el cliente debía, y el número que se iba a cobrar ya no es el que corresponde.
 

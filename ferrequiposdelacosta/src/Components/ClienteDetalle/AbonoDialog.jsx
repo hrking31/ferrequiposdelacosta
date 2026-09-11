@@ -619,39 +619,42 @@ export default function AbonoDialog({
                           checked={acuerdo.tipo === "dias"}
                           onChange={() => elegirAcuerdo(factura.id, "dias")}
                           inputProps={{
-                            "aria-label": `Le dieron más días, factura ${numero}`,
+                            "aria-label": `Renovación, factura ${numero}`,
                           }}
                           sx={{ p: 0.25 }}
                         />
-                        <Typography variant="body2">Le dieron más días →</Typography>
-                        <TextField
-                          size="small"
-                          value={acuerdo.dias}
-                          onChange={(e) => escribirDias(factura.id, e.target.value)}
-                          onFocus={() => elegirAcuerdo(factura.id, "dias")}
-                          name={`dias-acuerdo-${factura.id}`}
-                          id={`dias-acuerdo-${factura.id}`}
-                          inputProps={{
-                            inputMode: "numeric",
-                            "aria-label": `Días de plazo, factura ${numero}`,
-                          }}
-                          sx={{ width: 64, "& input": { textAlign: "center", py: 0.5 } }}
-                        />
-                        <Typography variant="body2">
-                          días
-                          {/* La fecha en que quedaría, que es la que el
-                              cliente escucha por teléfono. Entre paréntesis y
-                              no con otra flecha: la del renglón ya separa lo
-                              que se elige de lo que se escribe. */}
-                          {proyeccion && (
-                            <Box
-                              component="span"
-                              sx={{ color: "text.secondary", ml: 0.5 }}
-                            >
-                              (vence el {formatearFechaLegible(proyeccion)})
-                            </Box>
-                          )}
-                        </Typography>
+                        <Typography variant="body2">Renovación</Typography>
+                        {/* Los días y la fecha aparecen al elegirla: sin
+                            elegir no hay nada que llenar, y el renglón se lee
+                            como las otras dos opciones, de un vistazo. */}
+                        {acuerdo.tipo === "dias" && (
+                          <>
+                            <TextField
+                              size="small"
+                              autoFocus
+                              value={acuerdo.dias}
+                              onChange={(e) => escribirDias(factura.id, e.target.value)}
+                              name={`dias-acuerdo-${factura.id}`}
+                              id={`dias-acuerdo-${factura.id}`}
+                              inputProps={{
+                                inputMode: "numeric",
+                                "aria-label": `Días de plazo, factura ${numero}`,
+                              }}
+                              sx={{ width: 64, "& input": { textAlign: "center", py: 0.5 } }}
+                            />
+                            <Typography variant="body2">días</Typography>
+                            {/* Hasta cuándo quedaría: es la fecha que el
+                                cliente escucha por teléfono. */}
+                            {proyeccion && (
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "text.secondary" }}
+                              >
+                                → {formatearFechaLegible(proyeccion)}
+                              </Typography>
+                            )}
+                          </>
+                        )}
                       </Stack>
 
                       <Stack direction="row" alignItems="center" gap={0.5}>
@@ -660,35 +663,24 @@ export default function AbonoDialog({
                           checked={acuerdo.tipo === "indefinida"}
                           onChange={() => elegirAcuerdo(factura.id, "indefinida")}
                           inputProps={{
-                            "aria-label": `Quedó sin fecha de entrega, factura ${numero}`,
+                            "aria-label": `Entrega indefinida, factura ${numero}`,
                           }}
                           sx={{ p: 0.25 }}
                         />
-                        <Typography variant="body2">
-                          Quedó sin fecha de entrega → El cliente avisará
-                        </Typography>
+                        <Typography variant="body2">Entrega indefinida</Typography>
                       </Stack>
 
-                      {/* La devolución va aparte de las dos opciones: no es
-                          algo que se elija acá, es otro diálogo que se abre y
-                          define depósito y retención. */}
-                      <Typography
-                        variant="body2"
-                        sx={{ mt: 0.5, color: "text.secondary" }}
-                      >
-                        Devolución:
-                      </Typography>
-                      <Stack direction="row" alignItems="center" gap={1}>
-                        <Typography variant="body2" sx={{ pl: 0.5 }}>
-                          ¿Ya lo devolvieron? →
-                        </Typography>
+                      {/* La tercera no es un radio: la devolución no se elige
+                          acá, abre su propio diálogo —define depósito y
+                          retención, y eso cambia cuánto cobrar—. */}
+                      <Stack direction="row" alignItems="center" sx={{ mt: 0.5 }}>
                         <Button
                           size="small"
                           variant="outlined"
                           color="warning"
                           onClick={() => irADevolucion(factura)}
                         >
-                          Registrar devolución
+                          Devolución
                         </Button>
                       </Stack>
                     </Stack>
