@@ -25,18 +25,21 @@ const ESPACIO_DURO = String.fromCharCode(160);
 const sinEspacioDuro = (texto) => texto.split(ESPACIO_DURO).join(" ");
 const dinero = (monto) => sinEspacioDuro(formatearMoneda(monto));
 
-// El IVA de un renglón: va pegado a su nombre, en la celda de al lado.
+// En pantalla el renglón muestra solo su concepto —"días vencidos"—, porque el
+// nombre del equipo lo encabeza una vez arriba y no se repite. El nombre
+// completo vive en el `title` de cada renglón, que es por donde se lo busca
+// acá: dos equipos del mismo lote pueden tener el mismo concepto.
 const ivaDelRenglon = (etiqueta) =>
-  sinEspacioDuro(screen.getByText(etiqueta).nextElementSibling.textContent);
+  sinEspacioDuro(screen.getByTitle(etiqueta).nextElementSibling.textContent);
 
 // Los totales viven en su propia columna —la que cae bajo "Total
 // adicionales"—, así que no son hermanos del nombre: se buscan por su cifra.
 const hayTotal = (monto) => screen.getByText(dinero(monto));
 const vecesQueAparece = (monto) => screen.getAllByText(dinero(monto)).length;
 
-// Los nombres del desglose, en el orden en que se leen en pantalla.
+// Los renglones del desglose, en el orden en que se leen en pantalla.
 const renglonesEnPantalla = () =>
-  screen.getAllByText(/^1 (BENITIN|ANDAMIO)/).map((fila) => fila.textContent);
+  screen.getAllByTitle(/^1 (BENITIN|ANDAMIO)/).map((fila) => fila.title);
 
 // 1 BENITIN a $100.000 el día, con IVA, despachado el 06 y ya devuelto — así
 // la cuenta se corta en una fecha guardada y no en "hoy".
@@ -99,9 +102,9 @@ describe("CargosAdicionales", () => {
   it("llama vencidos a los días que el equipo se quedó afuera, no ampliados", () => {
     dibujar([conTresDiasVencidos]);
 
-    expect(screen.getByText("1 BENITIN · días vencidos")).toBeInTheDocument();
+    expect(screen.getByTitle("1 BENITIN · días vencidos")).toBeInTheDocument();
     expect(
-      screen.queryByText("1 BENITIN · días ampliados"),
+      screen.queryByTitle("1 BENITIN · días ampliados"),
     ).not.toBeInTheDocument();
   });
 
@@ -117,9 +120,9 @@ describe("CargosAdicionales", () => {
       }),
     ]);
 
-    expect(screen.getByText("1 BENITIN · días ampliados")).toBeInTheDocument();
+    expect(screen.getByTitle("1 BENITIN · días ampliados")).toBeInTheDocument();
     expect(
-      screen.queryByText("1 BENITIN · días vencidos"),
+      screen.queryByTitle("1 BENITIN · días vencidos"),
     ).not.toBeInTheDocument();
   });
 
@@ -170,22 +173,22 @@ describe("CargosAdicionales", () => {
     ]);
 
     expect(
-      screen.getByText("1 BENITIN · días vencidos pagados"),
+      screen.getByTitle("1 BENITIN · días vencidos pagados"),
     ).toBeInTheDocument();
     // No son días que alguien haya concedido, ni quedan abiertos.
-    expect(screen.queryByText("1 BENITIN · días ampliados")).not.toBeInTheDocument();
-    expect(screen.queryByText("1 BENITIN · días vencidos")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("1 BENITIN · días ampliados")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("1 BENITIN · días vencidos")).not.toBeInTheDocument();
 
     // Y la plata está toda: esos 3 días valen $300.000 y pagan $57.000 de IVA,
     // que es lo que los separa de no cobrarse.
     expect(ivaDelRenglon("1 BENITIN · días vencidos pagados")).toBe(dinero(57000));
-    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(95000));
+    expect(ivaDelRenglon("1 BENITIN · renta inicial")).toBe(dinero(95000));
   });
 
   it("muestra el IVA que le toca a cada renglón", () => {
     dibujar([conTresDiasVencidos]);
 
-    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(95000));
+    expect(ivaDelRenglon("1 BENITIN · renta inicial")).toBe(dinero(95000));
     expect(ivaDelRenglon("1 BENITIN · días vencidos")).toBe(
       dinero(57000),
     );
@@ -213,8 +216,33 @@ describe("CargosAdicionales", () => {
 
     expect(renglonesEnPantalla()).toEqual([
       "1 BENITIN · días vencidos",
-      "1 BENITIN",
+      "1 BENITIN · renta inicial",
     ]);
+  });
+
+  // El nombre de un equipo de alquiler es largo —"1 COMPRESOR NEUMATICO
+  // INGERSOLLRAND 185"— y repetido en cada renglón no entraba en una línea: al
+  // partirse en dos descolocaba los totales de la derecha, que dejaban de caer
+  // al lado del movimiento que explican.
+  it("escribe el nombre del equipo una sola vez, encabezando sus renglones", () => {
+    dibujar([conTresDiasVencidos], conCargosDelLote);
+
+    expect(screen.getAllByText("1 BENITIN")).toHaveLength(1);
+  });
+
+  // Manda el orden en que pasó, no el equipo: por eso un equipo que se movió
+  // en dos momentos distintos encabeza dos grupos en vez de juntar lo suyo.
+  it("vuelve a escribir el nombre cuando el historial cambia de equipo", () => {
+    dibujar([conTresDiasVencidos, otroEquipo], conCargosDelLote);
+
+    // Los vencidos del BENITIN, y debajo las altas de los dos equipos: el
+    // BENITIN aparece al principio y al final.
+    expect(renglonesEnPantalla()).toEqual([
+      "1 BENITIN · días vencidos",
+      "1 ANDAMIO · renta inicial",
+      "1 BENITIN · renta inicial",
+    ]);
+    expect(screen.getAllByText("1 BENITIN")).toHaveLength(2);
   });
 
   it("acumula el historial cuando el lote tiene varios equipos", () => {
@@ -234,7 +262,7 @@ describe("CargosAdicionales", () => {
   it("al equipo devuelto tarde le separa igual los días vencidos", () => {
     dibujar([conTresDiasVencidos, otroEquipo]);
 
-    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(95000));
+    expect(ivaDelRenglon("1 BENITIN · renta inicial")).toBe(dinero(95000));
     expect(ivaDelRenglon("1 BENITIN · días vencidos")).toBe(dinero(57000));
   });
 
@@ -263,9 +291,9 @@ describe("CargosAdicionales", () => {
       otroEquipo,
     ]);
 
-    expect(ivaDelRenglon("1 BENITIN")).toBe(dinero(57000));
+    expect(ivaDelRenglon("1 BENITIN · renta inicial")).toBe(dinero(57000));
     expect(
-      screen.queryByText("1 BENITIN · días sin usar"),
+      screen.queryByTitle("1 BENITIN · días sin usar"),
     ).not.toBeInTheDocument();
   });
 

@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-496_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-520_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -897,9 +897,13 @@ Un número sumado esconde de dónde salió. El IVA de los cargos adicionales es 
 
 Aparece **solo cuando hay algo que repartir**: más de un equipo que aporte, o uno solo que se parta en varios renglones. Con un equipo y un renglón el detalle repetiría el total que ya está arriba, y una flecha que no abre nada es peor que no tenerla. Mismo criterio en el botón del historial: dice **"Ver 12 facturas finalizadas"** con el número por delante, y si no hay ninguna no se muestra — antes había que apretarlo para descubrir que la lista venía vacía.
 
-Cuando un equipo tiene días agregados, ese detalle se parte en varios renglones —*"10 chazas"*, *"10 chazas · días ampliados"*, *"10 chazas · días vencidos"*—, porque el IVA de lo que se pactó al principio, el de lo que se autorizó después y el de los días que el cliente se tomó sin avisar no son el mismo hecho. **Días ampliados** cuenta que alguien los autorizó; **días vencidos**, que el cliente no devolvió. Durante un tiempo la pantalla los llamaba a todos ampliados, y así contaba una autorización que nunca existió.
+Cuando un equipo tiene días agregados, ese detalle se parte en varios renglones —*renta inicial*, *días ampliados*, *días vencidos*—, porque el IVA de lo que se pactó al principio, el de lo que se autorizó después y el de los días que el cliente se tomó sin avisar no son el mismo hecho. **Días ampliados** cuenta que alguien los autorizó; **días vencidos**, que el cliente no devolvió. Durante un tiempo la pantalla los llamaba a todos ampliados, y así contaba una autorización que nunca existió.
+
+El **nombre del equipo encabeza sus renglones una sola vez** y los conceptos van debajo. Escrito en cada uno —*"1 COMPRESOR NEUMATICO INGERSOLLRAND 185 · días vencidos pagados"*— no entraba en una línea, y al partirse en dos descolocaba la columna de la derecha: los totales dejaban de caer al lado del movimiento que explican. El nombre completo sigue estando, en el `title` de cada renglón.
 
 Al lado, bajo el **Total adicionales**, va el historial de ese número: a cuánto llegaba después de cada movimiento. Es un acumulado —el despacho más el IVA hasta ahí—, no lo que aporta cada renglón suelto, y se lee al revés de como ocurrió: lo más reciente arriba, el alta abajo del todo.
+
+Y como es un historial, **manda el orden en que pasó, no el equipo**: uno que se movió en dos momentos distintos encabeza dos grupos en vez de juntar lo suyo. Agrupado por equipo se leería más cómodo, pero los totales de la derecha saltarían sin seguir ninguna línea de tiempo y dejarían de explicar nada.
 
 El renglón más nuevo va **vacío** a propósito. Su total es el que está arriba, siempre a la vista; repetirlo abajo haría creer que después pasó algo más.
 
@@ -1026,7 +1030,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**518 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**520 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

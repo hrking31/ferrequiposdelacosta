@@ -148,6 +148,13 @@ export default function CargosAdicionales({
   // Los renglones que se ven al desplegar, cada uno con su valor y su IVA.
   // El que no mueve plata no se dibuja: un equipo sin días de más tiene una
   // sola línea, la suya.
+  //
+  // El nombre del equipo va aparte del concepto porque en pantalla se dibujan
+  // aparte: el nombre encabeza el grupo y los conceptos van debajo. Repetido
+  // en cada renglón —"1 COMPRESOR NEUMATICO INGERSOLLRAND 185 · días vencidos
+  // pagados"— no cabía en una línea, y al partirse en dos descolocaba los
+  // totales de la derecha. La etiqueta completa sobrevive en el `title`, para
+  // el que pare el mouse encima.
   const renglonesDeEquipo = (equipo) => {
     const partes = partesDeEquipo(equipo);
     const nombre = `${equipo.cantidadEquipos} ${equipo.nombre}`;
@@ -156,30 +163,32 @@ export default function CargosAdicionales({
     return [
       {
         clave: "inicial",
-        etiqueta: nombre,
+        concepto: "renta inicial",
         // Si salió por 3 días y devolvió a 1, este renglón vale 1 día: los
         // días que quedaron escritos al volver son los que estuvo afuera.
         valor: partes.inicial,
       },
       {
         clave: "ampliados",
-        etiqueta: `${nombre} · días ampliados`,
+        concepto: "días ampliados",
         valor: partes.ampliados,
       },
       {
         clave: "pagados",
-        etiqueta: `${nombre} · días vencidos pagados`,
+        concepto: "días vencidos pagados",
         valor: partes.pagados,
       },
       {
         clave: "vencidos",
-        etiqueta: `${nombre} · días vencidos`,
+        concepto: "días vencidos",
         valor: partes.vencidos,
       },
     ]
       .filter((renglon) => renglon.valor !== 0)
       .map((renglon) => ({
         ...renglon,
+        equipo: nombre,
+        etiqueta: `${nombre} · ${renglon.concepto}`,
         iva: conIva ? renglon.valor * IVA : 0,
       }));
   };
@@ -233,6 +242,10 @@ export default function CargosAdicionales({
   const conClave = (equipo, indice, renglon) => ({
     ...renglon,
     clave: `${equipo.nombre}-${indice}-${renglon.clave}`,
+    // De quién es el renglón: dos equipos pueden llamarse igual en el mismo
+    // lote, así que el índice va pegado. Sirve para saber cuándo el historial
+    // cambia de equipo y hay que volver a escribir el nombre.
+    idEquipo: `${equipo.nombre}-${indice}`,
     esDelAlta: renglon.clave === "inicial",
   });
   const renglonesEnOrden = [
@@ -270,6 +283,24 @@ export default function CargosAdicionales({
     })
     .reverse();
 
+  // Lo que se dibuja, ya en el orden final: el nombre del equipo encabeza sus
+  // renglones y no se repite mientras los que siguen sean suyos. Como manda el
+  // historial y no el equipo, un equipo que se movió dos veces en momentos
+  // distintos aparece encabezando dos grupos —es el precio de leer la cuenta
+  // en el orden en que pasó, que es como se entiende—.
+  const filasDelDesglose = [];
+  let equipoEnCurso = null;
+  renglonesDelDesglose.forEach((renglon) => {
+    if (renglon.idEquipo !== equipoEnCurso) {
+      filasDelDesglose.push({
+        clave: `equipo-${renglon.clave}`,
+        titulo: renglon.equipo,
+      });
+      equipoEnCurso = renglon.idEquipo;
+    }
+    filasDelDesglose.push(renglon);
+  });
+
   // La flecha va DENTRO del recuadro, al lado de los datos y a su mismo
   // nivel —no en un renglón propio arriba, que solo dejaba un hueco vacío—,
   // igual que el botón de ocultar factura.
@@ -289,92 +320,98 @@ export default function CargosAdicionales({
           {renderFilaDatos(color, datos)}
 
           {hayDesglose && abierto && (
-            // Las mismas columnas de la fila de arriba, reproducidas una a
-            // una: tantas partes iguales como datos haya, separadas por el
-            // mismo pixel que ocupa cada divisor. Repartir "tres cuartos y un
-            // cuarto" no alcanzaba —los divisores corren las columnas de
-            // arriba y el total quedaba pegado a la izquierda de su rótulo—.
-            // El nombre y su IVA ocupan todas las columnas menos la última, y
-            // los totales caen en la última, la del "Total adicionales" que
-            // explican.
+            // Una sola cuadrícula para todo el detalle: cada total de la
+            // derecha es una celda de la MISMA fila que su renglón, así que le
+            // queda al lado aunque el texto se parta en dos líneas. Dibujados
+            // como dos listas sueltas —los nombres por un lado, los totales
+            // por otro—, una línea de más corría todos los totales y dejaban
+            // de explicar nada.
+            //
+            // La última columna mide lo mismo que una de la fila de arriba
+            // —el ancho del recuadro menos los divisores, repartido entre
+            // tantas partes como datos haya—, así que los totales caen justo
+            // bajo el "Total adicionales" que explican.
             <Box
               sx={{
                 mt: 0.75,
-                display: { xs: "block", sm: "grid" },
-                gridTemplateColumns: `repeat(${datos.length}, 1fr)`,
-                columnGap: "1px",
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "minmax(0, 1fr) max-content max-content",
+                  sm: `minmax(0, 1fr) max-content calc((100% - ${
+                    datos.length - 1
+                  }px) / ${datos.length})`,
+                },
+                rowGap: 0.25,
               }}
             >
-              <Box
-                sx={{
-                  gridColumn: { sm: `1 / ${datos.length}` },
-                  minWidth: 0,
-                  px: { sm: 0.75 },
-                }}
+              <Typography
+                variant="rotuloDato"
+                sx={{ color: color, gridColumn: "1 / 3", px: { sm: 0.75 } }}
               >
-                <Typography variant="rotuloDato" sx={{ color: color }}>
-                  IVA POR EQUIPO
-                </Typography>
-                {/* El IVA pegado al nombre que lo explica, y no contra el
-                    margen: las dos columnas miden lo que mide su contenido,
-                    así que los montos quedan alineados entre sí sin irse a
-                    media pantalla del nombre. */}
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, max-content) max-content",
-                    columnGap: 2,
-                    rowGap: 0.25,
-                  }}
-                >
-                  {renglonesDelDesglose.map((renglon) => (
-                    <Fragment key={renglon.clave}>
-                      <Typography variant="body2" sx={{ minWidth: 0 }}>
-                        {renglon.etiqueta}
-                      </Typography>
+                IVA POR EQUIPO
+              </Typography>
+
+              {filasDelDesglose.map((fila) =>
+                fila.titulo ? (
+                  // El nombre del equipo, una sola vez, encabezando lo suyo.
+                  <Typography
+                    key={fila.clave}
+                    variant="body2"
+                    sx={{
+                      gridColumn: "1 / 3",
+                      px: { sm: 0.75 },
+                      mt: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {fila.titulo}
+                  </Typography>
+                ) : (
+                  <Fragment key={fila.clave}>
+                    {/* El concepto va sangrado bajo el nombre que lo encabeza
+                        y guarda la etiqueta completa en el `title`, para el
+                        que pare el mouse encima. */}
+                    <Typography
+                      variant="body2"
+                      title={fila.etiqueta}
+                      sx={{
+                        gridColumn: 1,
+                        minWidth: 0,
+                        pl: { xs: 1.5, sm: 2.25 },
+                      }}
+                    >
+                      {fila.concepto}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        gridColumn: 2,
+                        pl: 2,
+                        whiteSpace: "nowrap",
+                        textAlign: "right",
+                      }}
+                    >
+                      {formatearMoneda(fila.iva)}
+                    </Typography>
+                    {/* A cuánto llegaba el total adicional después de este
+                        movimiento. El renglón vigente no lleva ninguno: su
+                        total es el que está arriba, siempre a la vista. */}
+                    {fila.totalHistorico !== null && (
                       <Typography
                         variant="body2"
-                        sx={{ whiteSpace: "nowrap", textAlign: "right" }}
+                        sx={{
+                          gridColumn: 3,
+                          pl: { sm: 0.75 },
+                          whiteSpace: "nowrap",
+                          fontWeight: 600,
+                        }}
                       >
-                        {formatearMoneda(renglon.iva)}
+                        {formatearMoneda(fila.totalHistorico)}
                       </Typography>
-                    </Fragment>
-                  ))}
-                </Box>
-              </Box>
-
-              <Box sx={{ minWidth: 0, px: { sm: 0.75 } }}>
-                {/* El mismo rótulo de la izquierda, invisible: reserva su
-                    alto para que cada total quede en el renglón que le
-                    corresponde. Las dos columnas usan las mismas variantes de
-                    texto, así que las líneas coinciden solas. */}
-                <Typography
-                  variant="rotuloDato"
-                  aria-hidden
-                  sx={{ visibility: "hidden", display: { xs: "none", sm: "block" } }}
-                >
-                  IVA POR EQUIPO
-                </Typography>
-                <Box sx={{ display: "grid", rowGap: 0.25 }}>
-                  {/* A cuánto llegaba el total adicional después de cada
-                      movimiento. El renglón vigente va vacío: su total es el
-                      que está arriba. */}
-                  {renglonesDelDesglose.map((renglon) => (
-                    <Typography
-                      key={renglon.clave}
-                      variant="body2"
-                      sx={{ whiteSpace: "nowrap", fontWeight: 600 }}
-                    >
-                      {/* Un espacio duro y no una cadena vacía: el renglón
-                          sin total tiene que ocupar su línea igual, o los de
-                          abajo se corren y dejan de caer al lado del suyo. */}
-                      {renglon.totalHistorico === null
-                        ? " "
-                        : formatearMoneda(renglon.totalHistorico)}
-                    </Typography>
-                  ))}
-                </Box>
-              </Box>
+                    )}
+                  </Fragment>
+                ),
+              )}
             </Box>
           )}
         </Box>
