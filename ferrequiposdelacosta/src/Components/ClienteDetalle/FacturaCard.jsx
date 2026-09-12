@@ -567,44 +567,14 @@ export default function FacturaCard({
 
           {gruposAgregados.length > 0 && (
             <Box sx={{ mt: 1 }}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography
-                  variant="overline"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    lineHeight: 1.6,
-                    color: colorEquiposAgregados,
-                  }}
-                >
-                  <LibraryAddIcon fontSize="small" />
-                  Agregados
-                  {/* La fecha va acá, en el rótulo, y no repetida en cada
-                      equipo. Este encabeza el PRIMER despacho, así que es la
-                      suya; del segundo en adelante, cada uno lleva la propia.
-                      Con las dos, el primer despacho salía rotulado dos veces
-                      seguidas. */}
-                  {gruposAgregados[0]?.fechaSolicitud && (
-                    <Box
-                      component="span"
-                      sx={{ color: "text.secondary", fontWeight: 400 }}
-                    >
-                      {formatearFecha(gruposAgregados[0].fechaSolicitud)}
-                    </Box>
-                  )}
-                </Typography>
-                {renderToggle("equiposAgregados")}
-              </Stack>
-              {/* Cada lote —lo que se agregó de una sola vez— va
-                  con sus equipos, después su pago y después sus
-                  adicionales. */}
-              {mostrar("equiposAgregados") &&
-                gruposAgregados.map((lote, indiceLote) => {
+              {/* Cada despacho —lo que se agregó de una sola vez— se dibuja
+                  igual que el de al lado: su rótulo con la fecha en que entró
+                  y, adentro, su pago, sus equipos y sus cargos.
+
+                  No hay rótulo de bloque arriba: rotulaba al primer despacho
+                  desde otro lugar que a los demás, así que el primero se leía
+                  distinto y cualquier cambio había que hacerlo dos veces. */}
+              {gruposAgregados.map((lote, indiceLote) => {
                   // Cuántas columnas ocupa este lote: una sola si
                   // trae un equipo, dos si trae dos o más. El ancho
                   // se le pone al lote COMPLETO —no solo a la fila de
@@ -649,7 +619,7 @@ export default function FacturaCard({
                         },
                       }}
                     >
-                      {indiceLote > 0 && lote.fechaSolicitud && (
+                      {lote.fechaSolicitud && (
                         <Typography
                           variant="overline"
                           sx={{

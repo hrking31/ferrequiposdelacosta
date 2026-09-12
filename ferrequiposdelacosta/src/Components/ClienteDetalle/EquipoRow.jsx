@@ -20,6 +20,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import EventIcon from "@mui/icons-material/Event";
@@ -224,7 +225,18 @@ export default function EquipoRow({ equipo, color }) {
               alignItems="center"
               sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
             >
-              <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
+              {/* CUÁNDO SALIÓ, que abre la línea: el camión lo distingue de la
+                fecha del final, que es cuándo vuelve. */}
+            {equipo.fechaDespacho && (
+              <>
+                <Condicion
+                  Icono={LocalShippingIcon}
+                  texto={formatearFecha(equipo.fechaDespacho)}
+                />
+                <Separador />
+              </>
+            )}
+            <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
               <Separador />
               <Condicion
                 Icono={MonetizationOnIcon}
@@ -233,10 +245,17 @@ export default function EquipoRow({ equipo, color }) {
               <Separador />
               <Condicion
                 Icono={EventIcon}
+                // HASTA CUÁNDO. El que ya volvió muestra el día en que volvió,
+                // no el que tenía pactado: esa fecha dejó de valer cuando el
+                // equipo entró a bodega, y dejarla puesta decía que seguía
+                // afuera hasta entonces. Cuándo vencía —y si se pasó— se lee
+                // en su historia.
                 texto={
-                  equipo.vencimientoIndefinido
-                    ? "Sin fecha de entrega"
-                    : formatearFecha(equipo.fechaVencimiento)
+                  devuelto && equipo.devolucion?.fechaDevolucion
+                    ? formatearFecha(equipo.devolucion.fechaDevolucion)
+                    : equipo.vencimientoIndefinido
+                      ? "Sin fecha de entrega"
+                      : formatearFecha(equipo.fechaVencimiento)
                 }
               />
             </Stack>
