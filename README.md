@@ -462,7 +462,7 @@ Y desde la ficha se pregunta algo más: **por qué lo devuelve**. Un campo opcio
 
 ### Cada equipo dice en qué anda
 
-En la ficha del cliente, cada equipo lleva el chip de **uno de sus cinco estados** — pendiente, activo, ampliación, vencido, devuelto — junto al nombre. Antes solo se rotulaba el devuelto, y los otros cuatro había que deducirlos leyendo las fechas.
+En la ficha del cliente, cada equipo lleva el rótulo de **uno de sus cinco estados** — pendiente, activo, ampliación, vencido, devuelto — encabezando su columna de la derecha, arriba de la plata. Antes solo se rotulaba el devuelto, y los otros cuatro había que deducirlos leyendo las fechas. Va con la plata y no pegado al nombre porque son las dos cosas que se leen de un vistazo: juntas se leen de una pasada, en vez de saltar de una punta a la otra de la fila.
 
 Los cinco ya se calculaban; lo que faltaba era mostrarlos. Y **ningún color es nuevo**: cada uno es el que el tema ya le da a esa misma idea en otra parte — el ámbar de la factura pendiente, el verde de la activa, el azul de la gestión *prórroga*, el rojo de la vencida y el gris azulado de lo devuelto. Un equipo vencido se ve del mismo rojo que una factura vencida, porque es el mismo hecho a otra escala.
 
