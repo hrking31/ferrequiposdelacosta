@@ -549,7 +549,6 @@ export default function FacturaCard({
                         key={`original-${index}`}
                         equipo={equipo}
                         color={colorEquipos}
-                        fechaPedido={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                       />
                     ))}
                   </Box>
@@ -591,6 +590,18 @@ export default function FacturaCard({
                 >
                   <LibraryAddIcon fontSize="small" />
                   Agregados {cantidadEquiposAgregados}
+                  {/* La fecha va acá, en el rótulo del despacho, y no repetida
+                      en cada equipo. Con varios despachos no se puede: ahí
+                      cada uno lleva la suya, abajo. */}
+                  {gruposAgregados.length === 1 &&
+                    gruposAgregados[0]?.fechaSolicitud && (
+                      <Box
+                        component="span"
+                        sx={{ color: "text.secondary", fontWeight: 400 }}
+                      >
+                        {formatearFecha(gruposAgregados[0].fechaSolicitud)}
+                      </Box>
+                    )}
                 </Typography>
                 {renderToggle("equiposAgregados")}
               </Stack>
@@ -692,8 +703,31 @@ export default function FacturaCard({
                           empezaba. Cada grupo se guarda junto en la base y acá
                           se lee igual: su pago, sus equipos y sus cargos.
 
-                          El de afuera cuenta el total; este dice cuántos
-                          trajo ESTE despacho y cuándo entró. */}
+                          Con varios despachos, cada uno se encabeza con su
+                          fecha: el rótulo de afuera ya no puede decirla porque
+                          son distintas. */}
+                      {gruposAgregados.length > 1 && lote.fechaSolicitud && (
+                        <Typography
+                          variant="overline"
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            lineHeight: 1.6,
+                            color: colorEquiposAgregados,
+                          }}
+                        >
+                          <LibraryAddIcon fontSize="small" />
+                          Agregados
+                          <Box
+                            component="span"
+                            sx={{ color: "text.secondary", fontWeight: 400 }}
+                          >
+                            {formatearFecha(lote.fechaSolicitud)}
+                          </Box>
+                        </Typography>
+                      )}
+
                       <Typography
                         variant="overline"
                         sx={{
@@ -707,14 +741,6 @@ export default function FacturaCard({
                       >
                         <ConstructionIcon fontSize="small" />
                         Equipos {equiposDelLote.length}
-                        {lote.fechaSolicitud && (
-                          <Box
-                            component="span"
-                            sx={{ color: "text.secondary", fontWeight: 400 }}
-                          >
-                            {formatearFecha(lote.fechaSolicitud)}
-                          </Box>
-                        )}
                       </Typography>
 
                       <Box
@@ -735,7 +761,6 @@ export default function FacturaCard({
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
                             color={colorEquiposAgregados}
-                            fechaPedido={lote.fechaSolicitud}
                           />
                         ))}
                       </Box>
