@@ -178,12 +178,6 @@ export default function FacturaCard({
   // una devolución parcial parte el renglón en dos —lo que volvió y lo que
   // sigue afuera— y el mismo equipo pasaba a contarse dos veces. Se cuenta por
   // despacho y nombre, que es lo que se ve como "un equipo".
-  const cantidadEquiposAgregados = new Set(
-    gruposAgregados.flatMap((grupo) =>
-      (grupo.equipos ?? []).map((equipo) => `${grupo.grupo}|${equipo.nombre}`),
-    ),
-  ).size;
-
   const abonos = abonosDe(factura);
 
   // El estado no se toca a mano: sale de las fechas, de lo que se
@@ -589,19 +583,20 @@ export default function FacturaCard({
                   }}
                 >
                   <LibraryAddIcon fontSize="small" />
-                  Agregados {cantidadEquiposAgregados}
-                  {/* La fecha va acá, en el rótulo del despacho, y no repetida
-                      en cada equipo. Con varios despachos no se puede: ahí
-                      cada uno lleva la suya, abajo. */}
-                  {gruposAgregados.length === 1 &&
-                    gruposAgregados[0]?.fechaSolicitud && (
-                      <Box
-                        component="span"
-                        sx={{ color: "text.secondary", fontWeight: 400 }}
-                      >
-                        {formatearFecha(gruposAgregados[0].fechaSolicitud)}
-                      </Box>
-                    )}
+                  Agregados
+                  {/* La fecha va acá, en el rótulo, y no repetida en cada
+                      equipo. Este encabeza el PRIMER despacho, así que es la
+                      suya; del segundo en adelante, cada uno lleva la propia.
+                      Con las dos, el primer despacho salía rotulado dos veces
+                      seguidas. */}
+                  {gruposAgregados[0]?.fechaSolicitud && (
+                    <Box
+                      component="span"
+                      sx={{ color: "text.secondary", fontWeight: 400 }}
+                    >
+                      {formatearFecha(gruposAgregados[0].fechaSolicitud)}
+                    </Box>
+                  )}
                 </Typography>
                 {renderToggle("equiposAgregados")}
               </Stack>
@@ -654,7 +649,7 @@ export default function FacturaCard({
                         },
                       }}
                     >
-                      {gruposAgregados.length > 1 && lote.fechaSolicitud && (
+                      {indiceLote > 0 && lote.fechaSolicitud && (
                         <Typography
                           variant="overline"
                           sx={{
