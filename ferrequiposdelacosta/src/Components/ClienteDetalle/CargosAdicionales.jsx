@@ -73,8 +73,9 @@ const datosAdicionales = ({
     datos.push({
       clave: "iva",
       Icono: PercentIcon,
-      // El impuesto va con el color del bloque: es el cargo que le da nombre.
-      colorIcono: colores.adicionales,
+      // Violeta: el impuesto no es del negocio, es del Estado. Con el naranja
+      // del bloque se confundía con el rótulo que lo encabeza.
+      colorIcono: colores.impuesto,
       rotulo: "IVA (19%)",
       valor: formatearMoneda(Number(iva)),
     });
@@ -255,7 +256,7 @@ export default function CargosAdicionales({
     transporteTipo,
     transporteMonto,
     colores: {
-      adicionales: color,
+      impuesto: theme.palette.custom.seccionEquiposAgregados,
       deposito: theme.palette.success.main,
       movimiento: theme.palette.custom.estadoEquipo.ampliacion,
       total: theme.palette.custom.accent,
