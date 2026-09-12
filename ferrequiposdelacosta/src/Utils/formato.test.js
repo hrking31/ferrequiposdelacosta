@@ -7,6 +7,7 @@ import {
   limpiarNit,
   formatearFechaLegible,
   formatearHoraLegible,
+  formatearDias,
 } from "./formato";
 
 // Pruebas de las funciones de formato (presentación de importes, NIT, fechas y
@@ -108,5 +109,25 @@ describe("formatearHoraLegible", () => {
 
   it("devuelve cadena vacía si no hay hora", () => {
     expect(formatearHoraLegible("")).toBe("");
+  });
+});
+
+describe("formatearDias", () => {
+  it("un solo día va en singular", () => {
+    expect(formatearDias(1)).toBe("1 día");
+  });
+
+  it("de dos en adelante, en plural", () => {
+    expect(formatearDias(2)).toBe("2 días");
+    expect(formatearDias(15)).toBe("15 días");
+  });
+
+  it("cero días también es plural", () => {
+    expect(formatearDias(0)).toBe("0 días");
+  });
+
+  // El día puede llegar como texto desde un input, y "1" es un día igual que 1.
+  it("el uno escrito como texto sigue siendo singular", () => {
+    expect(formatearDias("1")).toBe("1 día");
   });
 });

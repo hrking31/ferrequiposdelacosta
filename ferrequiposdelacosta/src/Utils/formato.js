@@ -73,6 +73,12 @@ export const formatearFechaLegible = (fechaIso) => {
 // Los puntos y el espacio de "a. m." son los de la norma en español; no es un
 // AM/PM en inglés.
 // Se usa en: RegistrarLlamadaDialog y ClienteSeguimientoCard.
+// "1 día", "3 días". Lo único que cambia es el plural, pero escribirlo a mano
+// en cada pantalla es cómo la fila del equipo llegó a decir "1 días" mientras
+// su propia historia, dos líneas más abajo, decía "1 día".
+export const formatearDias = (cantidad) =>
+  `${cantidad} ${Number(cantidad) === 1 ? "día" : "días"}`;
+
 export const formatearHoraLegible = (horaHHMM) => {
   if (!horaHHMM) return "";
   const [horas, minutos] = String(horaHHMM).split(":").map(Number);

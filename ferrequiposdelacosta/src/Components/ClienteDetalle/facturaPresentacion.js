@@ -41,7 +41,11 @@ import {
   obtenerFechaHoyBogota,
 } from "./facturaCuentas";
 import { ampliacionesDe, estaDevuelto } from "./facturaModelo";
-import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
+import {
+  formatearDias as enDias,
+  formatearFechaLegible,
+  formatearMoneda,
+} from "../../Utils/formato";
 
 // El nombre y el ícono de cada estado de factura. Los estados en sí, y el
 // orden en que van, viven en facturaCuentas.js (ESTADOS_FACTURA_EN_ORDEN).
@@ -462,8 +466,6 @@ export const estiloChipFecha = ({ clave, tono }, theme) => {
 // solo que con permiso. Así que su tramo lleva el rojo del vencimiento y lo
 // único que cambia es el nombre. Darle color propio inventaría un sexto
 // estado de equipo que ninguna otra pantalla conoce.
-const enDias = (n) => `${n} ${n === 1 ? "día" : "días"}`;
-
 export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia =
     (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);

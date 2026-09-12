@@ -40,6 +40,7 @@ import {
 import {
   formatearMonedaOVacio as formatearMoneda,
   formatearFechaLegible as formatearFecha,
+  formatearDias,
 } from "../../Utils/formato";
 
 // ── Calibrado del bloque de cifras ──────────────────────────────────────
@@ -236,7 +237,10 @@ export default function EquipoRow({ equipo, color }) {
                 <Separador />
               </>
             )}
-            <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
+              <Condicion
+                Icono={ScheduleIcon}
+                texto={formatearDias(cuentaEquipo.dias)}
+              />
               <Separador />
               <Condicion
                 Icono={MonetizationOnIcon}
