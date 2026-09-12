@@ -448,7 +448,11 @@ export const aplicarAcuerdoDeEquipos = (
       hubo = true;
 
       if (indefinida) {
-        return { ...equipo, vencimientoIndefinido: true };
+        // El día en que quedó sin fecha. La marca sola se prende y se apaga
+        // —al renovarle el plazo vuelve a false—, así que sin esto el
+        // historial del equipo no podría contar que estuvo sin fecha de
+        // entrega: no quedaría rastro de cuándo empezó.
+        return { ...equipo, vencimientoIndefinido: true, indefinidaDesde: hoyIso };
       }
 
       // Lo que el cliente pidió es lo que queda en la bitácora; lo que la

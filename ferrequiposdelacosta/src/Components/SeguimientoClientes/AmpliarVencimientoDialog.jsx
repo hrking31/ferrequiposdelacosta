@@ -134,7 +134,10 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
 
           if (cambio.indefinida) {
             quedoIndefinida = true;
-            return { ...equipo, vencimientoIndefinido: true };
+            // Con su fecha: la marca se apaga al renovarle el plazo, y sin
+            // ella el historial del equipo no sabría cuándo quedó sin fecha
+            // de entrega (ver historialEquipo).
+            return { ...equipo, vencimientoIndefinido: true, indefinidaDesde: hoy };
           }
 
           const extra = Number(cambio.dias) || 0;

@@ -8,10 +8,25 @@
 // usan los chips de lo que va a favor del cliente. El color dice el estado sin
 // que haya que leer, que es lo que se pedía: en un lote donde una parte volvió
 // y otra sigue afuera, las dos tarjetas se veían iguales.
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
-import { Box, Chip, Stack, Typography, useTheme } from "@mui/material";
-import ChipsFechasEquipo from "./ChipsFechasEquipo";
+import {
+  Box,
+  Chip,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import EventIcon from "@mui/icons-material/Event";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HistorialEquipo from "./HistorialEquipo";
+import { iconBtnSx } from "./recuadrosCuenta";
 import {
   calcularEquipo,
   calcularEstadoEquipo,
@@ -66,8 +81,31 @@ Cifra.propTypes = {
   principal: PropTypes.bool,
 };
 
+// Una condición del alquiler: su ícono y el dato. Los tres se dibujan igual,
+// así que se arman acá en vez de repetir el mismo Stack tres veces.
+const Condicion = ({ Icono, texto }) => (
+  <Stack direction="row" alignItems="center" sx={{ gap: 0.25 }}>
+    <Icono sx={{ fontSize: "0.9rem" }} />
+    <Typography variant="caption">{texto}</Typography>
+  </Stack>
+);
+
+Condicion.propTypes = {
+  Icono: PropTypes.elementType.isRequired,
+  texto: PropTypes.string.isRequired,
+};
+
+const Separador = () => (
+  <Typography variant="caption" sx={{ color: "divider", px: 0.25 }}>
+    |
+  </Typography>
+);
+
 export default function EquipoRow({ equipo, color, fechaPedido }) {
   const theme = useTheme();
+  // La historia arranca plegada: de un equipo se quiere ver primero la lista
+  // completa de la factura, y recién después lo que le pasó a uno.
+  const [abierto, setAbierto] = useState(false);
 
   const porDia =
     (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
@@ -265,15 +303,41 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
               Motivo: {equipo.devolucion.motivoDevolucion}
             </Typography>
           )}
-          {/* La historia de fechas del equipo, igual que en Seguimiento: mismo
-              componente, mismos tramos, mismos colores.
+          {/* LAS CONDICIONES DEL ALQUILER, que son las tres cosas que se
+              preguntan de un equipo sin abrir nada: por cuántos días va, a
+              cuánto el día y hasta cuándo.
 
-              Acá había un grid de dos columnas para móvil —días y precio de un
-              lado, fechas del otro—. Se fue con los tramos: ahora el precio por
-              día viaja junto a la fecha de salida, que es de lo que es
-              condición, y partirlos en dos columnas volvería a separar lo que
-              se acaba de juntar. En móvil los tramos envuelven solos. */}
-          <ChipsFechasEquipo equipo={equipo} omitir={["devuelto"]} />
+              Acá vivían los chips de fechas, los mismos que usa Seguimiento.
+              Contaban el estado de hoy —vencía tal día, +5 días, 2 vencidos—
+              encadenados con flechas, pero no CUÁNDO pasó cada cosa, y la
+              entrega indefinida desaparecía al renovar el plazo. Esa historia
+              se cuenta abajo, hito por hito. */}
+          <Stack
+            direction="row"
+            flexWrap="wrap"
+            alignItems="center"
+            sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
+          >
+            <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
+            <Separador />
+            <Condicion
+              Icono={MonetizationOnIcon}
+              texto={`${formatearMoneda(Number(equipo.valorDia) || 0)}/día`}
+            />
+            <Separador />
+            <Condicion
+              Icono={EventIcon}
+              texto={
+                equipo.vencimientoIndefinido
+                  ? "Sin fecha de entrega"
+                  : formatearFecha(equipo.fechaVencimiento)
+              }
+            />
+          </Stack>
+
+          {/* La historia completa, plegada: son hasta nueve renglones por
+              equipo y una factura con cinco equipos no se podría recorrer. */}
+          {abierto && <HistorialEquipo equipo={equipo} />}
         </Box>
 
         {/* COLUMNA DERECHA: la plata. */}
@@ -300,6 +364,23 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
             )}
           </Stack>
         )}
+
+        {/* La flecha, al lado de la plata y a su misma altura: es la misma
+            que abre cada factura y el detalle del IVA, así que se busca
+            arriba a la derecha del bloque que abre. */}
+        <Tooltip title={abierto ? "Ocultar la historia" : "Ver qué pasó con este equipo"}>
+          <IconButton
+            size="small"
+            onClick={() => setAbierto((previo) => !previo)}
+            sx={{ ...iconBtnSx, color, flexShrink: 0, alignSelf: "flex-start" }}
+          >
+            {abierto ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
       </Stack>
     </Box>
   );

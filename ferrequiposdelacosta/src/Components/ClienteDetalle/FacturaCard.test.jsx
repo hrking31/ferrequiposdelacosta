@@ -156,6 +156,24 @@ describe("FacturaCard — lo que muestra", () => {
 
     expect(screen.getByText("Factura s/n")).toBeInTheDocument();
   });
+
+  // De cada equipo se ven siempre las tres condiciones del alquiler —por
+  // cuántos días va, a cuánto el día y hasta cuándo—, y la historia completa
+  // queda detrás de la flecha: son hasta nueve renglones por equipo, y una
+  // factura con cinco no se podría recorrer con todo abierto.
+  it("muestra las condiciones del equipo y guarda su historia bajo la flecha", async () => {
+    // El que está en fecha: sus días son los 3 que pactó. Los de uno vencido
+    // crecen con el calendario, y la prueba diría un número distinto cada día.
+    const { usuario } = mostrar(facturaAlDia);
+
+    expect(screen.getByText("3 días")).toBeInTheDocument();
+    expect(screen.queryByText("Salida en alquiler")).not.toBeInTheDocument();
+
+    await usuario.click(boton("ExpandMoreIcon"));
+
+    expect(screen.getByText("Salida en alquiler")).toBeInTheDocument();
+    expect(screen.getByText("Se entregó el equipo por 3 días.")).toBeInTheDocument();
+  });
 });
 
 describe("FacturaCard — qué se puede hacer con una factura abierta", () => {

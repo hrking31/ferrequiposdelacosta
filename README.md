@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-524_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-535_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -899,6 +899,30 @@ Ahora van agrupadas, separadas por un corte fino, y las flechas atan lo que es c
 
 Cada tramo responde una pregunta: **qué se llevó**, **qué se pactó**, **qué corre solo**. Una factura al día y sin renovaciones muestra un solo tramo — el agrupado aparece cuando hay historia que contar, no le agrega nada al caso simple.
 
+Esos chips son los de **cartera**, donde se mira una fila y se decide a quién llamar hoy. En la **ficha del cliente** la pregunta es otra —qué le pasó a este equipo— y ahí no alcanzaban: contaban el estado de hoy, pero no cuándo pasó cada cosa, y la entrega indefinida desaparecía al renovarle el plazo, porque era una marca encendida y no un hecho.
+
+### La historia del equipo, día por día
+
+En la ficha, cada equipo muestra sus tres condiciones —por cuántos días va, a cuánto el día, hasta cuándo— y detrás de una flecha, su historia completa: un renglón por hecho, con el día a la izquierda, qué pasó en el medio y la plata a la derecha.
+
+```
+01 SEP   Salida en alquiler                       $ 1.050.000
+07 SEP   Vencimiento inicial                         [Vencido]
+09 SEP   Días vencidos · 2 días · pagados            $ 300.000
+09 SEP   Seguimiento con cliente         [Entrega indefinida]
+11 SEP   Entrega indefinida · 2 días · pagados       $ 300.000
+11 SEP   Seguimiento con cliente                     $ 450.000
+14 SEP   Próximo vencimiento                      [Ampliación]
+```
+
+**El pago no aparece, y es a propósito.** Esto es el historial del EQUIPO: un abono es plata y se lee en su bloque. Lo que sí pertenece al equipo es que el contador de días vencidos volvió a cero, y eso lo dice el propio tramo con un **· pagados** al lado de sus días. Sin él, dos tramos seguidos de 2 días no se explicarían.
+
+**La entrega indefinida cambia de nombre, no de color.** El tramo posterior al acuerdo dice "Entrega indefinida" pero conserva el rojo del vencimiento: la app no tiene un estado aparte para eso — el equipo está vencido igual, solo que con permiso —, y darle color propio acá inventaría un sexto estado que ninguna otra pantalla conoce. El teal queda para el momento en que se acordó, que es el mismo color con que cartera agrupa esos equipos.
+
+Las cifras usan las tres plantas que la tarjeta ya tenía: **blanco** lo del despacho, **amarillo** lo que se pactó después —incluidos los días vencidos que el cliente pagó, porque al pagarse se consolidan— y **rojo** lo único que todavía se le reclama, el tramo que sigue corriendo.
+
+Casi todo eso ya estaba guardado. **Lo único que hubo que empezar a anotar es el día en que el equipo quedó sin fecha de entrega**: esa marca se prende y se apaga, así que sin su fecha no quedaba rastro de que existió. No toca ninguna cuenta.
+
 ### Los totales se pueden abrir
 
 Un número sumado esconde de dónde salió. El IVA de los cargos adicionales es el de todos los equipos del despacho junto: si la factura arrancó con $20.000 y después se le sumó un equipo de $30.000, muestra $50.000 sin forma de reconstruir el reparto. Una flecha lo abre y lista lo que aporta cada equipo.
@@ -1040,7 +1064,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**524 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**535 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

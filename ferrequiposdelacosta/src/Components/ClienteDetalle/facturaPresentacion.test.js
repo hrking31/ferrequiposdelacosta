@@ -10,7 +10,11 @@
 // Ahora las dos piden la lista acá. Estas pruebas fijan QUÉ dice cada chip,
 // que es lo que se separó; el color y la variante son de cada pantalla.
 import { describe, it, expect } from "vitest";
-import { agruparChipsFechas, describirFechasEquipo } from "./facturaPresentacion";
+import {
+  agruparChipsFechas,
+  describirFechasEquipo,
+  historialEquipo,
+} from "./facturaPresentacion";
 import { sellarDiasVencidos } from "./facturaCuentas";
 import { unEquipo, unEquipoDevuelto } from "../../test/facturas";
 
@@ -343,5 +347,154 @@ describe("agruparChipsFechas", () => {
     const descuento = chips.find((chip) => chip.clave === "descuento");
     expect(descuento.tramo).toBe(2);
     expect(descuento.enCadena).toBeUndefined();
+  });
+});
+
+// ── La historia de un equipo, hito por hito ────────────────────────────
+//
+// Lo que se prueba acá es QUÉ hitos salen y en qué orden, que es lo que los
+// chips no podían contar: cuándo pasó cada cosa. El caso es el de la factura
+// 5698 —el compresor de Aida—, con sus fechas y su plata reales.
+describe("historialEquipo", () => {
+  // Salió el 01/09 por 7 días, así que vencía el 07. Se le pasaron 2 días, el
+  // 09 el cliente pagó esos días y quedó sin fecha de entrega; se le pasaron
+  // otros 2 y el 11 se le pactaron 3 más, que corrieron desde ese día.
+  const compresor = unEquipo({
+    nombre: "COMPRESOR NEUMATICO INGERSOLLRAND 185",
+    cantidad: 1,
+    valorDia: 150000,
+    dias: 7,
+    fechaDespacho: "2026-09-01",
+    fechaVencimiento: "2026-09-14",
+    vencimientoIndefinido: false,
+    indefinidaDesde: "2026-09-09",
+    ampliaciones: [
+      // El pago que selló los 2 días vencidos: no se le concedió ninguno.
+      {
+        fecha: "2026-09-09",
+        fechaAnterior: "2026-09-07",
+        fechaNueva: "2026-09-09",
+        diasAmpliados: 2,
+        diasPedidos: 0,
+        diasVencidos: 2,
+        descuentoRealizado: 0,
+        porPago: true,
+      },
+      // Y la renovación: 3 días pedidos, con otros 2 vencidos consolidados.
+      {
+        fecha: "2026-09-11",
+        fechaAnterior: "2026-09-09",
+        fechaNueva: "2026-09-14",
+        diasAmpliados: 5,
+        diasPedidos: 3,
+        diasVencidos: 2,
+        descuentoRealizado: 0,
+      },
+    ],
+  });
+
+  const HOY_COMPRESOR = "2026-09-12";
+  const titulos = (equipo, hoy = HOY_COMPRESOR) =>
+    historialEquipo(equipo, hoy).map((hito) => hito.titulo);
+  const buscar = (equipo, clave, hoy = HOY_COMPRESOR) =>
+    historialEquipo(equipo, hoy).find((hito) => hito.clave === clave);
+
+  it("cuenta la historia completa, en el orden en que pasó", () => {
+    expect(titulos(compresor)).toEqual([
+      "Salida en alquiler",
+      "Vencimiento inicial",
+      "Días vencidos",
+      "Seguimiento con cliente",
+      "Entrega indefinida",
+      "Seguimiento con cliente",
+      "Próximo vencimiento",
+    ]);
+  });
+
+  it("la salida vale los días con los que se despachó", () => {
+    const salida = buscar(compresor, "salida");
+    expect(salida.fecha).toBe("2026-09-01");
+    expect(salida.detalle).toBe("Se entregó el equipo por 7 días.");
+    expect(salida.valor).toBe(1050000);
+  });
+
+  // La fecha del tramo es la del ÚLTIMO día contado, no la del primero: es
+  // cuando el contador llegó a ese número. Con la del primero, el renglón se
+  // leería como si ese día ya fueran dos.
+  it("el tramo vencido se fecha en su último día y dice que se pagó", () => {
+    const tramo = buscar(compresor, "vencidos-0");
+    expect(tramo.fecha).toBe("2026-09-09");
+    expect(tramo.detalle).toBe("2 días · pagados");
+    expect(tramo.valor).toBe(300000);
+  });
+
+  // La entrega indefinida no es un estado aparte: el equipo está vencido
+  // igual, solo que con permiso. Por eso el tramo posterior al acuerdo cambia
+  // de NOMBRE y conserva el tono del vencimiento.
+  it("después del acuerdo el tramo se llama entrega indefinida, sin cambiar de tono", () => {
+    const tramo = buscar(compresor, "vencidos-1");
+    expect(tramo.titulo).toBe("Entrega indefinida");
+    expect(tramo.tono).toBe("vencido");
+    expect(tramo.detalle).toBe("2 días");
+  });
+
+  it("lo pactado se cuenta por los días que se pidieron, no por los consolidados", () => {
+    const pactado = buscar(compresor, "pactado-1");
+    expect(pactado.fecha).toBe("2026-09-11");
+    expect(pactado.detalle).toBe("Se pactaron 3 días");
+    // Los 3 días pedidos, no los 5 que corrió la fecha: los otros 2 ya están
+    // contados en su propio tramo y sumarlos acá los cobraría dos veces.
+    expect(pactado.valor).toBe(450000);
+  });
+
+  // El día que quedó sin fecha es el único hito que necesita un dato
+  // guardado: la marca se apaga al renovarle el plazo —acá ya está en false—
+  // y sin él no quedaría rastro de que el equipo estuvo sin fecha.
+  it("recuerda el día en que quedó sin fecha de entrega, aunque ya no lo esté", () => {
+    const acuerdo = buscar(compresor, "indefinida");
+    expect(acuerdo.fecha).toBe("2026-09-09");
+    expect(acuerdo.chip).toBe("indefinida");
+    expect(compresor.vencimientoIndefinido).toBe(false);
+  });
+
+  it("cierra con la fecha vigente y el estado del equipo", () => {
+    const proximo = buscar(compresor, "proximo-vencimiento");
+    expect(proximo.fecha).toBe("2026-09-14");
+    expect(proximo.chip).toBe("ampliacion");
+  });
+
+  // Lo que todavía corre es lo único que se le reclama, y por eso es lo único
+  // que va en rojo: los tramos ya cerrados son plata acordada.
+  it("el tramo que sigue corriendo va en rojo y los cerrados en el acento", () => {
+    const corriendo = historialEquipo(compresor, "2026-09-16");
+    expect(buscar(compresor, "vencidos-0").valorTono).toBe("acordado");
+    expect(
+      corriendo.find((hito) => hito.clave === "vencidos-hoy").valorTono,
+    ).toBe("vencido");
+  });
+
+  it("al que todavía no sale le cuenta la salida como programada", () => {
+    const porSalir = unEquipo({
+      cantidad: 1,
+      valorDia: 80000,
+      dias: 5,
+      fechaDespacho: "2026-09-20",
+      fechaVencimiento: "2026-09-24",
+    });
+    const salida = buscar(porSalir, "salida", "2026-09-12");
+    expect(salida.titulo).toBe("Salida programada");
+    expect(salida.detalle).toBe("Pendiente: se entrega por 5 días.");
+  });
+
+  it("al devuelto le agrega su vuelta a bodega y le saca el vencimiento", () => {
+    const devuelto = unEquipoDevuelto({
+      cantidad: 1,
+      valorDia: 150000,
+      dias: 7,
+      fechaDespacho: "2026-09-01",
+      fechaVencimiento: "2026-09-07",
+      fechaDevolucion: "2026-09-07",
+    });
+    expect(titulos(devuelto)).toEqual(["Salida en alquiler", "Devolución"]);
   });
 });
