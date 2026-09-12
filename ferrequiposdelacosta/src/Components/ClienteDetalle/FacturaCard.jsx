@@ -652,17 +652,6 @@ export default function FacturaCard({
                               ? "calc(50% - 4px)"
                               : "100%",
                         },
-                        // Cada lote va en su propia tarjeta: sus
-                        // equipos, su pago y sus cargos son un
-                        // conjunto, y sueltos se confundían con los
-                        // del lote de al lado. El fondo de la app la
-                        // separa de los recuadros de adentro, que
-                        // son de color de tarjeta.
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: "background.default",
-                        border: "1px solid",
-                        borderColor: alpha(colorEquiposAgregados, 0.4),
                       }}
                     >
                       {gruposAgregados.length > 1 && lote.fechaSolicitud && (
@@ -687,6 +676,23 @@ export default function FacturaCard({
                         </Typography>
                       )}
 
+                      {/* Cada lote va en su propia tarjeta: sus equipos, su
+                          pago y sus cargos son un conjunto, y sueltos se
+                          confundían con los del lote de al lado. El fondo de
+                          la app la separa de los recuadros de adentro, que son
+                          de color de tarjeta.
+
+                          El rótulo queda FUERA, apoyado encima, como todos los
+                          rótulos de la ficha. */}
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: "background.default",
+                          border: "1px solid",
+                          borderColor: alpha(colorEquiposAgregados, 0.4),
+                        }}
+                      >
                       {/* El pago va PRIMERO, igual que en el alta de la
                           factura: lo primero que se pregunta de un equipo
                           agregado es si ya se pago. Antes cada bloque
@@ -782,6 +788,7 @@ export default function FacturaCard({
                           )
                         }
                       />
+                      </Box>
                     </Box>
                   );
                 })}
