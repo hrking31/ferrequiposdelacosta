@@ -205,21 +205,10 @@ export default function EquipoRow({ equipo, color }) {
               <Typography component="span" variant="body2" fontWeight="bold">
                 {equipo.nombre}
               </Typography>
-              {/* La fecha, FUERA del rótulo. Son dos datos distintos —que
-                  volvió, y cuándo— y adentro del bloque rosa se leían como uno
-                  solo; separada se lee igual que la del pedido, que es su par.
-                  Sigue acá arriba y no entre los chips de fechas: ahí obligaba
-                  a bajar a buscar cuándo había vuelto. */}
-              {devuelto && equipo.devolucion?.fechaDevolucion && (
-                <Typography
-                  component="span"
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 0.75, whiteSpace: "nowrap" }}
-                >
-                  {formatearFecha(equipo.devolucion.fechaDevolucion)}
-                </Typography>
-              )}
+              {/* Cuándo volvió NO va acá: suelta al lado del nombre se leía
+                  como la fecha en que el equipo entró a la factura. Vive en su
+                  historia, en el hito de la devolución, que la muestra con su
+                  día a la izquierda como todos los demás hechos. */}
             {/* LAS CONDICIONES DEL ALQUILER, que son las tres cosas que se
                 preguntan de un equipo sin abrir nada: por cuántos días va, a
                 cuánto el día y hasta cuándo.
