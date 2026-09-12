@@ -361,21 +361,23 @@ export default function FacturaCard({
         // pegado.
         sx={esMovil ? { pr: 5 } : undefined}
       >
-        <Box>
-          <Typography fontWeight="bold">
+        {/* El número manda —es por donde se busca una factura— así que va
+            más grande, y la fecha lo acompaña en la misma línea en vez de
+            robarle un renglón debajo. */}
+        <Stack direction="row" alignItems="baseline" sx={{ gap: 1, minWidth: 0 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
             Factura {datos.numeroFactura ?? "s/n"}
           </Typography>
-          {/* Antes ocupaba una columna dentro del cuadro de pago. */}
           {fecha && (
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ display: "block", lineHeight: 1.3 }}
+              sx={{ whiteSpace: "nowrap" }}
             >
-              Creada el {fecha}
+              {fecha}
             </Typography>
           )}
-        </Box>
+        </Stack>
         {/* Con la factura plegada, en computador, el resumen de la
             cuenta ocupa el hueco que queda entre el titulo y los
             botones. Va sobre la pizarra del tema, que tiene fondo
@@ -521,6 +523,19 @@ export default function FacturaCard({
                 >
                   <ConstructionIcon fontSize="small" />
                   Equipos {equiposOriginales.length}
+                  {/* La fecha del despacho, que es de TODO el lote: repetida
+                      en cada equipo decía lo mismo tantas veces como equipos
+                      hubiera. */}
+                  {(grupoInicial?.fechaSolicitud ?? datos.fechaCreacion) && (
+                    <Box
+                      component="span"
+                      sx={{ color: "text.secondary", fontWeight: 400 }}
+                    >
+                      {formatearFecha(
+                        grupoInicial?.fechaSolicitud ?? datos.fechaCreacion,
+                      )}
+                    </Box>
+                  )}
                 </Typography>
                 {renderToggle("equiposFactura")}
               </Stack>
@@ -547,7 +562,6 @@ export default function FacturaCard({
                         key={`original-${index}`}
                         equipo={equipo}
                         color={colorEquipos}
-                        fechaPedido={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                       />
                     ))}
                   </Box>
@@ -702,7 +716,6 @@ export default function FacturaCard({
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
                             color={colorEquiposAgregados}
-                            fechaPedido={lote.fechaSolicitud}
                           />
                         ))}
                       </Box>
