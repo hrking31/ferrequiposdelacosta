@@ -4,7 +4,6 @@ import {
   Avatar,
   Box,
   Chip,
-  Divider,
   useMediaQuery,
   IconButton,
   Paper,
@@ -1029,16 +1028,6 @@ export default function ClienteSeguimientoCard({
                 necesitan que un renglón anuncie lo que ya dicen. */}
             {!facturaPlegada(factura.id) && cuadroTotales}
             {!facturaPlegada(factura.id) && extrasDeCuenta}
-
-            {/* La línea que separa el cobro de los equipos, como en el diseño.
-                Toma el color de `divider` del tema —el azul acero—, que es el
-                mismo que ya separa todo lo demás en la app.
-
-                Solo cuando hay equipos debajo: sin ellos separaba la cuenta de
-                un espacio vacío. */}
-            {!facturaPlegada(factura.id) && equiposVencidos > 0 && (
-              <Divider sx={{ my: 1.5 }} />
-            )}
 
             {/* Una factura puede seguir en cartera sin un solo equipo vencido:
                 le renovaron el que la trajo, o ya devolvió todo, y se queda
