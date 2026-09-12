@@ -665,6 +665,28 @@ export default function FacturaCard({
                         borderColor: alpha(colorEquiposAgregados, 0.4),
                       }}
                     >
+                      {gruposAgregados.length > 1 && lote.fechaSolicitud && (
+                        <Typography
+                          variant="overline"
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            lineHeight: 1.6,
+                            color: colorEquiposAgregados,
+                          }}
+                        >
+                          <LibraryAddIcon fontSize="small" />
+                          Agregados
+                          <Box
+                            component="span"
+                            sx={{ color: "text.secondary", fontWeight: 400 }}
+                          >
+                            {formatearFecha(lote.fechaSolicitud)}
+                          </Box>
+                        </Typography>
+                      )}
+
                       {/* El pago va PRIMERO, igual que en el alta de la
                           factura: lo primero que se pregunta de un equipo
                           agregado es si ya se pago. Antes cada bloque
@@ -703,31 +725,8 @@ export default function FacturaCard({
                           empezaba. Cada grupo se guarda junto en la base y acá
                           se lee igual: su pago, sus equipos y sus cargos.
 
-                          Con varios despachos, cada uno se encabeza con su
-                          fecha: el rótulo de afuera ya no puede decirla porque
-                          son distintas. */}
-                      {gruposAgregados.length > 1 && lote.fechaSolicitud && (
-                        <Typography
-                          variant="overline"
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                            lineHeight: 1.6,
-                            color: colorEquiposAgregados,
-                          }}
-                        >
-                          <LibraryAddIcon fontSize="small" />
-                          Agregados
-                          <Box
-                            component="span"
-                            sx={{ color: "text.secondary", fontWeight: 400 }}
-                          >
-                            {formatearFecha(lote.fechaSolicitud)}
-                          </Box>
-                        </Typography>
-                      )}
-
+                          Con varios despachos, el rótulo de cada uno va
+                          arriba del todo, con su fecha. */}
                       <Typography
                         variant="overline"
                         sx={{
