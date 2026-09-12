@@ -93,7 +93,7 @@ const Separador = () => (
   </Typography>
 );
 
-export default function EquipoRow({ equipo, color }) {
+export default function EquipoRow({ equipo, color, fechaPedido }) {
   const theme = useTheme();
   // La historia arranca plegada: de un equipo se quiere ver primero la lista
   // completa de la factura, y recién después lo que le pasó a uno.
@@ -205,6 +205,21 @@ export default function EquipoRow({ equipo, color }) {
               <Typography component="span" variant="body2" fontWeight="bold">
                 {equipo.nombre}
               </Typography>
+              {/* CUÁNDO SE PIDIÓ, que no es lo mismo que cuándo salió
+                  despachado. La traen todos los equipos, no solo los que se
+                  sumaron después: para los del despacho original es la fecha
+                  en que se creó la factura, y sin ella había que deducir de la
+                  ausencia del dato que el equipo venía de entrada. */}
+              {fechaPedido && (
+                <Typography
+                  component="span"
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ ml: 0.75, whiteSpace: "nowrap" }}
+                >
+                  agregado {formatearFecha(fechaPedido)}
+                </Typography>
+              )}
               {/* La fecha, FUERA del rótulo. Son dos datos distintos —que
                   volvió, y cuándo— y adentro del bloque rosa se leían como uno
                   solo; separada se lee igual que la del pedido, que es su par.
@@ -325,4 +340,8 @@ export default function EquipoRow({ equipo, color }) {
 EquipoRow.propTypes = {
   equipo: PropTypes.object.isRequired,
   color: PropTypes.string.isRequired,
+  // Cuándo se pidió: la fecha del lote que lo trajo. Para los equipos del
+  // despacho original es la de la factura; para los agregados después, la del
+  // lote. La pone quien dibuja la fila, que es quien sabe de qué lote es.
+  fechaPedido: PropTypes.string,
 };

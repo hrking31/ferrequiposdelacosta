@@ -523,19 +523,6 @@ export default function FacturaCard({
                 >
                   <ConstructionIcon fontSize="small" />
                   Equipos {equiposOriginales.length}
-                  {/* La fecha del despacho, que es de TODO el lote: repetida
-                      en cada equipo decía lo mismo tantas veces como equipos
-                      hubiera. */}
-                  {(grupoInicial?.fechaSolicitud ?? datos.fechaCreacion) && (
-                    <Box
-                      component="span"
-                      sx={{ color: "text.secondary", fontWeight: 400 }}
-                    >
-                      {formatearFecha(
-                        grupoInicial?.fechaSolicitud ?? datos.fechaCreacion,
-                      )}
-                    </Box>
-                  )}
                 </Typography>
                 {renderToggle("equiposFactura")}
               </Stack>
@@ -562,6 +549,7 @@ export default function FacturaCard({
                         key={`original-${index}`}
                         equipo={equipo}
                         color={colorEquipos}
+                        fechaPedido={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                       />
                     ))}
                   </Box>
@@ -716,6 +704,7 @@ export default function FacturaCard({
                             key={`agregado-${indiceLote}-${index}`}
                             equipo={equipo}
                             color={colorEquiposAgregados}
+                            fechaPedido={lote.fechaSolicitud}
                           />
                         ))}
                       </Box>
