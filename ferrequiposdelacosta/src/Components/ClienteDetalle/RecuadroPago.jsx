@@ -225,7 +225,10 @@ export function ListaAbonos({ abonos, color }) {
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}
+                // Pegada al abono que explica: es su pie de foto, no un
+                // renglón aparte. Con aire en medio se leía como si hablara
+                // del abono siguiente.
+                sx={{ display: "block", mt: 0, lineHeight: 1.25, fontStyle: "italic" }}
               >
                 {origen}
               </Typography>
