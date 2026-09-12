@@ -243,39 +243,6 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                   agregado {formatearFecha(fechaPedido)}
                 </Typography>
               )}
-              {/* EN QUÉ ANDA ESTE EQUIPO. Uno de los cinco estados que la app
-                  ya calcula, junto al nombre y no entre los chips de fechas de
-                  abajo: es lo primero que hay que saber de la fila.
-                  
-                  Reemplazó al rótulo "DEVUELTO", que decía uno solo de los
-                  cinco casos. Un equipo que no ha vuelto también tiene algo
-                  que decir —está en fecha, se pasó, le dieron más días, ni
-                  salió de bodega— y antes eso había que deducirlo leyendo las
-                  fechas.
-
-                  Contorno del color y no relleno sólido: son hasta diez filas
-                  en una factura, y diez etiquetas macizas convierten la lista
-                  en un semáforo ilegible. El fondo tenue del mismo color evita
-                  el problema que tenía el rótulo viejo —gris sobre gris se
-                  perdía— sin gritar. */}
-              <Box
-                component="span"
-                sx={{
-                  ml: 0.75,
-                  px: 0.75,
-                  py: 0.15,
-                  borderRadius: 0.5,
-                  whiteSpace: "nowrap",
-                  fontSize: "0.7rem",
-                  fontWeight: 700,
-                  border: "1px solid",
-                  borderColor: colorEstado,
-                  bgcolor: alpha(colorEstado, 0.12),
-                  color: colorEstado,
-                }}
-              >
-                {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
-              </Box>
               {/* La fecha, FUERA del rótulo. Son dos datos distintos —que
                   volvió, y cuándo— y adentro del bloque rosa se leían como uno
                   solo; separada se lee igual que la del pedido, que es su par.
@@ -340,30 +307,64 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
           {abierto && <HistorialEquipo equipo={equipo} />}
         </Box>
 
-        {/* COLUMNA DERECHA: la plata. */}
-        {hayRenta && (
-          <Stack
+        {/* COLUMNA DERECHA: en qué anda el equipo y cuánto cuesta.
+            
+            El rótulo del estado vivía pegado al nombre. Acá arriba encabeza su
+            propia columna: el estado y la plata son las dos cosas que se leen
+            de un vistazo, y juntas a la derecha se leen de una sola pasada en
+            vez de saltar de una punta a la otra de la fila.
+
+            Reemplazó al rótulo "DEVUELTO", que decía uno solo de los cinco
+            casos. Un equipo que no ha vuelto también tiene algo que decir
+            —está en fecha, se pasó, le dieron más días, ni salió de bodega— y
+            antes eso había que deducirlo leyendo las fechas.
+
+            Contorno del color y no relleno sólido: son hasta diez filas en una
+            factura, y diez etiquetas macizas convierten la lista en un
+            semáforo ilegible. El fondo tenue del mismo color evita el problema
+            que tenía el rótulo viejo —gris sobre gris se perdía— sin gritar. */}
+        <Stack
+          alignItems="flex-end"
+          sx={{
+            flexShrink: 0,
+            textAlign: "right",
+            mt: CALIBRE.margenSuperior,
+            gap: CALIBRE.espacioEntreCifras,
+          }}
+        >
+          <Box
+            component="span"
             sx={{
-              flexShrink: 0,
-              textAlign: "right",
-              mt: CALIBRE.margenSuperior,
-              gap: CALIBRE.espacioEntreCifras,
+              px: 0.75,
+              py: 0.15,
+              mb: 0.25,
+              borderRadius: 0.5,
+              whiteSpace: "nowrap",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              border: "1px solid",
+              borderColor: colorEstado,
+              bgcolor: alpha(colorEstado, 0.12),
+              color: colorEstado,
             }}
           >
+            {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
+          </Box>
+          {hayRenta && (
             <Cifra monto={valorMostrado} principal />
-            {mostrarHistorial && valorAmpliado > 0 && (
-              // El acento, igual que el chip "+2 días" del que sale este
-              // número: lo pactado se pinta del mismo color en los dos lados
-              // de la tarjeta.
-              <Cifra monto={valorAmpliado} colorTexto="custom.accent" />
-            )}
-            {mostrarHistorial && valorVencido > 0 && (
-              // Rojo, como el chip "5 días vencidos": esta plata no se pactó
-              // con nadie, se está acumulando sola.
-              <Cifra monto={valorVencido} colorTexto="error.main" />
-            )}
-          </Stack>
-        )}
+          )}
+          {hayRenta && mostrarHistorial && valorAmpliado > 0 && (
+            // El acento, igual que el renglón "Se pactaron 3 días" del que
+            // sale este número: lo pactado se pinta del mismo color en los dos
+            // lados de la tarjeta.
+            <Cifra monto={valorAmpliado} colorTexto="custom.accent" />
+          )}
+          {hayRenta && mostrarHistorial && valorVencido > 0 && (
+            // Rojo, como el tramo de días vencidos que sigue corriendo: esta
+            // plata no se pactó con nadie, se está acumulando sola.
+            <Cifra monto={valorVencido} colorTexto="error.main" />
+          )}
+        </Stack>
 
         {/* La flecha, al lado de la plata y a su misma altura: es la misma
             que abre cada factura y el detalle del IVA, así que se busca
