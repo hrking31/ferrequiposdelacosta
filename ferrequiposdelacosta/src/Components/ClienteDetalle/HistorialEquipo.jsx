@@ -88,7 +88,17 @@ export default function HistorialEquipo({ equipo, hoy }) {
       : (ESTADO_EQUIPO_INFO[chip]?.label ?? "");
 
   return (
-    <Box sx={{ mt: 1 }}>
+    // La línea separa las condiciones del alquiler —lo que se ve siempre— de
+    // la historia que abre la flecha. Sin ella los dos bloques se leían como
+    // uno solo y el primer hito parecía otra condición más.
+    <Box
+      sx={{
+        mt: 1,
+        pt: 1,
+        borderTop: "1px solid",
+        borderColor: "divider",
+      }}
+    >
       {hitos.map((hito, indice) => {
         const fecha = partirFecha(hito.fecha);
         const color = colorDeTono(hito.tono);
