@@ -27,6 +27,8 @@ import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import {
   ESTADO_EQUIPO_INFO,
+  ETIQUETA_ENTREGA_INDEFINIDA,
+  ROTULO_ESTADO_MAS_LARGO,
   COLOR_ENTREGA_INDEFINIDA,
   historialEquipo,
 } from "./facturaUtils";
@@ -57,13 +59,6 @@ const ICONOS = {
   activo: EventAvailableIcon,
   ampliacion: EventAvailableIcon,
 };
-
-// El estado con el nombre más largo. Se dibuja una vez, invisible y sin alto,
-// al final de la cuadrícula: su único trabajo es fijar el ancho de la última
-// columna, para que todos los rótulos midan lo mismo y los montos caigan
-// centrados sobre ellos. Sin esto habría que escribir un número de píxeles
-// que quedaría viejo al cambiar una palabra.
-const ESTADO_MAS_LARGO = "Entrega indefinida";
 
 
 export default function HistorialEquipo({ equipo, hoy }) {
@@ -96,7 +91,7 @@ export default function HistorialEquipo({ equipo, hoy }) {
 
   const etiquetaChip = (chip) =>
     chip === "indefinida"
-      ? ESTADO_MAS_LARGO
+      ? ETIQUETA_ENTREGA_INDEFINIDA
       : (ESTADO_EQUIPO_INFO[chip]?.label ?? "");
 
   // El rótulo cuadrado del estado, el mismo de la fila del equipo: en esta
@@ -126,7 +121,7 @@ export default function HistorialEquipo({ equipo, hoy }) {
         // pseudo-elemento sin alto. Es CSS y no texto del documento, así que
         // no se lee ni duplica lo que busca una prueba.
         "&::after": {
-          content: `"${ESTADO_MAS_LARGO}"`,
+          content: `"${ROTULO_ESTADO_MAS_LARGO}"`,
           display: "block",
           height: 0,
           overflow: "hidden",

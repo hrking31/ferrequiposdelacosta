@@ -32,7 +32,7 @@ import {
   calcularEstadoEquipo,
   estaDevuelto,
   ESTADO_EQUIPO_INFO,
-  ESTADO_EQUIPO_MAS_LARGO,
+  ROTULO_ESTADO_MAS_LARGO,
 } from "./facturaUtils";
 // Con alias para que se lean como lo que son acá: la moneda que deja el hueco
 // vacío si no hay número, y la fecha DD/MM/AAAA.
@@ -127,12 +127,11 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
     borderColor: colorEstado,
     bgcolor: alpha(colorEstado, 0.12),
     color: colorEstado,
-    // Todos los rótulos miden lo mismo: el nombre más largo de los cinco
-    // estados, escrito en un pseudo-elemento sin alto. Es CSS, no texto del
-    // documento, así que no se lee ni aparece dos veces en una búsqueda; y al
-    // salir de la lista de estados, cambiar una palabra ajusta el ancho solo.
+    // Todos los rótulos miden lo mismo, acá y en el historial: el más largo
+    // de todos, escrito en un pseudo-elemento sin alto. Es CSS y no texto del
+    // documento, así que no se lee ni aparece dos veces en una búsqueda.
     "&::after": {
-      content: `"${ESTADO_EQUIPO_MAS_LARGO}"`,
+      content: `"${ROTULO_ESTADO_MAS_LARGO}"`,
       display: "block",
       height: 0,
       overflow: "hidden",

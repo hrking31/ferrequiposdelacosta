@@ -68,14 +68,21 @@ export const ESTADO_EQUIPO_INFO = {
   devuelto: { label: "Devuelto" },
 };
 
-// El nombre más largo de los cinco. Lo usan los rótulos de estado para medir
-// todos igual: se calcula de la lista de arriba, así que cambiar una palabra
-// ajusta el ancho solo, sin números de píxeles escritos a mano.
-export const ESTADO_EQUIPO_MAS_LARGO = Object.values(ESTADO_EQUIPO_INFO).reduce(
-  (masLargo, info) =>
-    info.label.length > masLargo.length ? info.label : masLargo,
-  "",
-);
+// La entrega indefinida no es un estado aparte —el equipo está vencido igual,
+// solo que con permiso— pero sí es un rótulo: aparece en el historial, en el
+// hito del acuerdo y en los tramos que corrieron así.
+export const ETIQUETA_ENTREGA_INDEFINIDA = "Entrega indefinida";
+
+// El rótulo más largo que puede llevar un equipo: los cinco estados más la
+// entrega indefinida. TODOS los rótulos miden esto —el de la fila y los de la
+// historia— así que las dos columnas se leen como una sola.
+//
+// Se calcula de las listas de arriba en vez de escribir un ancho en píxeles:
+// cambiar una palabra ajusta el ancho solo.
+export const ROTULO_ESTADO_MAS_LARGO = [
+  ...Object.values(ESTADO_EQUIPO_INFO).map((info) => info.label),
+  ETIQUETA_ENTREGA_INDEFINIDA,
+].reduce((masLargo, label) => (label.length > masLargo.length ? label : masLargo), "");
 
 // El cliente usa el mismo vocabulario que sus facturas, más "inactivo" para
 // cuando no tiene ninguna.
