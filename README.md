@@ -196,13 +196,17 @@ flowchart TD
     D -->|No| FIN["✅ Finalizada"]
     C -->|"Sí, hay equipos afuera"| E{"¿Ya salieron los equipos?"}
     E -->|"Todavía no"| PEN
-    E -->|Sí| F{"¿Se pasó la fecha de devolución?"}
+    E -->|Sí| F{"¿Se le acabó el plazo a alguno?"}
     F -->|Sí| VEN["⚠️ Vencida"]
     F -->|No| G{"¿Se le renovó el plazo?"}
     G -->|No| ACT["🚜 Activa"]
     G -->|Sí| H{"¿Quedó al día con lo que ya debía?"}
-    H -->|Sí| ACT
     H -->|No| VEN
+    H -->|Sí| I{"¿Llegó a vencerse alguna vez?"}
+    I -->|No| ACT
+    I -->|Sí| J{"¿Le queda saldo?"}
+    J -->|Sí| VEN
+    J -->|No| ACT
 ```
 
 | Estado | Qué significa |
@@ -221,7 +225,9 @@ flowchart TD
 > Para saber si una factura pasa a *Cobro* o *Finalizada* se usa el saldo completo: es la cuenta final, no queda nada por cobrar después.
 > Para saber si una renovación la devuelve a *Activa* se usa el saldo **anterior a esa renovación**. Los días recién agregados no cuentan todavía: se cobran cuando el cliente devuelva, igual que cualquier día de alquiler en curso. Si contaran, renovar nunca alcanzaría por sí solo para poner una factura al día.
 
-**Ejemplo real:** una rana alquilada 4 días y pagada completa se vence → el cliente pide 3 días más → como no debía nada, vuelve a *Activa* → y vuelve sola a *Vencida* el día que se cumplen esos 3 días. Nadie tocó un menú.
+**Y la última caja es la que más cuesta:** a la factura que llegó a vencerse no la saca de cartera ponerse al día con lo ya vivido. Vuelve a *Activa* recién cuando cancela TODO, incluido lo que acaba de contratar al renovar. Antes salía apenas el cliente cubría los días consumidos, y desaparecía de la lista con el equipo todavía afuera y los días recién pactados sin pagar.
+
+**Ejemplo real —el que lo destapó.** La 0123: 10 gatos salen el 09/09 por 3 días, así que vencen el 11. Ese mismo 11 el cliente pide 4 días más y paga los 3 ya vividos. Queda debiendo $71.400 de lo que acaba de contratar, con los gatos en la obra. La factura **sigue en cartera** hasta que los pague.
 
 ### El equipo que no vuelve se sigue cobrando
 
@@ -234,24 +240,32 @@ En la ficha del cliente se ven en dos etiquetas separadas, porque son cosas dist
 > [!WARNING]
 > **Este fue un error costoso.** Antes solo se cobraban los días de los equipos marcados como "entrega indefinida". Al que simplemente no devolvía no se le cobraba ni un día: la pantalla de cartera mostraba *"6 días · $1.200.000"* como aviso, pero esa plata no entraba en ninguna cuenta. Y a los indefinidos se les cobraba… hasta que devolvían, porque los días se calculaban al vuelo desde esa marca y al registrar la devolución se borraban de la cuenta. Dos clientes en la misma situación real se cobraban distinto según cómo se hubiera cargado una fecha.
 
-### Y los días vencidos que el cliente paga quedan sellados
+### Los días vencidos quedan escritos en tramos
 
-El cliente que no devolvió puede **ponerse al día sin devolver nada**: paga los días que se le vencieron y deja el equipo con **entrega indefinida** — se lo queda y avisará cuándo lo devuelve. Ahí aparece un problema que el calendario solo no resuelve: al día siguiente esos días se vuelven a contar, y el contador diría *"3 días vencidos · $450.000"* cuando lo que falta cobrar son $150.000.
+Un equipo que se pasa de su plazo abre un **tramo**: el día en que empezó la mora. Lo escribe el repaso de las 3 a.m., una sola vez, y no lo vuelve a tocar — los días que van corriendo los cuenta el calendario, que para eso está.
 
-Esa es su **única** situación, y no por casualidad: al cobrar hay que decir qué pasa con el equipo, y de las tres respuestas posibles las otras dos no dejan días abiertos — la renovación los consolida, la devolución los congela.
+El tramo se **cierra** cuando pasa algo que solo puede provocar una persona: el cliente paga, pide más días o devuelve el equipo. Ahí queda con sus dos fechas y no se recalcula nunca más.
 
-**Cuando un pago deja la factura sin nada que reclamarle hoy, sus días vencidos se sellan:** quedan cobrados, dejan de contarse como vencidos y el contador arranca de cero desde el pago.
+El compresor de la 5698, leído de corrido:
 
 ```
-Hoy, al pagar     Vence hoy 09/09  │  2 días vencidos pagados · $300.000   ← verde
-Mañana            Venció 09/09     │  2 días pagados · 1 día vencido · $150.000
+01/09   salió por 7 días         cubierto hasta el 07
+08 → 09  tramo vencido           2 días, cerrados el día que pagó
+09       quedó sin fecha de entrega
+10 → 11  tramo vencido           2 días más, esta vez con permiso
+12 → 14  pidió 3 días            cubierto hasta el 14
 ```
 
-Se sella con el **mismo mecanismo de la renovación** —los días se consolidan y la fecha del equipo pasa a hoy—, con una diferencia: no se concedió ningún día nuevo. Por eso **la plata no se mueve**: esos días pasan de *vencidos* a *pactados* y el total da exactamente lo mismo. Descontarlos habría inventado un saldo a favor que nadie entregó.
+**Por qué importa.** Antes, *hacer algo borraba el rastro*: la fecha de vencimiento se movía al renovar y con ella desaparecía el único dato que probaba que el equipo había estado vencido. De ahí salieron seis formas distintas de deducirlo después, y las seis fallaban en algún caso.
 
-Lo que el sello **no** hace es soltar el equipo. Sigue afuera, sin fecha de retorno, y por eso su factura **sigue en cartera**: sale cuando le pactan un plazo o cuando el equipo vuelve, no cuando se paga. Y conserva su marca de indefinido por lo mismo — el cliente pagó, pero sigue sin decir cuándo devuelve.
+Ahora es al revés: **hacer algo es justamente lo que lo deja escrito**, así que no queda ninguna ventana por donde se pierda. Y la pregunta que costaba seis rastros quedó en una línea — *si alguno de sus equipos tiene un tramo, la factura se venció*.
 
-El chip verde es el registro de que ese equipo estuvo afuera de fecha, y tiene que sobrevivir al pago: sin él, la pantalla no podría distinguir a un cliente que devolvió a tiempo de otro que se pasó dos días y los pagó.
+> [!IMPORTANT]
+> **El caso límite, que es el que lo destapó.** Si le renuevan el plazo el mismo día en que se le acaba, el tramo todavía no alcanzó a abrirse: la madrugada lo abre al día siguiente. Ahí se le anota uno que no suma ni un día, solo para dejar constancia de que llegó a vencerse. Sin eso, la 0123 se habría vuelto a escapar de cartera.
+
+**La plata no se mueve.** Esos días se cobran igual, el tramo esté cerrado o corriendo. Lo que el equipo **no** guarda es si el cliente los pagó: eso vive en los abonos de la factura, porque un abono entra a la cuenta del cliente —que puede tener varias facturas abiertas— y atribuirlo a dos días de un equipo sería inventarlo.
+
+La regla que ordena todo esto: **la plata es de la factura, el equipo son días**. El costo sí se muestra en la ficha —es lo que deja confirmar la cuenta—; la plata cobrada, no.
 
 ### No se cobra sin decir qué pasa con el equipo
 
@@ -768,11 +782,19 @@ documento de la factura
 │   ├── ADICIONALES{}   ── transporte, valorTransporte,
 │   │                      deposito, valorDeposito
 │   └── EQUIPOS[]  ── nombre, cantidadEquipos, valorDia,
-│       │            diasAlquilados, fechaDespacho, fechaVencimiento
-│       ├── AMPLIACIONES[] ── fechaInicio, fechaVencimiento,
-│       │                     diasAmpliados, descuentoRealizado
+│       │            diasAlquilados, fechaDespacho, aplicaIva
+│       ├── AMPLIACIONES[] ── lo que el cliente PIDIÓ:
+│       │                     fecha, dias, desde, hasta, descuento
+│       ├── VENCIDOS[]     ── un tramo por cada vez que se pasó:
+│       │                     desde, hasta, indefinida
+│       │                     (sin `hasta` = el que corre hoy)
+│       ├── INDEFINIDA{}   ── activa, desde, hasta
 │       └── DEVOLUCION{}   ── fechaDevolucion, buenEstado,
 │                             valorRetenido
+│
+│       NO hay `fechaVencimiento`: hasta cuándo está cubierto un equipo
+│       se encadena —días del alta + tramos cerrados + ampliaciones—
+│       en vez de guardarse. Ver más abajo.
 │
 ├── ABONOS[]   ── la plata que ENTRA después
 │                 fecha, medio, monto, tipo
@@ -933,7 +955,7 @@ Cuando un equipo tiene días agregados, ese detalle se parte en varios renglones
 
 Cada renglón **dice cuántos días son**, y en singular cuando es uno solo: *"1 día vencido"*. El número estaba en la plata —$57.000 a $100.000 el día son tres— pero había que dividir de cabeza para verlo. Su IVA va **pegado al texto** que lo explica, no contra el margen derecho: alejado quedaba a media pantalla del concepto y se leía junto a la columna equivocada.
 
-El **nombre del equipo encabeza sus renglones una sola vez** y los conceptos van debajo. Escrito en cada uno —*"1 COMPRESOR NEUMATICO INGERSOLLRAND 185 · días vencidos pagados"*— no entraba en una línea, y al partirse en dos descolocaba la columna de la derecha: los totales dejaban de caer al lado del movimiento que explican. El nombre completo sigue estando, en el `title` de cada renglón.
+El **nombre del equipo encabeza sus renglones una sola vez** y los conceptos van debajo. Escrito en cada uno —*"1 COMPRESOR NEUMATICO INGERSOLLRAND 185 · días vencidos"*— no entraba en una línea, y al partirse en dos descolocaba la columna de la derecha: los totales dejaban de caer al lado del movimiento que explican. El nombre completo sigue estando, en el `title` de cada renglón.
 
 Al lado, bajo el **Total adicionales**, va el historial de ese número: a cuánto llegaba después de cada movimiento. Es un acumulado —el despacho más el IVA hasta ahí—, no lo que aporta cada renglón suelto, y se lee al revés de como ocurrió: lo más reciente arriba, el alta abajo del todo.
 
