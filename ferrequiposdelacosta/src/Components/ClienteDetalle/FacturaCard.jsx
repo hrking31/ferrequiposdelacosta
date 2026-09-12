@@ -686,6 +686,31 @@ export default function FacturaCard({
                         </Box>
                       </Box>
 
+                      {/* Los equipos de ESTE lote, con su propio rótulo:
+                          el bloque tenía uno solo arriba con el total, y un
+                          tercer o cuarto despacho aparecía sin decir dónde
+                          empezaba. Cada grupo se guarda junto en la base y acá
+                          se lee igual: su pago, sus equipos y sus cargos.
+
+                          Con un solo despacho no va: el rótulo de arriba ya
+                          dice lo mismo y se leería dos veces seguido. */}
+                      {gruposAgregados.length > 1 && (
+                        <Typography
+                          variant="overline"
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            lineHeight: 1.6,
+                            mt: 1,
+                            color: colorEquiposAgregados,
+                          }}
+                        >
+                          <LibraryAddIcon fontSize="small" />
+                          Equipos agregados {equiposDelLote.length}
+                        </Typography>
+                      )}
+
                       <Box
                         sx={{
                           mt: 0.5,
