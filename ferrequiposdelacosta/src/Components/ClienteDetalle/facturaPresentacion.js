@@ -593,7 +593,15 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       fecha: equipo.devolucion.fechaDevolucion,
       tono: "devuelto",
       titulo: "Devolución",
-      detalle: retenido > 0 ? "Volvió con daños." : "El equipo volvió a bodega.",
+      // Lo que dijo el cliente al devolverlo, cuando alguien lo anotó: se
+      // pregunta al registrar una devolución anticipada, y explica por qué el
+      // equipo volvió antes de tiempo. Vivía suelto bajo el nombre del equipo,
+      // sin fecha; acá cuelga del hecho que explica.
+      detalle: equipo.devolucion.motivoDevolucion
+        ? `Cliente: ${equipo.devolucion.motivoDevolucion}`
+        : retenido > 0
+          ? "Volvió con daños."
+          : "El equipo volvió a bodega.",
       valor: retenido > 0 ? retenido : null,
       valorTono: "vencido",
       chip: retenido > 0 ? null : "devuelto",

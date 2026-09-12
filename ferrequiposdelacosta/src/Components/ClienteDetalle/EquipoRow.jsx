@@ -277,16 +277,6 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
             </Stack>
             </Box>
           </Stack>
-          {/* POR QUÉ lo devolvió, cuando alguien lo anotó. Se pregunta al
-              registrar la devolución desde acá, donde el equipo vuelve todavía
-              en plazo: que la obra haya terminado explica una devolución que
-              de otro modo no se entiende. En renglón propio y no pegado a la
-              fecha porque es una frase, no un dato corto. */}
-          {devuelto && equipo.devolucion?.motivoDevolucion && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Motivo: {equipo.devolucion.motivoDevolucion}
-            </Typography>
-          )}
         </Box>
 
         {/* COLUMNA DERECHA: en qué anda el equipo y cuánto cuesta.

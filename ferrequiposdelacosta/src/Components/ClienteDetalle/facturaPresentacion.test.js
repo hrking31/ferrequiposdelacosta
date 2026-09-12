@@ -542,6 +542,27 @@ describe("historialEquipo", () => {
     expect(salida.detalle).toBe("Pendiente: se entrega por 5 días.");
   });
 
+  // Lo que dijo el cliente al devolverlo cuelga del hito que explica, con su
+  // fecha. Antes vivía suelto bajo el nombre del equipo, sin decir cuándo.
+  it("el motivo de la devolución va en su hito", () => {
+    const conMotivo = unEquipoDevuelto({
+      cantidad: 1,
+      valorDia: 150000,
+      dias: 5,
+      fechaDespacho: "2026-09-01",
+      fechaVencimiento: "2026-09-07",
+      fechaDevolucion: "2026-09-05",
+    });
+    // Ojo, son dos campos distintos: `motivo` es por qué volvió dañado;
+    // `motivoDevolucion` es lo que dijo el cliente al devolverlo antes de
+    // tiempo, que es el que se muestra acá.
+    conMotivo.devolucion.motivoDevolucion = "ya no lo necesita";
+
+    expect(buscar(conMotivo, "devolucion").detalle).toBe(
+      "Cliente: ya no lo necesita",
+    );
+  });
+
   it("al devuelto le agrega su vuelta a bodega y le saca el vencimiento", () => {
     const devuelto = unEquipoDevuelto({
       cantidad: 1,
