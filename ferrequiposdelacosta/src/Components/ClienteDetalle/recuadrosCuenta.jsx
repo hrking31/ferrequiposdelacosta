@@ -148,9 +148,27 @@ export const renderFilaDatos = (color, datos) => (
             que el rótulo, que es el del bloque. */}
         <Typography
           variant="rotuloDato"
-          sx={{ color, display: "flex", alignItems: "center", gap: 0.375 }}
+          sx={{ color, display: "flex", alignItems: "center", gap: 0.5 }}
         >
-          {Icono && <Icono sx={{ fontSize: "0.85rem" }} />}
+          {/* El ícono va dentro de un círculo del mismo color, como los hitos
+              de la historia de un equipo: suelto se confundía con el texto del
+              rótulo, y envuelto se lee como lo que es, una marca. */}
+          {Icono && (
+            <Box
+              component="span"
+              sx={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+                bgcolor: alpha(color, 0.18),
+              }}
+            >
+              <Icono sx={{ fontSize: "0.75rem" }} />
+            </Box>
+          )}
           {rotulo}
         </Typography>
         {contenido || <Typography variant="valorDato">{valor}</Typography>}
