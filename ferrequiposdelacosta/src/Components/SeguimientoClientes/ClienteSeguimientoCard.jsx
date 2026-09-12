@@ -31,12 +31,10 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
   calcularCuentaCliente,
   calcularCuentaFactura,
-  calcularExigible,
   contarUnidadesVencidas,
   plazoVencidoFactura,
   equipoDevueltoEnCobranza,
@@ -497,32 +495,6 @@ export default function ClienteSeguimientoCard({
   // está vencida en cuanto uno de sus equipos lo está, y reclamarle los siete
   // cuando solo venció uno le pide algo que todavía no debe.
   const equiposVencidos = contarUnidadesVencidas(factura, hoy);
-  const hayEquiposVencidos = equiposVencidos > 0;
-
-  // Si le quedan equipos afuera, están en plazo: se los renovaron o todavía no
-  // vencen.
-  const quedanEquiposAfuera = equiposAfuera(factura).length > 0;
-
-  // Lo que se le puede reclamar HOY a una factura sin equipos vencidos.
-  //
-  // Con equipos todavía afuera es lo que debía ANTES de la renovación: los días
-  // que se le acaban de conceder los está usando y se cobran cuando devuelva,
-  // así que pedírselos ahora sería cobrarle un alquiler en curso. Con todo
-  // devuelto ya no queda nada por correr y se le cobra la cuenta completa.
-  const exigibleHoy = calcularExigible(factura, hoy);
-
-  // Y si ya se puso al día con eso, lo que la mantiene acá es el resto del
-  // saldo —los días que contrató al renovar—: una factura a la que se le
-  // venció la fecha no sale de cartera hasta cancelar todo. Mostrar el "$0"
-  // de lo exigible dejaría la tarjeta explicando que sigue por nada.
-  const saldoExigible =
-    quedanEquiposAfuera && exigibleHoy > 0 ? exigibleHoy : cuenta.saldoPendiente;
-
-  const detalleSaldo = !quedanEquiposAfuera
-    ? "."
-    : exigibleHoy > 0
-      ? ", deuda antes de la ampliación."
-      : ", que es lo que renovó y todavía no paga.";
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -1063,37 +1035,11 @@ export default function ClienteSeguimientoCard({
                 mismo que ya separa todo lo demás en la app. */}
             {!facturaPlegada(factura.id) && <Divider sx={{ my: 1.5 }} />}
 
-            {/* Una factura puede seguir en cartera sin tener un solo equipo
-                vencido: le renovaron el que la trajo, o ya devolvió todo, y
-                se queda por la plata que debe. Sin este aviso la tarjeta
-                mostraba un hueco y no había forma de saber por qué seguía
-                acá. Dice lo único que queda por hacer: cobrar. */}
-            {!facturaPlegada(factura.id) && !hayEquiposVencidos && (
-              <Box sx={{ mb: 1 }}>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    lineHeight: 1.6,
-                    color: acento,
-                  }}
-                >
-                  <AccountBalanceWalletIcon fontSize="small" />
-                  Sin equipos vencidos
-                </Typography>
-                {/* De qué saldo habla, que no siempre es el mismo: con deuda
-                    vieja es la de ANTES de la ampliación —si no, el número no
-                    coincide con el saldo de la cuenta y parece un error—; ya
-                    al día, es lo que contrató al renovar; y con todo devuelto,
-                    la cuenta completa (ver saldoExigible). */}
-                <Typography variant="body2" color="text.secondary">
-                  {`Sigue en cartera por el saldo de ${formatearMoneda(saldoExigible)}`}
-                  {detalleSaldo}
-                </Typography>
-              </Box>
-            )}
+            {/* Una factura puede seguir en cartera sin un solo equipo vencido:
+                le renovaron el que la trajo, o ya devolvió todo, y se queda
+                por la plata. No lleva ningún aviso — el equipo simplemente no
+                aparece, y el recuadro de la cuenta que está justo arriba ya
+                dice cuánto falta cobrar. */}
 
             {!facturaPlegada(factura.id) && equiposDe(factura).length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>

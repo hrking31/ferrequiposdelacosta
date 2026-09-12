@@ -491,7 +491,7 @@ Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con l
 Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia completa de la factura.
 
 > [!NOTE]
-> **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí la tarjeta lo dice —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— en vez de mostrar un hueco, porque lo único que queda por hacer es cobrar. Y dice de qué saldo habla, que no siempre es el mismo: con deuda vieja es la de antes de la ampliación; ya al día, lo que contrató al renovar.
+> **Una factura puede quedarse en cartera sin un solo equipo vencido**: le renovaron el que la trajo, o ya devolvió todo, y se queda por la plata. Ahí no aparece ningún equipo y tampoco ningún aviso: el recuadro de la cuenta, que está justo arriba, ya dice cuánto falta cobrar. Hubo un cartel que lo explicaba —*"Sin equipos vencidos: sigue en cartera por el saldo de $X"*— y se fue por redundante.
 >
 > **Cuánto se le reclama depende de si le quedan equipos afuera.** Si le quedan, se le cobra lo que debía **antes de la renovación**: los días recién concedidos todavía los está usando y se cobran cuando devuelva. Si ya devolvió todo, se le cobra la **cuenta completa**, con el costo de todas las ampliaciones, porque no queda nada corriendo.
 

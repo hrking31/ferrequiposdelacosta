@@ -139,24 +139,6 @@ const facturaRenovada = facturaCon({
   ],
 });
 
-// La misma renovada, pero con lo viejo ya cobrado: al cliente se le vencieron
-// días, se le renovó consolidándolos y pagó todo lo que llevaba usado. No
-// queda nada exigible hoy y sigue en cartera solo por lo que contrató al
-// renovar.
-const facturaRenovadaYAlDia = facturaCon({
-  equipos: [
-    andamio({
-      fechaVencimiento: "2099-01-01",
-      ampliaciones: [
-        { diasAmpliados: 30, diasPedidos: 28, diasVencidos: 2, descuentoRealizado: 0 },
-      ],
-    }),
-  ],
-  // Los 20 días que el andamio ya estuvo afuera, del 01 al 20 de agosto:
-  // 5 × $20.000 × 20.
-  pagos: [{ medio: "Efectivo", monto: 2000000 }],
-});
-
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -222,54 +204,16 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
   });
 
-  // Le renovaron el único equipo vencido: ya no hay nada que reclamar, pero la
-  // factura sigue en cartera porque debe plata de antes de esa renovación. Sin
-  // el aviso, la tarjeta quedaba en blanco y no había forma de saber por qué
-  // seguía acá.
-  it("dice por qué sigue en cartera cuando ya no hay equipos vencidos", async () => {
+  // Una factura puede seguir en cartera sin un solo equipo vencido: le
+  // renovaron el que la trajo y se queda por la plata. No lleva aviso — el
+  // equipo simplemente no aparece, y el recuadro de la cuenta de arriba ya
+  // dice cuánto falta cobrar.
+  it("la factura sin equipos vencidos no muestra ninguno", async () => {
     const { usuario } = mostrar([facturaRenovada]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText("Sin equipos vencidos")).toBeInTheDocument();
-    // Lo exigible hoy son los días que el equipo YA estuvo afuera: 5 andamios
-    // a $20.000 desde el 01 hasta el 20 de agosto, o sea 20 días. Los que se
-    // le acaban de conceder los está usando y se cobran cuando devuelva.
-    //
-    // Antes este número salía del total GUARDADO de la factura, que no llevaba
-    // ni las ampliaciones ni los días vencidos: en la 1234 decía $144.440
-    // donde el cliente debía $1.727.140, y con pagar esos $144.440 la factura
-    // salía de cartera debiendo el resto.
-    expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
-      "2.000.000",
-    );
-    // Y dice de qué saldo habla: no es el saldo pendiente de la cuenta, que
-    // incluye los días recién concedidos, sino lo que debía antes.
-    expect(screen.getByText(/Sigue en cartera por el saldo de/)).toHaveTextContent(
-      "deuda antes de la ampliación",
-    );
-  });
-
-  // Y cuando ya se puso al día con eso, lo que la mantiene en cartera es lo
-  // que contrató al renovar. Mostrar ahí lo exigible —que es cero— dejaba la
-  // tarjeta diciendo que sigue acá por $0.
-  it("ya al día, dice que sigue por lo que renovó y no ha pagado", async () => {
-    const { usuario } = mostrar([facturaRenovadaYAlDia]);
-    await desplegarFactura(usuario);
-
-    const aviso = screen.getByText(/Sigue en cartera por el saldo de/);
-    expect(aviso).toHaveTextContent("1.300.000");
-    expect(aviso).toHaveTextContent("lo que renovó y todavía no paga");
-  });
-
-  // Cada lote agregado sale con su propio flete y su propio depósito, y la
-  // factura los cobra todos. Leyendo el campo suelto de la factura, esta
-  // pantalla mostraba solo los del primer despacho: decía una cifra mientras
-  // la cuenta usaba otra.
-  it("con todos los equipos vencidos afuera, no muestra ese aviso", async () => {
-    const { usuario } = mostrar();
-    await desplegarFactura(usuario);
-
-    expect(screen.queryByText("Sin equipos vencidos")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sigue en cartera/)).not.toBeInTheDocument();
   });
 
   it("no muestra lo que el cliente había devuelto en plazo", async () => {
