@@ -138,11 +138,19 @@ export const renderFilaDatos = (color, datos) => (
       />
     }
   >
-    {datos.map(({ clave, rotulo, valor, contenido }) => (
+    {datos.map(({ clave, rotulo, valor, contenido, Icono }) => (
       <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
         {/* El rótulo lleva el color del bloque; el valor va en el color
-            normal del texto, que es donde se lee la cifra. */}
-        <Typography variant="rotuloDato" sx={{ color }}>
+            normal del texto, que es donde se lee la cifra.
+
+            El ícono, cuando el dato trae uno, dice de qué se trata sin leer:
+            un camión es el flete, una alcancía el depósito. Va del mismo color
+            que el rótulo, que es el del bloque. */}
+        <Typography
+          variant="rotuloDato"
+          sx={{ color, display: "flex", alignItems: "center", gap: 0.375 }}
+        >
+          {Icono && <Icono sx={{ fontSize: "0.85rem" }} />}
           {rotulo}
         </Typography>
         {contenido || <Typography variant="valorDato">{valor}</Typography>}

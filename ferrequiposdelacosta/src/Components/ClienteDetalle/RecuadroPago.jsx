@@ -7,6 +7,13 @@
 //
 // Van juntos porque son lo mismo visto en dos momentos: plata que entró, con
 // su fecha y su medio, dentro del mismo recuadro de color.
+// Un ícono por dato: el calendario es cuándo, el recibo qué clase de pago
+// fue, los billetes un abono y la moneda el monto. El medio no lleva: ya se
+// muestra con el logo de Nequi, Bancolombia o Daviplata.
+import EventIcon from "@mui/icons-material/Event";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import PropTypes from "prop-types";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { Fragment } from "react";
@@ -59,6 +66,7 @@ export default function RecuadroPago({
   if (fecha) {
     datos.push({
       clave: "fecha",
+      Icono: EventIcon,
       rotulo: "Fecha",
       valor: formatearFecha(fecha),
     });
@@ -72,7 +80,12 @@ export default function RecuadroPago({
     // Inicial hay UNO solo, el de la factura. Un equipo agregado después se
     // paga cuando se agrega, así que ahí el renglón dice "Tipo de pago": lo
     // pone quien usa el recuadro con rotuloTipoPago.
-    datos.push({ clave: "pago", rotulo: rotuloTipoPago, valor: tipoPagoLabel });
+    datos.push({
+      clave: "pago",
+      Icono: ReceiptLongIcon,
+      rotulo: rotuloTipoPago,
+      valor: tipoPagoLabel,
+    });
   }
   // El medio va con el logo de la marca en vez del nombre escrito. Cuando el
   // pago se repartio entre varios, siguen separados por "+".
@@ -102,6 +115,7 @@ export default function RecuadroPago({
   if (pagos.length > 0) {
     datos.push({
       clave: "valor",
+      Icono: MonetizationOnIcon,
       rotulo: "Valor",
       valor: pagos
         .map((pago) => formatearMoneda(Number(pago.monto)))
@@ -114,6 +128,7 @@ export default function RecuadroPago({
   if (pagos.length > 1) {
     datos.push({
       clave: "total",
+      Icono: ReceiptLongIcon,
       rotulo: "Total",
       valor: formatearMoneda(totalPagos),
     });
@@ -161,6 +176,7 @@ export function ListaAbonos({ abonos, color }) {
         const datos = [
           {
             clave: "fecha",
+            Icono: PaymentsIcon,
             rotulo: "Abono",
             valor: formatearFecha(abono.fecha),
           },
@@ -171,6 +187,7 @@ export function ListaAbonos({ abonos, color }) {
           },
           {
             clave: "valor",
+            Icono: MonetizationOnIcon,
             rotulo: "Valor",
             valor: formatearMoneda(Number(abono.monto) || 0),
           },

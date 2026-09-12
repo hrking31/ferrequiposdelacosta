@@ -33,6 +33,12 @@ import {
   useTheme,
 } from "@mui/material";
 import AddCardIcon from "@mui/icons-material/AddCard";
+// Un ícono por cargo: el porcentaje es el IVA, la alcancía el depósito —una
+// garantía guardada, no un cobro—, el camión el flete y el recibo la suma.
+import PercentIcon from "@mui/icons-material/Percent";
+import SavingsIcon from "@mui/icons-material/Savings";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { calcularEquipo, diasDeEquipo, equipoLlevaIva } from "./facturaUtils";
@@ -65,6 +71,7 @@ const datosAdicionales = ({
   if (hayIva) {
     datos.push({
       clave: "iva",
+      Icono: PercentIcon,
       rotulo: "IVA (19%)",
       valor: formatearMoneda(Number(iva)),
     });
@@ -72,6 +79,7 @@ const datosAdicionales = ({
   if (deposito > 0) {
     datos.push({
       clave: "deposito",
+      Icono: SavingsIcon,
       rotulo: "Depósito",
       valor: formatearMoneda(deposito),
     });
@@ -81,6 +89,7 @@ const datosAdicionales = ({
   if (hayTransporte) {
     datos.push({
       clave: "transporte",
+      Icono: LocalShippingIcon,
       rotulo: "Transporte",
       valor:
         transporteMonto > 0
@@ -94,6 +103,7 @@ const datosAdicionales = ({
   // nombre y a pocos centímetros se leían como si tuvieran que coincidir.
   datos.push({
     clave: "total",
+    Icono: ReceiptLongIcon,
     rotulo: "Total adicionales",
     valor: formatearMoneda(total),
   });
@@ -360,6 +370,12 @@ export default function CargosAdicionales({
             <Box
               sx={{
                 mt: 0.75,
+                // La línea separa los importes del bloque —lo que se ve
+                // siempre— del detalle que abre la flecha, igual que en la
+                // historia de un equipo.
+                pt: 0.75,
+                borderTop: "1px solid",
+                borderColor: "divider",
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "minmax(0, max-content) max-content 1fr max-content",
@@ -383,11 +399,11 @@ export default function CargosAdicionales({
                   <Typography
                     key={fila.clave}
                     variant="body2"
+                    fontWeight="bold"
                     sx={{
                       gridColumn: "1 / 4",
                       px: { sm: 0.75 },
-                      mt: 0.5,
-                      fontWeight: 600,
+                      mt: 0.75,
                     }}
                   >
                     {fila.titulo}
@@ -398,7 +414,8 @@ export default function CargosAdicionales({
                         y guarda la etiqueta completa en el `title`, para el
                         que pare el mouse encima. */}
                     <Typography
-                      variant="body2"
+                      variant="caption"
+                      color="text.secondary"
                       title={fila.etiqueta}
                       sx={{
                         gridColumn: 1,
@@ -410,6 +427,7 @@ export default function CargosAdicionales({
                     </Typography>
                     <Typography
                       variant="body2"
+                      fontWeight="bold"
                       sx={{
                         gridColumn: 2,
                         pl: 2,
@@ -425,11 +443,11 @@ export default function CargosAdicionales({
                     {fila.totalHistorico !== null && (
                       <Typography
                         variant="body2"
+                        fontWeight="bold"
                         sx={{
                           gridColumn: 4,
                           pl: { sm: 0.75 },
                           whiteSpace: "nowrap",
-                          fontWeight: 600,
                         }}
                       >
                         {formatearMoneda(fila.totalHistorico)}
