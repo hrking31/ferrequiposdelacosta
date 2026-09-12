@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import { unEquipo, unaFactura } from "../../test/facturas";
+import { cubiertoHasta } from "./facturaUtils";
 
 // Sumarle equipos a una factura que ya existe, sin abrir otra. Los equipos que
 // se piden juntos forman un DESPACHO —un grupo—, con su propio pago, su
@@ -40,7 +41,6 @@ const factura = {
         dias: 3,
         valorDia: 20000,
         fechaDespacho: "2026-08-01",
-        fechaVencimiento: "2026-08-03",
       }),
     ],
     pagos: [{ medio: "Efectivo", monto: 300000 }],
@@ -131,7 +131,7 @@ describe("AgregarEquipoDialog — al sumar equipos", () => {
     // La fecha del pedido es del despacho entero, no de cada equipo.
     expect(despacho.fechaSolicitud).toBeTruthy();
     // Despacho 10 + 4 días − 1.
-    expect(despacho.equipos[0].fechaVencimiento).toBe("2026-08-13");
+    expect(cubiertoHasta(despacho.equipos[0])).toBe("2026-08-13");
   });
 
   it("no escribe plata en el nodo factura", async () => {

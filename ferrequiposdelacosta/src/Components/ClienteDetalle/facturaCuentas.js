@@ -40,10 +40,15 @@ import {
   datosFactura,
   entregasDe,
   equiposDe,
+  estaDevuelto,
   gestionesDe,
   gruposDe,
   pagosDe,
   sigueAfuera,
+  indefinidaDe,
+  sinFechaDeEntrega,
+  tramoVencidoAbierto,
+  vencidosDe,
 // Con la extensión .js, y es obligatorio: este archivo viaja como copia al
 // servidor, y allá lo carga Node directamente. Node exige la extensión en los
 // imports relativos; Vite la completa solo, así que sin ella funciona en la
@@ -155,6 +160,49 @@ export const calcularVencimiento = (fechaIso, dias) => {
   return aIso(fecha);
 };
 
+// ── HASTA CUÁNDO ESTÁ CUBIERTO UN EQUIPO ───────────────────────────────
+//
+// No se guarda: se encadena. Arranca con el plazo del alta y se estira con
+// cada tramo vencido que ya se cerró y con cada plazo que el cliente pidió.
+//
+// El compresor de la 5698: sale el 01/09 por 7 días → cubierto hasta el
+// 07/09; sus tramos 08→09 y 10→11 lo llevan al 11/09; su ampliación de 3
+// días, al 14/09.
+//
+// Guardar esta fecha era el problema: al renovarle el plazo se movía, y con
+// ella desaparecía lo único que probaba que el equipo se había vencido. De
+// ahí salieron seis formas distintas de adivinarlo después. Con los tramos
+// escritos no hay nada que adivinar, y ninguna fecha que se mueva.
+export const cubiertoHasta = (equipo) => {
+  const finales = [
+    calcularFechaDevolucion(
+      equipo?.fechaDespacho,
+      numero(equipo?.diasAlquilados),
+    ),
+    ...vencidosDe(equipo).map((tramo) => tramo?.hasta),
+    ...ampliacionesDe(equipo).map((ampliacion) => ampliacion?.hasta),
+  ].filter(Boolean);
+
+  return finales.length > 0
+    ? finales.reduce((mayor, fecha) => (fecha > mayor ? fecha : mayor))
+    : null;
+};
+
+// Los días que el equipo pasó afuera de su plazo.
+//
+// Los tramos ya cerrados traen sus dos fechas y no vuelven a moverse nunca.
+// El que sigue abierto se cuenta contra hoy —o contra el día en que volvió,
+// si volvió: ahí la cuenta se corta.
+export const diasVencidosDe = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+
+  return vencidosDe(equipo).reduce((total, tramo) => {
+    const hasta = tramo?.hasta ?? corte;
+    if (!tramo?.desde || hasta < tramo.desde) return total;
+    return total + diasDeAlquiler(tramo.desde, hasta);
+  }, 0);
+};
+
 // ── La cuenta de un equipo ─────────────────────────────────────────────
 //
 // Devuelve el desglose completo de una línea. Las pantallas lo muestran por
@@ -165,44 +213,23 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
   const ampliaciones = ampliacionesDe(equipo);
 
-  const diasAmpliados = ampliaciones.reduce(
-    (total, ampliacion) => total + numero(ampliacion.diasAmpliados),
-    0,
-  );
-  const descuento = ampliaciones.reduce(
-    (total, ampliacion) => total + numero(ampliacion.descuentoRealizado),
-    0,
-  );
+  const diasAmpliados = sumar(ampliaciones, "dias");
+  const descuento = sumar(ampliaciones, "descuento");
 
-  // Lo que se le prometió al cliente: los días del despacho más los que se le
-  // agregaron después.
-  const diasPactados = numero(equipo?.diasAlquilados) + diasAmpliados;
+  // Lo que se le prometió: los días del despacho más los que pidió después.
+  const prometidos = numero(equipo?.diasAlquilados) + diasAmpliados;
+  const diasVencidos = diasVencidosDe(equipo, hoyIso);
 
-  if (!sigueAfuera(equipo)) {
-    // Ya volvió: sus días quedaron congelados y son los que realmente usó.
-    // No se les suman las ampliaciones —el rango de fechas ya las incluye— ni
-    // se les descuenta nada por lo que no usó.
-    const dias = numero(equipo.diasAlquilados);
-    const bruto = dias * porDia;
-    return {
-      dias,
-      diasPactados: dias,
-      diasVencidos: 0,
-      bruto,
-      descuento,
-      neto: Math.max(0, bruto - descuento),
-      netoPactado: Math.max(0, bruto - descuento),
-      netoVencido: 0,
-      devuelto: true,
-    };
-  }
+  // El que devolvió ANTES de su fecha no usó todo lo pactado, y lo que no usó
+  // no se le cobra. El que sigue afuera paga lo pactado completo aunque no lo
+  // haya consumido todavía: esos días ya son suyos.
+  const devuelto = !sigueAfuera(equipo);
+  const usados = devuelto
+    ? diasDeAlquiler(equipo?.fechaDespacho, equipo.devolucion.fechaDevolucion)
+    : prometidos;
+  const diasPactados = Math.min(prometidos, Math.max(0, usados));
 
-  // Sigue afuera: corre el calendario. Si todavía está en fecha se cobran los
-  // días pactados; si se pasó, los que lleva desde que salió.
-  const transcurridos = diasDeAlquiler(equipo?.fechaDespacho, hoyIso);
-  const dias = Math.max(diasPactados, transcurridos);
-  const diasVencidos = Math.max(0, dias - diasPactados);
-
+  const dias = diasPactados + diasVencidos;
   const netoPactado = Math.max(0, diasPactados * porDia - descuento);
   const netoVencido = diasVencidos * porDia;
 
@@ -215,7 +242,7 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     neto: netoPactado + netoVencido,
     netoPactado,
     netoVencido,
-    devuelto: false,
+    devuelto,
   };
 };
 
@@ -224,60 +251,25 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
 // Tres tramos, y cada uno cuenta una historia distinta sobre la misma plata:
 //
 //   alta      los que se pactaron al despacharlo
-//   ampliados los que alguien AUTORIZÓ después, al ampliarle el plazo
-//   vencidos  los que corrieron porque el cliente NO devolvió
+//   ampliados los que el cliente PIDIÓ después
+//   vencidos  los que corrieron porque no devolvió
 //
 // Las pantallas los nombran por separado —"días ampliados" no es lo mismo que
 // "días vencidos"— y esta es la única función que decide cuál es cuál, para
 // que el desglose de la ficha, los chips y el PDF no puedan discrepar.
 //
-// Para el que sigue afuera es directo. Para el que ya volvió hay que
-// reconstruirlo: sus días quedaron congelados en uno solo, así que el reparto
-// sale de comparar ese número con lo que decía su fecha de vencimiento.
+// El que devolvió antes de tiempo no usó todo lo que tenía pactado. Lo que se
+// le cobra se recorta desde el final: primero se llenan los días del alta y
+// recién lo que sobra son ampliados.
 export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const cuenta = calcularEquipo(equipo, hoyIso);
-  const consolidados = ampliacionesDe(equipo).reduce(
-    (total, ampliacion) => total + numero(ampliacion.diasAmpliados),
-    0,
-  );
-  // De los consolidados, los que ya se cobraron al sellar un pago. No se le
-  // concedieron: se le vencieron y los pagó, y por eso se cuentan aparte (ver
-  // sellarDiasVencidos).
-  const pagados = ampliacionesDe(equipo)
-    .filter(esPagoDeVencidos)
-    .reduce((total, ampliacion) => total + numero(ampliacion.diasAmpliados), 0);
-  const ampliados = Math.max(0, consolidados - pagados);
-
-  if (!cuenta.devuelto) {
-    return {
-      alta: numero(equipo?.diasAlquilados),
-      ampliados,
-      pagados,
-      vencidos: cuenta.diasVencidos,
-    };
-  }
-
-  // Lo que se le había prometido en total, hasta la última fecha pactada.
-  const pactados = equipo?.fechaVencimiento
-    ? diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento)
-    : cuenta.dias;
-  const usados = cuenta.dias;
-  // Los del alta son los que quedan al sacarle a lo pactado TODO lo que se le
-  // consolidó después, sin importar si fue concedido o sellado por un pago.
-  const alta = Math.min(usados, Math.max(0, pactados - consolidados));
-  // Los que usó dentro de lo pactado y no son del alta: salieron de las
-  // consolidaciones. Los sellados se cuentan primero, que es el orden en que
-  // ocurrieron —se cerró lo vencido y recién después se le pudo conceder algo.
-  const extra = Math.max(0, Math.min(usados, pactados) - alta);
-  const pagadosUsados = Math.min(extra, pagados);
+  const cobradosPactados = cuenta.dias - cuenta.diasVencidos;
+  const alta = Math.min(numero(equipo?.diasAlquilados), cobradosPactados);
 
   return {
-    // Si devolvió antes, no alcanzó a usar ni los del alta.
     alta,
-    ampliados: extra - pagadosUsados,
-    pagados: pagadosUsados,
-    // Y si se pasó, los de más son vencidos aunque ya haya vuelto.
-    vencidos: Math.max(0, usados - pactados),
+    ampliados: Math.max(0, cobradosPactados - alta),
+    vencidos: cuenta.diasVencidos,
   };
 };
 
@@ -298,10 +290,14 @@ export const calcularEstadoEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) =
   if (!sigueAfuera(equipo)) return "devuelto";
   // Todavía no salió de la bodega.
   if (equipo?.fechaDespacho && equipo.fechaDespacho > hoyIso) return "pendiente";
-  // El que quedó con entrega indefinida cuenta como vencido: tenía que avisar
+  // El que quedó sin fecha de entrega cuenta como vencido: tenía que avisar
   // y no avisó, y mientras tanto corren días.
-  if (equipo?.vencimientoIndefinido) return "vencido";
-  if (equipo?.fechaVencimiento && equipo.fechaVencimiento <= hoyIso) return "vencido";
+  if (sinFechaDeEntrega(equipo)) return "vencido";
+  // Un equipo vence el día que se le acaba la cobertura, no al día siguiente:
+  // así entra a cartera ese mismo día y se le puede avisar al cliente que
+  // vence mañana.
+  const hasta = cubiertoHasta(equipo);
+  if (hasta && hasta <= hoyIso) return "vencido";
   if (ampliacionesDe(equipo).length > 0) return "ampliacion";
   return "activo";
 };
@@ -314,132 +310,193 @@ export const equipoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
 export const equipoAlDia = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
   ["activo", "ampliacion"].includes(calcularEstadoEquipo(equipo, hoyIso));
 
-// Un equipo que volvió DESPUÉS de su fecha: esa devolución se consiguió con la
-// factura ya vencida, así que es parte de la cobranza y Seguimiento la cuenta
-// como suya.
+// Un equipo que volvió DESPUÉS de su plazo: esa devolución se consiguió con
+// la factura ya vencida, así que es parte de la cobranza y Seguimiento la
+// cuenta como suya.
 //
 // El que volvió en plazo no. Una factura entra a Seguimiento con los equipos
 // que QUEDARON, no con los que ya habían vuelto: mostrar esos ahí obliga a
 // quien cobra a preguntarse cuándo y por qué volvieron, y la respuesta no está
 // en esa pantalla porque no pasó ahí. Su historia vive en la ficha del cliente.
+//
+// Con los tramos escritos se contesta solo: si tiene alguno, se pasó.
 export const equipoDevueltoEnCobranza = (equipo) =>
-  Boolean(equipo?.devolucion?.fechaDevolucion) &&
-  Boolean(equipo?.fechaVencimiento) &&
-  equipo.devolucion.fechaDevolucion > equipo.fechaVencimiento;
+  estaDevuelto(equipo) && vencidosDe(equipo).length > 0;
+
+const siguienteDia = (fechaIso) => calcularVencimiento(fechaIso, 1);
+
+// ── ABRIR Y CERRAR LOS TRAMOS VENCIDOS ─────────────────────────────────
+//
+// Son las dos únicas operaciones que escriben la mora de un equipo, y entre
+// las dos sostienen el modelo entero.
+//
+// ABRIR lo hace el repaso de la madrugada, cuando un equipo amanece pasado de
+// plazo. Se escribe UNA vez, con el `hasta` vacío, y no se vuelve a tocar:
+// los días que van corriendo los cuenta el calendario, que para eso está.
+//
+// CERRAR lo provoca siempre una persona —el cliente paga, pide días o
+// devuelve—, nunca el calendario. Ahí el tramo queda con sus dos fechas y no
+// se recalcula nunca más: es historia escrita.
+//
+// Por eso ya no hay ventana por donde se pierda un vencimiento. Antes, HACER
+// algo borraba el rastro —renovar movía la fecha y el día vencido
+// desaparecía—; ahora hacer algo es justamente lo que lo deja escrito.
+export const abrirTramoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  if (!sigueAfuera(equipo)) return equipo;
+  if (tramoVencidoAbierto(equipo)) return equipo;
+
+  const hasta = cubiertoHasta(equipo);
+  // El último día cubierto todavía está pagado: la mora arranca al siguiente.
+  // (El equipo sí figura vencido ese mismo día, para poder avisarle al
+  // cliente: eso lo decide calcularEstadoEquipo, no esto.)
+  if (!hasta || hasta >= hoyIso) return equipo;
+
+  return {
+    ...equipo,
+    vencidos: [
+      ...vencidosDe(equipo),
+      {
+        desde: siguienteDia(hasta),
+        hasta: null,
+        // Si el cliente ya había avisado que no sabía cuándo devolver, estos
+        // días corren con permiso. Es lo único que los distingue.
+        indefinida: sinFechaDeEntrega(equipo),
+      },
+    ],
+  };
+};
+
+export const cerrarTramoVencido = (equipo, hastaIso) => {
+  const abierto = tramoVencidoAbierto(equipo);
+  if (!abierto) return equipo;
+
+  return {
+    ...equipo,
+    vencidos: vencidosDe(equipo).map((tramo) =>
+      tramo === abierto ? { ...tramo, hasta: hastaIso } : tramo,
+    ),
+  };
+};
+
+// Cerrar la mora de un equipo al que le está pasando algo: paga, pide días o
+// devuelve.
+//
+// Casi siempre es cerrar el tramo que venía corriendo. Pero hay un caso que
+// no tiene tramo y sin embargo YA ESTABA VENCIDO: al que le renuevan el plazo
+// el mismo día en que se le acaba. Ese día el equipo figura vencido —así entra
+// a cartera y se le puede avisar al cliente— pero todavía no le corrió ni un
+// día de mora, así que la madrugada nunca llegó a abrirle nada.
+//
+// Es EXACTAMENTE el caso de la 0123 de ReYaz, el que el modelo viejo perdía:
+// se le pactaron 4 días el mismo 11/09 en que vencían, no se pasó ni un día, y
+// la factura salió de cartera debiendo $71.400.
+//
+// Por eso se le anota un tramo que no suma ni un día —su `hasta` cae antes que
+// su `desde`— pero que deja escrito que llegó a vencerse.
+const cerrarMora = (equipo, hoyIso) => {
+  const cerrado = cerrarTramoVencido(equipo, hoyIso);
+  if (cerrado !== equipo) return cerrado;
+
+  const hasta = cubiertoHasta(equipo);
+  if (!hasta || hasta > hoyIso) return equipo;
+  // Y si hoy ya se le cerró uno, no se le encima otro: pasar dos veces por
+  // acá —el mismo pago que cierra y despues vuelve a mirar— no puede
+  // duplicar el registro.
+  if (vencidosDe(equipo).some((tramo) => tramo?.hasta === hoyIso)) return equipo;
+
+  return {
+    ...equipo,
+    vencidos: [
+      ...vencidosDe(equipo),
+      {
+        desde: siguienteDia(hasta),
+        hasta: hoyIso,
+        indefinida: sinFechaDeEntrega(equipo),
+      },
+    ],
+  };
+};
+
+// El equipo vuelve a tener fecha, así que su entrega indefinida se cierra con
+// el día en que dejó de estarlo. El que nunca estuvo sin fecha no estrena un
+// nodo vacío.
+export const cerrarIndefinida = (equipo, hoyIso) =>
+  sinFechaDeEntrega(equipo)
+    ? {
+        ...equipo,
+        indefinida: { ...indefinidaDe(equipo), activa: false, hasta: hoyIso },
+      }
+    : equipo;
 
 // ── Lo que se le da a un equipo al ampliarle el plazo ──────────────────
 //
 // Cuando el cliente pide "un día más" y el equipo lleva 4 días vencidos, ese
-// día que se le promete es MAÑANA. Sumarlo a la fecha vencida daría una fecha
-// que ya pasó, así que el equipo seguiría figurando vencido y el cliente no
-// tendría el día prometido.
+// día que se le promete es MAÑANA. Por eso lo primero es cerrar el tramo que
+// venía corriendo —esos 4 días quedan escritos— y recién sobre esa base
+// arrancan los días nuevos.
 //
-// La fecha nueva se cuenta desde hoy, y la ampliación se registra por los días
-// que la fecha corre DE VERDAD —los 4 vencidos que se consolidan más el
-// pactado, 5 en el ejemplo—. Para perdonarle esos días está el descuento, que
-// es una decisión que alguien toma y queda escrita.
+// Los 4 vencidos NO se regalan ni se descuentan: se siguen cobrando, solo que
+// en su propio renglón y no disfrazados de días ampliados. Para perdonárselos
+// está el descuento, que es una decisión que alguien toma y queda escrita.
 export const proyectarAmpliacion = (
   equipo,
   diasPedidos,
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
   const pedidos = Math.max(0, numero(diasPedidos));
-  const diasVencidos = calcularEquipo(equipo, hoyIso).diasVencidos;
-  const desde = diasVencidos > 0 ? hoyIso : equipo?.fechaVencimiento;
+  const desde = siguienteDia(cubiertoHasta(cerrarTramoVencido(equipo, hoyIso)));
 
   return {
-    diasVencidos,
-    // Los que se le prometieron, que es lo que el cliente escuchó.
+    diasVencidos: diasVencidosDe(equipo, hoyIso),
+    // Los que se le prometieron, que es lo que el cliente escuchó. Y nada más:
+    // el renglón de la ampliación ya no mezcla los vencidos adentro.
     diasPedidos: pedidos,
-    // Y los que la fecha corre en total, que es lo que se cobra.
-    dias: pedidos + diasVencidos,
-    fechaNueva: pedidos > 0 ? calcularVencimiento(desde, pedidos) : null,
+    desde,
+    hasta: pedidos > 0 ? calcularFechaDevolucion(desde, pedidos) : null,
   };
 };
 
-// ── SELLAR LOS DÍAS VENCIDOS QUE EL CLIENTE YA PAGÓ ────────────────────
-//
-// El caso: el cliente paga todo lo que debe y deja el equipo con ENTREGA
-// INDEFINIDA —se lo queda y avisará cuándo lo devuelve—. Esos días quedan
-// cobrados, pero el equipo no tiene fecha, así que al día siguiente el
-// calendario los vuelve a contar: el contador diría 3 días vencidos y el rojo
-// pediría $450.000 cuando lo que falta cobrar son $150.000.
-//
-// La entrega indefinida es su ÚNICO caso, y no por casualidad: al cobrar hay
-// que decir qué pasa con el equipo (ver aplicarAcuerdoDeEquipos), y de las
-// tres respuestas posibles las otras dos no dejan días vencidos abiertos —la
-// renovación los consolida, la devolución los congela—.
-//
-// Sellar es dar esos días por cerrados: dejan de contarse como vencidos y el
-// contador arranca de cero desde el pago. Se hace con el MISMO mecanismo de
-// la renovación —los días se consolidan y la fecha del equipo pasa a hoy—,
-// con una sola diferencia: no se le concedió ningún día nuevo (`diasPedidos`
-// en cero) y queda marcado `porPago`, que es lo que después pinta el chip en
-// verde en vez de azul.
-//
-// LA PLATA NO SE MUEVE, y es la razón por la que se consolida en vez de
-// restar: esos días siguen cobrándose igual —pasan de "vencidos" a "pactados"
-// y el total da lo mismo—. Si se descontaran, aparecería un saldo a favor que
-// nadie entregó.
-//
-// El equipo CONSERVA su marca de entrega indefinida: el cliente pagó, pero
-// sigue sin decir cuándo devuelve, así que sigue siendo un equipo sin fecha
-// de retorno y no se mueve de seguimiento.
-export const esPagoDeVencidos = (ampliacion) => Boolean(ampliacion?.porPago);
+// El equipo con su plazo nuevo: el tramo vencido cerrado hoy, la entrega
+// indefinida apagada —ya tiene fecha— y la ampliación anotada con lo que el
+// cliente PIDIÓ.
+export const ampliarEquipo = (
+  equipo,
+  { dias, descuento } = {},
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const pedidos = Math.max(0, numero(dias));
+  if (pedidos <= 0) return equipo;
 
-// ¿El equipo YA ESTABA VENCIDO cuando se le renovó el plazo?
-//
-// Se contesta comparando el día en que se hizo la renovación con la fecha que
-// el equipo tenía: si se hizo ESE día o después, la fecha ya había llegado.
-//
-// No alcanza con mirar sus días vencidos. Al que se le amplía el mismo día del
-// vencimiento no se le pasó ninguno, así que ese número queda en cero — y ese
-// cero no distingue "le amplié el día que vencía", cuando el equipo ya estaba
-// vencido y su factura ya estaba en cartera, de "le amplié tres días antes",
-// cuando no se venció nunca. Son dos situaciones opuestas con el mismo rastro.
-//
-// Un equipo vence el día que dice su fecha, no al día siguiente: esa es la
-// regla con la que entra a cartera, y la que permite avisarle al cliente que
-// vence mañana.
-//
-// Las renovaciones migradas del Excel no traen el día en que se hicieron, así
-// que de esas solo se puede saber por sus días vencidos.
-export const ampliacionTrasVencimiento = (ampliacion) =>
-  numero(ampliacion?.diasVencidos) > 0 ||
-  Boolean(
-    ampliacion?.fecha &&
-      ampliacion?.fechaAnterior &&
-      ampliacion.fecha >= ampliacion.fechaAnterior,
-  );
-
-export const sellarDiasVencidos = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
-  if (!sigueAfuera(equipo)) return equipo;
-
-  const { diasVencidos } = calcularEquipo(equipo, hoyIso);
-  if (diasVencidos <= 0) return equipo;
+  const proyeccion = proyectarAmpliacion(equipo, pedidos, hoyIso);
+  const base = cerrarIndefinida(cerrarMora(equipo, hoyIso), hoyIso);
 
   return {
-    ...equipo,
-    // Los días y la fecha tienen que decir lo mismo: despacho + días pactados
-    // cae justo en hoy, que es hasta donde el cliente pagó.
-    fechaVencimiento: hoyIso,
+    ...base,
     ampliaciones: [
-      ...ampliacionesDe(equipo),
+      ...ampliacionesDe(base),
       {
-        fechaAnterior: equipo?.fechaVencimiento ?? null,
-        fechaNueva: hoyIso,
-        // Los que la fecha corre de verdad, que es lo que ya se cobró.
-        diasAmpliados: diasVencidos,
-        // Ninguno: no se le prometió nada, solo se cerró lo que ya pasó.
-        diasPedidos: 0,
-        diasVencidos,
-        descuentoRealizado: 0,
-        porPago: true,
         fecha: hoyIso,
+        dias: pedidos,
+        desde: proyeccion.desde,
+        hasta: proyeccion.hasta,
+        descuento: numero(descuento),
       },
     ],
   };
 };
+
+// El equipo que queda SIN FECHA DE ENTREGA: el cliente se lo queda y avisará.
+//
+// Su tramo vencido se cierra hoy —esos días ya están cobrados— y desde mañana
+// empieza a correr uno nuevo, marcado como que corre con permiso. Sin esto,
+// al día siguiente el calendario volvería a contar los días ya pagados.
+export const dejarSinFechaDeEntrega = (
+  equipo,
+  hoyIso = obtenerFechaHoyBogota(),
+) => ({
+  ...cerrarMora(equipo, hoyIso),
+  indefinida: { activa: true, desde: hoyIso, hasta: null },
+});
 
 // ── EL ACUERDO POR EL EQUIPO, al cobrar ────────────────────────────────
 //
@@ -448,10 +505,9 @@ export const sellarDiasVencidos = (equipo, hoyIso = obtenerFechaHoyBogota()) => 
 // se preguntó. Por eso el abono exige un acuerdo, y acá vive lo que ese
 // acuerdo le hace a los equipos.
 //
-// Le da plazo a TODOS los equipos vencidos que siguen afuera —no a los que
-// están en fecha, que no hay nada que acordarles—: con días, corriendo el
-// vencimiento desde hoy como cualquier renovación; sin ellos, dejándolos con
-// entrega indefinida.
+// Alcanza a TODOS los equipos vencidos que siguen afuera —no a los que están
+// en fecha, que no hay nada que acordarles—: con días, ampliándoles el plazo;
+// sin ellos, dejándolos sin fecha de entrega.
 //
 // Devuelve `null` si no había ninguno vencido: ahí no hay nada que acordar y
 // quien guarda no escribe de más.
@@ -464,7 +520,6 @@ export const aplicarAcuerdoDeEquipos = (
   if (!indefinida && pedidos <= 0) return null;
 
   let hubo = false;
-  let diasConcedidos = 0;
 
   const grupos = gruposDe(doc).map((grupo) => ({
     ...grupo,
@@ -472,38 +527,9 @@ export const aplicarAcuerdoDeEquipos = (
       if (!sigueAfuera(equipo) || !equipoVencido(equipo, hoyIso)) return equipo;
       hubo = true;
 
-      if (indefinida) {
-        // El día en que quedó sin fecha. La marca sola se prende y se apaga
-        // —al renovarle el plazo vuelve a false—, así que sin esto el
-        // historial del equipo no podría contar que estuvo sin fecha de
-        // entrega: no quedaría rastro de cuándo empezó.
-        return { ...equipo, vencimientoIndefinido: true, indefinidaDesde: hoyIso };
-      }
-
-      // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
-      // fecha corre de verdad —con los días vencidos consolidados— es lo que
-      // se cobra. Misma regla que el diálogo de ampliar (ver
-      // proyectarAmpliacion).
-      const proyeccion = proyectarAmpliacion(equipo, pedidos, hoyIso);
-      diasConcedidos = Math.max(diasConcedidos, pedidos);
-
-      return {
-        ...equipo,
-        vencimientoIndefinido: false,
-        ampliaciones: [
-          ...ampliacionesDe(equipo),
-          {
-            fechaAnterior: equipo?.fechaVencimiento ?? null,
-            fechaNueva: proyeccion.fechaNueva,
-            diasAmpliados: proyeccion.dias,
-            diasPedidos: proyeccion.diasPedidos,
-            diasVencidos: proyeccion.diasVencidos,
-            descuentoRealizado: 0,
-            fecha: hoyIso,
-          },
-        ],
-        fechaVencimiento: proyeccion.fechaNueva,
-      };
+      return indefinida
+        ? dejarSinFechaDeEntrega(equipo, hoyIso)
+        : ampliarEquipo(equipo, { dias: pedidos }, hoyIso);
     }),
   }));
 
@@ -514,14 +540,14 @@ export const aplicarAcuerdoDeEquipos = (
     // El registro que va a la bitácora: es una renovación, igual que la que se
     // pacta desde su propio diálogo. Lo que la distingue es de dónde salió.
     gestion: crearRegistroGestion("prorroga", {
-      dias: diasConcedidos,
+      dias: indefinida ? 0 : pedidos,
       indefinida: Boolean(indefinida),
     }),
   };
 };
 
-// Los mismos grupos de la factura, con los días vencidos de cada equipo que
-// sigue afuera ya sellados. Devuelve `null` cuando no había nada que sellar,
+// Los mismos grupos de la factura, con el tramo vencido de cada equipo que
+// sigue afuera ya cerrado. Devuelve `null` cuando no había ninguno abierto,
 // para que quien guarda no escriba de gusto.
 export const sellarFacturaPagada = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   let hubo = false;
@@ -529,9 +555,33 @@ export const sellarFacturaPagada = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   const grupos = gruposDe(doc).map((grupo) => ({
     ...grupo,
     equipos: (grupo?.equipos ?? []).map((equipo) => {
-      const sellado = sellarDiasVencidos(equipo, hoyIso);
-      if (sellado !== equipo) hubo = true;
-      return sellado;
+      if (!sigueAfuera(equipo)) return equipo;
+      const cerrado = cerrarMora(equipo, hoyIso);
+      if (cerrado !== equipo) hubo = true;
+      return cerrado;
+    }),
+  }));
+
+  return hubo ? grupos : null;
+};
+
+// Los mismos grupos de la factura, con un tramo vencido ABIERTO en cada
+// equipo que amaneció pasado de plazo. Devuelve `null` cuando no había
+// ninguno que abrir.
+//
+// Lo llama el repaso de la madrugada, y es la única escritura que provoca el
+// calendario en toda la app: a partir de ahí el hecho queda anotado —el día
+// en que empezó la mora— y los días que van corriendo los cuenta la fecha,
+// sin volver a escribir nada hasta que alguien cierre el tramo.
+export const abrirTramosFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
+  let hubo = false;
+
+  const grupos = gruposDe(doc).map((grupo) => ({
+    ...grupo,
+    equipos: (grupo?.equipos ?? []).map((equipo) => {
+      const abierto = abrirTramoVencido(equipo, hoyIso);
+      if (abierto !== equipo) hubo = true;
+      return abierto;
     }),
   }));
 
@@ -725,32 +775,23 @@ export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
 
 // ── ¿A esta factura se le venció la fecha alguna vez? ──────────────────
 //
-// El estado no se guarda: se recalcula cada vez mirando el día de hoy. Así
-// que una factura a la que se le renovó el equipo vencido queda igual a una
-// recién despachada —fecha por delante, nada vencido— y la mora que hubo en
-// el medio desaparece de la vista. Con eso salía de cartera con el equipo
-// afuera y días ya pactados sin pagar.
+// Una sola pregunta a los datos, sin adivinar nada: si alguno de sus equipos
+// tiene un tramo vencido, se venció.
 //
-// Acá se la busca en las huellas que SÍ quedaron escritas, que son tres:
+// Acá vivían SEIS formas distintas de deducirlo —un equipo vencido hoy, uno
+// devuelto después de su fecha, una renovación que se llevó días vencidos
+// adentro…— y todas dependían de rastros que se borraban justo al renovar el
+// plazo, que es cuando más falta hacían.
 //
-//   - un equipo vencido hoy, o sin fecha por decisión del cliente;
-//   - uno que volvió después de su fecha;
-//   - una renovación que se llevó días vencidos adentro —los consolida— o un
-//     pago que los selló: las dos guardan cuántos venían vencidos.
+// El caso que lo destapó, la 0123 de ReYaz: los gatos vencían el 11/09 y ese
+// MISMO día se les pactaron 4 más. La renovación quedó con "0 días vencidos"
+// —no se pasó ninguno— y ese cero no distingue "le amplié el día que vencía",
+// cuando el equipo ya estaba vencido, de "le amplié tres días antes", cuando
+// no se venció nunca. La factura salió de cartera debiendo $71.400.
 //
-// No hace falta ningún dato nuevo: todo esto ya se escribe desde antes.
-export const facturaSeVencioAlgunaVez = (
-  doc,
-  hoyIso = obtenerFechaHoyBogota(),
-) =>
-  equiposDe(doc).some(
-    ({ equipo }) =>
-      equipoVencido(equipo, hoyIso) ||
-      equipoDevueltoEnCobranza(equipo) ||
-      ampliacionesDe(equipo).some(
-        (ampliacion) => numero(ampliacion?.diasVencidos) > 0,
-      ),
-  );
+// Un tramo, en cambio, no se borra nunca: es el registro de que pasó.
+export const facturaSeVencioAlgunaVez = (doc) =>
+  equiposDe(doc).some(({ equipo }) => vencidosDe(equipo).length > 0);
 
 // ── El estado de la factura ────────────────────────────────────────────
 
@@ -804,7 +845,7 @@ export const calcularEstadoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   // pactados sin pagar. El equipo sí sale —renovado deja de estar vencido—,
   // que es lo que hay que dejar de reclamar; la plata no.
   if (
-    facturaSeVencioAlgunaVez(doc, hoyIso) &&
+    facturaSeVencioAlgunaVez(doc) &&
     calcularCuentaFactura(doc, hoyIso).saldoPendiente > 0
   ) {
     return "vencida";
@@ -854,7 +895,7 @@ export const plazoVencidoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
 
   return {
     fecha: vencidos
-      .map((equipo) => equipo?.fechaVencimiento)
+      .map((equipo) => cubiertoHasta(equipo))
       .filter(Boolean)
       .sort()[0] ?? null,
     dias: Math.max(

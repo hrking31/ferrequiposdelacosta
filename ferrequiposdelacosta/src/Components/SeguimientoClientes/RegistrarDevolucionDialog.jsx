@@ -21,12 +21,15 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
+  ampliarEquipo,
+  cerrarIndefinida,
+  cerrarTramoVencido,
+  dejarSinFechaDeEntrega,
   proyectarAmpliacion,
   equipoAlDia,
   equipoVencido,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
-  diasDeAlquiler,
   obtenerGestiones,
   crearRegistroGestion,
   facturaEnSeguimiento,
@@ -37,7 +40,6 @@ import {
   gruposDe,
   equiposDe,
   adicionalesDe,
-  ampliacionesDe,
   sigueAfuera,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
@@ -347,22 +349,6 @@ export default function RegistrarDevolucionDialog({
       // Cuántas unidades volvieron en esta tanda, para dejarlo escrito en la
       // línea de tiempo ("Devolución parcial: 3 equipos").
       let unidadesDevueltas = 0;
-
-      // LOS DÍAS SE CONGELAN AL VOLVER.
-      //
-      // Mientras el equipo está afuera, sus días corren con el calendario:
-      // los pactados, y los de más si se pasó de la fecha. El día que vuelve,
-      // eso deja de ser una cuenta y pasa a ser un hecho — estuvo afuera
-      // tantos días—, y ese número se escribe en la línea.
-      //
-      // Devolvió antes: quedan los pocos días que lo tuvo, y no se le cobra
-      // el resto. Se pasó: quedan los que de verdad corrieron. En los dos
-      // casos, después de esto la cuenta del equipo es una sola
-      // multiplicación y no hay créditos que restar ni excepciones que
-      // recordar.
-      const diasUsados = (equipo) =>
-        Math.max(1, diasDeAlquiler(equipo.fechaDespacho, hoy));
-
       const gruposActualizados = gruposDe(factura).map((grupo) => {
         const equiposActualizados = [];
 
@@ -392,10 +378,15 @@ export default function RegistrarDevolucionDialog({
 
           if (cantidadDevuelta >= pendiente) {
             // Vuelve la línea entera: se cierra donde está.
+            //
+            // Los días del alta NO se tocan: la cuenta ya se corta sola en
+            // la fecha de devolución (ver calcularEquipo), así que
+            // pisarlos borraría con cuántos días había salido.
             equiposActualizados.push({
-              ...equipo,
-              diasAlquilados: diasUsados(equipo),
-              vencimientoIndefinido: false,
+              ...cerrarIndefinida(
+                cerrarTramoVencido(equipo, devolucion.fechaDevolucion),
+                devolucion.fechaDevolucion,
+              ),
               devolucion,
             });
             return;
@@ -410,14 +401,15 @@ export default function RegistrarDevolucionDialog({
           // del GRUPO y se quedaron arriba. Con ellos abajo, partir la línea
           // duplicaba el pago y la factura inventaba un saldo a favor.
           equiposActualizados.push({
-            ...equipo,
+            ...cerrarIndefinida(
+              cerrarTramoVencido(equipo, devolucion.fechaDevolucion),
+              devolucion.fechaDevolucion,
+            ),
             cantidadEquipos: cantidadDevuelta,
-            diasAlquilados: diasUsados(equipo),
-            vencimientoIndefinido: false,
             devolucion,
           });
 
-          const restante = {
+          let restante = {
             ...equipo,
             cantidadEquipos: pendiente - cantidadDevuelta,
           };
@@ -425,28 +417,21 @@ export default function RegistrarDevolucionDialog({
           delete restante.devolucion;
 
           if (cambio.indefinida) {
-            restante.vencimientoIndefinido = true;
+            restante = dejarSinFechaDeEntrega(restante, hoy);
           } else {
             const extra = Number(cambio.dias) || 0;
             if (extra > 0) {
-              // Mismo criterio que en AmpliarVencimientoDialog: si lo que
-              // sigue afuera ya estaba vencido, el plazo nuevo arranca hoy y
-              // los días que ya corrieron se consolidan (ver
-              // proyectarAmpliacion).
-              const proyeccion = proyectarAmpliacion(equipo, extra);
-              restante.ampliaciones = [
-                ...ampliacionesDe(equipo),
+              // Mismo camino que el diálogo de ampliar: se cierra el tramo
+              // vencido que venía corriendo y los días nuevos arrancan al
+              // día siguiente (ver ampliarEquipo).
+              restante = ampliarEquipo(
+                restante,
                 {
-                  fechaAnterior: equipo.fechaVencimiento,
-                  fechaNueva: proyeccion.fechaNueva,
-                  diasAmpliados: proyeccion.dias,
-                  diasPedidos: proyeccion.diasPedidos,
-                  diasVencidos: proyeccion.diasVencidos,
-                  descuentoRealizado: Math.max(0, Number(cambio.descuento) || 0),
-                  fecha: hoy,
+                  dias: extra,
+                  descuento: Math.max(0, Number(cambio.descuento) || 0),
                 },
-              ];
-              restante.fechaVencimiento = proyeccion.fechaNueva;
+                hoy,
+              );
             }
           }
 
@@ -582,9 +567,10 @@ export default function RegistrarDevolucionDialog({
               const diasNumero = Number(cambio.dias);
               const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
               const proyeccion = proyectarAmpliacion(equipo, diasNumero);
-              const valorDias = proyeccion.dias * restante * (Number(equipo.valorDia) || 0);
+              const valorDias =
+                proyeccion.diasPedidos * restante * (Number(equipo.valorDia) || 0);
               const nuevaFecha =
-                !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
+                !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
 
               return (
                 <Grid item xs={12} key={clave}>

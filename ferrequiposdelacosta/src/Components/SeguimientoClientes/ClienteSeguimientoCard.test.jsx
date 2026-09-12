@@ -5,6 +5,7 @@ import {
   unEquipo,
   unEquipoDevuelto,
   unaFactura,
+  unTramoVencido,
 } from "../../test/facturas";
 
 // La tarjeta de cartera: un cliente al que hay que cobrarle, con la factura que
@@ -47,7 +48,6 @@ const andamio = (extra = {}) =>
     dias: 3,
     valorDia: 20000,
     fechaDespacho: "2026-08-01",
-    fechaVencimiento: "2026-08-03",
     ...extra,
   });
 
@@ -73,10 +73,12 @@ const facturaEnCobro = facturaCon({
     unEquipoDevuelto({
       nombre: "ANDAMIO",
       cantidad: 5,
-      dias: 5,
+      dias: 3,
       valorDia: 20000,
       fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
+      // Cubierto hasta el 03 y volvió el 05: esos dos días de más son los
+      // que hacen que la devolución cuente como cobranza.
+      vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: "2026-08-05" })],
       fechaDevolucion: "2026-08-05",
     }),
   ],
@@ -93,7 +95,6 @@ const facturaConDevueltoEnPlazo = facturaCon({
       dias: 4,
       valorDia: 50000,
       fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-06",
       fechaDevolucion: "2026-08-04",
     }),
   ],
@@ -109,7 +110,6 @@ const facturaConEquiposEnPlazo = facturaCon({
       dias: 3,
       valorDia: 20000,
       fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
     }),
     unEquipo({
       nombre: "MEZCLADORA",
@@ -117,7 +117,6 @@ const facturaConEquiposEnPlazo = facturaCon({
       dias: 10,
       valorDia: 30000,
       fechaDespacho: "2026-08-15",
-      fechaVencimiento: "2026-09-15",
     }),
   ],
 });
@@ -133,8 +132,15 @@ const facturaParcial = facturaCon({
 const facturaRenovada = facturaCon({
   equipos: [
     andamio({
-      fechaVencimiento: "2099-01-01",
-      ampliaciones: [{ diasAmpliados: 30, descuentoRealizado: 0 }],
+      ampliaciones: [
+        {
+          fecha: "2026-08-03",
+          dias: 30,
+          desde: "2026-08-04",
+          hasta: "2026-09-02",
+          descuento: 0,
+        },
+      ],
     }),
   ],
 });
@@ -342,7 +348,6 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
           dias: 3,
           valorDia: 20000,
           fechaDespacho: "2026-08-01",
-          fechaVencimiento: "2026-08-03",
           fechaDevolucion: "2026-08-03",
         }),
       ],

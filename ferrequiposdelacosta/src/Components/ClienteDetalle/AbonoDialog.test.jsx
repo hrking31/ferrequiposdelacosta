@@ -1,7 +1,9 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AbonoDialog from "./AbonoDialog";
-import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
+import { unEquipo, unEquipoDevuelto, unaFactura,
+  unTramoVencido,
+} from "../../test/facturas";
 import {
   calcularCuentaFactura,
   obtenerFechaHoyBogota,
@@ -52,7 +54,6 @@ const facturaQueDebe = ({ id, numero, monto, abonos = [], fecha = "2026-08-10" }
         dias: 1,
         valorDia: monto,
         fechaDespacho: "2026-08-10",
-        fechaVencimiento: "2026-08-10",
         fechaDevolucion: "2026-08-10",
       }),
     ],
@@ -280,6 +281,9 @@ describe("AbonoDialog — lo que ya tenía", () => {
             valorDia: 150000,
             dias: 3,
             fechaDespacho: haceDias(4),
+            // Cubierto hasta hace dos días; la madrugada de ayer le abrió
+            // su tramo, así que lleva 2 días de más.
+            vencidos: [unTramoVencido({ desde: haceDias(1), hasta: null })],
           }),
         ],
       }),
@@ -309,17 +313,15 @@ describe("AbonoDialog — lo que ya tenía", () => {
       // Se escriben las dos cosas en la misma operación: el abono y los
       // equipos con sus días ya cerrados.
       expect(cambios.abonos).toHaveLength(1);
-      const [ampliacion] = cambios.grupos[0].equipos[0].ampliaciones;
-      expect(ampliacion).toMatchObject({
-        diasAmpliados: 2,
-        diasPedidos: 0,
-        diasVencidos: 2,
-        porPago: true,
+      // El tramo que venía corriendo queda cerrado hoy, con sus dos fechas.
+      const [tramo] = cambios.grupos[0].equipos[0].vencidos;
+      expect(tramo).toMatchObject({
+        desde: haceDias(1),
+        hasta: obtenerFechaHoyBogota(),
       });
-      // Y la fecha del equipo queda en hoy: hasta ahí pagó.
-      expect(cambios.grupos[0].equipos[0].fechaVencimiento).toBe(
-        obtenerFechaHoyBogota(),
-      );
+      // Y no se le inventa ninguna ampliación: no se le concedió ni un día,
+      // solo se cerró lo que ya había pasado.
+      expect(cambios.grupos[0].equipos[0].ampliaciones).toHaveLength(0);
     });
 
     // Cobrar sin definir qué pasa con el equipo es como una factura termina
@@ -388,12 +390,13 @@ describe("AbonoDialog — lo que ya tenía", () => {
 
       const cambios = updateSimulado.mock.calls[0][1];
       const [equipo] = cambios.grupos[0].equipos;
-      // Los 2 días vencidos se consolidan con los 4 pedidos, como cualquier
-      // renovación: la fecha corre 6 días.
-      expect(equipo.ampliaciones[0]).toMatchObject({
-        diasAmpliados: 6,
-        diasPedidos: 4,
-        diasVencidos: 2,
+      // La ampliación dice SOLO los 4 días que el cliente pidió, y arrancan
+      // mañana. Los 2 que ya se le habían vencido no se disfrazan de días
+      // ampliados: quedan en su tramo, cerrado hoy.
+      expect(equipo.ampliaciones[0]).toMatchObject({ dias: 4 });
+      expect(equipo.vencidos[0]).toMatchObject({
+        desde: haceDias(1),
+        hasta: obtenerFechaHoyBogota(),
       });
       expect(cambios.gestiones.at(-1)).toMatchObject({
         tipo: "prorroga",
@@ -417,9 +420,12 @@ describe("AbonoDialog — lo que ya tenía", () => {
 
       const cambios = updateSimulado.mock.calls[0][1];
       const [equipo] = cambios.grupos[0].equipos;
-      // Sigue sin fecha de retorno, pero lo que ya pagó queda cerrado.
-      expect(equipo.vencimientoIndefinido).toBe(true);
-      expect(equipo.ampliaciones.at(-1)).toMatchObject({ porPago: true, diasPedidos: 0 });
+      // Sigue sin fecha de retorno, y su tramo queda cerrado hoy.
+      expect(equipo.indefinida.activa).toBe(true);
+      expect(equipo.vencidos.at(-1)).toMatchObject({
+        hasta: obtenerFechaHoyBogota(),
+      });
+      expect(equipo.ampliaciones).toHaveLength(0);
       expect(cambios.gestiones.at(-1)).toMatchObject({
         tipo: "prorroga",
         indefinida: true,
@@ -453,10 +459,11 @@ describe("AbonoDialog — lo que ya tenía", () => {
       const cambios = await abonarSobre(conCompresorVencido(), 100000);
 
       expect(cambios.abonos).toHaveLength(1);
-      // El equipo se escribe igual —quedó indefinido, que es lo que se
-      // acordó—, pero sus días vencidos siguen abiertos: todavía debe.
+      // El equipo se escribe igual —quedó sin fecha, que es lo que se
+      // acordó— y su tramo se cierra hoy: eso no depende de la plata. Lo que
+      // todavía deba lo dice el saldo de la factura, no el equipo.
       const [equipo] = cambios.grupos[0].equipos;
-      expect(equipo.vencimientoIndefinido).toBe(true);
+      expect(equipo.indefinida.activa).toBe(true);
       expect(equipo.ampliaciones).toHaveLength(0);
     });
   });

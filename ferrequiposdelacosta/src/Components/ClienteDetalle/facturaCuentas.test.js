@@ -4,9 +4,9 @@ import {
   calcularEstadoEquipo,
   equipoVencido,
   equipoAlDia,
-  ampliacionTrasVencimiento,
   proyectarAmpliacion,
-  sellarDiasVencidos,
+  cerrarTramoVencido,
+  abrirTramoVencido,
   sellarFacturaPagada,
   diasDeEquipo,
   obtenerFechaDespachoSugerida,
@@ -44,6 +44,7 @@ import {
   describirMovimientosFactura,
   diasDeAlquiler,
   calcularFechaDevolucion,
+  cubiertoHasta,
   calcularVencimiento,
 } from "./facturaCuentas";
 import { GRUPO_INICIAL } from "./facturaModelo";
@@ -52,16 +53,38 @@ import { GRUPO_INICIAL } from "./facturaModelo";
 // quedan deterministas y se prueban sin depender del reloj real.
 const HOY = "2026-09-08";
 
-// Un equipo suelto, con lo mínimo.
-const equipo = (extra = {}) => ({
-  nombre: "GATOS METALICOS",
-  cantidadEquipos: 10,
-  valorDia: 1500,
-  diasAlquilados: 10,
-  fechaDespacho: "2026-09-04",
-  fechaVencimiento: "2026-09-13",
-  ampliaciones: [],
-  ...extra,
+// Un equipo suelto, con lo mínimo. Por defecto sale el 04 por 10 días, así
+// que está cubierto hasta el 13 y a la fecha de HOY todavía no venció.
+//
+// `venceEl` es el atajo para el caso más común de estas pruebas: un equipo
+// cubierto hasta tal día. Como esa fecha ya no se guarda —se encadena desde
+// los días del alta, ver cubiertoHasta—, se ajustan los días; y si el día
+// pedido cae antes del despacho por defecto, el equipo sale ESE día por uno.
+const equipo = ({ venceEl, ...extra } = {}) => {
+  const base = {
+    nombre: "GATOS METALICOS",
+    cantidadEquipos: 10,
+    valorDia: 1500,
+    diasAlquilados: 10,
+    fechaDespacho: "2026-09-04",
+    ampliaciones: [],
+    vencidos: [],
+    ...extra,
+  };
+  if (!venceEl) return base;
+
+  const dias = diasDeAlquiler(base.fechaDespacho, venceEl);
+  return dias > 0
+    ? { ...base, diasAlquilados: dias }
+    : { ...base, fechaDespacho: venceEl, diasAlquilados: 1 };
+};
+
+// Un tramo en que el equipo estuvo pasado de plazo. Sin `hasta` es el que
+// está corriendo hoy.
+const tramo = (desde, hasta = null, indefinida = false) => ({
+  desde,
+  hasta,
+  indefinida,
 });
 
 // Una factura con un solo despacho.
@@ -196,7 +219,7 @@ describe("calcularEquipo — el que ya volvió", () => {
       cantidadEquipos: 1,
       valorDia: 20000,
       diasAlquilados: 12,
-      ampliaciones: [{ diasAmpliados: 2, descuentoRealizado: 10000 }],
+      ampliaciones: [{ dias: 2, desde: "2026-09-14", hasta: "2026-09-15", descuento: 10000 }],
       devolucion: { fechaDevolucion: "2026-09-15", buenEstado: true, valorRetenido: 0 },
     });
     expect(calcularEquipo(conDescuento, HOY).neto).toBe(230000); // 12×20.000 − 10.000
@@ -213,8 +236,12 @@ describe("calcularEquipo — el que sigue afuera", () => {
   });
 
   it("pasado el vencimiento se cobran los días que lleva", () => {
-    // Hoy es el 18: salió el 4, van 15 días. Cinco más de los 10 pactados.
-    const cuenta = calcularEquipo(equipo(), "2026-09-18");
+    // Salió el 4 por 10 días, cubierto hasta el 13. La madrugada del 14 le
+    // abrió su tramo y hoy es el 18: cinco días de más.
+    const cuenta = calcularEquipo(
+      equipo({ vencidos: [tramo("2026-09-14")] }),
+      "2026-09-18",
+    );
     expect(cuenta.dias).toBe(15);
     expect(cuenta.diasPactados).toBe(10);
     expect(cuenta.diasVencidos).toBe(5);
@@ -224,16 +251,17 @@ describe("calcularEquipo — el que sigue afuera", () => {
   });
 
   it("los días ampliados cuentan como pactados", () => {
+    // Cubierto hasta el 13 por el alta, y la ampliación lo lleva al 15.
     const ampliado = equipo({
       ampliaciones: [
         {
-          fechaInicio: "2026-09-13",
-          fechaVencimiento: "2026-09-15",
-          diasAmpliados: 2,
-          descuentoRealizado: 0,
+          fecha: "2026-09-13",
+          dias: 2,
+          desde: "2026-09-14",
+          hasta: "2026-09-15",
+          descuento: 0,
         },
       ],
-      fechaVencimiento: "2026-09-15",
     });
     const cuenta = calcularEquipo(ampliado, "2026-09-15");
     expect(cuenta.diasPactados).toBe(12);
@@ -250,8 +278,7 @@ describe("el estado de un equipo", () => {
     expect(calcularEstadoEquipo(equipo(), HOY)).toBe("activo");
 
     const conAmpliacion = equipo({
-      ampliaciones: [{ diasAmpliados: 2 }],
-      fechaVencimiento: "2026-09-15",
+      ampliaciones: [{ dias: 2, desde: "2026-09-14", hasta: "2026-09-15" }],
     });
     expect(calcularEstadoEquipo(conAmpliacion, HOY)).toBe("ampliacion");
 
@@ -276,13 +303,15 @@ describe("el estado de un equipo", () => {
   it("el que se pasó de su fecha ampliada es vencido, no ampliación", () => {
     const ampliadoYVencido = equipo({
       ampliaciones: [{ diasAmpliados: 2 }],
-      fechaVencimiento: "2026-09-15",
+      venceEl: "2026-09-15",
     });
     expect(calcularEstadoEquipo(ampliadoYVencido, "2026-09-16")).toBe("vencido");
   });
 
   it("la entrega indefinida cuenta como vencida: el cliente tenía que avisar", () => {
-    const indefinido = equipo({ vencimientoIndefinido: true, fechaVencimiento: null });
+    const indefinido = equipo({
+      indefinida: { activa: true, desde: "2026-09-05", hasta: null },
+    });
     expect(calcularEstadoEquipo(indefinido, HOY)).toBe("vencido");
   });
 
@@ -296,119 +325,147 @@ describe("ampliar el plazo de un equipo vencido", () => {
   // Si al vencido se le suma el día a su fecha vieja, la nueva ya pasó y el
   // cliente no tiene el día que se le prometió.
   it("la fecha nueva arranca hoy, y se registran los días que corre de verdad", () => {
-    const vencido = equipo({ fechaVencimiento: "2026-09-13" });
+    // Cubierto hasta el 13, con su tramo abierto desde el 14. Hoy es el 17:
+    // lleva 4 días de más.
+    const vencido = equipo({ vencidos: [tramo("2026-09-14")] });
     const proyeccion = proyectarAmpliacion(vencido, 1, "2026-09-17");
-    expect(proyeccion.diasVencidos).toBe(4); // del 13 al 17
+
+    expect(proyeccion.diasVencidos).toBe(4); // del 14 al 17
+    // El día que se le promete es MAÑANA: el tramo vencido se cierra hoy y
+    // los días nuevos arrancan al día siguiente.
     expect(proyeccion.diasPedidos).toBe(1);
-    expect(proyeccion.dias).toBe(5);
-    expect(proyeccion.fechaNueva).toBe("2026-09-18");
+    expect(proyeccion.desde).toBe("2026-09-18");
+    expect(proyeccion.hasta).toBe("2026-09-18");
   });
 
   it("uno que está en fecha suma los días a su vencimiento", () => {
     const proyeccion = proyectarAmpliacion(equipo(), 2, HOY);
+
     expect(proyeccion.diasVencidos).toBe(0);
-    expect(proyeccion.fechaNueva).toBe("2026-09-15");
+    // Sigue cubierto hasta el 13, así que los dos días nuevos son el 14 y
+    // el 15.
+    expect(proyeccion.desde).toBe("2026-09-14");
+    expect(proyeccion.hasta).toBe("2026-09-15");
   });
 });
 
-describe("sellar los días vencidos que el cliente ya pagó", () => {
+describe("cerrar el tramo vencido cuando el cliente paga", () => {
   // El caso real: un compresor de $150.000 el día, despachado el 01/09 por 7
-  // días, vencido el 07. Al 09 lleva 2 días de más y el cliente paga todo.
+  // días, cubierto hasta el 07. La madrugada del 08 le abrió su tramo, y al 09
+  // lleva 2 días de más.
   const compresor = (extra = {}) => ({
     nombre: "COMPRESOR NEUMATICO",
     cantidadEquipos: 1,
     valorDia: 150000,
     diasAlquilados: 7,
     fechaDespacho: "2026-09-01",
-    fechaVencimiento: "2026-09-07",
     ampliaciones: [],
+    vencidos: [tramo("2026-09-08")],
     ...extra,
   });
 
-  it("cierra los días vencidos y deja la fecha del equipo en hoy", () => {
-    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
+  it("cierra el tramo con el día del pago y no toca nada más", () => {
+    const cerrado = cerrarTramoVencido(compresor(), "2026-09-09");
 
-    expect(sellado.fechaVencimiento).toBe("2026-09-09");
-    expect(sellado.ampliaciones).toHaveLength(1);
-    expect(sellado.ampliaciones[0]).toMatchObject({
-      fechaAnterior: "2026-09-07",
-      fechaNueva: "2026-09-09",
-      diasAmpliados: 2,
-      // No se le concedió ni un día: solo se cerró lo que ya había pasado.
-      diasPedidos: 0,
-      diasVencidos: 2,
-      porPago: true,
+    expect(cerrado.vencidos).toHaveLength(1);
+    expect(cerrado.vencidos[0]).toMatchObject({
+      desde: "2026-09-08",
+      hasta: "2026-09-09",
     });
+    // Los días del alta no se tocan nunca, y no se inventa ninguna ampliación:
+    // al cliente no se le concedió ni un día, se le cerró lo que ya pasó.
+    expect(cerrado.diasAlquilados).toBe(7);
+    expect(cerrado.ampliaciones).toHaveLength(0);
   });
 
-  // La razón de consolidar en vez de restar: esos días ya están cobrados, y
-  // descontarlos inventaría un saldo a favor que nadie entregó.
+  // Esos días ya están cobrados: cerrarlos no los descuenta ni los duplica.
   it("no mueve la cuenta ni un peso", () => {
     const antes = facturaCon([compresor()]);
-    const despues = facturaCon([sellarDiasVencidos(compresor(), "2026-09-09")]);
+    const despues = facturaCon([cerrarTramoVencido(compresor(), "2026-09-09")]);
 
     expect(calcularCuentaFactura(antes, "2026-09-09").total).toBe(1350000);
     expect(calcularCuentaFactura(despues, "2026-09-09").total).toBe(1350000);
   });
 
-  it("el contador de vencidos arranca de cero y suma UNO al día siguiente", () => {
-    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
+  it("el contador no crece hasta que la madrugada abra otro tramo", () => {
+    const cerrado = cerrarTramoVencido(compresor(), "2026-09-09");
 
-    expect(calcularEquipo(sellado, "2026-09-09").diasVencidos).toBe(0);
-    expect(calcularEquipo(sellado, "2026-09-10").diasVencidos).toBe(1);
-    // Y lo que se le cobra de más es UN día, no los tres que lleva afuera.
-    expect(calcularCuentaFactura(facturaCon([sellado]), "2026-09-10").total).toBe(
-      1500000,
-    );
+    // Los 2 días quedaron escritos y ahí se quedan: sin tramo abierto, el
+    // calendario no cuenta nada nuevo.
+    expect(calcularEquipo(cerrado, "2026-09-09").diasVencidos).toBe(2);
+    expect(calcularEquipo(cerrado, "2026-09-10").diasVencidos).toBe(2);
+
+    // La madrugada del 10 le abre uno nuevo, y ahí sí suma UNO: no los tres
+    // que lleva afuera.
+    const alDiaSiguiente = abrirTramoVencido(cerrado, "2026-09-10");
+    expect(calcularEquipo(alDiaSiguiente, "2026-09-10").diasVencidos).toBe(3);
+    expect(
+      calcularCuentaFactura(facturaCon([alDiaSiguiente]), "2026-09-10").total,
+    ).toBe(1500000);
   });
 
-  it("los días pagados se cuentan aparte de los concedidos", () => {
-    const sellado = sellarDiasVencidos(compresor(), "2026-09-09");
-    const dias = diasDeEquipo(sellado, "2026-09-09");
+  it("los días se reparten entre el alta y lo vencido", () => {
+    const cerrado = cerrarTramoVencido(compresor(), "2026-09-09");
 
-    expect(dias).toMatchObject({ alta: 7, ampliados: 0, pagados: 2, vencidos: 0 });
+    expect(diasDeEquipo(cerrado, "2026-09-09")).toMatchObject({
+      alta: 7,
+      ampliados: 0,
+      vencidos: 2,
+    });
   });
 
-  it("el que sigue afuera pero no debe días no se toca", () => {
-    // Los días y la fecha tienen que decir lo mismo: 20 días desde el 01/09
-    // vencen el 20/09. La cuenta le cree a los días.
-    const alDia = compresor({ diasAlquilados: 20, fechaVencimiento: "2026-09-20" });
-    expect(sellarDiasVencidos(alDia, "2026-09-09")).toBe(alDia);
+  it("el que no tiene ningún tramo abierto no se toca", () => {
+    const alDia = compresor({ vencidos: [] });
+    expect(cerrarTramoVencido(alDia, "2026-09-09")).toBe(alDia);
   });
 
-  it("el que ya volvió no se toca: sus días quedaron congelados al devolver", () => {
+  it("el que ya volvió corta su tramo el día de la devolución", () => {
     const devuelto = compresor({
       devolucion: { fechaDevolucion: "2026-09-09", buenEstado: true },
     });
-    expect(sellarDiasVencidos(devuelto, "2026-09-09")).toBe(devuelto);
+
+    // Aunque el tramo siga abierto, la cuenta se corta ahí: no sigue
+    // corriendo con el calendario.
+    expect(calcularEquipo(devuelto, "2026-09-20").diasVencidos).toBe(2);
   });
 
   // El cliente pagó, pero sigue sin decir cuándo devuelve: el equipo no tiene
   // fecha de retorno y por eso no se mueve de seguimiento.
-  it("el de entrega indefinida conserva su marca y sigue vencido", () => {
-    const indefinido = sellarDiasVencidos(
-      compresor({ vencimientoIndefinido: true }),
+  it("el de entrega indefinida sigue vencido después de pagar", () => {
+    const indefinido = cerrarTramoVencido(
+      compresor({
+        indefinida: { activa: true, desde: "2026-09-08", hasta: null },
+        vencidos: [tramo("2026-09-08", null, true)],
+      }),
       "2026-09-09",
     );
 
-    expect(indefinido.vencimientoIndefinido).toBe(true);
     expect(calcularEstadoEquipo(indefinido, "2026-09-09")).toBe("vencido");
-    expect(calcularEquipo(indefinido, "2026-09-09").diasVencidos).toBe(0);
-    expect(calcularEquipo(indefinido, "2026-09-10").diasVencidos).toBe(1);
+    expect(calcularEquipo(indefinido, "2026-09-09").diasVencidos).toBe(2);
+
+    // Y la madrugada siguiente le abre otro, también con permiso.
+    const conNuevo = abrirTramoVencido(indefinido, "2026-09-10");
+    expect(conNuevo.vencidos[1]).toMatchObject({
+      desde: "2026-09-10",
+      indefinida: true,
+    });
   });
 
-  it("sella todos los equipos de la factura y avisa cuando no hubo nada que sellar", () => {
+  it("cierra todos los equipos de la factura y avisa cuando no había nada", () => {
     const factura = facturaCon([compresor(), compresor({ nombre: "MEZCLADORA" })]);
     const grupos = sellarFacturaPagada(factura, "2026-09-09");
 
-    expect(grupos[0].equipos.every((eq) => eq.ampliaciones[0]?.porPago)).toBe(true);
-    // Ya sellada, una segunda pasada no tiene nada que hacer.
+    expect(
+      grupos[0].equipos.every((eq) => eq.vencidos[0]?.hasta === "2026-09-09"),
+    ).toBe(true);
+    // Ya cerrados, una segunda pasada no tiene nada que hacer.
     expect(sellarFacturaPagada({ ...factura, grupos }, "2026-09-09")).toBeNull();
   });
 
-  // La factura sigue en seguimiento: el equipo no volvió y no tiene fecha.
+  // La factura sigue en seguimiento: el equipo no volvió y su cobertura se
+  // acabó hoy.
   it("la factura pagada al día sigue vencida mientras el equipo esté afuera", () => {
-    const factura = facturaCon([sellarDiasVencidos(compresor(), "2026-09-09")], {
+    const factura = facturaCon([cerrarTramoVencido(compresor(), "2026-09-09")], {
       abonos: [{ fecha: "2026-09-09", medio: "Nequi", monto: 1350000 }],
     });
 
@@ -592,8 +649,15 @@ describe("la cuenta de la factura", () => {
   });
 
   it("el IVA corre con los días vencidos, como el alquiler", () => {
-    // Pactó 2 días desde el 4 y hoy es 8: lleva 5 afuera.
-    const doc = facturaCon([unEquipoDe({ diasAlquilados: 2, aplicaIva: true })]);
+    // Pactó 2 días desde el 4 —cubierto hasta el 5— y su tramo corre desde
+    // el 6. Hoy es 8: cinco días en total.
+    const doc = facturaCon([
+      unEquipoDe({
+        diasAlquilados: 2,
+        aplicaIva: true,
+        vencidos: [tramo("2026-09-06")],
+      }),
+    ]);
     const cuenta = calcularCuentaFactura(doc, HOY);
     expect(cuenta.subtotal).toBe(500000);
     expect(cuenta.iva).toBe(95000);
@@ -781,7 +845,7 @@ describe("el estado de la factura", () => {
   });
 
   it("con uno solo vencido, la factura entera está vencida", () => {
-    const mixta = facturaCon([equipo(), equipo({ fechaVencimiento: "2026-09-01" })]);
+    const mixta = facturaCon([equipo(), equipo({ venceEl: "2026-09-01" })]);
     expect(calcularEstadoFactura(mixta, HOY)).toBe("vencida");
   });
 
@@ -857,7 +921,7 @@ describe("el estado de la factura", () => {
         cantidadEquipos: 1,
         valorDia: 10000,
         ampliaciones: [{ diasAmpliados: 5, descuentoRealizado: 0 }],
-        fechaVencimiento: "2026-09-18",
+        venceEl: "2026-09-18",
       }),
     ]);
     expect(calcularExigible(conDeuda, HOY)).toBeGreaterThan(0);
@@ -874,7 +938,7 @@ describe("el estado de la factura", () => {
           cantidadEquipos: 1,
           valorDia: 10000,
           ampliaciones: [{ diasAmpliados: 5, descuentoRealizado: 0 }],
-          fechaVencimiento: "2026-09-18",
+          venceEl: "2026-09-18",
         }),
       ],
       { pagos: [{ medio: "Efectivo", monto: 50000 }] },
@@ -896,22 +960,24 @@ describe("el estado de la factura", () => {
         equipo({
           cantidadEquipos: 1,
           valorDia: 150000,
-          // 7 del alta; los 5 de la renovación se suman aparte.
+          // 7 del alta, así que estaba cubierto hasta el 07.
           diasAlquilados: 7,
           fechaDespacho: "2026-09-01",
-          // La renovación dice de qué está hecha: 3 días pedidos y 2 que ya
-          // venían vencidos. Es la huella de que la fecha se venció.
+          // Se le vencieron 2 días —el 08 y el 09— y quedaron escritos con
+          // sus fechas. Esa es la huella de que la factura estuvo en cartera,
+          // y renovar el plazo ya no la puede borrar.
+          vencidos: [tramo("2026-09-08", "2026-09-09")],
+          // Y se le pactaron 3 días, que arrancan al día siguiente. La
+          // ampliación dice SOLO lo que el cliente pidió.
           ampliaciones: [
             {
-              fechaAnterior: "2026-09-05",
-              fechaNueva: "2026-09-11",
-              diasAmpliados: 5,
-              diasPedidos: 3,
-              diasVencidos: 2,
-              descuentoRealizado: 0,
+              fecha: "2026-09-09",
+              dias: 3,
+              desde: "2026-09-10",
+              hasta: "2026-09-12",
+              descuento: 0,
             },
           ],
-          fechaVencimiento: "2026-09-11",
         }),
       ],
       { pagos: [{ medio: "Efectivo", monto: pagado }] },
@@ -944,7 +1010,7 @@ describe("el estado de la factura", () => {
 describe("qué hay que reclamar", () => {
   it("cuenta las unidades vencidas, no las líneas", () => {
     const mixta = facturaCon([
-      equipo({ cantidadEquipos: 5, fechaVencimiento: "2026-09-01" }),
+      equipo({ cantidadEquipos: 5, venceEl: "2026-09-01" }),
       equipo({ cantidadEquipos: 3 }), // en plazo, no se reclama
     ]);
     expect(contarUnidadesVencidas(mixta, HOY)).toBe(5);
@@ -955,7 +1021,7 @@ describe("qué hay que reclamar", () => {
     const devuelta = facturaCon([
       equipo({
         cantidadEquipos: 5,
-        fechaVencimiento: "2026-09-01",
+        venceEl: "2026-09-01",
         devolucion: { fechaDevolucion: "2026-09-02", buenEstado: true, valorRetenido: 0 },
       }),
     ]);
@@ -966,13 +1032,13 @@ describe("qué hay que reclamar", () => {
   // no volvería a "entrar" nunca más, y el segundo equipo vencería en silencio.
   it("detecta los que vencieron justo hoy", () => {
     const doc = facturaCon([
-      equipo({ fechaVencimiento: "2026-09-08" }), // vence hoy
-      equipo({ fechaVencimiento: "2026-09-01" }), // ya venía vencido
-      equipo({ fechaVencimiento: "2026-09-20" }), // todavía no
+      equipo({ venceEl: "2026-09-08" }), // vence hoy
+      equipo({ venceEl: "2026-09-01" }), // ya venía vencido
+      equipo({ venceEl: "2026-09-20" }), // todavía no
     ]);
     const nuevos = equiposQueVencieronHoy(doc, "2026-09-08", "2026-09-07");
     expect(nuevos).toHaveLength(1);
-    expect(nuevos[0].fechaVencimiento).toBe("2026-09-08");
+    expect(cubiertoHasta(nuevos[0])).toBe("2026-09-08");
   });
 });
 
@@ -981,9 +1047,18 @@ describe("el plazo de la factura", () => {
   // antigua entre los vencidos, y los días del que más lleva.
   it("toma la fecha más vieja y los días del que más se pasó", () => {
     const doc = facturaCon([
-      // El vencimiento tiene que cuadrar con los días: despacho + días − 1.
-      equipo({ diasAlquilados: 2, fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-02" }),
-      equipo({ diasAlquilados: 5, fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-05" }),
+      // Cubierto hasta el 02, con su tramo corriendo desde el 03.
+      equipo({
+        diasAlquilados: 2,
+        fechaDespacho: "2026-09-01",
+        vencidos: [tramo("2026-09-03")],
+      }),
+      // Y este hasta el 05, con el suyo desde el 06.
+      equipo({
+        diasAlquilados: 5,
+        fechaDespacho: "2026-09-01",
+        vencidos: [tramo("2026-09-06")],
+      }),
     ]);
     const plazo = plazoVencidoFactura(doc, HOY);
     expect(plazo.fecha).toBe("2026-09-02");
@@ -994,7 +1069,7 @@ describe("el plazo de la factura", () => {
   it("sin equipos vencidos no hay plazo que mostrar", () => {
     // Sigue en cartera por la plata, no por un equipo afuera.
     const alDia = facturaCon([
-      equipo({ diasAlquilados: 30, fechaDespacho: "2026-09-04", fechaVencimiento: "2026-10-03" }),
+      equipo({ diasAlquilados: 30, fechaDespacho: "2026-09-04", venceEl: "2026-10-03" }),
     ]);
     expect(plazoVencidoFactura(alDia, HOY)).toBeNull();
   });
@@ -1004,7 +1079,7 @@ describe("el plazo de la factura", () => {
       equipo({
         diasAlquilados: 2,
         fechaDespacho: "2026-09-01",
-        fechaVencimiento: "2026-09-02",
+        venceEl: "2026-09-02",
         devolucion: { fechaDevolucion: "2026-09-07", buenEstado: true, valorRetenido: 0 },
       }),
     ]);
@@ -1101,7 +1176,7 @@ describe("la cuenta del cliente y el reparto de abonos", () => {
   });
 
   it("el estado del cliente es el de la factura más urgente", () => {
-    const vencida = facturaCon([equipo({ fechaVencimiento: "2026-09-01" })]);
+    const vencida = facturaCon([equipo({ venceEl: "2026-09-01" })]);
     const activa = facturaCon([equipo()]);
     expect(calcularEstadoCliente([activa, vencida], HOY)).toBe("vencida");
     expect(calcularEstadoCliente([], HOY)).toBe("inactivo");
@@ -1228,53 +1303,3 @@ describe("qué tiene la factura encima", () => {
 // vencido y su factura ya estaba en cartera.
 //
 // Antes esto no lo calculaba nadie: con los días vencidos solos, ese caso se
-// veía igual que el de un equipo al que le ampliaron con tiempo de sobra.
-describe("ampliacionTrasVencimiento", () => {
-  const renovacion = (extra) => ({
-    fecha: "2026-09-11",
-    fechaAnterior: "2026-09-11",
-    fechaNueva: "2026-09-15",
-    diasAmpliados: 4,
-    diasPedidos: 4,
-    diasVencidos: 0,
-    descuentoRealizado: 0,
-    ...extra,
-  });
-
-  // Un equipo vence el día que dice su fecha, no al día siguiente: esa es la
-  // regla con la que entra a cartera y la que permite avisarle al cliente que
-  // vence mañana.
-  it("renovado el mismo día que vencía, ya estaba vencido", () => {
-    expect(ampliacionTrasVencimiento(renovacion())).toBe(true);
-  });
-
-  it("renovado después de la fecha, también", () => {
-    expect(
-      ampliacionTrasVencimiento(renovacion({ fecha: "2026-09-13" })),
-    ).toBe(true);
-  });
-
-  // El espejo: al que le dieron más días ANTES de que venciera no se le venció
-  // nada, y contarlo como vencido sería inventarle una mora.
-  it("renovado antes de la fecha, no", () => {
-    expect(
-      ampliacionTrasVencimiento(renovacion({ fecha: "2026-09-09" })),
-    ).toBe(false);
-  });
-
-  it("con días vencidos consolidados, siempre sí", () => {
-    expect(
-      ampliacionTrasVencimiento(
-        renovacion({ fecha: "2026-09-09", diasVencidos: 2 }),
-      ),
-    ).toBe(true);
-  });
-
-  // Las renovaciones migradas del Excel no traen el día en que se hicieron.
-  // De esas solo se puede saber por sus días vencidos.
-  it("sin el día en que se hizo, se cae a los días vencidos", () => {
-    const vieja = { diasAmpliados: 4, descuentoRealizado: 0 };
-    expect(ampliacionTrasVencimiento(vieja)).toBe(false);
-    expect(ampliacionTrasVencimiento({ ...vieja, diasVencidos: 3 })).toBe(true);
-  });
-});

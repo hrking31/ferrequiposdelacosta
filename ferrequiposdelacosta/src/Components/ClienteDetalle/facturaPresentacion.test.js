@@ -15,8 +15,11 @@ import {
   describirFechasEquipo,
   historialEquipo,
 } from "./facturaPresentacion";
-import { sellarDiasVencidos } from "./facturaCuentas";
-import { unEquipo, unEquipoDevuelto } from "../../test/facturas";
+import {
+  unEquipo,
+  unEquipoDevuelto,
+  unTramoVencido,
+} from "../../test/facturas";
 
 const HOY = "2026-08-15";
 
@@ -48,15 +51,18 @@ describe("describirFechasEquipo", () => {
     valorDia: 20000,
     dias: 3,
     fechaDespacho: "2026-08-03",
-    fechaVencimiento: "2026-08-07",
+    // 3 días del alta: cubierto hasta el 05. La renovación le da 2 más, el
+    // 06 y el 07, y desde el 08 le corre su tramo vencido.
     ampliaciones: [
       {
-        fechaAnterior: "2026-08-05",
-        fechaNueva: "2026-08-07",
-        diasAmpliados: 2,
-        descuentoRealizado: 0,
+        fecha: "2026-08-05",
+        dias: 2,
+        desde: "2026-08-06",
+        hasta: "2026-08-07",
+        descuento: 0,
       },
     ],
+    vencidos: [unTramoVencido({ desde: "2026-08-08", hasta: null })],
   });
 
   it("no mete los días vencidos dentro de los días pactados", () => {
@@ -86,11 +92,11 @@ describe("describirFechasEquipo", () => {
     const chips = describirFechasEquipo(
       {
         ...chazas,
-        fechaVencimiento: "2026-08-11",
         ampliaciones: [
-          { fechaAnterior: "2026-08-05", fechaNueva: "2026-08-07", diasAmpliados: 2 },
-          { fechaAnterior: "2026-08-07", fechaNueva: "2026-08-11", diasAmpliados: 4 },
+          { fecha: "2026-08-05", dias: 2, desde: "2026-08-06", hasta: "2026-08-07" },
+          { fecha: "2026-08-07", dias: 4, desde: "2026-08-08", hasta: "2026-08-11" },
         ],
+        vencidos: [],
       },
       HOY,
     );
@@ -98,46 +104,46 @@ describe("describirFechasEquipo", () => {
     expect(textoDe(chips, "vencimiento-1")).toBe("2do vencimiento 07/08/2026");
   });
 
-  // Los días que se le vencieron y el cliente ya pagó: van en verde y con su
-  // valor, porque esa cifra no reclama nada, cuenta lo que entró.
-  it("los días vencidos ya pagados van aparte y en verde", () => {
+  // Los días vencidos se cuentan igual estén pagados o no: el equipo no sabe
+  // de pagos, y el chip dice cuántos días se le cobran de más.
+  it("los días de un tramo cerrado siguen contándose", () => {
     const compresor = unEquipo({
       cantidad: 1,
       valorDia: 150000,
       dias: 7,
       fechaDespacho: "2026-08-08",
+      // Cubierto hasta el 14; el 15 se le venció y ese día el cliente pagó,
+      // así que el tramo quedó cerrado ahí mismo.
+      vencidos: [unTramoVencido({ desde: "2026-08-15", hasta: "2026-08-15" })],
     });
-    const sellado = sellarDiasVencidos(compresor, HOY);
-    const chips = describirFechasEquipo(sellado, HOY);
+    const chips = describirFechasEquipo(compresor, HOY);
 
-    expect(textoDe(chips, "diasVencidosPagados")).toBe("1 día vencido pagado $ 150.000");
-    expect(tonoDe(chips, "diasVencidosPagados")).toBe("exito");
-    // Y no quedan días vencidos abiertos ni se cuentan como días concedidos.
-    expect(textoDe(chips, "diasVencidos")).toBeUndefined();
+    expect(textoDe(chips, "diasVencidos")).toBe("1 día vencido $ 150.000");
     expect(textoDe(chips, "ampliacion")).toBeUndefined();
   });
 
-  // Al día siguiente vuelve a correr el reloj: lo pagado se queda en verde y
-  // lo nuevo sale en rojo, cada uno con lo suyo.
-  it("el día siguiente al sellado suma UN día vencido, no todos otra vez", () => {
+  // Cerrado el tramo, el contador no vuelve a moverse hasta que la madrugada
+  // abra otro. Lo que NO pasa es que se vuelvan a contar los días ya cobrados.
+  it("el día siguiente suma UN día vencido, no todos otra vez", () => {
     const compresor = unEquipo({
       cantidad: 1,
       valorDia: 150000,
       dias: 7,
       fechaDespacho: "2026-08-08",
+      vencidos: [
+        unTramoVencido({ desde: "2026-08-15", hasta: "2026-08-15" }),
+        unTramoVencido({ desde: "2026-08-16", hasta: null }),
+      ],
     });
-    const chips = describirFechasEquipo(
-      sellarDiasVencidos(compresor, HOY),
-      "2026-08-16",
-    );
+    const chips = describirFechasEquipo(compresor, "2026-08-16");
 
-    expect(textoDe(chips, "diasVencidosPagados")).toBe("1 día vencido pagado $ 150.000");
-    expect(textoDe(chips, "diasVencidos")).toBe("1 día vencido $ 150.000");
+    expect(textoDe(chips, "diasVencidos")).toBe("2 días vencidos $ 300.000");
   });
 
   it("el día que vence va en alerta, no en urgente", () => {
     const chips = describirFechasEquipo(
-      unEquipo({ cantidad: 1, valorDia: 100, fechaVencimiento: HOY }),
+      // Sale el 10 por 6 días: cubierto justo hasta hoy, el 15.
+      unEquipo({ cantidad: 1, valorDia: 100, dias: 6 }),
       HOY,
     );
     expect(textoDe(chips, "vencimiento")).toBe("Vence hoy 15/08/2026");
@@ -150,7 +156,7 @@ describe("describirFechasEquipo", () => {
         cantidad: 1,
         valorDia: 100,
         fechaDespacho: "2026-08-14",
-        fechaVencimiento: "2026-08-20",
+        dias: 7,
       }),
       HOY,
     );
@@ -166,8 +172,15 @@ describe("describirFechasEquipo", () => {
         valorDia: 100000,
         dias: 3,
         fechaDespacho: "2026-08-05",
-        fechaVencimiento: "2026-08-09",
-        ampliaciones: [{ diasAmpliados: 4, descuentoRealizado: 80000 }],
+        ampliaciones: [
+          {
+            fecha: "2026-08-07",
+            dias: 4,
+            desde: "2026-08-08",
+            hasta: "2026-08-11",
+            descuento: 80000,
+          },
+        ],
       }),
       HOY,
     );
@@ -181,11 +194,11 @@ describe("describirFechasEquipo", () => {
       unEquipoDevuelto({
         cantidad: 1,
         valorDia: 100,
-        // Salió el 10 con plazo hasta el 12 —3 días— y volvió el 14: 5 días
-        // afuera, que es lo que queda escrito al cerrarlo.
-        dias: 5,
+        // Salió el 10 por 3 días —cubierto hasta el 12— y volvió el 14: dos
+        // días de más, que quedaron en su tramo.
+        dias: 3,
         fechaDespacho: "2026-08-10",
-        fechaVencimiento: "2026-08-12",
+        vencidos: [unTramoVencido({ desde: "2026-08-13", hasta: "2026-08-14" })],
         fechaDevolucion: "2026-08-14",
       }),
       HOY,
@@ -204,9 +217,8 @@ describe("describirFechasEquipo", () => {
         cantidad: 10,
         valorDia: 20000,
         // Tenía hasta el 14 —5 días— y volvió el 12: estuvo 3.
-        dias: 3,
+        dias: 5,
         fechaDespacho: "2026-08-10",
-        fechaVencimiento: "2026-08-14",
         fechaDevolucion: "2026-08-12",
       }),
       HOY,
@@ -228,7 +240,6 @@ describe("describirFechasEquipo", () => {
         valorDia: 100,
         dias: 5,
         fechaDespacho: "2026-08-10",
-        fechaVencimiento: "2026-08-14",
         fechaDevolucion: "2026-08-14",
       }),
       HOY,
@@ -242,8 +253,8 @@ describe("describirFechasEquipo", () => {
       unEquipo({
         cantidad: 1,
         valorDia: 100,
-        vencimientoIndefinido: true,
-        fechaVencimiento: "2026-08-12",
+        dias: 3,
+        indefinida: { activa: true, desde: "2026-08-12", hasta: null },
       }),
       HOY,
     );
@@ -273,8 +284,10 @@ describe("agruparChipsFechas", () => {
     valorDia: 20000,
     dias: 3,
     fechaDespacho: "2026-08-03",
-    fechaVencimiento: "2026-08-07",
-    ampliaciones: [{ diasAmpliados: 2, fechaAnterior: "2026-08-05" }],
+    ampliaciones: [
+      { fecha: "2026-08-05", dias: 2, desde: "2026-08-06", hasta: "2026-08-07" },
+    ],
+    vencidos: [unTramoVencido({ desde: "2026-08-08", hasta: null })],
   });
 
   it("reparte la historia en trayecto, plazo y vencido", () => {
@@ -337,9 +350,14 @@ describe("agruparChipsFechas", () => {
         valorDia: 100000,
         dias: 3,
         fechaDespacho: "2026-08-05",
-        fechaVencimiento: "2026-08-09",
         ampliaciones: [
-          { diasAmpliados: 4, descuentoRealizado: 80000, fechaAnterior: "2026-08-05" },
+          {
+            fecha: "2026-08-07",
+            dias: 4,
+            desde: "2026-08-08",
+            hasta: "2026-08-11",
+            descuento: 80000,
+          },
         ],
       }),
       HOY,
@@ -365,30 +383,26 @@ describe("historialEquipo", () => {
     valorDia: 150000,
     dias: 7,
     fechaDespacho: "2026-09-01",
-    fechaVencimiento: "2026-09-14",
-    vencimientoIndefinido: false,
-    indefinidaDesde: "2026-09-09",
+    // Estuvo sin fecha de entrega del 09 al 11.
+    indefinida: { activa: false, desde: "2026-09-09", hasta: "2026-09-11" },
+    // Sus dos tramos de mora, ya cerrados. El segundo corrió con permiso:
+    // el cliente había avisado que no sabía cuándo devolvía.
+    vencidos: [
+      unTramoVencido({ desde: "2026-09-08", hasta: "2026-09-09" }),
+      unTramoVencido({
+        desde: "2026-09-10",
+        hasta: "2026-09-11",
+        indefinida: true,
+      }),
+    ],
+    // Y lo único que pidió: 3 días, del 12 al 14.
     ampliaciones: [
-      // El pago que selló los 2 días vencidos: no se le concedió ninguno.
-      {
-        fecha: "2026-09-09",
-        fechaAnterior: "2026-09-07",
-        fechaNueva: "2026-09-09",
-        diasAmpliados: 2,
-        diasPedidos: 0,
-        diasVencidos: 2,
-        descuentoRealizado: 0,
-        porPago: true,
-      },
-      // Y la renovación: 3 días pedidos, con otros 2 vencidos consolidados.
       {
         fecha: "2026-09-11",
-        fechaAnterior: "2026-09-09",
-        fechaNueva: "2026-09-14",
-        diasAmpliados: 5,
-        diasPedidos: 3,
-        diasVencidos: 2,
-        descuentoRealizado: 0,
+        dias: 3,
+        desde: "2026-09-12",
+        hasta: "2026-09-14",
+        descuento: 0,
       },
     ],
   });
@@ -421,10 +435,12 @@ describe("historialEquipo", () => {
   // La fecha del tramo es la del ÚLTIMO día contado, no la del primero: es
   // cuando el contador llegó a ese número. Con la del primero, el renglón se
   // leería como si ese día ya fueran dos.
-  it("el tramo vencido se fecha en su último día y dice que se pagó", () => {
+  it("el tramo vencido se fecha en su último día y vale sus días", () => {
     const tramo = buscar(compresor, "vencidos-0");
     expect(tramo.fecha).toBe("2026-09-09");
-    expect(tramo.detalle).toBe("2 días · pagados");
+    // Solo los días: si el cliente los pagó no se dice acá.
+    expect(tramo.detalle).toBe("2 días");
+    // El COSTO sí se muestra, que es lo que deja confirmar la cuenta.
     expect(tramo.valor).toBe(300000);
   });
 
@@ -439,7 +455,7 @@ describe("historialEquipo", () => {
   });
 
   it("lo pactado se cuenta por los días que se pidieron, no por los consolidados", () => {
-    const pactado = buscar(compresor, "pactado-1");
+    const pactado = buscar(compresor, "pactado-0");
     expect(pactado.fecha).toBe("2026-09-11");
     expect(pactado.detalle).toBe("Se pactaron 3 días");
     // Los 3 días pedidos, no los 5 que corrió la fecha: los otros 2 ya están
@@ -447,14 +463,14 @@ describe("historialEquipo", () => {
     expect(pactado.valor).toBe(450000);
   });
 
-  // El día que quedó sin fecha es el único hito que necesita un dato
-  // guardado: la marca se apaga al renovarle el plazo —acá ya está en false—
-  // y sin él no quedaría rastro de que el equipo estuvo sin fecha.
+  // El nodo de la entrega indefinida guarda las dos fechas: desde cuándo
+  // estuvo sin fecha y hasta cuándo. La marca de arriba ya está apagada
+  // —volvió a tener plazo— y aun así el hito se cuenta.
   it("recuerda el día en que quedó sin fecha de entrega, aunque ya no lo esté", () => {
     const acuerdo = buscar(compresor, "indefinida");
     expect(acuerdo.fecha).toBe("2026-09-09");
     expect(acuerdo.chip).toBe("indefinida");
-    expect(compresor.vencimientoIndefinido).toBe(false);
+    expect(compresor.indefinida.activa).toBe(false);
   });
 
   it("cierra con la fecha vigente y el estado del equipo", () => {
@@ -466,7 +482,15 @@ describe("historialEquipo", () => {
   // Lo que todavía corre es lo único que se le reclama, y por eso es lo único
   // que va en rojo: los tramos ya cerrados son plata acordada.
   it("el tramo que sigue corriendo va en rojo y los cerrados en el acento", () => {
-    const corriendo = historialEquipo(compresor, "2026-09-16");
+    // Cubierto hasta el 14; la madrugada del 15 le abrió otro tramo.
+    const conTramoAbierto = {
+      ...compresor,
+      vencidos: [
+        ...compresor.vencidos,
+        unTramoVencido({ desde: "2026-09-15", hasta: null }),
+      ],
+    };
+    const corriendo = historialEquipo(conTramoAbierto, "2026-09-16");
     expect(buscar(compresor, "vencidos-0").valorTono).toBe("acordado");
     expect(
       corriendo.find((hito) => hito.clave === "vencidos-hoy").valorTono,
@@ -483,16 +507,17 @@ describe("historialEquipo", () => {
       valorDia: 1500,
       dias: 3,
       fechaDespacho: "2026-09-09",
-      fechaVencimiento: "2026-09-15",
+      // Cubierto hasta el 11, y ese mismo 11 se le pactaron 4 días. No se
+      // pasó ni uno, pero ese día ya estaba vencido: queda un tramo que no
+      // suma días y solo deja escrito que llegó a vencerse.
+      vencidos: [unTramoVencido({ desde: "2026-09-12", hasta: "2026-09-11" })],
       ampliaciones: [
         {
           fecha: "2026-09-11",
-          fechaAnterior: "2026-09-11",
-          fechaNueva: "2026-09-15",
-          diasAmpliados: 4,
-          diasPedidos: 4,
-          diasVencidos: 0,
-          descuentoRealizado: 0,
+          dias: 4,
+          desde: "2026-09-12",
+          hasta: "2026-09-15",
+          descuento: 0,
         },
       ],
     });
@@ -510,16 +535,15 @@ describe("historialEquipo", () => {
       valorDia: 1500,
       dias: 3,
       fechaDespacho: "2026-09-09",
-      fechaVencimiento: "2026-09-15",
+      // Se le dieron los 4 días el 10, un día ANTES de que se le acabara el
+      // plazo: nunca se venció, así que no tiene ni un tramo.
       ampliaciones: [
         {
           fecha: "2026-09-10",
-          fechaAnterior: "2026-09-11",
-          fechaNueva: "2026-09-15",
-          diasAmpliados: 4,
-          diasPedidos: 4,
-          diasVencidos: 0,
-          descuentoRealizado: 0,
+          dias: 4,
+          desde: "2026-09-12",
+          hasta: "2026-09-15",
+          descuento: 0,
         },
       ],
     });
@@ -535,7 +559,6 @@ describe("historialEquipo", () => {
       valorDia: 80000,
       dias: 5,
       fechaDespacho: "2026-09-20",
-      fechaVencimiento: "2026-09-24",
     });
     const salida = buscar(porSalir, "salida", "2026-09-12");
     expect(salida.titulo).toBe("Salida programada");

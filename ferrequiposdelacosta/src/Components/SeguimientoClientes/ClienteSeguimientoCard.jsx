@@ -48,6 +48,8 @@ import {
   sigueAfuera,
   GESTION_INFO,
   COLOR_ENTREGA_INDEFINIDA,
+  cubiertoHasta,
+  sinFechaDeEntrega,
 } from "../ClienteDetalle/facturaUtils";
 import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
 import {
@@ -80,10 +82,13 @@ const GRUPOS_VENCIMIENTO = [
 ];
 
 const clasificarVencimiento = (equipo, hoy) => {
-  if (equipo.vencimientoIndefinido || !equipo.fechaVencimiento) return "indefinido";
+  // Hasta cuándo está cubierto no se guarda: se encadena (ver
+  // cubiertoHasta en las cuentas).
+  const cubierto = cubiertoHasta(equipo);
+  if (sinFechaDeEntrega(equipo) || !cubierto) return "indefinido";
   if (!hoy) return "vence";
-  if (equipo.fechaVencimiento === hoy) return "hoy";
-  if (equipo.fechaVencimiento < hoy) return "vencido";
+  if (cubierto === hoy) return "hoy";
+  if (cubierto < hoy) return "vencido";
   return "vence";
 };
 
@@ -99,8 +104,8 @@ const agruparPorVencimiento = (equipos = [], hoy) => {
 
   Object.values(porGrupo).forEach((lista) =>
     lista.sort((a, b) =>
-      String(a.equipo.fechaVencimiento || "").localeCompare(
-        String(b.equipo.fechaVencimiento || ""),
+      String(cubiertoHasta(a.equipo) || "").localeCompare(
+        String(cubiertoHasta(b.equipo) || ""),
       ),
     ),
   );
@@ -501,9 +506,9 @@ export default function ClienteSeguimientoCard({
   const fechaProrroga =
     equiposAfuera(factura)
       .filter(
-        ({ equipo }) => !equipo.vencimientoIndefinido && equipo.fechaVencimiento,
+        ({ equipo }) => !sinFechaDeEntrega(equipo) && cubiertoHasta(equipo),
       )
-      .map(({ equipo }) => equipo.fechaVencimiento)
+      .map(({ equipo }) => cubiertoHasta(equipo))
       .sort()
       .pop() || null;
 

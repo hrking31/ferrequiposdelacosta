@@ -22,20 +22,23 @@ export { GRUPO_INICIAL, grupoAgregados };
 // Una línea de equipo. `devolucion` se pasa solo cuando la prueba necesita un
 // equipo que ya volvió: su sola presencia es lo que dice que no está afuera.
 //
-// OJO CON LAS FECHAS. Los días pactados y la fecha en que vencen tienen que
-// decir lo mismo: `fechaVencimiento` sale de `fechaDespacho` más los días —los
-// del alta más los de cada ampliación— menos uno. Si se pasa una fecha suelta
-// que no cuadra, la cuenta le va a creer a los DÍAS y el equipo va a figurar
-// vencido por un mes donde la prueba quería un día. Para mover el vencimiento,
-// mové también el despacho.
+// NO HAY `fechaVencimiento`, y no es un olvido: hasta cuándo está cubierto un
+// equipo se encadena —los días del alta, más cada tramo vencido ya cerrado,
+// más cada ampliación— en vez de guardarse (ver cubiertoHasta). Un equipo
+// despachado el 10 por 10 días está cubierto hasta el 19, contando el propio
+// día de salida.
+//
+// Para que una prueba tenga un equipo pasado de plazo, se le da su tramo:
+//
+//   unEquipo({ dias: 3, vencidos: [unTramoVencido({ desde: "2026-08-13" })] })
 export const unEquipo = ({
   nombre = "ANDAMIO",
   cantidad = 1,
   valorDia = 10000,
   dias = 10,
   fechaDespacho = "2026-08-10",
-  fechaVencimiento,
   ampliaciones = [],
+  vencidos = [],
   ...resto
 } = {}) => ({
   nombre,
@@ -43,11 +46,34 @@ export const unEquipo = ({
   valorDia,
   diasAlquilados: dias,
   fechaDespacho,
-  // Por defecto, la que sale de los días: despacho el 10 por 10 días vence el
-  // 19, contando el propio día de salida.
-  fechaVencimiento: fechaVencimiento ?? sumarDias(fechaDespacho, dias - 1),
   ampliaciones,
+  vencidos,
   ...resto,
+});
+
+// Un tramo en que el equipo estuvo pasado de plazo. Cerrado por defecto: el
+// abierto —el que está corriendo hoy— se pide con `hasta: null`.
+export const unTramoVencido = ({
+  desde = "2026-08-20",
+  hasta = "2026-08-22",
+  indefinida = false,
+} = {}) => ({ desde, hasta, indefinida });
+
+// Una ampliación: SOLO los días que el cliente pidió, con el tramo de fechas
+// que ocupan. Los días que se le habían vencido antes van en su propio tramo,
+// no acá adentro.
+export const unaAmpliacion = ({
+  fecha = "2026-08-19",
+  dias = 3,
+  desde = "2026-08-20",
+  hasta,
+  descuento = 0,
+} = {}) => ({
+  fecha,
+  dias,
+  desde,
+  hasta: hasta ?? sumarDias(desde, dias - 1),
+  descuento,
 });
 
 // Un equipo que ya volvió. Sus días son los que de verdad estuvo afuera, que

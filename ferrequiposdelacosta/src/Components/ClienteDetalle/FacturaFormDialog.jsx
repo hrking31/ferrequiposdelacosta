@@ -61,6 +61,7 @@ import {
   gestionesDe,
   estaDevuelto,
   nuevoGrupo,
+  cubiertoHasta,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -106,27 +107,26 @@ const aFormulario = (equipo) => ({
   dias: equipo?.diasAlquilados ?? "",
   valor: equipo?.valorDia ?? "",
   fechaDespacho: equipo?.fechaDespacho ?? "",
-  fechaVencimiento: equipo?.fechaVencimiento ?? "",
   aplicaIva: equipo?.aplicaIva,
-  vencimientoIndefinido: equipo?.vencimientoIndefinido,
   ampliaciones: equipo?.ampliaciones,
+  vencidos: equipo?.vencidos,
+  indefinida: equipo?.indefinida,
   devolucion: equipo?.devolucion,
 });
 
 const alDocumento = (item, fechaFactura, aplicaIvaFactura) => {
-  const fechaDespacho = item.fechaDespacho || fechaFactura;
   const equipo = {
     nombre: item.nombre,
     cantidadEquipos: Number(item.cantidad) || 0,
     valorDia: Number(item.valor) || 0,
     diasAlquilados: Number(item.dias) || 0,
-    fechaDespacho,
-    // El vencimiento ya calculado se conserva —pudo haberse ampliado— y solo
-    // se saca de nuevo para los que todavía no lo tienen.
-    fechaVencimiento:
-      item.fechaVencimiento ||
-      calcularFechaDevolucion(fechaDespacho, Number(item.dias)),
+    fechaDespacho: item.fechaDespacho || fechaFactura,
+    // Hasta cuándo está cubierto NO se guarda: sale de encadenar los días
+    // del alta, los tramos vencidos ya cerrados y lo que el cliente pidió
+    // (ver cubiertoHasta). Guardar esa fecha era lo que borraba el pasado
+    // cada vez que se renovaba un plazo.
     ampliaciones: item.ampliaciones ?? [],
+    vencidos: item.vencidos ?? [],
     // La marca del IVA se escribe SIEMPRE, aunque el equipo no traiga la suya:
     // ahí toma la de la casilla del formulario. Antes solo se escribía si el
     // equipo ya la tenía, así que una factura creada acá dejaba a sus equipos
@@ -134,7 +134,7 @@ const alDocumento = (item, fechaFactura, aplicaIvaFactura) => {
     // cada equipo se cobra solo y la factura no necesita guardar nada.
     aplicaIva: item.aplicaIva ?? Boolean(aplicaIvaFactura),
   };
-  if (item.vencimientoIndefinido) equipo.vencimientoIndefinido = true;
+  if (item.indefinida) equipo.indefinida = item.indefinida;
   if (item.devolucion) equipo.devolucion = item.devolucion;
   return equipo;
 };
@@ -820,8 +820,15 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 para sacarlo si se cargó por error. */}
             {equipos.map((item, index) => {
               const despacho = item.fechaDespacho || form.fecha;
+              // Hasta cuándo está cubierto: los días del alta más lo que
+              // haya pasado después. No se guarda, se encadena.
               const vencimiento =
-                item.fechaVencimiento || calcularFechaDevolucion(despacho, item.dias);
+                cubiertoHasta({
+                  fechaDespacho: despacho,
+                  diasAlquilados: item.dias,
+                  vencidos: item.vencidos,
+                  ampliaciones: item.ampliaciones,
+                }) || calcularFechaDevolucion(despacho, item.dias);
               const subtotalItem =
                 (Number(item.cantidad) || 0) *
                 (Number(item.dias) || 0) *

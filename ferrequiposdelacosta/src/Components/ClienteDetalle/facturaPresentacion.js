@@ -30,17 +30,23 @@ import EventIcon from "@mui/icons-material/Event";
 import SavingsIcon from "@mui/icons-material/Savings";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import {
-  ampliacionTrasVencimiento,
   calcularEquipo,
+  calcularFechaDevolucion,
   calcularEstadoEquipo,
   calcularVencimiento,
   diasDeAlquiler,
+  cubiertoHasta,
   diasDeEquipo,
-  esPagoDeVencidos,
   etiquetaVencimiento,
   obtenerFechaHoyBogota,
 } from "./facturaCuentas";
-import { ampliacionesDe, estaDevuelto } from "./facturaModelo";
+import {
+  ampliacionesDe,
+  estaDevuelto,
+  indefinidaDe,
+  sinFechaDeEntrega,
+  vencidosDe,
+} from "./facturaModelo";
 import {
   formatearDias as enDias,
   formatearFechaLegible,
@@ -107,12 +113,24 @@ export const GESTION_INFO = {
   cobro: { label: "Cobro", Icono: PaidIcon },
 };
 
-// Las fechas de vencimiento por las que ya pasó un equipo: la que tenía antes
-// de cada ampliación. La vigente no está acá — esa la pinta su propio chip.
+// Las fechas por las que ya pasó un equipo: el final de cada eslabón de su
+// cadena, menos el último, que es el vigente y lo pinta su propio chip.
+//
+// El compresor de la 5698 pasó por el 07/09 —el fin de sus 7 días—, por el
+// 09/09 y por el 11/09 —el fin de cada tramo vencido que se cerró— y hoy
+// está cubierto hasta el 14/09.
 const historialVencimientos = (equipo) =>
-  ampliacionesDe(equipo)
-    .map((ampliacion) => ampliacion?.fechaAnterior)
-    .filter(Boolean);
+  [
+    calcularFechaDevolucion(
+      equipo?.fechaDespacho,
+      Number(equipo?.diasAlquilados) || 0,
+    ),
+    ...vencidosDe(equipo).map((tramo) => tramo?.hasta),
+    ...ampliacionesDe(equipo).map((ampliacion) => ampliacion?.hasta),
+  ]
+    .filter(Boolean)
+    .sort()
+    .slice(0, -1);
 
 // ── La historia de fechas de un equipo ─────────────────────────────────
 //
@@ -285,7 +303,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
 
   // Hasta cuándo quedó. Cierra el tramo a propósito: primero se lee de dónde
   // viene y recién al final en qué quedó.
-  if (equipo?.vencimientoIndefinido) {
+  //
+  // La fecha no se guarda: sale de encadenar los días del alta, los tramos
+  // vencidos ya cerrados y lo que el cliente pidió (ver cubiertoHasta).
+  const cubierto = cubiertoHasta(equipo);
+  if (sinFechaDeEntrega(equipo)) {
     chips.push({
       clave: "indefinido",
       tramo: TRAMO_FECHAS.PLAZO,
@@ -294,11 +316,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       Icono: EventIcon,
       label: "Entrega indefinida",
     });
-  } else if (!devuelto && equipo?.fechaVencimiento) {
+  } else if (!devuelto && cubierto) {
     // Misma regla que usa Seguimiento para agrupar: hoy es ámbar, antes de hoy
     // es rojo. La fecha vigente es la única que se pinta de urgencia.
-    const vencido = equipo.fechaVencimiento < hoyIso;
-    const venceHoy = equipo.fechaVencimiento === hoyIso;
+    const vencido = cubierto < hoyIso;
+    const venceHoy = cubierto === hoyIso;
     chips.push({
       clave: "vencimiento",
       tramo: TRAMO_FECHAS.PLAZO,
@@ -308,32 +330,12 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
       enCadena: historial.length > 0 || diasAmpliados > 0,
       Icono: vencido ? EventBusyIcon : AssignmentReturnIcon,
       label: `${vencido ? "Venció" : venceHoy ? "Vence hoy" : "Devuelve"} ${formatearFechaLegible(
-        equipo.fechaVencimiento,
+        cubierto,
       )}`,
     });
   }
 
   // ── TRAMO 3: lo que pasó con el plazo una vez cumplido ──────────────
-  //
-  // Los días que se le vencieron y el cliente YA PAGÓ. Van en verde y con su
-  // valor: la cifra ahí no reclama nada, cuenta lo que entró.
-  //
-  // Es el registro de que ese equipo estuvo afuera de fecha, y tiene que
-  // sobrevivir al pago: sin él, una vez sellados los días, la pantalla no
-  // podría distinguir a un cliente que devolvió a tiempo de otro que se pasó
-  // dos días y los pagó. Lo que no sobrevive es el rojo — ver
-  // sellarDiasVencidos.
-  if (dias.pagados > 0) {
-    chips.push({
-      clave: "diasVencidosPagados",
-      tramo: TRAMO_FECHAS.VENCIDO,
-      tono: "exito",
-      Icono: PaidIcon,
-      label: `${plural(dias.pagados, "día")} vencido${
-        dias.pagados === 1 ? "" : "s"
-      } pagado${dias.pagados === 1 ? "" : "s"}${conValor(dias.pagados * valorPorDia)}`,
-    });
-  }
 
   // Vale igual para el que sigue afuera y para el que ya volvió: los días de
   // más son días vencidos aunque el equipo esté de vuelta en la bodega.
@@ -356,11 +358,11 @@ export const describirFechasEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) 
   // descontarlos aparte. Ahora esos días nunca se cobraron: el chip cuenta un
   // hecho —devolvió antes— y poner una cifra haría pensar que hay una plata a
   // favor que no existe.
-  if (devuelto && equipo?.fechaVencimiento) {
+  if (devuelto && cubierto) {
     // Lo que le habían prometido, menos lo que alcanzó a usar de eso. Los días
     // vencidos no entran: ahí el sobrante es cero por definición.
     const diasSinUsar =
-      diasDeAlquiler(equipo.fechaDespacho, equipo.fechaVencimiento) -
+      diasDeAlquiler(equipo.fechaDespacho, cubierto) -
       (dias.alta + dias.ampliados);
     if (diasSinUsar > 0) {
       chips.push({
@@ -469,16 +471,13 @@ export const estiloChipFecha = ({ clave, tono }, theme) => {
 export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia =
     (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);
-  const ampliaciones = ampliacionesDe(equipo);
   const dias = diasDeEquipo(equipo, hoyIso);
   const devuelto = estaDevuelto(equipo);
   const estado = calcularEstadoEquipo(equipo, hoyIso);
-  const indefinidaDesde = equipo?.indefinidaDesde ?? null;
-
-  // Un tramo corrió "con permiso" si para cuando empezó el cliente ya había
-  // avisado que no sabía cuándo devolver.
-  const conPermiso = (desde) =>
-    Boolean(indefinidaDesde && desde && indefinidaDesde <= desde);
+  const indefinida = indefinidaDe(equipo);
+  const tramos = vencidosDe(equipo);
+  const cubierto = cubiertoHasta(equipo);
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
 
   const hitos = [];
 
@@ -496,80 +495,90 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     valor: dias.alta * porDia,
   });
 
-  // 2. EL VENCIMIENTO INICIAL, solo cuando dejó de ser el vigente. Mientras
-  // siga siéndolo se lee abajo, en el próximo vencimiento: repetirlo arriba
-  // sería la misma fecha dos veces.
-  const primera = ampliaciones[0];
-  if (primera?.fechaAnterior) {
+  // 2. EL VENCIMIENTO INICIAL: el día en que se acababan los días del alta,
+  // y solo cuando dejó de ser el vigente. Mientras siga siéndolo se lee
+  // abajo, en el próximo vencimiento: repetirlo arriba sería la misma fecha
+  // dos veces.
+  const finDelAlta = calcularFechaDevolucion(
+    equipo?.fechaDespacho,
+    Number(equipo?.diasAlquilados) || 0,
+  );
+  if (finDelAlta && cubierto && finDelAlta < cubierto) {
     hitos.push({
       clave: "vencimiento-inicial",
-      fecha: primera.fechaAnterior,
+      fecha: finDelAlta,
       tono: "vencido",
       titulo: "Vencimiento inicial",
       detalle: "Debía devolverse este día.",
-      // El chip cuando el equipo llegó a vencerse — incluido el que se
-      // renovó ESE MISMO día, que ese día ya estaba vencido. Al que le dieron
-      // más días ANTES de la fecha no se le venció nada, y decírselo sería
-      // inventarle una mora (ver ampliacionTrasVencimiento).
-      chip: ampliacionTrasVencimiento(primera) ? "vencido" : null,
+      // Llegó a vencerse si al día siguiente arrancó un tramo. Al que le
+      // dieron más días ANTES de esa fecha no se le venció nada, y decírselo
+      // sería inventarle una mora.
+      //
+      // Antes esto se deducía comparando el día de la renovación con la fecha
+      // que el equipo tenía. Ahora el tramo lo dice sin que nadie lo deduzca:
+      // es el caso de la 0123 de ReYaz, renovada el mismo día que vencía.
+      chip: tramos.some(
+        (tramo) => tramo?.desde === calcularVencimiento(finDelAlta, 1),
+      )
+        ? "vencido"
+        : null,
     });
   }
 
-  // 3. LO QUE PASÓ CON CADA RENOVACIÓN, en dos hitos distintos: los días que
-  // ya se le habían vencido —que se cierran ahí— y los que se le pactaron.
-  ampliaciones.forEach((ampliacion, indice) => {
-    const vencidos = Number(ampliacion?.diasVencidos) || 0;
-    const pedidos = Number(ampliacion?.diasPedidos) || 0;
-    const pagados = esPagoDeVencidos(ampliacion);
+  // 3. CADA TRAMO QUE YA SE CERRÓ. El equipo se pasó de plazo y alguien lo
+  // cerró —pagó, pidió días o devolvió—, así que sus dos fechas quedaron
+  // escritas y no se recalculan nunca más.
+  tramos.forEach((tramo, indice) => {
+    if (!tramo?.hasta || !tramo?.desde) return;
+    const diasTramo = diasDeAlquiler(tramo.desde, tramo.hasta);
+    if (diasTramo <= 0) return;
 
-    if (vencidos > 0) {
-      hitos.push({
-        clave: `vencidos-${indice}`,
-        // El último día del tramo, no el primero: los días corren DESDE la
-        // fecha que tenía el equipo, así que el tramo se cierra tantos días
-        // después. Es cuando el contador llegó a ese número.
-        fecha: ampliacion?.fechaAnterior
-          ? calcularVencimiento(ampliacion.fechaAnterior, vencidos)
-          : null,
-        tono: "vencido",
-        // Mismo estado, distinta razón: con permiso cambia el nombre, no el
-        // color.
-        titulo: conPermiso(ampliacion?.fechaAnterior)
-          ? "Entrega indefinida"
-          : "Días vencidos",
-        // "pagados" es lo que explica que el contador vuelva a cero sin meter
-        // el pago en la historia: el pago es plata, y esto es el equipo.
-        detalle: `${enDias(vencidos)}${pagados ? " · pagados" : ""}`,
-        valor: vencidos * porDia,
-        // Ya cerrados: van con el acento de lo pactado y no con el rojo de lo
-        // que se está reclamando.
-        valorTono: "acordado",
-      });
-    }
-
-    if (pedidos > 0) {
-      hitos.push({
-        clave: `pactado-${indice}`,
-        fecha: ampliacion?.fecha ?? ampliacion?.fechaNueva ?? null,
-        tono: "acordado",
-        titulo: "Seguimiento con cliente",
-        detalle: `Se pactaron ${enDias(pedidos)}`,
-        valor: Math.max(
-          0,
-          pedidos * porDia - (Number(ampliacion?.descuentoRealizado) || 0),
-        ),
-        valorTono: "acordado",
-      });
-    }
+    hitos.push({
+      clave: `vencidos-${indice}`,
+      // El último día del tramo, no el primero: es cuando el contador llegó a
+      // ese número.
+      fecha: tramo.hasta,
+      tono: "vencido",
+      // Mismo estado, distinta razón: con permiso cambia el nombre, no el
+      // color.
+      titulo: tramo.indefinida ? "Entrega indefinida" : "Días vencidos",
+      // Solo los días. Si el cliente los pagó o no NO se dice acá: el equipo
+      // muestra lo que CUESTA —para poder confirmar la cuenta—, nunca la
+      // plata del cliente, que entra a su cuenta y puede repartirse entre
+      // varias facturas.
+      detalle: enDias(diasTramo),
+      valor: diasTramo * porDia,
+      // Ya cerrados: van con el acento de lo pactado y no con el rojo de lo
+      // que se está reclamando.
+      valorTono: "acordado",
+    });
   });
 
-  // 4. EL DÍA QUE QUEDÓ SIN FECHA. Es el único hito que necesita un dato
-  // guardado aparte: la marca de entrega indefinida se prende y se apaga, y
-  // cuándo se prendió no lo decía nadie.
-  if (indefinidaDesde) {
+  // 4. LO QUE EL CLIENTE PIDIÓ. La ampliación ya no mezcla días vencidos
+  // adentro: son los días que pidió y nada más.
+  ampliacionesDe(equipo).forEach((ampliacion, indice) => {
+    const pedidos = Number(ampliacion?.dias) || 0;
+    if (pedidos <= 0) return;
+
+    hitos.push({
+      clave: `pactado-${indice}`,
+      fecha: ampliacion?.fecha ?? ampliacion?.desde ?? null,
+      tono: "acordado",
+      titulo: "Seguimiento con cliente",
+      detalle: `Se pactaron ${enDias(pedidos)}`,
+      valor: Math.max(
+        0,
+        pedidos * porDia - (Number(ampliacion?.descuento) || 0),
+      ),
+      valorTono: "acordado",
+    });
+  });
+
+  // 5. EL DÍA QUE QUEDÓ SIN FECHA DE ENTREGA.
+  if (indefinida?.desde) {
     hitos.push({
       clave: "indefinida",
-      fecha: indefinidaDesde,
+      fecha: indefinida.desde,
       tono: "indefinida",
       titulo: "Seguimiento con cliente",
       detalle: "El cliente indicó que todavía no sabe cuándo lo devuelve.",
@@ -577,24 +586,24 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     });
   }
 
-  // 5. LO QUE ESTÁ CORRIENDO AHORA. A diferencia de los tramos de arriba,
-  // este no está cerrado: crece un día por cada día que pasa, y por eso va en
-  // rojo — es lo único de toda la historia que todavía se le reclama.
-  if (dias.vencidos > 0) {
+  // 6. EL TRAMO QUE ESTÁ CORRIENDO. A diferencia de los de arriba, este no
+  // está cerrado: crece un día por cada día que pasa, y por eso va en rojo —
+  // es lo único de toda la historia que todavía se le reclama.
+  const abierto = tramos.find((tramo) => !tramo?.hasta);
+  if (abierto?.desde && dias.vencidos > 0) {
+    const corriendo = diasDeAlquiler(abierto.desde, corte);
     hitos.push({
       clave: "vencidos-hoy",
-      fecha: hoyIso,
+      fecha: corte,
       tono: "vencido",
-      titulo: equipo?.vencimientoIndefinido
-        ? "Entrega indefinida"
-        : "Días vencidos",
-      detalle: enDias(dias.vencidos),
-      valor: dias.vencidos * porDia,
+      titulo: abierto.indefinida ? "Entrega indefinida" : "Días vencidos",
+      detalle: enDias(corriendo),
+      valor: corriendo * porDia,
       valorTono: "vencido",
     });
   }
 
-  // 6. LA VUELTA A BODEGA, con lo que se haya retenido por daños.
+  // 7. LA VUELTA A BODEGA, con lo que se haya retenido por daños.
   if (devuelto && equipo?.devolucion?.fechaDevolucion) {
     const retenido = Number(equipo.devolucion.valorRetenido) || 0;
     hitos.push({
@@ -604,8 +613,7 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       titulo: "Devolución",
       // Lo que dijo el cliente al devolverlo, cuando alguien lo anotó: se
       // pregunta al registrar una devolución anticipada, y explica por qué el
-      // equipo volvió antes de tiempo. Vivía suelto bajo el nombre del equipo,
-      // sin fecha; acá cuelga del hecho que explica.
+      // equipo volvió antes de tiempo.
       detalle: equipo.devolucion.motivoDevolucion
         ? `Cliente: ${equipo.devolucion.motivoDevolucion}`
         : retenido > 0
@@ -617,13 +625,13 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     });
   }
 
-  // 7. HASTA CUÁNDO QUEDÓ. El que está afuera sin fecha no lo lleva: eso ya
+  // 8. HASTA CUÁNDO QUEDÓ. El que está afuera sin fecha no lo lleva: eso ya
   // lo cuenta el hito del acuerdo, y una fila que dijera "sin fecha" sería
   // repetirlo.
-  if (!devuelto && equipo?.fechaVencimiento && !equipo?.vencimientoIndefinido) {
+  if (!devuelto && cubierto && !indefinida?.activa) {
     hitos.push({
       clave: "proximo-vencimiento",
-      fecha: equipo.fechaVencimiento,
+      fecha: cubierto,
       tono: estado,
       titulo: "Próximo vencimiento",
       // Sin descripción: "fecha de devolución" es lo mismo que acaba de decir

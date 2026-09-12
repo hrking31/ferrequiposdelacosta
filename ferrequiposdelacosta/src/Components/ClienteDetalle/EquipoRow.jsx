@@ -34,6 +34,8 @@ import {
   estaDevuelto,
   ESTADO_EQUIPO_INFO,
   ROTULO_ESTADO_MAS_LARGO,
+  cubiertoHasta,
+  sinFechaDeEntrega,
 } from "./facturaUtils";
 // Con alias para que se lean como lo que son acá: la moneda que deja el hueco
 // vacío si no hay número, y la fecha DD/MM/AAAA.
@@ -257,9 +259,9 @@ export default function EquipoRow({ equipo, color }) {
                 texto={
                   devuelto && equipo.devolucion?.fechaDevolucion
                     ? formatearFecha(equipo.devolucion.fechaDevolucion)
-                    : equipo.vencimientoIndefinido
+                    : sinFechaDeEntrega(equipo)
                       ? "Sin fecha de entrega"
-                      : formatearFecha(equipo.fechaVencimiento)
+                      : formatearFecha(cubiertoHasta(equipo))
                 }
               />
             </Stack>

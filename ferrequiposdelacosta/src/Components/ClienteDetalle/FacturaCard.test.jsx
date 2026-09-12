@@ -22,7 +22,6 @@ const andamio = (extra = {}) =>
     dias: 3,
     valorDia: 100000,
     fechaDespacho: "2026-08-01",
-    fechaVencimiento: "2026-08-03",
     ...extra,
   });
 
@@ -54,7 +53,6 @@ const facturaFinalizada = facturaCon({
       dias: 3,
       valorDia: 100000,
       fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
       fechaDevolucion: "2026-08-03",
     }),
   ],
@@ -132,8 +130,17 @@ describe("FacturaCard — el estado de cada equipo", () => {
       facturaCon({
         equipos: [
           andamio({
-            fechaVencimiento: calcularVencimiento(HOY, 5),
-            ampliaciones: [{ diasAmpliados: 30, descuentoRealizado: 0 }],
+            // Le dieron 30 días que llegan más allá de hoy, así que no está
+            // vencido: sin ellos lo estaría.
+            ampliaciones: [
+              {
+                fecha: "2026-08-03",
+                dias: 30,
+                desde: "2026-08-04",
+                hasta: calcularVencimiento(HOY, 5),
+                descuento: 0,
+              },
+            ],
           }),
         ],
       }),
@@ -210,7 +217,6 @@ describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
             dias: 5,
             valorDia: 50000,
             fechaDespacho: HOY,
-            fechaVencimiento: calcularVencimiento(HOY, 5),
           }),
         ],
       }),

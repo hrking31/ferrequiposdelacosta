@@ -17,6 +17,8 @@ import {
   equiposDe,
   adicionalesDe,
   grupoInicialDe,
+  cubiertoHasta,
+  sinFechaDeEntrega,
 } from "./facturaUtils";
 
 const numero = (valor) => Number(valor) || 0;
@@ -66,9 +68,9 @@ const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
     fechaDespacho: equipo.fechaDespacho || datos.fechaCreacion || "",
     fechaDevolucion: equipo.devolucion?.fechaDevolucion
       ? equipo.devolucion.fechaDevolucion
-      : equipo.vencimientoIndefinido
+      : sinFechaDeEntrega(equipo)
         ? hoyIso
-        : equipo.fechaVencimiento || "",
+        : cubiertoHasta(equipo) || "",
   };
 };
 

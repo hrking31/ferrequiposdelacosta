@@ -21,6 +21,7 @@ import {
   calcularEstadoCliente,
   calcularTotalesFacturas,
   equiposQueVencieronHoy,
+  abrirTramosFactura,
   facturaCerrada,
   facturaEnSeguimiento,
   obtenerFechaHoyBogota,
@@ -722,6 +723,7 @@ export const recalcularTotalesPanel = onSchedule(
       // El "padre del padre" de clientes/X/facturas/Y es el cliente X.
       const facturasPorCliente = new Map();
       let facturasCorregidas = 0;
+      let tramosAbiertos = 0;
 
       // Lo que apareció con el cambio de día. Un equipo vence solo, por
       // calendario: nadie escribe nada y por eso nadie se entera. Se detecta
@@ -770,6 +772,19 @@ export const recalcularTotalesPanel = onSchedule(
           novedades.push({clienteId, numero});
         }
 
+        // Los equipos que amanecieron pasados de plazo estrenan su tramo
+        // vencido. Es la única escritura que provoca el calendario: queda
+        // anotado el día en que empezó la mora y no se toca más hasta que
+        // alguien la cierre —cobrando, dando días o recibiendo el equipo—.
+        //
+        // Sin esto, renovar un plazo borraba el único rastro de que el
+        // equipo se había vencido, y la factura se iba de cartera debiendo.
+        const conTramos = abrirTramosFactura(factura, hoy);
+        if (conTramos) {
+          await anotarEnLote(facturaSnap.ref, {grupos: conTramos});
+          tramosAbiertos += 1;
+        }
+
         const cerrada = facturaCerrada(factura, hoy);
         if (cerrada !== datosFactura(factura).cerrada) {
           await anotarEnLote(facturaSnap.ref, {"factura.cerrada": cerrada});
@@ -799,6 +814,7 @@ export const recalcularTotalesPanel = onSchedule(
       console.log(
           `Clientes revisados: ${clientesSnap.size}, ` +
           `estados corregidos: ${clientesCorregidos}, ` +
+          `tramos vencidos abiertos: ${tramosAbiertos}, ` +
           `marcas de cerrada corregidas: ${facturasCorregidas}`,
       );
 

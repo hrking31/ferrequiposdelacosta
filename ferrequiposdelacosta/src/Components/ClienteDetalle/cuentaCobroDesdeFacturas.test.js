@@ -5,6 +5,7 @@ import {
   unEquipoDevuelto,
   unGrupo,
   unaFactura,
+  unTramoVencido,
 } from "../../test/facturas";
 
 // La fecha de hoy se inyecta para que las pruebas no dependan del reloj real:
@@ -41,7 +42,6 @@ const rana = (extra = {}) =>
     dias: 3,
     valorDia: 100000,
     fechaDespacho: "2026-08-05",
-    fechaVencimiento: "2026-08-07",
     fechaDevolucion: "2026-08-07",
     ...extra,
   });
@@ -137,14 +137,14 @@ describe("los equipos como ítems", () => {
       equipos: [
         rana({
           dias: 5,
-          fechaVencimiento: "2026-08-09",
           fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
-              fechaAnterior: "2026-08-07",
-              fechaNueva: "2026-08-09",
-              diasAmpliados: 2,
-              descuentoRealizado: 0,
+              fecha: "2026-08-07",
+              dias: 2,
+              desde: "2026-08-08",
+              hasta: "2026-08-09",
+              descuento: 0,
             },
           ],
         }),
@@ -167,8 +167,9 @@ describe("los equipos como ítems", () => {
           dias: 3,
           valorDia: 100000,
           fechaDespacho: "2026-08-05",
-          fechaVencimiento: "2026-08-07",
-          vencimientoIndefinido: true,
+          // Cubierto hasta el 07; desde el 08 le corre su tramo, con permiso.
+          indefinida: { activa: true, desde: "2026-08-08", hasta: null },
+          vencidos: [unTramoVencido({ desde: "2026-08-08", hasta: null })],
         }),
       ],
     });
@@ -214,7 +215,6 @@ describe("el resumen", () => {
             dias: 1,
             valorDia: 50000,
             fechaDespacho: "2026-08-10",
-            fechaVencimiento: "2026-08-10",
             fechaDevolucion: "2026-08-10",
           }),
         ],
@@ -271,14 +271,14 @@ describe("el resumen", () => {
       equipos: [
         rana({
           dias: 5,
-          fechaVencimiento: "2026-08-09",
           fechaDevolucion: "2026-08-09",
           ampliaciones: [
             {
-              fechaAnterior: "2026-08-07",
-              fechaNueva: "2026-08-09",
-              diasAmpliados: 2,
-              descuentoRealizado: 50000,
+              fecha: "2026-08-07",
+              dias: 2,
+              desde: "2026-08-08",
+              hasta: "2026-08-09",
+              descuento: 50000,
             },
           ],
         }),

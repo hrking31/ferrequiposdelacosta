@@ -125,7 +125,6 @@ describe("FacturaFormDialog — crear", () => {
       diasAlquilados: 3,
       valorDia: 20000,
       fechaDespacho: "2026-08-10",
-      fechaVencimiento: "2026-08-12",
     });
 
     // El nodo `factura` no lleva plata: el subtotal, el IVA y el total se
@@ -179,7 +178,6 @@ describe("FacturaFormDialog — editar", () => {
       dias: 3,
       valorDia: 20000,
       fechaDespacho: "2026-08-01",
-      fechaVencimiento: "2026-08-03",
       ...extra,
     });
 
@@ -259,7 +257,6 @@ describe("FacturaFormDialog — editar", () => {
             dias: 3,
             valorDia: 20000,
             fechaDespacho: "2026-08-01",
-            fechaVencimiento: "2026-08-03",
             fechaDevolucion: "2026-08-03",
           }),
         ],

@@ -2,10 +2,11 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import {
   calcularVencimiento,
+  cubiertoHasta,
   obtenerFechaHoyBogota,
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
-import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
+import { unEquipo, unEquipoDevuelto, unTramoVencido, unaFactura } from "../../test/facturas";
 
 // Darle más días al cliente. Es una operación de plata: los días que se agregan
 // se cobran, salvo que se les haga un descuento, y la ampliación queda anotada
@@ -37,7 +38,6 @@ const andamio = (extra = {}) =>
     dias: 3,
     valorDia: 20000,
     fechaDespacho: "2026-08-01",
-    fechaVencimiento: "2026-08-03",
     ...extra,
   });
 
@@ -60,14 +60,16 @@ const factura = facturaCon();
 // una fecha de agosto daría un resultado distinto cada día que pasa.
 const HOY = obtenerFechaHoyBogota();
 const AYER = calcularVencimiento(HOY, -1);
-// Se le corre la fecha de DESPACHO, no solo la de vencimiento: los días
-// pactados y la fecha en que vencen tienen que decir lo mismo. Con el despacho
-// en agosto y el vencimiento ayer, el equipo llevaría un mes vencido en vez de
-// un día, y la cuenta lo cobraría así.
+// Se le corre la fecha de DESPACHO: sus 3 días del alta tienen que terminar
+// AYER, porque hasta cuándo está cubierto ya no se guarda, se encadena.
 const DESPACHO_VENCIDO_AYER = calcularVencimiento(AYER, -2);
 const facturaVencidaAyer = facturaCon({
   equipos: [
-    andamio({ fechaDespacho: DESPACHO_VENCIDO_AYER, fechaVencimiento: AYER }),
+    andamio({
+      fechaDespacho: DESPACHO_VENCIDO_AYER,
+      // La madrugada de hoy le abrió su tramo: lleva un día de más.
+      vencidos: [unTramoVencido({ desde: HOY, hasta: null })],
+    }),
   ],
 });
 
@@ -121,11 +123,10 @@ describe("AmpliarVencimientoDialog — antes de guardar", () => {
             dias: 2,
             valorDia: 20000,
             fechaDespacho: "2026-08-01",
-            fechaVencimiento: "2026-08-03",
             fechaDevolucion: "2026-08-02",
           }),
           // Todavía en fecha: se le amplía cuando venza, si hace falta.
-          andamio({ nombre: "MEZCLADORA", fechaVencimiento: "2099-01-01" }),
+          andamio({ nombre: "MEZCLADORA", fechaDespacho: HOY, dias: 30 }),
         ],
       }),
     });
@@ -160,22 +161,23 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
 
     const equipo = primerEquipo();
 
-    // Los 2 días prometidos se cuentan desde HOY. Sumarlos a la fecha vencida
+    // Los 2 días prometidos arrancan MAÑANA. Sumarlos a la fecha vencida
     // daba una fecha ya pasada, y el cliente no tenía el plazo prometido.
-    expect(equipo.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
-    // Y la ampliación registra los 3 días que la fecha corrió de verdad,
-    // diciendo cuáles ya estaban vencidos: sin eso, los días que el equipo
-    // estuvo afuera dejarían de cobrarse.
+    expect(cubiertoHasta(equipo)).toBe(calcularVencimiento(HOY, 2));
+    // La ampliación dice SOLO lo que el cliente pidió.
     expect(equipo.ampliaciones).toEqual([
       {
-        fechaAnterior: AYER,
-        fechaNueva: calcularVencimiento(HOY, 2),
-        diasAmpliados: 3,
-        diasPedidos: 2,
-        diasVencidos: 1,
-        descuentoRealizado: 0,
         fecha: HOY,
+        dias: 2,
+        desde: calcularVencimiento(HOY, 1),
+        hasta: calcularVencimiento(HOY, 2),
+        descuento: 0,
       },
+    ]);
+    // Y el día que se le había vencido queda cerrado en su tramo, con sus dos
+    // fechas: eso es lo que antes se perdía al renovar.
+    expect(equipo.vencidos).toEqual([
+      { desde: HOY, hasta: HOY, indefinida: false },
     ]);
   });
 
@@ -188,7 +190,7 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
-    expect(primerEquipo().ampliaciones[0].descuentoRealizado).toBe(50000);
+    expect(primerEquipo().ampliaciones[0].descuento).toBe(50000);
   });
 
   it("anota la prórroga en la línea de tiempo de la factura", async () => {
@@ -206,20 +208,21 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
 
   it("acumula la ampliación nueva sobre las que ya tenía", async () => {
     const anterior = {
-      fechaAnterior: "2026-08-01",
-      fechaNueva: AYER,
-      diasAmpliados: 2,
-      descuentoRealizado: 0,
+      fecha: calcularVencimiento(AYER, -2),
+      dias: 2,
+      desde: calcularVencimiento(AYER, -1),
+      hasta: AYER,
+      descuento: 0,
     };
     const { usuario } = abrir({
       factura: facturaCon({
         equipos: [
           andamio({
             // 3 días del alta más los 2 de la ampliación anterior: para que
-            // venza AYER, tuvo que salir cuatro días antes.
+            // su cobertura termine AYER, tuvo que salir cuatro días antes.
             fechaDespacho: calcularVencimiento(AYER, -4),
-            fechaVencimiento: AYER,
             ampliaciones: [anterior],
+            vencidos: [unTramoVencido({ desde: HOY, hasta: null })],
           }),
         ],
       }),
@@ -232,7 +235,7 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
     const ampliaciones = primerEquipo().ampliaciones;
     expect(ampliaciones).toHaveLength(2);
     expect(ampliaciones[0]).toEqual(anterior);
-    expect(ampliaciones[1].fechaNueva).toBe(calcularVencimiento(HOY, 1));
+    expect(ampliaciones[1].hasta).toBe(calcularVencimiento(HOY, 1));
   });
 });
 
@@ -248,9 +251,9 @@ describe("AmpliarVencimientoDialog — entrega indefinida", () => {
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
     const equipo = primerEquipo();
-    expect(equipo.vencimientoIndefinido).toBe(true);
-    // No se le inventa una fecha nueva ni una ampliación: el cliente avisará.
-    expect(equipo.fechaVencimiento).toBe("2026-08-03");
+    expect(equipo.indefinida.activa).toBe(true);
+    expect(equipo.indefinida.desde).toBe(HOY);
+    // No se le inventa ninguna ampliación: el cliente avisará.
     expect(equipo.ampliaciones).toEqual([]);
   });
 
@@ -270,7 +273,15 @@ describe("AmpliarVencimientoDialog — entrega indefinida", () => {
 // plazo nuevo hay que saber de qué tamaño es el atraso que se está perdonando.
 describe("AmpliarVencimientoDialog — el plazo de cada equipo", () => {
   it("muestra la fecha vigente y los días vencidos", () => {
-    abrir();
+    abrir({
+      factura: facturaCon({
+        equipos: [
+          andamio({
+            vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+          }),
+        ],
+      }),
+    });
 
     expect(screen.getByText(/Vence: 03\/08\/2026/)).toBeInTheDocument();
     expect(screen.getByText(/días vencidos/)).toBeInTheDocument();
@@ -284,13 +295,13 @@ describe("AmpliarVencimientoDialog — el plazo de cada equipo", () => {
       factura: facturaCon({
         equipos: [
           andamio({
-            fechaVencimiento: "2026-08-07",
             ampliaciones: [
               {
-                fechaAnterior: "2026-08-03",
-                fechaNueva: "2026-08-07",
-                diasAmpliados: 4,
-                descuentoRealizado: 0,
+                fecha: "2026-08-03",
+                dias: 4,
+                desde: "2026-08-04",
+                hasta: "2026-08-07",
+                descuento: 0,
               },
             ],
           }),

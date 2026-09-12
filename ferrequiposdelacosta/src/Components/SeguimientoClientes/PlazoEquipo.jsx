@@ -26,7 +26,11 @@
 // cuenta del cliente.
 import PropTypes from "prop-types";
 import { Box, Typography } from "@mui/material";
-import { calcularEquipo } from "../ClienteDetalle/facturaUtils";
+import {
+  calcularEquipo,
+  cubiertoHasta,
+  sinFechaDeEntrega,
+} from "../ClienteDetalle/facturaUtils";
 import { formatearFechaLegible } from "../../Utils/formato";
 
 const PlazoEquipo = ({ equipo, hoy }) => {
@@ -34,9 +38,9 @@ const PlazoEquipo = ({ equipo, hoy }) => {
 
   return (
     <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-      {equipo?.vencimientoIndefinido
+      {sinFechaDeEntrega(equipo)
         ? "Entrega indefinida actualmente"
-        : `Vence: ${formatearFechaLegible(equipo?.fechaVencimiento)}`}
+        : `Vence: ${formatearFechaLegible(cubiertoHasta(equipo))}`}
       {diasVencidos > 0 && (
         <Box component="span" sx={{ color: "error.main", fontWeight: 600 }}>
           {" "}

@@ -139,10 +139,6 @@ const partesDeEquipo = (equipo, hoyIso) => {
     inicial: dias.alta * porDia,
     // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento.
     ampliados: Math.max(0, dias.ampliados * porDia - cuenta.descuento),
-    // Los que se le vencieron y ya pagó: se cerraron al recibir el pago y por
-    // eso no están entre los vencidos, pero se cobran igual y tienen que
-    // aparecer, o el desglose sumaría menos que el total del equipo.
-    pagados: dias.pagados * porDia,
     // Los días vencidos se cobran al valor del día y sin descuento.
     vencidos: dias.vencidos * porDia,
     // Los días de cada tramo, para poder nombrarlos: un renglón que dice
@@ -156,7 +152,6 @@ const partesDeEquipo = (equipo, hoyIso) => {
 const NOMBRES_DE_TRAMO = {
   inicial: { uno: "día renta inicial", varios: "días renta inicial" },
   ampliados: { uno: "día ampliado", varios: "días ampliados" },
-  pagados: { uno: "día vencido pagado", varios: "días vencidos pagados" },
   vencidos: { uno: "día vencido", varios: "días vencidos" },
 };
 
@@ -210,10 +205,6 @@ export default function CargosAdicionales({
         valor: partes.ampliados,
       },
       {
-        clave: "pagados",
-        valor: partes.pagados,
-      },
-      {
         clave: "vencidos",
         valor: partes.vencidos,
       },
@@ -243,7 +234,7 @@ export default function CargosAdicionales({
     if (!llevaIvaEquipo(equipo)) return 0;
     const partes = partesDeEquipo(equipo);
     return (
-      (partes.inicial + partes.ampliados + partes.pagados + partes.vencidos) * IVA
+      (partes.inicial + partes.ampliados + partes.vencidos) * IVA
     );
   };
 

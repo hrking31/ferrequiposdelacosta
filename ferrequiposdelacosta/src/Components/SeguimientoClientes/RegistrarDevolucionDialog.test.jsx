@@ -2,11 +2,18 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import {
   calcularVencimiento,
-  diasDeAlquiler,
   obtenerFechaHoyBogota,
+  cubiertoHasta,
+  calcularEquipo,
 } from "../ClienteDetalle/facturaUtils";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
-import { grupoAgregados, unEquipo, unGrupo, unaFactura } from "../../test/facturas";
+import {
+  grupoAgregados,
+  unEquipo,
+  unGrupo,
+  unTramoVencido,
+  unaFactura,
+} from "../../test/facturas";
 
 // Registrar que el cliente devolvió equipos. Es la operación que corta la
 // cuenta: al volver, los días del equipo dejan de correr y quedan escritos.
@@ -40,7 +47,6 @@ const andamio = (extra = {}) =>
     dias: 3,
     valorDia: 20000,
     fechaDespacho: "2026-08-01",
-    fechaVencimiento: "2026-08-03",
     ...extra,
   });
 
@@ -64,7 +70,7 @@ const facturaAlDia = {
     numeroFactura: "1573",
     valorDeposito: 100000,
     equipos: [
-      andamio({ fechaDespacho: HOY, fechaVencimiento: calcularVencimiento(HOY, 10) }),
+      andamio({ fechaDespacho: HOY, dias: 10 }),
     ],
   }),
 };
@@ -88,7 +94,6 @@ const facturaVencidaConEquipoEnPlazo = {
             dias: 5,
             valorDia: 50000,
             fechaDespacho: HOY,
-            fechaVencimiento: calcularVencimiento(HOY, 5),
           }),
         ],
       }),
@@ -115,7 +120,6 @@ const facturaConDosDepositos = {
             dias: 2,
             valorDia: 30000,
             fechaDespacho: "2026-08-02",
-            fechaVencimiento: "2026-08-03",
           }),
         ],
       }),
@@ -178,9 +182,10 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
     expect(equipos).toHaveLength(1);
     expect(equipos[0].devolucion.fechaDevolucion).toBe(HOY);
 
-    // Y sus días quedan congelados en los que de verdad estuvo afuera, no en
-    // los 3 que decía el contrato: salió el 1 de agosto y volvió hoy.
-    expect(equipos[0].diasAlquilados).toBe(diasDeAlquiler("2026-08-01", HOY));
+    // Los días del alta NO se pisan: siguen siendo los 3 del contrato. Lo
+    // que el equipo estuvo de más vive en su tramo, y la cuenta se corta
+    // sola en la fecha de devolución.
+    expect(equipos[0].diasAlquilados).toBe(3);
 
     expect(loGuardadoEnLaFactura().gestiones[0].tipo).toBe("devolucionTotal");
     expect(loGuardadoEnLaFactura().gestiones[0].unidades).toBe(5);
@@ -312,7 +317,19 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
 // restar a mano contra el día de hoy no es forma.
 describe("RegistrarDevolucionDialog — los días vencidos en la fila", () => {
   it("muestra la fecha del último acuerdo y cuántos días se pasó", () => {
-    abrir();
+    abrir({
+      factura: {
+        ...factura,
+        ...unaFactura({
+          numeroFactura: "1573",
+          equipos: [
+            andamio({
+              vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+            }),
+          ],
+        }),
+      },
+    });
 
     // El andamio vencía el 03/08 y sigue afuera: la fila lo dice al lado de
     // la fecha, sin obligar a contar.
@@ -369,11 +386,12 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     const equipos = equiposGuardados();
     expect(equipos).toHaveLength(2);
 
-    // La primera queda cerrada con las 3 que volvieron hoy, y con los días que
-    // de verdad estuvieron afuera.
+    // La primera queda cerrada con las 3 que volvieron hoy. Sus días del alta
+    // quedan como estaban: lo que se le cobra lo decide la cuenta, que se
+    // corta en la devolución.
     expect(equipos[0]).toMatchObject({
       cantidadEquipos: 3,
-      diasAlquilados: diasDeAlquiler("2026-08-01", HOY),
+      diasAlquilados: 3,
     });
     expect(equipos[0].devolucion.fechaDevolucion).toBe(HOY);
 
@@ -408,7 +426,6 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
                 dias: 10,
                 valorDia: 1500,
                 fechaDespacho: "2026-08-01",
-                fechaVencimiento: "2026-08-10",
               }),
             ],
           }),
@@ -593,8 +610,10 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     const devuelto = equiposGuardados().find((equipo) => equipo.devolucion);
     expect(devuelto.cantidadEquipos).toBe(3);
     expect(devuelto.devolucion.fechaDevolucion).toBe(HOY);
-    // Devolvió el mismo día que salió: se le cobra 1 día, no los 10 pactados.
-    expect(devuelto.diasAlquilados).toBe(1);
+    // Devolvió el mismo día que salió: la CUENTA le cobra 1 día, no los 10
+    // pactados. Los del alta siguen ahí, intactos.
+    expect(devuelto.diasAlquilados).toBe(10);
+    expect(calcularEquipo(devuelto, HOY).dias).toBe(1);
   });
 
   it("a lo que sigue afuera se le puede dar más plazo en el mismo paso", async () => {
@@ -607,7 +626,14 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
         ...unaFactura({
           numeroFactura: "1573",
           valorDeposito: 100000,
-          equipos: [andamio({ fechaVencimiento: AYER })],
+          equipos: [
+            andamio({
+              // Sus 3 días del alta terminan AYER, y la madrugada de hoy le
+              // abrió su tramo.
+              fechaDespacho: calcularVencimiento(AYER, -2),
+              vencidos: [unTramoVencido({ desde: HOY, hasta: null })],
+            }),
+          ],
         }),
       },
     });
@@ -619,17 +645,21 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(await exito()).toBeInTheDocument();
 
     const restante = equiposGuardados()[1];
-    // Los 2 días se cuentan desde hoy, y la ampliación consolida el día que ya
-    // estaba vencido: mismo criterio que en AmpliarVencimientoDialog.
-    expect(restante.fechaVencimiento).toBe(calcularVencimiento(HOY, 2));
+    // Los 2 días arrancan MAÑANA: mismo criterio que en
+    // AmpliarVencimientoDialog.
+    expect(cubiertoHasta(restante)).toBe(calcularVencimiento(HOY, 2));
     expect(restante.ampliaciones[0]).toMatchObject({
-      fechaAnterior: AYER,
-      fechaNueva: calcularVencimiento(HOY, 2),
-      diasPedidos: 2,
+      fecha: HOY,
+      dias: 2,
+      desde: calcularVencimiento(HOY, 1),
+      hasta: calcularVencimiento(HOY, 2),
     });
-    // Los días que la fecha corre de verdad incluyen los ya vencidos, que se
-    // consolidan: es lo que se cobra.
-    expect(restante.ampliaciones[0].diasAmpliados).toBeGreaterThan(2);
+    // Y el día que ya estaba vencido no se pierde ni se disfraza de día
+    // ampliado: queda en su tramo, cerrado hoy.
+    expect(restante.vencidos.at(-1)).toMatchObject({
+      desde: HOY,
+      hasta: HOY,
+    });
   });
 
   it("no se puede devolver más de lo que hay afuera", async () => {

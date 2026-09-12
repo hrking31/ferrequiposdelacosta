@@ -427,11 +427,14 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
         valorDia: Number(item.valor) || 0,
         diasAlquilados: Number(item.dias) || 0,
         fechaDespacho: item.fechaDespacho,
-        fechaVencimiento: calcularFechaDevolucion(item.fechaDespacho, item.dias),
         // Cada equipo guarda si lleva IVA o no. Así una factura puede tener
         // equipos con IVA y sin IVA sin que uno le pise el cálculo al otro.
         aplicaIva: form.aplicaIva,
+        // Nace sin nada detrás: no pidió días ni se pasó de plazo todavía.
+        // Hasta cuándo está cubierto NO se guarda, se encadena (ver
+        // cubiertoHasta en las cuentas).
         ampliaciones: [],
+        vencidos: [],
       })),
     });
 

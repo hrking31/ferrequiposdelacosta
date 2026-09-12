@@ -5,7 +5,6 @@ import {
   calcularEquipo,
   equipoLlevaIva,
   estaDevuelto,
-  diasDeEquipo,
   calcularCuentaFactura,
   calcularDepositoTotal,
   calcularTransporteTotal,
@@ -21,6 +20,8 @@ import {
   abonosDe,
   tipoPagoDe,
   ESTADO_FACTURA_INFO,
+  cubiertoHasta,
+  sinFechaDeEntrega,
 } from "../ClienteDetalle/facturaUtils";
 
 const GRIS = [68, 68, 68];
@@ -169,36 +170,21 @@ export default function generarFacturaPdf({ factura, cliente }) {
     (grupo) => grupo?.grupo !== GRUPO_INICIAL,
   );
 
-  // Cada equipo en su fila: cantidad, nombre (con los días ampliados y el
-  // descuento como nota si los tiene), despacho y devolución en su propia
-  // columna, días, valor por día y subtotal.
+  // Cada equipo en su fila: cantidad, nombre (con el descuento como nota si
+  // lo tiene), despacho y devolución en su propia columna, días, valor por
+  // día y subtotal.
   const filaDeEquipo = (equipo) => {
     const cuentaEquipo = calcularEquipo(equipo);
-    const porDia =
-      (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
 
+    // El documento NO desglosa los días por tramo. La fila ya dice cuántos
+    // días se cobran, a cuánto el día y cuánto suman; abrirlos debajo del
+    // nombre en "ampliados", "vencidos" y "vencidos pagados" le contaba al
+    // cliente un reparto que es nuestro, no suyo, y el subtotal los incluye
+    // a todos igual. El descuento sí queda: no es un tramo de días, es plata
+    // que se le perdonó y tiene que verse.
     const detalles = [equipo.nombre];
-    // El reparto de días es el mismo que usa el desglose de la ficha, así que
-    // el documento y la pantalla no pueden nombrar distinto la misma plata.
-    const dias = diasDeEquipo(equipo);
-    const ampliados = dias.ampliados;
-    if (ampliados > 0) {
-      detalles.push(`+${ampliados} día(s) ampliado(s): ${moneda(ampliados * porDia)}`);
-    }
     if (cuentaEquipo.descuento > 0) {
       detalles.push(`Descuento: ${moneda(cuentaEquipo.descuento)}`);
-    }
-    // Los que se le vencieron y ya pagó: se cobran igual que los otros, así
-    // que el documento los nombra aparte en vez de esconderlos.
-    if (dias.pagados > 0) {
-      detalles.push(
-        `+${dias.pagados} día(s) vencido(s) pagado(s): ${moneda(dias.pagados * porDia)}`,
-      );
-    }
-    if (dias.vencidos > 0) {
-      detalles.push(
-        `+${dias.vencidos} día(s) vencido(s): ${moneda(dias.vencidos * porDia)}`,
-      );
     }
 
     // La columna de días muestra los que se COBRAN, que para un equipo ya
@@ -210,9 +196,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
       formatearFechaLegible(equipo.fechaDespacho) || "—",
       equipo.devolucion?.fechaDevolucion
         ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : equipo.vencimientoIndefinido
+        : sinFechaDeEntrega(equipo)
           ? "Indefinida"
-          : formatearFechaLegible(equipo.fechaVencimiento) || "—",
+          : formatearFechaLegible(cubiertoHasta(equipo)) || "—",
       cuentaEquipo.dias ?? "",
       moneda(equipo.valorDia),
       moneda(cuentaEquipo.neto),

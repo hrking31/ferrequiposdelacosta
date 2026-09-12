@@ -3,7 +3,6 @@ import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
   calcularEquipo,
-  diasDeEquipo,
   calcularCuentaFactura,
   calcularCuentaCliente,
   calcularDepositoTotal,
@@ -12,6 +11,8 @@ import {
   gruposDe,
   abonosDe,
   obtenerFechaHoyBogota,
+  cubiertoHasta,
+  sinFechaDeEntrega,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 
@@ -113,39 +114,20 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
   };
 
   // Cantidad, nombre, despacho y devolución en su propia columna cada uno, y
-  // —si los tiene— los días ampliados y el descuento como nota bajo el
-  // nombre. Misma tabla para el alta y para lo agregado después.
+  // —si lo tiene— el descuento como nota bajo el nombre. Misma tabla para
+  // el alta y para lo agregado después.
   const filaDeEquipo = (equipo) => {
     const cuentaEquipo = calcularEquipo(equipo);
-    const porDia =
-      (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
 
+    // El documento NO desglosa los días por tramo. La fila ya dice cuántos
+    // días se cobran, a cuánto el día y cuánto suman; abrirlos debajo del
+    // nombre en "ampliados", "vencidos" y "vencidos pagados" le contaba al
+    // cliente un reparto que es nuestro, no suyo, y el subtotal los incluye
+    // a todos igual. El descuento sí queda: no es un tramo de días, es plata
+    // que se le perdonó y tiene que verse.
     const detalles = [equipo.nombre];
-    // El reparto de días es el mismo que usa el desglose de la ficha, así que
-    // el documento y la pantalla no pueden nombrar distinto la misma plata.
-    const dias = diasDeEquipo(equipo);
-    const ampliados = dias.ampliados;
-    if (ampliados > 0) {
-      detalles.push(
-        `+${ampliados} día(s) ampliado(s): ${formatearMoneda(ampliados * porDia)}`,
-      );
-    }
     if (cuentaEquipo.descuento > 0) {
       detalles.push(`Descuento: ${formatearMoneda(cuentaEquipo.descuento)}`);
-    }
-    // Los que se le vencieron y ya pagó: se cobran igual que los otros, así
-    // que el documento los nombra aparte en vez de esconderlos.
-    if (dias.pagados > 0) {
-      detalles.push(
-        `+${dias.pagados} día(s) vencido(s) pagado(s): ${formatearMoneda(
-          dias.pagados * porDia,
-        )}`,
-      );
-    }
-    if (dias.vencidos > 0) {
-      detalles.push(
-        `+${dias.vencidos} día(s) vencido(s): ${formatearMoneda(dias.vencidos * porDia)}`,
-      );
     }
 
     // La columna de días muestra los que se COBRAN. Para un equipo devuelto
@@ -157,9 +139,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
       formatearFechaLegible(equipo.fechaDespacho) || "—",
       equipo.devolucion?.fechaDevolucion
         ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : equipo.vencimientoIndefinido
+        : sinFechaDeEntrega(equipo)
           ? "Indefinida"
-          : formatearFechaLegible(equipo.fechaVencimiento) || "—",
+          : formatearFechaLegible(cubiertoHasta(equipo)) || "—",
       cuentaEquipo.dias ?? "",
       formatearMoneda(equipo.valorDia),
       formatearMoneda(cuentaEquipo.neto),

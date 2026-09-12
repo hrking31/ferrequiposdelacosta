@@ -21,9 +21,10 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import {
+  ampliarEquipo,
+  dejarSinFechaDeEntrega,
   proyectarAmpliacion,
   equipoVencido,
-  ampliacionesDe,
   obtenerGestiones,
   crearRegistroGestion,
   calcularEstadoCliente,
@@ -134,47 +135,29 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
 
           if (cambio.indefinida) {
             quedoIndefinida = true;
-            // Con su fecha: la marca se apaga al renovarle el plazo, y sin
-            // ella el historial del equipo no sabría cuándo quedó sin fecha
-            // de entrega (ver historialEquipo).
-            return { ...equipo, vencimientoIndefinido: true, indefinidaDesde: hoy };
+            // Su tramo vencido se cierra hoy —esos días ya están cobrados— y
+            // desde mañana corre uno nuevo, marcado como que corre con
+            // permiso (ver dejarSinFechaDeEntrega).
+            return dejarSinFechaDeEntrega(equipo, hoy);
           }
 
           const extra = Number(cambio.dias) || 0;
           if (extra <= 0) return equipo;
 
-          // Lo que el cliente pidió es lo que queda en la bitácora; lo que la
-          // fecha corre de verdad —con los días vencidos consolidados— es lo
-          // que se cobra. Ver proyectarAmpliacion.
-          const proyeccion = proyectarAmpliacion(equipo, extra);
           diasConcedidos = Math.max(diasConcedidos, extra);
 
-          return {
-            ...equipo,
-            vencimientoIndefinido: false,
-            // El registro completo de la ampliación: desde qué fecha, hasta
-            // cuál, cuántos días se sumaron y qué descuento se les hizo. Se
-            // acumulan todas, no solo la primera.
-            ampliaciones: [
-              ...ampliacionesDe(equipo),
-              {
-                fechaAnterior: equipo.fechaVencimiento,
-                fechaNueva: proyeccion.fechaNueva,
-                // Los días que la fecha corre de verdad: es lo que se cobra.
-                diasAmpliados: proyeccion.dias,
-                // De esos días, cuántos se le prometieron al cliente y
-                // cuántos ya se habían vencido. La cuenta usa el total —son
-                // todos días de alquiler— pero el registro tiene que poder
-                // decir después que "5 días" fueron en realidad 4 vencidos y
-                // 1 acordado.
-                diasPedidos: proyeccion.diasPedidos,
-                diasVencidos: proyeccion.diasVencidos,
-                descuentoRealizado: Math.max(0, Number(cambio.descuento) || 0),
-                fecha: hoy,
-              },
-            ],
-            fechaVencimiento: proyeccion.fechaNueva,
-          };
+          // Cierra el tramo vencido que venía corriendo y anota la ampliación
+          // con lo que el cliente PIDIÓ, ni un día más: los días que ya se le
+          // habían vencido quedan en su propio renglón, con sus fechas, en vez
+          // de disfrazarse de días ampliados (ver ampliarEquipo).
+          return ampliarEquipo(
+            equipo,
+            {
+              dias: extra,
+              descuento: Math.max(0, Number(cambio.descuento) || 0),
+            },
+            hoy,
+          );
         }),
       }));
 
@@ -247,7 +230,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                 (Number(equipo.cantidadEquipos) || 0) *
                 (Number(equipo.valorDia) || 0);
               const nuevaFecha =
-                !cambio.indefinida && diasNumero > 0 ? proyeccion.fechaNueva : null;
+                !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
               return (
                 <Grid item xs={12} key={clave}>
                   <Typography variant="body2" fontWeight="bold">

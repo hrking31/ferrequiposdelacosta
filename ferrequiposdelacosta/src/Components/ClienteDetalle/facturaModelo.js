@@ -23,9 +23,37 @@
 //                                      deposito, valorDeposito }
 //                   equipos[]        { nombre, cantidadEquipos, valorDia,
 //                                      diasAlquilados, fechaDespacho,
-//                                      fechaVencimiento, aplicaIva,
-//                                      vencimientoIndefinido?,
-//                                      ampliaciones[], devolucion{}? }
+//                                      aplicaIva,
+//                                      ampliaciones[], vencidos[],
+//                                      indefinida{}?, devolucion{}? }
+//
+//                     ampliaciones[]  lo que el cliente PIDIÓ, y nada más:
+//                                     { fecha, dias, desde, hasta, descuento }
+//                     vencidos[]      un tramo por cada vez que se pasó de
+//                                     plazo: { desde, hasta, indefinida }.
+//                                     El último puede tener `hasta` vacío:
+//                                     es el que está corriendo hoy.
+//                     indefinida{}    { activa, desde, hasta } — desde cuándo
+//                                     quedó sin fecha de entrega y hasta
+//                                     cuándo lo estuvo.
+//
+// ── HASTA CUÁNDO ESTÁ CUBIERTO UN EQUIPO, que NO se guarda ────────────
+//
+// No hay `fechaVencimiento`. Sale de encadenar lo que sí pasó, eslabón por
+// eslabón, y cada eslabón arranca donde terminó el anterior:
+//
+//   fechaDespacho + diasAlquilados   el plazo del alta
+//   + cada tramo vencido cerrado     los días que se pasó y ya se cerraron
+//   + cada ampliación                los días que el cliente pidió
+//
+// El compresor de la 5698: sale el 01/09 por 7 días → cubierto hasta el
+// 07/09; los tramos 08→09 y 10→11 lo llevan al 11/09; la ampliación de 3
+// días, al 14/09.
+//
+// Guardar esa fecha era el problema: al renovarle el plazo se movía, y con
+// ella desaparecía el único dato que probaba que el equipo se había vencido.
+// De ahí salieron seis formas distintas de adivinarlo después. Con los
+// tramos escritos no hay nada que adivinar, y ninguna fecha que se mueva.
 //
 //                   devolucion{}    fechaDevolucion, buenEstado,
 //                                   motivo          qué le PASÓ (si volvió mal)
@@ -121,6 +149,23 @@ export const gestionesDe = (doc) => lista(doc?.gestiones);
 export const pagosDe = (grupo) => lista(grupo?.pagos?.medios);
 export const adicionalesDe = (grupo) => grupo?.adicionales ?? {};
 export const ampliacionesDe = (equipo) => lista(equipo?.ampliaciones);
+
+// Los tramos en que el equipo estuvo afuera pasado su plazo, en orden. El
+// último puede estar abierto —sin `hasta`—: ese es el que corre hoy.
+export const vencidosDe = (equipo) => lista(equipo?.vencidos);
+
+// El tramo que está corriendo, si hay alguno. Es el único que se cuenta con
+// el calendario; los cerrados ya dicen sus dos fechas.
+export const tramoVencidoAbierto = (equipo) =>
+  vencidosDe(equipo).find((tramo) => !tramo?.hasta) ?? null;
+
+// El nodo de la entrega indefinida. Siempre devuelve un objeto, así que
+// quien lo lee no tiene que defenderse del equipo que nunca estuvo sin fecha.
+export const indefinidaDe = (equipo) => equipo?.indefinida ?? {};
+
+// Sin fecha de entrega HOY: el cliente avisó que no sabe cuándo lo devuelve.
+export const sinFechaDeEntrega = (equipo) =>
+  Boolean(equipo?.indefinida?.activa);
 
 // ── Lo que se deduce de la forma, no una cuenta ───────────────────────
 
