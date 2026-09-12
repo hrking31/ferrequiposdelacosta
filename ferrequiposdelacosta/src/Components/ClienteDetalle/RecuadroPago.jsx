@@ -15,7 +15,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import PropTypes from "prop-types";
-import { Box, Divider, Stack, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography, useTheme } from "@mui/material";
 import { Fragment } from "react";
 import {
   renderFilaDatos,
@@ -49,6 +49,15 @@ export default function RecuadroPago({
   // pasa "Tipo de pago", porque ahi ya no hay nada de inicial (ver abajo).
   rotuloTipoPago = "Pago inicial",
 }) {
+  const theme = useTheme();
+  // Cada ícono con su color, sacado del tema: azul el tiempo, verde la plata
+  // que entró y el acento lo pactado. Los mismos que usa la historia de un
+  // equipo, para que un calendario signifique lo mismo en toda la ficha.
+  const colores = {
+    tiempo: theme.palette.custom.estadoEquipo.ampliacion,
+    plata: theme.palette.success.main,
+    total: theme.palette.custom.accent,
+  };
   const tipoPagoLabel = TIPO_PAGO_LABELS[tipoPago] || null;
   if (pagos.length === 0 && !tipoPagoLabel) return null;
 
@@ -67,6 +76,9 @@ export default function RecuadroPago({
     datos.push({
       clave: "fecha",
       Icono: EventIcon,
+      // Azul, el del tiempo: es el mismo con que la historia de un equipo
+      // marca sus fechas.
+      colorIcono: colores.tiempo,
       rotulo: "Fecha",
       valor: formatearFecha(fecha),
     });
@@ -83,6 +95,8 @@ export default function RecuadroPago({
     datos.push({
       clave: "pago",
       Icono: ReceiptLongIcon,
+      // El acento, el de lo pactado: qué clase de pago se acordó.
+      colorIcono: colores.total,
       rotulo: rotuloTipoPago,
       valor: tipoPagoLabel,
     });
@@ -116,6 +130,8 @@ export default function RecuadroPago({
     datos.push({
       clave: "valor",
       Icono: MonetizationOnIcon,
+      // Verde, el de la plata que entró.
+      colorIcono: colores.plata,
       rotulo: "Valor",
       valor: pagos
         .map((pago) => formatearMoneda(Number(pago.monto)))
@@ -129,6 +145,7 @@ export default function RecuadroPago({
     datos.push({
       clave: "total",
       Icono: ReceiptLongIcon,
+      colorIcono: colores.total,
       rotulo: "Total",
       valor: formatearMoneda(totalPagos),
     });
@@ -168,6 +185,12 @@ const origenDelAbono = (abono) => {
 
 // Los abonos que se registraron después de emitida la factura.
 export function ListaAbonos({ abonos, color }) {
+  const theme = useTheme();
+  // Los mismos colores que el recuadro de pago: un abono es plata que entró.
+  const colores = {
+    plata: theme.palette.success.main,
+  };
+
   if (!abonos || abonos.length === 0) return null;
 
   const renglones = (
@@ -177,6 +200,7 @@ export function ListaAbonos({ abonos, color }) {
           {
             clave: "fecha",
             Icono: PaymentsIcon,
+            colorIcono: colores.plata,
             rotulo: "Abono",
             valor: formatearFecha(abono.fecha),
           },
@@ -188,6 +212,7 @@ export function ListaAbonos({ abonos, color }) {
           {
             clave: "valor",
             Icono: MonetizationOnIcon,
+            colorIcono: colores.plata,
             rotulo: "Valor",
             valor: formatearMoneda(Number(abono.monto) || 0),
           },

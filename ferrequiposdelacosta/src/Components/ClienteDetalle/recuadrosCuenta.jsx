@@ -138,7 +138,7 @@ export const renderFilaDatos = (color, datos) => (
       />
     }
   >
-    {datos.map(({ clave, rotulo, valor, contenido, Icono }) => (
+    {datos.map(({ clave, rotulo, valor, contenido, Icono, colorIcono }) => (
       <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
         {/* El rótulo lleva el color del bloque; el valor va en el color
             normal del texto, que es donde se lee la cifra.
@@ -150,9 +150,13 @@ export const renderFilaDatos = (color, datos) => (
           variant="rotuloDato"
           sx={{ color, display: "flex", alignItems: "center", gap: 0.5 }}
         >
-          {/* El ícono va dentro de un círculo del mismo color, como los hitos
-              de la historia de un equipo: suelto se confundía con el texto del
-              rótulo, y envuelto se lee como lo que es, una marca. */}
+          {/* El ícono va dentro de un círculo, como los hitos de la historia
+              de un equipo: suelto se confundía con el texto del rótulo.
+              
+              Y cada uno lleva SU color, no el del bloque: azul lo que es
+              tiempo o movimiento, verde la plata que entró, el acento los
+              totales y el teal lo que está guardado en garantía. El del bloque
+              queda de respaldo para un dato que no traiga el suyo. */}
           {Icono && (
             <Box
               component="span"
@@ -163,7 +167,8 @@ export const renderFilaDatos = (color, datos) => (
                 display: "grid",
                 placeItems: "center",
                 flexShrink: 0,
-                bgcolor: alpha(color, 0.18),
+                color: colorIcono ?? color,
+                bgcolor: alpha(colorIcono ?? color, 0.18),
               }}
             >
               <Icono sx={{ fontSize: "0.75rem" }} />

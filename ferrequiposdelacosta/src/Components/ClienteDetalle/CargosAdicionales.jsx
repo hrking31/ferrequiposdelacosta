@@ -57,6 +57,7 @@ const datosAdicionales = ({
   transporteTipo,
   transporteMonto,
   iva,
+  colores,
 }) => {
   const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
   const hayIva = Number(iva) > 0;
@@ -72,6 +73,8 @@ const datosAdicionales = ({
     datos.push({
       clave: "iva",
       Icono: PercentIcon,
+      // El impuesto va con el color del bloque: es el cargo que le da nombre.
+      colorIcono: colores.adicionales,
       rotulo: "IVA (19%)",
       valor: formatearMoneda(Number(iva)),
     });
@@ -80,6 +83,9 @@ const datosAdicionales = ({
     datos.push({
       clave: "deposito",
       Icono: SavingsIcon,
+      // Verde, el de la plata: el depósito no es un cargo, es del cliente y
+      // vuelve a su bolsillo al final salvo que se retenga.
+      colorIcono: colores.deposito,
       rotulo: "Depósito",
       valor: formatearMoneda(deposito),
     });
@@ -90,6 +96,8 @@ const datosAdicionales = ({
     datos.push({
       clave: "transporte",
       Icono: LocalShippingIcon,
+      // Azul, el del movimiento: el flete es logística, no alquiler.
+      colorIcono: colores.movimiento,
       rotulo: "Transporte",
       valor:
         transporteMonto > 0
@@ -104,6 +112,8 @@ const datosAdicionales = ({
   datos.push({
     clave: "total",
     Icono: ReceiptLongIcon,
+    // El acento, que es el color de los totales en toda la ficha.
+    colorIcono: colores.total,
     rotulo: "Total adicionales",
     valor: formatearMoneda(total),
   });
@@ -244,6 +254,12 @@ export default function CargosAdicionales({
     deposito,
     transporteTipo,
     transporteMonto,
+    colores: {
+      adicionales: color,
+      deposito: theme.palette.success.main,
+      movimiento: theme.palette.custom.estadoEquipo.ampliacion,
+      total: theme.palette.custom.accent,
+    },
   });
   if (!datos) return null;
 
