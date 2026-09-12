@@ -105,15 +105,9 @@ export default function HistorialEquipo({ equipo, hoy }) {
     <Box
       component="span"
       sx={{
-        display: "block",
-        px: 0.75,
-        py: 0.15,
-        borderRadius: 0.5,
-        fontSize: "0.7rem",
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        textAlign: "center",
-        border: "1px solid",
+        // El mismo molde que la fila del equipo, del tema: se cambia una vez
+        // y cambian los dos.
+        ...theme.rotuloEstado,
         borderColor: colorChip,
         bgcolor: alpha(colorChip, 0.12),
         color: colorChip,

@@ -112,18 +112,10 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
     theme.palette.custom.estadoEquipo[estadoEquipo] ??
     theme.palette.custom.estadoNeutro;
 
-  // El molde del rótulo del estado. Se dibuja dos veces —el de verdad y el
-  // fantasma que le da el ancho— así que vive acá y no repetido en el JSX.
+  // El molde sale del tema (`rotuloEstado`), que es el mismo que usa cada hito
+  // de la historia. Acá solo se le pone el color del estado y el ancho.
   const rotuloSx = {
-    display: "block",
-    px: 0.75,
-    py: 0.15,
-    borderRadius: 0.5,
-    whiteSpace: "nowrap",
-    textAlign: "center",
-    fontSize: "0.7rem",
-    fontWeight: 700,
-    border: "1px solid",
+    ...theme.rotuloEstado,
     borderColor: colorEstado,
     bgcolor: alpha(colorEstado, 0.12),
     color: colorEstado,

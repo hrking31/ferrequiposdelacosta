@@ -594,6 +594,31 @@ export const CustomThemeProvider = ({ children }) => {
           pagoEfectivo: VERDE,
         },
       },
+      // ── El rótulo de estado de un equipo ─────────────────────────────
+      //
+      // El cuadradito con el nombre del estado, que se dibuja en dos lugares:
+      // la fila del equipo en la ficha y cada hito de su historia. Vive acá
+      // para cambiarlo UNA vez y que cambien los dos — antes había que buscar
+      // el mismo bloque de estilos repetido en los dos archivos.
+      //
+      // Va sin color: ese lo pone quien lo dibuja, según el estado
+      // (palette.custom.estadoEquipo). Y va sin ancho: ese sale del rótulo más
+      // largo, calculado de la lista de estados (ROTULO_ESTADO_MAS_LARGO).
+      //
+      // Cuadrado y no píldora a propósito: en esta pantalla los estados de
+      // EQUIPO se ven así, y los de factura llevan la píldora. Son dos escalas
+      // distintas y la forma ayuda a no confundirlas.
+      rotuloEstado: {
+        display: "block",
+        px: 0.75,
+        py: 0.15,
+        borderRadius: 0.5,
+        fontSize: "0.7rem",
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        border: "1px solid",
+      },
       shape: {
         borderRadius: 6, // Esquinas un poco más rectas para estética industrial
         // Forma de píldora (bordes completamente redondeados). Antes se escribía
