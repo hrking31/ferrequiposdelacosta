@@ -30,6 +30,7 @@ import EventIcon from "@mui/icons-material/Event";
 import SavingsIcon from "@mui/icons-material/Savings";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import {
+  ampliacionTrasVencimiento,
   calcularEquipo,
   calcularEstadoEquipo,
   calcularVencimiento,
@@ -66,6 +67,15 @@ export const ESTADO_EQUIPO_INFO = {
   vencido: { label: "Vencido" },
   devuelto: { label: "Devuelto" },
 };
+
+// El nombre más largo de los cinco. Lo usan los rótulos de estado para medir
+// todos igual: se calcula de la lista de arriba, así que cambiar una palabra
+// ajusta el ancho solo, sin números de píxeles escritos a mano.
+export const ESTADO_EQUIPO_MAS_LARGO = Object.values(ESTADO_EQUIPO_INFO).reduce(
+  (masLargo, info) =>
+    info.label.length > masLargo.length ? info.label : masLargo,
+  "",
+);
 
 // El cliente usa el mismo vocabulario que sus facturas, más "inactivo" para
 // cuando no tiene ninguna.
@@ -488,9 +498,11 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       tono: "vencido",
       titulo: "Vencimiento inicial",
       detalle: "Debía devolverse este día.",
-      // El chip solo si de verdad se pasó. Al que le dieron más días ANTES de
-      // vencer no se le venció nada, y decírselo sería inventarle una mora.
-      chip: Number(primera.diasVencidos) > 0 ? "vencido" : null,
+      // El chip cuando el equipo llegó a vencerse — incluido el que se
+      // renovó ESE MISMO día, que ese día ya estaba vencido. Al que le dieron
+      // más días ANTES de la fecha no se le venció nada, y decírselo sería
+      // inventarle una mora (ver ampliacionTrasVencimiento).
+      chip: ampliacionTrasVencimiento(primera) ? "vencido" : null,
     });
   }
 

@@ -11,6 +11,11 @@
 //
 // Los hechos los arma `historialEquipo` (facturaPresentacion.js). Acá solo se
 // pintan: qué color y qué ícono le toca a cada tono.
+//
+// TODO es UNA cuadrícula, no un renglón por hito: así las cuatro columnas
+// —fecha, riel, qué pasó, cuánto— miden lo mismo en todas las filas y quedan
+// alineadas sin tener que adivinar anchos.
+import { Fragment } from "react";
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
@@ -53,6 +58,14 @@ const ICONOS = {
   ampliacion: EventAvailableIcon,
 };
 
+// El estado con el nombre más largo. Se dibuja una vez, invisible y sin alto,
+// al final de la cuadrícula: su único trabajo es fijar el ancho de la última
+// columna, para que todos los rótulos midan lo mismo y los montos caigan
+// centrados sobre ellos. Sin esto habría que escribir un número de píxeles
+// que quedaría viejo al cambiar una palabra.
+const ESTADO_MAS_LARGO = "Entrega indefinida";
+
+
 export default function HistorialEquipo({ equipo, hoy }) {
   const theme = useTheme();
   const hitos = historialEquipo(equipo, hoy);
@@ -73,9 +86,8 @@ export default function HistorialEquipo({ equipo, hoy }) {
     );
   };
 
-  // Las tres plantas de la plata, las mismas que usan las cifras de la
-  // tarjeta: lo del despacho en el color del texto, lo que se pactó después
-  // en el acento y lo que corre solo, sin acuerdo, en rojo.
+  // Lo que se pactó va en el acento, igual que la cifra de la tarjeta; lo que
+  // corre solo, en rojo. Lo del despacho hereda el color del texto.
   const colorDeValor = (valorTono) => {
     if (valorTono === "acordado") return theme.palette.custom.accent;
     if (valorTono === "vencido") return theme.palette.error.main;
@@ -84,8 +96,47 @@ export default function HistorialEquipo({ equipo, hoy }) {
 
   const etiquetaChip = (chip) =>
     chip === "indefinida"
-      ? "Entrega indefinida"
+      ? ESTADO_MAS_LARGO
       : (ESTADO_EQUIPO_INFO[chip]?.label ?? "");
+
+  // El rótulo cuadrado del estado, el mismo de la fila del equipo: en esta
+  // pantalla los estados se ven así, y dos formas para la misma idea se leen
+  // como dos cosas distintas.
+  //
+  // Ocupa TODO el ancho de su columna, que es el del nombre más largo: así
+  // "Vencido" y "Entrega indefinida" miden lo mismo y la columna no se ve
+  // dentada.
+  const rotulo = (texto, colorChip) => (
+    <Box
+      component="span"
+      sx={{
+        display: "block",
+        px: 0.75,
+        py: 0.15,
+        borderRadius: 0.5,
+        fontSize: "0.7rem",
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        border: "1px solid",
+        borderColor: colorChip,
+        bgcolor: alpha(colorChip, 0.12),
+        color: colorChip,
+        // Todos miden lo mismo: el rótulo más largo, escrito en un
+        // pseudo-elemento sin alto. Es CSS y no texto del documento, así que
+        // no se lee ni duplica lo que busca una prueba.
+        "&::after": {
+          content: `"${ESTADO_MAS_LARGO}"`,
+          display: "block",
+          height: 0,
+          overflow: "hidden",
+          visibility: "hidden",
+        },
+      }}
+    >
+      {texto}
+    </Box>
+  );
 
   return (
     // La línea separa las condiciones del alquiler —lo que se ve siempre— de
@@ -97,6 +148,13 @@ export default function HistorialEquipo({ equipo, hoy }) {
         pt: 1,
         borderTop: "1px solid",
         borderColor: "divider",
+        display: "grid",
+        // Fecha, riel, qué pasó y cuánto. La última mide lo que mide el
+        // estado más largo (ver ESTADO_MAS_LARGO) y es igual en todas las
+        // filas, porque todas viven en la misma cuadrícula.
+        gridTemplateColumns: "auto 24px 1fr auto",
+        columnGap: 1,
+        alignItems: "start",
       }}
     >
       {hitos.map((hito, indice) => {
@@ -107,18 +165,7 @@ export default function HistorialEquipo({ equipo, hoy }) {
         const colorChip = hito.chip ? colorDeTono(hito.chip) : null;
 
         return (
-          <Box
-            key={hito.clave}
-            sx={{
-              display: "grid",
-              // La fecha, el riel, lo que pasó y lo que costó. El riel mide lo
-              // que mide su punto: la línea que une los hitos corre por su
-              // centro.
-              gridTemplateColumns: "auto 24px 1fr auto",
-              columnGap: 1,
-              alignItems: "start",
-            }}
-          >
+          <Fragment key={hito.clave}>
             <Box sx={{ textAlign: "right", pt: 0.1 }}>
               <Typography
                 variant="caption"
@@ -169,8 +216,8 @@ export default function HistorialEquipo({ equipo, hoy }) {
               <Typography variant="body2" fontWeight="bold">
                 {hito.titulo}
               </Typography>
-              {/* Hay hitos que no necesitan explicación: el título ya lo
-                  dice todo, y un renglón vacío debajo separaría los hitos sin
+              {/* Hay hitos que no necesitan explicación: el título ya lo dice
+                  todo, y un renglón vacío debajo separaría los hitos sin
                   agregar nada. */}
               {hito.detalle && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
@@ -179,7 +226,9 @@ export default function HistorialEquipo({ equipo, hoy }) {
               )}
             </Box>
 
-            <Box sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
+            {/* La columna de la derecha: la plata de ese hito o el estado en
+                que quedó, centrados sobre el ancho del rótulo más largo. */}
+            <Box sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
               {hito.valor != null && (
                 <Typography
                   variant="body2"
@@ -189,31 +238,9 @@ export default function HistorialEquipo({ equipo, hoy }) {
                   {formatearMoneda(hito.valor)}
                 </Typography>
               )}
-              {/* El mismo rótulo cuadrado del estado de la fila, no un chip
-                  redondeado: en esta pantalla los estados de equipo se ven
-                  así, y dos formas para la misma idea se leen como dos cosas
-                  distintas. */}
-              {hito.chip && (
-                <Box
-                  component="span"
-                  sx={{
-                    display: "inline-block",
-                    px: 0.75,
-                    py: 0.15,
-                    borderRadius: 0.5,
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    border: "1px solid",
-                    borderColor: colorChip,
-                    bgcolor: alpha(colorChip, 0.12),
-                    color: colorChip,
-                  }}
-                >
-                  {etiquetaChip(hito.chip)}
-                </Box>
-              )}
+              {hito.chip && rotulo(etiquetaChip(hito.chip), colorChip)}
             </Box>
-          </Box>
+          </Fragment>
         );
       })}
     </Box>

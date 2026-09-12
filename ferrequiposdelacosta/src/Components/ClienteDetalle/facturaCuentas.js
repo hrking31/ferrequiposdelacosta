@@ -387,6 +387,31 @@ export const proyectarAmpliacion = (
 // de retorno y no se mueve de seguimiento.
 export const esPagoDeVencidos = (ampliacion) => Boolean(ampliacion?.porPago);
 
+// ¿El equipo YA ESTABA VENCIDO cuando se le renovó el plazo?
+//
+// Se contesta comparando el día en que se hizo la renovación con la fecha que
+// el equipo tenía: si se hizo ESE día o después, la fecha ya había llegado.
+//
+// No alcanza con mirar sus días vencidos. Al que se le amplía el mismo día del
+// vencimiento no se le pasó ninguno, así que ese número queda en cero — y ese
+// cero no distingue "le amplié el día que vencía", cuando el equipo ya estaba
+// vencido y su factura ya estaba en cartera, de "le amplié tres días antes",
+// cuando no se venció nunca. Son dos situaciones opuestas con el mismo rastro.
+//
+// Un equipo vence el día que dice su fecha, no al día siguiente: esa es la
+// regla con la que entra a cartera, y la que permite avisarle al cliente que
+// vence mañana.
+//
+// Las renovaciones migradas del Excel no traen el día en que se hicieron, así
+// que de esas solo se puede saber por sus días vencidos.
+export const ampliacionTrasVencimiento = (ampliacion) =>
+  numero(ampliacion?.diasVencidos) > 0 ||
+  Boolean(
+    ampliacion?.fecha &&
+      ampliacion?.fechaAnterior &&
+      ampliacion.fecha >= ampliacion.fechaAnterior,
+  );
+
 export const sellarDiasVencidos = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   if (!sigueAfuera(equipo)) return equipo;
 

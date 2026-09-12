@@ -32,6 +32,7 @@ import {
   calcularEstadoEquipo,
   estaDevuelto,
   ESTADO_EQUIPO_INFO,
+  ESTADO_EQUIPO_MAS_LARGO,
 } from "./facturaUtils";
 // Con alias para que se lean como lo que son acá: la moneda que deja el hueco
 // vacío si no hay número, y la fecha DD/MM/AAAA.
@@ -57,18 +58,12 @@ const CALIBRE = {
   espacioEntreCifras: 0.25,
 };
 
-// Una cifra del bloque de la derecha. Las tres se dibujan igual y solo cambian
-// de color y de peso, así que se arman acá en vez de repetir el mismo
-// Typography tres veces.
-const Cifra = ({ monto, colorTexto, principal }) => (
+// Lo que vale el equipo, debajo de su estado.
+const Cifra = ({ monto }) => (
   <Typography
-    variant={principal ? "body2" : "caption"}
+    variant="body2"
     fontWeight="bold"
-    sx={{
-      color: colorTexto,
-      lineHeight: 1.2,
-      whiteSpace: "nowrap",
-    }}
+    sx={{ lineHeight: 1.2, whiteSpace: "nowrap" }}
   >
     {formatearMoneda(monto)}
   </Typography>
@@ -76,9 +71,6 @@ const Cifra = ({ monto, colorTexto, principal }) => (
 
 Cifra.propTypes = {
   monto: PropTypes.number.isRequired,
-  // El color del texto. La cifra principal no lo lleva: hereda el del tema.
-  colorTexto: PropTypes.string,
-  principal: PropTypes.bool,
 };
 
 // Una condición del alquiler: su ícono y el dato. Los tres se dibujan igual,
@@ -107,40 +99,10 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
   // completa de la factura, y recién después lo que le pasó a uno.
   const [abierto, setAbierto] = useState(false);
 
-  const porDia =
-    (Number(equipo.cantidadEquipos) || 0) * (Number(equipo.valorDia) || 0);
-  // Lo que se cobró al despachar: los días con los que salió, sin lo que se
-  // le agregó después.
-  const subtotalEquipo = porDia * (Number(equipo.diasAlquilados) || 0);
-
-  // La HISTORIA de la plata del equipo, en las mismas partes en que ocurrió:
-  // lo que se cobró al despachar, lo que se pactó después al ampliar el plazo
-  // y lo que corre solo desde que se venció. Van una debajo de la otra, sin
-  // rótulo: qué es cada cifra ya lo dicen los chips de abajo —"+2 días",
-  // "5 días vencidos"—, y el color las separa de un vistazo.
-  //
-  // Antes iban dos números: el inicial y TODO lo demás sumado en uno. Con el
-  // Benetín eso daba "$ 1.330.000" y "$ 1.330.000", donde el segundo eran en
-  // realidad $ 380.000 de una ampliación y $ 950.000 de cinco días vencidos:
-  // dos hechos distintos —uno pactado, el otro no— escondidos en una cifra que
-  // ya no decía de dónde salía.
+  // La cuenta de la línea: sus días por el valor del día, con los descuentos
+  // ya restados. De acá sale el único número de la tarjeta y los días que se
+  // muestran como condición.
   const cuentaEquipo = calcularEquipo(equipo);
-  const hayRenta = subtotalEquipo > 0;
-  // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento
-  // aplicado. La cuenta del equipo da lo pactado completo; acá interesa la
-  // diferencia con lo del despacho, que es lo que la ampliación agregó.
-  const valorAmpliado = hayRenta
-    ? Math.max(0, cuentaEquipo.netoPactado - subtotalEquipo)
-    : 0;
-  const valorVencido = hayRenta ? cuentaEquipo.netoVencido : 0;
-
-  // Un equipo devuelto ya no tiene nada por presentarse: su cuenta está
-  // cerrada. Por eso va UN solo número —lo que de verdad se le cobra por los
-  // días que lo usó— en vez del desglose. De dónde sale el descuento lo
-  // explica el chip de días sin usar, y tenerlo también acá era decir dos
-  // veces lo mismo.
-  //
-  // Mientras sigue afuera se muestra la historia completa.
   const devuelto = estaDevuelto(equipo);
   // Cuál de los cinco, y con qué color. El color sale del tema —no se arma
   // acá— para que un equipo vencido se vea del mismo rojo que una factura
@@ -149,12 +111,34 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
   const colorEstado =
     theme.palette.custom.estadoEquipo[estadoEquipo] ??
     theme.palette.custom.estadoNeutro;
-  // Un equipo devuelto ya trae en `diasAlquilados` los días que de verdad
-  // usó, así que su cuenta neta ES el número: no hay nada que sumarle ni que
-  // restarle.
-  const valorMostrado = devuelto && hayRenta ? cuentaEquipo.neto : subtotalEquipo;
-  const mostrarHistorial = !devuelto && (valorAmpliado > 0 || valorVencido > 0);
 
+  // El molde del rótulo del estado. Se dibuja dos veces —el de verdad y el
+  // fantasma que le da el ancho— así que vive acá y no repetido en el JSX.
+  const rotuloSx = {
+    display: "block",
+    px: 0.75,
+    py: 0.15,
+    borderRadius: 0.5,
+    whiteSpace: "nowrap",
+    textAlign: "center",
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    border: "1px solid",
+    borderColor: colorEstado,
+    bgcolor: alpha(colorEstado, 0.12),
+    color: colorEstado,
+    // Todos los rótulos miden lo mismo: el nombre más largo de los cinco
+    // estados, escrito en un pseudo-elemento sin alto. Es CSS, no texto del
+    // documento, así que no se lee ni aparece dos veces en una búsqueda; y al
+    // salir de la lista de estados, cambiar una palabra ajusta el ancho solo.
+    "&::after": {
+      content: `"${ESTADO_EQUIPO_MAS_LARGO}"`,
+      display: "block",
+      height: 0,
+      overflow: "hidden",
+      visibility: "hidden",
+    },
+  };
   // El color del RELLENO —el resplandor de adentro y el degradado—. Un equipo
   // ya devuelto se pinta de gris por dentro: el color dice el estado sin que
   // haya que leer. Gris y no verde a propósito — en esta pantalla el verde
@@ -205,10 +189,7 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
         gap={CALIBRE.separacionColumnas}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {/* Arriba y no al centro: la caja de al lado tiene dos renglones
-              —el nombre y las condiciones— y centrado, el número de unidades
-              quedaba flotando entre los dos. */}
-          <Stack direction="row" alignItems="flex-start" gap={1}>
+          <Stack direction="row" alignItems="center" gap={1}>
             <Chip
               variant="meta"
               label={equipo.cantidadEquipos}
@@ -216,6 +197,8 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
               sx={{
                 fontWeight: "bold",
                 flexShrink: 0,
+                height: 34,
+                fontSize: "0.9rem",
                 // Antes era amarillo fijo, que en modo claro quedaba casi
                 // invisible sobre el chip. Es letra chica, así que va el
                 // acento en su versión oscura.
@@ -304,10 +287,6 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
               Motivo: {equipo.devolucion.motivoDevolucion}
             </Typography>
           )}
-
-          {/* La historia completa, plegada: son hasta nueve renglones por
-              equipo y una factura con cinco equipos no se podría recorrer. */}
-          {abierto && <HistorialEquipo equipo={equipo} />}
         </Box>
 
         {/* COLUMNA DERECHA: en qué anda el equipo y cuánto cuesta.
@@ -335,38 +314,19 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
             gap: CALIBRE.espacioEntreCifras,
           }}
         >
-          <Box
-            component="span"
-            sx={{
-              px: 0.75,
-              py: 0.15,
-              mb: 0.25,
-              borderRadius: 0.5,
-              whiteSpace: "nowrap",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              border: "1px solid",
-              borderColor: colorEstado,
-              bgcolor: alpha(colorEstado, 0.12),
-              color: colorEstado,
-            }}
-          >
+          <Box component="span" sx={{ ...rotuloSx, mb: 0.25 }}>
             {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
           </Box>
-          {hayRenta && (
-            <Cifra monto={valorMostrado} principal />
-          )}
-          {hayRenta && mostrarHistorial && valorAmpliado > 0 && (
-            // El acento, igual que el renglón "Se pactaron 3 días" del que
-            // sale este número: lo pactado se pinta del mismo color en los dos
-            // lados de la tarjeta.
-            <Cifra monto={valorAmpliado} colorTexto="custom.accent" />
-          )}
-          {hayRenta && mostrarHistorial && valorVencido > 0 && (
-            // Rojo, como el tramo de días vencidos que sigue corriendo: esta
-            // plata no se pactó con nadie, se está acumulando sola.
-            <Cifra monto={valorVencido} colorTexto="error.main" />
-          )}
+          {/* UN solo número: lo que vale el equipo entero, que es la cuenta
+              que la app ya hace de cada línea —sus días por el valor del día,
+              menos los descuentos—.
+
+              Acá iban tres cifras, una debajo de la otra: lo del despacho, lo
+              que se pactó al ampliar y lo que corría por vencimiento. Contaban
+              de dónde salía la plata, pero eso ahora lo cuenta la historia
+              renglón por renglón, con su fecha y su motivo. Repetirlo en la
+              cabecera era decir lo mismo dos veces, y sin fechas. */}
+          {cuentaEquipo.neto > 0 && <Cifra monto={cuentaEquipo.neto} />}
         </Stack>
 
         {/* La flecha, al lado de la plata y a su misma altura: es la misma
@@ -386,6 +346,12 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
           </IconButton>
         </Tooltip>
       </Stack>
+
+      {/* La historia completa, plegada: son hasta nueve renglones por equipo y
+          una factura con cinco equipos no se podría recorrer. Va debajo de las
+          dos columnas y no dentro de la del nombre, para que su línea cruce la
+          tarjeta entera. */}
+      {abierto && <HistorialEquipo equipo={equipo} />}
     </Box>
   );
 }

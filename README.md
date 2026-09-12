@@ -504,7 +504,7 @@ Para saberlo no hace falta guardar nada nuevo. El estado se recalcula cada vez m
 **En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos, cada uno con su icono de calendario del color que le toca —tachado el de los vencidos—:
 
 - 🔴 **Vencido** — rojo `#DC2626` — el del tema, que de noche se aclara a `#EF4444`.
-- 🟠 **Vence hoy** — ámbar `#F59E0B` — hay que actuar antes de que pase a rojo.
+- 🟠 **Vence hoy** — ámbar `#F59E0B` — hay que actuar antes de que pase a rojo. Un equipo cuya fecha es **hoy** ya cuenta como vencido, aunque técnicamente le queden horas: entra a cartera ese mismo día, que es lo que permite escribirle al cliente para recordarle que vence mañana. Esperar al día siguiente sería avisar tarde.
 - 🟦 **Entrega indefinida** — teal `#0D9488` — no tiene fecha: el cliente quedó de avisar.
 
 Ese teal existe porque la entrega indefinida iba antes con el mismo gris de "Vence", y dos situaciones distintas —una con fecha futura conocida, la otra sin ninguna— se veían idénticas.

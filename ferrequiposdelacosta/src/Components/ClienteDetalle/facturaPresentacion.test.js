@@ -473,6 +473,62 @@ describe("historialEquipo", () => {
     ).toBe("vencido");
   });
 
+  // El caso de la 0123 de ReYaz: los gatos vencían el 11 y ese mismo 11 se les
+  // pactaron 4 días. No se pasó ni un día, pero ese día el equipo ya estaba
+  // vencido —así entra a cartera, para poder avisarle al cliente que vence
+  // mañana— y el renglón tiene que decirlo.
+  it("marca vencido el renglón del equipo que se renovó el día que vencía", () => {
+    const renovadoEseDia = unEquipo({
+      cantidad: 10,
+      valorDia: 1500,
+      dias: 3,
+      fechaDespacho: "2026-09-09",
+      fechaVencimiento: "2026-09-15",
+      ampliaciones: [
+        {
+          fecha: "2026-09-11",
+          fechaAnterior: "2026-09-11",
+          fechaNueva: "2026-09-15",
+          diasAmpliados: 4,
+          diasPedidos: 4,
+          diasVencidos: 0,
+          descuentoRealizado: 0,
+        },
+      ],
+    });
+
+    expect(buscar(renovadoEseDia, "vencimiento-inicial", "2026-09-12").chip).toBe(
+      "vencido",
+    );
+  });
+
+  // Y el espejo: al que le dieron más días antes de su fecha no se le venció
+  // nada, así que su renglón no lleva chip.
+  it("no marca vencido al que se renovó antes de su fecha", () => {
+    const renovadoAntes = unEquipo({
+      cantidad: 10,
+      valorDia: 1500,
+      dias: 3,
+      fechaDespacho: "2026-09-09",
+      fechaVencimiento: "2026-09-15",
+      ampliaciones: [
+        {
+          fecha: "2026-09-10",
+          fechaAnterior: "2026-09-11",
+          fechaNueva: "2026-09-15",
+          diasAmpliados: 4,
+          diasPedidos: 4,
+          diasVencidos: 0,
+          descuentoRealizado: 0,
+        },
+      ],
+    });
+
+    expect(
+      buscar(renovadoAntes, "vencimiento-inicial", "2026-09-12").chip,
+    ).toBe(null);
+  });
+
   it("al que todavía no sale le cuenta la salida como programada", () => {
     const porSalir = unEquipo({
       cantidad: 1,

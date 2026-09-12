@@ -535,6 +535,11 @@ export default function FacturaCard({
                       },
                       gap: 1,
                       mt: 0.5,
+                      // Cada tarjeta mide lo suyo. Sin esto la cuadrícula las
+                      // estira a la altura de la más alta, y al abrir la
+                      // historia de un equipo la de al lado quedaba con un
+                      // hueco vacío debajo.
+                      alignItems: "start",
                     }}
                   >
                     {equiposOriginales.map((equipo, index) => (
@@ -688,6 +693,8 @@ export default function FacturaCard({
                             sm: `repeat(${columnasLote}, 1fr)`,
                           },
                           gap: 1,
+                          // Igual que los del alta: cada tarjeta mide lo suyo.
+                          alignItems: "start",
                         }}
                       >
                         {equiposDelLote.map((equipo, index) => (

@@ -4,6 +4,7 @@ import {
   calcularEstadoEquipo,
   equipoVencido,
   equipoAlDia,
+  ampliacionTrasVencimiento,
   proyectarAmpliacion,
   sellarDiasVencidos,
   sellarFacturaPagada,
@@ -1216,5 +1217,64 @@ describe("qué tiene la factura encima", () => {
       "1 equipo con ampliación o devolución",
       "el depósito ya resuelto",
     ]);
+  });
+});
+
+// ── ¿El equipo ya estaba vencido cuando se le renovó? ──────────────────
+//
+// Sale del caso real de la 0123 de ReYaz: 10 gatos salieron el 09 por 3 días,
+// vencían el 11, y ESE MISMO 11 se les pactaron 4 más. No se pasó ni un día
+// —la renovación quedó con cero días vencidos— pero el 11 el equipo ya estaba
+// vencido y su factura ya estaba en cartera.
+//
+// Antes esto no lo calculaba nadie: con los días vencidos solos, ese caso se
+// veía igual que el de un equipo al que le ampliaron con tiempo de sobra.
+describe("ampliacionTrasVencimiento", () => {
+  const renovacion = (extra) => ({
+    fecha: "2026-09-11",
+    fechaAnterior: "2026-09-11",
+    fechaNueva: "2026-09-15",
+    diasAmpliados: 4,
+    diasPedidos: 4,
+    diasVencidos: 0,
+    descuentoRealizado: 0,
+    ...extra,
+  });
+
+  // Un equipo vence el día que dice su fecha, no al día siguiente: esa es la
+  // regla con la que entra a cartera y la que permite avisarle al cliente que
+  // vence mañana.
+  it("renovado el mismo día que vencía, ya estaba vencido", () => {
+    expect(ampliacionTrasVencimiento(renovacion())).toBe(true);
+  });
+
+  it("renovado después de la fecha, también", () => {
+    expect(
+      ampliacionTrasVencimiento(renovacion({ fecha: "2026-09-13" })),
+    ).toBe(true);
+  });
+
+  // El espejo: al que le dieron más días ANTES de que venciera no se le venció
+  // nada, y contarlo como vencido sería inventarle una mora.
+  it("renovado antes de la fecha, no", () => {
+    expect(
+      ampliacionTrasVencimiento(renovacion({ fecha: "2026-09-09" })),
+    ).toBe(false);
+  });
+
+  it("con días vencidos consolidados, siempre sí", () => {
+    expect(
+      ampliacionTrasVencimiento(
+        renovacion({ fecha: "2026-09-09", diasVencidos: 2 }),
+      ),
+    ).toBe(true);
+  });
+
+  // Las renovaciones migradas del Excel no traen el día en que se hicieron.
+  // De esas solo se puede saber por sus días vencidos.
+  it("sin el día en que se hizo, se cae a los días vencidos", () => {
+    const vieja = { diasAmpliados: 4, descuentoRealizado: 0 };
+    expect(ampliacionTrasVencimiento(vieja)).toBe(false);
+    expect(ampliacionTrasVencimiento({ ...vieja, diasVencidos: 3 })).toBe(true);
   });
 });
