@@ -205,7 +205,10 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
         gap={CALIBRE.separacionColumnas}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" alignItems="center" gap={1}>
+          {/* Arriba y no al centro: la caja de al lado tiene dos renglones
+              —el nombre y las condiciones— y centrado, el número de unidades
+              quedaba flotando entre los dos. */}
+          <Stack direction="row" alignItems="flex-start" gap={1}>
             <Chip
               variant="meta"
               label={equipo.cantidadEquipos}
@@ -258,6 +261,37 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
                   {formatearFecha(equipo.devolucion.fechaDevolucion)}
                 </Typography>
               )}
+            {/* LAS CONDICIONES DEL ALQUILER, que son las tres cosas que se
+                preguntan de un equipo sin abrir nada: por cuántos días va, a
+                cuánto el día y hasta cuándo.
+
+                Acá vivían los chips de fechas, los mismos que usa Seguimiento.
+                Contaban el estado de hoy —vencía tal día, +5 días, 2 vencidos—
+                encadenados con flechas, pero no CUÁNDO pasó cada cosa, y la
+                entrega indefinida desaparecía al renovar el plazo. Esa historia
+                se cuenta abajo, hito por hito. */}
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              alignItems="center"
+              sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
+            >
+              <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
+              <Separador />
+              <Condicion
+                Icono={MonetizationOnIcon}
+                texto={`${formatearMoneda(Number(equipo.valorDia) || 0)}/día`}
+              />
+              <Separador />
+              <Condicion
+                Icono={EventIcon}
+                texto={
+                  equipo.vencimientoIndefinido
+                    ? "Sin fecha de entrega"
+                    : formatearFecha(equipo.fechaVencimiento)
+                }
+              />
+            </Stack>
             </Box>
           </Stack>
           {/* POR QUÉ lo devolvió, cuando alguien lo anotó. Se pregunta al
@@ -270,37 +304,6 @@ export default function EquipoRow({ equipo, color, fechaPedido }) {
               Motivo: {equipo.devolucion.motivoDevolucion}
             </Typography>
           )}
-          {/* LAS CONDICIONES DEL ALQUILER, que son las tres cosas que se
-              preguntan de un equipo sin abrir nada: por cuántos días va, a
-              cuánto el día y hasta cuándo.
-
-              Acá vivían los chips de fechas, los mismos que usa Seguimiento.
-              Contaban el estado de hoy —vencía tal día, +5 días, 2 vencidos—
-              encadenados con flechas, pero no CUÁNDO pasó cada cosa, y la
-              entrega indefinida desaparecía al renovar el plazo. Esa historia
-              se cuenta abajo, hito por hito. */}
-          <Stack
-            direction="row"
-            flexWrap="wrap"
-            alignItems="center"
-            sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
-          >
-            <Condicion Icono={ScheduleIcon} texto={`${cuentaEquipo.dias} días`} />
-            <Separador />
-            <Condicion
-              Icono={MonetizationOnIcon}
-              texto={`${formatearMoneda(Number(equipo.valorDia) || 0)}/día`}
-            />
-            <Separador />
-            <Condicion
-              Icono={EventIcon}
-              texto={
-                equipo.vencimientoIndefinido
-                  ? "Sin fecha de entrega"
-                  : formatearFecha(equipo.fechaVencimiento)
-              }
-            />
-          </Stack>
 
           {/* La historia completa, plegada: son hasta nueve renglones por
               equipo y una factura con cinco equipos no se podría recorrer. */}
