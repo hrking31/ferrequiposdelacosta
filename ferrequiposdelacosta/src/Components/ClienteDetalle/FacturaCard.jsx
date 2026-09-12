@@ -590,7 +590,7 @@ export default function FacturaCard({
                   }}
                 >
                   <LibraryAddIcon fontSize="small" />
-                  Equipos agregados {cantidadEquiposAgregados}
+                  Agregados {cantidadEquiposAgregados}
                 </Typography>
                 {renderToggle("equiposAgregados")}
               </Stack>
@@ -692,24 +692,30 @@ export default function FacturaCard({
                           empezaba. Cada grupo se guarda junto en la base y acá
                           se lee igual: su pago, sus equipos y sus cargos.
 
-                          Con un solo despacho no va: el rótulo de arriba ya
-                          dice lo mismo y se leería dos veces seguido. */}
-                      {gruposAgregados.length > 1 && (
-                        <Typography
-                          variant="overline"
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                            lineHeight: 1.6,
-                            mt: 1,
-                            color: colorEquiposAgregados,
-                          }}
-                        >
-                          <LibraryAddIcon fontSize="small" />
-                          Equipos agregados {equiposDelLote.length}
-                        </Typography>
-                      )}
+                          El de afuera cuenta el total; este dice cuántos
+                          trajo ESTE despacho y cuándo entró. */}
+                      <Typography
+                        variant="overline"
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          lineHeight: 1.6,
+                          mt: 1,
+                          color: colorEquiposAgregados,
+                        }}
+                      >
+                        <ConstructionIcon fontSize="small" />
+                        Equipos {equiposDelLote.length}
+                        {lote.fechaSolicitud && (
+                          <Box
+                            component="span"
+                            sx={{ color: "text.secondary", fontWeight: 400 }}
+                          >
+                            {formatearFecha(lote.fechaSolicitud)}
+                          </Box>
+                        )}
+                      </Typography>
 
                       <Box
                         sx={{
