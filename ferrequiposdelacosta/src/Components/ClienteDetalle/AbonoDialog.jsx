@@ -7,6 +7,7 @@ import {
   DialogActions,
   Button,
   Checkbox,
+  FormControlLabel,
   TextField,
   FormControl,
   InputLabel,
@@ -95,6 +96,12 @@ export default function AbonoDialog({
   // Qué se acordó por los equipos vencidos de cada factura que recibe plata.
   // Una entrada por factura: { tipo: "dias" | "indefinida", dias }.
   const [acuerdos, setAcuerdos] = useState({});
+  // "No se pactó nada" es UNA sola respuesta por factura, no una por equipo:
+  // no es una decisión sobre un equipo en particular sino la ausencia de
+  // acuerdo, y repetirla en cada uno obligaba a marcar tres veces lo mismo
+  // para decir que de eso no se habló. Cubre a los que quedaron sin marcar,
+  // así que se puede pactar por uno y dejar el resto como está.
+  const [sinPactar, setSinPactar] = useState({});
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
@@ -112,6 +119,7 @@ export default function AbonoDialog({
     // El acuerdo es de ESTA conversación con el cliente. Arrastrar el del
     // abono anterior le pondría plazo a un equipo que nadie nombró.
     setAcuerdos({});
+    setSinPactar({});
   }, [open]);
 
   // Solo entran las facturas que todavía deben algo: son las únicas que
@@ -191,9 +199,6 @@ export default function AbonoDialog({
     const acuerdo = acuerdoDe(clave, equipo);
     if (acuerdo.tipo === "indefinida") return true;
     if (acuerdo.tipo === "yaIndefinida") return true;
-    // "No se pactó nada" es una respuesta, no un olvido: el equipo sigue
-    // vencido, la plata entra igual y mañana le sigue corriendo la mora.
-    if (acuerdo.tipo === "nada") return true;
     return acuerdo.tipo === "dias" && Number(acuerdo.dias) > 0;
   };
 
@@ -201,8 +206,10 @@ export default function AbonoDialog({
   // nada. La plata ya no se pierde por esto —los tramos vencidos quedan
   // escritos igual—, pero un equipo sobre el que nadie decidió se queda en la
   // obra sin que nadie sepa hasta cuándo.
-  const faltanAcuerdos = conEquiposVencidos.some(({ equipos }) =>
-    equipos.some(({ clave, equipo }) => !acuerdoResuelto(clave, equipo)),
+  const faltanAcuerdos = conEquiposVencidos.some(
+    ({ factura, equipos }) =>
+      !sinPactar[factura.id] &&
+      equipos.some(({ clave, equipo }) => !acuerdoResuelto(clave, equipo)),
   );
 
   // Lo pactado de UNA factura, con la clave que entiende aplicarAcuerdoDeEquipos.
@@ -721,25 +728,6 @@ export default function AbonoDialog({
                                 </Typography>
                               </Stack>
 
-                              {/* LA TERCERA: cobrar sin pactar nada. La plata
-                                  entra igual, el equipo se queda como está y
-                                  mañana le sigue corriendo la mora. Existe
-                                  para que eso sea una decisión y no un olvido:
-                                  lo único que no se admite es no contestar. */}
-                              <Stack direction="row" alignItems="center" gap={0.5}>
-                                <Radio
-                                  size="small"
-                                  checked={acuerdo.tipo === "nada"}
-                                  onChange={() => elegirAcuerdo(clave, "nada")}
-                                  inputProps={{
-                                    "aria-label": `No se pactó nada, ${equipo.nombre}`,
-                                  }}
-                                  sx={{ p: 0.25 }}
-                                />
-                                <Typography variant="body2">
-                                  No se pactó nada · sigue vencido
-                                </Typography>
-                              </Stack>
                             </Stack>
 
                             {posicion < equipos.length - 1 && <Divider sx={{ mt: 1.5 }} />}
@@ -747,6 +735,42 @@ export default function AbonoDialog({
                         );
                       })}
                     </Stack>
+
+                    {/* UNA SOLA para toda la factura: cobrar sin pactar nada.
+                        La plata entra igual, los equipos se quedan como están
+                        y mañana les sigue corriendo la mora. Existe para que
+                        eso sea una decisión y no un olvido, y cubre a los que
+                        quedaron sin marcar: se puede pactar por uno y dejar el
+                        resto como está.
+
+                        Con el modelo de tramos no se pierde nada por esto —el
+                        tramo vencido queda escrito igual—, así que lo único
+                        que protege es que alguien haya contestado. */}
+                    <FormControlLabel
+                      sx={{ mt: 1 }}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={Boolean(sinPactar[factura.id])}
+                          onChange={(e) =>
+                            setSinPactar((previos) => ({
+                              ...previos,
+                              [factura.id]: e.target.checked,
+                            }))
+                          }
+                          inputProps={{
+                            "aria-label": `No se pactó nada, factura ${numero}`,
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2">
+                          No se pactó nada por{" "}
+                          {equipos.length === 1 ? "este equipo" : "los demás"} · siguen
+                          vencidos
+                        </Typography>
+                      }
+                    />
 
                     {/* La devolución no es un radio: no se elige acá, abre su
                         propio diálogo —define depósito y retención, y eso

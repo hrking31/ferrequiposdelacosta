@@ -470,6 +470,9 @@ describe("AbonoDialog — lo que ya tenía", () => {
     // Cobrar sin pactar nada es una respuesta valida: la plata entra, el
     // equipo se queda como esta y manana le sigue corriendo la mora. Con el
     // modelo de tramos no se pierde nada, porque el tramo queda escrito.
+    //
+    // Es UNA casilla por factura y no una opcion por equipo: no es una
+    // decision sobre un equipo sino la ausencia de acuerdo.
     it("deja abonar sin pactar nada, y el equipo no se toca", async () => {
       const factura = conCompresorVencido();
       const { usuario } = abrir({ facturas: [factura] });
@@ -477,7 +480,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("radio", { name: /No se pactó nada/ }));
+      await usuario.click(screen.getByRole("checkbox", { name: /No se pactó nada/ }));
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
       const cambios = updateSimulado.mock.calls[0][1];
