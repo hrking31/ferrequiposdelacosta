@@ -486,17 +486,16 @@ export default function ClienteSeguimientoCard({
       Icono: sinFecha ? HourglassTopIcon : vencido ? EventBusyIcon : EventIcon,
       rotulo: sinFecha ? "Entrega" : "Vence",
       valor: sinFecha ? "Sin fecha" : formatearFecha(cubiertoHasta(equipo)) || "—",
-      // Debajo de la fecha, cuánto se pasó: las dos cosas se leen juntas
-      // —"vencia el 10 y lleva 4 días"— y separadas obligaban a cruzar dos
-      // columnas.
-      extra: vencido ? `${formatearDias(diasVencidos)} vencidos` : null,
       color: vencido ? "error.main" : "text.secondary",
     };
 
     const casillaVencidos = {
       clave: "vencidos",
       Icono: AttachMoneyIcon,
-      rotulo: "Días vencidos",
+      // Los días en el rótulo y la plata en el valor: "4 días vencidos, cuatro
+      // setenta y seis" es como se dice al hablar, y deja el número de días
+      // pegado a lo que cuestan.
+      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
       valor: vencido ? formatearMoneda(calcularMoraEquipo(equipo, hoy)) : "—",
       color: vencido ? "error.main" : "text.secondary",
     };
@@ -562,6 +561,7 @@ export default function ClienteSeguimientoCard({
     return [
       casillaEquipo,
       casillaVence,
+      casillaVencidos,
       {
         clave: "afuera",
         Icono: LocalShippingIcon,
@@ -569,7 +569,6 @@ export default function ClienteSeguimientoCard({
         valor: salida ? formatearDias(salida.dias) : "—",
         color: "text.secondary",
       },
-      casillaVencidos,
     ];
   };
 
