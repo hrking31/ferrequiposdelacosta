@@ -501,11 +501,31 @@ export default function ClienteSeguimientoCard({
     // primero y el resto de las casillas hablan de él. Lleva el ícono de su
     // situación y la cantidad pegada al nombre, que es como se nombra un
     // equipo al hablar: "los 5 andamios".
+    //
+    // Debajo, su fecha de salida: se suma al nombre en vez de ocuparle una
+    // columna, para no correr el resto de los datos de su lugar.
     const casillaEquipo = {
       clave: "equipo",
       Icono: iconoDeSituacion(situacion),
       rotulo: "Equipo",
-      valor: `${equipo.cantidadEquipos} ${equipo.nombre}`,
+      // La cantidad conserva su recuadro, el mismo que lleva en la ficha del
+      // cliente: es un dato aparte del nombre —cuántas unidades salieron— y
+      // pegado al texto se leía como parte de él.
+      valor: (
+        <Box
+          component="span"
+          sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+        >
+          <Chip
+            variant="meta"
+            label={equipo.cantidadEquipos}
+            size="small"
+            sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accent" }}
+          />
+          {equipo.nombre}
+        </Box>
+      ),
+      extra: salida ? `Salió ${formatearFecha(salida.fecha)}` : null,
       color: colorDeSituacion(situacion),
       envolver: true,
     };
@@ -515,12 +535,10 @@ export default function ClienteSeguimientoCard({
     return [
       casillaEquipo,
       {
-        clave: "salio",
-        // El rótulo lleva los días que lleva afuera y el valor la fecha: de
-        // otro modo no entraban los cinco datos en cuatro columnas.
+        clave: "afuera",
         Icono: LocalShippingIcon,
-        rotulo: salida ? `Salió hace ${formatearDias(salida.dias)}` : "Salió",
-        valor: salida ? formatearFecha(salida.fecha) : "—",
+        rotulo: "Afuera",
+        valor: salida ? formatearDias(salida.dias) : "—",
         color: "text.secondary",
       },
       casillaVence,

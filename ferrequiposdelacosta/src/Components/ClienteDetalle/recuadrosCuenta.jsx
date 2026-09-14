@@ -265,7 +265,7 @@ export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
       />
     }
   >
-    {casillas.map(({ clave, Icono, rotulo, valor, color, envolver }) => (
+    {casillas.map(({ clave, Icono, rotulo, valor, color, envolver, extra }) => (
       <Box
         key={clave}
         // Todas las casillas miden lo mismo.
@@ -297,6 +297,13 @@ export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
             >
               {valor}
             </Typography>
+            {/* Un dato que acompaña al valor sin competir con él: va debajo,
+                chico y apagado. */}
+            {extra && (
+              <Typography variant="rotuloDato" sx={{ opacity: 0.85 }}>
+                {extra}
+              </Typography>
+            )}
           </Box>
         </Stack>
       </Box>

@@ -285,8 +285,11 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
     await desplegarFactura(usuario);
 
+    // Ya no es un texto solo: la cantidad vuelve a su recuadro, al lado del
+    // nombre.
     expect(screen.getByText("Equipo")).toBeInTheDocument();
-    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
+    expect(screen.getAllByText("5").length).toBeGreaterThan(0);
   });
 
   // Negociar por un equipo que lleva veinte dias en la obra no es lo mismo que
@@ -296,8 +299,11 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     const { usuario } = mostrar([facturaVencida]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText("Salió hace 20 días")).toBeInTheDocument();
-    expect(screen.getByText("01/08/2026")).toBeInTheDocument();
+    // La salida acompaña al nombre en su casilla; los días afuera tienen la
+    // suya.
+    expect(screen.getByText("Salió 01/08/2026")).toBeInTheDocument();
+    expect(screen.getByText("Afuera")).toBeInTheDocument();
+    expect(screen.getByText("20 días")).toBeInTheDocument();
   });
 
   // "Debe X" se discute; "el compresor solo ya va en Y" se negocia. Y va en el
