@@ -280,9 +280,13 @@ export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
           gap={0.75}
           sx={{ minWidth: 0 }}
         >
-          <Icono fontSize="small" sx={{ flexShrink: 0 }} />
+          {/* Las dos son opcionales: una casilla puede llevar solo su
+              contenido, sin ícono ni rótulo que lo anuncien. */}
+          {Icono && <Icono fontSize="small" sx={{ flexShrink: 0 }} />}
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="rotuloDato">{rotulo}</Typography>
+            {rotulo && (
+              <Typography variant="rotuloDato">{rotulo}</Typography>
+            )}
             {/* Un valor de siete cifras no entra en un cuarto del hueco y se
                 montaba sobre el de al lado: achica en pantallas medianas. */}
             {/* Las cifras van en un solo renglón; un nombre de equipo, no:

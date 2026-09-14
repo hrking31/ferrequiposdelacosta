@@ -486,13 +486,17 @@ export default function ClienteSeguimientoCard({
       Icono: sinFecha ? HourglassTopIcon : vencido ? EventBusyIcon : EventIcon,
       rotulo: sinFecha ? "Entrega" : "Vence",
       valor: sinFecha ? "Sin fecha" : formatearFecha(cubiertoHasta(equipo)) || "—",
+      // Debajo de la fecha, cuánto se pasó: las dos cosas se leen juntas
+      // —"vencia el 10 y lleva 4 días"— y separadas obligaban a cruzar dos
+      // columnas.
+      extra: vencido ? `${formatearDias(diasVencidos)} vencidos` : null,
       color: vencido ? "error.main" : "text.secondary",
     };
 
     const casillaVencidos = {
       clave: "vencidos",
       Icono: AttachMoneyIcon,
-      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
+      rotulo: "Días vencidos",
       valor: vencido ? formatearMoneda(calcularMoraEquipo(equipo, hoy)) : "—",
       color: vencido ? "error.main" : "text.secondary",
     };
@@ -506,15 +510,21 @@ export default function ClienteSeguimientoCard({
     // columna, para no correr el resto de los datos de su lugar.
     const casillaEquipo = {
       clave: "equipo",
-      Icono: iconoDeSituacion(situacion),
-      rotulo: "Equipo",
+      // Sin ícono ni rótulo: el nombre del equipo no necesita que nada le
+      // anuncie que es el nombre del equipo, y es lo primero que se lee.
+      Icono: null,
+      rotulo: null,
       // La cantidad conserva su recuadro, el mismo que lleva en la ficha del
       // cliente: es un dato aparte del nombre —cuántas unidades salieron— y
       // pegado al texto se leía como parte de él.
+      //
+      // El chip queda afuera de la columna del texto para que la fecha de
+      // salida caiga bajo el NOMBRE y no bajo el número: así las dos líneas
+      // arrancan en el mismo punto y se leen como un bloque.
       valor: (
         <Box
           component="span"
-          sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}
+          sx={{ display: "inline-flex", alignItems: "flex-start", gap: 0.75 }}
         >
           <Chip
             variant="meta"
@@ -522,10 +532,27 @@ export default function ClienteSeguimientoCard({
             size="small"
             sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accent" }}
           />
-          {equipo.nombre}
+          <Box component="span" sx={{ display: "flex", flexDirection: "column" }}>
+            {equipo.nombre}
+            {salida && (
+              <Box
+                component="span"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  fontSize: "0.72rem",
+                  fontWeight: 400,
+                  opacity: 0.85,
+                }}
+              >
+                <EventIcon sx={{ fontSize: 14 }} />
+                {formatearFecha(salida.fecha)}
+              </Box>
+            )}
+          </Box>
         </Box>
       ),
-      extra: salida ? `Salió ${formatearFecha(salida.fecha)}` : null,
       color: colorDeSituacion(situacion),
       envolver: true,
     };
@@ -534,6 +561,7 @@ export default function ClienteSeguimientoCard({
 
     return [
       casillaEquipo,
+      casillaVence,
       {
         clave: "afuera",
         Icono: LocalShippingIcon,
@@ -541,7 +569,6 @@ export default function ClienteSeguimientoCard({
         valor: salida ? formatearDias(salida.dias) : "—",
         color: "text.secondary",
       },
-      casillaVence,
       casillaVencidos,
     ];
   };
