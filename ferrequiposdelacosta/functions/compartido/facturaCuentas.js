@@ -642,6 +642,21 @@ export const calcularIvaEquipos = (doc, hoyIso = obtenerFechaHoyBogota()) =>
     0,
   );
 
+// Cuánto cuestan los días vencidos de ESTE equipo, con su IVA si lo lleva.
+//
+// Es la cifra que hay que tener a mano al llamar: una cosa es decirle al
+// cliente "debe dos millones" y otra "el compresor solo ya va en un millón
+// por los días que se pasó". Sin esto hay que abrir la historia del equipo y
+// sumar a mano mientras suena el teléfono.
+//
+// Va con el EQUIPO y no con la factura: el costo es de lo que lo genera, y
+// puesto arriba no se sabe cuál de los cinco equipos lo está corriendo.
+export const calcularMoraEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const { netoVencido } = calcularEquipo(equipo, hoyIso);
+
+  return netoVencido * (equipoLlevaIva(equipo) ? 1 + IVA : 1);
+};
+
 // El transporte de TODA la factura: el de cada despacho, porque cada uno sale
 // con su propio flete.
 export const calcularTransporteTotal = (doc) =>

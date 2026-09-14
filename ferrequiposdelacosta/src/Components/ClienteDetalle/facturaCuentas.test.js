@@ -13,6 +13,7 @@ import {
   obtenerFechaHoyBogota,
   calcularAlquiler,
   calcularIvaEquipos,
+  calcularMoraEquipo,
   facturaLlevaIva,
   equipoLlevaIva,
   calcularTransporteTotal,
@@ -47,6 +48,7 @@ import {
   cubiertoHasta,
   calcularVencimiento,
 } from "./facturaCuentas";
+import { unEquipo, unTramoVencido, unaFactura } from "../../test/facturas";
 import { GRUPO_INICIAL } from "./facturaModelo";
 
 // Casi todas estas funciones reciben la fecha de hoy como parámetro: así
@@ -1303,3 +1305,44 @@ describe("qué tiene la factura encima", () => {
 // vencido y su factura ya estaba en cartera.
 //
 // Antes esto no lo calculaba nadie: con los días vencidos solos, ese caso se
+
+// Cuanto cuestan los dias vencidos de un equipo: la cifra que hace falta
+// tener a mano al llamar al cliente.
+describe("calcularMoraEquipo", () => {
+  const HOY = "2026-09-14";
+
+  // 5 andamios a $20.000 son $100.000 por dia. Salieron el 01/09 por 4 dias
+  // —cubiertos hasta el 04— y su tramo corre desde el 05: 10 dias de mora.
+  const conMora = (extra = {}) =>
+    unEquipo({
+      nombre: "ANDAMIO",
+      cantidad: 5,
+      valorDia: 20000,
+      dias: 4,
+      fechaDespacho: "2026-09-01",
+      vencidos: [unTramoVencido({ desde: "2026-09-05", hasta: null })],
+      ...extra,
+    });
+
+  it("cobra los dias vencidos al valor del equipo", () => {
+    expect(calcularMoraEquipo(conMora(), HOY)).toBe(1000000);
+  });
+
+  it("al equipo que lleva IVA le suma el IVA de esos dias", () => {
+    expect(calcularMoraEquipo(conMora({ aplicaIva: true }), HOY)).toBe(1190000);
+  });
+
+  it("el equipo sin un solo dia vencido no tiene mora", () => {
+    expect(calcularMoraEquipo(conMora({ vencidos: [] }), HOY)).toBe(0);
+  });
+
+  // Se corta el dia que volvio: del 05 al 08 son 4 dias, no hasta hoy.
+  it("el devuelto deja de sumar el dia que volvio", () => {
+    const devuelto = conMora({
+      vencidos: [unTramoVencido({ desde: "2026-09-05", hasta: "2026-09-08" })],
+      devolucion: { fechaDevolucion: "2026-09-08" },
+    });
+
+    expect(calcularMoraEquipo(devuelto, HOY)).toBe(400000);
+  });
+});

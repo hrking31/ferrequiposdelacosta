@@ -6,6 +6,7 @@
 // contando cosas distintas del mismo equipo.
 import { describe, it, expect } from "vitest";
 import {
+  describirSalidaEquipo,
   historialEquipo,
   ultimoAcuerdoEquipo,
 } from "./facturaPresentacion";
@@ -311,5 +312,46 @@ describe("ultimoAcuerdoEquipo", () => {
     });
 
     expect(ultimoAcuerdoEquipo(equipo)).toBeNull();
+  });
+});
+
+// Desde cuando esta afuera el equipo, que es lo primero que se pregunta al
+// negociar por telefono.
+describe("describirSalidaEquipo", () => {
+  it("cuenta hasta hoy mientras el equipo siga afuera", () => {
+    const equipo = unEquipo({ fechaDespacho: "2026-08-01" });
+
+    expect(describirSalidaEquipo(equipo, "2026-08-20")).toEqual({
+      fecha: "2026-08-01",
+      dias: 20,
+    });
+  });
+
+  // El dia de salida cuenta: sale y vuelve el mismo dia es 1 dia, no 0.
+  it("el dia de la salida ya cuenta", () => {
+    const equipo = unEquipo({ fechaDespacho: "2026-08-20" });
+
+    expect(describirSalidaEquipo(equipo, "2026-08-20").dias).toBe(1);
+  });
+
+  // El que volvio dejo de estar afuera: su cuenta se corta ahi y no sigue
+  // creciendo con el calendario.
+  it("el devuelto se corta el dia que volvio", () => {
+    const equipo = unEquipoDevuelto({
+      fechaDespacho: "2026-08-01",
+      fechaDevolucion: "2026-08-05",
+    });
+
+    expect(describirSalidaEquipo(equipo, "2026-08-20").dias).toBe(5);
+  });
+
+  it("el que todavia no sale no lleva dias afuera", () => {
+    const equipo = unEquipo({ fechaDespacho: "2026-08-25" });
+
+    expect(describirSalidaEquipo(equipo, "2026-08-20").dias).toBe(0);
+  });
+
+  it("sin fecha de despacho no hay nada que decir", () => {
+    expect(describirSalidaEquipo(unEquipo({ fechaDespacho: null }))).toBeNull();
   });
 });

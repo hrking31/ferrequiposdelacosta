@@ -30,6 +30,7 @@ import EventBusyIcon from "@mui/icons-material/EventBusy";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
   calcularCuentaCliente,
@@ -51,6 +52,9 @@ import {
   cubiertoHasta,
   sinFechaDeEntrega,
   ultimoAcuerdoEquipo,
+  describirSalidaEquipo,
+  calcularMoraEquipo,
+  equipoLlevaIva,
 } from "../ClienteDetalle/facturaUtils";
 import PlazoEquipo from "./PlazoEquipo";
 import {
@@ -58,7 +62,11 @@ import {
   iconBtnSx,
   renderPizarraTotales,
 } from "../ClienteDetalle/recuadrosCuenta";
-import { formatearMonedaOVacio, formatearHoraLegible } from "../../Utils/formato";
+import {
+  formatearMonedaOVacio,
+  formatearHoraLegible,
+  formatearDias,
+} from "../../Utils/formato";
 import { abrirWhatsapp } from "../../Utils/whatsapp";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
@@ -116,6 +124,11 @@ const agruparPorVencimiento = (equipos = [], hoy) => {
     items: porGrupo[grupo.clave] || [],
   })).filter((grupo) => grupo.items.length > 0);
 };
+
+// Cuántos equipos se nombran en la tarjeta plegada antes de contar el resto.
+// Tres entran en un renglón hasta en un celular; el cuarto ya obliga a leer
+// en vez de reconocer.
+const MAX_EQUIPOS_PLEGADA = 3;
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
 
@@ -393,21 +406,58 @@ export default function ClienteSeguimientoCard({
   // precio, los vencimientos por los que pasó y lo que costó cada tramo. Eso
   // contesta "¿cómo llegamos hasta acá?", que es la pregunta de la ficha del
   // cliente. Cartera pregunta otra cosa: a quién llamo hoy.
+  // El color de la URGENCIA: rojo lo vencido, ámbar lo que vence hoy, gris lo
+  // que todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
+  // importa más que de dónde vino el equipo —a diferencia de Detalle Cliente,
+  // donde no hay urgencias que seguir y el color sí distingue el alta de lo
+  // agregado después—.
+  //
+  // Lo miran el recuadro de cada equipo y el renglón de la tarjeta plegada, y
+  // tienen que pintar igual: el mismo equipo no puede ser rojo en un lado y
+  // teal en el otro.
+  const colorDeSituacion = (situacion) =>
+    situacion === "vencido"
+      ? theme.palette.error.main
+      : situacion === "hoy"
+        ? theme.palette.warning.main
+        : situacion === "indefinido"
+          ? colorIndefinido
+          : theme.palette.text.secondary;
+
+  // Desde cuándo está afuera. Va arriba del plazo porque es lo primero que se
+  // pregunta al negociar: no es lo mismo un equipo que lleva catorce días en
+  // la obra que uno que salió anteayer.
+  const renderSalida = (equipo) => {
+    const salida = describirSalidaEquipo(equipo, hoy);
+    if (!salida) return null;
+
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+        Salió el {formatearFecha(salida.fecha)} · {formatearDias(salida.dias)} afuera
+      </Typography>
+    );
+  };
+
+  // Lo que ya cuestan los días que se pasó ESTE equipo. Una cosa es decirle al
+  // cliente "debe dos millones" y otra "el compresor solo ya va en un millón":
+  // con lo segundo se negocia, con lo primero se discute.
+  //
+  // Va en el equipo, no arriba con la cuenta: el costo es de lo que lo genera,
+  // y puesto en la factura no se sabe cuál de los cinco lo está corriendo.
+  const renderMoraEquipo = (equipo) => {
+    const mora = calcularMoraEquipo(equipo, hoy);
+    if (mora <= 0) return null;
+
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+        Días vencidos: {formatearMoneda(mora)}
+        {equipoLlevaIva(equipo) ? " con IVA" : ""}
+      </Typography>
+    );
+  };
+
   const renderEquipo = (equipo, key, situacion) => {
-    // El recuadro entero lleva el color de la URGENCIA, el mismo del rótulo
-    // de su grupo: rojo lo vencido, ámbar lo que vence hoy, gris lo que
-    // todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
-    // importa más que de dónde vino el equipo —a diferencia de Detalle
-    // Cliente, donde no hay urgencias que seguir y el color sí distingue el
-    // alta de lo agregado después—.
-    const color =
-      situacion === "vencido"
-        ? theme.palette.error.main
-        : situacion === "hoy"
-          ? theme.palette.warning.main
-          : situacion === "indefinido"
-            ? colorIndefinido
-            : theme.palette.text.secondary;
+    const color = colorDeSituacion(situacion);
 
     return (
       <Box key={key} sx={recuadroDeBloque(color)}>
@@ -423,7 +473,9 @@ export default function ClienteSeguimientoCard({
           </Typography>
         </Stack>
 
+        {renderSalida(equipo)}
         <PlazoEquipo equipo={equipo} hoy={hoy} />
+        {renderMoraEquipo(equipo)}
         {renderUltimoAcuerdo(equipo)}
       </Box>
     );
@@ -520,6 +572,22 @@ export default function ClienteSeguimientoCard({
   // está vencida en cuanto uno de sus equipos lo está, y reclamarle los siete
   // cuando solo venció uno le pide algo que todavía no debe.
   const equiposVencidos = contarUnidadesVencidas(factura, hoy);
+
+  // Los equipos que trajeron esta factura a cartera: vencidos y todavía
+  // afuera. Se reparten por urgencia una sola vez porque los miran dos
+  // lugares —el renglón de la tarjeta plegada y la lista de abajo— y tienen
+  // que decir lo mismo, en el mismo orden.
+  const gruposEnCartera = agruparPorVencimiento(
+    equiposDe(factura)
+      .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
+      .map(({ equipo }) => equipo),
+    hoy,
+  );
+
+  // Los mismos, en fila, para poder nombrarlos sin abrir la tarjeta.
+  const equiposEnCartera = gruposEnCartera.flatMap((grupo) =>
+    grupo.items.map(({ equipo }) => ({ equipo, situacion: grupo.clave })),
+  );
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -957,6 +1025,55 @@ export default function ClienteSeguimientoCard({
               </Stack>
             </Stack>
 
+            {/* QUÉ HAY AFUERA, sin abrir la tarjeta. Plegada, la factura decía
+                su número y cuánto se pasó, pero no de qué equipos se trata —y
+                esa es la pregunta que le da nombre a esta pantalla—. Con diez
+                clientes en la lista, contestarla costaba diez clics.
+
+                Cada uno va en el color de su urgencia, el mismo que tendrá su
+                recuadro al abrir. Se muestran los tres primeros y el resto se
+                cuenta: la idea es reconocer el equipo de un vistazo, no leer
+                el inventario. */}
+            {facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                flexWrap="wrap"
+                sx={{ gap: 0.75, mb: 1 }}
+              >
+                <LocalShippingIcon fontSize="small" sx={{ color: "text.secondary" }} />
+
+                {equiposEnCartera
+                  .slice(0, MAX_EQUIPOS_PLEGADA)
+                  .map(({ equipo, situacion }, indice) => (
+                    <Stack
+                      key={`afuera-${indice}`}
+                      direction="row"
+                      alignItems="center"
+                      sx={{ gap: 0.75 }}
+                    >
+                      {indice > 0 && (
+                        <Typography variant="body2" color="text.secondary" aria-hidden>
+                          ·
+                        </Typography>
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{ color: colorDeSituacion(situacion) }}
+                      >
+                        {equipo.cantidadEquipos} {equipo.nombre}
+                      </Typography>
+                    </Stack>
+                  ))}
+
+                {equiposEnCartera.length > MAX_EQUIPOS_PLEGADA && (
+                  <Typography variant="body2" color="text.secondary">
+                    y {equiposEnCartera.length - MAX_EQUIPOS_PLEGADA} más
+                  </Typography>
+                )}
+              </Stack>
+            )}
+
             {/* La línea de tiempo de la factura: todo lo que se hizo para
                 destrabarla, en orden. Se pliega con el resto de la factura
                 —un cliente con la tarjeta cerrada no la ve— pero además tiene
@@ -1053,6 +1170,7 @@ export default function ClienteSeguimientoCard({
                 SON el estado de cuenta; no llevan rótulo encima porque no
                 necesitan que un renglón anuncie lo que ya dicen. */}
             {!facturaPlegada(factura.id) && cuadroTotales}
+
             {!facturaPlegada(factura.id) && extrasDeCuenta}
 
             {/* Una factura puede seguir en cartera sin un solo equipo vencido:
@@ -1068,15 +1186,7 @@ export default function ClienteSeguimientoCard({
                     reclamar hoy. Los que todavía están en fecha se ven en la
                     ficha del cliente; acá solo harían preguntarse por qué
                     aparece algo que nadie tiene que devolver todavía. */}
-                {agruparPorVencimiento(
-                  equiposDe(factura)
-                    .filter(
-                      ({ equipo }) =>
-                        sigueAfuera(equipo) && equipoVencido(equipo, hoy),
-                    )
-                    .map(({ equipo }) => equipo),
-                  hoy,
-                ).map((grupo) => (
+                {gruposEnCartera.map((grupo) => (
                   <Box key={grupo.clave}>
                     {/* El encabezado dice en qué situación está el grupo, así
                         cada renglón solo necesita mostrar la fecha. Mismo

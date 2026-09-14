@@ -145,6 +145,28 @@ const facturaRenovada = facturaCon({
   ],
 });
 
+// Con el tramo vencido ya abierto: del 04 al 20 son 17 dias de mora a
+// $100.000 el dia (5 andamios x $20.000), y este equipo lleva IVA.
+const facturaConMora = facturaCon({
+  equipos: [
+    andamio({
+      aplicaIva: true,
+      vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+    }),
+  ],
+});
+
+// Cuatro equipos vencidos: uno mas de los que entran en el renglon de la
+// tarjeta plegada.
+const facturaConCuatroEquipos = facturaCon({
+  equipos: [
+    andamio(),
+    andamio({ nombre: "GATO", cantidad: 2 }),
+    andamio({ nombre: "MEZCLADORA", cantidad: 1 }),
+    andamio({ nombre: "SALTARIN", cantidad: 1 }),
+  ],
+});
+
 const mostrar = (facturas = [facturaVencida], datosCliente = cliente) =>
   renderConProviders(
     <ClienteSeguimientoCard cliente={datosCliente} facturas={facturas} hoy={HOY} />,
@@ -230,6 +252,60 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
     expect(screen.queryByText(/MEZCLADORA/)).not.toBeInTheDocument();
     expect(screen.queryByText("Devuelto")).not.toBeInTheDocument();
+  });
+
+  // La pregunta que le da nombre a esta pantalla: que hay afuera. Antes habia
+  // que abrir cada tarjeta para contestarla.
+  it("sin abrir la tarjeta ya dice que equipos hay afuera", () => {
+    mostrar([facturaVencida]);
+
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+  });
+
+  // Se nombran tres y el resto se cuenta: la idea es reconocer el equipo de un
+  // vistazo, no leer el inventario.
+  it("con mas de tres equipos cuenta los que faltan", () => {
+    mostrar([facturaConCuatroEquipos]);
+
+    expect(screen.getByText("y 1 más")).toBeInTheDocument();
+  });
+
+  // Abierta, cada equipo tiene su recuadro: repetir la lista arriba seria
+  // decir dos veces lo mismo.
+  it("al abrir la tarjeta el renglon de equipos se va", async () => {
+    const { usuario } = mostrar([facturaVencida]);
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+
+    await desplegarFactura(usuario);
+
+    expect(screen.queryByText("5 ANDAMIO")).not.toBeInTheDocument();
+  });
+
+  // Negociar por un equipo que lleva veinte dias en la obra no es lo mismo que
+  // por uno que salio anteayer, y el plazo solo no lo dice.
+  it("dice desde cuando esta afuera cada equipo", async () => {
+    const { usuario } = mostrar([facturaVencida]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText(/Salió el 01\/08\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/20 días afuera/)).toBeInTheDocument();
+  });
+
+  // "Debe X" se discute; "el compresor solo ya va en Y" se negocia. Y va en el
+  // equipo que lo genera: arriba, con la cuenta, no se sabria cual de los
+  // cinco esta corriendo esa plata.
+  it("cada equipo dice cuanto cuestan sus dias vencidos", async () => {
+    const { usuario } = mostrar([facturaConMora]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText(/Días vencidos: .* con IVA/)).toBeInTheDocument();
+  });
+
+  it("el equipo sin dias vencidos no muestra ese renglon", async () => {
+    const { usuario } = mostrar([facturaRenovada]);
+    await desplegarFactura(usuario);
+
+    expect(screen.queryByText(/Días vencidos:/)).not.toBeInTheDocument();
   });
 
   it("sin un teléfono usable no ofrece escribirle: no hay a dónde", () => {

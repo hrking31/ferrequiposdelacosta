@@ -343,3 +343,20 @@ export const ultimoAcuerdoEquipo = (equipo) => {
 
   return { fecha: ultima.fecha, texto: `Se le dieron ${enDias(ultima.dias)}` };
 };
+
+// ── DESDE CUÁNDO ESTÁ AFUERA ESTE EQUIPO ──────────────────────
+//
+// No es lo mismo negociar por un equipo que lleva catorce días en la obra que
+// por uno que salió anteayer, y el plazo solo no lo dice: "se pasó 7 días"
+// puede ser un alquiler corto o uno que ya lleva un mes.
+//
+// Cuenta hasta HOY mientras el equipo siga afuera, y hasta el día en que
+// volvió si volvió. El que todavía no salió no lleva ninguno.
+export const describirSalidaEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const salida = equipo?.fechaDespacho;
+  if (!salida) return null;
+
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+
+  return { fecha: salida, dias: Math.max(0, diasDeAlquiler(salida, corte)) };
+};
