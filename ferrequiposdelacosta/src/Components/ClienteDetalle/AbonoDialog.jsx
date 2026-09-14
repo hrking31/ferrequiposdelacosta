@@ -85,6 +85,7 @@ export default function AbonoDialog({
   facturas,
   onAbonado,
   onRegistrarDevolucion,
+  pedirAcuerdo = false,
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
@@ -170,22 +171,31 @@ export default function AbonoDialog({
   // Solo las que reciben algo de ESTE abono: si el cliente paga una factura,
   // no hay por qué preguntarle por los equipos de otra.
   const hoy = obtenerFechaHoyBogota();
-  const conEquiposVencidos = reparto
-    .filter(({ aplicado }) => aplicado > 0)
-    .map(({ factura }) => ({
-      factura,
-      // Con su despacho y su posición: la decisión es de CADA equipo, y un
-      // número suelto no alcanza para señalar una sola línea —los equipos
-      // viven repartidos en grupos—.
-      equipos: equiposDe(factura)
-        .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
-        .map(({ equipo, grupo, indice }) => ({
-          equipo,
-          clave: `${factura.id}#${grupo?.grupo}#${indice}`,
-          claveEnLaFactura: `${grupo?.grupo}#${indice}`,
-        })),
-    }))
-    .filter(({ equipos }) => equipos.length > 0);
+  // SOLO DESDE CARTERA se pregunta qué pasa con los equipos.
+  //
+  // Es la misma regla que ya siguen las devoluciones: en la ficha del cliente
+  // se registra lo que pasó con la plata y nada más, y pactar un plazo es
+  // cobranza —se acuerda con alguien que ya está vencido— así que se decide
+  // donde se cobra. Con la pregunta acá, anotar un abono de una factura al
+  // día obligaba a opinar sobre equipos que nadie está reclamando.
+  const conEquiposVencidos = !pedirAcuerdo
+    ? []
+    : reparto
+        .filter(({ aplicado }) => aplicado > 0)
+        .map(({ factura }) => ({
+          factura,
+          // Con su despacho y su posición: la decisión es de CADA equipo, y un
+          // número suelto no alcanza para señalar una sola línea —los equipos
+          // viven repartidos en grupos—.
+          equipos: equiposDe(factura)
+            .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
+            .map(({ equipo, grupo, indice }) => ({
+              equipo,
+              clave: `${factura.id}#${grupo?.grupo}#${indice}`,
+              claveEnLaFactura: `${grupo?.grupo}#${indice}`,
+            })),
+        }))
+        .filter(({ equipos }) => equipos.length > 0);
 
   // El que YA quedó sin fecha viene resuelto: no hay nada que volver a pactar.
   // Y se marca aparte de "indefinida" a propósito —`yaIndefinida` no se
@@ -822,4 +832,7 @@ AbonoDialog.propTypes = {
   // Se llama con la factura cuando el cliente devolvió el equipo: este
   // diálogo se cierra y quien lo abrió muestra la devolución.
   onRegistrarDevolucion: PropTypes.func,
+  // Preguntar qué pasa con los equipos vencidos. Lo enciende cartera: en la
+  // ficha del cliente solo se registran abonos.
+  pedirAcuerdo: PropTypes.bool,
 };

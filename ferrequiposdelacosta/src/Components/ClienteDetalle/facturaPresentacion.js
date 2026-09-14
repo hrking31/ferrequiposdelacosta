@@ -244,7 +244,7 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       fecha: indefinida.desde,
       tono: "indefinida",
       titulo: "Seguimiento con cliente",
-      detalle: "Cliente: no sabe cuándo lo devuelve",
+      detalle: "Cliente no sabe cuándo lo devuelve",
       chip: "indefinida",
     });
   }

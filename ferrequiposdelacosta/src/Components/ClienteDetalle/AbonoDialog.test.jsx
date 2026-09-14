@@ -67,10 +67,14 @@ const facturas = [
   facturaQueDebe({ id: "grande", numero: 1234, monto: 500000, fecha: "2026-08-10" }),
 ];
 
+// `pedirAcuerdo` va encendido por defecto porque es como lo abre cartera, que
+// es la pantalla donde se pacta; la ficha del cliente lo abre sin él y tiene
+// su propia prueba.
 const abrir = (props = {}) =>
   renderConProviders(
     <AbonoDialog
       open
+      pedirAcuerdo
       onClose={() => {}}
       cliente={cliente}
       facturas={facturas}
@@ -403,6 +407,30 @@ describe("AbonoDialog — lo que ya tenía", () => {
         dias: 4,
         indefinida: false,
       });
+    });
+
+    // En la ficha del cliente solo se registran abonos: pactar un plazo es
+    // cobranza y se decide donde se cobra. Es la misma regla que ya siguen las
+    // devoluciones.
+    it("desde la ficha del cliente no pregunta por los equipos", async () => {
+      const factura = conCompresorVencido();
+      const { usuario } = abrir({ facturas: [factura], pedirAcuerdo: false });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+
+      expect(screen.queryByText(/sigue en la obra/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("radio", { name: /Ampliar vencimiento/ }),
+      ).not.toBeInTheDocument();
+
+      // Y deja guardar sin preguntar nada.
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      const cambios = updateSimulado.mock.calls[0][1];
+      expect(cambios.abonos).toHaveLength(1);
+      expect(cambios.grupos).toBeUndefined();
     });
 
     // EL CASO QUE LO MOTIVO: el cliente pide dos dias mas para uno y se queda

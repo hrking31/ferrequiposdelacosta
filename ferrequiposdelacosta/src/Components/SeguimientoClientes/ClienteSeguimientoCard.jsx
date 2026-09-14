@@ -1515,6 +1515,7 @@ export default function ClienteSeguimientoCard({
       />
 
       <AbonoDialog
+        pedirAcuerdo
         open={abonoOpen}
         onClose={() => setAbonoOpen(false)}
         cliente={cliente}
