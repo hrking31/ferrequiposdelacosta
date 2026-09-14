@@ -584,7 +584,6 @@ export default function ClienteSeguimientoCard({
     return [
       casillaEquipo,
       casillaVence,
-      casillaVencidos,
       {
         clave: "estado",
         Icono: iconoDeSituacion(situacion),
@@ -611,6 +610,7 @@ export default function ClienteSeguimientoCard({
         envolver: true,
         color: colorDeSituacion(situacion),
       },
+      casillaVencidos,
     ];
   };
 
