@@ -650,3 +650,33 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       return a.fecha < b.fecha ? -1 : 1;
     });
 };
+
+// ── LO ÚLTIMO QUE SE PACTÓ POR ESTE EQUIPO ─────────────────────────────
+//
+// Cartera no pregunta por la historia del equipo, pregunta a quién llamar
+// hoy. Y antes de marcar el número hace falta saber si ya se habló: quien no
+// lo sabe le reclama al cliente un equipo que él mismo le autorizó la semana
+// pasada.
+//
+// Solo lo que es DEL EQUIPO —los días que se le dieron, que quedó sin fecha—.
+// La llamada y el WhatsApp son del CLIENTE: se pregunta por todo lo que tiene
+// afuera, no por un equipo, y por eso se leen una sola vez arriba, en la
+// gestión de la factura.
+//
+// El devuelto no lleva nada: ya no hay nada que acordarle.
+export const ultimoAcuerdoEquipo = (equipo) => {
+  if (estaDevuelto(equipo)) return null;
+
+  // Sin fecha de entrega manda sobre la última ampliación: es el acuerdo que
+  // está vigente, y el que explica por qué este equipo no tiene fecha.
+  const indefinida = indefinidaDe(equipo);
+  if (indefinida?.activa && indefinida.desde) {
+    return { fecha: indefinida.desde, texto: "Quedó sin fecha de entrega" };
+  }
+
+  const ampliaciones = ampliacionesDe(equipo);
+  const ultima = ampliaciones[ampliaciones.length - 1];
+  if (!ultima?.fecha) return null;
+
+  return { fecha: ultima.fecha, texto: `Se le dieron ${enDias(ultima.dias)}` };
+};

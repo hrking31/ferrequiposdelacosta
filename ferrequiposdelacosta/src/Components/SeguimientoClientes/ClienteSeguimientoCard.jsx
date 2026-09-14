@@ -50,8 +50,9 @@ import {
   COLOR_ENTREGA_INDEFINIDA,
   cubiertoHasta,
   sinFechaDeEntrega,
+  ultimoAcuerdoEquipo,
 } from "../ClienteDetalle/facturaUtils";
-import ChipsFechasEquipo from "../ClienteDetalle/ChipsFechasEquipo";
+import PlazoEquipo from "./PlazoEquipo";
 import {
   casillasDeCuenta,
   iconBtnSx,
@@ -370,9 +371,28 @@ export default function ClienteSeguimientoCard({
     },
   });
 
-  // Tarjeta de un equipo: cantidad y nombre arriba, y abajo los datos como
-  // chips. Si ya se le amplió el vencimiento, la fecha original aparece
-  // marcada como "Vencido"; la vigente va aparte, según en qué situación está.
+  // Lo último que se pactó por ESTE equipo, cuando lo hubo. Va debajo del
+  // plazo y en gris: no es una urgencia, es el antecedente que evita
+  // reclamarle al cliente algo que ya se le concedió.
+  const renderUltimoAcuerdo = (equipo) => {
+    const acuerdo = ultimoAcuerdoEquipo(equipo);
+    if (!acuerdo) return null;
+
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+        {acuerdo.texto} el {formatearFecha(acuerdo.fecha)}
+      </Typography>
+    );
+  };
+
+  // Tarjeta de un equipo: cantidad y nombre arriba, y abajo lo único que hace
+  // falta para llamar al cliente —hasta cuándo lo tenía, cuánto lleva de más y
+  // qué se le pactó la última vez—.
+  //
+  // Antes iba acá la historia entera del equipo en chips: cuándo salió, a qué
+  // precio, los vencimientos por los que pasó y lo que costó cada tramo. Eso
+  // contesta "¿cómo llegamos hasta acá?", que es la pregunta de la ficha del
+  // cliente. Cartera pregunta otra cosa: a quién llamo hoy.
   const renderEquipo = (equipo, key, situacion) => {
     // El recuadro entero lleva el color de la URGENCIA, el mismo del rótulo
     // de su grupo: rojo lo vencido, ámbar lo que vence hoy, gris lo que
@@ -403,7 +423,8 @@ export default function ClienteSeguimientoCard({
           </Typography>
         </Stack>
 
-        <ChipsFechasEquipo equipo={equipo} hoy={hoy} />
+        <PlazoEquipo equipo={equipo} hoy={hoy} />
+        {renderUltimoAcuerdo(equipo)}
       </Box>
     );
   };

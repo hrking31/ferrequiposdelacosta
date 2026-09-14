@@ -14,8 +14,10 @@ import {
   agruparChipsFechas,
   describirFechasEquipo,
   historialEquipo,
+  ultimoAcuerdoEquipo,
 } from "./facturaPresentacion";
 import {
+  unaAmpliacion,
   unEquipo,
   unEquipoDevuelto,
   unTramoVencido,
@@ -596,5 +598,76 @@ describe("historialEquipo", () => {
       fechaDevolucion: "2026-09-07",
     });
     expect(titulos(devuelto)).toEqual(["Salida en alquiler", "Devolución"]);
+  });
+});
+
+// Lo que cartera lee debajo del plazo, antes de llamar al cliente.
+describe("ultimoAcuerdoEquipo", () => {
+  it("al que nunca se le pactó nada no le inventa un antecedente", () => {
+    expect(ultimoAcuerdoEquipo(unEquipo())).toBeNull();
+  });
+
+  it("dice cuántos días se le dieron y qué día fue", () => {
+    const equipo = unEquipo({
+      ampliaciones: [unaAmpliacion({ fecha: "2026-08-19", dias: 3 })],
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo)).toEqual({
+      fecha: "2026-08-19",
+      texto: "Se le dieron 3 días",
+    });
+  });
+
+  it("un solo día se lee en singular", () => {
+    const equipo = unEquipo({
+      ampliaciones: [unaAmpliacion({ fecha: "2026-08-19", dias: 1 })],
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo).texto).toBe("Se le dieron 1 día");
+  });
+
+  it("con varias prórrogas muestra la última, no la primera", () => {
+    const equipo = unEquipo({
+      ampliaciones: [
+        unaAmpliacion({ fecha: "2026-08-19", dias: 3 }),
+        unaAmpliacion({ fecha: "2026-08-23", dias: 5 }),
+      ],
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo)).toEqual({
+      fecha: "2026-08-23",
+      texto: "Se le dieron 5 días",
+    });
+  });
+
+  // El acuerdo vigente manda: es el que explica por qué este equipo no tiene
+  // fecha, y reclamarle una sería reclamarle algo que se le concedió.
+  it("sin fecha de entrega manda sobre la prórroga anterior", () => {
+    const equipo = unEquipo({
+      ampliaciones: [unaAmpliacion({ fecha: "2026-08-19", dias: 3 })],
+      indefinida: { activa: true, desde: "2026-08-24", hasta: null },
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo)).toEqual({
+      fecha: "2026-08-24",
+      texto: "Quedó sin fecha de entrega",
+    });
+  });
+
+  it("la entrega indefinida que ya se cerró deja de mandar", () => {
+    const equipo = unEquipo({
+      ampliaciones: [unaAmpliacion({ fecha: "2026-08-25", dias: 2 })],
+      indefinida: { activa: false, desde: "2026-08-24", hasta: "2026-08-25" },
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo).texto).toBe("Se le dieron 2 días");
+  });
+
+  it("al equipo devuelto no le queda nada que acordar", () => {
+    const equipo = unEquipoDevuelto({
+      ampliaciones: [unaAmpliacion({ fecha: "2026-08-19", dias: 3 })],
+    });
+
+    expect(ultimoAcuerdoEquipo(equipo)).toBeNull();
   });
 });
