@@ -56,6 +56,7 @@ import {
   describirSalidaEquipo,
   calcularMoraEquipo,
   calcularEquipo,
+  equipoLlevaIva,
 } from "../ClienteDetalle/facturaUtils";
 import {
   casillasDeCuenta,
@@ -495,7 +496,13 @@ export default function ClienteSeguimientoCard({
       // Los días en el rótulo y la plata en el valor: "4 días vencidos, cuatro
       // setenta y seis" es como se dice al hablar, y deja el número de días
       // pegado a lo que cuestan.
-      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
+      //
+      // El "+ IVA" avisa que la cifra ya lo trae. Va en el rótulo y no pegado
+      // al monto a propósito: al lado del número se leería como que todavía
+      // hay que sumárselo, y son $ 476.000 en total, no $ 476.000 más IVA.
+      rotulo: vencido
+        ? `${formatearDias(diasVencidos)} vencidos${equipoLlevaIva(equipo) ? " + IVA" : ""}`
+        : "Días vencidos",
       valor: vencido ? formatearMoneda(calcularMoraEquipo(equipo, hoy)) : "—",
       color: vencido ? "error.main" : "text.secondary",
     };
@@ -565,8 +572,13 @@ export default function ClienteSeguimientoCard({
       {
         clave: "afuera",
         Icono: LocalShippingIcon,
-        rotulo: "Afuera",
-        valor: salida ? formatearDias(salida.dias) : "—",
+        // Sin rótulo: el valor ya dice qué es. Y debajo, entre qué días se
+        // contaron —de cuándo salió a hoy—, que es de dónde salen.
+        rotulo: null,
+        valor: salida ? `${formatearDias(salida.dias)} fuera` : "—",
+        extra: salida
+          ? `${formatearFecha(salida.fecha)} - ${formatearFecha(hoy)}`
+          : null,
         color: "text.secondary",
       },
     ];

@@ -281,7 +281,7 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   it("al abrir la tarjeta el equipo pasa a su ficha", async () => {
     const { usuario } = mostrar([facturaVencida]);
     expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
-    expect(screen.queryByText("Afuera")).not.toBeInTheDocument();
+    expect(screen.queryByText("20 días fuera")).not.toBeInTheDocument();
 
     await desplegarFactura(usuario);
 
@@ -289,7 +289,7 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     // lado del nombre, y las otras casillas hablan de él.
     expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
     expect(screen.getAllByText("5").length).toBeGreaterThan(0);
-    expect(screen.getByText("Afuera")).toBeInTheDocument();
+    expect(screen.getByText("20 días fuera")).toBeInTheDocument();
   });
 
   // Negociar por un equipo que lleva veinte dias en la obra no es lo mismo que
@@ -300,10 +300,10 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     await desplegarFactura(usuario);
 
     // La salida acompaña al nombre en su casilla, con su calendario al lado;
-    // los días afuera tienen la suya.
+    // los días afuera cierran la fila, con el tramo que los cuenta debajo.
     expect(screen.getByText("01/08/2026")).toBeInTheDocument();
-    expect(screen.getByText("Afuera")).toBeInTheDocument();
-    expect(screen.getByText("20 días")).toBeInTheDocument();
+    expect(screen.getByText("20 días fuera")).toBeInTheDocument();
+    expect(screen.getByText("01/08/2026 - 20/08/2026")).toBeInTheDocument();
   });
 
   // "Debe X" se discute; "el compresor solo ya va en Y" se negocia. Y va en el
