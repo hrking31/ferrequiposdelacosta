@@ -55,12 +55,12 @@ import {
   ultimoAcuerdoEquipo,
   describirSalidaEquipo,
   calcularMoraEquipo,
-  equipoLlevaIva,
+  calcularEquipo,
 } from "../ClienteDetalle/facturaUtils";
-import PlazoEquipo from "./PlazoEquipo";
 import {
   casillasDeCuenta,
   iconBtnSx,
+  renderFilaDeCasillas,
   renderPizarraTotales,
 } from "../ClienteDetalle/recuadrosCuenta";
 import {
@@ -461,36 +461,71 @@ export default function ClienteSeguimientoCard({
         ? HourglassTopIcon
         : EventIcon;
 
-  // Desde cuándo está afuera. Va arriba del plazo porque es lo primero que se
-  // pregunta al negociar: no es lo mismo un equipo que lleva catorce días en
-  // la obra que uno que salió anteayer.
-  const renderSalida = (equipo) => {
-    const salida = describirSalidaEquipo(equipo, hoy);
-    if (!salida) return null;
-
-    return (
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-        Salió el {formatearFecha(salida.fecha)} · {formatearDias(salida.dias)} afuera
-      </Typography>
-    );
-  };
-
-  // Lo que ya cuestan los días que se pasó ESTE equipo. Una cosa es decirle al
-  // cliente "debe dos millones" y otra "el compresor solo ya va en un millón":
-  // con lo segundo se negocia, con lo primero se discute.
+  // LAS CONDICIONES DEL EQUIPO, en la misma pizarra que la cuenta de la
+  // factura: cuatro casillas del mismo ancho separadas por una línea. Eran
+  // cuatro renglones de texto suelto, y con dos equipos por fila la tarjeta se
+  // leía como un párrafo en vez de como una ficha.
   //
-  // Va en el equipo, no arriba con la cuenta: el costo es de lo que lo genera,
-  // y puesto en la factura no se sabe cuál de los cinco lo está corriendo.
-  const renderMoraEquipo = (equipo) => {
-    const mora = calcularMoraEquipo(equipo, hoy);
-    if (mora <= 0) return null;
+  // Sale de `renderPizarraTotales`, la misma función que dibuja la barra de la
+  // factura: así las dos no pueden terminar distintas.
+  //
+  // La última casilla usa el RÓTULO para los días y el valor para la plata
+  // —"4 días vencidos / $ 476.000"—, que es como se dice al hablar y hace
+  // entrar los cinco datos en cuatro columnas.
+  //
+  // En el celular quedan las dos que deciden la llamada: cuatro casillas en
+  // 350 píxeles no dejan entrar una fecha.
+  const casillasDeEquipo = (equipo, situacion) => {
+    const salida = describirSalidaEquipo(equipo, hoy);
+    const { diasVencidos } = calcularEquipo(equipo, hoy);
+    const sinFecha = sinFechaDeEntrega(equipo);
+    const vencido = diasVencidos > 0;
 
-    return (
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-        Días vencidos: {formatearMoneda(mora)}
-        {equipoLlevaIva(equipo) ? " con IVA" : ""}
-      </Typography>
-    );
+    const casillaVence = {
+      clave: "vence",
+      Icono: sinFecha ? HourglassTopIcon : vencido ? EventBusyIcon : EventIcon,
+      rotulo: sinFecha ? "Entrega" : "Vence",
+      valor: sinFecha ? "Sin fecha" : formatearFecha(cubiertoHasta(equipo)) || "—",
+      color: vencido ? "error.main" : "text.secondary",
+    };
+
+    const casillaVencidos = {
+      clave: "vencidos",
+      Icono: AttachMoneyIcon,
+      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
+      valor: vencido ? formatearMoneda(calcularMoraEquipo(equipo, hoy)) : "—",
+      color: vencido ? "error.main" : "text.secondary",
+    };
+
+    // El equipo ABRE la ficha, como el nombre abre cualquier renglon: se lee
+    // primero y el resto de las casillas hablan de él. Lleva el ícono de su
+    // situación y la cantidad pegada al nombre, que es como se nombra un
+    // equipo al hablar: "los 5 andamios".
+    const casillaEquipo = {
+      clave: "equipo",
+      Icono: iconoDeSituacion(situacion),
+      rotulo: "Equipo",
+      valor: `${equipo.cantidadEquipos} ${equipo.nombre}`,
+      color: colorDeSituacion(situacion),
+      envolver: true,
+    };
+
+    if (esMovil) return [casillaEquipo, casillaVencidos];
+
+    return [
+      casillaEquipo,
+      {
+        clave: "salio",
+        // El rótulo lleva los días que lleva afuera y el valor la fecha: de
+        // otro modo no entraban los cinco datos en cuatro columnas.
+        Icono: LocalShippingIcon,
+        rotulo: salida ? `Salió hace ${formatearDias(salida.dias)}` : "Salió",
+        valor: salida ? formatearFecha(salida.fecha) : "—",
+        color: "text.secondary",
+      },
+      casillaVence,
+      casillaVencidos,
+    ];
   };
 
   const renderEquipo = (equipo, key, situacion) => {
@@ -498,21 +533,9 @@ export default function ClienteSeguimientoCard({
 
     return (
       <Box key={key} sx={recuadroDeBloque(color)}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <Chip
-            variant="meta"
-            label={equipo.cantidadEquipos}
-            size="small"
-            sx={{ fontWeight: "bold", flexShrink: 0, color: "custom.accent" }}
-          />
-          <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, minWidth: 0 }}>
-            {equipo.nombre}
-          </Typography>
-        </Stack>
-
-        {renderSalida(equipo)}
-        <PlazoEquipo equipo={equipo} hoy={hoy} />
-        {renderMoraEquipo(equipo)}
+        {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion), {
+          colorDivisor: color,
+        })}
         {renderUltimoAcuerdo(equipo)}
       </Box>
     );

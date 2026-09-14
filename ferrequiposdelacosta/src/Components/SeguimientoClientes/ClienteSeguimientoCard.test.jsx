@@ -156,6 +156,12 @@ const facturaConMora = facturaCon({
   ],
 });
 
+// Se le acaba el plazo HOY: entra a cartera para poder avisarle, pero
+// todavia no le corre ni un dia de mora.
+const facturaQueVenceHoy = facturaCon({
+  equipos: [andamio({ dias: 20 })],
+});
+
 // Cuatro equipos vencidos: uno mas de los que entran en el renglon de la
 // tarjeta plegada.
 const facturaConCuatroEquipos = facturaCon({
@@ -270,42 +276,51 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText("y 1 más")).toBeInTheDocument();
   });
 
-  // Abierta, cada equipo tiene su recuadro: repetir la lista arriba seria
-  // decir dos veces lo mismo.
-  it("al abrir la tarjeta el renglon de equipos se va", async () => {
+  // Abierta, el equipo pasa a su ficha de cuatro columnas: el chip de arriba
+  // se va y el nombre reaparece en la primera casilla.
+  it("al abrir la tarjeta el equipo pasa a su ficha", async () => {
     const { usuario } = mostrar([facturaVencida]);
     expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+    expect(screen.queryByText("Equipo")).not.toBeInTheDocument();
 
     await desplegarFactura(usuario);
 
-    expect(screen.queryByText("5 ANDAMIO")).not.toBeInTheDocument();
+    expect(screen.getByText("Equipo")).toBeInTheDocument();
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
   });
 
   // Negociar por un equipo que lleva veinte dias en la obra no es lo mismo que
-  // por uno que salio anteayer, y el plazo solo no lo dice.
+  // por uno que salio anteayer, y el plazo solo no lo dice. Son dos de las
+  // cuatro casillas de sus condiciones.
   it("dice desde cuando esta afuera cada equipo", async () => {
     const { usuario } = mostrar([facturaVencida]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText(/Salió el 01\/08\/2026/)).toBeInTheDocument();
-    expect(screen.getByText(/20 días afuera/)).toBeInTheDocument();
+    expect(screen.getByText("Salió hace 20 días")).toBeInTheDocument();
+    expect(screen.getByText("01/08/2026")).toBeInTheDocument();
   });
 
   // "Debe X" se discute; "el compresor solo ya va en Y" se negocia. Y va en el
   // equipo que lo genera: arriba, con la cuenta, no se sabria cual de los
   // cinco esta corriendo esa plata.
+  // La casilla usa el rotulo para los dias y el valor para la plata, que es
+  // como se dice al hablar: "17 dias vencidos, un millon setecientos".
   it("cada equipo dice cuanto cuestan sus dias vencidos", async () => {
     const { usuario } = mostrar([facturaConMora]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText(/Días vencidos: .* con IVA/)).toBeInTheDocument();
+    // 5 andamios a $20.000 por 17 dias, con IVA.
+    expect(screen.getByText(/2\.023\.000/)).toBeInTheDocument();
   });
 
-  it("el equipo sin dias vencidos no muestra ese renglon", async () => {
-    const { usuario } = mostrar([facturaRenovada]);
+  // Al que se le acaba el plazo hoy no se le cobra nada todavia, y su casilla
+  // queda con una raya: la ficha tiene siempre las mismas cuatro columnas.
+  it("al que vence hoy no le inventa dias vencidos", async () => {
+    const { usuario } = mostrar([facturaQueVenceHoy]);
     await desplegarFactura(usuario);
 
-    expect(screen.queryByText(/Días vencidos:/)).not.toBeInTheDocument();
+    expect(screen.getByText("Días vencidos")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
   it("sin un teléfono usable no ofrece escribirle: no hay a dónde", () => {

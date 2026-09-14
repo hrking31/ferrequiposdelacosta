@@ -245,10 +245,68 @@ export const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
   ];
 };
 
-// La pizarra en sí: casillas del mismo ancho separadas por una línea
-// vertical, sobre el fondo oscuro fijo del tema (se lee igual de día que de
-// noche). El `sx` que se le pase se suma al de acá, para acomodarla en el
-// hueco de cada pantalla.
+// LA FILA DE CASILLAS: todas del mismo ancho, separadas por una línea
+// vertical. Es el dibujo, sin fondo: lo usan la pizarra oscura de la cuenta y
+// las condiciones de cada equipo en cartera, que van sobre el recuadro de su
+// color.
+//
+// `colorDivisor` y el color de cada casilla los pone quien llama, porque no es
+// lo mismo escribir sobre el panel oscuro que sobre el fondo de la tarjeta.
+export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
+  <Stack
+    direction="row"
+    sx={{ minWidth: 0 }}
+    // El divisor lleva margen arriba y abajo para no llegar a los bordes.
+    divider={
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ my: 0.5, borderColor: colorDivisor, opacity: 0.25 }}
+      />
+    }
+  >
+    {casillas.map(({ clave, Icono, rotulo, valor, color, envolver }) => (
+      <Box
+        key={clave}
+        // Todas las casillas miden lo mismo.
+        sx={{ flex: 1, minWidth: 0, color, px: 0.75 }}
+      >
+        {/* El icono queda a la izquierda, alineado con el rotulo; como es
+            mas alto que las dos lineas, ocupa el espacio que sobra abajo. El
+            rotulo y el valor arrancan en el mismo punto. */}
+        <Stack
+          direction="row"
+          alignItems="flex-start"
+          gap={0.75}
+          sx={{ minWidth: 0 }}
+        >
+          <Icono fontSize="small" sx={{ flexShrink: 0 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="rotuloDato">{rotulo}</Typography>
+            {/* Un valor de siete cifras no entra en un cuarto del hueco y se
+                montaba sobre el de al lado: achica en pantallas medianas. */}
+            {/* Las cifras van en un solo renglón; un nombre de equipo, no:
+                "TABLÓN DE MADERA PARA ANDAMIO" no entra en un cuarto del
+                hueco y cortado no se reconoce. */}
+            <Typography
+              variant="valorDato"
+              sx={{
+                whiteSpace: envolver ? "normal" : "nowrap",
+                fontSize: { lg: "1rem" },
+              }}
+            >
+              {valor}
+            </Typography>
+          </Box>
+        </Stack>
+      </Box>
+    ))}
+  </Stack>
+);
+
+// La pizarra de la cuenta: la misma fila, sobre el fondo oscuro fijo del tema
+// (se lee igual de día que de noche). El `sx` que se le pase se suma al de
+// acá, para acomodarla en el hueco de cada pantalla.
 export const renderPizarraTotales = (casillas, sx) => (
   <Paper
     variant="totales"
@@ -263,51 +321,6 @@ export const renderPizarraTotales = (casillas, sx) => (
       ...sx,
     }}
   >
-    <Stack
-      direction="row"
-      sx={{ minWidth: 0 }}
-      // El divisor lleva margen arriba y abajo para no llegar a los bordes de
-      // la tarjeta.
-      divider={
-        <Divider
-          orientation="vertical"
-          flexItem
-          sx={{ my: 0.5, borderColor: "custom.panelText", opacity: 0.25 }}
-        />
-      }
-    >
-      {casillas.map(({ clave, Icono, rotulo, valor, color }) => (
-        <Box
-          key={clave}
-          // Todas las casillas miden lo mismo.
-          sx={{ flex: 1, minWidth: 0, color, px: 0.75 }}
-        >
-          {/* El icono queda a la izquierda, alineado con el rotulo; como es
-              mas alto que las dos lineas, ocupa el espacio que sobra abajo. El
-              rotulo y el valor arrancan en el mismo punto. */}
-          <Stack
-            direction="row"
-            alignItems="flex-start"
-            gap={0.75}
-            sx={{ minWidth: 0 }}
-          >
-            <Icono fontSize="small" sx={{ flexShrink: 0 }} />
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="rotuloDato">{rotulo}</Typography>
-              {/* Un valor de siete cifras no entra en un cuarto del hueco y se
-                  montaba sobre el de al lado: achica en pantallas medianas.
-                  Estas son las cifras principales de la cuenta, un punto más
-                  grandes que las de un recuadro. */}
-              <Typography
-                variant="valorDato"
-                sx={{ whiteSpace: "nowrap", fontSize: { lg: "1rem" } }}
-              >
-                {valor}
-              </Typography>
-            </Box>
-          </Stack>
-        </Box>
-      ))}
-    </Stack>
+    {renderFilaDeCasillas(casillas, { colorDivisor: "custom.panelText" })}
   </Paper>
 );
