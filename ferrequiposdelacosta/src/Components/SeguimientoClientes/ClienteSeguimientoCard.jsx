@@ -24,6 +24,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 // equipo se lea igual en las dos pantallas.
 import EventIcon from "@mui/icons-material/Event";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
+import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 // Ojo: es "Return", no "Returned". El que termina en "-ed" es un ícono
 // distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
 // registrar una devolución en ninguna otra parte de la app.
@@ -424,6 +425,17 @@ export default function ClienteSeguimientoCard({
           ? colorIndefinido
           : theme.palette.text.secondary;
 
+  // Y su ícono, el mismo que encabeza su grupo al abrir la factura: calendario
+  // tachado lo vencido, calendario lo que vence hoy. El reloj de arena es de
+  // la entrega indefinida y solo de ella —no tiene fecha: no hay día que
+  // dibujar, se está esperando el aviso del cliente—.
+  const iconoDeSituacion = (situacion) =>
+    situacion === "vencido"
+      ? EventBusyIcon
+      : situacion === "indefinido"
+        ? HourglassTopIcon
+        : EventIcon;
+
   // Desde cuándo está afuera. Va arriba del plazo porque es lo primero que se
   // pregunta al negociar: no es lo mismo un equipo que lleva catorce días en
   // la obra que uno que salió anteayer.
@@ -680,12 +692,25 @@ export default function ClienteSeguimientoCard({
           <Typography variant="subtitle1" fontWeight="bold">
             {obtenerNombreCompleto(cliente)}
           </Typography>
-          {telefonoValido ? (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Typography variant="caption" color="text.secondary">
-                {cliente.telefono}
-              </Typography>
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ ml: 0.5 }}>
+          {cliente.telefono && (
+            <Typography variant="caption" color="text.secondary">
+              {cliente.telefono}
+            </Typography>
+          )}
+        </Box>
+
+        {/* LOS DOS BOTONES DE CONTACTO, arriba a la derecha. Iban pegados al
+            teléfono, debajo del nombre: ahí quedaban a merced del largo del
+            número y de la razón social. En la esquina caen siempre en el
+            mismo lugar, que es donde la mano los va a buscar cuando hay una
+            lista de clientes. */}
+        {telefonoValido && (
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            sx={{ ml: "auto", flexShrink: 0 }}
+          >
                 <Tooltip title="Escribir por WhatsApp">
                   <IconButton
                     size="small"
@@ -726,16 +751,8 @@ export default function ClienteSeguimientoCard({
                     <PhoneIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Tooltip>
-              </Stack>
-            </Stack>
-          ) : (
-            cliente.telefono && (
-              <Typography variant="caption" color="text.secondary">
-                {cliente.telefono}
-              </Typography>
-            )
-          )}
-        </Box>
+          </Stack>
+        )}
       </Stack>
 
       <Box sx={{ position: "relative" }}>
@@ -1045,26 +1062,25 @@ export default function ClienteSeguimientoCard({
 
                 {equiposEnCartera
                   .slice(0, MAX_EQUIPOS_PLEGADA)
-                  .map(({ equipo, situacion }, indice) => (
-                    <Stack
-                      key={`afuera-${indice}`}
-                      direction="row"
-                      alignItems="center"
-                      sx={{ gap: 0.75 }}
-                    >
-                      {indice > 0 && (
-                        <Typography variant="body2" color="text.secondary" aria-hidden>
-                          ·
-                        </Typography>
-                      )}
-                      <Typography
-                        variant="body2"
-                        sx={{ color: colorDeSituacion(situacion) }}
-                      >
-                        {equipo.cantidadEquipos} {equipo.nombre}
-                      </Typography>
-                    </Stack>
-                  ))}
+                  .map(({ equipo, situacion }, indice) => {
+                    const color = colorDeSituacion(situacion);
+                    const IconoSituacion = iconoDeSituacion(situacion);
+
+                    return (
+                      <Chip
+                        key={`afuera-${indice}`}
+                        size="small"
+                        variant="estadoCompacto"
+                        icon={<IconoSituacion />}
+                        label={`${equipo.cantidadEquipos} ${equipo.nombre}`}
+                        sx={{
+                          bgcolor: color,
+                          color: theme.palette.getContrastText(color),
+                          "& .MuiChip-icon": { color: "inherit" },
+                        }}
+                      />
+                    );
+                  })}
 
                 {equiposEnCartera.length > MAX_EQUIPOS_PLEGADA && (
                   <Typography variant="body2" color="text.secondary">

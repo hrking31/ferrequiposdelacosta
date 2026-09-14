@@ -48,7 +48,7 @@ import {
   cubiertoHasta,
   calcularVencimiento,
 } from "./facturaCuentas";
-import { unEquipo, unTramoVencido, unaFactura } from "../../test/facturas";
+import { unEquipo, unTramoVencido } from "../../test/facturas";
 import { GRUPO_INICIAL } from "./facturaModelo";
 
 // Casi todas estas funciones reciben la fecha de hoy como parámetro: así
