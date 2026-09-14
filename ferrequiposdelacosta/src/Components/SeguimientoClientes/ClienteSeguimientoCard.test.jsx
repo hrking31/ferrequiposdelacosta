@@ -337,8 +337,8 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     const { usuario } = mostrar([facturaQueVenceHoy]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText("Días vencidos")).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("0 días vencidos")).toBeInTheDocument();
+    expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
 
   // Al que quedo sin fecha no se le puede decir "vencia el 10": lo que hay que

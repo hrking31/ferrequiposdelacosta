@@ -501,7 +501,9 @@ export default function ClienteSeguimientoCard({
       // Los días en el rótulo y la plata en el valor: "4 días vencidos, cuatro
       // cientos mil" es como se dice al hablar, y deja el número de días
       // pegado a lo que cuestan.
-      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
+      // Al que se le acaba el plazo HOY le dice "0 días vencidos": ese día
+      // todavía está pagado y no debe nada de más: la mora le empieza mañana.
+      rotulo: `${formatearDias(diasVencidos)} vencidos`,
       // La cifra va SIN IVA y el "+ IVA" al lado, que es como se cotiza: el
       // impuesto se suma al final, sobre el total de la factura.
       valor: vencido ? (
@@ -517,7 +519,10 @@ export default function ClienteSeguimientoCard({
           )}
         </Box>
       ) : (
-        "—"
+        // Sin plata que mostrar, la casilla queda en blanco: una raya se lee
+        // como que el dato falta, y acá lo que pasa es que no hay nada que
+        // cobrar todavía.
+        ""
       ),
       color: vencido ? "error.main" : "text.secondary",
     };
