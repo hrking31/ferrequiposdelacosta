@@ -835,13 +835,22 @@ export default function ClienteSeguimientoCard({
             Stack le escribe a cada hijo su propio margen izquierdo y gana por
             especificidad: el auto no llega a aplicarse nunca. */}
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
+          {/* El nombre en el acento: es el titular de la tarjeta y lo que se
+              busca al recorrer la lista, igual que en la ficha del cliente. */}
+          <Typography
+            variant="subtitle1"
+            fontWeight="bold"
+            sx={{ color: "custom.accent" }}
+          >
             {obtenerNombreCompleto(cliente)}
           </Typography>
           {cliente.telefono && (
-            <Typography variant="caption" color="text.secondary">
-              {cliente.telefono}
-            </Typography>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+              <Typography variant="caption" color="text.secondary">
+                {cliente.telefono}
+              </Typography>
+            </Stack>
           )}
         </Box>
 
