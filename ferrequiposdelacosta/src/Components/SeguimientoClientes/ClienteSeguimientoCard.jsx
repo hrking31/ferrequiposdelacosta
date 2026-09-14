@@ -53,9 +53,10 @@ import {
   cubiertoHasta,
   sinFechaDeEntrega,
   indefinidaDe,
-  ultimoAcuerdoEquipo,
+  tramoVencidoAbierto,
+  calcularVencimiento,
+  calcularFechaDevolucion,
   describirSalidaEquipo,
-  calcularMoraEquipo,
   calcularEquipo,
   equipoLlevaIva,
 } from "../ClienteDetalle/facturaUtils";
@@ -387,37 +388,13 @@ export default function ClienteSeguimientoCard({
     },
   });
 
-  // Lo último que se pactó por ESTE equipo, cuando lo hubo. Va debajo del
-  // plazo y en gris: no es una urgencia, es el antecedente que evita
-  // reclamarle al cliente algo que ya se le concedió.
-  const renderUltimoAcuerdo = (equipo) => {
-    const acuerdo = ultimoAcuerdoEquipo(equipo);
-    if (!acuerdo) return null;
-
-    return (
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-        {acuerdo.texto} el {formatearFecha(acuerdo.fecha)}
-      </Typography>
-    );
-  };
-
-  // Tarjeta de un equipo: cantidad y nombre arriba, y abajo lo único que hace
-  // falta para llamar al cliente —hasta cuándo lo tenía, cuánto lleva de más y
-  // qué se le pactó la última vez—.
-  //
-  // Antes iba acá la historia entera del equipo en chips: cuándo salió, a qué
-  // precio, los vencimientos por los que pasó y lo que costó cada tramo. Eso
-  // contesta "¿cómo llegamos hasta acá?", que es la pregunta de la ficha del
-  // cliente. Cartera pregunta otra cosa: a quién llamo hoy.
   // El color de la URGENCIA: rojo lo vencido, ámbar lo que vence hoy, gris lo
   // que todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
-  // importa más que de dónde vino el equipo —a diferencia de Detalle Cliente,
-  // donde no hay urgencias que seguir y el color sí distingue el alta de lo
-  // agregado después—.
+  // importa más que de dónde vino el equipo.
   //
-  // Lo miran el recuadro de cada equipo y el renglón de la tarjeta plegada, y
-  // tienen que pintar igual: el mismo equipo no puede ser rojo en un lado y
-  // teal en el otro.
+  // Lo miran el recuadro de cada equipo, su casilla de estado y el renglón de
+  // la tarjeta plegada, y tienen que pintar igual: el mismo equipo no puede
+  // ser rojo en un lado y teal en el otro.
   const colorDeSituacion = (situacion) =>
     situacion === "vencido"
       ? theme.palette.error.main
@@ -479,37 +456,66 @@ export default function ClienteSeguimientoCard({
   // 350 píxeles no dejan entrar una fecha.
   const casillasDeEquipo = (equipo, situacion) => {
     const salida = describirSalidaEquipo(equipo, hoy);
-    const { diasVencidos } = calcularEquipo(equipo, hoy);
-    const sinFecha = sinFechaDeEntrega(equipo);
+    const { diasVencidos, netoVencido } = calcularEquipo(equipo, hoy);
     const vencido = diasVencidos > 0;
+
+    // Desde cuándo corre lo que dice la última casilla. El tramo abierto lo
+    // sabe; si todavía no se abrió —la madrugada lo escribe recién al día
+    // siguiente— se cuenta desde el día después del último cubierto.
+    //
+    // Se mira la SITUACIÓN y no los días de mora: al que vencio ayer todavia
+    // no le corre ninguno, y aun asi ya está vencido. Es la misma cuenta que
+    // decide su grupo y su color, así que la casilla no puede decir otra cosa
+    // que el rótulo de arriba.
+    const tramoDelEstado =
+      situacion === "indefinido"
+        ? indefinidaDe(equipo).desde
+        : situacion === "vencido"
+          ? tramoVencidoAbierto(equipo)?.desde ||
+            calcularVencimiento(cubiertoHasta(equipo), 1)
+          : null;
 
     const casillaVence = {
       clave: "vence",
-      Icono: sinFecha ? HourglassTopIcon : vencido ? EventBusyIcon : EventIcon,
-      // El que quedó sin fecha no tiene un día que mostrar, así que su casilla
-      // dice el acuerdo y debajo el día en que se pactó: eso es lo que hay que
-      // recordarle al cliente —"desde el 9 quedaste de avisar"—.
-      rotulo: sinFecha ? "Entrega indefinida" : "Vence",
-      valor: sinFecha
-        ? formatearFecha(indefinidaDe(equipo).desde) || "Sin fecha"
-        : formatearFecha(cubiertoHasta(equipo)) || "—",
-      color: vencido ? "error.main" : "text.secondary",
+      Icono: EventIcon,
+      // El vencimiento del ALTA: con qué fecha se despachó el equipo. Lo que
+      // pasó después —que se venció, o que quedó sin fecha— lo cuenta la
+      // última casilla, con su estado y su tramo.
+      rotulo: "Vence",
+      valor:
+        formatearFecha(
+          calcularFechaDevolucion(
+            equipo?.fechaDespacho,
+            Number(equipo?.diasAlquilados) || 0,
+          ),
+        ) || "—",
+      color: "text.secondary",
     };
 
     const casillaVencidos = {
       clave: "vencidos",
       Icono: AttachMoneyIcon,
       // Los días en el rótulo y la plata en el valor: "4 días vencidos, cuatro
-      // setenta y seis" es como se dice al hablar, y deja el número de días
+      // cientos mil" es como se dice al hablar, y deja el número de días
       // pegado a lo que cuestan.
-      //
-      // El "+ IVA" avisa que la cifra ya lo trae. Va en el rótulo y no pegado
-      // al monto a propósito: al lado del número se leería como que todavía
-      // hay que sumárselo, y son $ 476.000 en total, no $ 476.000 más IVA.
-      rotulo: vencido
-        ? `${formatearDias(diasVencidos)} vencidos${equipoLlevaIva(equipo) ? " + IVA" : ""}`
-        : "Días vencidos",
-      valor: vencido ? formatearMoneda(calcularMoraEquipo(equipo, hoy)) : "—",
+      rotulo: vencido ? `${formatearDias(diasVencidos)} vencidos` : "Días vencidos",
+      // La cifra va SIN IVA y el "+ IVA" al lado, que es como se cotiza: el
+      // impuesto se suma al final, sobre el total de la factura.
+      valor: vencido ? (
+        <Box component="span">
+          {formatearMoneda(netoVencido)}
+          {equipoLlevaIva(equipo) && (
+            <Box
+              component="span"
+              sx={{ fontSize: "0.72rem", fontWeight: 400, opacity: 0.85 }}
+            >
+              {" + IVA"}
+            </Box>
+          )}
+        </Box>
+      ) : (
+        "—"
+      ),
       color: vencido ? "error.main" : "text.secondary",
     };
 
@@ -558,7 +564,7 @@ export default function ClienteSeguimientoCard({
                   opacity: 0.85,
                 }}
               >
-                <EventIcon sx={{ fontSize: 14 }} />
+                <LocalShippingIcon sx={{ fontSize: 14 }} />
                 {/* Con qué salió: el día y los días que se le contrataron. Ese
                     plazo del alta no se toca nunca —las prórrogas se anotan
                     aparte—, así que dice con qué se despachó el equipo, no en
@@ -580,16 +586,30 @@ export default function ClienteSeguimientoCard({
       casillaVence,
       casillaVencidos,
       {
-        clave: "afuera",
-        Icono: LocalShippingIcon,
-        // Sin rótulo: el valor ya dice qué es. Y debajo, entre qué días se
-        // contaron —de cuándo salió a hoy—, que es de dónde salen.
+        clave: "estado",
+        Icono: iconoDeSituacion(situacion),
+        // El estado con su tramo debajo: desde cuándo lo está y hasta hoy. En
+        // el vencido, desde el día en que empezó a correr la mora; en el que
+        // quedó sin fecha, desde el día en que se pactó.
         rotulo: null,
-        valor: salida ? `${formatearDias(salida.dias)} fuera` : "—",
-        extra: salida
-          ? `${formatearFecha(salida.fecha)} - ${formatearFecha(hoy)}`
-          : null,
-        color: "text.secondary",
+        valor:
+          situacion === "indefinido"
+            ? "Entrega indefinida"
+            : situacion === "vencido"
+              ? "Vencido"
+              : "Vence hoy",
+        // El que quedó sin fecha lleva solo el día en que se pactó: no hay un
+        // "hasta" que contar, justamente porque no tiene fecha. El vencido sí:
+        // desde que empezó a correr la mora hasta hoy.
+        extra: !tramoDelEstado
+          ? null
+          : situacion === "indefinido"
+            ? formatearFecha(tramoDelEstado)
+            : `${formatearFecha(tramoDelEstado)} - ${formatearFecha(hoy)}`,
+        // "Entrega indefinida" no entra en un cuarto del hueco: baja de
+        // línea en vez de cortarse a la mitad.
+        envolver: true,
+        color: colorDeSituacion(situacion),
       },
     ];
   };
@@ -602,7 +622,6 @@ export default function ClienteSeguimientoCard({
         {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion), {
           colorDivisor: color,
         })}
-        {renderUltimoAcuerdo(equipo)}
       </Box>
     );
   };

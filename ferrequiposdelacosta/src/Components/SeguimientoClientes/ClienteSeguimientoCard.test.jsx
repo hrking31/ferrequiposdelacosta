@@ -289,7 +289,7 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   it("al abrir la tarjeta el equipo pasa a su ficha", async () => {
     const { usuario } = mostrar([facturaVencida]);
     expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
-    expect(screen.queryByText("20 días fuera")).not.toBeInTheDocument();
+    expect(screen.queryByText("Vencido")).not.toBeInTheDocument();
 
     await desplegarFactura(usuario);
 
@@ -297,7 +297,7 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     // lado del nombre, y las otras casillas hablan de él.
     expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
     expect(screen.getAllByText("5").length).toBeGreaterThan(0);
-    expect(screen.getByText("20 días fuera")).toBeInTheDocument();
+    expect(screen.getByText("Vencido")).toBeInTheDocument();
   });
 
   // Negociar por un equipo que lleva veinte dias en la obra no es lo mismo que
@@ -311,8 +311,9 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     // los días afuera cierran la fila, con el tramo que los cuenta debajo.
     // Con que salió: el día y los días que se le contrataron.
     expect(screen.getByText("01/08/2026 · 3 días")).toBeInTheDocument();
-    expect(screen.getByText("20 días fuera")).toBeInTheDocument();
-    expect(screen.getByText("01/08/2026 - 20/08/2026")).toBeInTheDocument();
+    expect(screen.getByText("Vencido")).toBeInTheDocument();
+    // La mora arrancó el 04, al día siguiente de su plazo, y corre hasta hoy.
+    expect(screen.getByText("04/08/2026 - 20/08/2026")).toBeInTheDocument();
   });
 
   // "Debe X" se discute; "el compresor solo ya va en Y" se negocia. Y va en el
@@ -324,8 +325,10 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     const { usuario } = mostrar([facturaConMora]);
     await desplegarFactura(usuario);
 
-    // 5 andamios a $20.000 por 17 dias, con IVA.
-    expect(screen.getByText(/2\.023\.000/)).toBeInTheDocument();
+    // 5 andamios a $20.000 por 17 dias. La cifra va sin IVA, con el "+ IVA"
+    // al lado, que es como se cotiza.
+    expect(screen.getByText(/1\.700\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/\+ IVA/)).toBeInTheDocument();
   });
 
   // Al que se le acaba el plazo hoy no se le cobra nada todavia, y su casilla
@@ -345,6 +348,7 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     await desplegarFactura(usuario);
 
     expect(screen.getByText("Entrega indefinida")).toBeInTheDocument();
+    // Sin un "hasta" que contar: justamente no tiene fecha.
     expect(screen.getByText("10/08/2026")).toBeInTheDocument();
   });
 
