@@ -52,6 +52,7 @@ import {
   COLOR_ENTREGA_INDEFINIDA,
   cubiertoHasta,
   sinFechaDeEntrega,
+  indefinidaDe,
   ultimoAcuerdoEquipo,
   describirSalidaEquipo,
   calcularMoraEquipo,
@@ -485,8 +486,13 @@ export default function ClienteSeguimientoCard({
     const casillaVence = {
       clave: "vence",
       Icono: sinFecha ? HourglassTopIcon : vencido ? EventBusyIcon : EventIcon,
-      rotulo: sinFecha ? "Entrega" : "Vence",
-      valor: sinFecha ? "Sin fecha" : formatearFecha(cubiertoHasta(equipo)) || "—",
+      // El que quedó sin fecha no tiene un día que mostrar, así que su casilla
+      // dice el acuerdo y debajo el día en que se pactó: eso es lo que hay que
+      // recordarle al cliente —"desde el 9 quedaste de avisar"—.
+      rotulo: sinFecha ? "Entrega indefinida" : "Vence",
+      valor: sinFecha
+        ? formatearFecha(indefinidaDe(equipo).desde) || "Sin fecha"
+        : formatearFecha(cubiertoHasta(equipo)) || "—",
       color: vencido ? "error.main" : "text.secondary",
     };
 

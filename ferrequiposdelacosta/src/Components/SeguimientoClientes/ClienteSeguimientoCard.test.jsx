@@ -162,6 +162,14 @@ const facturaQueVenceHoy = facturaCon({
   equipos: [andamio({ dias: 20 })],
 });
 
+// El cliente se lo quedo y avisara: no hay fecha que mostrar, pero si el dia
+// en que se pacto.
+const facturaSinFechaDeEntrega = facturaCon({
+  equipos: [
+    andamio({ indefinida: { activa: true, desde: "2026-08-10", hasta: null } }),
+  ],
+});
+
 // Cuatro equipos vencidos: uno mas de los que entran en el renglon de la
 // tarjeta plegada.
 const facturaConCuatroEquipos = facturaCon({
@@ -328,6 +336,16 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
     expect(screen.getByText("Días vencidos")).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  // Al que quedo sin fecha no se le puede decir "vencia el 10": lo que hay que
+  // recordarle es el acuerdo y desde cuando corre.
+  it("el equipo sin fecha de entrega dice cuando se pacto", async () => {
+    const { usuario } = mostrar([facturaSinFechaDeEntrega]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText("Entrega indefinida")).toBeInTheDocument();
+    expect(screen.getByText("10/08/2026")).toBeInTheDocument();
   });
 
   it("sin un teléfono usable no ofrece escribirle: no hay a dónde", () => {
