@@ -425,6 +425,31 @@ export default function ClienteSeguimientoCard({
           ? colorIndefinido
           : theme.palette.text.secondary;
 
+  // LA MISMA CUADRÍCULA QUE LA FICHA DEL CLIENTE: dos equipos por fila en
+  // pantalla grande, uno solo en el celular. Un equipo por renglón dejaba
+  // recuadros del ancho de la pantalla para decir tres datos, y una factura de
+  // seis equipos no entraba sin scrollear.
+  //
+  // Con un solo equipo el bloque se achica a la mitad, como allá: estirarlo de
+  // lado a lado lo haría ver como si faltara algo al lado.
+  //
+  // `alignItems: start` para que cada recuadro mida lo suyo — si no, la
+  // cuadrícula los estira todos a la altura del más alto.
+  const cuadriculaDeEquipos = (cuantos) => ({
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      sm: `repeat(${Math.min(cuantos || 1, 2)}, 1fr)`,
+    },
+    gap: 1,
+    mt: 0.5,
+    alignItems: "start",
+  });
+
+  const anchoDelBloque = (cuantos) => ({
+    width: { sm: Math.min(cuantos || 1, 2) === 1 ? "calc(50% - 4px)" : "100%" },
+  });
+
   // Y su ícono, el mismo que encabeza su grupo al abrir la factura: calendario
   // tachado lo vencido, calendario lo que vence hoy. El reloj de arena es de
   // la entrega indefinida y solo de ella —no tiene fecha: no hay día que
@@ -596,6 +621,12 @@ export default function ClienteSeguimientoCard({
     hoy,
   );
 
+  // Lo que volvió DESPUÉS de vencer: eso es lo que se consiguió cobrando. Lo
+  // devuelto en plazo no entró con esta factura a Seguimiento.
+  const devueltosEnCobranza = equiposDe(factura).filter(({ equipo }) =>
+    equipoDevueltoEnCobranza(equipo),
+  );
+
   // Los mismos, en fila, para poder nombrarlos sin abrir la tarjeta.
   const equiposEnCartera = gruposEnCartera.flatMap((grupo) =>
     grupo.items.map(({ equipo }) => ({ equipo, situacion: grupo.clave })),
@@ -688,7 +719,11 @@ export default function ClienteSeguimientoCard({
             <PersonIcon sx={{ fontSize: 18 }} />
           )}
         </Avatar>
-        <Box>
+        {/* Es el que crece y empuja los botones a la esquina. No se hace al
+            revés —con un `ml: auto` en los botones— porque el `spacing` del
+            Stack le escribe a cada hijo su propio margen izquierdo y gana por
+            especificidad: el auto no llega a aplicarse nunca. */}
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             {obtenerNombreCompleto(cliente)}
           </Typography>
@@ -709,7 +744,7 @@ export default function ClienteSeguimientoCard({
             direction="row"
             spacing={1.5}
             alignItems="center"
-            sx={{ ml: "auto", flexShrink: 0 }}
+            sx={{ flexShrink: 0 }}
           >
                 <Tooltip title="Escribir por WhatsApp">
                   <IconButton
@@ -1203,7 +1238,7 @@ export default function ClienteSeguimientoCard({
                     ficha del cliente; acá solo harían preguntarse por qué
                     aparece algo que nadie tiene que devolver todavía. */}
                 {gruposEnCartera.map((grupo) => (
-                  <Box key={grupo.clave}>
+                  <Box key={grupo.clave} sx={anchoDelBloque(grupo.items.length)}>
                     {/* El encabezado dice en qué situación está el grupo, así
                         cada renglón solo necesita mostrar la fecha. Mismo
                         formato que los rótulos de sección de Detalle Cliente:
@@ -1243,11 +1278,11 @@ export default function ClienteSeguimientoCard({
                     {/* La misma separación con su rótulo que el recuadro de la
                         gestión: pegados, los tres bloques no se leían a la
                         misma altura. */}
-                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                    <Box sx={cuadriculaDeEquipos(grupo.items.length)}>
                       {grupo.items.map(({ equipo, index }) =>
                         renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
                       )}
-                    </Stack>
+                    </Box>
                   </Box>
                 ))}
 
@@ -1255,10 +1290,8 @@ export default function ClienteSeguimientoCard({
                     consiguió cobrando. Lo devuelto en plazo no entró con esta
                     factura a Seguimiento y no se muestra acá (ver
                     equipoDevueltoEnCobranza). */}
-                {equiposDe(factura).some(({ equipo }) =>
-                  equipoDevueltoEnCobranza(equipo),
-                ) && (
-                  <Box>
+                {devueltosEnCobranza.length > 0 && (
+                  <Box sx={anchoDelBloque(devueltosEnCobranza.length)}>
                     <Typography
                       variant="overline"
                       sx={{
@@ -1272,17 +1305,15 @@ export default function ClienteSeguimientoCard({
                       <AssignmentReturnIcon fontSize="small" />
                       Devuelto
                     </Typography>
-                    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                      {equiposDe(factura)
-                        .filter(({ equipo }) => equipoDevueltoEnCobranza(equipo))
-                        .map(({ equipo, grupo, indice }) =>
-                          renderEquipoDevuelto(
-                            equipo,
-                            grupo,
-                            `devuelto-${grupo.grupo}-${indice}`,
-                          ),
-                        )}
-                    </Stack>
+                    <Box sx={cuadriculaDeEquipos(devueltosEnCobranza.length)}>
+                      {devueltosEnCobranza.map(({ equipo, grupo, indice }) =>
+                        renderEquipoDevuelto(
+                          equipo,
+                          grupo,
+                          `devuelto-${grupo.grupo}-${indice}`,
+                        ),
+                      )}
+                    </Box>
                   </Box>
                 )}
               </Stack>
