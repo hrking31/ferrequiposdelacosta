@@ -624,8 +624,9 @@ export default function AbonoDialog({
                       <WarningAmberIcon fontSize="small" color="warning" />
                       <Typography variant="body2">
                         {equipos.length === 1 ? "Este equipo sigue" : "Estos equipos siguen"}{" "}
-                        con el cliente y el plazo ya terminó
-                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}.
+                        en la obra
+                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}. ¿Qué
+                        se acordó?
                       </Typography>
                     </Stack>
 
@@ -664,11 +665,11 @@ export default function AbonoDialog({
                                   checked={acuerdo.tipo === "dias"}
                                   onChange={() => elegirAcuerdo(clave, "dias")}
                                   inputProps={{
-                                    "aria-label": `Le dieron más días, ${equipo.nombre}`,
+                                    "aria-label": `Ampliar vencimiento, ${equipo.nombre}`,
                                   }}
                                   sx={{ p: 0.25 }}
                                 />
-                                <Typography variant="body2">Le dieron más días</Typography>
+                                <Typography variant="body2">Ampliar vencimiento</Typography>
                                 {/* Los días y la fecha aparecen al elegirla:
                                     sin elegir no hay nada que llenar, y el
                                     renglón se lee como los otros dos. */}
@@ -719,12 +720,12 @@ export default function AbonoDialog({
                                   disabled={yaIndefinido}
                                   onChange={() => elegirAcuerdo(clave, "indefinida")}
                                   inputProps={{
-                                    "aria-label": `Quedó sin fecha de entrega, ${equipo.nombre}`,
+                                    "aria-label": `Entrega indefinida, ${equipo.nombre}`,
                                   }}
                                   sx={{ p: 0.25 }}
                                 />
                                 <Typography variant="body2">
-                                  Quedó sin fecha de entrega
+                                  Entrega indefinida
                                 </Typography>
                               </Stack>
 
@@ -759,15 +760,13 @@ export default function AbonoDialog({
                             }))
                           }
                           inputProps={{
-                            "aria-label": `No se pactó nada, factura ${numero}`,
+                            "aria-label": `No se acordó nada, factura ${numero}`,
                           }}
                         />
                       }
                       label={
                         <Typography variant="body2">
-                          No se pactó nada por{" "}
-                          {equipos.length === 1 ? "este equipo" : "los demás"} · siguen
-                          vencidos
+                          No se acordó nada
                         </Typography>
                       }
                     />

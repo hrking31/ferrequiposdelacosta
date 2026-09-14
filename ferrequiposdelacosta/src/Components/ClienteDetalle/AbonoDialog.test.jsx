@@ -298,7 +298,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
       await usuario.click(
-        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
@@ -335,11 +335,11 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
-      expect(screen.getByText(/con el cliente y el plazo ya terminó/)).toBeInTheDocument();
+      expect(screen.getByText(/sigue en la obra/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeDisabled();
 
       await usuario.click(
-        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
 
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
@@ -354,7 +354,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
-      expect(screen.queryByText(/con el cliente y el plazo ya terminó/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/sigue en la obra/)).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
     });
 
@@ -372,7 +372,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
 
       expect(screen.queryByLabelText(/Días de plazo/)).not.toBeInTheDocument();
 
-      await usuario.click(screen.getByRole("radio", { name: /Le dieron más días/ }));
+      await usuario.click(screen.getByRole("radio", { name: /Ampliar vencimiento/ }));
 
       expect(screen.getByLabelText(/Días de plazo/)).toBeInTheDocument();
     });
@@ -384,7 +384,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("radio", { name: /Le dieron más días/ }));
+      await usuario.click(screen.getByRole("radio", { name: /Ampliar vencimiento/ }));
       await usuario.type(screen.getByLabelText(/Días de plazo/), "4");
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -441,11 +441,11 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
       await usuario.click(
-        screen.getByRole("radio", { name: /Le dieron más días, MEZCLADORA/ }),
+        screen.getByRole("radio", { name: /Ampliar vencimiento, MEZCLADORA/ }),
       );
       await usuario.type(screen.getByLabelText(/Días de plazo, MEZCLADORA/), "2");
       await usuario.click(
-        screen.getByRole("radio", { name: /Quedó sin fecha de entrega, COMPRESOR/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida, COMPRESOR/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -480,7 +480,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("checkbox", { name: /No se pactó nada/ }));
+      await usuario.click(screen.getByRole("checkbox", { name: /No se acordó nada/ }));
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
       const cambios = updateSimulado.mock.calls[0][1];
@@ -500,7 +500,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(total));
       await usuario.click(
-        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
+        screen.getByRole("radio", { name: /Entrega indefinida/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
