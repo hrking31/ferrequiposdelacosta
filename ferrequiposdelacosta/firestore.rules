@@ -103,8 +103,18 @@ service cloud.firestore {
     match /clientes/{clienteId} {
       allow read, write: if puedeGestionarClientes();
 
+      // BORRAR UNA FACTURA queda solo en manos del administrador, igual que
+      // eliminar una cotizacion o una cuenta de cobro: no se deshace y se
+      // lleva los abonos, los despachos y la historia de cada equipo.
+      //
+      // La regla es la que de verdad lo impide. En la pantalla el boton no se
+      // le muestra a nadie mas (ver FacturaCard.jsx), pero eso es comodidad:
+      // sin esta linea, cualquiera con permiso de clientes podria borrarla
+      // desde la consola del navegador. Es lo mismo que paso con las cuentas
+      // de cobro hasta el 2026-08-19.
       match /facturas/{facturaId} {
-        allow read, write: if puedeGestionarClientes();
+        allow read, create, update: if puedeGestionarClientes();
+        allow delete: if esAdministrador();
       }
     }
 

@@ -59,7 +59,10 @@ const facturaFinalizada = facturaCon({
   pagos: [{ medio: "Efectivo", monto: 300000 }],
 });
 
-const mostrar = (factura, props = {}) => {
+// Borrar una factura es solo del administrador, asi que las pruebas entran
+// como uno: con cualquier otro rol el boton del tacho no se dibuja, y eso
+// tiene su propia prueba.
+const mostrar = (factura, { rol = "administrador", ...props } = {}) => {
   const acciones = {
     onAgregarEquipo: vi.fn(),
     onRegistrarDevolucion: vi.fn(),
@@ -78,6 +81,7 @@ const mostrar = (factura, props = {}) => {
       toggleSeccion={() => {}}
       {...acciones}
     />,
+    { estadoInicial: { user: { role: rol } } },
   );
 
   return { ...utilidades, acciones };
@@ -256,6 +260,26 @@ describe("FacturaCard — lo que ya no se puede tocar", () => {
     expect(boton("AddIcon")).toBeDisabled();
     expect(boton("AssignmentReturnIcon")).toBeDisabled();
     expect(boton("EditIcon")).toBeDisabled();
+  });
+
+  // El tacho es solo del administrador: no se deshace y se lleva los abonos,
+  // los despachos y la historia de cada equipo. La regla de Firestore es la
+  // que de verdad lo impide; esconderlo evita que quien no puede lo intente.
+  it("al que no es administrador ni le muestra el boton de borrar", () => {
+    mostrar(facturaAbierta, { rol: "gestorFacturacion" });
+
+    expect(screen.queryByTestId("DeleteIcon")).not.toBeInTheDocument();
+    // Lo demas lo sigue teniendo: es su trabajo.
+    expect(boton("EditIcon")).toBeEnabled();
+  });
+
+  // La finalizada SI se puede borrar aunque tenga movimientos: ya no hay nada
+  // abierto —los equipos volvieron y la plata esta saldada— y lo que queda es
+  // un registro que el administrador puede decidir que sobra.
+  it("la finalizada se puede borrar aunque tenga historia", () => {
+    mostrar(facturaFinalizada);
+
+    expect(boton("DeleteIcon")).toBeEnabled();
   });
 
   it("una factura con un abono ya no se borra de un clic", () => {

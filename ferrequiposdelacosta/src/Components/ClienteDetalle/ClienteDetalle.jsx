@@ -44,6 +44,7 @@ import {
   calcularEstadoCliente,
   calcularEstadoFactura,
   datosFactura,
+  describirMovimientosFactura,
 } from "./facturaUtils";
 import RegistrarDevolucionDialog from "../SeguimientoClientes/RegistrarDevolucionDialog";
 
@@ -449,6 +450,16 @@ export default function ClienteDetalle() {
             {datosFactura(facturaEliminando).numeroFactura ?? "s/n"}? Esta acción no se puede
             deshacer.
           </DialogContentText>
+
+          {/* Una factura finalizada se puede borrar, pero no está vacía: se
+              lleva los abonos, los despachos agregados y la historia de cada
+              equipo. Se dice QUÉ se lleva, no solo que no se puede deshacer:
+              con el detalle a la vista, la decisión se toma sabiendo. */}
+          {describirMovimientosFactura(facturaEliminando) && (
+            <DialogContentText sx={{ mt: 1.5, color: "error.main" }}>
+              Se van con ella: {describirMovimientosFactura(facturaEliminando)}.
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button

@@ -11,6 +11,7 @@
 // pantalla, no acá: así abrir una factura no se pierde al recargar la lista
 // después de un abono o una edición.
 import PropTypes from "prop-types";
+import { useSelector } from "react-redux";
 import { alpha } from "@mui/material/styles";
 import {
   Box,
@@ -118,6 +119,21 @@ export default function FacturaCard({
   // ella. Sin nada encima, borrar y volver a cargarla es la salida más
   // simple para una factura mal cargada.
   const tieneMovimientos = movimientosFactura(factura).hayAlgo;
+
+  // BORRAR UNA FACTURA ES SOLO DEL ADMINISTRADOR. No se deshace: se lleva los
+  // abonos, los despachos y la historia de cada equipo, y descuadra los
+  // números del mes y cualquier cuenta de cobro que la mencione. Mismo
+  // criterio que el buzón de cotizaciones y las cuentas de cobro.
+  //
+  // Esconder el botón no alcanza —la regla de Firestore es la que de verdad
+  // lo impide—, pero evita que quien no puede lo intente.
+  const esAdministrador = useSelector((state) => state.user.role) === "administrador";
+
+  // Con movimientos encima solo se borra la FINALIZADA: ahí ya no hay nada
+  // abierto —los equipos volvieron y la plata está saldada— y lo que queda es
+  // un registro que el administrador puede decidir que sobra. La que todavía
+  // está viva se arregla, no se borra.
+  const sePuedeEliminar = !tieneMovimientos || facturaEstado === "finalizada";
   const facturaEstadoInfo =
     ESTADO_FACTURA_INFO[facturaEstado] || { label: "Sin estado" };
   const facturaEstadoColor =
@@ -266,25 +282,27 @@ export default function FacturaCard({
           </IconButton>
         </span>
       </Tooltip>
-      <Tooltip
-        title={
-          tieneMovimientos
-            ? "Esta factura ya tiene abonos, equipos agregados o devoluciones: no se puede borrar de un clic"
-            : "Eliminar factura"
-        }
-      >
-        <span>
-          <IconButton
-            size="small"
-            color="error"
-            disabled={tieneMovimientos}
-            onClick={() => onEliminar(factura)}
-            sx={iconBtnSx}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
+      {esAdministrador && (
+        <Tooltip
+          title={
+            sePuedeEliminar
+              ? "Eliminar factura"
+              : "Esta factura ya tiene abonos, equipos agregados o devoluciones: solo se puede borrar cuando quede finalizada"
+          }
+        >
+          <span>
+            <IconButton
+              size="small"
+              color="error"
+              disabled={!sePuedeEliminar}
+              onClick={() => onEliminar(factura)}
+              sx={iconBtnSx}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
     </Stack>
   );
 
