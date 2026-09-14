@@ -553,7 +553,11 @@ export default function ClienteSeguimientoCard({
                 }}
               >
                 <EventIcon sx={{ fontSize: 14 }} />
-                {formatearFecha(salida.fecha)}
+                {/* Con qué salió: el día y los días que se le contrataron. Ese
+                    plazo del alta no se toca nunca —las prórrogas se anotan
+                    aparte—, así que dice con qué se despachó el equipo, no en
+                    qué quedó. */}
+                {`${formatearFecha(salida.fecha)} · ${formatearDias(equipo.diasAlquilados)}`}
               </Box>
             )}
           </Box>

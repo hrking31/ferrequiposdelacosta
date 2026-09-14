@@ -301,7 +301,8 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
     // La salida acompaña al nombre en su casilla, con su calendario al lado;
     // los días afuera cierran la fila, con el tramo que los cuenta debajo.
-    expect(screen.getByText("01/08/2026")).toBeInTheDocument();
+    // Con que salió: el día y los días que se le contrataron.
+    expect(screen.getByText("01/08/2026 · 3 días")).toBeInTheDocument();
     expect(screen.getByText("20 días fuera")).toBeInTheDocument();
     expect(screen.getByText("01/08/2026 - 20/08/2026")).toBeInTheDocument();
   });
