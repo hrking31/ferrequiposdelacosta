@@ -32,6 +32,8 @@ import {
   gruposDe,
   equiposDe,
   sigueAfuera,
+  sinFechaDeEntrega,
+  indefinidaDe,
 } from "../ClienteDetalle/facturaUtils";
 import {
   formatearMoneda,
@@ -231,6 +233,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                 (Number(equipo.valorDia) || 0);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
+              const yaIndefinido = sinFechaDeEntrega(equipo);
               return (
                 <Grid item xs={12} key={clave}>
                   <Typography variant="body2" fontWeight="bold">
@@ -310,16 +313,31 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                     </Typography>
                   )}
 
+                  {/* AL QUE YA ESTÁ SIN FECHA se le muestra la casilla marcada
+                      y bloqueada: no hay nada que volver a pactar, y dejarla
+                      vacía hacía parecer que el equipo tenía fecha.
+
+                      Bloqueada y no marcada de verdad a propósito: si entrara
+                      al estado como una decisión del usuario, guardar le
+                      volvería a escribir el acuerdo y le correría su fecha a
+                      hoy, borrando desde cuándo el cliente lo tiene sin fecha.
+                      Para sacarlo de ahí se le dan días, que es lo que cierra
+                      la entrega indefinida. */}
                   <FormControlLabel
                     sx={{ mt: 0.5 }}
                     control={
                       <Checkbox
                         size="small"
-                        checked={cambio.indefinida}
+                        checked={yaIndefinido || cambio.indefinida}
+                        disabled={yaIndefinido}
                         onChange={(e) => handleCambiarIndefinida(clave, e.target.checked)}
                       />
                     }
-                    label="Dejar indefinida (el cliente avisará)"
+                    label={
+                      yaIndefinido
+                        ? `Sin fecha de entrega desde el ${formatearFechaLegible(indefinidaDe(equipo).desde)}`
+                        : "Dejar indefinida (el cliente avisará)"
+                    }
                   />
 
                   {posicion < equiposAmpliables.length - 1 && <Divider sx={{ mt: 2 }} />}

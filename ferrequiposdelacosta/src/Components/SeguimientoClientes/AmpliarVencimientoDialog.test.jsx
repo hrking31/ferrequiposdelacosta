@@ -257,6 +257,26 @@ describe("AmpliarVencimientoDialog — entrega indefinida", () => {
     expect(equipo.ampliaciones).toEqual([]);
   });
 
+  // Al que YA quedó sin fecha la casilla le sale marcada y bloqueada: no hay
+  // nada que volver a pactar, y vacía hacía parecer que el equipo tenía fecha.
+  // Bloqueada ademas lo protege: volver a guardarla le correria a hoy el dia
+  // en que se pacto, borrando desde cuando el cliente lo tiene.
+  it("el que ya está sin fecha la muestra marcada y bloqueada", () => {
+    abrir({
+      factura: facturaCon({
+        equipos: [
+          andamio({ indefinida: { activa: true, desde: "2026-08-10", hasta: null } }),
+        ],
+      }),
+    });
+
+    const casilla = screen.getByLabelText(/Sin fecha de entrega desde el/);
+
+    expect(casilla).toBeChecked();
+    expect(casilla).toBeDisabled();
+    expect(screen.queryByLabelText(/Dejar indefinida/)).not.toBeInTheDocument();
+  });
+
   it("la prórroga queda anotada igual, marcada como indefinida", async () => {
     const { usuario } = abrir();
 
