@@ -298,7 +298,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
       await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
@@ -339,7 +339,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeDisabled();
 
       await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
       );
 
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
@@ -372,7 +372,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
 
       expect(screen.queryByLabelText(/Días de plazo/)).not.toBeInTheDocument();
 
-      await usuario.click(screen.getByRole("radio", { name: /Renovación/ }));
+      await usuario.click(screen.getByRole("radio", { name: /Le dieron más días/ }));
 
       expect(screen.getByLabelText(/Días de plazo/)).toBeInTheDocument();
     });
@@ -384,7 +384,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("radio", { name: /Renovación/ }));
+      await usuario.click(screen.getByRole("radio", { name: /Le dieron más días/ }));
       await usuario.type(screen.getByLabelText(/Días de plazo/), "4");
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -405,6 +405,89 @@ describe("AbonoDialog — lo que ya tenía", () => {
       });
     });
 
+    // EL CASO QUE LO MOTIVO: el cliente pide dos dias mas para uno y se queda
+    // el otro sin fecha. Antes se preguntaba una sola vez por factura, asi que
+    // habia que salir al dialogo de ampliar y volver.
+    it("acuerda distinto para cada equipo de la misma factura", async () => {
+      const factura = {
+        id: "5698",
+        ...unaFactura({
+          numeroFactura: "5698",
+          fechaCreacion: haceDias(4),
+          equipos: [
+            unEquipo({
+              nombre: "COMPRESOR",
+              cantidad: 1,
+              valorDia: 150000,
+              dias: 3,
+              fechaDespacho: haceDias(4),
+              vencidos: [unTramoVencido({ desde: haceDias(1), hasta: null })],
+            }),
+            unEquipo({
+              nombre: "MEZCLADORA",
+              cantidad: 1,
+              valorDia: 60000,
+              dias: 3,
+              fechaDespacho: haceDias(4),
+              vencidos: [unTramoVencido({ desde: haceDias(1), hasta: null })],
+            }),
+          ],
+        }),
+      };
+      const { usuario } = abrir({ facturas: [factura] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+
+      await usuario.click(
+        screen.getByRole("radio", { name: /Le dieron más días, MEZCLADORA/ }),
+      );
+      await usuario.type(screen.getByLabelText(/Días de plazo, MEZCLADORA/), "2");
+      await usuario.click(
+        screen.getByRole("radio", { name: /Quedó sin fecha de entrega, COMPRESOR/ }),
+      );
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      const cambios = updateSimulado.mock.calls[0][1];
+      const [compresor, mezcladora] = cambios.grupos[0].equipos;
+
+      // Cada uno siguió su camino, en un solo guardado.
+      expect(compresor.indefinida.activa).toBe(true);
+      expect(compresor.ampliaciones).toHaveLength(0);
+      expect(mezcladora.ampliaciones[0]).toMatchObject({ dias: 2 });
+      expect(mezcladora.indefinida?.activa).toBeFalsy();
+
+      // La bitácora cuenta la conversación entera: hubo días y hubo un equipo
+      // que quedó sin fecha.
+      expect(cambios.gestiones.at(-1)).toMatchObject({
+        tipo: "prorroga",
+        dias: 2,
+        indefinida: true,
+      });
+    });
+
+    // Cobrar sin pactar nada es una respuesta valida: la plata entra, el
+    // equipo se queda como esta y manana le sigue corriendo la mora. Con el
+    // modelo de tramos no se pierde nada, porque el tramo queda escrito.
+    it("deja abonar sin pactar nada, y el equipo no se toca", async () => {
+      const factura = conCompresorVencido();
+      const { usuario } = abrir({ facturas: [factura] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
+      await usuario.click(screen.getByRole("radio", { name: /No se pactó nada/ }));
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      const cambios = updateSimulado.mock.calls[0][1];
+
+      // Se registra el abono y nada más: ni ampliación, ni entrega indefinida,
+      // ni un renglón de renovación en la bitácora que nadie pactó.
+      expect(cambios.abonos).toHaveLength(1);
+      expect(cambios.gestiones).toBeUndefined();
+    });
+
     it("con entrega indefinida marca el equipo y sella los días si quedó al día", async () => {
       const factura = conCompresorVencido();
       const total = calcularCuentaFactura(factura, obtenerFechaHoyBogota()).total;
@@ -414,7 +497,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(total));
       await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
+        screen.getByRole("radio", { name: /Quedó sin fecha de entrega/ }),
       );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 

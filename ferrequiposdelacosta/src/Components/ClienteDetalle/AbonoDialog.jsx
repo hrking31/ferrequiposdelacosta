@@ -44,9 +44,11 @@ import {
   equiposDe,
   sigueAfuera,
   equipoVencido,
+  sinFechaDeEntrega,
   proyectarAmpliacion,
   formatearFechaLegible,
 } from "./facturaUtils";
+import PlazoEquipo from "../SeguimientoClientes/PlazoEquipo";
 import { formatearMoneda } from "../../Utils/formato";
 
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
@@ -164,34 +166,62 @@ export default function AbonoDialog({
     .filter(({ aplicado }) => aplicado > 0)
     .map(({ factura }) => ({
       factura,
+      // Con su despacho y su posición: la decisión es de CADA equipo, y un
+      // número suelto no alcanza para señalar una sola línea —los equipos
+      // viven repartidos en grupos—.
       equipos: equiposDe(factura)
         .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
-        .map(({ equipo }) => equipo),
+        .map(({ equipo, grupo, indice }) => ({
+          equipo,
+          clave: `${factura.id}#${grupo?.grupo}#${indice}`,
+          claveEnLaFactura: `${grupo?.grupo}#${indice}`,
+        })),
     }))
     .filter(({ equipos }) => equipos.length > 0);
 
-  const acuerdoDe = (facturaId) => acuerdos[facturaId] ?? { tipo: "", dias: "" };
+  // El que YA quedó sin fecha viene resuelto: no hay nada que volver a pactar.
+  // Y se marca aparte de "indefinida" a propósito —`yaIndefinida` no se
+  // aplica— porque volver a escribir el acuerdo le correría a hoy el día en
+  // que se pactó, borrando desde cuándo el cliente lo tiene sin fecha.
+  const acuerdoDe = (clave, equipo) =>
+    acuerdos[clave] ??
+    (sinFechaDeEntrega(equipo) ? { tipo: "yaIndefinida", dias: "" } : { tipo: "", dias: "" });
 
-  const acuerdoResuelto = (facturaId) => {
-    const acuerdo = acuerdoDe(facturaId);
+  const acuerdoResuelto = (clave, equipo) => {
+    const acuerdo = acuerdoDe(clave, equipo);
     if (acuerdo.tipo === "indefinida") return true;
+    if (acuerdo.tipo === "yaIndefinida") return true;
+    // "No se pactó nada" es una respuesta, no un olvido: el equipo sigue
+    // vencido, la plata entra igual y mañana le sigue corriendo la mora.
+    if (acuerdo.tipo === "nada") return true;
     return acuerdo.tipo === "dias" && Number(acuerdo.dias) > 0;
   };
 
-  const faltanAcuerdos = conEquiposVencidos.some(
-    ({ factura }) => !acuerdoResuelto(factura.id),
+  // Falta contestar por algún equipo: lo único que no se admite es no decir
+  // nada. La plata ya no se pierde por esto —los tramos vencidos quedan
+  // escritos igual—, pero un equipo sobre el que nadie decidió se queda en la
+  // obra sin que nadie sepa hasta cuándo.
+  const faltanAcuerdos = conEquiposVencidos.some(({ equipos }) =>
+    equipos.some(({ clave, equipo }) => !acuerdoResuelto(clave, equipo)),
   );
 
-  const elegirAcuerdo = (facturaId, tipo) =>
+  // Lo pactado de UNA factura, con la clave que entiende aplicarAcuerdoDeEquipos.
+  const acuerdosDeLaFactura = (entrada) =>
+    entrada.equipos.reduce((mapa, { clave, claveEnLaFactura, equipo }) => {
+      const acuerdo = acuerdoDe(clave, equipo);
+      return { ...mapa, [claveEnLaFactura]: acuerdo };
+    }, {});
+
+  const elegirAcuerdo = (clave, tipo) =>
     setAcuerdos((previos) => ({
       ...previos,
-      [facturaId]: { ...acuerdoDe(facturaId), tipo, ...(tipo === "indefinida" ? { dias: "" } : {}) },
+      [clave]: { ...(previos[clave] ?? { dias: "" }), tipo, ...(tipo === "dias" ? {} : { dias: "" }) },
     }));
 
-  const escribirDias = (facturaId, dias) =>
+  const escribirDias = (clave, dias) =>
     setAcuerdos((previos) => ({
       ...previos,
-      [facturaId]: { tipo: "dias", dias: dias.replace(/\D/g, "") },
+      [clave]: { tipo: "dias", dias: dias.replace(/\D/g, "") },
     }));
 
   // La devolución no se resuelve acá: define el estado del equipo y el
@@ -258,16 +288,11 @@ export default function AbonoDialog({
         // LO QUE SE ACORDÓ POR EL EQUIPO, primero: darle días o dejarlo
         // indefinido cambia lo que se le puede reclamar, así que tiene que
         // estar aplicado antes de decidir si hay algo que sellar.
-        const acuerdo = acuerdoDe(factura.id);
-        const plazo = acuerdoResuelto(factura.id)
-          ? aplicarAcuerdoDeEquipos(
-              factura,
-              {
-                dias: acuerdo.tipo === "dias" ? acuerdo.dias : 0,
-                indefinida: acuerdo.tipo === "indefinida",
-              },
-              hoy,
-            )
+        const entrada = conEquiposVencidos.find(
+          ({ factura: conVencidos }) => conVencidos.id === factura.id,
+        );
+        const plazo = entrada
+          ? aplicarAcuerdoDeEquipos(factura, acuerdosDeLaFactura(entrada), hoy)
           : null;
 
         // Si con este abono la factura queda sin nada que reclamarle HOY, los
@@ -576,16 +601,7 @@ export default function AbonoDialog({
                 a qué facturas va la plata —que es lo que decide por cuáles
                 hay que preguntar—. */}
             {conEquiposVencidos.map(({ factura, equipos }) => {
-              const acuerdo = acuerdoDe(factura.id);
               const numero = datosFactura(factura).numeroFactura ?? "s/n";
-              const nombres = equipos.map((equipo) => equipo.nombre).join(", ");
-              const dias = Number(acuerdo.dias) || 0;
-              // Hasta cuándo quedaría el que más atrasado está: es la fecha
-              // que el cliente escucha por teléfono.
-              const proyeccion =
-                acuerdo.tipo === "dias" && dias > 0
-                  ? proyectarAmpliacion(equipos[0], dias, hoy).fechaNueva
-                  : null;
 
               return (
                 <Grid item xs={12} key={`acuerdo-${factura.id}`}>
@@ -599,90 +615,152 @@ export default function AbonoDialog({
                   >
                     <Stack direction="row" gap={1} sx={{ mb: 1 }}>
                       <WarningAmberIcon fontSize="small" color="warning" />
-                      {/* El nombre en su renglón y el aviso abajo, dicho como
-                          se lo diría un compañero: el equipo está donde el
-                          cliente y la fecha ya pasó. */}
                       <Typography variant="body2">
-                        <strong>{nombres}</strong>
-                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}
-                        <Box component="span" sx={{ display: "block" }}>
-                          {equipos.length === 1 ? "Sigue" : "Siguen"} con el
-                          cliente y el plazo ya terminó.
-                        </Box>
+                        {equipos.length === 1 ? "Este equipo sigue" : "Estos equipos siguen"}{" "}
+                        con el cliente y el plazo ya terminó
+                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}.
                       </Typography>
                     </Stack>
 
-                    <Stack gap={0.5}>
-                      <Stack direction="row" alignItems="center" gap={0.5}>
-                        <Radio
-                          size="small"
-                          checked={acuerdo.tipo === "dias"}
-                          onChange={() => elegirAcuerdo(factura.id, "dias")}
-                          inputProps={{
-                            "aria-label": `Renovación, factura ${numero}`,
-                          }}
-                          sx={{ p: 0.25 }}
-                        />
-                        <Typography variant="body2">Renovación</Typography>
-                        {/* Los días y la fecha aparecen al elegirla: sin
-                            elegir no hay nada que llenar, y el renglón se lee
-                            como las otras dos opciones, de un vistazo. */}
-                        {acuerdo.tipo === "dias" && (
-                          <>
-                            <TextField
-                              size="small"
-                              autoFocus
-                              value={acuerdo.dias}
-                              onChange={(e) => escribirDias(factura.id, e.target.value)}
-                              name={`dias-acuerdo-${factura.id}`}
-                              id={`dias-acuerdo-${factura.id}`}
-                              inputProps={{
-                                inputMode: "numeric",
-                                "aria-label": `Días de plazo, factura ${numero}`,
-                              }}
-                              sx={{ width: 64, "& input": { textAlign: "center", py: 0.5 } }}
-                            />
-                            <Typography variant="body2">días</Typography>
-                            {/* Hasta cuándo quedaría: es la fecha que el
-                                cliente escucha por teléfono. */}
-                            {proyeccion && (
-                              <Typography
-                                variant="body2"
-                                sx={{ color: "text.secondary" }}
-                              >
-                                → {formatearFechaLegible(proyeccion)}
-                              </Typography>
-                            )}
-                          </>
-                        )}
-                      </Stack>
+                    {/* UNO POR UNO, y no una sola pregunta para toda la
+                        factura: el cliente puede pedir dos días más para la
+                        mezcladora y quedarse el compresor sin fecha, y esas son
+                        dos decisiones distintas. Antes había que salir al
+                        diálogo de ampliar y volver para separarlas. */}
+                    <Stack gap={1.5}>
+                      {equipos.map(({ equipo, clave }, posicion) => {
+                        const acuerdo = acuerdoDe(clave, equipo);
+                        const dias = Number(acuerdo.dias) || 0;
+                        const yaIndefinido = sinFechaDeEntrega(equipo);
+                        // Hasta cuándo quedaría: es la fecha que el cliente
+                        // escucha por teléfono.
+                        const proyeccion =
+                          acuerdo.tipo === "dias" && dias > 0
+                            ? proyectarAmpliacion(equipo, dias, hoy).hasta
+                            : null;
 
-                      <Stack direction="row" alignItems="center" gap={0.5}>
-                        <Radio
-                          size="small"
-                          checked={acuerdo.tipo === "indefinida"}
-                          onChange={() => elegirAcuerdo(factura.id, "indefinida")}
-                          inputProps={{
-                            "aria-label": `Entrega indefinida, factura ${numero}`,
-                          }}
-                          sx={{ p: 0.25 }}
-                        />
-                        <Typography variant="body2">Entrega indefinida</Typography>
-                      </Stack>
+                        return (
+                          <Box key={clave}>
+                            <Typography variant="body2" fontWeight="bold">
+                              {equipo.cantidadEquipos} {equipo.nombre}
+                            </Typography>
+                            {/* La fecha del último acuerdo y, si ya pasó, los
+                                días que lleva vencido. La misma línea y la
+                                misma regla que en los dos diálogos de
+                                Seguimiento (ver PlazoEquipo). */}
+                            <PlazoEquipo equipo={equipo} hoy={hoy} />
 
-                      {/* La tercera no es un radio: la devolución no se elige
-                          acá, abre su propio diálogo —define depósito y
-                          retención, y eso cambia cuánto cobrar—. */}
-                      <Stack direction="row" alignItems="center" sx={{ mt: 0.5 }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="warning"
-                          onClick={() => irADevolucion(factura)}
-                        >
-                          Devolución
-                        </Button>
-                      </Stack>
+                            <Stack gap={0.5} sx={{ mt: 0.5 }}>
+                              <Stack direction="row" alignItems="center" gap={0.5}>
+                                <Radio
+                                  size="small"
+                                  checked={acuerdo.tipo === "dias"}
+                                  onChange={() => elegirAcuerdo(clave, "dias")}
+                                  inputProps={{
+                                    "aria-label": `Le dieron más días, ${equipo.nombre}`,
+                                  }}
+                                  sx={{ p: 0.25 }}
+                                />
+                                <Typography variant="body2">Le dieron más días</Typography>
+                                {/* Los días y la fecha aparecen al elegirla:
+                                    sin elegir no hay nada que llenar, y el
+                                    renglón se lee como los otros dos. */}
+                                {acuerdo.tipo === "dias" && (
+                                  <>
+                                    <TextField
+                                      size="small"
+                                      autoFocus
+                                      value={acuerdo.dias}
+                                      onChange={(e) => escribirDias(clave, e.target.value)}
+                                      name={`dias-acuerdo-${clave}`}
+                                      id={`dias-acuerdo-${clave}`}
+                                      inputProps={{
+                                        inputMode: "numeric",
+                                        "aria-label": `Días de plazo, ${equipo.nombre}`,
+                                      }}
+                                      sx={{
+                                        width: 64,
+                                        "& input": { textAlign: "center", py: 0.5 },
+                                      }}
+                                    />
+                                    <Typography variant="body2">días</Typography>
+                                    {proyeccion && (
+                                      <Typography
+                                        variant="body2"
+                                        sx={{ color: "text.secondary" }}
+                                      >
+                                        → {formatearFechaLegible(proyeccion)}
+                                      </Typography>
+                                    )}
+                                  </>
+                                )}
+                              </Stack>
+
+                              {/* AL QUE YA ESTÁ SIN FECHA le sale marcada y
+                                  bloqueada: no hay nada que volver a pactar, y
+                                  vacía hacía parecer que el equipo tenía fecha.
+                                  Volver a guardarla le correría a hoy el día en
+                                  que se pactó. Para sacarlo de ahí se le dan
+                                  días, que es lo que la cierra. */}
+                              <Stack direction="row" alignItems="center" gap={0.5}>
+                                <Radio
+                                  size="small"
+                                  checked={
+                                    acuerdo.tipo === "indefinida" ||
+                                    acuerdo.tipo === "yaIndefinida"
+                                  }
+                                  disabled={yaIndefinido}
+                                  onChange={() => elegirAcuerdo(clave, "indefinida")}
+                                  inputProps={{
+                                    "aria-label": `Quedó sin fecha de entrega, ${equipo.nombre}`,
+                                  }}
+                                  sx={{ p: 0.25 }}
+                                />
+                                <Typography variant="body2">
+                                  Quedó sin fecha de entrega
+                                </Typography>
+                              </Stack>
+
+                              {/* LA TERCERA: cobrar sin pactar nada. La plata
+                                  entra igual, el equipo se queda como está y
+                                  mañana le sigue corriendo la mora. Existe
+                                  para que eso sea una decisión y no un olvido:
+                                  lo único que no se admite es no contestar. */}
+                              <Stack direction="row" alignItems="center" gap={0.5}>
+                                <Radio
+                                  size="small"
+                                  checked={acuerdo.tipo === "nada"}
+                                  onChange={() => elegirAcuerdo(clave, "nada")}
+                                  inputProps={{
+                                    "aria-label": `No se pactó nada, ${equipo.nombre}`,
+                                  }}
+                                  sx={{ p: 0.25 }}
+                                />
+                                <Typography variant="body2">
+                                  No se pactó nada · sigue vencido
+                                </Typography>
+                              </Stack>
+                            </Stack>
+
+                            {posicion < equipos.length - 1 && <Divider sx={{ mt: 1.5 }} />}
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+
+                    {/* La devolución no es un radio: no se elige acá, abre su
+                        propio diálogo —define depósito y retención, y eso
+                        cambia cuánto cobrar—. Y es de la factura, no de un
+                        equipo: ahí adentro se marca cuáles volvieron. */}
+                    <Stack direction="row" alignItems="center" sx={{ mt: 1.5 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        onClick={() => irADevolucion(factura)}
+                      >
+                        Devolución
+                      </Button>
                     </Stack>
                   </Paper>
                 </Grid>

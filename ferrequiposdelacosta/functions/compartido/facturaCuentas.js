@@ -507,38 +507,65 @@ export const dejarSinFechaDeEntrega = (
   indefinida: { activa: true, desde: hoyIso, hasta: null },
 });
 
-// ── EL ACUERDO POR EL EQUIPO, al cobrar ────────────────────────────────
+// ── EL ACUERDO POR EL EQUIPO, al cobrar ───────────────────────
 //
 // Cobrar y no preguntar por el equipo es cómo una factura termina pagada con
 // el equipo afuera y sin fecha de retorno: nadie decidió nada, simplemente no
-// se preguntó. Por eso el abono exige un acuerdo, y acá vive lo que ese
-// acuerdo le hace a los equipos.
+// se preguntó. Por eso el abono pregunta, y acá vive lo que esa respuesta le
+// hace a los equipos.
 //
-// Alcanza a TODOS los equipos vencidos que siguen afuera —no a los que están
-// en fecha, que no hay nada que acordarles—: con días, ampliándoles el plazo;
-// sin ellos, dejándolos sin fecha de entrega.
+// SE DECIDE POR EQUIPO, no por factura. El cliente puede pedir dos días más
+// para la mezcladora y quedarse el compresor sin fecha, y esas son dos
+// decisiones distintas sobre la misma factura. Antes se preguntaba una sola
+// vez y la respuesta caía sobre todos sus equipos vencidos, así que para
+// separarlos había que salir al diálogo de ampliar y volver.
 //
-// Devuelve `null` si no había ninguno vencido: ahí no hay nada que acordar y
-// quien guarda no escribe de más.
+// `acuerdos` es un objeto con la decisión de cada equipo, indexado por su
+// despacho y su posición —"grupo#indice"—, con la misma forma que usa el
+// diálogo de ampliar:
+//
+//   { tipo: "dias", dias: 2 }   se le amplia el plazo
+//   { tipo: "indefinida" }      queda sin fecha, el cliente avisará
+//   cualquier otra cosa         no se pactó nada: el equipo sigue vencido
+//
+// El que sigue vencido NO es un olvido sino una decisión, y por eso tiene su
+// propia opción: la plata entra igual, el equipo se queda como está y mañana
+// le sigue corriendo la mora. Lo único que no se admite es no contestar.
+//
+// Devuelve `null` si no hubo ningún cambio que aplicar —nadie pactó nada—:
+// ahí quien guarda no escribe de más.
 export const aplicarAcuerdoDeEquipos = (
   doc,
-  { dias, indefinida } = {},
+  acuerdos = {},
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
-  const pedidos = Math.max(0, numero(dias));
-  if (!indefinida && pedidos <= 0) return null;
-
   let hubo = false;
+  let diasPactados = 0;
+  let hayIndefinida = false;
 
   const grupos = gruposDe(doc).map((grupo) => ({
     ...grupo,
-    equipos: (grupo?.equipos ?? []).map((equipo) => {
+    equipos: (grupo?.equipos ?? []).map((equipo, indice) => {
       if (!sigueAfuera(equipo) || !equipoVencido(equipo, hoyIso)) return equipo;
-      hubo = true;
 
-      return indefinida
-        ? dejarSinFechaDeEntrega(equipo, hoyIso)
-        : ampliarEquipo(equipo, { dias: pedidos }, hoyIso);
+      const acuerdo = acuerdos[`${grupo?.grupo}#${indice}`];
+
+      if (acuerdo?.tipo === "indefinida") {
+        hubo = true;
+        hayIndefinida = true;
+        return dejarSinFechaDeEntrega(equipo, hoyIso);
+      }
+
+      const pedidos = Math.max(0, numero(acuerdo?.dias));
+      if (acuerdo?.tipo === "dias" && pedidos > 0) {
+        hubo = true;
+        // El de la bitácora es el plazo más largo que se dio: el renglón
+        // cuenta la conversación con el cliente, no cada equipo.
+        diasPactados = Math.max(diasPactados, pedidos);
+        return ampliarEquipo(equipo, { dias: pedidos }, hoyIso);
+      }
+
+      return equipo;
     }),
   }));
 
@@ -549,8 +576,8 @@ export const aplicarAcuerdoDeEquipos = (
     // El registro que va a la bitácora: es una renovación, igual que la que se
     // pacta desde su propio diálogo. Lo que la distingue es de dónde salió.
     gestion: crearRegistroGestion("prorroga", {
-      dias: indefinida ? 0 : pedidos,
-      indefinida: Boolean(indefinida),
+      dias: diasPactados,
+      indefinida: hayIndefinida,
     }),
   };
 };
