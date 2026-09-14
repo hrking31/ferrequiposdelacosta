@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-535_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-530_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -513,7 +513,23 @@ Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia 
 
 Ahora la factura vuelve a **activa** recién cuando el saldo llega a cero: lo que debía **y** lo que contrató al renovar. Salen por separado, que es lo que son: el equipo ya no se reclama, la plata sí.
 
-Para saberlo no hace falta guardar nada nuevo. El estado se recalcula cada vez mirando el día de hoy, así que una factura renovada se ve igual que una recién despachada; que la fecha se venció alguna vez se lee en las huellas que ya quedaban escritas — un equipo vencido o sin fecha, uno que volvió tarde, o una renovación que se llevó días vencidos adentro.
+Para saberlo no hay que deducir nada. El estado se recalcula cada vez mirando el día de hoy —una factura renovada se ve igual que una recién despachada—, y que la fecha se venció alguna vez lo dice **el tramo vencido que quedó escrito en el equipo**: una sola pregunta a los datos, sin rastros que interpretar.
+
+### Qué dice cada equipo en cartera
+
+Dos renglones, y ninguno de ellos es historia:
+
+> **10 GATOS HIDRÁULICOS**
+> Vence: 11/09/2026 — 3 días vencidos
+> *Se le dieron 4 días el 11/09*
+
+El primero es **el plazo**, el mismo que abre la fila del equipo en los dos diálogos de esta pantalla: hasta cuándo lo tenía y, si ya pasó, cuánto lleva de más. El que quedó sin fecha dice *"Entrega indefinida actualmente"*.
+
+El segundo es **lo último que se pactó por ese equipo** —más días, o que quedó sin fecha—, y está para evitar reclamarle al cliente algo que uno mismo le concedió la semana pasada. Sale de lo que el equipo ya guarda; no hay un campo nuevo.
+
+**La llamada y el WhatsApp no bajan al equipo**: se le pregunta al cliente por todo lo que tiene afuera, no por un equipo en particular, así que la bitácora de gestión se lee una sola vez por factura, arriba.
+
+Acá vivió hasta el 14/09/2026 la historia completa del equipo en fichas —cuándo salió, a qué precio, los vencimientos por los que pasó, lo que costó cada tramo—. Contestaba *"¿cómo llegamos hasta acá?"*, que es la pregunta de la ficha del cliente y la que responde su línea de tiempo. Cartera pregunta otra: **a quién llamo hoy**.
 
 **En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos, cada uno con su icono de calendario del color que le toca —tachado el de los vencidos—:
 
