@@ -321,6 +321,9 @@ export default function ClienteSeguimientoCard({
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  // El mismo corte que usa la ficha del cliente para su pizarra: hasta 915px
+  // los cuatro importes no entran en el hueco del encabezado.
+  const anchoCorto = useMediaQuery("(max-width:915px)");
   const acento =
     theme.palette.custom.accent;
   const [tabFactura, setTabFactura] = useState(0);
@@ -1009,6 +1012,9 @@ export default function ClienteSeguimientoCard({
               direction="row"
               justifyContent="space-between"
               alignItems="center"
+              flexWrap="wrap"
+              rowGap={1}
+              gap={1.5}
               sx={{ mb: 1 }}
             >
               {/* HASTA CUÁNDO ERA, y cuánto se pasó. Antes acá iba la fecha de
@@ -1056,6 +1062,24 @@ export default function ClienteSeguimientoCard({
                   </Typography>
                 )
               )}
+
+              {/* CON LA FACTURA CERRADA, el resumen de la cuenta ocupa el
+                  hueco que queda entre el plazo y los botones, igual que en la
+                  ficha del cliente: al recorrer la lista lo que se busca es
+                  cuánto es y cuánto falta.
+
+                  Los tamaños son los de allá, y por el mismo motivo: entre 916
+                  y 1200px el hueco no pasa de unos 300px y cuatro importes de
+                  siete cifras se montan entre sí, así que en ese tramo la
+                  pizarra pasa a su propia fila con todo el ancho; de 1200px en
+                  adelante sí entra al lado. */}
+              {!anchoCorto &&
+                facturaPlegada(factura.id) &&
+                renderPizarraTotales(casillasDeCuenta(cuenta), {
+                  flexGrow: 1,
+                  flexBasis: { md: "100%", lg: 0 },
+                  order: { md: 1, lg: 0 },
+                })}
 
               {/* Acciones de la factura arriba a la derecha, junto al chip de
                   estado — mismo patrón que las facturas de ClienteDetalle. */}
@@ -1184,6 +1208,16 @@ export default function ClienteSeguimientoCard({
                 </Tooltip>
               </Stack>
             </Stack>
+
+            {/* Hasta 915px la pizarra completa no entra en el hueco del
+                encabezado, así que la factura cerrada muestra debajo la
+                versión corta: total y saldo, que es lo que se busca al
+                recorrer la lista. */}
+            {anchoCorto && facturaPlegada(factura.id) && (
+              <Box sx={{ mb: 1 }}>
+                {renderPizarraTotales(casillasDeCuenta(cuenta, { resumida: true }))}
+              </Box>
+            )}
 
             {/* QUÉ HAY AFUERA, sin abrir la tarjeta. Plegada, la factura decía
                 su número y cuánto se pasó, pero no de qué equipos se trata —y
