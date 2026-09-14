@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-530_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-545_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -515,17 +515,35 @@ Ahora la factura vuelve a **activa** recién cuando el saldo llega a cero: lo qu
 
 Para saberlo no hay que deducir nada. El estado se recalcula cada vez mirando el día de hoy —una factura renovada se ve igual que una recién despachada—, y que la fecha se venció alguna vez lo dice **el tramo vencido que quedó escrito en el equipo**: una sola pregunta a los datos, sin rastros que interpretar.
 
+### Qué hay afuera, sin abrir la tarjeta
+
+Las facturas arrancan plegadas, para ver de un vistazo a quiénes hay que cobrarles. Así, la factura decía su número y cuánto se pasó —pero no de qué equipos se trata, que es justo la pregunta que le da nombre a esta pantalla—. Con diez clientes en la lista, contestarla costaba diez clics.
+
+> **Fact. 0123**
+> Vencía **07/09/2026** | 7 días vencidos
+> *5 Gatos hidráulicos* (rojo) · *1 Compresor 185* (teal) · *1 Mezcladora* (ámbar)
+
+Cada equipo va en **el color de su urgencia** —el mismo que tendrá su recuadro al abrir la factura—, así que la fila se lee como un semáforo sin leer una palabra. Se nombran **tres** y el resto se cuenta (*"y 2 más"*): la idea es reconocer el equipo de un vistazo, no leer el inventario.
+
+Al abrir la factura ese renglón desaparece: abajo cada equipo tiene su propio recuadro, y repetir la lista arriba sería decir dos veces lo mismo.
+
 ### Qué dice cada equipo en cartera
 
 Dos renglones, y ninguno de ellos es historia:
 
 > **10 GATOS HIDRÁULICOS**
+> Salió el 01/09/2026 · 14 días afuera
 > Vence: 11/09/2026 — 3 días vencidos
+> Días vencidos: $ 450.000 con IVA
 > *Se le dieron 4 días el 11/09*
 
-El primero es **el plazo**, el mismo que abre la fila del equipo en los dos diálogos de esta pantalla: hasta cuándo lo tenía y, si ya pasó, cuánto lleva de más. El que quedó sin fecha dice *"Entrega indefinida actualmente"*.
+El primero dice **desde cuándo lo tiene**, que el plazo solo no cuenta: "se pasó 3 días" puede ser un alquiler corto o uno que ya lleva un mes.
 
-El segundo es **lo último que se pactó por ese equipo** —más días, o que quedó sin fecha—, y está para evitar reclamarle al cliente algo que uno mismo le concedió la semana pasada. Sale de lo que el equipo ya guarda; no hay un campo nuevo.
+El segundo es **el plazo**, el mismo que abre la fila del equipo en los dos diálogos de esta pantalla: hasta cuándo lo tenía y, si ya pasó, cuánto lleva de más. El que quedó sin fecha dice *"Entrega indefinida actualmente"*.
+
+El tercero es **lo que ya cuestan esos días**, con su IVA si el equipo lo lleva. Una cosa es decirle al cliente *"debe dos millones"* y otra *"el compresor solo ya va en un millón"*: con lo segundo se negocia, con lo primero se discute. Va con el equipo y no arriba con la cuenta —el costo es de lo que lo genera, y en la factura no se sabría cuál de los cinco equipos lo está corriendo—.
+
+El último es **lo último que se pactó por ese equipo** —más días, o que quedó sin fecha—, y está para evitar reclamarle al cliente algo que uno mismo le concedió la semana pasada. Sale de lo que el equipo ya guarda; no hay un campo nuevo.
 
 **La llamada y el WhatsApp no bajan al equipo**: se le pregunta al cliente por todo lo que tiene afuera, no por un equipo en particular, así que la bitácora de gestión se lee una sola vez por factura, arriba.
 
