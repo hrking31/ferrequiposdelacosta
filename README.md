@@ -516,7 +516,10 @@ Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas
 Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con los equipos que quedaron vencidos, no con todo lo que tiene adentro.** Así que ahí no aparecen:
 
 - Los equipos que **todavía están en fecha**, aunque la factura figure vencida por otro. Nadie tiene que devolverlos hoy.
-- Los que el cliente **devolvió en plazo**, antes de que nada venciera. Esa devolución no se consiguió cobrando, y verla ahí obliga a preguntarse cuándo y por qué volvió ese equipo — una respuesta que esa pantalla no tiene, porque no pasó ahí.
+- Los que el cliente **ya devolvió** — hayan vuelto en plazo o tarde. De ellos no queda nada por hacer, y la bitácora de la misma tarjeta ya dice que se devolvieron, con su fecha.
+
+> [!NOTE]
+> **Lo devuelto tarde también se fue de cartera (2026-09-15).** Había un bloque verde *"Devuelto"* con los equipos que volvieron después de vencer: la idea era mostrar lo que se consiguió cobrando. Se sacó porque repetía lo que la bitácora ya decía y, en una factura de un solo equipo, llenaba la tarjeta con algo ya resuelto. La regla que quedó es más simple: **en cartera solo lo que hay que recordar — plata por cobrar, días que corren, equipo por volver.**
 - En los diálogos de **registrar devolución** y **ampliar vencimiento**, tampoco: solo ofrecen los vencidos. Un equipo ya devuelto no tiene vencimiento que correr, y darle días a uno que no ha vencido es una renovación que nadie pidió.
 
 Todo eso se sigue viendo en la ficha del cliente, que es donde vive la historia completa de la factura.

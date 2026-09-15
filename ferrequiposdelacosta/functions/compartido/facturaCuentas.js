@@ -49,7 +49,6 @@ import {
   datosFactura,
   entregasDe,
   equiposDe,
-  estaDevuelto,
   gestionesDe,
   gruposDe,
   pagosDe,
@@ -318,19 +317,6 @@ export const equipoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
 // sin que eso sea una gestión de cobranza.
 export const equipoAlDia = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
   ["activo", "ampliacion"].includes(calcularEstadoEquipo(equipo, hoyIso));
-
-// Un equipo que volvió DESPUÉS de su plazo: esa devolución se consiguió con
-// la factura ya vencida, así que es parte de la cobranza y Seguimiento la
-// cuenta como suya.
-//
-// El que volvió en plazo no. Una factura entra a Seguimiento con los equipos
-// que QUEDARON, no con los que ya habían vuelto: mostrar esos ahí obliga a
-// quien cobra a preguntarse cuándo y por qué volvieron, y la respuesta no está
-// en esa pantalla porque no pasó ahí. Su historia vive en la ficha del cliente.
-//
-// Con los tramos escritos se contesta solo: si tiene alguno, se pasó.
-export const equipoDevueltoEnCobranza = (equipo) =>
-  estaDevuelto(equipo) && vencidosDe(equipo).length > 0;
 
 const siguienteDia = (fechaIso) => calcularVencimiento(fechaIso, 1);
 

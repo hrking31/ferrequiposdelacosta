@@ -223,13 +223,19 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getByText("Saldo")).toBeInTheDocument();
   });
 
-  // Cartera cuenta lo que se consiguió cobrando. Un equipo que volvió después
-  // de vencer es exactamente eso.
-  it("muestra lo que el cliente devolvió después de vencer", async () => {
+  // ESTA PANTALLA MUESTRA LO QUE HAY QUE RECORDAR: plata por cobrar, días que
+  // corren, equipo por volver. Un equipo devuelto no es ninguna de las tres.
+  //
+  // Había un bloque verde "Devuelto" con los que volvieron tarde —la idea era
+  // mostrar lo que se consiguió cobrando— y se sacó el 2026-09-15: repetía lo
+  // que la bitácora ya dice con su fecha, y en una factura de un solo equipo
+  // llenaba la tarjeta con algo ya resuelto. Su historia vive en la ficha del
+  // cliente.
+  it("no muestra los equipos devueltos, ni los que volvieron tarde", async () => {
     const { usuario } = mostrar([facturaEnCobro]);
     await desplegarFactura(usuario);
 
-    expect(screen.getByText("Devuelto")).toBeInTheDocument();
+    expect(screen.queryByText("Devuelto")).not.toBeInTheDocument();
   });
 
   // Y lo contrario: la factura entró a Seguimiento con los equipos que

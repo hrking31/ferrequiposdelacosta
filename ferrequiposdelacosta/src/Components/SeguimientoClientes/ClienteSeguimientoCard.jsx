@@ -41,12 +41,10 @@ import {
   calcularCuentaFactura,
   contarUnidadesVencidas,
   plazoVencidoFactura,
-  equipoDevueltoEnCobranza,
   equipoVencido,
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
-  GRUPO_INICIAL,
   datosFactura,
   equiposDe,
   equiposAfuera,
@@ -361,11 +359,6 @@ export default function ClienteSeguimientoCard({
   // (ver facturaUtils).
   const coloresGestion = theme.palette.custom.gestionFactura;
 
-  // Los colores de bloque son los MISMOS que en Detalle Cliente: un equipo se
-  // ve igual en las dos pantallas. Los que se sumaron después de emitida la
-  // factura van en violeta, como allá.
-  const colorEquipos = theme.palette.custom.seccionEquipos;
-  const colorEquiposAgregados = theme.palette.custom.seccionEquiposAgregados;
   const colorGestion = theme.palette.custom.seccionGestion;
 
   // El teal de "Entrega indefinida". Vive junto a los chips de fechas, que lo
@@ -670,41 +663,6 @@ export default function ClienteSeguimientoCard({
     );
   };
 
-  // Línea de equipo ya devuelta del todo: se muestra aparte y atenuada, para
-  // no mezclarla con lo que todavía hay que seguir.
-  const renderEquipoDevuelto = (equipo, grupo, key) => (
-    <Box
-      key={key}
-      sx={{
-        ...recuadroDeBloque(
-          grupo?.grupo === GRUPO_INICIAL ? colorEquipos : colorEquiposAgregados,
-        ),
-        // Atenuado: ya no hay nada que hacer con este equipo, pero se sigue
-        // viendo para saber qué se devolvió y cuándo.
-        opacity: 0.65,
-      }}
-    >
-      <Stack direction="row" alignItems="center" gap={1}>
-        <Chip
-          variant="meta"
-          label={equipo.cantidadEquipos}
-          size="small"
-          sx={{ fontWeight: "bold", flexShrink: 0 }}
-        />
-        <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
-          {equipo.nombre}
-        </Typography>
-        <Chip
-          size="small"
-          variant="meta"
-          icon={<AssignmentReturnIcon />}
-          sx={{ color: "success.main", "& .MuiChip-icon": { color: "inherit" } }}
-          label={`Devuelto ${formatearFecha(equipo.devolucion?.fechaDevolucion) || ""}`}
-        />
-      </Stack>
-    </Box>
-  );
-
   const gradosGrisPestana = theme.palette.custom.pestanaInactiva;
 
   const indiceActivo = Math.min(tabFactura, facturas.length - 1);
@@ -770,12 +728,6 @@ export default function ClienteSeguimientoCard({
       .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
       .map(({ equipo }) => equipo),
     hoy,
-  );
-
-  // Lo que volvió DESPUÉS de vencer: eso es lo que se consiguió cobrando. Lo
-  // devuelto en plazo no entró con esta factura a Seguimiento.
-  const devueltosEnCobranza = equiposDe(factura).filter(({ equipo }) =>
-    equipoDevueltoEnCobranza(equipo),
   );
 
   // Los mismos, en fila, para poder nombrarlos sin abrir la tarjeta.
@@ -1680,36 +1632,17 @@ export default function ClienteSeguimientoCard({
                   </Box>
                 ))}
 
-                {/* Solo lo que volvió DESPUÉS de vencer: eso es lo que se
-                    consiguió cobrando. Lo devuelto en plazo no entró con esta
-                    factura a Seguimiento y no se muestra acá (ver
-                    equipoDevueltoEnCobranza). */}
-                {devueltosEnCobranza.length > 0 && (
-                  <Box sx={anchoDelBloque(devueltosEnCobranza.length)}>
-                    <Typography
-                      variant="overline"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                        lineHeight: 1.6,
-                        color: "success.main",
-                      }}
-                    >
-                      <AssignmentReturnIcon fontSize="small" />
-                      Devuelto
-                    </Typography>
-                    <Box sx={cuadriculaDeEquipos(devueltosEnCobranza.length)}>
-                      {devueltosEnCobranza.map(({ equipo, grupo, indice }) =>
-                        renderEquipoDevuelto(
-                          equipo,
-                          grupo,
-                          `devuelto-${grupo.grupo}-${indice}`,
-                        ),
-                      )}
-                    </Box>
-                  </Box>
-                )}
+                {/* ACÁ NO VA LO DEVUELTO. Esta pantalla muestra lo que hay que
+                    recordar: plata por cobrar, días que corren, equipo por
+                    volver. Un equipo que ya volvió no es ninguna de las tres
+                    —de él no queda nada por hacer— y la bitácora de arriba ya
+                    dice que se devolvió, con su fecha. Su historia completa
+                    vive en la ficha del cliente, que es donde se revisa.
+
+                    Hubo un bloque verde "Devuelto" con los que volvieron
+                    tarde: la idea era mostrar lo que se consiguió cobrando,
+                    pero repetía lo que ya decía la bitácora y en una factura
+                    de un solo equipo llenaba la tarjeta con algo resuelto. */}
               </Stack>
             )}
 
