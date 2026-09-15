@@ -1238,7 +1238,14 @@ export default function ClienteSeguimientoCard({
                 direction={esMovil ? "column-reverse" : "row"}
                 spacing={0.75}
                 alignItems={esMovil ? "flex-end" : "center"}
-                sx={{ flexShrink: 0 }}
+                // SIEMPRE PEGADOS A LA DERECHA, aunque queden solos en su
+                // renglón. El `space-between` de la fila los acomodaba mientras
+                // hubiera algo a la izquierda, pero entre 916 y 1200px la
+                // pizarra baja a su propia línea y una factura SIN PLAZO —la
+                // que sigue en cartera solo por la plata— dejaba este bloque
+                // como único hijo: los botones y el chip se iban a la
+                // izquierda, contra el borde.
+                sx={{ flexShrink: 0, ml: "auto" }}
               >
                 <Stack direction="row" spacing={0.75} alignItems="center">
                 {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
