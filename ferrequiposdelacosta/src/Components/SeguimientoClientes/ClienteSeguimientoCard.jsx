@@ -361,6 +361,14 @@ export default function ClienteSeguimientoCard({
 
   const colorGestion = theme.palette.custom.seccionGestion;
 
+  // LA CUENTA VA EN VERDE, el mismo de la información de pago en la ficha del
+  // cliente: en las dos pantallas el verde es la plata.
+  //
+  // Iba en el acento, que de noche es amarillo — el mismo amarillo que "Vence
+  // hoy". Dos recuadros del mismo color en la misma tarjeta diciendo cosas
+  // distintas: uno es una urgencia y el otro, una suma.
+  const colorCuenta = theme.palette.custom.seccionPago;
+
   // El teal de "Entrega indefinida". Vive junto a los chips de fechas, que lo
   // usan para el suyo: si estuviera acá suelto, el chip y el rótulo del grupo
   // podrían quedar de colores distintos.
@@ -799,14 +807,14 @@ export default function ClienteSeguimientoCard({
           alignItems: "center",
           gap: 0.5,
           lineHeight: 1.6,
-          color: acento,
+          color: colorCuenta,
         }}
       >
         <AccountBalanceWalletIcon fontSize="small" />
         Estado de cuenta
       </Typography>
 
-      <Box sx={{ ...recuadroDeBloque(acento), mt: 0.5 }}>
+      <Box sx={{ ...recuadroDeBloque(colorCuenta), mt: 0.5 }}>
         <Stack
           direction="row"
           alignItems={cuentaAbierta ? "flex-start" : "center"}
@@ -818,7 +826,7 @@ export default function ClienteSeguimientoCard({
                 resumida: esMovil && !cuentaAbierta,
                 sobrePanel: false,
               }),
-              { colorDivisor: acento, columna: esMovil && cuentaAbierta },
+              { colorDivisor: colorCuenta, columna: esMovil && cuentaAbierta },
             )}
           </Box>
 
@@ -1235,7 +1243,7 @@ export default function ClienteSeguimientoCard({
               {!anchoCorto && facturaPlegada(factura.id) && (
                 <Box
                   sx={{
-                    ...recuadroDeBloque(acento),
+                    ...recuadroDeBloque(colorCuenta),
                     flexGrow: 1,
                     flexBasis: { md: "100%", lg: 0 },
                     order: { md: 1, lg: 0 },
@@ -1243,7 +1251,7 @@ export default function ClienteSeguimientoCard({
                 >
                   {renderFilaDeCasillas(
                     casillasDeCuenta(cuenta, { sobrePanel: false }),
-                    { colorDivisor: acento },
+                    { colorDivisor: colorCuenta },
                   )}
                 </Box>
               )}
@@ -1425,10 +1433,10 @@ export default function ClienteSeguimientoCard({
                 recorrer la lista. */}
             {anchoCorto && facturaPlegada(factura.id) && (
               <Box sx={{ mb: 1 }}>
-                <Box sx={recuadroDeBloque(acento)}>
+                <Box sx={recuadroDeBloque(colorCuenta)}>
                   {renderFilaDeCasillas(
                     casillasDeCuenta(cuenta, { resumida: true, sobrePanel: false }),
-                    { colorDivisor: acento },
+                    { colorDivisor: colorCuenta },
                   )}
                 </Box>
               </Box>
