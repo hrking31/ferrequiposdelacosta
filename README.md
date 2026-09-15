@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-553_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-555_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -653,6 +653,17 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 > Pagado              $ 1.000.000   ← le faltaban $214.000
 > Depósito devuelto     $ 500.000   ← al devolver el equipo se le acredita
 > Saldo a favor         $ 286.000   ← lo que sobra después de cubrir lo que debía
+> ```
+>
+> El renglón dice **"Depósito"** a secas: está entre los que bajan la cuenta, así que ya se lee como plata que juega a favor del cliente, y *"devuelto"* además sonaba a que ya había salido por caja cuando puede seguir ahí, esperando que alguien se la entregue.
+>
+> **Y el diálogo de devolver hace la resta**, que es la pregunta que queda al ver el saldo a favor —por qué se le devuelve una parte del depósito y no todo:
+>
+> ```
+> Depósito              $ 500.000
+> Saldo pendiente       $ 214.000
+> ·····························
+> A favor del cliente   $ 286.000
 > ```
 >
 > Ahí había **dos errores de lectura**. El renglón del depósito devuelto estaba escrito pero **nunca se dibujó**: la cuenta no traía ese dato, así que su condición era siempre falsa. Y "Total factura" mostraba el total *después* de restar el depósito devuelto — $714.000 donde el recuadro de arriba, en la misma pantalla, decía $1.214.000. Dos cifras con el mismo nombre y nada que explicara la diferencia. Ahora la cuenta cierra a la vista: `1.214.000 − 1.000.000 − 500.000 = −286.000`.

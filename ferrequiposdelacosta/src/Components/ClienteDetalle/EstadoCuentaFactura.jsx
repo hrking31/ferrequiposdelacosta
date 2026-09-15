@@ -308,8 +308,13 @@ export default function EstadoCuentaFactura({
                 falsa. */}
               {cuenta.depositoDevuelto > 0 && (
                 <Box className="fila abono">
+                  {/* "Depósito" a secas: el renglón está entre los que bajan
+                      la cuenta, así que ya se lee como plata que juega a
+                      favor del cliente. "Devuelto" además sonaba a que ya
+                      salió por caja, cuando puede seguir acá, esperando que
+                      alguien se la entregue. */}
                   <Typography variant="body2">
-                    Depósito devuelto
+                    Depósito
                   </Typography>
                   <Typography variant="body2">
                     {formatearMoneda(cuenta.depositoDevuelto)}

@@ -82,6 +82,14 @@ export default function EntregarSaldoDialog({
   const aFavor = cuenta.saldoAFavor;
   const depositoDevuelto = calcularDepositoDevuelto(factura);
 
+  // DE DÓNDE SALE LA CIFRA. Casi siempre el saldo a favor nace del depósito,
+  // y casi nunca es el depósito entero: primero tapa lo que el cliente todavía
+  // debía de la factura, y recién lo que sobra se le devuelve.
+  //
+  // Sin esta resta a la vista, el diálogo decía "Depósito $500.000 / A favor
+  // $286.000" y no había forma de saber a dónde se fueron los otros $214.000.
+  const faltabaPagar = Math.max(0, cuenta.totalFacturado - cuenta.recibido);
+
   // Las OTRAS facturas del cliente que todavía deben, de la más antigua a la
   // más nueva —el mismo orden con que se reparte un abono, porque esto es un
   // abono—. La propia queda afuera: ya está pagada, por eso sobra plata.
@@ -261,12 +269,24 @@ export default function EntregarSaldoDialog({
         <DialogContent>
           <Paper variant="totales" sx={{ mt: 1, mb: 2 }}>
             {depositoDevuelto > 0 && (
-              <Box className="fila">
-                <Typography variant="body2">Depósito devuelto</Typography>
-                <Typography variant="body2">
-                  {formatearMoneda(depositoDevuelto)}
-                </Typography>
-              </Box>
+              <>
+                <Box className="fila">
+                  <Typography variant="body2">Depósito</Typography>
+                  <Typography variant="body2">
+                    {formatearMoneda(depositoDevuelto)}
+                  </Typography>
+                </Box>
+                {faltabaPagar > 0 && (
+                  <Box className="fila">
+                    <Typography variant="body2">Saldo pendiente</Typography>
+                    <Typography variant="body2">
+                      {formatearMoneda(faltabaPagar)}
+                    </Typography>
+                  </Box>
+                )}
+                {/* Sin línea propia: la fila del total ya trae la punteada del
+                    tema, y dos rayas seguidas partían el recuadro en dos. */}
+              </>
             )}
             <Box className="fila total">
               <Typography variant="subtitle1" fontWeight="bold">

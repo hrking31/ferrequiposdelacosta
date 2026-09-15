@@ -70,7 +70,59 @@ beforeEach(() => {
   updateDocSimulado.mockClear();
 });
 
+// EL CASO REAL, la 2455 de ReYaz: una rana de 6 días a $100.000 con IVA y
+// $500.000 de depósito. Se le facturaron $1.214.000, pagó $1.000.000, y al
+// devolver el equipo se le acreditó el depósito entero.
+const conDeposito = () => ({
+  id: "2455",
+  ...unaFactura({
+    numeroFactura: "2455",
+    fechaCreacion: "2026-09-10",
+    aplicaIva: true,
+    valorDeposito: 500000,
+    // El depósito ya se resolvió: la devolución quedó registrada y no se le
+    // retuvo nada, así que los $500.000 son del cliente.
+    depositoResuelto: true,
+    equipos: [
+      unEquipoDevuelto({
+        nombre: "RANA",
+        cantidad: 1,
+        dias: 6,
+        valorDia: 100000,
+        fechaDespacho: "2026-09-10",
+        fechaDevolucion: "2026-09-15",
+      }),
+    ],
+    pagos: [{ medio: "Efectivo", monto: 1000000 }],
+  }),
+});
+
 describe("EntregarSaldoDialog", () => {
+  // De los $500.000 del depósito, $214.000 taparon lo que el cliente todavía
+  // debía. Sin esa resta escrita, el diálogo mostraba el depósito y el saldo a
+  // favor sin nada que explicara la diferencia.
+  it("muestra de dónde sale la plata: el depósito menos lo que faltaba", () => {
+    abrir({ factura: conDeposito() });
+
+    const deposito = screen.getByText("Depósito").closest("div");
+    expect(deposito).toHaveTextContent(/500\.000/);
+
+    const pendiente = screen.getByText("Saldo pendiente").closest("div");
+    expect(pendiente).toHaveTextContent(/214\.000/);
+
+    const favor = screen.getByText("A favor del cliente").closest("div");
+    expect(favor).toHaveTextContent(/286\.000/);
+  });
+
+  // Cuando el saldo a favor no viene de un depósito sino de un sobrepago, no
+  // hay nada que descomponer: el diálogo muestra la cifra y ya.
+  it("no inventa la resta cuando no hubo depósito", () => {
+    abrir();
+
+    expect(screen.queryByText("Depósito")).not.toBeInTheDocument();
+    expect(screen.queryByText("Saldo pendiente")).not.toBeInTheDocument();
+  });
+
   it("muestra lo que le quedó a favor al cliente", () => {
     abrir();
 
