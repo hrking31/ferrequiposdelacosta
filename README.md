@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-543_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-544_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -642,6 +642,8 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 
 > [!NOTE]
 > **Saldo a favor.** Si el cliente pagó de más, ese sobrante es plata suya. La factura no termina hasta que se le devuelva, y para eso existe el botón **Devolver**, que registra la salida con su fecha y su medio — el reverso exacto de un abono.
+>
+> En cartera ese botón va **pegado a la cifra "A favor"**, con el monto escrito: el botón explica el número y el número justifica al botón. Antes era un ícono suelto en la fila de acciones, sin texto y al lado del de abonar —que se apaga justo cuando este aparece—, así que pasaba desapercibido. Con la factura plegada acompaña a la pizarra de la fila; al abrirla baja con ella al estado de cuenta, y nunca se ven los dos.
 
 ### 7. El depósito: una garantía, no un ingreso
 

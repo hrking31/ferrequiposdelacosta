@@ -476,9 +476,40 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
 
     mostrar([aFavor]);
 
-    expect(
-      screen.getAllByTestId("CurrencyExchangeIcon")[0].closest("button"),
-    ).toBeInTheDocument();
+    // CON EL MONTO ESCRITO. Era un ícono suelto entre otros tres —y pegado al
+    // de abonar, que se apaga justo cuando este aparece—, así que no se veía.
+    const boton = screen.getByRole("button", { name: /Devolver/ });
+    expect(boton).toHaveTextContent(/100\.000/);
+  });
+
+  // Su lugar es el estado de cuenta, al lado de la cifra "A favor" que lo
+  // explica. Pero ese recuadro solo existe con la factura abierta, y la
+  // factura arranca cerrada: por eso el botón también sube a la fila. Nunca
+  // están los dos a la vez.
+  it("al abrir la factura, el botón de devolver pasa al estado de cuenta", async () => {
+    const aFavor = facturaCon({
+      equipos: [
+        unEquipoDevuelto({
+          nombre: "ANDAMIO",
+          cantidad: 5,
+          dias: 3,
+          valorDia: 20000,
+          fechaDespacho: "2026-08-01",
+          fechaDevolucion: "2026-08-03",
+        }),
+      ],
+      pagos: [{ medio: "Efectivo", monto: 400000 }],
+    });
+
+    const { usuario } = mostrar([aFavor]);
+
+    await usuario.click(screen.getByRole("button", { name: "Mostrar factura" }));
+
+    // Uno solo, y ya sin el monto: al lado está la casilla "A favor" que lo dice.
+    const botones = screen.getAllByRole("button", { name: /Devolver/ });
+    expect(botones).toHaveLength(1);
+    expect(botones[0]).toHaveTextContent(/^Devolver$/);
+    expect(screen.getByText("A favor")).toBeInTheDocument();
   });
 
   it("y no lo ofrece cuando no hay nada que devolverle", () => {

@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   Divider,
   useMediaQuery,
@@ -869,6 +870,28 @@ export default function ClienteSeguimientoCard({
             )}
           </Box>
 
+          {/* LA PLATA QUE SALE: el depósito que vuelve al cliente, o lo que
+              pagó de más. Va acá, pegado a la cifra "A favor" que ya está en
+              la fila: el botón explica ese número y el número justifica al
+              botón. Arriba, entre los íconos de acción, era uno más sin texto
+              —y encima al lado del de abonar, que se apaga justo cuando este
+              aparece—.
+
+              Mientras no se entregue, la factura no puede terminar: se queda
+              en cartera por una plata que la empresa debe, no el cliente. */}
+          {cuenta.saldoAFavor > 0 && !esMovil && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<CurrencyExchangeIcon />}
+              onClick={() => setEntregarOpen(true)}
+              sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+            >
+              Devolver
+            </Button>
+          )}
+
           {/* La flecha va DENTRO del recuadro, en su esquina, igual que la de
               cada equipo: es lo que abre y cierra esta caja, y afuera quedaba
               flotando al lado del rótulo sin decir sobre qué actuaba.
@@ -896,6 +919,24 @@ export default function ClienteSeguimientoCard({
             </Tooltip>
           )}
         </Stack>
+
+        {/* EN EL CELULAR el botón baja a su propio renglón, con el monto
+            adentro. Al lado de las cifras no entra —la fila ya cede espacio
+            para la flecha— y apretado entre dos números se vuelve otra vez
+            algo que no se ve. */}
+        {cuenta.saldoAFavor > 0 && esMovil && (
+          <Button
+            fullWidth
+            size="small"
+            variant="outlined"
+            color="warning"
+            startIcon={<CurrencyExchangeIcon />}
+            onClick={() => setEntregarOpen(true)}
+            sx={{ mt: 1 }}
+          >
+            Devolver {formatearMoneda(cuenta.saldoAFavor)}
+          </Button>
+        )}
       </Box>
     </Box>
   );
@@ -1331,27 +1372,27 @@ export default function ClienteSeguimientoCard({
                   </IconButton>
                 </Tooltip>
 
-                {/* LA PLATA QUE SALE: el depósito que vuelve al cliente, o lo
-                    que pagó de más. Aparece solo cuando la factura le quedó
-                    debiendo a ÉL, y por eso cierra la fila —es el único botón
-                    que mueve plata en la otra dirección—.
+                {/* LA PLATA QUE SALE: su lugar es el estado de cuenta, pegado
+                    a la cifra "A favor" que lo explica. Pero la factura ARRANCA
+                    PLEGADA y ese recuadro recién aparece al abrirla, así que
+                    mientras está cerrada el botón sube acá —con el monto
+                    escrito, no como el ícono suelto que era antes, que se
+                    perdía entre otros tres y al lado del de abonar, que se
+                    apaga justo cuando este aparece—.
 
-                    Vivía únicamente en la ficha del cliente, y esa era la
-                    falla: mientras no se entregue, la factura no puede
-                    terminar, así que se queda en cartera mostrando un
-                    pendiente que solo se podía resolver en otra pantalla. */}
-                {cuenta.saldoAFavor > 0 && (
-                  <Tooltip
-                    title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}
+                    Nunca se ven los dos: cerrada, este; abierta, el de la
+                    cuenta. */}
+                {cuenta.saldoAFavor > 0 && facturaPlegada(factura.id) && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<CurrencyExchangeIcon />}
+                    onClick={() => setEntregarOpen(true)}
+                    sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
                   >
-                    <IconButton
-                      size="small"
-                      onClick={() => setEntregarOpen(true)}
-                      sx={{ ...iconBtnSx, color: theme.palette.warning.main }}
-                    >
-                      <CurrencyExchangeIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                    Devolver {formatearMoneda(cuenta.saldoAFavor)}
+                  </Button>
                 )}
 
                 </Stack>
