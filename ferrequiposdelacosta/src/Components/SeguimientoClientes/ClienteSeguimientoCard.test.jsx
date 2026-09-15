@@ -482,10 +482,12 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
 
     mostrar([aFavor]);
 
-    // CON EL MONTO ESCRITO. Era un ícono suelto entre otros tres —y pegado al
-    // de abonar, que se apaga justo cuando este aparece—, así que no se veía.
+    // Va como los otros de la fila —solo el ícono— pero relleno de ámbar, que
+    // es lo que lo hace ver: suelto entre otros tres, y al lado del de abonar
+    // que se apaga justo cuando este aparece, pasaba desapercibido. El monto
+    // lo dice el globo.
     const boton = screen.getByRole("button", { name: /Devolver/ });
-    expect(boton).toHaveTextContent(/100\.000/);
+    expect(boton).toHaveAccessibleName(/100\.000/);
   });
 
   // Su lugar es el estado de cuenta, al lado de la cifra "A favor" que lo
@@ -511,10 +513,10 @@ describe("ClienteSeguimientoCard — lo que se puede hacer desde cartera", () =>
 
     await usuario.click(screen.getByRole("button", { name: "Mostrar factura" }));
 
-    // Uno solo, y ya sin el monto: al lado está la casilla "A favor" que lo dice.
+    // Uno solo: el de la fila se fue con ella. Al lado queda la casilla "A
+    // favor", que es la que explica la cifra.
     const botones = screen.getAllByRole("button", { name: /Devolver/ });
     expect(botones).toHaveLength(1);
-    expect(botones[0]).toHaveTextContent(/^Devolver$/);
     expect(screen.getByText("A favor")).toBeInTheDocument();
   });
 

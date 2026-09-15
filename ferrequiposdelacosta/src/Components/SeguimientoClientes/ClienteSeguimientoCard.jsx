@@ -832,16 +832,21 @@ export default function ClienteSeguimientoCard({
               Mientras no se entregue, la factura no puede terminar: se queda
               en cartera por una plata que la empresa debe, no el cliente. */}
           {cuenta.saldoAFavor > 0 && !esMovil && (
-            <Button
-              size="small"
-              variant="contained"
-              color="warning"
-              startIcon={<CurrencyExchangeIcon />}
-              onClick={() => setEntregarOpen(true)}
-              sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
-            >
-              Devolver
-            </Button>
+            <Tooltip title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}>
+              <IconButton
+                size="small"
+                onClick={() => setEntregarOpen(true)}
+                sx={{
+                  ...iconBtnSx,
+                  flexShrink: 0,
+                  bgcolor: "warning.main",
+                  color: theme.palette.getContrastText(theme.palette.warning.main),
+                  "&:hover": { bgcolor: "warning.dark" },
+                }}
+              >
+                <CurrencyExchangeIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
 
           {/* La flecha va DENTRO del recuadro, en su esquina, igual que la de
@@ -1334,24 +1339,35 @@ export default function ClienteSeguimientoCard({
                 {/* LA PLATA QUE SALE: su lugar es el estado de cuenta, pegado
                     a la cifra "A favor" que lo explica. Pero la factura ARRANCA
                     PLEGADA y ese recuadro recién aparece al abrirla, así que
-                    mientras está cerrada el botón sube acá —con el monto
-                    escrito, no como el ícono suelto que era antes, que se
-                    perdía entre otros tres y al lado del de abonar, que se
-                    apaga justo cuando este aparece—.
+                    mientras está cerrada el botón sube acá.
+
+                    Va como los otros de la fila —solo el ícono— pero RELLENO
+                    de ámbar: eso es lo que lo hace ver. Como ícono suelto,
+                    igual a los demás, se perdía entre otros tres y al lado del
+                    de abonar, que se apaga justo cuando este aparece. El monto
+                    lo dice el globo, y la cifra ya está en la cuenta de al
+                    lado.
 
                     Nunca se ven los dos: cerrada, este; abierta, el de la
                     cuenta. */}
                 {cuenta.saldoAFavor > 0 && facturaPlegada(factura.id) && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="warning"
-                    startIcon={<CurrencyExchangeIcon />}
-                    onClick={() => setEntregarOpen(true)}
-                    sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
-                  >
-                    Devolver {formatearMoneda(cuenta.saldoAFavor)}
-                  </Button>
+                  <Tooltip title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setEntregarOpen(true)}
+                      sx={{
+                        ...iconBtnSx,
+                        flexShrink: 0,
+                        bgcolor: "warning.main",
+                        color: theme.palette.getContrastText(
+                          theme.palette.warning.main,
+                        ),
+                        "&:hover": { bgcolor: "warning.dark" },
+                      }}
+                    >
+                      <CurrencyExchangeIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 )}
 
                 </Stack>
