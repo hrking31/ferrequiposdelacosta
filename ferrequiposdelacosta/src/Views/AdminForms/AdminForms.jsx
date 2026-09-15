@@ -439,13 +439,27 @@ export default function AdminForms() {
         height: "100dvh",
         width: "100%",
         pt: isFullScreen ? 0 : { md: 8, lg: 9 },
-        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        // El hueco para la barra fija de abajo. Acostado se recorta: la barra
+        // mide lo mismo pero cada píxel pesa el doble.
+        pb: isFullScreen ? (isShortViewport ? 6 : { xs: 7, sm: 8 }) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
+      <Box
+        sx={{
+          px: 0,
+          // Acostado, los 16px de arriba y abajo del encabezado son otros 32
+          // que no están en los botones.
+          py: isShortViewport ? 0.75 : 2,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          "@media (min-width:916px)": { px: 2 },
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -519,7 +533,11 @@ export default function AdminForms() {
       </Box>
 
       {isFullScreen && (
-        <Box sx={{ pt: 4, pb: 1.5 }}>
+        // CON LA PANTALLA BAJA —el celular acostado— el aire de arriba se
+        // recorta: 32px entre el último tile y este pie son un décimo de los
+        // 344 de alto que quedan al girar. Y el pie no se encoge: el que cede
+        // es el área de los tiles, que para eso se desplaza.
+        <Box sx={{ pt: isShortViewport ? 1 : 4, pb: isShortViewport ? 0.5 : 1.5, flexShrink: 0 }}>
           <Grid container justifyContent="center" spacing={1.5}>
             {/* En celular el botón de avisos va acá abajo, junto al de salir:
                 arriba no hay lugar y es justamente donde más se usa, porque el
