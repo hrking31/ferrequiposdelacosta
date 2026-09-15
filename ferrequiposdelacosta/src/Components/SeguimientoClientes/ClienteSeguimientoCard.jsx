@@ -1523,13 +1523,22 @@ export default function ClienteSeguimientoCard({
                             ) : undefined
                           }
                         >
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
-                          >
-                            {formatearFecha(registro.fecha)} {formatearHoraLegible(registro.hora)}
-                          </Typography>
+                          {/* EN EL CELULAR no va el día ni la hora: lo que
+                              hace falta antes de llamar es a qué número se
+                              llamó y si contestó, y con la fecha adelante ese
+                              dato quedaba en el renglón de abajo. El cuándo
+                              se lee en la ficha del cliente, que es donde se
+                              revisa la historia. */}
+                          {!esMovil && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
+                            >
+                              {formatearFecha(registro.fecha)}{" "}
+                              {formatearHoraLegible(registro.hora)}
+                            </Typography>
+                          )}
                           <Typography variant="caption" sx={{ minWidth: 0 }}>
                             {describirGestion(registro)}
                           </Typography>
