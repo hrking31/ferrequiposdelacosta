@@ -646,6 +646,17 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 > [!NOTE]
 > **Saldo a favor.** Si el cliente pagó de más, ese sobrante es plata suya. La factura no termina hasta que se le devuelva, y para eso existe el botón **Devolver**, que registra la salida con su fecha y su medio — el reverso exacto de un abono.
 >
+> **Y el estado de cuenta muestra la operación entera**, que es lo que explica por qué se le devuelve una parte del depósito y no todo:
+>
+> ```
+> Total factura       $ 1.214.000   ← con el depósito adentro, como se facturó
+> Pagado              $ 1.000.000   ← le faltaban $214.000
+> Depósito devuelto     $ 500.000   ← al devolver el equipo se le acredita
+> Saldo a favor         $ 286.000   ← lo que sobra después de cubrir lo que debía
+> ```
+>
+> Ahí había **dos errores de lectura**. El renglón del depósito devuelto estaba escrito pero **nunca se dibujó**: la cuenta no traía ese dato, así que su condición era siempre falsa. Y "Total factura" mostraba el total *después* de restar el depósito devuelto — $714.000 donde el recuadro de arriba, en la misma pantalla, decía $1.214.000. Dos cifras con el mismo nombre y nada que explicara la diferencia. Ahora la cuenta cierra a la vista: `1.214.000 − 1.000.000 − 500.000 = −286.000`.
+>
 > En cartera ese botón va **pegado a la cifra "A favor"**, con el monto escrito: el botón explica el número y el número justifica al botón. Antes era un ícono suelto en la fila de acciones, sin texto y al lado del de abonar —que se apaga justo cuando este aparece—, así que pasaba desapercibido. Con la factura plegada acompaña a la pizarra de la fila; al abrirla baja con ella al estado de cuenta, y nunca se ven los dos.
 
 #### Y si el cliente debe en otra factura, no se le entrega: se cruza

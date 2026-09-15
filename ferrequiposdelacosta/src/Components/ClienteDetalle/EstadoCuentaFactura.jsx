@@ -56,7 +56,16 @@ export default function EstadoCuentaFactura({
   const datos = datosFactura(factura);
   const subtotal = formatearMoneda(cuenta.subtotal);
   const iva = formatearMoneda(cuenta.iva > 0 ? cuenta.iva : undefined);
-  const valorTotal = formatearMoneda(cuenta.total);
+  // EL TOTAL QUE SE LE FACTURÓ, con el depósito entero adentro: el mismo
+  // número que el recuadro "Total factura" de arriba.
+  //
+  // Antes acá iba `cuenta.total`, que es lo que se le cobra HOY —ya con el
+  // depósito devuelto restado—. Los dos se llaman "Total factura" y en una
+  // factura con el depósito ya devuelto mostraban cifras distintas en la
+  // misma pantalla: arriba $1.214.000 y acá $714.000, sin nada que explicara
+  // la diferencia. El depósito que volvió se muestra ahora en su propio
+  // renglón, que es lo que hace cuadrar la cuenta a la vista.
+  const valorTotal = formatearMoneda(cuenta.totalFacturado);
 
   // Depósito y transporte de TODA la factura: el de cada despacho, sumado.
   const depositoTotalFactura = calcularDepositoTotal(factura);
@@ -288,9 +297,15 @@ export default function EstadoCuentaFactura({
                 </Box>
               )}
 
-              {/* El depósito devuelto ya salió del total de
-                arriba. Se muestra igual, porque si no el total
-                cambiaría sin explicación. */}
+              {/* LA GARANTÍA QUE VOLVIÓ. Es el renglón que explica por qué
+                un cliente que pagó menos que el total termina con plata a
+                favor: el depósito se le factura y, cuando devuelve el equipo,
+                se le acredita. Primero cubre lo que faltaba de la factura, y
+                lo que sobra es lo que hay que devolverle.
+
+                Estaba escrito desde el principio pero nunca se dibujó: la
+                cuenta no traía este dato, así que la condición era siempre
+                falsa. */}
               {cuenta.depositoDevuelto > 0 && (
                 <Box className="fila abono">
                   <Typography variant="body2">

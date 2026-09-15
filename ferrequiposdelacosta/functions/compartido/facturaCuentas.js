@@ -651,7 +651,8 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   const subtotal = alquiler.neto;
 
   const iva = calcularIvaEquipos(doc, hoyIso);
-  const deposito = calcularDepositoTotal(doc) - calcularDepositoDevuelto(doc);
+  const depositoDevuelto = calcularDepositoDevuelto(doc);
+  const deposito = calcularDepositoTotal(doc) - depositoDevuelto;
   const total = subtotal + iva + transporte + deposito;
 
   const pagado = sumarPagos(doc);
@@ -668,7 +669,17 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     subtotal,
     iva,
     deposito,
+    // La garantía que ya volvió al cliente. `deposito` es lo que todavía
+    // retiene la empresa, así que sin este dato el total baja sin decir por
+    // qué: se factura con depósito y, cuando se devuelve, deja de cobrarse.
+    depositoDevuelto,
     total,
+    // Lo que se le facturó al cliente, con el depósito entero adentro —el
+    // número del recuadro "Total factura" de la ficha, el que él vio—.
+    // `total` es lo que se le cobra HOY, ya sin el depósito devuelto, y los
+    // dos se llaman igual en pantalla: mostrar uno donde va el otro es lo que
+    // deja a la cuenta sin explicación.
+    totalFacturado: total + depositoDevuelto,
     pagado,
     abonos,
     entregas,
