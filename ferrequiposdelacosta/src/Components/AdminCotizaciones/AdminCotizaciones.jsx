@@ -16,6 +16,7 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
@@ -69,6 +70,10 @@ const estadoDe = (status) => ({
 
 export default function KioskAdminCotizaciones() {
   const theme = useTheme();
+  // El mismo corte que usan las vistas para su encabezado y su pie. No sirve
+  // el "sm" de MUI (600px): un celular ACOSTADO mide 740 y tomaba los valores
+  // del computador, así que el aire de acá se agrandaba justo al girar.
+  const esCelular = useMediaQuery("(max-width:915px)");
   // Acento del modo: naranja en claro, amarillo en oscuro.
   const acento = theme.palette.custom.accent;
   const dispatch = useDispatch();
@@ -219,7 +224,10 @@ export default function KioskAdminCotizaciones() {
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        gap: 3,
+        // En el celular, los mismos 12px que dejan el encabezado y el pie: con
+        // 24 el hueco entre los filtros y la primera solicitud rompía el ritmo
+        // de la pantalla. En el computador se mantiene el aire de antes.
+        gap: esCelular ? 1.5 : 2,
         backgroundColor: (theme) => theme.palette.background.default,
         transition: "background-color 0.3s ease",
       }}

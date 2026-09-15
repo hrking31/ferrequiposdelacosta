@@ -4,6 +4,7 @@ import {
   Chip,
   Stack,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
@@ -28,6 +29,10 @@ const obtenerNombreCompleto = (cliente) => {
 
 export default function SeguimientoClientes() {
   const theme = useTheme();
+  // El mismo corte que usan las vistas para su encabezado y su pie. No sirve
+  // el "sm" de MUI (600px): un celular ACOSTADO mide 740 y tomaba los valores
+  // del computador, así que el aire de acá se agrandaba justo al girar.
+  const esCelular = useMediaQuery("(max-width:915px)");
   const acento =
     theme.palette.custom.accent;
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -151,7 +156,10 @@ export default function SeguimientoClientes() {
           direction={{ xs: "column", sm: "row" }}
           spacing={1.5}
           alignItems={{ xs: "stretch", sm: "center" }}
-          sx={{ mb: 3, flexShrink: 0 }}
+          // En el celular deja los mismos 12px que el encabezado y el pie: con
+          // 24 el hueco hasta la primera tarjeta rompía el ritmo de la
+          // pantalla. En el computador se mantiene el aire de antes.
+          sx={{ mb: esCelular ? 1.5 : 2, flexShrink: 0 }}
         >
           <BuscadorFiltro
             value={busqueda}

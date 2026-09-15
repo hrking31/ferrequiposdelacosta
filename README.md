@@ -989,6 +989,15 @@ Y una tercera cosa se volvió **estructuralmente imposible** en vez de quedar "a
 
 ## Arquitectura
 
+### El mismo aire en las catorce pantallas
+
+Cada pantalla del panel tenía su propio espaciado: el encabezado dejaba 16px, el pie 12, la fila de búsqueda 24 en Seguimiento y Solicitudes pero 16 en Buscar cuentas de cobro, y el menú ponía 32 entre el último botón y el pie. Al recorrerlas de corrido se notaba el salto.
+
+Ahora hay **un solo número por dispositivo**: **12px en el celular y 16 en el computador**, y vale para los tres huecos que se repiten —debajo del encabezado, debajo de la fila de búsqueda y encima del pie—. Los márgenes laterales del contenido ya eran 16 en computador y 0 en celular en todas.
+
+> [!NOTE]
+> **El corte es 915px, no el `sm` de MUI.** Las filas de búsqueda usaban `{ xs: …, sm: … }`, que cambia a los 600px: un celular ACOSTADO mide 740 y tomaba los valores del computador, así que el aire se agrandaba justo al girar. Con el mismo corte que usan las vistas para decidir si hay pie, el celular se comporta igual de pie que acostado.
+
 **React 18 + Vite 6** como base, **MUI 5** para la interfaz, **Redux Toolkit** para el estado, **React Router 7** para las rutas, e instalable como **PWA** con actualización automática. El backend es Firebase completo.
 
 ### Los tres almacenes, y por qué

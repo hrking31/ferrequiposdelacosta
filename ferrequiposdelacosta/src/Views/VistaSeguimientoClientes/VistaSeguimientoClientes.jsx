@@ -34,7 +34,20 @@ export default function VistaSeguimientoClientes() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
+      <Box
+        sx={{
+          px: 0,
+          // EN EL CELULAR, 12px arriba y abajo: el mismo aire que deja el pie
+          // con sus botones, así el contenido queda parejo entre los dos. En
+          // el computador no hay pie y el encabezado respira un poco más.
+          py: isFullScreen ? 1.5 : 2,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          "@media (min-width:916px)": { px: 2 },
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}

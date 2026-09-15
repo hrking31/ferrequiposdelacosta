@@ -356,7 +356,10 @@ export default function ClienteEncabezado({
         border: "1px solid",
         borderColor: "divider",
         boxShadow: 1,
-        mb: 3,
+        // El mismo aire que el resto de la app: 12px en el celular y 16 en el
+        // computador. Con 24, el hueco hasta la primera factura era el doble
+        // que el que deja el encabezado arriba.
+        mb: isFullScreen ? 1.5 : 2,
         position: "relative",
         // Sin esto, una pizarra de cuatro importes largos estira la tarjeta
         // más allá del ancho de la pantalla y aparece scroll horizontal.

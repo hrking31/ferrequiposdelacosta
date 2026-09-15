@@ -174,7 +174,10 @@ const VistaSeleccionarEquipo = () => {
     >
       <Box
         sx={{
-          p: 2,
+          px: 2,
+          // El mismo aire que el resto de las vistas: 12px en el celular,
+          // igual que el del pie, y 16 en el computador.
+          py: isFullScreen ? 1.5 : 2,
           flexShrink: 0,
           width: "100%",
           display: "flex",
@@ -213,7 +216,11 @@ const VistaSeleccionarEquipo = () => {
       {/* El buscador queda FIJO. Antes vivía dentro del área que scrollea:
           apenas la búsqueda devolvía varias tarjetas se iba hacia arriba, y
           para cambiar el texto había que volver a subir. */}
-      <Box sx={{ ...anchoContenido, flexShrink: 0, pb: 2 }}>
+      {/* ARRIBA Y ABAJO LO MISMO: el encabezado deja 12px hasta el buscador, y
+          de acá a las tarjetas tienen que ser otros 12. Son 6 más los 6 que
+          agrega el área de tarjetas para no recortar el borde de la primera
+          fila al levantarse con el mouse. */}
+      <Box sx={{ ...anchoContenido, flexShrink: 0, pb: { xs: 0.75, sm: 2 } }}>
         <BuscadorFiltro
           value={busqueda}
           onChange={setBusqueda}

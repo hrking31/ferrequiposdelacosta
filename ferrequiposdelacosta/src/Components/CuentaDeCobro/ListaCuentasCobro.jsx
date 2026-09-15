@@ -18,6 +18,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -79,6 +80,10 @@ const saldoDe = (cuenta) =>
 
 export default function ListaCuentasCobro() {
   const theme = useTheme();
+  // El mismo corte que usan las vistas para su encabezado y su pie. No sirve
+  // el "sm" de MUI (600px): un celular ACOSTADO mide 740 y tomaba los valores
+  // del computador, así que el aire de acá se agrandaba justo al girar.
+  const esCelular = useMediaQuery("(max-width:915px)");
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const acento = theme.palette.custom.accent;
@@ -280,7 +285,9 @@ export default function ListaCuentasCobro() {
         direction={{ xs: "column", sm: "row" }}
         spacing={1.5}
         alignItems={{ xs: "stretch", sm: "center" }}
-        sx={{ flexShrink: 0, pb: 2 }}
+        // Los mismos 12px del encabezado y el pie en el celular; en el
+        // computador, el aire de antes.
+        sx={{ flexShrink: 0, pb: esCelular ? 1.5 : 2 }}
       >
         <BuscadorFiltro
           value={busqueda}

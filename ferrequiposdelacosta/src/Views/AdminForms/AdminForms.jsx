@@ -421,7 +421,15 @@ export default function AdminForms() {
     display: "flex",
     flexWrap: "wrap",
     justifyContent: "center",
-    alignContent: "center",
+    // "safe": centra mientras el contenido entre, y si no entra lo alinea
+    // arriba en vez de centrarlo igual.
+    //
+    // Con "center" a secas, el contenido que sobra se reparte a los dos lados
+    // —también hacia ARRIBA— y esa parte queda fuera de alcance: el
+    // desplazamiento no llega más atrás del inicio. Con el celular acostado,
+    // donde las cuatro filas no entran en 360px, eso escondía la primera fila
+    // entera debajo del encabezado.
+    alignContent: "safe center",
     gap: `${gapPx}px`,
   };
 
@@ -445,7 +453,20 @@ export default function AdminForms() {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ px: 0, py: 2, flexShrink: 0, display: "flex", alignItems: "center", gap: 1, "@media (min-width:916px)": { px: 2 } }}>
+      <Box
+        sx={{
+          px: 0,
+          // EN EL CELULAR, 12px arriba y abajo: el mismo aire que deja el pie
+          // con sus botones, así el contenido queda parejo entre los dos. En
+          // el computador no hay pie y el encabezado respira un poco más.
+          py: isFullScreen ? 1.5 : 2,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          "@media (min-width:916px)": { px: 2 },
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -519,7 +540,12 @@ export default function AdminForms() {
       </Box>
 
       {isFullScreen && (
-        <Box sx={{ pt: 4, pb: 1.5 }}>
+        // EL MISMO PIE QUE LAS OTRAS DOCE VISTAS: 12px por lado. Acá tenía 32
+        // arriba, y con el celular acostado esa diferencia contra los 12 del
+        // encabezado se notaba el doble. El hueco de la barra de abajo (el
+        // `pb` de la pantalla) no se toca: es lo que evita que el botón quede
+        // por debajo de ella.
+        <Box sx={{ p: 1.5, flexShrink: 0 }}>
           <Grid container justifyContent="center" spacing={1.5}>
             {/* En celular el botón de avisos va acá abajo, junto al de salir:
                 arriba no hay lugar y es justamente donde más se usa, porque el
