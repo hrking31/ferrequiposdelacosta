@@ -168,11 +168,20 @@ RecuadroPago.propTypes = {
 //   sistema   el botón Abono, repartido por la app entre las facturas con saldo
 //   cliente   el botón Abono, y el cliente pidió que fuera a esta factura
 //   agregado  sobró de lo que se pagó al agregar equipos
+//   cruce     el saldo a favor de OTRA factura del mismo cliente
 //
 // Y `desdeFactura` distingue el sobrante que nació acá del que cruzó desde
 // otra factura. Solo se escribe una línea cuando hay algo que explicar: un
 // abono que el cliente hizo sobre esta factura no necesita aclaración.
 const origenDelAbono = (abono) => {
+  // El cruce NO es plata que entró por caja: es la que la empresa le debía al
+  // cliente en otra factura y se usó acá. Sin esta línea, el abono parecería
+  // un pago que nunca hizo.
+  if (abono?.tipo === "cruce") {
+    return abono.desdeFactura
+      ? `Viene del saldo a favor de la factura ${abono.desdeFactura}`
+      : "Viene de un saldo a favor del cliente";
+  }
   if (abono?.tipo === "agregado") {
     return abono.desdeFactura
       ? `Abono proveniente de los equipos agregados de la factura ${abono.desdeFactura}`

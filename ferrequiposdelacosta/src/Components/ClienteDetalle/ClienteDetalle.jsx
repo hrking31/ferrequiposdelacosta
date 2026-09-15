@@ -385,6 +385,9 @@ export default function ClienteDetalle() {
         onClose={() => setFacturaEntregando(null)}
         cliente={cliente}
         factura={facturaEntregando}
+        // Las abiertas alcanzan: una cerrada no debe nada, así que no hay
+        // contra qué cruzar.
+        facturas={facturas}
         onEntregado={() => fetchCliente(true)}
       />
 

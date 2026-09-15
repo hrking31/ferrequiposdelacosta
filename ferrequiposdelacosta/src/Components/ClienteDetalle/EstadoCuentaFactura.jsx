@@ -26,6 +26,7 @@ import {
   depositoPendiente,
   calcularTransporteTotal,
   datosFactura,
+  entregasDe,
 } from "./facturaUtils";
 import { iconBtnSx } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
@@ -300,6 +301,22 @@ export default function EstadoCuentaFactura({
                   </Typography>
                 </Box>
               )}
+
+              {/* A DÓNDE FUE ESA PLATA, debajo del renglón que dice cuánto
+                  salió. Sin esta línea, una salida que NO se le entregó al
+                  cliente —la que se cruzó contra otra factura suya— se leería
+                  como plata que se le devolvió en mano. */}
+              {entregasDe(factura)
+                .filter((entrega) => entrega?.nota)
+                .map((entrega, indice) => (
+                  <Typography
+                    key={`${entrega.fecha}-${indice}`}
+                    variant="caption"
+                    sx={{ display: "block", opacity: 0.85, mt: 0.25 }}
+                  >
+                    {entrega.nota}
+                  </Typography>
+                ))}
 
               {/* Retener plata sin decir por qué no se puede,
                 así que el motivo siempre está a la vista. */}

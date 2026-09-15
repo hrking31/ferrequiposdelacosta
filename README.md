@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-544_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-551_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -644,6 +644,29 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 > **Saldo a favor.** Si el cliente pagó de más, ese sobrante es plata suya. La factura no termina hasta que se le devuelva, y para eso existe el botón **Devolver**, que registra la salida con su fecha y su medio — el reverso exacto de un abono.
 >
 > En cartera ese botón va **pegado a la cifra "A favor"**, con el monto escrito: el botón explica el número y el número justifica al botón. Antes era un ícono suelto en la fila de acciones, sin texto y al lado del de abonar —que se apaga justo cuando este aparece—, así que pasaba desapercibido. Con la factura plegada acompaña a la pizarra de la fila; al abrirla baja con ella al estado de cuenta, y nunca se ven los dos.
+
+#### Y si el cliente debe en otra factura, no se le entrega: se cruza
+
+Devolverle plata a alguien que debe en la factura de al lado es sacarla de la caja para volver a pedírsela. Las facturas llevan cuentas separadas —cada una es un contrato— y por eso la app no las cruzaba sola: te dejaba devolver $286.000 a un cliente que debía $500.000 en otra, sin decir nada.
+
+Ahora lo dice antes de entregar:
+
+```
+Este cliente debe $ 500.000 en la factura 8215.
+ (•) Cruzarlo con lo que debe — no sale plata
+ ( ) Entregárselo al cliente
+
+   A la factura 8215        $ 286.000
+   Le queda debiendo        $ 214.000
+```
+
+El cruce escribe **las dos puntas en una sola operación**: una salida en la factura que tenía el saldo a favor, con la nota *"Cruzado a la factura 8215"*, y un abono `tipo: "cruce"` en la que debe, que muestra debajo *"Viene del saldo a favor de la factura 2455"*. Ninguna de las dos inventa plata y en cada una queda escrito de dónde salió. Si se escribiera solo una, el cliente perdería esa plata o la pagaría dos veces.
+
+Tres reglas del reparto:
+
+- Con **varias facturas debiendo**, se cruza de la más antigua a la más nueva — el mismo orden con que se reparte un abono, porque esto *es* un abono.
+- A cada una **exactamente lo que le falta**, ni un peso más. El abono le da a la última todo lo que sobre; el cruce no, porque ese sobrante ya está a favor donde está y mudarlo dejaría dos facturas a medio resolver en vez de una.
+- El **cruce no pide medio de pago**: la plata nunca salió de la empresa, cambió de factura. Escribir "Efectivo" ahí sería inventar un movimiento de caja que nadie hizo.
 
 ### 7. El depósito: una garantía, no un ingreso
 

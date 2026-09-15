@@ -1755,6 +1755,9 @@ export default function ClienteSeguimientoCard({
         onClose={() => setEntregarOpen(false)}
         cliente={cliente}
         factura={factura}
+        // Todas las del cliente, no solo las de cartera: la plata a favor
+        // puede cruzarse contra una factura vigente que también debe.
+        facturas={facturasDelCliente}
         onEntregado={onEquiposActualizados}
       />
     </Box>
