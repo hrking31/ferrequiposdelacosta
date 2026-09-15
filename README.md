@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-545_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-548_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -329,6 +329,32 @@ Cada factura de la lista trae las acciones del cobro a la mano:
 
 Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre todas las del cliente: con varias facturas, los números no se podrían atribuir a ninguna.
 
+### No se cobra sin decir qué pasa con el equipo
+
+Cobrar y no preguntar por el equipo es cómo una factura termina pagada con el equipo en la obra y sin fecha de retorno: nadie decidió nada, simplemente no se preguntó. Por eso, **cuando el abono va a una factura con equipos vencidos afuera, el diálogo pregunta** — y lo hace **por cada equipo**, porque el cliente puede pedir dos días más para la mezcladora y quedarse el compresor sin fecha:
+
+```
+Estos equipos siguen en la obra. ¿Qué se acordó?
+
+1 SALTARIN · Entrega indefinida actualmente · 4 días vencidos
+  ( ) Ampliar vencimiento
+  (•) Entrega indefinida          ← ya está así: marcada y bloqueada
+
+2 TABLÓN DE MADERA · Vence: 11/09/2026 · 3 días vencidos
+  ( ) Ampliar vencimiento
+  ( ) Entrega indefinida
+
+[ ] No se acordó nada
+```
+
+Esa última casilla es **una sola por factura** y cubre a los que quedaron sin marcar: no es una decisión sobre un equipo sino la ausencia de acuerdo. La plata entra igual, los equipos se quedan como están y mañana les sigue corriendo la mora — con los tramos escritos no se pierde nada. Está para que eso sea una decisión y no un olvido: **lo único que no se admite es no contestar**.
+
+Al que ya quedó sin fecha se le muestra su opción marcada y bloqueada: no hay nada que volver a pactar, y volver a escribirla le correría a hoy el día en que se pactó. Para sacarlo de ahí se le dan días, que es lo que la cierra.
+
+**Y esto solo pasa en cartera.** En la ficha del cliente el abono es solo un abono: pactar un plazo se acuerda con alguien que ya está vencido —es cobranza— así que se decide donde se cobra. Es la misma regla que ya seguían las devoluciones.
+
+Si el equipo se resolvió antes —se le ampliaron los días o se registró su devolución— el abono **ni pregunta**: ese equipo ya no está vencido. La pregunta aparece solo cuando queda uno en la obra sobre el que nadie decidió nada.
+
 ### Los cinco recordatorios de WhatsApp
 
 **Ninguno se envía solo.** El mensaje sale cuando alguien toca el botón; lo automático es **cuál** de los cinco sale, y eso lo decide la gestión vigente de esa factura.
@@ -527,27 +553,37 @@ Cada equipo va en **el color de su urgencia** —el mismo que tendrá su recuadr
 
 Al abrir la factura ese renglón desaparece: abajo cada equipo tiene su propio recuadro, y repetir la lista arriba sería decir dos veces lo mismo.
 
-### Qué dice cada equipo en cartera
+### La ficha de cada equipo en cartera
 
-Dos renglones, y ninguno de ellos es historia:
+Cuatro casillas del mismo ancho, separadas por una línea, en la misma pizarra que la cuenta de la factura:
 
-> **10 GATOS HIDRÁULICOS**
-> Salió el 01/09/2026 · 14 días afuera
-> Vence: 11/09/2026 — 3 días vencidos
-> Días vencidos: $ 450.000 con IVA
-> *Se le dieron 4 días el 11/09*
+```
+[1] SALTARIN              VENCE        Vencido           4 DÍAS VENCIDOS
+    🚚 07/09/2026 · 4 días 10/09/2026   11/09 - 14/09     $ 400.000 + IVA
+```
 
-El primero dice **desde cuándo lo tiene**, que el plazo solo no cuenta: "se pasó 3 días" puede ser un alquiler corto o uno que ya lleva un mes.
+**El equipo abre la ficha**, como el nombre abre cualquier renglón: la cantidad en su recuadro y, debajo, con qué salió —el día y los días que se le contrataron—. Ese plazo del alta no se toca nunca, así que dice con qué se despachó el equipo, no en qué quedó.
 
-El segundo es **el plazo**, el mismo que abre la fila del equipo en los dos diálogos de esta pantalla: hasta cuándo lo tenía y, si ya pasó, cuánto lleva de más. El que quedó sin fecha dice *"Entrega indefinida actualmente"*.
+**Vence** es el vencimiento inicial. Lo que pasó después lo cuenta la tercera: **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
 
-El tercero es **lo que ya cuestan esos días**, con su IVA si el equipo lo lleva. Una cosa es decirle al cliente *"debe dos millones"* y otra *"el compresor solo ya va en un millón"*: con lo segundo se negocia, con lo primero se discute. Va con el equipo y no arriba con la cuenta —el costo es de lo que lo genera, y en la factura no se sabría cuál de los cinco equipos lo está corriendo—.
+**La cuarta es la plata**: los días en el rótulo y lo que cuestan en el valor, *"4 días vencidos · $400.000 + IVA"*, que es como se dice al hablar. La cifra va **sin IVA** y el impuesto se avisa al lado, que es como se cotiza. Al que vence hoy le dice *"0 días vencidos"* y deja el valor en blanco: una raya se leería como que el dato falta, y lo que pasa es que todavía no hay nada que cobrar.
 
-El último es **lo último que se pactó por ese equipo** —más días, o que quedó sin fecha—, y está para evitar reclamarle al cliente algo que uno mismo le concedió la semana pasada. Sale de lo que el equipo ya guarda; no hay un campo nuevo.
+Ese costo va con el equipo y no arriba con la cuenta: una cosa es decirle al cliente *"debe dos millones"* y otra *"el compresor solo ya va en un millón"*. Con lo segundo se negocia, con lo primero se discute — y en la factura no se sabría cuál de los cinco equipos lo está corriendo.
 
 **La llamada y el WhatsApp no bajan al equipo**: se le pregunta al cliente por todo lo que tiene afuera, no por un equipo en particular, así que la bitácora de gestión se lee una sola vez por factura, arriba.
 
 Acá vivió hasta el 14/09/2026 la historia completa del equipo en fichas —cuándo salió, a qué precio, los vencimientos por los que pasó, lo que costó cada tramo—. Contestaba *"¿cómo llegamos hasta acá?"*, que es la pregunta de la ficha del cliente y la que responde su línea de tiempo. Cartera pregunta otra: **a quién llamo hoy**.
+
+### La misma tarjeta en el celular
+
+Las cuatro casillas no entran de lado en un teléfono sin que las fechas se corten, así que ahí la tarjeta se acomoda —y **en computador no cambia nada**:
+
+- Los **días vencidos** bajan a su propio renglón, debajo de la fecha, y arriba a la derecha queda **solo el chip de estado**, a la altura de *"Vencía"*: los dos lados se leen como dos bloques. Los botones se apilan debajo del chip.
+- **Cada ficha de equipo se abre con su flecha.** Cerrada muestra qué es y cómo está —la primera casilla y la del estado—, que es con lo que se decide si hay que llamar; abierta, las cuatro una debajo de otra.
+- **La cuenta también.** Cerrada, Total y Saldo; abierta, los cuatro valores en columna.
+- **La bitácora dice el número y si contestó** —*"Llamada a 3028446805 — no contestó"*—, sin el día ni la hora: antes de llamar eso es lo que hace falta, y con la fecha adelante el dato se iba al renglón de abajo. El cuándo se lee en la ficha del cliente.
+
+Las flechas van **dentro** de su recuadro, en la esquina, y se centran mientras está cerrado: es lo que abre y cierra esa caja, y afuera quedaban flotando sin decir sobre qué actuaban.
 
 **En cartera el color responde otra pregunta.** En la ficha dice *en qué anda* el equipo —los cinco estados de arriba—; acá dice *qué tan urgente es*, y por eso los equipos van agrupados bajo tres rótulos, cada uno con su icono de calendario del color que le toca —tachado el de los vencidos—:
 
@@ -1049,9 +1085,13 @@ Ese doble soporte escondía un bug: al agregar un equipo pagado a una factura vi
 > [!WARNING]
 > Los permisos por rol de la interfaz son **comodidad, no seguridad**: definen qué botones se ven. Lo que de verdad protege los datos son las reglas del servidor.
 
-Y esa advertencia no es teórica: **había dos acciones que solo estaban protegidas por la pantalla.** Eliminar una cuenta de cobro y darla por pagada mostraban su botón únicamente al administrador, pero la regla del servidor dejaba escribir a cualquiera con permiso de cuentas — alcanzaba con saber hacerlo desde la consola del navegador. Ahora las dos están cerradas del lado del servidor.
+Y esa advertencia no es teórica: **había tres acciones que solo estaban protegidas por la pantalla.** Eliminar una cuenta de cobro y darla por pagada mostraban su botón únicamente al administrador, pero la regla del servidor dejaba escribir a cualquiera con permiso de cuentas — alcanzaba con saber hacerlo desde la consola del navegador. Ahora las dos están cerradas del lado del servidor.
 
 Cerrarlas tuvo su detalle: abrir una cuenta ya pagada la pasa a *En proceso* y **al salir vuelve a pagada**, y ese regreso lo hace cualquiera. Si la regla mirara solo el estado final, bloquearía el trabajo normal. Mira, en cambio, si se toca la **marca de quién y cuándo pagó** —lo único que escribe ese botón—, y usa el estado anterior para distinguir el regreso de una decisión nueva.
+
+**Borrar una factura** era la tercera, y se cerró el 14/09/2026. No se deshace: se lleva los abonos, los despachos y la historia de cada equipo, y descuadra los números del mes y cualquier cuenta de cobro que la mencione. Ahora el tacho se le muestra solo al administrador y, del lado del servidor, crear y editar siguen abiertos a quien gestiona clientes pero **borrar pide administrador**.
+
+Y cambió cuándo se puede: además de las facturas sin nada encima, también se borra la **finalizada** —ahí ya no hay nada abierto, los equipos volvieron y la plata está saldada—. La que todavía está viva se arregla, no se borra. Al confirmar, el aviso dice qué se lleva por delante: *"Se van con ella: 2 abonos, 1 despacho agregado…"*.
 
 Un usuario cualquiera solo puede tocar dos campos de su propia ficha: **su foto** y **la lista de aparatos donde quiere recibir avisos**. Nada más — sin ese límite, cualquiera podría escribirse el rol de administrador desde la consola del navegador.
 
