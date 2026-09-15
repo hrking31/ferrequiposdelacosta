@@ -155,13 +155,23 @@ const formatearFecha = (isoDate) => {
   return `${dia}/${mes}/${anio}`;
 };
 
-// La misma fecha sin el año, para el celular: en la bitácora las anotaciones
-// son de estos días —lo viejo está en la ficha del cliente— y el año repetido
-// en cada renglón se come el espacio que necesita lo que pasó.
+// CUÁNDO FUE, en corto, para el celular: "12/09/26 8:16pm". El año en dos
+// cifras y la hora sin espacios ni puntos — en la bitácora el renglón pelea
+// cada letra con lo que pasó, que es el otro dato que hay que leer.
 const formatearFechaCorta = (isoDate) => {
   if (!isoDate) return null;
-  const [, mes, dia] = isoDate.split("-");
-  return `${dia}/${mes}`;
+  const [anio, mes, dia] = isoDate.split("-");
+  return `${dia}/${mes}/${anio.slice(-2)}`;
+};
+
+const formatearHoraCorta = (horaHHMM) => {
+  if (!horaHHMM) return "";
+  const [horas, minutos] = String(horaHHMM).split(":").map(Number);
+  if (Number.isNaN(horas) || Number.isNaN(minutos)) return horaHHMM;
+  // Las 0 y las 12 son el caso raro: 00:30 son las 12:30am y 12:30 las
+  // 12:30pm (igual que en formatearHoraLegible, el de pantalla grande).
+  const hora12 = horas % 12 === 0 ? 12 : horas % 12;
+  return `${hora12}:${String(minutos).padStart(2, "0")}${horas < 12 ? "am" : "pm"}`;
 };
 
 // Cada anotación de la línea de tiempo, contada en una frase. Los tipos son
@@ -1596,9 +1606,8 @@ export default function ClienteSeguimientoCard({
                             sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
                           >
                             {esMovil
-                              ? formatearFechaCorta(registro.fecha)
-                              : formatearFecha(registro.fecha)}{" "}
-                            {formatearHoraLegible(registro.hora)}
+                              ? `${formatearFechaCorta(registro.fecha)} ${formatearHoraCorta(registro.hora)}`
+                              : `${formatearFecha(registro.fecha)} ${formatearHoraLegible(registro.hora)}`}
                           </Typography>
                           <Typography variant="caption" sx={{ minWidth: 0 }}>
                             {describirGestion(registro, { compacto: esMovil })}
