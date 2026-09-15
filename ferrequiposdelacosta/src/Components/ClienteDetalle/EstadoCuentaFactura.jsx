@@ -73,6 +73,17 @@ export default function EstadoCuentaFactura({
   const saldoPendiente = formatearMoneda(saldoPendienteNumero);
   const hayColorAlerta = saldoPendienteNumero > 0;
 
+  // La cuenta cerró clavada: un solo pago por el total exacto, sin abonos y
+  // sin nada a favor. Es el ÚNICO caso en que repetir "Pagado" debajo del
+  // total no agrega nada, porque son el mismo número.
+  //
+  // En cualquier otro —falta plata, hubo abonos, o el cliente pagó de más—
+  // ese renglón es justamente lo que explica cómo se llegó al saldo. Sin él,
+  // una factura con saldo a favor mostraba "Total $714.000 / A favor
+  // $286.000" y no había forma de saber que había entregado $1.000.000.
+  const cuentaCerroClavada =
+    saldoPendienteNumero === 0 && saldoAFavorNumero === 0 && totalAbonos === 0;
+
   // Se separan en dos grupos (izquierda: subtotal/iva, derecha:
   // depósito/transporte) para poder acomodarlos en 2 columnas
   // prolijas en móvil, en vez de dejarlos ajustar solos.
@@ -253,10 +264,10 @@ export default function EstadoCuentaFactura({
                   </Typography>
                 </Box>
               )}
-              {/* Lo ya cobrado. Solo aparece cuando queda saldo
-                o cuando hubo abonos: con la factura saldada de
-                una sola vez sería repetir el total. */}
-              {(hayColorAlerta || totalAbonos > 0) && (
+              {/* Lo que el cliente entregó. Se calla únicamente
+                cuando pagó el total exacto de una sola vez, que
+                es cuando repetiría la cifra de arriba. */}
+              {!cuentaCerroClavada && (
                 <Box className="fila pagado">
                   <Typography variant="body2">Pagado</Typography>
                   <Typography variant="body2">

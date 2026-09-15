@@ -297,3 +297,43 @@ describe("FacturaCard — lo que ya no se puede tocar", () => {
     expect(boton("EditIcon")).toBeEnabled();
   });
 });
+
+// EL ESTADO DE CUENTA TIENE QUE EXPLICAR CÓMO SE LLEGÓ AL SALDO, no solo
+// anunciarlo. Es la pantalla donde se revisan las cuentas de una factura.
+describe("FacturaCard — el estado de cuenta discrimina la plata", () => {
+  // El caso que lo destapó: la 2455, con el equipo ya devuelto y $286.000 a
+  // favor. Mostraba "Total $714.000 / A favor $286.000" y nada más — no había
+  // forma de saber que el cliente había entregado $1.000.000.
+  it("con saldo a favor dice cuánto entregó el cliente", () => {
+    const pagoDeMas = facturaCon({
+      equipos: [
+        unEquipoDevuelto({
+          nombre: "ANDAMIO",
+          cantidad: 1,
+          dias: 3,
+          valorDia: 100000,
+          fechaDespacho: "2026-08-01",
+          fechaDevolucion: "2026-08-03",
+        }),
+      ],
+      pagos: [{ medio: "Efectivo", monto: 400000 }],
+    });
+
+    mostrar(pagoDeMas);
+
+    // El renglón y su cifra, uno al lado del otro en la misma fila.
+    const pagado = screen.getByText("Pagado").closest("div");
+    expect(pagado).toHaveTextContent(/400\.000/);
+
+    const aFavor = screen.getByText("Saldo a favor").closest("div");
+    expect(aFavor).toHaveTextContent(/100\.000/);
+  });
+
+  // La única excepción: pagó el total exacto, de una sola vez y sin abonos.
+  // Ahí "Pagado" repetiría la cifra de arriba.
+  it("y se calla cuando el pago fue por el total exacto", () => {
+    mostrar(facturaFinalizada);
+
+    expect(screen.queryByText("Pagado")).not.toBeInTheDocument();
+  });
+});
