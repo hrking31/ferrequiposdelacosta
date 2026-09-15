@@ -1114,10 +1114,14 @@ export default function ClienteSeguimientoCard({
               pt: { xs: 2, sm: 2.5 },
             }}
           >
+            {/* En el celular los dos lados se leen como dos bloques: a la
+                izquierda hasta cuándo era y cuánto se pasó, a la derecha el
+                estado con sus acciones debajo. Por eso arriba y no al medio:
+                el chip tiene que quedar a la altura de "Vencía". */}
             <Stack
               direction="row"
               justifyContent="space-between"
-              alignItems="center"
+              alignItems={esMovil ? "flex-start" : "center"}
               flexWrap="wrap"
               rowGap={1}
               gap={1.5}
@@ -1211,6 +1215,7 @@ export default function ClienteSeguimientoCard({
                 direction={esMovil ? "column-reverse" : "row"}
                 spacing={0.75}
                 alignItems={esMovil ? "flex-end" : "center"}
+                sx={{ flexShrink: 0 }}
               >
                 <Stack direction="row" spacing={0.75} alignItems="center">
                 {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
@@ -1274,6 +1279,28 @@ export default function ClienteSeguimientoCard({
                   </span>
                 </Tooltip>
 
+                {/* Pliega la factura y deja a la vista solo este encabezado,
+                    igual que en Detalle Cliente. */}
+                <Tooltip
+                  title={
+                    facturaPlegada(factura.id)
+                      ? "Mostrar factura"
+                      : "Ocultar factura"
+                  }
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => togglePlegarFactura(factura.id)}
+                    sx={{ ...iconBtnSx, color: acento }}
+                  >
+                    {facturaPlegada(factura.id) ? (
+                      <ExpandMoreIcon fontSize="small" />
+                    ) : (
+                      <ExpandLessIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+
                 {/* LA PLATA QUE SALE: el depósito que vuelve al cliente, o lo
                     que pagó de más. Aparece solo cuando la factura le quedó
                     debiendo a ÉL, y por eso cierra la fila —es el único botón
@@ -1317,27 +1344,6 @@ export default function ClienteSeguimientoCard({
                 />
 
 
-                {/* Pliega la factura y deja a la vista solo este encabezado,
-                    igual que en Detalle Cliente. */}
-                <Tooltip
-                  title={
-                    facturaPlegada(factura.id)
-                      ? "Mostrar factura"
-                      : "Ocultar factura"
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => togglePlegarFactura(factura.id)}
-                    sx={{ ...iconBtnSx, color: acento }}
-                  >
-                    {facturaPlegada(factura.id) ? (
-                      <ExpandMoreIcon fontSize="small" />
-                    ) : (
-                      <ExpandLessIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
                 </Stack>
               </Stack>
             </Stack>
