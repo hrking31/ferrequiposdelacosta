@@ -34,6 +34,7 @@ import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import ConstructionIcon from "@mui/icons-material/Construction";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
@@ -1001,6 +1002,12 @@ export default function ClienteSeguimientoCard({
             alignItems="center"
             flexWrap="wrap"
             columnGap={1}
+            // Cuando el nombre es largo el teléfono baja a su propio renglón:
+            // ahí los dos tienen que leerse como un bloque, no como dos datos
+            // sueltos. Sin renglón de por medio y con la altura de línea del
+            // nombre ajustada, que es de donde salía el hueco.
+            rowGap={0}
+            sx={{ "& > :first-of-type": { lineHeight: 1.25 } }}
           >
             {/* El nombre en el acento: es el titular de la tarjeta y lo que se
                 busca al recorrer la lista, igual que en la ficha del cliente. */}
@@ -1188,7 +1195,7 @@ export default function ClienteSeguimientoCard({
             {/* En el celular los dos lados se leen como dos bloques: a la
                 izquierda hasta cuándo era y cuánto se pasó, a la derecha el
                 estado con sus acciones debajo. Por eso arriba y no al medio:
-                el chip tiene que quedar a la altura de "Vencía". */}
+                el chip tiene que quedar a la altura de "Vencida". */}
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -1225,7 +1232,7 @@ export default function ClienteSeguimientoCard({
                   flexWrap="wrap"
                 >
                   {/* EN EL CELULAR, solo el ícono y la fecha corta. La palabra
-                      "Vencía" y los dos dígitos del año se comen 50px de una
+                      "Vencida" y los dos dígitos del año se comen 50px de una
                       fila que a 360px ya no alcanza para todo, y no dicen
                       nada que no digan el ícono de calendario tachado y los
                       días vencidos en rojo de al lado. */}
@@ -1233,7 +1240,7 @@ export default function ClienteSeguimientoCard({
                     <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
                     {!esMovil && (
                       <Typography variant="body2" color="text.secondary">
-                        Vencía
+                        Vencida
                       </Typography>
                     )}
                     <Typography variant="body2" fontWeight="bold">
@@ -1502,7 +1509,11 @@ export default function ClienteSeguimientoCard({
                 flexWrap="wrap"
                 sx={{ gap: 0.75, mb: 1 }}
               >
-                <LocalShippingIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                {/* El mismo ícono con que la ficha del cliente encabeza su
+                    sección "Equipos": lo que sigue son los equipos, no un
+                    despacho. El camión queda para la fecha de salida, adentro
+                    de la ficha de cada uno. */}
+                <ConstructionIcon fontSize="small" sx={{ color: "text.secondary" }} />
 
                 {equiposEnCartera
                   .slice(0, MAX_EQUIPOS_PLEGADA)
