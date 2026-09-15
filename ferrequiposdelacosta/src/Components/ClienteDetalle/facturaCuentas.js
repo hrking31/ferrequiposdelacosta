@@ -842,14 +842,26 @@ export const plazoVencidoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
 
   if (vencidos.length === 0) return null;
 
+  // MANDA EL QUE MÁS DÍAS LLEVA VENCIDO: es el que define la urgencia de la
+  // factura y el primero que se le reclama al cliente.
+  //
+  // La fecha y los días salen del MISMO equipo. Antes la fecha era la más
+  // antigua de todos y los días los del que más llevaba, que podían ser
+  // equipos distintos: la fila mostraba una fecha de uno con los días de otro.
+  const peor = vencidos.reduce((masViejo, equipo) =>
+    calcularEquipo(equipo, hoyIso).diasVencidos >
+    calcularEquipo(masViejo, hoyIso).diasVencidos
+      ? equipo
+      : masViejo,
+  );
+
   return {
-    fecha: vencidos
-      .map((equipo) => cubiertoHasta(equipo))
-      .filter(Boolean)
-      .sort()[0] ?? null,
-    dias: Math.max(
-      ...vencidos.map((equipo) => calcularEquipo(equipo, hoyIso).diasVencidos),
-    ),
+    fecha: cubiertoHasta(peor),
+    dias: calcularEquipo(peor, hoyIso).diasVencidos,
+    // Sin fecha de entrega, el cliente quedó de avisar. La fila lo dice con
+    // otra palabra: para este equipo esa fecha no es un vencimiento sino el
+    // día en que se pactó que no tendría ninguno.
+    indefinida: sinFechaDeEntrega(peor),
   };
 };
 

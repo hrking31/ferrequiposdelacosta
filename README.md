@@ -524,6 +524,18 @@ Es **una sola medida, 135px**, para las dos familias —el estado de la factura 
 
 ### En cartera solo se ve lo vencido
 
+**Cada factura dice por qué está acá**, en un renglón que existe siempre y que tiene tres formas:
+
+```
+🗓 Vencida 15/09/2026 · 3 días vencidos      un equipo con fecha, pasado de plazo
+🗓 Indefinida 14/09/2026 · 5 días vencidos   un equipo sin fecha de entrega
+🗓 Sin equipos · Solo saldo                  ya no queda nada afuera: se queda por la plata
+```
+
+Antes los tres mostraban el mismo dato —hasta cuándo estaba cubierto el equipo— con las mismas palabras, y la fila contaba tres historias distintas. En el caso de la entrega indefinida directamente engañaba: esa fecha no es un vencimiento sino **el día en que se pactó que no tendría ninguno**. Y la factura sin equipos vencidos no decía nada, así que no había forma de saber si seguía en cartera por un equipo o por el saldo.
+
+Cuando hay varios equipos vencidos manda **el que más días lleva**, con su fecha y sus días: es el que define la urgencia y el primero que se le reclama al cliente. Antes la fecha salía del más antiguo y los días del que más llevaba, que podían ser equipos distintos — la fila mostraba la fecha de uno con los días de otro.
+
 Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con los equipos que quedaron vencidos, no con todo lo que tiene adentro.** Así que ahí no aparecen:
 
 - Los equipos que **todavía están en fecha**, aunque la factura figure vencida por otro. Nadie tiene que devolverlos hoy.

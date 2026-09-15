@@ -3,12 +3,10 @@ import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
-  Button,
   Chip,
   Divider,
   useMediaQuery,
   IconButton,
-  Paper,
   Stack,
   Tooltip,
   Typography,
@@ -858,32 +856,10 @@ export default function ClienteSeguimientoCard({
             )}
           </Box>
 
-          {/* LA PLATA QUE SALE: el depósito que vuelve al cliente, o lo que
-              pagó de más. Va acá, pegado a la cifra "A favor" que ya está en
-              la fila: el botón explica ese número y el número justifica al
-              botón. Arriba, entre los íconos de acción, era uno más sin texto
-              —y encima al lado del de abonar, que se apaga justo cuando este
-              aparece—.
-
-              Mientras no se entregue, la factura no puede terminar: se queda
-              en cartera por una plata que la empresa debe, no el cliente. */}
-          {cuenta.saldoAFavor > 0 && !esMovil && (
-            <Tooltip title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}>
-              <IconButton
-                size="small"
-                onClick={() => setEntregarOpen(true)}
-                sx={{
-                  ...iconBtnSx,
-                  flexShrink: 0,
-                  bgcolor: "warning.main",
-                  color: theme.palette.getContrastText(theme.palette.warning.main),
-                  "&:hover": { bgcolor: "warning.dark" },
-                }}
-              >
-                <CurrencyExchangeIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
+          {/* LA PLATA QUE SALE no está acá: su botón vive con los otros, en la
+              fila de acciones, esté la factura abierta o cerrada. Acá aparecía
+              y desaparecía según se plegara, y un botón que se mueve de lugar
+              hay que buscarlo cada vez. */}
 
           {/* La flecha va DENTRO del recuadro, en su esquina, igual que la de
               cada equipo: es lo que abre y cierra esta caja, y afuera quedaba
@@ -913,50 +889,8 @@ export default function ClienteSeguimientoCard({
           )}
         </Stack>
 
-        {/* EN EL CELULAR el botón baja a su propio renglón, con el monto
-            adentro. Al lado de las cifras no entra —la fila ya cede espacio
-            para la flecha— y apretado entre dos números se vuelve otra vez
-            algo que no se ve. */}
-        {cuenta.saldoAFavor > 0 && esMovil && (
-          <Button
-            fullWidth
-            size="small"
-            variant="contained"
-            color="warning"
-            startIcon={<CurrencyExchangeIcon />}
-            onClick={() => setEntregarOpen(true)}
-            sx={{ mt: 1 }}
-          >
-            Devolver {formatearMoneda(cuenta.saldoAFavor)}
-          </Button>
-        )}
       </Box>
     </Box>
-  );
-
-  // Lo que no toda factura tiene, y que igual hay que poder ver. Aparece solo
-  // si hay alguno de los dos: dibujado siempre, una factura sin ninguno
-  // mostraba un recuadro oscuro vacío.
-  const extrasDeCuenta = (cuenta.depositoDevuelto > 0 || cuenta.entregas > 0) && (
-    <Paper variant="totales" sx={{ minWidth: { sm: 260 }, mb: 1 }}>
-      {/* El depósito devuelto ya salió del total de arriba. Se muestra igual,
-          porque si no el total cambiaría sin explicación. */}
-      {cuenta.depositoDevuelto > 0 && (
-        <Box className="fila abono">
-          <Typography variant="body2">Depósito devuelto</Typography>
-          <Typography variant="body2">
-            {formatearMoneda(cuenta.depositoDevuelto)}
-          </Typography>
-        </Box>
-      )}
-
-      {cuenta.entregas > 0 && (
-        <Box className="fila">
-          <Typography variant="body2">Entregado al cliente</Typography>
-          <Typography variant="body2">{formatearMoneda(cuenta.entregas)}</Typography>
-        </Box>
-      )}
-    </Paper>
   );
 
   // Capas detrás de la carpeta activa: sugieren que hay más facturas "debajo".
@@ -1205,73 +1139,82 @@ export default function ClienteSeguimientoCard({
               gap={1.5}
               sx={{ mb: 1 }}
             >
-              {/* HASTA CUÁNDO ERA, y cuánto se pasó. Antes acá iba la fecha de
-                  despacho, que en cartera no decide nada: lo que hay que saber
-                  al llamar es desde cuándo se pasó el plazo. La fecha sale del
-                  equipo que trajo la factura acá y los días, del que más lleva
-                  (ver plazoVencidoFactura).
+              {/* POR QUÉ ESTÁ ACÁ ESTA FACTURA. Un renglón que existe
+                  siempre y dice la verdad de cada caso, que son tres:
 
-                  Sin equipos vencidos no hay plazo que mostrar: esa factura
-                  sigue en cartera por la plata, y eso lo dice el renglón de
-                  abajo. */}
-              {/* HASTA CUÁNDO ERA, y cuánto se pasó. La fecha sale del equipo
-                  que trajo la factura acá y los días, del que más lleva (ver
-                  plazoVencidoFactura).
+                    Vencida 15/09/2026 · 3 días vencidos    equipo con fecha
+                    Indefinida 14/09/2026 · 5 días vencidos  sin fecha de entrega
+                    Sin equipos · Solo saldo                 se queda por la plata
 
-                  Sin equipos vencidos no se muestra NADA: esa factura sigue en
-                  cartera por la plata, y eso ya lo dice su cuenta. Acá iba la
-                  fecha de despacho, que en esta pantalla no decide nada y se
-                  leía como si fuera otro vencimiento. */}
-              {plazo && (
-                // En el celular los días bajan a su propio renglón: al lado de
-                // la fecha empujaban al chip de estado fuera de la línea.
-                <Stack
-                  direction={esMovil ? "column" : "row"}
-                  spacing={esMovil ? 0 : 1}
-                  alignItems={esMovil ? "flex-start" : "center"}
-                  flexWrap="wrap"
-                >
-                  {/* EN EL CELULAR, solo el ícono y la fecha corta. La palabra
-                      "Vencida" y los dos dígitos del año se comen 50px de una
-                      fila que a 360px ya no alcanza para todo, y no dicen
-                      nada que no digan el ícono de calendario tachado y los
-                      días vencidos en rojo de al lado. */}
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                    {!esMovil && (
-                      <Typography variant="body2" color="text.secondary">
-                        Vencida
-                      </Typography>
-                    )}
+                  Antes los tres mostraban el mismo dato —hasta cuándo estaba
+                  cubierto el equipo— y la fila contaba tres historias
+                  distintas con las mismas palabras. En el caso de la entrega
+                  indefinida directamente engañaba: esa fecha no es un
+                  vencimiento, es el día en que se pactó que no tendría
+                  ninguno. Y la factura sin equipos vencidos no decía nada.
+
+                  El equipo que manda es el que MÁS días lleva vencido, con su
+                  fecha y sus días (ver plazoVencidoFactura): los demás se ven
+                  en la lista de equipos de abajo. */}
+              {/* En el celular los dos datos se apilan: al lado de la fecha
+                  empujaban al chip de estado fuera de la línea. */}
+              <Stack
+                direction={esMovil ? "column" : "row"}
+                spacing={esMovil ? 0 : 1}
+                alignItems={esMovil ? "flex-start" : "center"}
+                flexWrap="wrap"
+              >
+                {/* EN EL CELULAR van uno debajo del otro —el estado, la
+                    fecha y los días— porque al lado del chip no entran en una
+                    línea. En el computador los tres comparten renglón. */}
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {!plazo ? "Sin equipos" : plazo.indefinida ? "Indefinida" : "Vencida"}
+                  </Typography>
+                  {plazo && !esMovil && (
                     <Typography variant="body2" fontWeight="bold">
-                      {esMovil
-                        ? formatearFechaCorta(plazo.fecha)
-                        : formatearFecha(plazo.fecha)}
+                      {formatearFecha(plazo.fecha)}
                     </Typography>
-                  </Stack>
-
-                  {plazo.dias > 0 && (
-                    <>
-                      {/* La rayita separa los dos datos cuando comparten
-                          renglón; en columna no hay nada que separar. */}
-                      {!esMovil && (
-                        <Box
-                          sx={{ width: "1px", height: 16, bgcolor: "divider" }}
-                          aria-hidden
-                        />
-                      )}
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        sx={{ color: "error.main" }}
-                      >
-                        {plazo.dias} día{plazo.dias === 1 ? "" : "s"} vencido
-                        {plazo.dias === 1 ? "" : "s"}
-                      </Typography>
-                    </>
                   )}
                 </Stack>
-              )}
+
+                {/* La fecha corta, en su propio renglón: ahí el espacio pelea
+                    cada letra con el chip de la derecha. */}
+                {plazo && esMovil && (
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatearFechaCorta(plazo.fecha)}
+                  </Typography>
+                )}
+
+                {/* La rayita separa los dos datos cuando comparten renglón;
+                    en columna no hay nada que separar. Y tampoco cuando no hay
+                    segundo dato: la factura que vence HOY no lleva días
+                    vencidos, y la rayita quedaba colgando al final. */}
+                {!esMovil && (!plazo || plazo.dias > 0) && (
+                  <Box
+                    sx={{ width: "1px", height: 16, bgcolor: "divider" }}
+                    aria-hidden
+                  />
+                )}
+
+                {plazo ? (
+                  plazo.dias > 0 && (
+                    <Typography
+                      variant="body2"
+                      fontWeight="bold"
+                      sx={{ color: "error.main" }}
+                    >
+                      {plazo.dias} día{plazo.dias === 1 ? "" : "s"} vencido
+                      {plazo.dias === 1 ? "" : "s"}
+                    </Typography>
+                  )
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Solo saldo
+                  </Typography>
+                )}
+              </Stack>
 
               {/* CON LA FACTURA CERRADA, el resumen de la cuenta ocupa el
                   hueco que queda entre el plazo y los botones, igual que en la
@@ -1405,21 +1348,17 @@ export default function ClienteSeguimientoCard({
                   </IconButton>
                 </Tooltip>
 
-                {/* LA PLATA QUE SALE: su lugar es el estado de cuenta, pegado
-                    a la cifra "A favor" que lo explica. Pero la factura ARRANCA
-                    PLEGADA y ese recuadro recién aparece al abrirla, así que
-                    mientras está cerrada el botón sube acá.
+                {/* LA PLATA QUE SALE. Vive acá y en un solo lugar, con la
+                    factura abierta o cerrada: antes saltaba al recuadro de la
+                    cuenta al desplegarla, y un botón que cambia de sitio hay
+                    que buscarlo cada vez.
 
                     Va como los otros de la fila —solo el ícono— pero RELLENO
                     de ámbar: eso es lo que lo hace ver. Como ícono suelto,
                     igual a los demás, se perdía entre otros tres y al lado del
                     de abonar, que se apaga justo cuando este aparece. El monto
-                    lo dice el globo, y la cifra ya está en la cuenta de al
-                    lado.
-
-                    Nunca se ven los dos: cerrada, este; abierta, el de la
-                    cuenta. */}
-                {cuenta.saldoAFavor > 0 && facturaPlegada(factura.id) && (
+                    lo dice el globo, y la cifra está en la cuenta de abajo. */}
+                {cuenta.saldoAFavor > 0 && (
                   <Tooltip title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}>
                     <IconButton
                       size="small"
@@ -1676,15 +1615,20 @@ export default function ClienteSeguimientoCard({
                 necesitan que un renglón anuncie lo que ya dicen. */}
             {!facturaPlegada(factura.id) && cuadroTotales}
 
-            {!facturaPlegada(factura.id) && extrasDeCuenta}
-
             {/* Una factura puede seguir en cartera sin un solo equipo vencido:
                 le renovaron el que la trajo, o ya devolvió todo, y se queda
                 por la plata. No lleva ningún aviso — el equipo simplemente no
                 aparece, y el recuadro de la cuenta que está justo arriba ya
                 dice cuánto falta cobrar. */}
 
-            {!facturaPlegada(factura.id) && equiposDe(factura).length > 0 && (
+            {/* La condición mira los grupos EN CARTERA, no los equipos de la
+                factura: una factura que ya devolvió todo tiene equipos —los
+                devueltos— pero ninguno que mostrar acá, y el bloque se
+                dibujaba igual, vacío, ocupando su espacio y su margen.
+
+                Devuelto el equipo, de la tarjeta quedan la gestión y el estado
+                de cuenta: lo único que sigue abierto es la plata. */}
+            {!facturaPlegada(factura.id) && gruposEnCartera.length > 0 && (
               <Stack spacing={1} sx={{ mb: 1 }}>
                 {/* Solo los equipos VENCIDOS que siguen afuera: son los que
                     trajeron la factura acá y los únicos que se le pueden
