@@ -938,11 +938,14 @@ export default function ClienteSeguimientoCard({
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 0.5, pb: 1 }}>
-        <Avatar sx={{ bgcolor: gestionColor, width: 36, height: 36 }}>
+        {/* Chico a propósito: no es una foto, es la marca de color de la
+            gestión. Y en una lista de clientes, cada píxel de alto que ocupa
+            el encabezado es uno que no ve la factura de abajo. */}
+        <Avatar sx={{ bgcolor: gestionColor, width: 28, height: 28 }}>
           {cliente.tipo === "empresa" ? (
-            <BusinessIcon sx={{ fontSize: 18 }} />
+            <BusinessIcon sx={{ fontSize: 16 }} />
           ) : (
-            <PersonIcon sx={{ fontSize: 18 }} />
+            <PersonIcon sx={{ fontSize: 16 }} />
           )}
         </Avatar>
         {/* Es el que crece y empuja los botones a la esquina. No se hace al
@@ -950,23 +953,38 @@ export default function ClienteSeguimientoCard({
             Stack le escribe a cada hijo su propio margen izquierdo y gana por
             especificidad: el auto no llega a aplicarse nunca. */}
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          {/* El nombre en el acento: es el titular de la tarjeta y lo que se
-              busca al recorrer la lista, igual que en la ficha del cliente. */}
-          <Typography
-            variant="subtitle1"
-            fontWeight="bold"
-            sx={{ color: "custom.accent" }}
+          {/* NOMBRE Y TELÉFONO EN UN RENGLÓN. El número iba debajo y la fila
+              medía dos líneas de texto —48px— contra un avatar de 36: el
+              encabezado de cada cliente costaba más alto que el dato que
+              traía. Juntos se leen como lo que son, la línea de contacto, y
+              además llenan el hueco que quedaba antes de los dos botones.
+
+              Envuelven si no entran: una razón social larga con un número al
+              lado no cabe en el celular. */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            flexWrap="wrap"
+            columnGap={1}
           >
-            {obtenerNombreCompleto(cliente)}
-          </Typography>
-          {cliente.telefono && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-              <Typography variant="caption" color="text.secondary">
-                {cliente.telefono}
-              </Typography>
-            </Stack>
-          )}
+            {/* El nombre en el acento: es el titular de la tarjeta y lo que se
+                busca al recorrer la lista, igual que en la ficha del cliente. */}
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+              sx={{ color: "custom.accent" }}
+            >
+              {obtenerNombreCompleto(cliente)}
+            </Typography>
+            {cliente.telefono && (
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                <Typography variant="caption" color="text.secondary">
+                  {cliente.telefono}
+                </Typography>
+              </Stack>
+            )}
+          </Stack>
         </Box>
 
         {/* LOS DOS BOTONES DE CONTACTO, arriba a la derecha. Iban pegados al
