@@ -822,41 +822,55 @@ export default function ClienteSeguimientoCard({
   // Y lleva rótulo, que en pantalla grande no hace falta: ahí la barra está
   // pegada a la factura y se entiende de qué cuenta habla, pero en el celular
   // queda entre bloques y necesita decir qué es.
+  // En el celular la cuenta se abre para ver los cuatro valores; en pantalla
+  // grande ya están todos a la vista.
   const cuentaAbierta = Boolean(cuentasAbiertas[factura.id]);
   const cuadroTotales =
     valorTotal &&
     (esMovil ? (
-      <Box sx={{ mb: 1 }}>
-        <Stack direction="row" alignItems="center" sx={{ gap: 0.5, mb: 0.25 }}>
-          <AccountBalanceWalletIcon fontSize="small" sx={{ color: "custom.accent" }} />
-          <Typography variant="overline" sx={{ color: "custom.accent", lineHeight: 1.6 }}>
-            Estado de cuenta
-          </Typography>
-
-          <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
-            <IconButton
-              size="small"
-              onClick={() =>
-                setCuentasAbiertas((previas) => ({
-                  ...previas,
-                  [factura.id]: !previas[factura.id],
-                }))
-              }
-              sx={{ ...iconBtnSx, color: "custom.accent", ml: "auto" }}
-            >
-              {cuentaAbierta ? (
-                <ExpandLessIcon fontSize="small" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Stack>
-
+      <Box sx={{ mb: 1, position: "relative" }}>
         {renderPizarraTotales(
           casillasDeCuenta(cuenta, { resumida: !cuentaAbierta }),
           { width: "100%" },
-          { columna: cuentaAbierta },
+          {
+            columna: cuentaAbierta,
+            // El rótulo va DENTRO del panel, como el de cada bloque de la
+            // factura: afuera flotaba sobre el fondo de la tarjeta sin decir
+            // sobre qué recuadro hablaba.
+            encabezado: (
+              <Stack direction="row" alignItems="center" sx={{ gap: 0.5, mb: 0.5 }}>
+                <AccountBalanceWalletIcon
+                  fontSize="small"
+                  sx={{ color: "custom.accent" }}
+                />
+                <Typography
+                  variant="overline"
+                  sx={{ color: "custom.accent", lineHeight: 1.6 }}
+                >
+                  Estado de cuenta
+                </Typography>
+
+                <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
+                  <IconButton
+                    size="small"
+                    onClick={() =>
+                      setCuentasAbiertas((previas) => ({
+                        ...previas,
+                        [factura.id]: !previas[factura.id],
+                      }))
+                    }
+                    sx={{ ...iconBtnSx, color: "custom.accent", ml: "auto" }}
+                  >
+                    {cuentaAbierta ? (
+                      <ExpandLessIcon fontSize="small" />
+                    ) : (
+                      <ExpandMoreIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            ),
+          },
         )}
       </Box>
     ) : (
@@ -1184,9 +1198,21 @@ export default function ClienteSeguimientoCard({
                   order: { md: 1, lg: 0 },
                 })}
 
-              {/* Acciones de la factura arriba a la derecha, junto al chip de
-                  estado — mismo patrón que las facturas de ClienteDetalle. */}
-              <Stack direction="row" spacing={0.75} alignItems="center">
+              {/* Las acciones y el estado de la factura.
+
+                  EN EL CELULAR se apilan a la derecha y el CHIP VA ARRIBA: es
+                  lo que dice en qué anda la factura, y se lee antes de decidir
+                  qué botón tocar. Los botones quedan debajo. En una sola línea
+                  no entraban y el chip terminaba empujado sin orden.
+
+                  En pantalla grande no cambia nada: todo en fila, los botones
+                  y después el chip, igual que en la ficha del cliente. */}
+              <Stack
+                direction={esMovil ? "column-reverse" : "row"}
+                spacing={0.75}
+                alignItems={esMovil ? "flex-end" : "center"}
+              >
+                <Stack direction="row" spacing={0.75} alignItems="center">
                 {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
                     el EQUIPO —devolver, o pactarle plazo— y recién después la
                     PLATA. Al revés, que es como estaba, se cobraba primero y
@@ -1273,12 +1299,7 @@ export default function ClienteSeguimientoCard({
 
                 </Stack>
 
-                <Stack
-                  direction="row"
-                  spacing={0.75}
-                  alignItems="center"
-                  sx={{ order: esMovil ? 0 : 1 }}
-                >
+                <Stack direction="row" spacing={0.75} alignItems="center">
                 {/* La gestión vigente. No se puede cambiar a mano: la ponen
                     las acciones de arriba (llamar, ampliar, devolver). Sin
                     contador: cuántas veces se llamó queda en la línea de
@@ -1317,6 +1338,7 @@ export default function ClienteSeguimientoCard({
                     )}
                   </IconButton>
                 </Tooltip>
+                </Stack>
               </Stack>
             </Stack>
 

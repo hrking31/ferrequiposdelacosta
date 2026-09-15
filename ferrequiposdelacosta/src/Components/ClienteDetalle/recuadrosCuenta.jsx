@@ -342,6 +342,8 @@ export const renderPizarraTotales = (casillas, sx, opciones = {}) => (
       ...sx,
     }}
   >
+    {/* Un rótulo adentro del panel, cuando la pantalla lo necesita. */}
+    {opciones.encabezado}
     {renderFilaDeCasillas(casillas, {
       colorDivisor: "custom.panelText",
       ...opciones,
