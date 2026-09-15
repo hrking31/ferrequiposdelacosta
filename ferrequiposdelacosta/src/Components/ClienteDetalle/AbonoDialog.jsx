@@ -7,7 +7,6 @@ import {
   DialogActions,
   Button,
   Checkbox,
-  FormControlLabel,
   TextField,
   FormControl,
   InputLabel,
@@ -24,7 +23,6 @@ import {
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import Radio from "@mui/material/Radio";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -40,16 +38,10 @@ import {
   datosFactura,
   calcularExigible,
   sellarFacturaPagada,
-  aplicarAcuerdoDeEquipos,
-  obtenerGestiones,
   equiposDe,
   sigueAfuera,
   equipoVencido,
-  sinFechaDeEntrega,
-  proyectarAmpliacion,
-  formatearFechaLegible,
 } from "./facturaUtils";
-import PlazoEquipo from "../SeguimientoClientes/PlazoEquipo";
 import { formatearMoneda } from "../../Utils/formato";
 
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
@@ -84,8 +76,7 @@ export default function AbonoDialog({
   cliente,
   facturas,
   onAbonado,
-  onRegistrarDevolucion,
-  pedirAcuerdo = false,
+  avisarEquiposVencidos = false,
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
@@ -94,15 +85,6 @@ export default function AbonoDialog({
   const [elegidas, setElegidas] = useState([]);
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
-  // Qué se acordó por los equipos vencidos de cada factura que recibe plata.
-  // Una entrada por factura: { tipo: "dias" | "indefinida", dias }.
-  const [acuerdos, setAcuerdos] = useState({});
-  // "No se pactó nada" es UNA sola respuesta por factura, no una por equipo:
-  // no es una decisión sobre un equipo en particular sino la ausencia de
-  // acuerdo, y repetirla en cada uno obligaba a marcar tres veces lo mismo
-  // para decir que de eso no se habló. Cubre a los que quedaron sin marcar,
-  // así que se puede pactar por uno y dejar el resto como está.
-  const [sinPactar, setSinPactar] = useState({});
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
@@ -117,10 +99,6 @@ export default function AbonoDialog({
     // este a una factura que nadie nombró.
     setElegidas([]);
     setErrors({});
-    // El acuerdo es de ESTA conversación con el cliente. Arrastrar el del
-    // abono anterior le pondría plazo a un equipo que nadie nombró.
-    setAcuerdos({});
-    setSinPactar({});
   }, [open]);
 
   // Solo entran las facturas que todavía deben algo: son las únicas que
@@ -161,95 +139,56 @@ export default function AbonoDialog({
     reparto.map(({ factura, aplicado }) => [factura.id, aplicado]),
   );
 
-  // ── EL ACUERDO POR EL EQUIPO ──────────────────────────────────────
+  // ── EL RECORDATORIO DE LOS EQUIPOS ────────────────────────────────
   //
-  // Las facturas que van a recibir plata y todavía tienen equipos vencidos
-  // afuera. Son las únicas que preguntan: cobrar sin definir qué pasa con el
-  // equipo es como una factura termina pagada con el equipo en la obra y sin
-  // fecha de retorno.
+  // Las facturas que reciben plata de ESTE abono y todavía tienen equipos
+  // vencidos en la obra. Es un aviso y nada más: no pregunta, no bloquea. Está
+  // para que la plata no tape lo otro —una factura puede quedar pagada con el
+  // equipo afuera y sin fecha de retorno, que fue lo que pasó con la 5698— y
+  // el plazo se pacta con el botón de renovación, que es donde vive.
   //
-  // Solo las que reciben algo de ESTE abono: si el cliente paga una factura,
-  // no hay por qué preguntarle por los equipos de otra.
+  // Acá vivía un formulario: por cada equipo, días o entrega indefinida, con
+  // el botón de guardar apagado hasta contestar. Se sacó el 2026-09-15 porque
+  // trababa el cobro; el modelo de tramos ya deja escritos los días vencidos
+  // aunque nadie pacte nada, así que lo único que se perdía era el
+  // recordatorio. (El formulario completo está en el commit que anota el
+  // README, por si alguna vez se quiere volver.)
+  //
+  // SOLO DESDE CARTERA: en la ficha del cliente se registra lo que pasó con la
+  // plata y nada más.
   const hoy = obtenerFechaHoyBogota();
-  // SOLO DESDE CARTERA se pregunta qué pasa con los equipos.
-  //
-  // Es la misma regla que ya siguen las devoluciones: en la ficha del cliente
-  // se registra lo que pasó con la plata y nada más, y pactar un plazo es
-  // cobranza —se acuerda con alguien que ya está vencido— así que se decide
-  // donde se cobra. Con la pregunta acá, anotar un abono de una factura al
-  // día obligaba a opinar sobre equipos que nadie está reclamando.
-  const conEquiposVencidos = !pedirAcuerdo
+  const facturasConEquiposVencidos = !avisarEquiposVencidos
     ? []
     : reparto
         .filter(({ aplicado }) => aplicado > 0)
         .map(({ factura }) => ({
-          factura,
-          // Con su despacho y su posición: la decisión es de CADA equipo, y un
-          // número suelto no alcanza para señalar una sola línea —los equipos
-          // viven repartidos en grupos—.
-          equipos: equiposDe(factura)
-            .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
-            .map(({ equipo, grupo, indice }) => ({
-              equipo,
-              clave: `${factura.id}#${grupo?.grupo}#${indice}`,
-              claveEnLaFactura: `${grupo?.grupo}#${indice}`,
-            })),
+          numero: datosFactura(factura).numeroFactura ?? "s/n",
+          cuantos: equiposDe(factura).filter(
+            ({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy),
+          ).length,
         }))
-        .filter(({ equipos }) => equipos.length > 0);
+        .filter(({ cuantos }) => cuantos > 0);
 
-  // El que YA quedó sin fecha viene resuelto: no hay nada que volver a pactar.
-  // Y se marca aparte de "indefinida" a propósito —`yaIndefinida` no se
-  // aplica— porque volver a escribir el acuerdo le correría a hoy el día en
-  // que se pactó, borrando desde cuándo el cliente lo tiene sin fecha.
-  const acuerdoDe = (clave, equipo) =>
-    acuerdos[clave] ??
-    (sinFechaDeEntrega(equipo) ? { tipo: "yaIndefinida", dias: "" } : { tipo: "", dias: "" });
-
-  const acuerdoResuelto = (clave, equipo) => {
-    const acuerdo = acuerdoDe(clave, equipo);
-    if (acuerdo.tipo === "indefinida") return true;
-    if (acuerdo.tipo === "yaIndefinida") return true;
-    return acuerdo.tipo === "dias" && Number(acuerdo.dias) > 0;
-  };
-
-  // Falta contestar por algún equipo: lo único que no se admite es no decir
-  // nada. La plata ya no se pierde por esto —los tramos vencidos quedan
-  // escritos igual—, pero un equipo sobre el que nadie decidió se queda en la
-  // obra sin que nadie sepa hasta cuándo.
-  const faltanAcuerdos = conEquiposVencidos.some(
-    ({ factura, equipos }) =>
-      !sinPactar[factura.id] &&
-      equipos.some(({ clave, equipo }) => !acuerdoResuelto(clave, equipo)),
+  const equiposVencidos = facturasConEquiposVencidos.reduce(
+    (total, { cuantos }) => total + cuantos,
+    0,
   );
 
-  // Lo pactado de UNA factura, con la clave que entiende aplicarAcuerdoDeEquipos.
-  const acuerdosDeLaFactura = (entrada) =>
-    entrada.equipos.reduce((mapa, { clave, claveEnLaFactura, equipo }) => {
-      const acuerdo = acuerdoDe(clave, equipo);
-      return { ...mapa, [claveEnLaFactura]: acuerdo };
-    }, {});
-
-  const elegirAcuerdo = (clave, tipo) =>
-    setAcuerdos((previos) => ({
-      ...previos,
-      [clave]: { ...(previos[clave] ?? { dias: "" }), tipo, ...(tipo === "dias" ? {} : { dias: "" }) },
-    }));
-
-  const escribirDias = (clave, dias) =>
-    setAcuerdos((previos) => ({
-      ...previos,
-      [clave]: { tipo: "dias", dias: dias.replace(/\D/g, "") },
-    }));
-
-  // La devolución no se resuelve acá: define el estado del equipo y el
-  // depósito, y eso cambia cuánto hay que cobrar. Se cierra este diálogo, se
-  // abre el de devolución y al terminar se vuelve a abrir el abono en blanco,
-  // con la deuda ya recalculada —el depósito que vuelve se canjea contra lo
-  // que el cliente debía—.
-  const irADevolucion = (factura) => {
-    onRegistrarDevolucion?.(factura);
-    onClose();
-  };
+  // El título del aviso: cuántos equipos quedaron sin definir. El número de
+  // factura solo aparece cuando hay más de una recibiendo plata —con una sola
+  // es la que se está mirando y nombrarla sobra—.
+  const tituloAviso =
+    equiposVencidos === 0
+      ? ""
+      : `${equiposVencidos} equipo${equiposVencidos === 1 ? "" : "s"} vencido${
+          equiposVencidos === 1 ? "" : "s"
+        } pendiente${equiposVencidos === 1 ? "" : "s"} de gestión${
+          facturasConEquiposVencidos.length > 1
+            ? ` (facturas ${facturasConEquiposVencidos
+                .map(({ numero }) => numero)
+                .join(", ")})`
+            : ""
+        }`;
 
   const alternarElegida = (facturaId) =>
     setElegidas((previas) =>
@@ -302,16 +241,6 @@ export default function AbonoDialog({
             tipo: loEligioElCliente ? "cliente" : "sistema",
           },
         ];
-        // LO QUE SE ACORDÓ POR EL EQUIPO, primero: darle días o dejarlo
-        // indefinido cambia lo que se le puede reclamar, así que tiene que
-        // estar aplicado antes de decidir si hay algo que sellar.
-        const entrada = conEquiposVencidos.find(
-          ({ factura: conVencidos }) => conVencidos.id === factura.id,
-        );
-        const plazo = entrada
-          ? aplicarAcuerdoDeEquipos(factura, acuerdosDeLaFactura(entrada), hoy)
-          : null;
-
         // Si con este abono la factura queda sin nada que reclamarle HOY, los
         // días que sus equipos llevan vencidos quedan cobrados: se sellan para
         // que el contador arranque de cero desde acá y no se le vuelvan a
@@ -321,36 +250,23 @@ export default function AbonoDialog({
         // tiene días por delante ya pactados: esos se cobran cuando devuelva,
         // y esperarlos dejaría el sellado para nunca.
         //
-        // En la práctica esto solo actúa cuando el equipo quedó con ENTREGA
-        // INDEFINIDA: darle días consolida los vencidos y devolverlo los
-        // congela, así que en esos dos casos no queda nada abierto que sellar.
-        const conAbono = {
-          ...factura,
-          abonos,
-          ...(plazo ? { grupos: plazo.grupos } : {}),
-        };
-        const sellados =
+        // El equipo no cambia de plazo por esto: sigue con la fecha que tenía
+        // y, si ya estaba pasado, mañana le abre un tramo nuevo. Lo único que
+        // se cierra es lo que el cliente acaba de pagar.
+        const conAbono = { ...factura, abonos };
+        const grupos =
           calcularExigible(conAbono, hoy) === 0
             ? sellarFacturaPagada(conAbono, hoy)
             : null;
 
-        const grupos = sellados ?? plazo?.grupos ?? null;
-        // El acuerdo queda en la bitácora como lo que es, una renovación: sin
-        // eso, la factura se quedaría mostrando el "sin respuesta" de la
-        // última llamada aunque el cliente haya contestado, pagado y pactado.
-        const gestiones = plazo
-          ? [...obtenerGestiones(factura), plazo.gestion]
-          : null;
-
-        // Los abonos y, si hubo, los equipos y la gestión: el saldo no se
-        // guarda, se calcula al mostrarlo (ver FacturaFormDialog). Guardarlo
+        // Los abonos y, si hubo, los equipos con su tramo cerrado: el saldo no
+        // se guarda, se calcula al mostrarlo (ver FacturaFormDialog). Guardarlo
         // acá era justo donde más daño hacía: el recálculo daba cero en cuanto
         // el alta estaba paga, y el abono que se acababa de registrar se
         // perdía sin dejar rastro.
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,
           ...(grupos ? { grupos } : {}),
-          ...(gestiones ? { gestiones } : {}),
         });
       });
       await batch.commit();
@@ -613,205 +529,51 @@ export default function AbonoDialog({
               )}
             </Grid>
 
-            {/* EL ACUERDO POR EL EQUIPO. Va al final y no arriba a propósito:
-                es el último paso antes de guardar, y para entonces ya se sabe
-                a qué facturas va la plata —que es lo que decide por cuáles
-                hay que preguntar—. */}
-            {conEquiposVencidos.map(({ factura, equipos }) => {
-              const numero = datosFactura(factura).numeroFactura ?? "s/n";
-
-              return (
-                <Grid item xs={12} key={`acuerdo-${factura.id}`}>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      borderColor: "warning.main",
-                      bgcolor: (t) => t.palette.warning.main + "14",
-                    }}
-                  >
-                    <Stack direction="row" gap={1} sx={{ mb: 1 }}>
-                      <WarningAmberIcon fontSize="small" color="warning" />
-                      <Typography variant="body2">
-                        {equipos.length === 1 ? "Este equipo sigue" : "Estos equipos siguen"}{" "}
-                        en la obra
-                        {conEquiposVencidos.length > 1 && ` (factura ${numero})`}. ¿Qué
-                        se acordó?
+            {/* EL RECORDATORIO DE LOS EQUIPOS. Va al final y no arriba a
+                propósito: recién cuando hay un valor escrito se sabe a qué
+                facturas va la plata, que es lo que decide por cuáles avisar. */}
+            {tituloAviso && (
+              <Grid item xs={12}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    borderColor: "warning.main",
+                    bgcolor: (t) => t.palette.warning.main + "14",
+                  }}
+                >
+                  <Stack direction="row" gap={1} alignItems="flex-start">
+                    <WarningAmberIcon fontSize="small" color="warning" />
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {tituloAviso}
                       </Typography>
-                    </Stack>
-
-                    {/* UNO POR UNO, y no una sola pregunta para toda la
-                        factura: el cliente puede pedir dos días más para la
-                        mezcladora y quedarse el compresor sin fecha, y esas son
-                        dos decisiones distintas. Antes había que salir al
-                        diálogo de ampliar y volver para separarlas. */}
-                    <Stack gap={1.5}>
-                      {equipos.map(({ equipo, clave }, posicion) => {
-                        const acuerdo = acuerdoDe(clave, equipo);
-                        const dias = Number(acuerdo.dias) || 0;
-                        const yaIndefinido = sinFechaDeEntrega(equipo);
-                        // Hasta cuándo quedaría: es la fecha que el cliente
-                        // escucha por teléfono.
-                        const proyeccion =
-                          acuerdo.tipo === "dias" && dias > 0
-                            ? proyectarAmpliacion(equipo, dias, hoy).hasta
-                            : null;
-
-                        return (
-                          <Box key={clave}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {equipo.cantidadEquipos} {equipo.nombre}
-                            </Typography>
-                            {/* La fecha del último acuerdo y, si ya pasó, los
-                                días que lleva vencido. La misma línea y la
-                                misma regla que en los dos diálogos de
-                                Seguimiento (ver PlazoEquipo). */}
-                            <PlazoEquipo equipo={equipo} hoy={hoy} />
-
-                            <Stack gap={0.5} sx={{ mt: 0.5 }}>
-                              <Stack direction="row" alignItems="center" gap={0.5}>
-                                <Radio
-                                  size="small"
-                                  checked={acuerdo.tipo === "dias"}
-                                  onChange={() => elegirAcuerdo(clave, "dias")}
-                                  inputProps={{
-                                    "aria-label": `Ampliar vencimiento, ${equipo.nombre}`,
-                                  }}
-                                  sx={{ p: 0.25 }}
-                                />
-                                <Typography variant="body2">Ampliar vencimiento</Typography>
-                                {/* Los días y la fecha aparecen al elegirla:
-                                    sin elegir no hay nada que llenar, y el
-                                    renglón se lee como los otros dos. */}
-                                {acuerdo.tipo === "dias" && (
-                                  <>
-                                    <TextField
-                                      size="small"
-                                      autoFocus
-                                      value={acuerdo.dias}
-                                      onChange={(e) => escribirDias(clave, e.target.value)}
-                                      name={`dias-acuerdo-${clave}`}
-                                      id={`dias-acuerdo-${clave}`}
-                                      inputProps={{
-                                        inputMode: "numeric",
-                                        "aria-label": `Días de plazo, ${equipo.nombre}`,
-                                      }}
-                                      sx={{
-                                        width: 64,
-                                        "& input": { textAlign: "center", py: 0.5 },
-                                      }}
-                                    />
-                                    <Typography variant="body2">días</Typography>
-                                    {proyeccion && (
-                                      <Typography
-                                        variant="body2"
-                                        sx={{ color: "text.secondary" }}
-                                      >
-                                        → {formatearFechaLegible(proyeccion)}
-                                      </Typography>
-                                    )}
-                                  </>
-                                )}
-                              </Stack>
-
-                              {/* AL QUE YA ESTÁ SIN FECHA le sale marcada y
-                                  bloqueada: no hay nada que volver a pactar, y
-                                  vacía hacía parecer que el equipo tenía fecha.
-                                  Volver a guardarla le correría a hoy el día en
-                                  que se pactó. Para sacarlo de ahí se le dan
-                                  días, que es lo que la cierra. */}
-                              <Stack direction="row" alignItems="center" gap={0.5}>
-                                <Radio
-                                  size="small"
-                                  checked={
-                                    acuerdo.tipo === "indefinida" ||
-                                    acuerdo.tipo === "yaIndefinida"
-                                  }
-                                  disabled={yaIndefinido}
-                                  onChange={() => elegirAcuerdo(clave, "indefinida")}
-                                  inputProps={{
-                                    "aria-label": `Entrega indefinida, ${equipo.nombre}`,
-                                  }}
-                                  sx={{ p: 0.25 }}
-                                />
-                                <Typography variant="body2">
-                                  Entrega indefinida
-                                </Typography>
-                              </Stack>
-
-                            </Stack>
-
-                            {posicion < equipos.length - 1 && <Divider sx={{ mt: 1.5 }} />}
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-
-                    {/* UNA SOLA para toda la factura: cobrar sin pactar nada.
-                        La plata entra igual, los equipos se quedan como están
-                        y mañana les sigue corriendo la mora. Existe para que
-                        eso sea una decisión y no un olvido, y cubre a los que
-                        quedaron sin marcar: se puede pactar por uno y dejar el
-                        resto como está.
-
-                        Con el modelo de tramos no se pierde nada por esto —el
-                        tramo vencido queda escrito igual—, así que lo único
-                        que protege es que alguien haya contestado. */}
-                    <FormControlLabel
-                      sx={{ mt: 1 }}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={Boolean(sinPactar[factura.id])}
-                          onChange={(e) =>
-                            setSinPactar((previos) => ({
-                              ...previos,
-                              [factura.id]: e.target.checked,
-                            }))
-                          }
-                          inputProps={{
-                            "aria-label": `No se acordó nada, factura ${numero}`,
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography variant="body2">
-                          No se acordó nada
-                        </Typography>
-                      }
-                    />
-
-                    {/* La devolución no es un radio: no se elige acá, abre su
-                        propio diálogo —define depósito y retención, y eso
-                        cambia cuánto cobrar—. Y es de la factura, no de un
-                        equipo: ahí adentro se marca cuáles volvieron. */}
-                    <Stack direction="row" alignItems="center" sx={{ mt: 1.5 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        onClick={() => irADevolucion(factura)}
-                      >
-                        Devolución
-                      </Button>
-                    </Stack>
-                  </Paper>
-                </Grid>
-              );
-            })}
+                      {/* La salida está a la vista: el aviso se puede omitir.
+                          Sin esa línea, un recuadro amarillo que no se puede
+                          quitar se lee como un error que hay que resolver. */}
+                      <Typography variant="body2" color="text.secondary">
+                        Confirma con el cliente la renovación o la fecha de
+                        devolución. Si ya lo gestionaste, puedes omitir este
+                        aviso.
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          {/* Sin el acuerdo no se guarda: es la única forma de que nadie
-              cobre y siga de largo dejando el equipo sin definir. */}
+          {/* Nada traba el cobro: el aviso de los equipos es un recordatorio,
+              no un permiso. */}
           <Button
             variant="contained"
             color="success"
             onClick={handleGuardar}
-            disabled={guardando || faltanAcuerdos}
+            disabled={guardando}
           >
             {guardando ? "Guardando..." : "Registrar abono"}
           </Button>
@@ -829,10 +591,7 @@ AbonoDialog.propTypes = {
   cliente: PropTypes.object,
   facturas: PropTypes.array,
   onAbonado: PropTypes.func,
-  // Se llama con la factura cuando el cliente devolvió el equipo: este
-  // diálogo se cierra y quien lo abrió muestra la devolución.
-  onRegistrarDevolucion: PropTypes.func,
-  // Preguntar qué pasa con los equipos vencidos. Lo enciende cartera: en la
-  // ficha del cliente solo se registran abonos.
-  pedirAcuerdo: PropTypes.bool,
+  // Recordar los equipos que siguen vencidos en la obra. Lo enciende cartera:
+  // en la ficha del cliente solo se registran abonos.
+  avisarEquiposVencidos: PropTypes.bool,
 };

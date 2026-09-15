@@ -67,14 +67,14 @@ const facturas = [
   facturaQueDebe({ id: "grande", numero: 1234, monto: 500000, fecha: "2026-08-10" }),
 ];
 
-// `pedirAcuerdo` va encendido por defecto porque es como lo abre cartera, que
-// es la pantalla donde se pacta; la ficha del cliente lo abre sin él y tiene
-// su propia prueba.
+// `avisarEquiposVencidos` va encendido por defecto porque es como lo abre
+// cartera, que es la pantalla donde se cobra; la ficha del cliente lo abre sin
+// él y tiene su propia prueba.
 const abrir = (props = {}) =>
   renderConProviders(
     <AbonoDialog
       open
-      pedirAcuerdo
+      avisarEquiposVencidos
       onClose={() => {}}
       cliente={cliente}
       facturas={facturas}
@@ -273,10 +273,10 @@ describe("AbonoDialog — lo que ya tenía", () => {
       return fecha.toISOString().slice(0, 10);
     };
 
-    const conCompresorVencido = () => ({
-      id: "5698",
+    const conCompresorVencido = (numero = "5698") => ({
+      id: numero,
       ...unaFactura({
-        numeroFactura: "5698",
+        numeroFactura: numero,
         fechaCreacion: haceDias(4),
         equipos: [
           unEquipo({
@@ -293,17 +293,13 @@ describe("AbonoDialog — lo que ya tenía", () => {
       }),
     });
 
-    // Con equipos vencidos afuera el diálogo exige decir qué pasa con ellos,
-    // así que estas pruebas eligen la entrega indefinida: es la opción que
-    // deja al equipo como estaba y permite mirar solo lo del sellado.
+    // Ya no hay nada que elegir: el aviso de los equipos es un recordatorio,
+    // así que el abono se guarda derecho.
     const abonarSobre = async (factura, monto) => {
       const { usuario } = abrir({ facturas: [factura] });
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
-      await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
-      );
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
     };
@@ -328,10 +324,11 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(cambios.grupos[0].equipos[0].ampliaciones).toHaveLength(0);
     });
 
-    // Cobrar sin definir qué pasa con el equipo es como una factura termina
-    // pagada con el equipo en la obra y sin fecha de retorno. Por eso el
-    // acuerdo es obligatorio: sin él no se puede guardar.
-    it("no deja guardar hasta que se diga qué pasa con el equipo", async () => {
+    // EL RECORDATORIO. Hasta el 2026-09-15 acá había un formulario —días o
+    // entrega indefinida por cada equipo— y el botón de guardar apagado hasta
+    // contestar. Trababa el cobro, así que quedó en aviso: el plazo se pacta
+    // con el botón de renovación.
+    it("avisa que el equipo sigue en la obra, pero deja cobrar igual", async () => {
       const factura = conCompresorVencido();
       const { usuario } = abrir({ facturas: [factura] });
 
@@ -339,93 +336,66 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
-      expect(screen.getByText(/sigue en la obra/)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Registrar abono" })).toBeDisabled();
-
-      await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
-      );
-
+      expect(
+        screen.getByText("1 equipo vencido pendiente de gestión"),
+      ).toBeInTheDocument();
+      // Y con la salida a la vista: el aviso no obliga a nada.
+      expect(screen.getByText(/puedes omitir este aviso/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
+
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      // Entra la plata y nada más: ni ampliación, ni entrega indefinida, ni un
+      // renglón de renovación en la bitácora que nadie pactó.
+      const cambios = updateSimulado.mock.calls[0][1];
+      expect(cambios.abonos).toHaveLength(1);
+      expect(cambios.grupos).toBeUndefined();
+      expect(cambios.gestiones).toBeUndefined();
     });
 
-    // Una factura sin equipos vencidos no pregunta nada: el diálogo sigue
-    // siendo el de siempre.
-    it("no pregunta por el equipo cuando no hay ninguno vencido afuera", async () => {
+    // Con más de una factura recibiendo plata el aviso las nombra: el cliente
+    // puede estar pagando dos y tener equipos afuera en las dos. Con una sola
+    // no hace falta, que es la que se está mirando.
+    it("cuenta los equipos de todas las facturas que reciben plata", async () => {
+      const { usuario } = abrir({
+        facturas: [conCompresorVencido(), conCompresorVencido("5699")],
+      });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "5000000");
+
+      expect(
+        screen.getByText("2 equipos vencidos pendientes de gestión (facturas 5698, 5699)"),
+      ).toBeInTheDocument();
+    });
+
+    // Una factura sin equipos vencidos no avisa nada: el diálogo sigue siendo
+    // el de siempre.
+    it("no avisa cuando no hay ningún equipo vencido afuera", async () => {
       const { usuario } = abrir();
 
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
-      expect(screen.queryByText(/sigue en la obra/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/pendiente.? de gestión/)).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Registrar abono" })).toBeEnabled();
     });
 
-    // Las tres opciones se leen de un vistazo —renovación, entrega indefinida
-    // y devolución— y solo la que se elige pide algo. Un campo de días
-    // siempre a la vista invita a llenarlo sin haber elegido nada.
-    it("pide los días recién cuando se elige la renovación", async () => {
-      const { usuario } = abrir({ facturas: [conCompresorVencido()] });
-
-      // El acuerdo recién se pregunta cuando hay plata que repartir: sin
-      // monto no hay factura destino y no hay nada que definir.
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-
-      expect(screen.queryByLabelText(/Días de plazo/)).not.toBeInTheDocument();
-
-      await usuario.click(screen.getByRole("radio", { name: /Ampliar vencimiento/ }));
-
-      expect(screen.getByLabelText(/Días de plazo/)).toBeInTheDocument();
-    });
-
-    it("con días de plazo renueva el equipo y lo deja anotado como renovación", async () => {
-      const factura = conCompresorVencido();
-      const { usuario } = abrir({ facturas: [factura] });
-
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("radio", { name: /Ampliar vencimiento/ }));
-      await usuario.type(screen.getByLabelText(/Días de plazo/), "4");
-      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
-
-      const cambios = updateSimulado.mock.calls[0][1];
-      const [equipo] = cambios.grupos[0].equipos;
-      // La ampliación dice SOLO los 4 días que el cliente pidió, y arrancan
-      // mañana. Los 2 que ya se le habían vencido no se disfrazan de días
-      // ampliados: quedan en su tramo, cerrado hoy.
-      expect(equipo.ampliaciones[0]).toMatchObject({ dias: 4 });
-      expect(equipo.vencidos[0]).toMatchObject({
-        desde: haceDias(1),
-        hasta: obtenerFechaHoyBogota(),
-      });
-      expect(cambios.gestiones.at(-1)).toMatchObject({
-        tipo: "prorroga",
-        dias: 4,
-        indefinida: false,
-      });
-    });
-
-    // En la ficha del cliente solo se registran abonos: pactar un plazo es
-    // cobranza y se decide donde se cobra. Es la misma regla que ya siguen las
+    // En la ficha del cliente solo se registran abonos: lo del equipo es
+    // cobranza y se mira donde se cobra. Es la misma regla que ya siguen las
     // devoluciones.
-    it("desde la ficha del cliente no pregunta por los equipos", async () => {
+    it("desde la ficha del cliente no avisa por los equipos", async () => {
       const factura = conCompresorVencido();
-      const { usuario } = abrir({ facturas: [factura], pedirAcuerdo: false });
+      const { usuario } = abrir({ facturas: [factura], avisarEquiposVencidos: false });
 
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
-      expect(screen.queryByText(/sigue en la obra/)).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("radio", { name: /Ampliar vencimiento/ }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/pendiente.? de gestión/)).not.toBeInTheDocument();
 
-      // Y deja guardar sin preguntar nada.
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
       const cambios = updateSimulado.mock.calls[0][1];
@@ -433,152 +403,13 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(cambios.grupos).toBeUndefined();
     });
 
-    // EL CASO QUE LO MOTIVO: el cliente pide dos dias mas para uno y se queda
-    // el otro sin fecha. Antes se preguntaba una sola vez por factura, asi que
-    // habia que salir al dialogo de ampliar y volver.
-    it("acuerda distinto para cada equipo de la misma factura", async () => {
-      const factura = {
-        id: "5698",
-        ...unaFactura({
-          numeroFactura: "5698",
-          fechaCreacion: haceDias(4),
-          equipos: [
-            unEquipo({
-              nombre: "COMPRESOR",
-              cantidad: 1,
-              valorDia: 150000,
-              dias: 3,
-              fechaDespacho: haceDias(4),
-              vencidos: [unTramoVencido({ desde: haceDias(1), hasta: null })],
-            }),
-            unEquipo({
-              nombre: "MEZCLADORA",
-              cantidad: 1,
-              valorDia: 60000,
-              dias: 3,
-              fechaDespacho: haceDias(4),
-              vencidos: [unTramoVencido({ desde: haceDias(1), hasta: null })],
-            }),
-          ],
-        }),
-      };
-      const { usuario } = abrir({ facturas: [factura] });
-
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-
-      await usuario.click(
-        screen.getByRole("radio", { name: /Ampliar vencimiento, MEZCLADORA/ }),
-      );
-      await usuario.type(screen.getByLabelText(/Días de plazo, MEZCLADORA/), "2");
-      await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida, COMPRESOR/ }),
-      );
-      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
-
-      const cambios = updateSimulado.mock.calls[0][1];
-      const [compresor, mezcladora] = cambios.grupos[0].equipos;
-
-      // Cada uno siguió su camino, en un solo guardado.
-      expect(compresor.indefinida.activa).toBe(true);
-      expect(compresor.ampliaciones).toHaveLength(0);
-      expect(mezcladora.ampliaciones[0]).toMatchObject({ dias: 2 });
-      expect(mezcladora.indefinida?.activa).toBeFalsy();
-
-      // La bitácora cuenta la conversación entera: hubo días y hubo un equipo
-      // que quedó sin fecha.
-      expect(cambios.gestiones.at(-1)).toMatchObject({
-        tipo: "prorroga",
-        dias: 2,
-        indefinida: true,
-      });
-    });
-
-    // Cobrar sin pactar nada es una respuesta valida: la plata entra, el
-    // equipo se queda como esta y manana le sigue corriendo la mora. Con el
-    // modelo de tramos no se pierde nada, porque el tramo queda escrito.
-    //
-    // Es UNA casilla por factura y no una opcion por equipo: no es una
-    // decision sobre un equipo sino la ausencia de acuerdo.
-    it("deja abonar sin pactar nada, y el equipo no se toca", async () => {
-      const factura = conCompresorVencido();
-      const { usuario } = abrir({ facturas: [factura] });
-
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(screen.getByRole("checkbox", { name: /No se acordó nada/ }));
-      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
-
-      const cambios = updateSimulado.mock.calls[0][1];
-
-      // Se registra el abono y nada más: ni ampliación, ni entrega indefinida,
-      // ni un renglón de renovación en la bitácora que nadie pactó.
-      expect(cambios.abonos).toHaveLength(1);
-      expect(cambios.gestiones).toBeUndefined();
-    });
-
-    it("con entrega indefinida marca el equipo y sella los días si quedó al día", async () => {
-      const factura = conCompresorVencido();
-      const total = calcularCuentaFactura(factura, obtenerFechaHoyBogota()).total;
-      const { usuario } = abrir({ facturas: [factura] });
-
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), String(total));
-      await usuario.click(
-        screen.getByRole("radio", { name: /Entrega indefinida/ }),
-      );
-      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
-
-      const cambios = updateSimulado.mock.calls[0][1];
-      const [equipo] = cambios.grupos[0].equipos;
-      // Sigue sin fecha de retorno, y su tramo queda cerrado hoy.
-      expect(equipo.indefinida.activa).toBe(true);
-      expect(equipo.vencidos.at(-1)).toMatchObject({
-        hasta: obtenerFechaHoyBogota(),
-      });
-      expect(equipo.ampliaciones).toHaveLength(0);
-      expect(cambios.gestiones.at(-1)).toMatchObject({
-        tipo: "prorroga",
-        indefinida: true,
-      });
-    });
-
-    // La devolución define el estado del equipo y el depósito, y eso cambia
-    // cuánto hay que cobrar: se resuelve en su propio diálogo, no acá.
-    it("manda a la devolución y cierra el abono, sin escribir nada", async () => {
-      const alDevolver = vi.fn();
-      const alCerrar = vi.fn();
-      const { usuario } = abrir({
-        facturas: [conCompresorVencido()],
-        onRegistrarDevolucion: alDevolver,
-        onClose: alCerrar,
-      });
-
-      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
-      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
-      await usuario.click(
-        screen.getByRole("button", { name: "Devolución" }),
-      );
-
-      expect(alDevolver).toHaveBeenCalledTimes(1);
-      expect(alCerrar).toHaveBeenCalledTimes(1);
-      expect(updateSimulado).not.toHaveBeenCalled();
-    });
-
     it("no sella nada si el abono no alcanza a cubrir lo que se le reclama hoy", async () => {
       const cambios = await abonarSobre(conCompresorVencido(), 100000);
 
+      // Se escribe el abono y nada más: el equipo sigue igual, con su tramo
+      // abierto, y mañana le corren los días que siga afuera.
       expect(cambios.abonos).toHaveLength(1);
-      // El equipo se escribe igual —quedó sin fecha, que es lo que se
-      // acordó— y su tramo se cierra hoy: eso no depende de la plata. Lo que
-      // todavía deba lo dice el saldo de la factura, no el equipo.
-      const [equipo] = cambios.grupos[0].equipos;
-      expect(equipo.indefinida.activa).toBe(true);
-      expect(equipo.ampliaciones).toHaveLength(0);
+      expect(cambios.grupos).toBeUndefined();
     });
   });
 

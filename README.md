@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-548_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-543_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -267,25 +267,24 @@ Ahora es al revés: **hacer algo es justamente lo que lo deja escrito**, así qu
 
 La regla que ordena todo esto: **la plata es de la factura, el equipo son días**. El costo sí se muestra en la ficha —es lo que deja confirmar la cuenta—; la plata cobrada, no.
 
-### No se cobra sin decir qué pasa con el equipo
+### Al cobrar, el equipo se recuerda — ya no se exige
 
 El caso que destapó esto: se llamó al cliente, pagó todo, y **nadie le preguntó por el equipo**. La factura quedó saldada con el compresor en la obra y sin fecha de retorno — no porque alguien lo decidiera, sino porque no se preguntó. La falla no fue del cliente: fue del orden en que la pantalla pedía las cosas.
 
-Ahora el momento del cobro es el momento de definir el equipo, que es cuando el cliente está al teléfono. Al registrar un abono sobre una factura con equipos vencidos afuera, el diálogo **no deja guardar** hasta elegir una de tres:
+La primera respuesta fue un formulario dentro del abono: por cada equipo vencido, *renovación* o *entrega indefinida*, con el botón de guardar **apagado** hasta contestar. Funcionaba, pero trababa la operación más frecuente del día —cobrar— para pedir una decisión que muchas veces ya se había tomado por otro lado.
 
-| Lo que dice el cliente | Qué pasa |
-|---|---|
-| *"Me lo llevo N días más"* | Renovación: la fecha corre desde hoy y los días vencidos se consolidan |
-| *"Todavía no sé, te aviso"* | Entrega indefinida — y sus días vencidos se sellan |
-| *"Ya te lo devuelvo"* | Abre la devolución, que es donde se define el depósito |
+Hoy el abono **avisa y deja pasar**:
 
-Las tres quedan anotadas en la bitácora como **renovación**, así que el chip de gestión deja de mostrar el *"sin respuesta"* de una llamada vieja cuando el cliente ya contestó y pagó.
+```
+⚠ 1 equipo vencido pendiente de gestión
+  Confirma con el cliente la renovación o la fecha de devolución.
+  Si ya lo gestionaste, puedes omitir este aviso.
+```
 
-El equipo se anuncia por su nombre y debajo *"Sigue con el cliente y el plazo ya terminó."*, y las tres salidas se nombran **como el estado en que dejan la factura**: **Renovación**, **Entrega indefinida** y **Devolución**. Los días y la fecha nueva aparecen recién al elegir la renovación — un campo siempre a la vista invita a llenarlo sin haber elegido nada, y las tres opciones dejan de leerse de un vistazo.
+**Lo que permitió relajarlo fue el modelo de tramos.** Los días que el equipo lleva vencido quedan escritos igual, pacte alguien o no: antes, no contestar costaba plata; ahora solo cuesta información. El plazo se pacta con el botón de **Renovar**, que es donde vive, y el aviso está para que nadie cobre y siga de largo sin acordarse del equipo.
 
-> **La devolución no vive dentro del abono, y es por la plata.** Define el estado del equipo, cuánto se retiene y cuánto depósito vuelve — y eso cambia lo que hay que cobrar. Así que se abre en su propio diálogo y, al cerrarlo, el abono vuelve **en blanco**: el depósito que volvió se canjea contra lo que el cliente debía, y el número que se iba a cobrar ya no es el que corresponde.
-
-**Y el orden de los botones cuenta el mismo flujo:** devolución, renovación, abono. Primero el equipo, después la plata. Al revés se cobraba primero, que es exactamente como se llegó al problema.
+> [!NOTE]
+> **El formulario no se perdió: está en la historia del repo.** Se implementó en `099316f` y vive hasta `cadc353`, el último commit antes de sacarlo (2026-09-15). Ahí está entero —los radios por equipo, la casilla *"No se acordó nada"*, el salto a la devolución y `aplicarAcuerdoDeEquipos` en `facturaCuentas.js`—, por si alguna vez se quiere volver a exigir el acuerdo.
 
 ### Y el que devuelve antes no paga lo que no usó
 
@@ -329,31 +328,23 @@ Cada factura de la lista trae las acciones del cobro a la mano:
 
 Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre todas las del cliente: con varias facturas, los números no se podrían atribuir a ninguna.
 
-### No se cobra sin decir qué pasa con el equipo
+### El recordatorio del equipo, al cobrar
 
-Cobrar y no preguntar por el equipo es cómo una factura termina pagada con el equipo en la obra y sin fecha de retorno: nadie decidió nada, simplemente no se preguntó. Por eso, **cuando el abono va a una factura con equipos vencidos afuera, el diálogo pregunta** — y lo hace **por cada equipo**, porque el cliente puede pedir dos días más para la mezcladora y quedarse el compresor sin fecha:
+Cuando el abono va a una factura que todavía tiene equipos vencidos afuera, el diálogo lo dice antes de guardar:
 
 ```
-Estos equipos siguen en la obra. ¿Qué se acordó?
-
-1 SALTARIN · Entrega indefinida actualmente · 4 días vencidos
-  ( ) Ampliar vencimiento
-  (•) Entrega indefinida          ← ya está así: marcada y bloqueada
-
-2 TABLÓN DE MADERA · Vence: 11/09/2026 · 3 días vencidos
-  ( ) Ampliar vencimiento
-  ( ) Entrega indefinida
-
-[ ] No se acordó nada
+⚠ 2 equipos vencidos pendientes de gestión (facturas 5698, 5699)
+  Confirma con el cliente la renovación o la fecha de devolución.
+  Si ya lo gestionaste, puedes omitir este aviso.
 ```
 
-Esa última casilla es **una sola por factura** y cubre a los que quedaron sin marcar: no es una decisión sobre un equipo sino la ausencia de acuerdo. La plata entra igual, los equipos se quedan como están y mañana les sigue corriendo la mora — con los tramos escritos no se pierde nada. Está para que eso sea una decisión y no un olvido: **lo único que no se admite es no contestar**.
+Cuenta **solo los equipos de las facturas que reciben plata de ese abono** —si el cliente paga una, no hay por qué recordarle los equipos de otra— y las nombra únicamente cuando hay más de una: con una sola, es la que se está mirando.
 
-Al que ya quedó sin fecha se le muestra su opción marcada y bloqueada: no hay nada que volver a pactar, y volver a escribirla le correría a hoy el día en que se pactó. Para sacarlo de ahí se le dan días, que es lo que la cierra.
+La segunda línea dice que el aviso se puede omitir, y eso no es cortesía: un recuadro amarillo que no se puede quitar se lee como un error que hay que resolver antes de seguir, y acá no lo es. **Nada traba el cobro.**
 
-**Y esto solo pasa en cartera.** En la ficha del cliente el abono es solo un abono: pactar un plazo se acuerda con alguien que ya está vencido —es cobranza— así que se decide donde se cobra. Es la misma regla que ya seguían las devoluciones.
+**Y esto solo pasa en cartera.** En la ficha del cliente el abono es solo un abono: lo del equipo se acuerda con alguien que ya está vencido —es cobranza— así que se mira donde se cobra. Es la misma regla que ya seguían las devoluciones.
 
-Si el equipo se resolvió antes —se le ampliaron los días o se registró su devolución— el abono **ni pregunta**: ese equipo ya no está vencido. La pregunta aparece solo cuando queda uno en la obra sobre el que nadie decidió nada.
+Si el equipo se resolvió antes —se le ampliaron los días o se registró su devolución— el abono **ni avisa**: ese equipo ya no está vencido.
 
 ### Los cinco recordatorios de WhatsApp
 
@@ -1166,9 +1157,9 @@ Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones
 
 También fijan **el texto de lo que se muestra** en la historia de fechas de un equipo: qué dice cada dato, en qué orden aparecen y cuál va marcado como urgente. Un cálculo correcto mal contado en pantalla se cobra igual de caro que un cálculo equivocado.
 
-Y ya no se quedan en la lógica: **las pantallas se prueban dibujándolas de verdad**, con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**. Ahí están las operaciones que mueven plata —ampliar el plazo, registrar una devolución, agregar equipos a una factura viva, y el abono con su acuerdo por el equipo—, los dos formularios grandes, los carritos, el login y las pantallas del panel.
+Y ya no se quedan en la lógica: **las pantallas se prueban dibujándolas de verdad**, con una persona simulada que teclea y hace clic. Firebase va reemplazado por un doble, así que la prueba no toca la base pero sí revisa **a qué documento** se iba a escribir y **qué**. Ahí están las operaciones que mueven plata —ampliar el plazo, registrar una devolución, agregar equipos a una factura viva, y el abono con su recordatorio del equipo—, los dos formularios grandes, los carritos, el login y las pantallas del panel.
 
-Algunos ejemplos de lo que queda fijado: que un abono se reparta como se mostró en pantalla y no pise los anteriores; que la devolución parcial **parta la línea del equipo en dos**, una cerrada y otra que sigue corriendo; que el pago de un lote de equipos viaje **solo en el primero** —contarlo dos veces hacía subir el pagado al doble—; que al eliminar un cliente se avise cuántas facturas se lleva por delante; que no se pueda cobrar sin decir qué pasa con los equipos vencidos; que los días que el cliente ya pagó no vuelvan a contarse al día siguiente; y que cada rol vea únicamente lo suyo.
+Algunos ejemplos de lo que queda fijado: que un abono se reparta como se mostró en pantalla y no pise los anteriores; que la devolución parcial **parta la línea del equipo en dos**, una cerrada y otra que sigue corriendo; que el pago de un lote de equipos viaje **solo en el primero** —contarlo dos veces hacía subir el pagado al doble—; que al eliminar un cliente se avise cuántas facturas se lleva por delante; que el abono recuerde los equipos vencidos sin trabar el cobro; que los días que el cliente ya pagó no vuelvan a contarse al día siguiente; y que cada rol vea únicamente lo suyo.
 
 **Lo que deliberadamente no se prueba** también es una decisión: los PDF, las piezas que solo muestran una cuenta ya calculada, la tienda y las vistas que arman el layout. Una prueba de un componente que únicamente repite lo que le pasan no atrapa errores: los repite.
 

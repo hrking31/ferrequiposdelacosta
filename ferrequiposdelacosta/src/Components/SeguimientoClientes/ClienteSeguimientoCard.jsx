@@ -349,9 +349,6 @@ export default function ClienteSeguimientoCard({
   const [llamadaOpen, setLlamadaOpen] = useState(false);
   const [abonoOpen, setAbonoOpen] = useState(false);
   const [entregarOpen, setEntregarOpen] = useState(false);
-  // La devolución que se abrió DESDE el abono: al cerrarla hay que volver a
-  // ofrecer el cobro, con la cuenta ya recalculada.
-  const [volverAlAbono, setVolverAlAbono] = useState(false);
 
   // El abono es del CLIENTE: se reparte entre todas sus facturas con saldo,
   // estén o no en cartera. Si la pantalla no las manda, se usan las de acá.
@@ -1697,34 +1694,19 @@ export default function ClienteSeguimientoCard({
 
       <RegistrarDevolucionDialog
         open={devolucionOpen}
-        onClose={() => {
-          setDevolucionOpen(false);
-          // Si se llegó acá desde el cobro, el abono vuelve a abrirse EN
-          // BLANCO. No se le arrastra el valor que se había escrito: la
-          // devolución cambió la cuenta —el depósito que vuelve se canjea
-          // contra lo que el cliente debía— y ese número ya no es el que hay
-          // que cobrar.
-          if (volverAlAbono) {
-            setVolverAlAbono(false);
-            setAbonoOpen(true);
-          }
-        }}
+        onClose={() => setDevolucionOpen(false)}
         cliente={cliente}
         factura={factura}
         onActualizado={onEquiposActualizados}
       />
 
       <AbonoDialog
-        pedirAcuerdo
+        avisarEquiposVencidos
         open={abonoOpen}
         onClose={() => setAbonoOpen(false)}
         cliente={cliente}
         facturas={facturasDelCliente}
         onAbonado={onEquiposActualizados}
-        onRegistrarDevolucion={() => {
-          setVolverAlAbono(true);
-          setDevolucionOpen(true);
-        }}
       />
 
       <EntregarSaldoDialog
