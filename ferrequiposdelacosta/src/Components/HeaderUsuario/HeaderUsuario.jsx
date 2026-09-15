@@ -107,8 +107,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             position: "relative",
             display: "flex",
             alignItems: "center",
-            gap: 2,
-            p: 1.75,
+            gap: 1.5,
+            // MÁS BAJO EN EL CELULAR: el encabezado medía 92px —un avatar de
+            // 64 con 14 de relleno— y los que se comen esos píxeles son los
+            // botones de abajo, que tienen que entrar sin scroll. Con 48 y 10
+            // baja a unos 68 y el nombre se sigue leyendo igual.
+            p: 1.25,
             borderRadius: 2,
             overflow: "hidden",
             bgcolor: "custom.accent",
@@ -150,11 +154,11 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               src={photoURL}
               alt={name}
               sx={{
-                width: 64,
-                height: 64,
-                fontSize: "1.5rem",
+                width: 48,
+                height: 48,
+                fontSize: "1.25rem",
                 fontWeight: "bold",
-                border: (t) => `3px solid ${t.palette.common.white}`,
+                border: (t) => `2px solid ${t.palette.common.white}`,
               }}
             >
               {name ? name.charAt(0).toUpperCase() : "A"}

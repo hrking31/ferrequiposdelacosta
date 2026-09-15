@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useRef, useState } from "react";
+import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Box,
@@ -323,21 +323,46 @@ export default function AdminForms() {
   // repartido entre las filas que ese cálculo suponía, salía para cuatro
   // cuando en realidad había dos: tiles de la mitad de alto —con el rótulo
   // cortado— y un hueco enorme debajo.
-  const contenedorRef = useRef(null);
   const [caja, setCaja] = useState({ ancho: 0, alto: 0 });
+  const observadorRef = useRef(null);
 
-  useEffect(() => {
-    const elemento = contenedorRef.current;
-    if (!elemento) return undefined;
+  // LA MEDIDA SE TOMA APENAS EXISTE EL CONTENEDOR, no en un efecto: React
+  // llama a esta función con el nodo en el mismo momento en que lo monta, así
+  // que el primer cuadro que se pinta ya sale con los tiles en su tamaño.
+  //
+  // Con un efecto —aunque sea useLayoutEffect— el primer cuadro salía con los
+  // valores de arranque y el segundo ya con la medida: eso era el reacomodo
+  // que se veía al cargar la pantalla.
+  //
+  // Se mide el CONTENIDO, sin el relleno, que es lo mismo que informa el
+  // observador (contentRect) y lo que de verdad se reparte entre los tiles.
+  const contenedorRef = useCallback((nodo) => {
+    observadorRef.current?.disconnect();
+    observadorRef.current = null;
+    if (!nodo) return;
 
+    const estilo = getComputedStyle(nodo);
+    setCaja({
+      ancho:
+        nodo.clientWidth -
+        parseFloat(estilo.paddingLeft) -
+        parseFloat(estilo.paddingRight),
+      alto:
+        nodo.clientHeight -
+        parseFloat(estilo.paddingTop) -
+        parseFloat(estilo.paddingBottom),
+    });
+
+    // Y de ahí en adelante, cada vez que cambie: girar el teléfono, achicar la
+    // ventana, abrir el teclado.
     const observador = new ResizeObserver(([entrada]) => {
       setCaja({
         ancho: entrada.contentRect.width,
         alto: entrada.contentRect.height,
       });
     });
-    observador.observe(elemento);
-    return () => observador.disconnect();
+    observador.observe(nodo);
+    observadorRef.current = observador;
   }, []);
 
   // LAS FILAS QUEDAN PAREJAS. No se meten todos los tiles que entren en la
@@ -351,9 +376,16 @@ export default function AdminForms() {
   // celular grande y dos en uno chico, y los tiles no tienen por qué cambiar
   // de acomodo entre un teléfono y otro. En computador sí se mide, porque ahí
   // el ancho va de una ventana a media pantalla a un monitor de 27 pulgadas.
-  const cabenPorFila = isFullScreen
-    ? 2
-    : Math.max(1, Math.floor((caja.ancho + gapPx) / (200 + gapPx)));
+  // EL CELULAR ACOSTADO no es un celular angosto. La regla de "dos columnas"
+  // vale de pie, donde sobra alto y falta ancho; girado es al revés —ancho de
+  // sobra y 400px de alto— y esas dos columnas obligaban a cuatro o cinco
+  // filas: tiles de 40px, anchos y aplastados. Ahí se mide igual que en el
+  // computador, que es lo que reparte según lo que hay.
+  const deSuAlto = caja.alto >= caja.ancho;
+  const cabenPorFila =
+    isFullScreen && deSuAlto
+      ? 2
+      : Math.max(1, Math.floor((caja.ancho + gapPx) / (200 + gapPx)));
   const filas = Math.max(1, Math.ceil(botonesVisibles.length / cabenPorFila));
   const columnas = Math.ceil(botonesVisibles.length / filas);
 
@@ -374,9 +406,15 @@ export default function AdminForms() {
   // "adminSquare" y su media query). En computador va topado, para que queden
   // apaisados y no lleguen pegados al borde de abajo; lo que sobra se reparte
   // arriba y abajo, en vez de acumularse todo abajo como un hueco.
-  const altoTile = Math.min(
-    isFullScreen ? Infinity : 125,
-    (caja.alto - (filas - 1) * gapPx) / filas,
+  const altoTile = Math.max(
+    // Nunca por debajo de lo que necesita el ícono con su rótulo: con el
+    // celular acostado el reparto daba 40px y el texto quedaba comido. Si no
+    // entran, que la lista se desplace.
+    56,
+    Math.min(
+      isFullScreen && deSuAlto ? Infinity : 125,
+      (caja.alto - (filas - 1) * gapPx) / filas,
+    ),
   );
 
   const contenedorStyle = {
