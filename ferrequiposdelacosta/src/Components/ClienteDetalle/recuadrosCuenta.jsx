@@ -252,24 +252,34 @@ export const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
 //
 // `colorDivisor` y el color de cada casilla los pone quien llama, porque no es
 // lo mismo escribir sobre el panel oscuro que sobre el fondo de la tarjeta.
-export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
+export const renderFilaDeCasillas = (
+  casillas,
+  { colorDivisor, columna = false } = {},
+) => (
   <Stack
-    direction="row"
+    direction={columna ? "column" : "row"}
     sx={{ minWidth: 0 }}
     // El divisor lleva margen arriba y abajo para no llegar a los bordes.
+    // En columna el divisor se acuesta: la misma línea, pero separando
+    // renglón de renglón en vez de columna de columna.
     divider={
       <Divider
-        orientation="vertical"
+        orientation={columna ? "horizontal" : "vertical"}
         flexItem
-        sx={{ my: 0.5, borderColor: colorDivisor, opacity: 0.25 }}
+        sx={
+          columna
+            ? { mx: 0.5, borderColor: colorDivisor, opacity: 0.25 }
+            : { my: 0.5, borderColor: colorDivisor, opacity: 0.25 }
+        }
       />
     }
   >
     {casillas.map(({ clave, Icono, rotulo, valor, color, envolver, extra }) => (
       <Box
         key={clave}
-        // Todas las casillas miden lo mismo.
-        sx={{ flex: 1, minWidth: 0, color, px: 0.75 }}
+        // En fila todas miden lo mismo; en columna cada una ocupa su
+        // renglón y no hay nada que repartir.
+        sx={{ flex: columna ? "none" : 1, minWidth: 0, color, px: 0.75, py: columna ? 0.5 : 0 }}
       >
         {/* El icono queda a la izquierda, alineado con el rotulo; como es
             mas alto que las dos lineas, ocupa el espacio que sobra abajo. El
@@ -318,7 +328,7 @@ export const renderFilaDeCasillas = (casillas, { colorDivisor } = {}) => (
 // La pizarra de la cuenta: la misma fila, sobre el fondo oscuro fijo del tema
 // (se lee igual de día que de noche). El `sx` que se le pase se suma al de
 // acá, para acomodarla en el hueco de cada pantalla.
-export const renderPizarraTotales = (casillas, sx) => (
+export const renderPizarraTotales = (casillas, sx, opciones = {}) => (
   <Paper
     variant="totales"
     sx={{
@@ -332,6 +342,9 @@ export const renderPizarraTotales = (casillas, sx) => (
       ...sx,
     }}
   >
-    {renderFilaDeCasillas(casillas, { colorDivisor: "custom.panelText" })}
+    {renderFilaDeCasillas(casillas, {
+      colorDivisor: "custom.panelText",
+      ...opciones,
+    })}
   </Paper>
 );

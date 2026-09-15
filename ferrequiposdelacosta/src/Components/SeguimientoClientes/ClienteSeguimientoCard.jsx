@@ -31,6 +31,7 @@ import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HistoryIcon from "@mui/icons-material/History";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import {
@@ -335,6 +336,11 @@ export default function ClienteSeguimientoCard({
   // y lo que se guarda es cuáles se fueron abriendo, así la lista de clientes
   // se ve completa de un vistazo.
   const [facturasAbiertas, setFacturasAbiertas] = useState({});
+  // SOLO EN CELULAR: la cuenta y la ficha de cada equipo se abren para ver
+  // todas sus casillas, una debajo de otra. En pantalla grande entran las
+  // cuatro en fila y no hay nada que abrir.
+  const [cuentasAbiertas, setCuentasAbiertas] = useState({});
+  const [equiposAbiertos, setEquiposAbiertos] = useState({});
   const facturaPlegada = (facturaId) => !facturasAbiertas[facturaId];
   const togglePlegarFactura = (facturaId) =>
     setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
@@ -457,17 +463,17 @@ export default function ClienteSeguimientoCard({
   //
   // En el celular quedan las dos que deciden la llamada: cuatro casillas en
   // 350 píxeles no dejan entrar una fecha.
-  const casillasDeEquipo = (equipo, situacion) => {
+  const casillasDeEquipo = (equipo, situacion, abierta = false) => {
     const salida = describirSalidaEquipo(equipo, hoy);
     const { diasVencidos, netoVencido } = calcularEquipo(equipo, hoy);
     const vencido = diasVencidos > 0;
 
-    // Desde cuándo corre lo que dice la última casilla. El tramo abierto lo
-    // sabe; si todavía no se abrió —la madrugada lo escribe recién al día
+    // Desde cuándo corre lo que dice la casilla del estado. El tramo abierto
+    // lo sabe; si todavía no se abrió —la madrugada lo escribe recién al día
     // siguiente— se cuenta desde el día después del último cubierto.
     //
-    // Se mira la SITUACIÓN y no los días de mora: al que vencio ayer todavia
-    // no le corre ninguno, y aun asi ya está vencido. Es la misma cuenta que
+    // Se mira la SITUACIÓN y no los días de mora: al que venció ayer todavía
+    // no le corre ninguno, y aun así ya está vencido. Es la misma cuenta que
     // decide su grupo y su color, así que la casilla no puede decir otra cosa
     // que el rótulo de arriba.
     const tramoDelEstado =
@@ -478,75 +484,20 @@ export default function ClienteSeguimientoCard({
             calcularVencimiento(cubiertoHasta(equipo), 1)
           : null;
 
-    const casillaVence = {
-      clave: "vence",
-      Icono: EventIcon,
-      // El vencimiento del ALTA: con qué fecha se despachó el equipo. Lo que
-      // pasó después —que se venció, o que quedó sin fecha— lo cuenta la
-      // última casilla, con su estado y su tramo.
-      rotulo: "Vence",
-      valor:
-        formatearFecha(
-          calcularFechaDevolucion(
-            equipo?.fechaDespacho,
-            Number(equipo?.diasAlquilados) || 0,
-          ),
-        ) || "—",
-      color: "text.secondary",
-    };
-
-    const casillaVencidos = {
-      clave: "vencidos",
-      Icono: AttachMoneyIcon,
-      // Los días en el rótulo y la plata en el valor: "4 días vencidos, cuatro
-      // cientos mil" es como se dice al hablar, y deja el número de días
-      // pegado a lo que cuestan.
-      // Al que se le acaba el plazo HOY le dice "0 días vencidos": ese día
-      // todavía está pagado y no debe nada de más: la mora le empieza mañana.
-      rotulo: `${formatearDias(diasVencidos)} vencidos`,
-      // La cifra va SIN IVA y el "+ IVA" al lado, que es como se cotiza: el
-      // impuesto se suma al final, sobre el total de la factura.
-      valor: vencido ? (
-        <Box component="span">
-          {formatearMoneda(netoVencido)}
-          {equipoLlevaIva(equipo) && (
-            <Box
-              component="span"
-              sx={{ fontSize: "0.72rem", fontWeight: 400, opacity: 0.85 }}
-            >
-              {" + IVA"}
-            </Box>
-          )}
-        </Box>
-      ) : (
-        // Sin plata que mostrar, la casilla queda en blanco: una raya se lee
-        // como que el dato falta, y acá lo que pasa es que no hay nada que
-        // cobrar todavía.
-        ""
-      ),
-      color: vencido ? "error.main" : "text.secondary",
-    };
-
-    // El equipo ABRE la ficha, como el nombre abre cualquier renglon: se lee
-    // primero y el resto de las casillas hablan de él. Lleva el ícono de su
-    // situación y la cantidad pegada al nombre, que es como se nombra un
-    // equipo al hablar: "los 5 andamios".
+    // El equipo ABRE la ficha, como el nombre abre cualquier renglón: se lee
+    // primero y el resto de las casillas hablan de él. Lleva la cantidad
+    // pegada al nombre, que es como se nombra un equipo al hablar: "los 5
+    // andamios".
     //
-    // Debajo, su fecha de salida: se suma al nombre en vez de ocuparle una
-    // columna, para no correr el resto de los datos de su lugar.
+    // Debajo, con qué salió. El chip queda afuera de la columna del texto
+    // para que esa línea caiga bajo el NOMBRE y no bajo el número: así las
+    // dos arrancan en el mismo punto y se leen como un bloque.
     const casillaEquipo = {
       clave: "equipo",
       // Sin ícono ni rótulo: el nombre del equipo no necesita que nada le
       // anuncie que es el nombre del equipo, y es lo primero que se lee.
       Icono: null,
       rotulo: null,
-      // La cantidad conserva su recuadro, el mismo que lleva en la ficha del
-      // cliente: es un dato aparte del nombre —cuántas unidades salieron— y
-      // pegado al texto se leía como parte de él.
-      //
-      // El chip queda afuera de la columna del texto para que la fecha de
-      // salida caiga bajo el NOMBRE y no bajo el número: así las dos líneas
-      // arrancan en el mismo punto y se leen como un bloque.
       valor: (
         <Box
           component="span"
@@ -573,7 +524,7 @@ export default function ClienteSeguimientoCard({
                 }}
               >
                 <LocalShippingIcon sx={{ fontSize: 14 }} />
-                {/* Con qué salió: el día y los días que se le contrataron. Ese
+                {/* El día que salió y los días que se le contrataron. Ese
                     plazo del alta no se toca nunca —las prórrogas se anotan
                     aparte—, así que dice con qué se despachó el equipo, no en
                     qué quedó. */}
@@ -587,49 +538,128 @@ export default function ClienteSeguimientoCard({
       envolver: true,
     };
 
-    if (esMovil) return [casillaEquipo, casillaVencidos];
+    // Hasta cuándo lo tenía: el vencimiento del ALTA. Lo que pasó después
+    // —que se venció, o que quedó sin fecha— lo cuenta la casilla del estado.
+    const casillaVence = {
+      clave: "vence",
+      Icono: EventIcon,
+      rotulo: "Vence",
+      valor:
+        formatearFecha(
+          calcularFechaDevolucion(
+            equipo?.fechaDespacho,
+            Number(equipo?.diasAlquilados) || 0,
+          ),
+        ) || "—",
+      color: "text.secondary",
+    };
 
-    return [
-      casillaEquipo,
-      casillaVence,
-      {
-        clave: "estado",
-        Icono: iconoDeSituacion(situacion),
-        // El estado con su tramo debajo: desde cuándo lo está y hasta hoy. En
-        // el vencido, desde el día en que empezó a correr la mora; en el que
-        // quedó sin fecha, desde el día en que se pactó.
-        rotulo: null,
-        valor:
-          situacion === "indefinido"
-            ? "Entrega indefinida"
-            : situacion === "vencido"
-              ? "Vencido"
-              : "Vence hoy",
-        // El que quedó sin fecha lleva solo el día en que se pactó: no hay un
-        // "hasta" que contar, justamente porque no tiene fecha. El vencido sí:
-        // desde que empezó a correr la mora hasta hoy.
-        extra: !tramoDelEstado
-          ? null
-          : situacion === "indefinido"
-            ? formatearFecha(tramoDelEstado)
-            : `${formatearFecha(tramoDelEstado)} - ${formatearFecha(hoy)}`,
-        // "Entrega indefinida" no entra en un cuarto del hueco: baja de
-        // línea en vez de cortarse a la mitad.
-        envolver: true,
-        color: colorDeSituacion(situacion),
-      },
-      casillaVencidos,
-    ];
+    const casillaVencidos = {
+      clave: "vencidos",
+      Icono: AttachMoneyIcon,
+      // Los días en el rótulo y la plata en el valor: "4 días vencidos,
+      // cuatrocientos mil" es como se dice al hablar, y deja el número de
+      // días pegado a lo que cuestan.
+      //
+      // Al que se le acaba el plazo HOY le dice "0 días vencidos": ese día
+      // todavía está pagado y no debe nada de más, la mora le empieza mañana.
+      rotulo: `${formatearDias(diasVencidos)} vencidos`,
+      // La cifra va SIN IVA y el "+ IVA" al lado, que es como se cotiza: el
+      // impuesto se suma al final, sobre el total de la factura.
+      valor: vencido ? (
+        <Box component="span">
+          {formatearMoneda(netoVencido)}
+          {equipoLlevaIva(equipo) && (
+            <Box
+              component="span"
+              sx={{ fontSize: "0.72rem", fontWeight: 400, opacity: 0.85 }}
+            >
+              {" + IVA"}
+            </Box>
+          )}
+        </Box>
+      ) : (
+        // Sin plata que mostrar, la casilla queda en blanco: una raya se lee
+        // como que el dato falta, y acá lo que pasa es que no hay nada que
+        // cobrar todavía.
+        ""
+      ),
+      color: vencido ? "error.main" : "text.secondary",
+    };
+
+    // CÓMO ESTÁ y desde cuándo. El vencido lleva el tramo de su mora —del
+    // primer día vencido a hoy—; el que quedó sin fecha, solo el día en que
+    // se pactó: no hay un "hasta" que contar, justamente porque no tiene
+    // fecha.
+    const casillaEstado = {
+      clave: "estado",
+      Icono: iconoDeSituacion(situacion),
+      rotulo: null,
+      valor:
+        situacion === "indefinido"
+          ? "Entrega indefinida"
+          : situacion === "vencido"
+            ? "Vencido"
+            : "Vence hoy",
+      extra: !tramoDelEstado
+        ? null
+        : situacion === "indefinido"
+          ? formatearFecha(tramoDelEstado)
+          : `${formatearFecha(tramoDelEstado)} - ${formatearFecha(hoy)}`,
+      // "Entrega indefinida" no entra en un cuarto del hueco: baja de línea
+      // en vez de cortarse a la mitad.
+      envolver: true,
+      color: colorDeSituacion(situacion),
+    };
+
+    // EN EL CELULAR, CERRADA, la ficha deja ver QUÉ es y CÓMO está, que es con
+    // lo que se decide si hay que llamar. Las otras dos se abren con su
+    // flecha: en un cuarto de pantalla de ancho no entran cuatro casillas sin
+    // que las fechas se corten.
+    if (esMovil && !abierta) return [casillaEquipo, casillaEstado];
+
+    return [casillaEquipo, casillaVence, casillaEstado, casillaVencidos];
   };
 
   const renderEquipo = (equipo, key, situacion) => {
     const color = colorDeSituacion(situacion);
+    const abierta = Boolean(equiposAbiertos[key]);
 
     return (
       <Box key={key} sx={recuadroDeBloque(color)}>
-        {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion), {
-          colorDivisor: color,
-        })}
+        <Stack direction="row" alignItems="flex-start" sx={{ gap: 0.5 }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion, abierta), {
+              colorDivisor: color,
+              // En el celular abierta va en columna: cuatro casillas no entran
+              // de lado en un teléfono sin que las fechas se corten.
+              columna: esMovil && abierta,
+            })}
+          </Box>
+
+          {/* Su flecha, solo en el celular: en pantalla grande las cuatro
+              casillas ya están a la vista y no hay nada que abrir. */}
+          {esMovil && (
+            <Tooltip title={abierta ? "Ocultar el equipo" : "Ver el equipo"}>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  setEquiposAbiertos((previos) => ({
+                    ...previos,
+                    [key]: !previos[key],
+                  }))
+                }
+                sx={{ ...iconBtnSx, color, flexShrink: 0 }}
+              >
+                {abierta ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
       </Box>
     );
   };
@@ -781,12 +811,60 @@ export default function ClienteSeguimientoCard({
   // Antes iba como renglones apilados dentro de la misma pizarra: los mismos
   // cuatro números, pero había que recorrerlos de arriba abajo para encontrar
   // uno, que es justo lo que no se puede hacer con el cliente al teléfono.
+  // LA BARRA DE VALORES, la misma que el encabezado del cliente en su ficha:
+  // Total, Pagado, Abonos y Saldo en fila, cada uno con su ícono, su rótulo
+  // chico y su cifra. No se arma acá —sale de `casillasDeCuenta` y
+  // `renderPizarraTotales`, que son las que dibujan esa barra en la ficha—,
+  // así que las dos pantallas no pueden mostrar la misma cuenta de dos formas.
+  //
+  // EN EL CELULAR entran dos: Total y Saldo, que es lo que se busca al
+  // recorrer la lista. Las otras dos se abren con la flecha y van en columna.
+  // Y lleva rótulo, que en pantalla grande no hace falta: ahí la barra está
+  // pegada a la factura y se entiende de qué cuenta habla, pero en el celular
+  // queda entre bloques y necesita decir qué es.
+  const cuentaAbierta = Boolean(cuentasAbiertas[factura.id]);
   const cuadroTotales =
     valorTotal &&
-    renderPizarraTotales(casillasDeCuenta(cuenta, { resumida: esMovil }), {
-      width: "100%",
-      mb: 1,
-    });
+    (esMovil ? (
+      <Box sx={{ mb: 1 }}>
+        <Stack direction="row" alignItems="center" sx={{ gap: 0.5, mb: 0.25 }}>
+          <AccountBalanceWalletIcon fontSize="small" sx={{ color: "custom.accent" }} />
+          <Typography variant="overline" sx={{ color: "custom.accent", lineHeight: 1.6 }}>
+            Estado de cuenta
+          </Typography>
+
+          <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setCuentasAbiertas((previas) => ({
+                  ...previas,
+                  [factura.id]: !previas[factura.id],
+                }))
+              }
+              sx={{ ...iconBtnSx, color: "custom.accent", ml: "auto" }}
+            >
+              {cuentaAbierta ? (
+                <ExpandLessIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        {renderPizarraTotales(
+          casillasDeCuenta(cuenta, { resumida: !cuentaAbierta }),
+          { width: "100%" },
+          { columna: cuentaAbierta },
+        )}
+      </Box>
+    ) : (
+      renderPizarraTotales(casillasDeCuenta(cuenta), {
+        width: "100%",
+        mb: 1,
+      })
+    ));
 
   // Lo que no toda factura tiene, y que igual hay que poder ver. Aparece solo
   // si hay alguno de los dos: dibujado siempre, una factura sin ninguno
@@ -1041,7 +1119,14 @@ export default function ClienteSeguimientoCard({
                   sigue en cartera por la plata, y eso lo dice el renglón de
                   abajo. */}
               {plazo ? (
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                // En el celular los días bajan a su propio renglón: al lado de
+                // la fecha empujaban al chip de estado fuera de la línea.
+                <Stack
+                  direction={esMovil ? "column" : "row"}
+                  spacing={esMovil ? 0 : 1}
+                  alignItems={esMovil ? "flex-start" : "center"}
+                  flexWrap="wrap"
+                >
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
                     <Typography variant="body2" color="text.secondary">
@@ -1054,10 +1139,14 @@ export default function ClienteSeguimientoCard({
 
                   {plazo.dias > 0 && (
                     <>
-                      <Box
-                        sx={{ width: "1px", height: 16, bgcolor: "divider" }}
-                        aria-hidden
-                      />
+                      {/* La rayita separa los dos datos cuando comparten
+                          renglón; en columna no hay nada que separar. */}
+                      {!esMovil && (
+                        <Box
+                          sx={{ width: "1px", height: 16, bgcolor: "divider" }}
+                          aria-hidden
+                        />
+                      )}
                       <Typography
                         variant="body2"
                         fontWeight="bold"
@@ -1182,6 +1271,14 @@ export default function ClienteSeguimientoCard({
                   </Tooltip>
                 )}
 
+                </Stack>
+
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  alignItems="center"
+                  sx={{ order: esMovil ? 0 : 1 }}
+                >
                 {/* La gestión vigente. No se puede cambiar a mano: la ponen
                     las acciones de arriba (llamar, ampliar, devolver). Sin
                     contador: cuántas veces se llamó queda en la línea de
