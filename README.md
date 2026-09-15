@@ -513,6 +513,8 @@ Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas
 
 Es **una sola medida, 135px**, para las dos familias —el estado de la factura y la gestión—, porque conviven en la misma tarjeta y dos anchos parecidos pero distintos se leen como un error de alineación. Sale del rótulo más largo con su ícono adelante: *"Sin gestionar"* y *"Sin respuesta"*, que piden 133.
 
+**En el celular son 120px y la letra baja a 0.625rem** (`anchoChip.movil` y `anchoChip.letraMovil`). A 360px de pantalla la fila de la factura tiene que meter la fecha, los cuatro botones y el chip, y con 135 el conjunto no entraba: el chip se iba al renglón de abajo. Con la letra más chica el rótulo más largo ocupa 108 de esos 120, así que sigue sin cortarse. En esa pantalla el vencimiento además se escribe solo con su ícono y la fecha corta —`14/09/26`, sin la palabra "Vencía"—, que es de donde salen los otros 50px.
+
 > [!NOTE]
 > **Por eso la devolución parcial se llama solo "Parcial".** Escrita entera pedía 172px —40 más que cualquier otra— y arrastraba a todos los chips a ese ancho; en el celular el chip ya no entraba en la primera fila. El ícono que lleva al lado es el de devolución, así que la palabra sobraba.
 >

@@ -636,9 +636,16 @@ export const CustomThemeProvider = ({ children }) => {
       // Vive acá para cambiarlo una vez: antes el 130 estaba escrito a mano en
       // la ficha del cliente, pisando el 190 de la variante, y las tarjetas de
       // cartera no tenían ninguno.
+      // EN EL CELULAR van más angostos y con la letra un punto más chica: a
+      // 360px de pantalla la fila tiene que meter la fecha y el bloque de
+      // acciones, y con 135 el conjunto no entraba y el chip se iba al
+      // renglón de abajo. La letra achica el rótulo más largo lo suficiente
+      // para que los 120 le queden holgados.
       anchoChip: {
         estado: 135,
         gestion: 135,
+        movil: 120,
+        letraMovil: "0.625rem",
       },
       shape: {
         borderRadius: 6, // Esquinas un poco más rectas para estética industrial
@@ -1829,6 +1836,10 @@ export const CustomThemeProvider = ({ children }) => {
                 // ficha. Antes eran 190 acá y 130 escrito a mano en la ficha.
                 width: theme.anchoChip.estado,
                 justifyContent: "center",
+                [theme.breakpoints.down("sm")]: {
+                  width: theme.anchoChip.movil,
+                  fontSize: theme.anchoChip.letraMovil,
+                },
               }),
             },
             // La misma etiqueta donde no hay lista que alinear: se ajusta al

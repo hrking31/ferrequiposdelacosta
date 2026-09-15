@@ -1224,13 +1224,22 @@ export default function ClienteSeguimientoCard({
                   alignItems={esMovil ? "flex-start" : "center"}
                   flexWrap="wrap"
                 >
+                  {/* EN EL CELULAR, solo el ícono y la fecha corta. La palabra
+                      "Vencía" y los dos dígitos del año se comen 50px de una
+                      fila que a 360px ya no alcanza para todo, y no dicen
+                      nada que no digan el ícono de calendario tachado y los
+                      días vencidos en rojo de al lado. */}
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Vencía
-                    </Typography>
+                    {!esMovil && (
+                      <Typography variant="body2" color="text.secondary">
+                        Vencía
+                      </Typography>
+                    )}
                     <Typography variant="body2" fontWeight="bold">
-                      {formatearFecha(plazo.fecha)}
+                      {esMovil
+                        ? formatearFechaCorta(plazo.fecha)
+                        : formatearFecha(plazo.fecha)}
                     </Typography>
                   </Stack>
 
@@ -1442,9 +1451,17 @@ export default function ClienteSeguimientoCard({
                     // TODAS LAS GESTIONES MIDEN LO MISMO (anchoChip.gestion),
                     // como los estados en la ficha del cliente. Son una lista
                     // de facturas, una debajo de otra: con el ancho al gusto
-                    // del rótulo —"COBRO" corto, "DEVOLUCIÓN PARCIAL" largo—
-                    // los bordes quedaban en diagonal.
-                    width: theme.anchoChip.gestion,
+                    // del rótulo —"COBRO" corto, "SIN GESTIONAR" largo— los
+                    // bordes quedaban en diagonal.
+                    //
+                    // En el celular, la medida chica del tema: a 360px la fila
+                    // no puede con la fecha, los cuatro botones y un chip de
+                    // 135.
+                    width: {
+                      xs: theme.anchoChip.movil,
+                      sm: theme.anchoChip.gestion,
+                    },
+                    fontSize: { xs: theme.anchoChip.letraMovil, sm: null },
                     justifyContent: "center",
                   }}
                 />
