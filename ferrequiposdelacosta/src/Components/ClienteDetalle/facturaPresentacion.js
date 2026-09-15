@@ -98,7 +98,10 @@ export const GESTION_INFO = {
   sinGestionar: { label: "Sin gestionar", Icono: RadioButtonUncheckedIcon },
   sinRespuesta: { label: "Sin respuesta", Icono: PhoneMissedIcon },
   prorroga: { label: "Renovación", Icono: EventRepeatIcon },
-  devolucionParcial: { label: "Devolución parcial", Icono: AssignmentReturnIcon },
+  // "Parcial" y no "Devolución parcial": el ícono que lleva al lado ya es el
+  // de devolución, y el rótulo largo obligaba al chip a medir 172px —40 más
+  // que todos los demás— para una etiqueta que se entiende igual.
+  devolucionParcial: { label: "Parcial", Icono: AssignmentReturnIcon },
   devolucionTotal: { label: "Devolución total", Icono: AssignmentReturnIcon },
   cobro: { label: "Cobro", Icono: PaidIcon },
 };

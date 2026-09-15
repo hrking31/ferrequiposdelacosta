@@ -509,7 +509,14 @@ Un equipo devuelto **no figura vencido** aunque haya vuelto tarde: ya volvió, n
 
 Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas en una factura, y diez etiquetas sólidas convierten la lista en un semáforo ilegible.
 
-**Y el ancho de los chips sale del tema, no del texto** (`theme.anchoChip`). Son listas —una factura debajo de otra, un cliente debajo de otro—, así que si cada etiqueta midiera lo suyo los bordes quedarían en diagonal y habría que leer uno por uno para encontrar el que se busca. Son dos medidas porque son dos familias de rótulos: **`estado`** (130px) para los cinco de la factura y del cliente, con "Finalizada" como el más largo, y **`gestion`** (172px) para los de la bitácora, donde "Devolución parcial" pide bastante más. Antes el 130 estaba escrito a mano en la ficha del cliente —pisando el 190 de la variante— y las tarjetas de cartera no tenían ninguno: ahí cada chip medía lo que decía.
+**Y el ancho de los chips sale del tema, no del texto** (`theme.anchoChip`). Son listas —una factura debajo de otra, un cliente debajo de otro—, así que si cada etiqueta midiera lo suyo los bordes quedarían en diagonal y habría que leer uno por uno para encontrar el que se busca. Antes el 130 estaba escrito a mano en la ficha del cliente —pisando el 190 de la variante— y las tarjetas de cartera no tenían ninguno: ahí cada chip medía lo que decía.
+
+Es **una sola medida, 135px**, para las dos familias —el estado de la factura y la gestión—, porque conviven en la misma tarjeta y dos anchos parecidos pero distintos se leen como un error de alineación. Sale del rótulo más largo con su ícono adelante: *"Sin gestionar"* y *"Sin respuesta"*, que piden 133.
+
+> [!NOTE]
+> **Por eso la devolución parcial se llama solo "Parcial".** Escrita entera pedía 172px —40 más que cualquier otra— y arrastraba a todos los chips a ese ancho; en el celular el chip ya no entraba en la primera fila. El ícono que lleva al lado es el de devolución, así que la palabra sobraba.
+>
+> Y **"Devolución total" nunca llega a verse** en el chip: cuando el cliente devuelve todo, la factura pasa a *cobro* —si queda plata de por medio— o se finaliza, y el estado le gana a la gestión. Su renglón sí aparece en la bitácora, que es texto y no chip.
 
 **En cartera no aparecen**, y no por olvido: ahí solo entran los vencidos, así que los cinco estados no tendrían a quién describir. Es la regla de la sección siguiente.
 

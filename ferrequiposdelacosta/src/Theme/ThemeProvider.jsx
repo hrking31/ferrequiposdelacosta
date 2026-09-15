@@ -624,19 +624,21 @@ export const CustomThemeProvider = ({ children }) => {
       // con el ancho al gusto del rótulo los bordes quedan en diagonal y hay
       // que leer cada uno para encontrar el que se busca.
       //
-      // Son dos familias con textos de largo muy distinto, así que son dos
-      // medidas. Cada una está calculada sobre SU rótulo más largo, con el
-      // ícono adelante:
+      // UNO SOLO para las dos familias —el estado de la factura y la gestión—,
+      // porque conviven en la misma tarjeta y dos anchos parecidos pero
+      // distintos se leen como un error de alineación.
       //
-      //   estado   los cinco de la factura y del cliente — "Finalizada"
-      //   gestion  los de la bitácora — "Devolución parcial", bastante más largo
+      // 135 sale del rótulo más largo de todos, con su ícono adelante: "Sin
+      // gestionar" y "Sin respuesta" piden 133. Al de devolución se le dice
+      // "Parcial" justamente para que entre acá: escrito entero pedía 172, y
+      // en el celular ese chip ya no entraba en la primera fila.
       //
       // Vive acá para cambiarlo una vez: antes el 130 estaba escrito a mano en
       // la ficha del cliente, pisando el 190 de la variante, y las tarjetas de
       // cartera no tenían ninguno.
       anchoChip: {
-        estado: 130,
-        gestion: 172,
+        estado: 135,
+        gestion: 135,
       },
       shape: {
         borderRadius: 6, // Esquinas un poco más rectas para estética industrial
