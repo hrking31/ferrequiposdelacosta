@@ -619,6 +619,25 @@ export const CustomThemeProvider = ({ children }) => {
         textAlign: "center",
         border: "1px solid",
       },
+      // EL ANCHO DE LOS CHIPS QUE DICEN UN ESTADO. Fijo y no según el texto:
+      // son listas —una factura debajo de otra, un cliente debajo de otro— y
+      // con el ancho al gusto del rótulo los bordes quedan en diagonal y hay
+      // que leer cada uno para encontrar el que se busca.
+      //
+      // Son dos familias con textos de largo muy distinto, así que son dos
+      // medidas. Cada una está calculada sobre SU rótulo más largo, con el
+      // ícono adelante:
+      //
+      //   estado   los cinco de la factura y del cliente — "Finalizada"
+      //   gestion  los de la bitácora — "Devolución parcial", bastante más largo
+      //
+      // Vive acá para cambiarlo una vez: antes el 130 estaba escrito a mano en
+      // la ficha del cliente, pisando el 190 de la variante, y las tarjetas de
+      // cartera no tenían ninguno.
+      anchoChip: {
+        estado: 130,
+        gestion: 172,
+      },
       shape: {
         borderRadius: 6, // Esquinas un poco más rectas para estética industrial
         // Forma de píldora (bordes completamente redondeados). Antes se escribía
@@ -1799,13 +1818,16 @@ export const CustomThemeProvider = ({ children }) => {
             // estado, que es lo único que cambia entre una y otra.
             {
               props: { variant: "estado" },
-              style: {
+              style: ({ theme }) => ({
                 fontSize: "0.7rem",
                 fontWeight: "bold",
                 textTransform: "uppercase",
-                width: 190,
+                // El mismo ancho en las tres pantallas que lo usan: la lista de
+                // clientes, el encabezado del cliente y cada factura de su
+                // ficha. Antes eran 190 acá y 130 escrito a mano en la ficha.
+                width: theme.anchoChip.estado,
                 justifyContent: "center",
-              },
+              }),
             },
             // La misma etiqueta donde no hay lista que alinear: se ajusta al
             // texto y va con sombra, porque ahí se apoya sobre una tarjeta.

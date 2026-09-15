@@ -509,6 +509,8 @@ Un equipo devuelto **no figura vencido** aunque haya vuelto tarde: ya volvió, n
 
 Van con el contorno del color y un fondo tenue, no macizos: son hasta diez filas en una factura, y diez etiquetas sólidas convierten la lista en un semáforo ilegible.
 
+**Y el ancho de los chips sale del tema, no del texto** (`theme.anchoChip`). Son listas —una factura debajo de otra, un cliente debajo de otro—, así que si cada etiqueta midiera lo suyo los bordes quedarían en diagonal y habría que leer uno por uno para encontrar el que se busca. Son dos medidas porque son dos familias de rótulos: **`estado`** (130px) para los cinco de la factura y del cliente, con "Finalizada" como el más largo, y **`gestion`** (172px) para los de la bitácora, donde "Devolución parcial" pide bastante más. Antes el 130 estaba escrito a mano en la ficha del cliente —pisando el 190 de la variante— y las tarjetas de cartera no tenían ninguno: ahí cada chip medía lo que decía.
+
 **En cartera no aparecen**, y no por olvido: ahí solo entran los vencidos, así que los cinco estados no tendrían a quién describir. Es la regla de la sección siguiente.
 
 ### En cartera solo se ve lo vencido

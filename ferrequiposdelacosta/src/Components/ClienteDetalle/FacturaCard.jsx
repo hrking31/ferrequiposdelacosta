@@ -210,15 +210,9 @@ export default function FacturaCard({
         bgcolor: facturaEstadoColor,
         color: theme.palette.getContrastText(facturaEstadoColor),
         "& .MuiChip-icon": { color: "inherit" },
-        // La variante "estado" trae un ancho fijo de 190px, pensado
-        // para una lista donde los chips se alinean en columna (ver
-        // ThemeProvider). Acá no hay esa columna, y 190px era lo que
-        // mandaba el chip a la línea de abajo aunque el título le
-        // dejara sitio de sobra. Sigue siendo el MISMO ancho para
-        // los cinco estados —no varía según el texto—, solo que más
-        // angosto: con los nombres nuevos, el más largo es
-        // "Finalizada", y 130px lo cubre con el ícono adelante.
-        width: 130,
+        // El ancho lo pone la variante, desde el tema (anchoChip.estado):
+        // es el mismo para los cinco estados y para las otras pantallas que
+        // los muestran. Acá estaba escrito a mano y pisaba al de la variante.
       }}
     />
   );

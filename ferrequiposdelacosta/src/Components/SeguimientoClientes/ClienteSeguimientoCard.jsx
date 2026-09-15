@@ -1370,6 +1370,13 @@ export default function ClienteSeguimientoCard({
                     bgcolor: gestionColor,
                     color: theme.palette.getContrastText(gestionColor),
                     "& .MuiChip-icon": { color: "inherit" },
+                    // TODAS LAS GESTIONES MIDEN LO MISMO (anchoChip.gestion),
+                    // como los estados en la ficha del cliente. Son una lista
+                    // de facturas, una debajo de otra: con el ancho al gusto
+                    // del rótulo —"COBRO" corto, "DEVOLUCIÓN PARCIAL" largo—
+                    // los bordes quedaban en diagonal.
+                    width: theme.anchoChip.gestion,
+                    justifyContent: "center",
                   }}
                 />
 
