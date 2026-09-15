@@ -4,6 +4,7 @@ import {
   Avatar,
   Box,
   Chip,
+  Divider,
   useMediaQuery,
   IconButton,
   Paper,
@@ -65,7 +66,6 @@ import {
   casillasDeCuenta,
   iconBtnSx,
   renderFilaDeCasillas,
-  renderPizarraTotales,
 } from "../ClienteDetalle/recuadrosCuenta";
 import {
   formatearMonedaOVacio,
@@ -627,7 +627,15 @@ export default function ClienteSeguimientoCard({
 
     return (
       <Box key={key} sx={recuadroDeBloque(color)}>
-        <Stack direction="row" alignItems="flex-start" sx={{ gap: 0.5 }}>
+        {/* Cerrada, la flecha se centra en el alto del recuadro: el de entrega
+            indefinida es más alto —su nombre baja de línea— y arriba quedaba
+            descolgada. Abierta vuelve al borde: con las cuatro casillas en
+            columna, el centro cae lejos de donde se la dejó. */}
+        <Stack
+          direction="row"
+          alignItems={abierta ? "flex-start" : "center"}
+          sx={{ gap: 0.5 }}
+        >
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion, abierta), {
               colorDivisor: color,
@@ -743,7 +751,6 @@ export default function ClienteSeguimientoCard({
   const cuenta = calcularCuentaFactura(factura, hoy);
 
   const valorTotal = formatearMoneda(cuenta.total);
-  const fecha = formatearFecha(datos.fechaCreacion);
 
   const saldoPendienteNumero = cuenta.saldoPendiente;
 
@@ -825,60 +832,76 @@ export default function ClienteSeguimientoCard({
   // En el celular la cuenta se abre para ver los cuatro valores; en pantalla
   // grande ya están todos a la vista.
   const cuentaAbierta = Boolean(cuentasAbiertas[factura.id]);
-  const cuadroTotales =
-    valorTotal &&
-    (esMovil ? (
-      <Box sx={{ mb: 1, position: "relative" }}>
-        {renderPizarraTotales(
-          casillasDeCuenta(cuenta, { resumida: !cuentaAbierta }),
-          { width: "100%" },
-          {
-            columna: cuentaAbierta,
-            // El rótulo va DENTRO del panel, como el de cada bloque de la
-            // factura: afuera flotaba sobre el fondo de la tarjeta sin decir
-            // sobre qué recuadro hablaba.
-            encabezado: (
-              <Stack direction="row" alignItems="center" sx={{ gap: 0.5, mb: 0.5 }}>
-                <AccountBalanceWalletIcon
-                  fontSize="small"
-                  sx={{ color: "custom.accent" }}
-                />
-                <Typography
-                  variant="overline"
-                  sx={{ color: "custom.accent", lineHeight: 1.6 }}
-                >
-                  Estado de cuenta
-                </Typography>
 
-                <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      setCuentasAbiertas((previas) => ({
-                        ...previas,
-                        [factura.id]: !previas[factura.id],
-                      }))
-                    }
-                    sx={{ ...iconBtnSx, color: "custom.accent", ml: "auto" }}
-                  >
-                    {cuentaAbierta ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            ),
-          },
-        )}
+  // LA CUENTA, con el mismo vestido que el resto de la tarjeta: su rótulo
+  // afuera y el recuadro transparente con su degradado, igual que la gestión y
+  // que cada grupo de equipos.
+  //
+  // Antes era el panel OSCURO FIJO que usa la ficha del cliente. Ahí encaja
+  // —es el encabezado de la pantalla— pero acá quedaba como un bloque negro
+  // entre recuadros de colores.
+  const cuadroTotales = valorTotal && (
+    <Box sx={{ mb: 1 }}>
+      <Typography
+        variant="overline"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          lineHeight: 1.6,
+          color: acento,
+        }}
+      >
+        <AccountBalanceWalletIcon fontSize="small" />
+        Estado de cuenta
+      </Typography>
+
+      <Box sx={{ ...recuadroDeBloque(acento), mt: 0.5 }}>
+        <Stack
+          direction="row"
+          alignItems={cuentaAbierta ? "flex-start" : "center"}
+          sx={{ gap: 0.5 }}
+        >
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            {renderFilaDeCasillas(
+              casillasDeCuenta(cuenta, {
+                resumida: esMovil && !cuentaAbierta,
+                sobrePanel: false,
+              }),
+              { colorDivisor: acento, columna: esMovil && cuentaAbierta },
+            )}
+          </Box>
+
+          {/* La flecha va DENTRO del recuadro, en su esquina, igual que la de
+              cada equipo: es lo que abre y cierra esta caja, y afuera quedaba
+              flotando al lado del rótulo sin decir sobre qué actuaba.
+
+              Solo en el celular: ahí entran dos valores y los otros dos se
+              abren. En pantalla grande están los cuatro. */}
+          {esMovil && (
+            <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
+              <IconButton
+                size="small"
+                onClick={() =>
+                  setCuentasAbiertas((previas) => ({
+                    ...previas,
+                    [factura.id]: !previas[factura.id],
+                  }))
+                }
+                sx={{ ...iconBtnSx, color: acento, flexShrink: 0 }}
+              >
+                {cuentaAbierta ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
       </Box>
-    ) : (
-      renderPizarraTotales(casillasDeCuenta(cuenta), {
-        width: "100%",
-        mb: 1,
-      })
-    ));
+    </Box>
+  );
 
   // Lo que no toda factura tiene, y que igual hay que poder ver. Aparece solo
   // si hay alguno de los dos: dibujado siempre, una factura sin ninguno
@@ -1136,7 +1159,15 @@ export default function ClienteSeguimientoCard({
                   Sin equipos vencidos no hay plazo que mostrar: esa factura
                   sigue en cartera por la plata, y eso lo dice el renglón de
                   abajo. */}
-              {plazo ? (
+              {/* HASTA CUÁNDO ERA, y cuánto se pasó. La fecha sale del equipo
+                  que trajo la factura acá y los días, del que más lleva (ver
+                  plazoVencidoFactura).
+
+                  Sin equipos vencidos no se muestra NADA: esa factura sigue en
+                  cartera por la plata, y eso ya lo dice su cuenta. Acá iba la
+                  fecha de despacho, que en esta pantalla no decide nada y se
+                  leía como si fuera otro vencimiento. */}
+              {plazo && (
                 // En el celular los días bajan a su propio renglón: al lado de
                 // la fecha empujaban al chip de estado fuera de la línea.
                 <Stack
@@ -1176,12 +1207,6 @@ export default function ClienteSeguimientoCard({
                     </>
                   )}
                 </Stack>
-              ) : (
-                fecha && (
-                  <Typography variant="body2" color="text.secondary">
-                    Fecha despacho: {fecha}
-                  </Typography>
-                )
               )}
 
               {/* CON LA FACTURA CERRADA, el resumen de la cuenta ocupa el
@@ -1194,13 +1219,21 @@ export default function ClienteSeguimientoCard({
                   siete cifras se montan entre sí, así que en ese tramo la
                   pizarra pasa a su propia fila con todo el ancho; de 1200px en
                   adelante sí entra al lado. */}
-              {!anchoCorto &&
-                facturaPlegada(factura.id) &&
-                renderPizarraTotales(casillasDeCuenta(cuenta), {
-                  flexGrow: 1,
-                  flexBasis: { md: "100%", lg: 0 },
-                  order: { md: 1, lg: 0 },
-                })}
+              {!anchoCorto && facturaPlegada(factura.id) && (
+                <Box
+                  sx={{
+                    ...recuadroDeBloque(acento),
+                    flexGrow: 1,
+                    flexBasis: { md: "100%", lg: 0 },
+                    order: { md: 1, lg: 0 },
+                  }}
+                >
+                  {renderFilaDeCasillas(
+                    casillasDeCuenta(cuenta, { sobrePanel: false }),
+                    { colorDivisor: acento },
+                  )}
+                </Box>
+              )}
 
               {/* Las acciones y el estado de la factura.
 
@@ -1354,7 +1387,12 @@ export default function ClienteSeguimientoCard({
                 recorrer la lista. */}
             {anchoCorto && facturaPlegada(factura.id) && (
               <Box sx={{ mb: 1 }}>
-                {renderPizarraTotales(casillasDeCuenta(cuenta, { resumida: true }))}
+                <Box sx={recuadroDeBloque(acento)}>
+                  {renderFilaDeCasillas(
+                    casillasDeCuenta(cuenta, { resumida: true, sobrePanel: false }),
+                    { colorDivisor: acento },
+                  )}
+                </Box>
               </Box>
             )}
 
@@ -1445,8 +1483,20 @@ export default function ClienteSeguimientoCard({
                       alta que una línea, y sin eso el renglón quedaba pegado
                       al borde de arriba. */}
                   <Stack direction="row" alignItems="flex-start" sx={{ gap: 1 }}>
+                  {/* Las mismas líneas divisorias que los otros recuadros,
+                      SOLO EN EL CELULAR: una horizontal entre gestión y
+                      gestión cuando están todas a la vista. En pantalla grande
+                      cada renglón entra entero y la línea sobra. */}
                   <Stack
                     spacing={0.25}
+                    divider={
+                      esMovil ? (
+                        <Divider
+                          flexItem
+                          sx={{ borderColor: colorGestion, opacity: 0.25 }}
+                        />
+                      ) : undefined
+                    }
                     sx={{ flexGrow: 1, minWidth: 0, alignSelf: "center" }}
                   >
                     {(gestionAbierta ? gestiones : gestiones.slice(-1)).map((registro, i) => (
@@ -1456,6 +1506,22 @@ export default function ClienteSeguimientoCard({
                           spacing={1}
                           alignItems="baseline"
                           flexWrap="wrap"
+                          // Y una vertical entre CUÁNDO fue y QUÉ pasó, igual
+                          // que entre las casillas de la cuenta y las de cada
+                          // equipo. También solo en el celular.
+                          divider={
+                            esMovil ? (
+                              <Divider
+                                orientation="vertical"
+                                flexItem
+                                sx={{
+                                  my: 0.25,
+                                  borderColor: colorGestion,
+                                  opacity: 0.25,
+                                }}
+                              />
+                            ) : undefined
+                          }
                         >
                           <Typography
                             variant="caption"

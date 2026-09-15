@@ -200,15 +200,22 @@ export const iconBtnSx = {
 //
 // `resumida` deja solo las dos que importan de un vistazo: en celular las
 // cuatro no entran y los importes de siete cifras se montan entre sí.
-export const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
+export const casillasDeCuenta = (
+  cuenta,
+  { resumida = false, sobrePanel = true } = {},
+) => {
   const aFavor = cuenta.saldoAFavor > 0;
+  // Los tonos `light` están pensados para el panel oscuro fijo. Sobre el fondo
+  // de una tarjeta —que cambia con el modo— pierden contraste, así que ahí
+  // van los del tema.
+  const tono = (claro, normal) => (sobrePanel ? claro : normal);
 
   const casillaTotal = {
     clave: "total",
     Icono: ReceiptLongIcon,
     rotulo: "Total",
     valor: formatearMonedaOVacio(cuenta.total),
-    color: "custom.totalText",
+    color: tono("custom.totalText", "text.primary"),
   };
 
   // Un solo renglón para las dos caras de lo mismo: lo que falta cobrar, o lo
@@ -220,7 +227,7 @@ export const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
     valor: formatearMonedaOVacio(
       aFavor ? cuenta.saldoAFavor : cuenta.saldoPendiente,
     ),
-    color: aFavor ? "success.light" : "error.light",
+    color: aFavor ? tono("success.light", "success.main") : tono("error.light", "error.main"),
   };
 
   if (resumida) return [casillaTotal, casillaSaldo];
@@ -232,14 +239,14 @@ export const casillasDeCuenta = (cuenta, { resumida = false } = {}) => {
       Icono: PaymentsIcon,
       rotulo: "Pagado",
       valor: formatearMonedaOVacio(cuenta.pagado),
-      color: "success.light",
+      color: tono("success.light", "success.main"),
     },
     {
       clave: "abonos",
       Icono: SavingsIcon,
       rotulo: "Abonos",
       valor: formatearMonedaOVacio(cuenta.abonos),
-      color: "info.light",
+      color: tono("info.light", "info.main"),
     },
     casillaSaldo,
   ];
