@@ -155,13 +155,30 @@ const formatearFecha = (isoDate) => {
   return `${dia}/${mes}/${anio}`;
 };
 
+// La misma fecha sin el año, para el celular: en la bitácora las anotaciones
+// son de estos días —lo viejo está en la ficha del cliente— y el año repetido
+// en cada renglón se come el espacio que necesita lo que pasó.
+const formatearFechaCorta = (isoDate) => {
+  if (!isoDate) return null;
+  const [, mes, dia] = isoDate.split("-");
+  return `${dia}/${mes}`;
+};
+
 // Cada anotación de la línea de tiempo, contada en una frase. Los tipos son
 // los que guarda la factura en `gestiones` (ver facturaUtils): la llamada la
 // registra quien llama, las otras tres se anotan solas al hacer la acción.
-const describirGestion = (registro) => {
+const describirGestion = (registro, { compacto = false } = {}) => {
   if (registro.tipo === "llamada") {
+    const atendio = registro.contesto ? "contestó" : "no contestó";
+    // EN EL CELULAR la palabra "Llamada" sobra: el renglón está adentro del
+    // recuadro de gestión y al lado tiene el ícono del teléfono. Lo que hay
+    // que leer antes de volver a marcar es a qué número se llamó y si
+    // atendieron.
+    if (compacto) {
+      return registro.numero ? `${registro.numero} — ${atendio}` : atendio;
+    }
     const aQuien = registro.numero ? ` a ${registro.numero}` : "";
-    return `Llamada${aQuien} — ${registro.contesto ? "contestó" : "no contestó"}`;
+    return `Llamada${aQuien} — ${atendio}`;
   }
 
   if (registro.tipo === "prorroga") {
@@ -1569,24 +1586,22 @@ export default function ClienteSeguimientoCard({
                             ) : undefined
                           }
                         >
-                          {/* EN EL CELULAR no va el día ni la hora: lo que
-                              hace falta antes de llamar es a qué número se
-                              llamó y si contestó, y con la fecha adelante ese
-                              dato quedaba en el renglón de abajo. El cuándo
-                              se lee en la ficha del cliente, que es donde se
-                              revisa la historia. */}
-                          {!esMovil && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
-                            >
-                              {formatearFecha(registro.fecha)}{" "}
-                              {formatearHoraLegible(registro.hora)}
-                            </Typography>
-                          )}
+                          {/* CUÁNDO FUE, en las dos pantallas. En el celular
+                              va corto —sin el año— porque ahí el renglón pelea
+                              por cada letra con lo que pasó, que es el otro
+                              dato que se necesita antes de volver a marcar. */}
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}
+                          >
+                            {esMovil
+                              ? formatearFechaCorta(registro.fecha)
+                              : formatearFecha(registro.fecha)}{" "}
+                            {formatearHoraLegible(registro.hora)}
+                          </Typography>
                           <Typography variant="caption" sx={{ minWidth: 0 }}>
-                            {describirGestion(registro)}
+                            {describirGestion(registro, { compacto: esMovil })}
                           </Typography>
                         </Stack>
                       ))}
