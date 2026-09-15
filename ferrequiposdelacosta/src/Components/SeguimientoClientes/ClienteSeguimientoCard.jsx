@@ -904,7 +904,12 @@ export default function ClienteSeguimientoCard({
         borderColor: "divider",
         bgcolor: "background.paper",
         boxShadow: 1,
-        p: 2,
+        // EN EL CELULAR, la mitad de relleno. Este recuadro y el de la factura
+        // ponían 16px por lado cada uno: entre los dos, 68px de los 344 de
+        // pantalla, y la fila de la factura se quedaba con 234. Con eso el
+        // chip y los botones no entraban al lado de la fecha y bajaban a otro
+        // renglón.
+        p: { xs: 1, sm: 2 },
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 0.5, pb: 1 }}>
@@ -1122,8 +1127,9 @@ export default function ClienteSeguimientoCard({
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 8,
               boxShadow: 4,
-              p: 2,
-              pt: { xs: 2, sm: 2.5 },
+              // El otro relleno de 16px: ver el de la tarjeta, más arriba.
+              p: { xs: 1, sm: 2 },
+              pt: { xs: 1.5, sm: 2.5 },
             }}
           >
             {/* En el celular los dos lados se leen como dos bloques: a la
@@ -1136,7 +1142,10 @@ export default function ClienteSeguimientoCard({
               alignItems={esMovil ? "flex-start" : "center"}
               flexWrap="wrap"
               rowGap={1}
-              gap={1.5}
+              // Menos aire en el celular: los últimos 10px que le faltaban a
+              // la factura con cinco botones —la que además devuelve plata—
+              // para no partirse en dos renglones.
+              gap={esMovil ? 1 : 1.5}
               sx={{ mb: 1 }}
             >
               {/* POR QUÉ ESTÁ ACÁ ESTA FACTURA. Un renglón que existe
@@ -1169,7 +1178,20 @@ export default function ClienteSeguimientoCard({
                     línea. En el computador los tres comparten renglón. */}
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  <Typography variant="body2" color="text.secondary">
+                  {/* Cada estado en SU color, el mismo con que se pinta el
+                      equipo que lo provoca: rojo el vencido, teal la entrega
+                      indefinida. "Sin equipos" queda apagado — no es un
+                      estado del equipo sino su ausencia. */}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: !plazo
+                        ? "text.secondary"
+                        : plazo.indefinida
+                          ? colorIndefinido
+                          : "error.main",
+                    }}
+                  >
                     {!plazo ? "Sin equipos" : plazo.indefinida ? "Indefinida" : "Vencida"}
                   </Typography>
                   {plazo && !esMovil && (
@@ -1179,11 +1201,11 @@ export default function ClienteSeguimientoCard({
                   )}
                 </Stack>
 
-                {/* La fecha corta, en su propio renglón: ahí el espacio pelea
-                    cada letra con el chip de la derecha. */}
+                {/* En su propio renglón, así que entra con el año completo:
+                    igual que en el computador. */}
                 {plazo && esMovil && (
                   <Typography variant="body2" fontWeight="bold">
-                    {formatearFechaCorta(plazo.fecha)}
+                    {formatearFecha(plazo.fecha)}
                   </Typography>
                 )}
 
@@ -1264,7 +1286,11 @@ export default function ClienteSeguimientoCard({
                 // izquierda, contra el borde.
                 sx={{ flexShrink: 0, ml: "auto" }}
               >
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                <Stack
+                  direction="row"
+                  spacing={esMovil ? 0.5 : 0.75}
+                  alignItems="center"
+                >
                 {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
                     el EQUIPO —devolver, o pactarle plazo— y recién después la
                     PLATA. Al revés, que es como estaba, se cobraba primero y
