@@ -764,6 +764,18 @@ export default function ClienteSeguimientoCard({
     hoy,
   );
 
+  // CUÁNTAS UNIDADES hay afuera, no cuántas líneas: el cliente tiene "3
+  // andamios y 1 mezcladora", no "dos equipos".
+  const unidadesEnCartera = gruposEnCartera.reduce(
+    (total, grupo) =>
+      total +
+      grupo.items.reduce(
+        (suma, { equipo }) => suma + (Number(equipo.cantidadEquipos) || 0),
+        0,
+      ),
+    0,
+  );
+
   // Los mismos, en fila, para poder nombrarlos sin abrir la tarjeta.
   const equiposEnCartera = gruposEnCartera.flatMap((grupo) =>
     grupo.items.map(({ equipo }) => ({ equipo, situacion: grupo.clave })),
@@ -1464,7 +1476,38 @@ export default function ClienteSeguimientoCard({
                 recuadro al abrir. Se muestran los tres primeros y el resto se
                 cuenta: la idea es reconocer el equipo de un vistazo, no leer
                 el inventario. */}
-            {facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
+            {/* EN EL CELULAR, con la factura cerrada, los equipos se cuentan
+                en vez de nombrarse: un recuadro del color de su urgencia con
+                el ícono de equipos y cuántas unidades hay afuera.
+
+                Los nombres no entran —"TABLÓN DE MADERA PARA ANDAMIO" ocupa la
+                pantalla entera— y con la tarjeta cerrada lo que se busca es
+                cuánto hay y qué tan urgente es; el detalle está a un toque, al
+                abrir la factura. El color sale del grupo más urgente, que es el
+                primero de la lista. */}
+            {esMovil && facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
+              <Box
+                sx={{
+                  ...recuadroDeBloque(colorDeSituacion(equiposEnCartera[0].situacion)),
+                  // A todo el ancho, como el recuadro de la cuenta que tiene
+                  // justo debajo: los dos son bloques de la misma factura y
+                  // uno angosto al lado de otro ancho se lee como un resto.
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  py: 0.5,
+                  mb: 1,
+                  color: colorDeSituacion(equiposEnCartera[0].situacion),
+                }}
+              >
+                <ConstructionIcon fontSize="small" />
+                <Typography variant="body2" fontWeight="bold">
+                  {unidadesEnCartera} equipo{unidadesEnCartera === 1 ? "" : "s"}
+                </Typography>
+              </Box>
+            )}
+
+            {!esMovil && facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
               <Stack
                 direction="row"
                 alignItems="center"

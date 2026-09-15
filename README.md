@@ -536,6 +536,8 @@ Antes los tres mostraban el mismo dato —hasta cuándo estaba cubierto el equip
 
 Cuando hay varios equipos vencidos manda **el que más días lleva**, con su fecha y sus días: es el que define la urgencia y el primero que se le reclama al cliente. Antes la fecha salía del más antiguo y los días del que más llevaba, que podían ser equipos distintos — la fila mostraba la fecha de uno con los días de otro.
 
+**En el celular, con la factura cerrada, los equipos se cuentan en vez de nombrarse**: un recuadro del color de su urgencia con el ícono de equipos y cuántas unidades hay afuera — *"🔧 3 equipos"*. Los nombres no entran ahí —"TABLÓN DE MADERA PARA ANDAMIO" ocupa la pantalla entera— y con la tarjeta cerrada lo que se busca es cuánto hay y qué tan urgente es; el detalle está a un toque. Va a todo el ancho, como el recuadro de la cuenta que tiene debajo. En el computador siguen los chips con el nombre de cada uno.
+
 Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con los equipos que quedaron vencidos, no con todo lo que tiene adentro.** Así que ahí no aparecen:
 
 - Los equipos que **todavía están en fecha**, aunque la factura figure vencida por otro. Nadie tiene que devolverlos hoy.
