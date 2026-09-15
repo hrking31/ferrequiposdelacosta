@@ -834,7 +834,7 @@ export default function ClienteSeguimientoCard({
           {cuenta.saldoAFavor > 0 && !esMovil && (
             <Button
               size="small"
-              variant="outlined"
+              variant="contained"
               color="warning"
               startIcon={<CurrencyExchangeIcon />}
               onClick={() => setEntregarOpen(true)}
@@ -880,7 +880,7 @@ export default function ClienteSeguimientoCard({
           <Button
             fullWidth
             size="small"
-            variant="outlined"
+            variant="contained"
             color="warning"
             startIcon={<CurrencyExchangeIcon />}
             onClick={() => setEntregarOpen(true)}
@@ -1344,7 +1344,7 @@ export default function ClienteSeguimientoCard({
                 {cuenta.saldoAFavor > 0 && facturaPlegada(factura.id) && (
                   <Button
                     size="small"
-                    variant="outlined"
+                    variant="contained"
                     color="warning"
                     startIcon={<CurrencyExchangeIcon />}
                     onClick={() => setEntregarOpen(true)}
