@@ -1085,13 +1085,46 @@ export const contarLlamadasSinRespuesta = (doc) =>
     (registro) => registro.tipo === "llamada" && !registro.contesto,
   ).length;
 
+// Desde cuándo corre el vencimiento que se está cobrando HOY: el día en que se
+// abrió el tramo vencido más antiguo de los que siguen corriendo.
+//
+// Con varios equipos manda el más viejo: si uno lleva diez días vencido y otro
+// se venció esta madrugada, lo que se hizo por el primero sigue siendo la
+// gestión de este cobro. Null cuando no hay ningún equipo vencido —la factura
+// que está en cartera solo por la plata—: ahí no hay ciclo que reiniciar.
+export const inicioVencimientoVigente = (doc) => {
+  const inicios = equiposDe(doc)
+    .map(({ equipo }) => tramoVencidoAbierto(equipo)?.desde)
+    .filter(Boolean)
+    .sort();
+  return inicios[0] ?? null;
+};
+
 // La gestión vigente: la última acción registrada, salvo que la factura ya
 // esté en cobro —devolvió todo y debe plata—, que manda sobre cualquier otra
 // cosa porque es lo único que queda por resolver.
+//
+// "Última" es dentro del vencimiento que corre, no de toda la vida de la
+// factura: lo anotado antes resolvió un vencimiento ANTERIOR y ya cumplió.
+//
+// El caso que lo pidió, la 8215 de ReYaz: el 14/09 el cliente pidió un día
+// más, el 15 se cumplió y el equipo volvió a vencerse, y el chip seguía
+// diciendo "Renovación" —una renovación terminada— en vez de avisar que a ese
+// cliente hay que volver a llamarlo. Lo mismo valía para un "Sin respuesta"
+// de hace dos semanas, que además mentía: esa llamada terminó contestada, y
+// por eso hubo renovación.
+//
+// Nada se borra ni se marca: la bitácora se guarda entera y se sigue viendo
+// completa en la tarjeta. Esto es solo cómo se LEE para decidir el chip.
 export const calcularGestionFactura = (doc, estado) => {
   if (estado === "cobro") return "cobro";
 
-  const gestiones = gestionesDeSeguimiento(doc);
+  const desde = inicioVencimientoVigente(doc);
+  const gestiones = gestionesDeSeguimiento(doc).filter(
+    // Sin fecha no se puede ubicar en el tiempo, así que no manda sobre el
+    // cobro de hoy. (Todo lo que anota la app lleva su fecha del día.)
+    (registro) => !desde || (registro?.fecha ?? "") >= desde,
+  );
   for (let i = gestiones.length - 1; i >= 0; i -= 1) {
     const registro = gestiones[i];
     if (registro.tipo === "llamada") {

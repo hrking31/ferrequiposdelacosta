@@ -1253,6 +1253,74 @@ describe("las gestiones", () => {
   });
 });
 
+// EL CICLO EMPIEZA DE NUEVO CON CADA VENCIMIENTO. Lo anotado antes resolvió el
+// vencimiento anterior —tanto que hubo renovación— y deja de mandar sobre el
+// cobro de hoy. Sigue guardado y se sigue viendo entero en la bitácora: lo que
+// cambia es cuál de todos manda en el chip.
+describe("las gestiones, cuando el equipo se vuelve a vencer", () => {
+  const conTramoAbierto = (gestiones, desde = "2026-09-07") =>
+    facturaCon([equipo({ vencidos: [{ desde }] })], { gestiones });
+
+  it("la renovación que resolvió el vencimiento anterior ya no manda", () => {
+    const doc = conTramoAbierto([{ tipo: "prorroga", fecha: "2026-09-05" }]);
+    expect(calcularGestionFactura(doc, "vencida")).toBe("sinGestionar");
+  });
+
+  // Y es la que más mentía: esa llamada terminó contestada —por eso hubo
+  // renovación—, así que decir "Sin respuesta" hoy sería al revés de la verdad.
+  it("y tampoco la llamada sin respuesta de aquel ciclo", () => {
+    const doc = conTramoAbierto([
+      { tipo: "llamada", fecha: "2026-09-03", contesto: false },
+      { tipo: "prorroga", fecha: "2026-09-05" },
+    ]);
+    expect(calcularGestionFactura(doc, "vencida")).toBe("sinGestionar");
+  });
+
+  it("lo hecho desde que se volvió a vencer sí manda", () => {
+    const doc = conTramoAbierto([
+      { tipo: "prorroga", fecha: "2026-09-05" },
+      { tipo: "llamada", fecha: "2026-09-08", contesto: false },
+    ]);
+    expect(calcularGestionFactura(doc, "vencida")).toBe("sinRespuesta");
+  });
+
+  it("lo del mismo día en que se abrió el tramo cuenta", () => {
+    const doc = conTramoAbierto([{ tipo: "prorroga", fecha: "2026-09-07" }]);
+    expect(calcularGestionFactura(doc, "vencida")).toBe("prorroga");
+  });
+
+  // Con varios equipos manda el que se venció primero: lo que se hizo por ese
+  // sigue siendo la gestión de este cobro, aunque hoy se haya vencido otro.
+  it("con dos equipos vencidos vale el tramo más viejo", () => {
+    const doc = facturaCon(
+      [
+        equipo({ vencidos: [{ desde: "2026-09-02" }] }),
+        equipo({ nombre: "MEZCLADORA", vencidos: [{ desde: "2026-09-08" }] }),
+      ],
+      { gestiones: [{ tipo: "llamada", fecha: "2026-09-04", contesto: false }] },
+    );
+    expect(calcularGestionFactura(doc, "vencida")).toBe("sinRespuesta");
+  });
+
+  // La que está en cartera solo por la plata no tiene ciclo que reiniciar.
+  it("sin ningún equipo vencido sigue mandando la última anotación", () => {
+    const doc = facturaCon([equipo()], {
+      gestiones: [{ tipo: "prorroga", fecha: "2026-09-05" }],
+    });
+    expect(calcularGestionFactura(doc, "vencida")).toBe("prorroga");
+  });
+
+  // El tramo cerrado es historia: ese vencimiento se resolvió y no reinicia
+  // nada. Solo el que sigue corriendo marca desde cuándo se cuenta.
+  it("un tramo ya cerrado no reinicia el ciclo", () => {
+    const doc = facturaCon(
+      [equipo({ vencidos: [{ desde: "2026-09-06", hasta: "2026-09-07" }] })],
+      { gestiones: [{ tipo: "prorroga", fecha: "2026-09-05" }] },
+    );
+    expect(calcularGestionFactura(doc, "vencida")).toBe("prorroga");
+  });
+});
+
 describe("qué tiene la factura encima", () => {
   it("una recién creada no tiene nada", () => {
     const nueva = facturaCon([equipo()]);
