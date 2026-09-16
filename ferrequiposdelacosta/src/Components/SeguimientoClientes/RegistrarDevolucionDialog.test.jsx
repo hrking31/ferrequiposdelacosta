@@ -343,6 +343,54 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
     });
   });
 });
+
+// LA REGLA: la factura no se cierra hasta que vuelve el ÚLTIMO equipo, aunque
+// esta pantalla muestre solo una parte de ellos. Cartera ofrece lo vencido y la
+// ficha lo que está en plazo: ninguna de las dos ve la factura entera, y la
+// garantía es de la factura entera.
+describe("RegistrarDevolucionDialog — la garantía espera al último equipo", () => {
+  it("devolver el único vencido no liquida el depósito si queda otro afuera", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaConEquipoEnPlazo });
+
+    // Cartera solo ofrece el ANDAMIO, que es el vencido; la MEZCLADORA sigue
+    // afuera con días por delante.
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+
+    expect(screen.queryByText(/Volvió todo completo/)).not.toBeInTheDocument();
+
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toBeUndefined();
+  });
+
+  it("desde la ficha tampoco, con un equipo vencido todavía afuera", async () => {
+    const { usuario } = abrir({
+      factura: facturaVencidaConEquipoEnPlazo,
+      desdeLaFicha: true,
+    });
+
+    // Acá se ofrece la MEZCLADORA, la que está en plazo. El ANDAMIO vencido no
+    // se ve en esta pantalla, pero sigue en la calle.
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "1");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toBeUndefined();
+  });
+
+  it("y la devolución del equipo sí queda escrita igual", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaConEquipoEnPlazo });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const andamio = equiposGuardados().find(
+      (equipo) => equipo.nombre === "ANDAMIO",
+    );
+    expect(andamio.devolucion.fechaDevolucion).toBe(HOY);
+  });
 });
 
 // Al recibir un equipo atrasado hay que saber de qué tamaño es el atraso, y

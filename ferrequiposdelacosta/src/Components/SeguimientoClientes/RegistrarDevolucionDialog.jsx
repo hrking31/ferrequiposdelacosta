@@ -171,8 +171,18 @@ export default function RegistrarDevolucionDialog({
     return Math.max(0, Math.min(pendienteDe(equipo), Number(cambio.cantidad) || 0));
   };
 
-  const quedanEquiposAfuera = equiposPendientes.some(
-    ({ equipo, clave }) => pendienteDe(equipo) - cantidadQueDevuelve(equipo, clave) > 0,
+  // ¿Queda algo afuera en TODA la factura? No alcanza con mirar lo que ESTA
+  // pantalla ofrece —cartera muestra solo lo vencido; la ficha, solo lo que
+  // está en plazo—, porque el depósito es de la factura entera: mientras un
+  // equipo de cualquier despacho siga en la calle no se cierra nada.
+  //
+  // El caso que lo destapó, la 8932 de Hernando Rey: tres despachos y un solo
+  // equipo vencido, el SALTARIN. Devolverlo desde cartera daba la factura por
+  // terminada —y liquidaba las tres garantías, $240.000— con 20 andamios y 2
+  // tablones todavía afuera y en plazo.
+  const quedanEquiposAfuera = todosLosEquipos.some(
+    ({ equipo, grupo, indice }) =>
+      pendienteDe(equipo) - cantidadQueDevuelve(equipo, claveDe(grupo, indice)) > 0,
   );
   const hayDevolucion = equiposPendientes.some(
     ({ equipo, clave }) => cantidadQueDevuelve(equipo, clave) > 0,
