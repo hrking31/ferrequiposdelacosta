@@ -312,6 +312,25 @@ El estado dice en qué punto está la factura. **La gestión dice qué se hizo p
 
 Se guarda **el historial completo**, no solo lo último: así se puede reconstruir cuántas veces se llamó y cuándo (*"sin respuesta ×3"* antes de lograr contacto).
 
+### La gestión vale para el vencimiento que corre
+
+El chip mostraba la última anotación **sin fecha de caducidad**. Una factura renovó un día el 14, el equipo se volvió a vencer el 15, y el chip seguía diciendo *"Renovación"* —una renovación ya terminada— en vez de avisar que a ese cliente había que volver a llamarlo.
+
+Ahora solo cuenta lo anotado **desde que el equipo se volvió a vencer**:
+
+| Día | Qué pasa | Chip |
+|---|---|---|
+| **14** | El cliente pide un día más | 🔄 Renovación |
+| **15** | Es el día en que vence, pero todavía está pagado: cero días de mora | 🔄 Renovación |
+| **16** | Amanece con un día vencido | ⚪ Sin gestionar |
+
+El chip se pone en cero **el día en que aparece algo nuevo que cobrar**, y de ahí el ciclo vuelve a correr solo: llamada, sin respuesta, renovación.
+
+Las llamadas viejas caducan igual, y por el mismo motivo: si el cliente no contestó, después renovó y ahora se volvió a vencer, decir *"Sin respuesta"* hoy sería al revés de la verdad — esa llamada terminó siendo contestada, por eso hubo renovación.
+
+> [!NOTE]
+> **Nada se borra ni se marca.** La bitácora se guarda entera y se sigue viendo completa en la tarjeta, con todas sus fechas. Lo único que cambia es **cuál de todas manda en el chip**: el chip dice en qué anda el cobro hoy; la bitácora, todo lo que pasó desde el principio.
+
 > [!NOTE]
 > En el registro de llamadas, el número, la fecha y la hora **se sellan solos** y no se pueden editar. Si fueran editables, cualquiera podría anotar llamadas que nunca ocurrieron y la bitácora dejaría de servir como evidencia real de gestión.
 
