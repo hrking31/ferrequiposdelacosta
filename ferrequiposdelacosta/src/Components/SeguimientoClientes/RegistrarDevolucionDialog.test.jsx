@@ -311,6 +311,38 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
     const rana = equiposGuardados().find((equipo) => equipo.nombre === "RANA");
     expect(rana.devolucion.valorRetenido).toBe(50000);
   });
+
+  // Con dos garantías o más se dibuja el desglose que dice cuál cubre a quién.
+  // Ninguna prueba llegaba hasta acá —todas devolvían una sola línea— y el
+  // renglón buscaba los equipos y el monto donde vivían antes de que la
+  // factura guardara un nodo por despacho: tumbaba el diálogo entero.
+  it("al volver todo, el desglose dice qué equipos cubre cada garantía", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+
+    const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
+    await usuario.type(cantidades[0], "5");
+    await usuario.type(cantidades[1], "1");
+
+    expect(screen.getByText(/ANDAMIO:.*100\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/RANA:.*50\.000/)).toBeInTheDocument();
+  });
+
+  it("y con el último de vuelta liquida las dos juntas", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+
+    const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
+    await usuario.type(cantidades[0], "5");
+    await usuario.type(cantidades[1], "1");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    expect(loGuardadoEnLaFactura()["factura.depositoResuelto"]).toEqual({
+      retenido: 0,
+      motivo: "",
+      fecha: HOY,
+    });
+  });
+});
 });
 
 // Al recibir un equipo atrasado hay que saber de qué tamaño es el atraso, y

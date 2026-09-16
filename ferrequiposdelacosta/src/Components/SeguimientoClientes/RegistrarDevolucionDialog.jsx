@@ -808,8 +808,18 @@ export default function RegistrarDevolucionDialog({
                       color="text.secondary"
                       sx={{ display: "block" }}
                     >
-                      · {lote.equipos.map(({ equipo }) => equipo.nombre).join(", ")}:{" "}
-                      {formatearMoneda(lote.deposito)}
+                      {/* Los equipos y el depósito se leen del GRUPO, que es
+                          donde viven desde que la factura guarda un nodo por
+                          despacho. Este renglón se escribió el día anterior a
+                          ese cambio y quedó buscándolos envueltos —como los
+                          entrega equiposDe— y al depósito colgando del lote:
+                          con dos garantías o más, que es cuando se dibuja,
+                          tumbaba el diálogo entero. */}
+                      ·{" "}
+                      {(lote.equipos ?? [])
+                        .map((equipo) => equipo?.nombre)
+                        .join(", ")}
+                      : {formatearMoneda(depositoDelGrupo(lote))}
                     </Typography>
                   ))}
 
