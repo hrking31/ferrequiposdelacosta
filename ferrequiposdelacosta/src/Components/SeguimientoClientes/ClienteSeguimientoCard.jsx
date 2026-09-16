@@ -528,7 +528,14 @@ export default function ClienteSeguimientoCard({
           component="span"
           sx={{ display: "inline-flex", alignItems: "flex-start", gap: 0.75 }}
         >
+          {/* Como SPAN, igual que los Box de acá al lado: todo esto viaja
+              como `valor` de una casilla y termina dentro del Typography
+              "valorDato", que el tema dibuja como <p> a propósito. Un Chip
+              es un <div>, y un <div> dentro de un <p> es HTML inválido —el
+              aviso de validateDOMNesting al desplegar la factura—. No cambia
+              nada a la vista: el Chip ya se muestra en línea por su estilo. */}
           <Chip
+            component="span"
             variant="meta"
             label={equipo.cantidadEquipos}
             size="small"
