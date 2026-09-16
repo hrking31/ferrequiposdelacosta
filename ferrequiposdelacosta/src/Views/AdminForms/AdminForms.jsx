@@ -323,7 +323,23 @@ export default function AdminForms() {
   // repartido entre las filas que ese cálculo suponía, salía para cuatro
   // cuando en realidad había dos: tiles de la mitad de alto —con el rótulo
   // cortado— y un hueco enorme debajo.
-  const [caja, setCaja] = useState({ ancho: 0, alto: 0 });
+  // ARRANCA CON UNA ESTIMACIÓN, no en cero. Entre el primer dibujo y el que
+  // ya trae la medida real pasan unos 60ms —de sobra para que el navegador
+  // pinte—, y con ancho 0 ese primer cuadro repartía los tiles en una sola
+  // columna: eso es lo que se veía acomodarse al cargar.
+  //
+  // La cuenta es la de la pantalla: el ancho de la ventana menos los rellenos
+  // que ya se conocen (los del contenedor y los del área de tiles), y el alto
+  // menos lo que ocupan el encabezado y los recuadros de arriba. No tiene que
+  // ser exacta: basta con que el reparto salga bien de entrada, y el
+  // observador la corrige en el mismo cuadro.
+  const [caja, setCaja] = useState(() => {
+    if (typeof window === "undefined") return { ancho: 0, alto: 0 };
+    return {
+      ancho: Math.max(0, window.innerWidth - 80),
+      alto: Math.max(0, window.innerHeight - 300),
+    };
+  });
   const observadorRef = useRef(null);
 
   // LA MEDIDA SE TOMA APENAS EXISTE EL CONTENEDOR, no en un efecto: React
@@ -433,11 +449,12 @@ export default function AdminForms() {
     gap: `${gapPx}px`,
   };
 
-  // Hasta tener la medida —el primer pintado— se usan valores de arranque,
-  // para no mostrar tiles de tamaño raro por un instante.
-  const buttonStyle = caja.ancho
-    ? { width: anchoTile, height: altoTile, minWidth: 0, flexShrink: 0 }
-    : { width: 240, height: 125, minWidth: 0, flexShrink: 0 };
+  const buttonStyle = {
+    width: anchoTile,
+    height: altoTile,
+    minWidth: 0,
+    flexShrink: 0,
+  };
 
   return (
     <Box
