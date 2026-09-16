@@ -745,6 +745,13 @@ En el primer caso, cuando el usuario abre el diálogo de abono **el número ya v
 
 El depósito se salda **una sola vez y por el total** —contando el de la factura y el de cada equipo agregado después— cuando vuelve el último equipo. Nunca por partes en una devolución parcial.
 
+> [!NOTE]
+> **"El último equipo" es el de la factura, no el de la pantalla (2026-09-16).** El diálogo de devolución se preguntaba si ya había vuelto todo mirando **solo los equipos que esa pantalla ofrece**, y ninguna de las dos ve la factura entera: cartera muestra lo vencido, la ficha lo que está en plazo.
+>
+> Con tres despachos y un solo equipo vencido, devolver ese equipo desde cartera daba las tres garantías por terminadas —$240.000— con los otros dos todavía afuera y **en plazo**. La regla que quedó escrita: **si la factura tiene más de un equipo no se cierra hasta que al último se le registre la devolución.** Al que está en pantalla se le devuelve igual, pero la factura no finaliza, no pasa a Cobro y, si debe plata, se queda en cartera.
+>
+> Lo tapaba un error que tumbaba el diálogo: el renglón que dice qué equipos cubre cada garantía —solo se dibuja con dos o más— los buscaba donde vivían antes de que la factura guardara un nodo por despacho. En una factura con **una sola** garantía no había error, y ahí la liquidación de más pasaba sin avisar.
+
 ### 8. Una factura viva: se le pueden sumar equipos
 
 Un alquiler no se congela al facturarlo. Si el cliente pide dos andamios más el martes, **se agregan a la factura que ya existe** en vez de abrir otra.
