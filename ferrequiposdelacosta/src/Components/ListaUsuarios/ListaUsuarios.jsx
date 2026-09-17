@@ -335,23 +335,11 @@ export default function UsersList() {
       </Grid>
 
       {/* ================= MODAL EDICIÓN USUARIOS ================= */}
-      <Dialog
-        open={openModal}
-        onClose={handleCloseModal}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          sx: {
-            backgroundColor: "background.default",
-            backgroundImage: "none",
-            // Este dialogo usa el fondo de la PAGINA y no el estandar de un
-            // dialogo, asi que un campo autocompletado tiene que taparse con
-            // ese mismo: si no, queda un recuadro de otro tono. Ver la
-            // variable --ff-fondo-campo en el tema.
-            "--ff-fondo-campo": (tema) => tema.palette.background.default,
-          },
-        }}
-      >
+      {/* Sin fondo propio: el del tema (ver MuiDialog). Tenía escrito a mano
+          el de la PÁGINA, y con él arrastraba también la variable del fondo
+          de los campos autocompletados. Las dos cosas ya las pone el tema, y
+          así este diálogo se ve igual que el resto de la app. */}
+      <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="xs">
         <DialogTitle variant="h5" gutterBottom>
           Editar Perfil de Usuario
         </DialogTitle>

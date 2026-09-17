@@ -443,18 +443,10 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
       )}
 
       {/* ================= MODAL ================= */}
-      <Dialog
-        open={openModal}
-        onClose={handleCloseModal}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          sx: {
-            backgroundColor: "background.default",
-            backgroundImage: "none",
-          },
-        }}
-      >
+      {/* Sin fondo propio: el del tema (ver MuiDialog). Acá estaba escrito a
+          mano el de la PÁGINA, más oscuro, y este diálogo se veía de otro
+          color que todos los demás de la app. */}
+      <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="xs">
         <DialogTitle variant="h5" gutterBottom align="center">
           Actualizar Foto de Perfil
         </DialogTitle>
