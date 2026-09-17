@@ -179,7 +179,13 @@ export default function EntregarSaldoDialog({
             fecha: form.fecha,
             medio: form.medio,
             monto,
-            nota: depositoDevuelto > 0 ? "Devolución de depósito" : "",
+            // SIN NOTA. La plata que se le entrega en mano no necesita
+            // explicación: el renglón dice "Entregado al cliente" y, dos más
+            // arriba, el "Depósito" que la originó. Decir además "Devolución
+            // de depósito" era un cuarto renglón repitiendo lo mismo.
+            //
+            // La nota existe para el OTRO caso, el cruce contra otra factura:
+            // ahí la plata NO salió, y sin esa línea se leería como devuelta.
           },
         ];
 
