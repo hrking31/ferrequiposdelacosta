@@ -24,6 +24,9 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 // equipo se lea igual en las dos pantallas.
 import EventIcon from "@mui/icons-material/Event";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
+// El mismo que lleva la casilla "Saldo" de la cuenta: cuando la factura se
+// queda en cartera solo por la plata, el renglón que lo dice usa su ícono.
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 // Ojo: es "Return", no "Returned". El que termina en "-ed" es un ícono
 // distinto (de "ya devuelto") y no el que se usa para la ACCIÓN de
@@ -712,6 +715,22 @@ export default function ClienteSeguimientoCard({
   // tiene equipos vencidos: sigue en cartera por la plata.
   const plazo = plazoVencidoFactura(factura, hoy);
 
+  // POR QUÉ ESTÁ ACÁ ESTA FACTURA: su ícono y su color salen del mismo caso,
+  // así que se deciden juntos y no pueden contradecirse.
+  //
+  // El ícono habla de lo que se reclama: un calendario cuando lo que se pasó
+  // es una fecha, y el de la cuenta —el mismo del recuadro "Saldo"— cuando ya
+  // no hay equipos que pedir y lo único que queda es la plata.
+  const IconoMotivo = plazo ? EventBusyIcon : PendingActionsIcon;
+  // Y el color es el del estado, el mismo que lleva el texto de al lado: rojo
+  // lo vencido, teal la entrega indefinida, apagado el saldo —que no es el
+  // estado de ningún equipo—.
+  const colorMotivo = !plazo
+    ? "text.secondary"
+    : plazo.indefinida
+      ? colorIndefinido
+      : "error.main";
+
   // La gestión vigente: lo último que se hizo con esta factura, salvo que ya
   // haya devuelto todo y solo deba plata —ahí manda "Cobro"—.
   const estadoFactura = calcularEstadoFactura(factura, hoy);
@@ -1173,7 +1192,13 @@ export default function ClienteSeguimientoCard({
 
                     Vencida 15/09/2026 · 3 días vencidos    equipo con fecha
                     Indefinida 14/09/2026 · 5 días vencidos  sin fecha de entrega
-                    Sin equipos · Solo saldo                 se queda por la plata
+                    Saldo factura                            se queda por la plata
+
+                  El tercero decía "Sin equipos · Solo saldo": era cierto —en
+                  esta vista no hay equipos que mostrar— pero al lado de un
+                  chip de gestión que dice "Parcial" parecía contradecirlo.
+                  Nombrar lo que SÍ queda por cobrar lo dice sin rodeos, y las
+                  dos palabras de antes decían lo mismo dos veces.
 
                   Antes los tres mostraban el mismo dato —hasta cuándo estaba
                   cubierto el equipo— y la fila contaba tres historias
@@ -1197,22 +1222,14 @@ export default function ClienteSeguimientoCard({
                     fecha y los días— porque al lado del chip no entran en una
                     línea. En el computador los tres comparten renglón. */}
                 <Stack direction="row" spacing={0.5} alignItems="center">
-                  <EventBusyIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  {/* Cada estado en SU color, el mismo con que se pinta el
-                      equipo que lo provoca: rojo el vencido, teal la entrega
-                      indefinida. "Sin equipos" queda apagado — no es un
-                      estado del equipo sino su ausencia. */}
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: !plazo
-                        ? "text.secondary"
-                        : plazo.indefinida
-                          ? colorIndefinido
-                          : "error.main",
-                    }}
-                  >
-                    {!plazo ? "Sin equipos" : plazo.indefinida ? "Indefinida" : "Vencida"}
+                  {/* Cada estado en SU color, ícono incluido: el mismo con que
+                      se pinta el equipo que lo provoca —rojo el vencido, teal
+                      la entrega indefinida—. "Saldo factura" queda apagado:
+                      no es el estado de un equipo, en esta vista no hay
+                      ninguno. */}
+                  <IconoMotivo fontSize="small" sx={{ color: colorMotivo }} />
+                  <Typography variant="body2" sx={{ color: colorMotivo }}>
+                    {!plazo ? "Saldo factura" : plazo.indefinida ? "Indefinida" : "Vencida"}
                   </Typography>
                   {plazo && !esMovil && (
                     <Typography variant="body2" fontWeight="bold">
@@ -1233,27 +1250,21 @@ export default function ClienteSeguimientoCard({
                     en columna no hay nada que separar. Y tampoco cuando no hay
                     segundo dato: la factura que vence HOY no lleva días
                     vencidos, y la rayita quedaba colgando al final. */}
-                {!esMovil && (!plazo || plazo.dias > 0) && (
+                {!esMovil && plazo && plazo.dias > 0 && (
                   <Box
                     sx={{ width: "1px", height: 16, bgcolor: "divider" }}
                     aria-hidden
                   />
                 )}
 
-                {plazo ? (
-                  plazo.dias > 0 && (
-                    <Typography
-                      variant="body2"
-                      fontWeight="bold"
-                      sx={{ color: "error.main" }}
-                    >
-                      {plazo.dias} día{plazo.dias === 1 ? "" : "s"} vencido
-                      {plazo.dias === 1 ? "" : "s"}
-                    </Typography>
-                  )
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Solo saldo
+                {plazo && plazo.dias > 0 && (
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    sx={{ color: "error.main" }}
+                  >
+                    {plazo.dias} día{plazo.dias === 1 ? "" : "s"} vencido
+                    {plazo.dias === 1 ? "" : "s"}
                   </Typography>
                 )}
               </Stack>
@@ -1524,8 +1535,16 @@ export default function ClienteSeguimientoCard({
                 {/* El mismo ícono con que la ficha del cliente encabeza su
                     sección "Equipos": lo que sigue son los equipos, no un
                     despacho. El camión queda para la fecha de salida, adentro
-                    de la ficha de cada uno. */}
-                <ConstructionIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                    de la ficha de cada uno.
+
+                    Va del color del equipo MÁS urgente —el primero de la
+                    lista, que es el mismo criterio del recuadro del celular—:
+                    apagado no decía nada, y encabezando chips de colores
+                    parecía que le faltaba el suyo. */}
+                <ConstructionIcon
+                  fontSize="small"
+                  sx={{ color: colorDeSituacion(equiposEnCartera[0].situacion) }}
+                />
 
                 {equiposEnCartera
                   .slice(0, MAX_EQUIPOS_PLEGADA)

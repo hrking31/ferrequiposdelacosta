@@ -264,6 +264,25 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.queryByText(/Sigue en cartera/)).not.toBeInTheDocument();
   });
 
+  // EL RENGLÓN QUE DICE POR QUÉ ESTÁ ACÁ ESTA FACTURA. La que no tiene equipos
+  // vencidos se queda por la plata, así que nombra lo que sí queda por cobrar.
+  it("la que solo debe plata dice 'Saldo factura'", () => {
+    mostrar([facturaRenovada]);
+
+    expect(screen.getByText("Saldo factura")).toBeInTheDocument();
+    // Antes decía "Sin equipos · Solo saldo": lo mismo dos veces, y el "sin
+    // equipos" chocaba con un chip de gestión que dice "Parcial".
+    expect(screen.queryByText("Solo saldo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sin equipos")).not.toBeInTheDocument();
+  });
+
+  it("y la que tiene un equipo vencido sigue diciendo 'Vencida'", () => {
+    mostrar([facturaVencida]);
+
+    expect(screen.getByText("Vencida")).toBeInTheDocument();
+    expect(screen.queryByText("Saldo factura")).not.toBeInTheDocument();
+  });
+
   it("no muestra lo que el cliente había devuelto en plazo", async () => {
     const { usuario } = mostrar([facturaConDevueltoEnPlazo]);
     await desplegarFactura(usuario);
