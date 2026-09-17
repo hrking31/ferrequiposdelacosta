@@ -1177,9 +1177,50 @@ Van **sin rótulo**: qué es cada una ya lo cuentan los tramos de abajo —*"+2 
 
 ### La pantalla angosta decide qué cede, no qué se rompe
 
-La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre. En celular, donde el nombre y seis botones ya no conviven, los botones pasan abajo y se centran.
+La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre.
 
 El corte es un punto estándar, no el ancho exacto en que el contenido deja de entrar: ese número no existe, depende del largo del nombre de cada cliente.
+
+### Lo que se toca con el dedo va abajo, y se toca entero
+
+En el celular la esquina de arriba a la derecha es el peor lugar de la pantalla: es adonde el pulgar llega estirado. Ahí vivían las seis acciones del cliente —volver, crear factura, abonar, el PDF, la cuenta de cobro y editar—, en botones de 30px. **Ahora ocupan el pie**, repartidos de borde a borde y de 44px, que es lo mínimo que hay que darle a un dedo.
+
+Y el pie no creció: son los mismos **54px** de alto que tenía con MENU y CERRAR SESION, porque los botones más grandes se compensan con menos aire (12px pasaron a 5).
+
+- **MENU se fue de esta pantalla**, solo de esta: al listado de clientes se vuelve con la carpeta, que es el primero de los seis, y de ahí al menú. Las otras trece vistas lo conservan, porque allá es la única salida hacia atrás.
+- **Cerrar sesión se mudó al bloque del usuario**, arriba, en las pantallas angostas. La sesión es suya —ahí están su foto, su nombre y su rol— y de paso deja de estar pegado a los botones de trabajo, donde un dedo corrido sacaba de la app en mitad de una factura. En computador no se movió: sigue arriba a la derecha, junto al del menú.
+
+> **Ese botón no va de rojo.** El rojo de peligro que tiene en computador ahí adentro no se lee: el bloque del usuario está pintado del acento, y medido da **2,17 de contraste** sobre el amarillo de la noche y **2,11** sobre el azul del logo, cuando el mínimo para que una figura se despegue de su fondo es 3. Va con el color que el tema reserva para lo que se escribe **sobre** el acento —el mismo del nombre, al lado—: casi negro de noche, blanco de día, **10,2** de contraste en los dos.
+
+> **Y dos pantallas no cierran sesión de golpe.** Cotización y Cuenta de Cobro tienen trabajo a medio hacer: preguntan por los cambios sin guardar y liberan el documento que tenían tomado. Le pasan esa salida al encabezado, que la respeta en vez de desloguear por su cuenta. Sin eso, salir desde el celular perdía trabajo sin avisar.
+
+### La flecha dejó de ser un botón
+
+Una flecha mide 20px y el dedo tapa 40: había que apuntarle. En el celular **el renglón entero abre y cierra** —el encabezado de una factura, sus rótulos de pago, equipos y abonos, el total, la ficha de cada equipo y el detalle del IVA— y la flecha se queda solo como señal: apunta abajo cuando hay algo escondido y gira al abrirse.
+
+Tocable es **solo el renglón del rótulo**, nunca lo que ya está desplegado: si no, arrastrar el dedo para bajar por la lista lo cerraría. Por eso la historia de un equipo y el desglose del IVA frenan el toque, y se leen sin que se cierren debajo del dedo.
+
+En computador no cambió nada: ahí la flecha sigue siendo el botón, porque con el mouse no se le erra.
+
+**En el encabezado de la factura eso además arregló el chip que bailaba.** El estado viajaba en el mismo renglón del número y la fecha, y cuando no entraba se caía al renglón de abajo — de una factura a otra aparecía en lugares distintos. Medido en 360px: el renglón deja 254px útiles (294 menos los 40 que había que reservarle a la flecha), y el número con la fecha ya se llevaba 164, más 120 del chip. Faltaban 38px. **Bajando la fecha debajo del número** el título se queda en 88, y al irse la flecha se liberan esos 40: el chip queda clavado arriba a la derecha con 78px de sobra, pase lo que pase con el número o con el largo del estado.
+
+### El panel de totales también se toca
+
+Con la factura plegada, el recuadro oscuro mostraba en el celular solo dos casillas —total y saldo—: las cuatro con importes de siete cifras no entran en un renglón. **Ahora se toca y muestra las cuatro**, de a dos por fila:
+
+```
+┌────────────────────────────┐
+│ TOTAL     │ PAGADO     ⌃   │
+│ 1.116.400 │ 830.800        │
+│───────────┼──────────      │
+│ ABONOS    │ SALDO          │
+│ 95.200    │ 190.400        │
+└────────────────────────────┘
+```
+
+La flecha va **al lado y no debajo**: abajo le sumaba un renglón de alto al panel, y la tarjeta plegada está justamente para ocupar poco. Cerrado sigue midiendo los mismos 50px que antes de todo esto. Lo mismo vale para la barra de cuenta del cliente, arriba de la lista.
+
+> La única flecha que no va del acento es la de estos dos paneles: su fondo es casi negro fijo en los dos modos, y en modo claro el acento es el azul del logo, que ahí adentro desaparece. Va con el amarillo del panel — el mismo color con el que ya se escriben sus cifras.
 
 ### Una pantalla no es un archivo
 
