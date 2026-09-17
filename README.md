@@ -695,7 +695,7 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 > ```
 > Total factura       $ 1.214.000   ← con el depósito adentro, como se facturó
 > Pagado              $ 1.000.000   ← le faltaban $214.000
-> Depósito devuelto     $ 500.000   ← al devolver el equipo se le acredita
+> Depósito              $ 500.000   ← al devolver el equipo se le acredita
 > Saldo a favor         $ 286.000   ← lo que sobra después de cubrir lo que debía
 > ```
 >
@@ -713,6 +713,27 @@ Si el cliente entrega **de más**, ese sobrante no se guarda como pago —quedar
 > Ahí había **dos errores de lectura**. El renglón del depósito devuelto estaba escrito pero **nunca se dibujó**: la cuenta no traía ese dato, así que su condición era siempre falsa. Y "Total factura" mostraba el total *después* de restar el depósito devuelto — $714.000 donde el recuadro de arriba, en la misma pantalla, decía $1.214.000. Dos cifras con el mismo nombre y nada que explicara la diferencia. Ahora la cuenta cierra a la vista: `1.214.000 − 1.000.000 − 500.000 = −286.000`.
 >
 > En cartera ese botón va **pegado a la cifra "A favor"**, con el monto escrito: el botón explica el número y el número justifica al botón. Antes era un ícono suelto en la fila de acciones, sin texto y al lado del de abonar —que se apaga justo cuando este aparece—, así que pasaba desapercibido. Con la factura plegada acompaña a la pizarra de la fila; al abrirla baja con ella al estado de cuenta, y nunca se ven los dos.
+
+#### El estado de cuenta, renglón por renglón
+
+Ese recuadro **no muestra siempre lo mismo**: cada renglón aparece solo si tiene algo que decir, así que una factura pagada de una sola vez se ve con tres líneas y una con devoluciones y cruces puede llegar a ocho. Estas son todas las que puede mostrar, en su orden:
+
+| Renglón | Cuándo aparece |
+|---|---|
+| **Total factura** | Siempre que la factura tenga total |
+| **Pagado** | Siempre, **salvo** que el cliente haya pagado el total exacto de una sola vez: ahí repetiría la cifra de arriba |
+| **Abonos** | Si hubo abonos posteriores. Solo el total: el detalle de cada uno vive arriba, con su fecha y su medio |
+| **Depósito** | Si ya volvieron los equipos y la garantía se liquidó. Va entre los renglones que **bajan** la cuenta: es plata que juega a favor del cliente |
+| **Entregado al cliente** | Si salió plata hacia él |
+| *Cruzado a la factura 1234* | Debajo del anterior y en letra chica, **solo** cuando esa plata no salió en mano sino que tapó otra factura suya. Sin esa línea se leería como devuelta |
+| *Se retuvieron $X del depósito: motivo* | Si al recibir un equipo se retuvo algo por daños. El motivo va siempre a la vista: retener plata sin decir por qué no se puede |
+| **Saldo pendiente** *o* **Saldo a favor** | Siempre uno de los dos. Pendiente si el cliente debe; a favor si quedó plata suya sin entregar |
+| Botón **Devolver** | Solo con saldo a favor, y mientras no se le haya entregado |
+
+> [!NOTE]
+> **La entrega en mano no lleva nota (2026-09-16).** Cuando la plata salía por una devolución de depósito, debajo se escribía *"Devolución de depósito"* — un cuarto renglón repitiendo lo que ya decían los dos de arriba. La nota quedó **solo para el cruce**, que es el caso donde aporta: ahí la plata no salió.
+>
+> Esa nota **se guarda en la entrega**, no se calcula al mostrarla, así que las entregas registradas antes del cambio siguen mostrándola hasta que se rehagan.
 
 #### Y si el cliente debe en otra factura, no se le entrega: se cruza
 
