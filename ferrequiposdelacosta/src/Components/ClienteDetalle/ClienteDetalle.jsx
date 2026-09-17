@@ -79,6 +79,10 @@ export default function ClienteDetalle() {
   const [facturaEditando, setFacturaEditando] = useState(null);
   const [facturaEliminando, setFacturaEliminando] = useState(null);
   const [eliminando, setEliminando] = useState(false);
+  // Qué se lleva por delante el borrado de ESA factura: abonos, despachos
+  // agregados, equipos con historia, el depósito ya resuelto. Vacía en la que
+  // se creó por error, que es el otro caso que se puede borrar.
+  const movimientosDeLaFactura = describirMovimientosFactura(facturaEliminando);
   // La factura a la que se le está registrando una devolución. Es el mismo
   // diálogo que usa Seguimiento: acá sirve para el cliente que devuelve todo
   // ANTES de vencerse, que nunca pasa por esa pantalla.
@@ -449,18 +453,26 @@ export default function ClienteDetalle() {
         <DialogTitle sx={{ color: acento }}>Eliminar factura</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ¿Seguro que querés eliminar la factura{" "}
-            {datosFactura(facturaEliminando).numeroFactura ?? "s/n"}? Esta acción no se puede
-            deshacer.
+            ¿Seguro que quieres eliminar la factura{" "}
+            <strong>{datosFactura(facturaEliminando).numeroFactura ?? "s/n"}</strong>?
           </DialogContentText>
+          <DialogContentText>Esta acción no se puede deshacer.</DialogContentText>
 
-          {/* Una factura finalizada se puede borrar, pero no está vacía: se
-              lleva los abonos, los despachos agregados y la historia de cada
-              equipo. Se dice QUÉ se lleva, no solo que no se puede deshacer:
-              con el detalle a la vista, la decisión se toma sabiendo. */}
-          {describirMovimientosFactura(facturaEliminando) && (
+          {/* Solo se borran dos: la creada por error —que no tiene nada
+              encima— y la FINALIZADA. La primera se va sin llevarse nada y no
+              necesita aviso; la segunda arrastra los abonos, los despachos
+              agregados y la historia de cada equipo, y eso hay que decirlo
+              con el detalle a la vista para que la decisión se tome sabiendo.
+
+              Antes se preguntaba por la lista a secas: una lista vacía cuenta
+              como "sí" y el aviso salía también en la factura recién creada,
+              con la frase colgando sin nada detrás. */}
+          {movimientosDeLaFactura.length > 0 && (
             <DialogContentText sx={{ mt: 1.5, color: "error.main" }}>
-              Se van con ella: {describirMovimientosFactura(facturaEliminando)}.
+              ⚠️ Esta factura ya está <strong>finalizada</strong>. Al eliminarla,
+              también se eliminarán{" "}
+              <strong>{movimientosDeLaFactura.join(", ")}</strong> asociados a la
+              factura.
             </DialogContentText>
           )}
         </DialogContent>

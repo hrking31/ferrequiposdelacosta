@@ -1178,8 +1178,10 @@ export const describirMovimientosFactura = (doc) => {
   if (cantidadAbonos > 0) partes.push(plural(cantidadAbonos, "abono"));
   if (cantidadAgregados > 0) partes.push(plural(cantidadAgregados, "despacho agregado"));
   if (equiposConHistoria.length > 0) {
+    // "y sus registros de": lo que se borra no es el equipo a secas, son las
+    // ampliaciones y devoluciones que se le anotaron encima.
     partes.push(
-      `${equiposConHistoria.length} equipo${equiposConHistoria.length === 1 ? "" : "s"} con ampliación o devolución`,
+      `${equiposConHistoria.length} equipo${equiposConHistoria.length === 1 ? "" : "s"} y sus registros de ampliación o devolución`,
     );
   }
   if (depositoResuelto) partes.push("el depósito ya resuelto");

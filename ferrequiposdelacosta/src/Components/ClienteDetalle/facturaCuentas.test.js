@@ -1357,7 +1357,7 @@ describe("qué tiene la factura encima", () => {
     expect(describirMovimientosFactura(conTodo)).toEqual([
       "1 abono",
       "1 despacho agregado",
-      "1 equipo con ampliación o devolución",
+      "1 equipo y sus registros de ampliación o devolución",
       "el depósito ya resuelto",
     ]);
   });
