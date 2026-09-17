@@ -571,15 +571,6 @@ export default function AdminForms() {
               <BotonAvisos variante="boton" />
             </Grid>
             <Grid item xs={12} sm={5} md={4}>
-              <Button
-                onClick={handlerLogout}
-                variant="contained"
-                color="error"
-                fullWidth
-                startIcon={<LogoutIcon />}
-              >
-                CERRAR SESIÓN
-              </Button>
             </Grid>
           </Grid>
         </Box>

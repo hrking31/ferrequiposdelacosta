@@ -10,17 +10,21 @@ import {
   Button,
   CircularProgress,
   Divider,
+  IconButton,
   Paper,
   Stack,
+  Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import LogoutIcon from "@mui/icons-material/Logout";
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { useTheme, alpha } from "@mui/material/styles";
 import { useDispatch } from "react-redux";
+import { useAuth } from "../../Context/useAuth";
 import { setUserData } from "../../Store/Slices/userSlice";
 import { auth, db, storage } from "../Firebase/Firebase";
 import { updateProfile } from "firebase/auth";
@@ -29,9 +33,15 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion }) {
   const theme = useTheme();
   const dispatch = useDispatch();
+  // SOLO EN CELULAR: cerrar sesión se mudó acá desde el pie de cada vista. La
+  // sesión es del usuario, y este es su bloque —su foto, su nombre y su rol—.
+  // En el pie quedaba pegado a los botones de trabajo, donde un dedo corrido
+  // sacaba de la app en mitad de una factura. En computador no hace falta: ahí
+  // sigue arriba a la derecha, con el del menú, donde no se toca por error.
+  const { logout } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -44,6 +54,17 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
+
+  // Casi siempre salir es cerrar sesión y ya. Pero Cotización y Cuenta de
+  // Cobro tienen trabajo a medio hacer: preguntan si hay cambios sin guardar y
+  // liberan el documento que tenían tomado. Esas pasan su propia salida y el
+  // header la respeta, en vez de desloguear por su cuenta y perderles el
+  // trabajo.
+  const cerrarSesion =
+    onCerrarSesion ||
+    (async () => {
+      await logout();
+    });
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => {
@@ -252,6 +273,31 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             />
             </Stack>
           </Box>
+
+          {/* Al extremo, separado de todo por el hueco que deja `ml: auto`.
+              Va con el color que el tema reserva para lo que se escribe SOBRE
+              el acento —el mismo del nombre, acá al lado—: casi negro cuando
+              el fondo es el amarillo de la noche, y blanco cuando es el azul
+              del logo, de día. El rojo de peligro que lleva en computador acá
+              no sirve: medido sobre el amarillo da 2,17 de contraste y sobre
+              el azul 2,11, cuando el mínimo para que una figura se despegue
+              de su fondo es 3. */}
+          <Tooltip title="Cerrar sesión">
+            <IconButton
+              onClick={cerrarSesion}
+              aria-label="Cerrar sesión"
+              sx={{
+                ml: "auto",
+                flexShrink: 0,
+                color: "custom.onAccent",
+                // Por encima del círculo decorativo del fondo, que si no se
+                // le monta encima y se come el toque.
+                zIndex: 1,
+              }}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       ) : (
         /* ── COMPUTADOR: tarjeta clara con una barra de acento al costado ── */
@@ -529,4 +575,7 @@ HeaderUsuario.propTypes = {
   icono: PropTypes.node,
   // Una linea corta que dice para que sirve la pantalla. Solo en computador.
   descripcion: PropTypes.string,
+  // Solo para las vistas que tienen trabajo a medio hacer y necesitan
+  // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
+  onCerrarSesion: PropTypes.func,
 };

@@ -25,20 +25,18 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import ContactPhoneIcon from "@mui/icons-material/ContactPhone";
 import ContactPhoneOutlinedIcon from "@mui/icons-material/ContactPhoneOutlined";
-import EditIcon from "@mui/icons-material/Edit";
-import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PlaceIcon from "@mui/icons-material/Place";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import BotonesCliente from "./BotonesCliente";
 import { calcularCuentaCliente, ESTADO_CLIENTE_INFO } from "./facturaUtils";
 import {
   casillasDeCuenta,
   iconBtnSx,
+  propsRenglonPlegable,
+  renderFlechaPlegable,
   renderPizarraTotales,
+  sxRenglonPlegable,
 } from "./recuadrosCuenta";
 import { formatearNit } from "../../Utils/formato";
 
@@ -93,6 +91,9 @@ export default function ClienteEncabezado({
   // de un vistazo (cuánto es y cuánto falta) no queda debajo de todo. Vale
   // para celular y para computador: la ficha se abre plegada en las dos.
   const [contactoAbierto, setContactoAbierto] = useState(false);
+  // Y en celular, lo mismo con la cuenta: arranca con las dos cifras que se
+  // buscan de un vistazo y las otras dos se piden tocando.
+  const [cuentaAbierta, setCuentaAbierta] = useState(false);
 
   const nombreCompleto = obtenerNombreCompleto(cliente);
   const estadoInfo =
@@ -144,114 +145,28 @@ export default function ClienteEncabezado({
     </Tooltip>
   );
 
-  // Las acciones del encabezado, en este orden: volver al listado, crear
-  // factura y editar el cliente, y por último ver el contacto. La carpeta
-  // reemplaza al botón "Volver a Clientes" que ocupaba un renglón entero
-  // arriba de la tarjeta; "Crear Factura" reemplaza al botón con letra que
-  // vivía junto al título "Facturas N" (ese título se fue entero: el conteo
-  // ahora es la insignia sobre el avatar del cliente).
-  //
-  // Hasta 915px se les suma la carpeta de volver al listado y la fila flota
-  // en la esquina de arriba. En computador va dentro de la fila del nombre,
-  // después de la pizarra de valores —así queda centrada con ella—, y cierra
-  // con el botón de ver el contacto; en celular ese botón va anclado aparte.
+  // Las acciones del cliente. SOLO EN COMPUTADOR van acá dentro: hasta 915px
+  // la pantalla tiene pie, y ahí abajo es donde llega el pulgar, así que
+  // bajan (las dibuja ClienteDetalle). La carpeta de volver no se repite: en
+  // computador ya está arriba a la derecha, en el encabezado de la vista.
   const botonesEncabezado = (
-    // Más separación en pantalla angosta: ahí se tocan con el dedo, y dos
-    // íconos pegados a 8px de distancia se aprietan mal.
-    <Stack direction="row" spacing={isFullScreen ? 1.5 : 1} sx={{ flexShrink: 0 }}>
-      {isFullScreen && (
-        <Tooltip title="Volver a Clientes">
-          <IconButton
-            size="small"
-            onClick={onVolver}
-            sx={botonEncabezadoSx}
-          >
-            <FolderSharedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-
-      <Tooltip title="Crear factura">
-        <IconButton
-          size="small"
-          onClick={onCrearFactura}
-          sx={botonEncabezadoSx}
-        >
-          <ReceiptLongIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      {/* EL ABONO, en los dos lados y a propósito.
-          En cartera porque el momento en que entra la plata suele ser la
-          llamada de cobro. Y acá porque hay un cliente que ese botón no
-          alcanza: el que paga por su cuenta ANTES de que se le venza. Esa
-          factura no está en cartera —no hay nada que cobrar todavía— y su
-          plata no tenía por dónde entrar.
-          El abono es del CLIENTE, no de una factura: por eso está acá arriba
-          y no en cada tarjeta. Baja su deuda y la app lo reparte entre las
-          facturas con saldo, de la más antigua a la más nueva. */}
-      <Tooltip
-        title={
-          hayFacturasParaReporte
-            ? "Registrar abono"
-            : "Este cliente no tiene facturas con saldo"
-        }
-      >
-        <span>
-          <IconButton
-            size="small"
-            onClick={onRegistrarAbono}
-            disabled={!hayFacturasParaReporte}
-            sx={botonEncabezadoSx}
-          >
-            <AttachMoneyIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
-
-      {/* El span es necesario para que el tooltip funcione con el botón
-          deshabilitado: un botón así no emite eventos de mouse. */}
-      <Tooltip title="Descargar facturas en PDF">
-        <span>
-          <IconButton
-            size="small"
-            onClick={onDescargarReporte}
-            disabled={!hayFacturasParaReporte}
-            sx={botonEncabezadoSx}
-          >
-            <PictureAsPdfIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
-
-      {/* Misma lista de facturas que el reporte, pero en vez de un PDF arma la
-          cuenta de cobro y lleva a su pantalla. */}
-      <Tooltip title="Pasar facturas a cuenta de cobro">
-        <span>
-          <IconButton
-            size="small"
-            onClick={onPasarACuentaCobro}
-            disabled={!hayFacturasParaReporte}
-            sx={botonEncabezadoSx}
-          >
-            <RequestQuoteIcon fontSize="small" />
-          </IconButton>
-        </span>
-      </Tooltip>
-
-      <Tooltip title="Editar cliente">
-        <IconButton
-          size="small"
-          onClick={onEditarCliente}
-          sx={botonEncabezadoSx}
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      {/* En celular no: allá va anclado a la esquina de la tarjeta, porque
-          esta fila se centra y el centrado lo correría de lugar. */}
-      {!esMovil && botonPlegarContacto}
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      sx={{ flexShrink: 0 }}
+    >
+      <BotonesCliente
+        hayFacturasParaReporte={hayFacturasParaReporte}
+        onVolver={onVolver}
+        onCrearFactura={onCrearFactura}
+        onRegistrarAbono={onRegistrarAbono}
+        onDescargarReporte={onDescargarReporte}
+        onPasarACuentaCobro={onPasarACuentaCobro}
+        onEditarCliente={onEditarCliente}
+        conVolver={false}
+      />
+      {botonPlegarContacto}
     </Stack>
   );
 
@@ -333,17 +248,45 @@ export default function ClienteEncabezado({
   //
   // Sin facturas no hay cuenta que mostrar: una pizarra en cero sugeriría que
   // el cliente debe algo.
-  const bloquePizarra =
-    facturas.length > 0 &&
-    renderPizarraTotales(
-      // En celular solo el total y el saldo: las cuatro casillas, con importes
-      // de siete cifras, no entran sin montarse entre sí. De 600px para arriba
-      // el recuadro tiene una fila entera para él, así que las cuatro caben.
-      casillasDeCuenta(cuentaCliente, { resumida: esMovil }),
-      // Sin el ancho forzado, en pantalla angosta la pizarra vuelve a su ancho
-      // de contenido y se sale de la tarjeta por la derecha.
-      { flexGrow: 1, width: { xs: "100%", sm: "auto" } },
-    );
+  const bloquePizarra = facturas.length > 0 && (
+    // En celular la pizarra se toca: cerrada dice el total y el saldo —las
+    // cuatro casillas, con importes de siete cifras, no entran en un renglón
+    // sin montarse—, y abierta muestra las cuatro de a dos por fila. De 600px
+    // para arriba tiene una fila entera para ella y las cuatro caben.
+    <Box
+      {...(esMovil
+        ? propsRenglonPlegable({
+            abierto: cuentaAbierta,
+            alternar: () => setCuentaAbierta((previo) => !previo),
+            etiqueta: cuentaAbierta
+              ? "Ocultar el resto de la cuenta"
+              : "Ver la cuenta completa",
+          })
+        : {})}
+      sx={{
+        ...(esMovil ? sxRenglonPlegable : {}),
+        // Sin el ancho forzado, en pantalla angosta la pizarra vuelve a su
+        // ancho de contenido y se sale de la tarjeta por la derecha.
+        flexGrow: 1,
+        width: { xs: "100%", sm: "auto" },
+      }}
+    >
+      {renderPizarraTotales(
+        casillasDeCuenta(cuentaCliente, {
+          resumida: esMovil && !cuentaAbierta,
+        }),
+        undefined,
+        {
+          cuadricula: esMovil && cuentaAbierta,
+          // El amarillo del panel y no el acento: sobre este fondo casi negro
+          // el azul del logo —el acento en modo claro— desaparecería.
+          flechaAlLado:
+            esMovil &&
+            renderFlechaPlegable(cuentaAbierta, "custom.totalText"),
+        },
+      )}
+    </Box>
+  );
 
   return (
     <Box
@@ -379,7 +322,7 @@ export default function ClienteEncabezado({
           ahí se leería como si hiciera algo con el cliente, y lo que hace es
           plegar lo que estás mirando. En computador la fila no se centra ni
           baja, así que el botón viaja con ella (ver botonesEncabezado). */}
-      {esMovil && (
+      {isFullScreen && (
         <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
           {botonPlegarContacto}
         </Box>
@@ -405,21 +348,10 @@ export default function ClienteEncabezado({
         </Stack>
       ) : (
         <Stack sx={{ rowGap: 2 }}>
-          {esMovil ? (
-            <>
-              {bloqueNombre}
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  // Las acciones son otra cosa que los datos de arriba, no la
-                  // continuación del nombre.
-                  pt: 0.5,
-                }}
-              >
-                {botonesEncabezado}
-              </Box>
-            </>
+          {isFullScreen ? (
+            // Hasta 915px la tarjeta se queda solo con el nombre: las acciones
+            // están abajo, en el pie, al alcance del pulgar.
+            bloqueNombre
           ) : (
             <Stack
               direction="row"

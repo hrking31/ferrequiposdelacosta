@@ -11,6 +11,7 @@ import {
   DialogActions,
   Stack,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
@@ -35,6 +36,7 @@ import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
 import AbonoDialog from "./AbonoDialog";
 import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
+import BotonesCliente from "./BotonesCliente";
 import ClienteEncabezado from "./ClienteEncabezado";
 import FacturaCard from "./FacturaCard";
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
@@ -56,6 +58,9 @@ export default function ClienteDetalle() {
   // medio hacer en la sesión.
   const itemsCuentaCobro = useSelector((state) => state.cuentacobro.value.items);
   const theme = useTheme();
+  // El mismo corte que usan todas las vistas para pasar a la forma de celular:
+  // hasta ahí hay pie, y ahí abajo van las acciones del cliente.
+  const isFullScreen = useMediaQuery("(max-width:915px)");
   const acento = theme.palette.custom.accent;
   const [cliente, setCliente] = useState(null);
   // `facturas` son SIEMPRE las abiertas. Las cerradas viven aparte y solo
@@ -290,6 +295,8 @@ export default function ClienteDetalle() {
         minHeight: 0,
       }}
     >
+      {/* Los botones del cliente viven arriba o abajo según el ancho: hasta
+          915px la pantalla tiene pie y bajan ahí. */}
       <ClienteEncabezado
         cliente={cliente}
         facturas={facturas}
@@ -358,6 +365,36 @@ export default function ClienteDetalle() {
         </Box>
       )}
       </Box>
+
+      {/* EL PIE, hasta 915px: las acciones del cliente ocupan el renglón que
+          antes tenían MENU y CERRAR SESION. Ahí abajo es donde llega el
+          pulgar, y arriba, en la esquina de la tarjeta, era el peor lugar
+          para tocar de todos. Se dibujan acá y no en la vista porque acá
+          viven los diálogos que abren. */}
+      {isFullScreen && (
+        // El mismo aire arriba y abajo: la fila queda centrada en su franja.
+        // Son 5px y no 12 porque los botones de acá abajo son los grandes, de
+        // 44: entre los dos suman los mismos 54px de franja que antes.
+        <Box
+          sx={{
+            py: 0.625,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <BotonesCliente
+            hayFacturasParaReporte={facturasParaReporte.length > 0}
+            onVolver={() => navigate("/vistaclientes")}
+            onCrearFactura={() => setCrearFacturaOpen(true)}
+            onDescargarReporte={() => setReporteOpen(true)}
+            onRegistrarAbono={() => setAbonoOpen(true)}
+            onPasarACuentaCobro={() => setCuentaCobroOpen(true)}
+            onEditarCliente={() => setEditarOpen(true)}
+            repartidos
+          />
+        </Box>
+      )}
 
       {/* Editar o eliminar al cliente cambia lo que muestra la lista, así que
           se tira su copia guardada. El servidor también lo sella, pero tarda

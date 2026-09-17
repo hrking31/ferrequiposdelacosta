@@ -234,6 +234,9 @@ export default function VistaCotizacion() {
             descripcion={"Arma la cotización y envíala al cliente"}
             icono={<BuildIcon />}
             cotId={values.cotizacionId}
+            // Salir de acá no es solo cerrar sesión: si hay cambios sin
+            // guardar, primero pregunta qué hacer con la cotización.
+            onCerrarSesion={handleLogoutClick}
           />
         </Box>
 
@@ -312,16 +315,6 @@ export default function VistaCotizacion() {
               onClick={handleGuardarYSalirClick}
             >
               Guardar y Salir
-            </Button>
-
-            <Button
-              onClick={handleLogoutClick}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-            >
-              CERRAR SESION
             </Button>
           </Stack>
         </Box>

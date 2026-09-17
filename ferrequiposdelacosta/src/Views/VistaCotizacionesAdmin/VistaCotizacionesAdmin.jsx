@@ -114,16 +114,6 @@ export default function VistaCotizacion() {
             >
               MENU
             </Button>
-
-            <Button
-              onClick={handlerLogout}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-            >
-              CERRAR SESION
-            </Button>
           </Stack>
         </Box>
       )}

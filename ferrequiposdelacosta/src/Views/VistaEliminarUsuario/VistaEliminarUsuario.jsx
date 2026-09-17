@@ -114,16 +114,6 @@ export default function VistaEliminarUsuario() {
             >
               MENU
             </Button>
-
-            <Button
-              onClick={handlerLogout}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-            >
-              CERRAR SESIÓN
-            </Button>
           </Stack>
         </Box>
       )}

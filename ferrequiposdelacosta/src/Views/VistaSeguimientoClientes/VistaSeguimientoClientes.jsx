@@ -96,16 +96,6 @@ export default function VistaSeguimientoClientes() {
             >
               MENU
             </Button>
-
-            <Button
-              onClick={handlerLogout}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-            >
-              CERRAR SESION
-            </Button>
           </Stack>
         </Box>
       )}

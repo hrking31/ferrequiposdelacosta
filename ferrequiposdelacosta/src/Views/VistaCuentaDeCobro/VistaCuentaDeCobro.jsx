@@ -251,6 +251,9 @@ export default function VistaCuentaDeCobro() {
             descripcion={"Genera la cuenta de cobro de un servicio"}
             icono={<ReceiptIcon />}
             cotId={cuenta.cuentaCobroId}
+            // Igual que en la cotización: antes de salir pregunta por los
+            // cambios sin guardar y libera la cuenta que tenía tomada.
+            onCerrarSesion={handleLogoutClick}
           />
         </Box>
 
@@ -346,17 +349,6 @@ export default function VistaCuentaDeCobro() {
               disabled={loading}
             >
               Guardar y Salir
-            </Button>
-
-            <Button
-              onClick={handleLogoutClick}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-              disabled={loading}
-            >
-              CERRAR SESION
             </Button>
           </Stack>
         </Box>

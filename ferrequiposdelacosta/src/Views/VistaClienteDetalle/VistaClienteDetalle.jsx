@@ -1,4 +1,4 @@
-import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
+import { Box, Stack, IconButton, Tooltip, useMediaQuery } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
@@ -88,35 +88,11 @@ export default function VistaClienteDetalle() {
         <ClienteDetalle />
       </Box>
 
-      {isFullScreen && (
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="stretch"
-          >
-            <Button
-              variant="contained"
-              fullWidth
-              size="small"
-              onClick={() => navigate("/adminforms")}
-            >
-              MENU
-            </Button>
-
-            <Button
-              onClick={handlerLogout}
-              variant="contained"
-              color="error"
-              fullWidth
-              size="small"
-            >
-              CERRAR SESION
-            </Button>
-          </Stack>
-        </Box>
-      )}
+      {/* Esta vista no tiene pie propio: en celular ese renglón lo ocupan las
+          acciones del cliente, que dibuja ClienteDetalle. El botón de MENU se
+          sacó a pedido del dueño —al listado de clientes se vuelve con la
+          carpeta, y de ahí al menú—, y el de cerrar sesión se mudó al bloque
+          del usuario, arriba. */}
     </Box>
   );
 }
