@@ -8,6 +8,8 @@
 // renderPizarraTotales(...) desde el JSX del que las usa.
 import { alpha } from "@mui/material/styles";
 import { Box, Divider, Paper, Stack, Typography } from "@mui/material";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
@@ -192,6 +194,64 @@ export const iconBtnSx = {
   p: 0.5,
 };
 
+// ── Plegar tocando el renglón (solo celular) ───────────────────────────
+//
+// La flecha mide 20px y el dedo tapa 40: en el celular había que apuntarle.
+// Así que el renglón ENTERO abre y cierra, y la flecha se queda únicamente
+// como señal —apunta abajo cuando hay algo escondido y gira al abrirse—.
+//
+// Tocable es solo el renglón del rótulo, nunca lo que está desplegado debajo:
+// si no, arrastrar el dedo para bajar por la lista lo cerraría sin querer.
+//
+// No es un ButtonBase a propósito: estos renglones pueden llevar otros botones
+// adentro, y un <button> dentro de otro es HTML inválido.
+export const propsRenglonPlegable = ({ abierto, alternar, etiqueta }) => ({
+  role: "button",
+  tabIndex: 0,
+  "aria-expanded": abierto,
+  "aria-label": etiqueta,
+  onClick: alternar,
+  onKeyDown: (evento) => {
+    if (evento.key === "Enter" || evento.key === " ") {
+      // Sin esto, la barra espaciadora además scrollea la página.
+      evento.preventDefault();
+      alternar();
+    }
+  },
+});
+
+// El estilo que acompaña al renglón tocable. Va aparte de las props porque
+// cada renglón trae su propio sx y hay que mezclarlos, no pisarlos.
+export const sxRenglonPlegable = {
+  cursor: "pointer",
+  // Sin esto, el segundo toque seguido selecciona el texto del rótulo en vez
+  // de volver a plegar.
+  userSelect: "none",
+  // Quita el destello gris que Chrome de Android pinta sobre lo que se toca.
+  WebkitTapHighlightColor: "transparent",
+};
+
+// Para lo que queda DENTRO del renglón tocable pero ya desplegado: el toque
+// muere ahí y no vuelve a plegar. Sin esto, tocar la historia de un equipo
+// para leerla la cerraría.
+export const detenerToque = (evento) => evento.stopPropagation();
+
+// La flecha como señal: ya no es un botón, así que no la lee el lector de
+// pantalla —el renglón que la contiene ya dice que se abre y se cierra—.
+export const renderFlechaPlegable = (abierto, color) => (
+  <Box
+    component="span"
+    aria-hidden="true"
+    sx={{ display: "inline-flex", color, flexShrink: 0 }}
+  >
+    {abierto ? (
+      <ExpandLessIcon fontSize="small" />
+    ) : (
+      <ExpandMoreIcon fontSize="small" />
+    )}
+  </Box>
+);
+
 // ── La pizarra del estado de cuenta ────────────────────────────────────
 //
 // Las casillas de una cuenta, en el orden en que se leen: cuánto es, cuánto
@@ -335,6 +395,55 @@ export const renderFilaDeCasillas = (
 // La pizarra de la cuenta: la misma fila, sobre el fondo oscuro fijo del tema
 // (se lee igual de día que de noche). El `sx` que se le pase se suma al de
 // acá, para acomodarla en el hueco de cada pantalla.
+// LAS MISMAS CASILLAS EN DOS COLUMNAS. En el celular las cuatro de una cuenta
+// no entran en un renglón —cada importe es de siete cifras y se montan entre
+// sí—, así que van de a dos: Total y Pagado arriba, Abonos y Saldo abajo.
+//
+// Se arma con la misma fila de siempre, apilada: así las dos filas reparten el
+// ancho igual y los importes de abajo caen justo bajo los de arriba.
+export const renderCasillasEnCuadricula = (casillas, { colorDivisor } = {}) => {
+  const filas = casillas.reduce((acumulado, casilla, indice) => {
+    if (indice % 2 === 0) acumulado.push([casilla]);
+    else acumulado[acumulado.length - 1].push(casilla);
+    return acumulado;
+  }, []);
+
+  return (
+    <Stack
+      direction="column"
+      sx={{ minWidth: 0 }}
+      divider={
+        <Divider
+          orientation="horizontal"
+          flexItem
+          sx={{ mx: 0.5, borderColor: colorDivisor, opacity: 0.25 }}
+        />
+      }
+    >
+      {filas.map((fila) => (
+        <Box
+          key={fila.map((casilla) => casilla.clave).join("-")}
+          sx={{ py: 0.5 }}
+        >
+          {renderFilaDeCasillas(fila, { colorDivisor })}
+        </Box>
+      ))}
+    </Stack>
+  );
+};
+
+// Las casillas del panel: en un renglón, o repartidas en dos columnas cuando
+// son cuatro y la pantalla es angosta.
+const renderCasillasDelPanel = (casillas, opciones) =>
+  opciones.cuadricula
+    ? renderCasillasEnCuadricula(casillas, {
+        colorDivisor: "custom.panelText",
+      })
+    : renderFilaDeCasillas(casillas, {
+        colorDivisor: "custom.panelText",
+        ...opciones,
+      });
+
 export const renderPizarraTotales = (casillas, sx, opciones = {}) => (
   <Paper
     variant="totales"
@@ -351,9 +460,25 @@ export const renderPizarraTotales = (casillas, sx, opciones = {}) => (
   >
     {/* Un rótulo adentro del panel, cuando la pantalla lo necesita. */}
     {opciones.encabezado}
-    {renderFilaDeCasillas(casillas, {
-      colorDivisor: "custom.panelText",
-      ...opciones,
-    })}
+    {/* La señal de que el panel se toca va A UN LADO, no debajo: puesta
+        abajo le sumaba un renglón de alto al panel, y la tarjeta plegada
+        está justamente para ocupar poco. */}
+    {opciones.flechaAlLado ? (
+      <Stack
+        direction="row"
+        // Con una sola fila la flecha va a media altura; con las dos filas
+        // abiertas, arriba: a media altura del bloque caería en el medio de
+        // la línea que separa las filas.
+        alignItems={opciones.cuadricula ? "flex-start" : "center"}
+        sx={{ minWidth: 0, gap: 0.5 }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {renderCasillasDelPanel(casillas, opciones)}
+        </Box>
+        {opciones.flechaAlLado}
+      </Stack>
+    ) : (
+      renderCasillasDelPanel(casillas, opciones)
+    )}
   </Paper>
 );

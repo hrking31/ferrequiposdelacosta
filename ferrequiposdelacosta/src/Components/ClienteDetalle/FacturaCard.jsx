@@ -54,7 +54,14 @@ import EquipoRow from "./EquipoRow";
 import RecuadroPago, { ListaAbonos } from "./RecuadroPago";
 import CargosAdicionales from "./CargosAdicionales";
 import EstadoCuentaFactura from "./EstadoCuentaFactura";
-import { casillasDeCuenta, iconBtnSx, renderPizarraTotales } from "./recuadrosCuenta";
+import {
+  casillasDeCuenta,
+  iconBtnSx,
+  propsRenglonPlegable,
+  renderFlechaPlegable,
+  renderPizarraTotales,
+  sxRenglonPlegable,
+} from "./recuadrosCuenta";
 // Con alias: la fecha DD/MM/AAAA.
 import { formatearFechaLegible as formatearFecha } from "../../Utils/formato";
 
@@ -160,20 +167,23 @@ export default function FacturaCard({
   // Solo importa en móvil (en PC siempre se muestra todo).
   const mostrar = (seccion) =>
     !esMovil || seccionAbierta(factura.id, seccion);
+  // En celular el rótulo entero abre y cierra su bloque; la flecha queda de
+  // señal. En computador no hay nada que plegar: se ve todo.
   const renderToggle = (seccion) =>
-    esMovil && (
-      <IconButton
-        size="small"
-        onClick={() => toggleSeccion(factura.id, seccion)}
-        sx={{ ...iconBtnSx, color: acento }}
-      >
-        {seccionAbierta(factura.id, seccion) ? (
-          <ExpandLessIcon fontSize="small" />
-        ) : (
-          <ExpandMoreIcon fontSize="small" />
-        )}
-      </IconButton>
-    );
+    esMovil && renderFlechaPlegable(seccionAbierta(factura.id, seccion), acento);
+  const propsSeccion = (seccion, etiqueta) =>
+    esMovil
+      ? propsRenglonPlegable({
+          abierto: seccionAbierta(factura.id, seccion),
+          alternar: () => toggleSeccion(factura.id, seccion),
+          etiqueta,
+        })
+      : {};
+  const sxSeccion = esMovil ? sxRenglonPlegable : {};
+  // El panel de totales de la factura plegada usa el mismo recuerdo que los
+  // bloques de adentro, con su propia clave.
+  const pizarraAbierta = seccionAbierta(factura.id, "pizarra");
+  const alternarPizarra = () => toggleSeccion(factura.id, "pizarra");
   // Los equipos del alta y los que se agregaron después con el botón
   // "Agregar equipo". Ya no hay que separarlos con una marca en cada equipo:
   // son grupos distintos, y cada uno muestra su propio pago.
@@ -314,46 +324,19 @@ export default function FacturaCard({
         // Sin esto, la pizarra de totales estira la tarjeta más allá
         // del ancho de la pantalla y aparece scroll horizontal.
         minWidth: 0,
-        // Referencia para la flecha flotante de celular, más abajo.
-        position: "relative",
       }}
     >
-      {/* En celular, con el título largo ("Factura N / Creada el..."),
-          el grupo chip+flecha no entra en la misma línea y se envolvía
-          entero a la línea de abajo pegado a la izquierda —la flecha
-          terminaba lejos de la esquina, donde nadie la busca. Sacarla
-          del grupo que se envuelve y clavarla en la esquina de la
-          tarjeta la deja siempre en el mismo lugar. En pantallas más
-          anchas no hace falta: ahí el título sí entra junto al chip. */}
-      {esMovil && (
-        <Box sx={{ position: "absolute", top: 8, right: 8 }}>
-          <Tooltip
-            title={
-              facturaColapsada(factura.id)
-                ? "Mostrar factura"
-                : "Ocultar factura"
-            }
-          >
-            <IconButton
-              size="small"
-              onClick={() => toggleFacturaColapsada(factura.id)}
-              sx={{ ...iconBtnSx, color: acento }}
-            >
-              {facturaColapsada(factura.id) ? (
-                <ExpandMoreIcon fontSize="small" />
-              ) : (
-                <ExpandLessIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
-
       <Stack
         direction="row"
         justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
+        // En celular el chip se alinea con el número, arriba, porque
+        // debajo del número va la fecha y el bloque mide dos renglones.
+        alignItems={esMovil ? "flex-start" : "center"}
+        // En celular NADA se envuelve: el chip tiene que quedarse en la
+        // esquina de arriba pase lo que pase. Medido en 360px, el renglón
+        // deja 294px y el chip se lleva 120 fijos; el que cede es el
+        // título, que sobra de ancho.
+        flexWrap={esMovil ? "nowrap" : "wrap"}
         rowGap={1}
         gap={1.5}
         // En celular el hueco entre título y chip se achica a 8px:
@@ -361,19 +344,37 @@ export default function FacturaCard({
         // alcanzaba a compartir línea con el título por unos pocos
         // píxeles y el chip se iba abajo aunque hubiera casi lugar.
         columnGap={esMovil ? 1 : 1.5}
-        // Deja libre la esquina para la flecha flotante de arriba.
-        // El mínimo para no montarse con ella son 22px (medido en
-        // pantalla); unos pocos más de aire para que no quede
-        // pegado.
-        sx={esMovil ? { pr: 5 } : undefined}
+        // En celular el encabezado entero pliega y despliega la factura.
+        // Antes esto era una flecha clavada en la esquina de la tarjeta, que
+        // obligaba a reservarle 40px a la derecha —y esos 40px eran justo los
+        // que le faltaban al chip para no caerse al renglón de abajo—.
+        {...(esMovil
+          ? propsRenglonPlegable({
+              abierto: !facturaColapsada(factura.id),
+              alternar: () => toggleFacturaColapsada(factura.id),
+              etiqueta: facturaColapsada(factura.id)
+                ? "Mostrar factura"
+                : "Ocultar factura",
+            })
+          : {})}
+        sx={sxSeccion}
       >
         {/* El número manda —es por donde se busca una factura— así que va
-            más grande, y la fecha lo acompaña en la misma línea en vez de
-            robarle un renglón debajo. */}
-        <Stack direction="row" alignItems="baseline" sx={{ gap: 1, minWidth: 0 }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-            Factura {datos.numeroFactura ?? "s/n"}
-          </Typography>
+            más grande y con la flecha al lado, en el renglón de arriba. En
+            computador la fecha lo acompaña en la misma línea; en celular baja
+            al renglón de abajo para dejarle el ancho al chip. */}
+        <Stack
+          direction={esMovil ? "column" : "row"}
+          alignItems={esMovil ? "flex-start" : "baseline"}
+          sx={{ gap: esMovil ? 0 : 1, minWidth: 0 }}
+        >
+          <Stack direction="row" alignItems="center" sx={{ gap: 0.25 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+              Factura {datos.numeroFactura ?? "s/n"}
+            </Typography>
+            {esMovil &&
+              renderFlechaPlegable(!facturaColapsada(factura.id), acento)}
+          </Stack>
           {fecha && (
             <Typography
               variant="caption"
@@ -402,12 +403,19 @@ export default function FacturaCard({
             order: { md: 1, lg: 0 },
           })}
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        {/* El chip no se achica ni se parte: en celular es lo único que tiene
+            el ancho fijo, y el título de al lado es el que cede. */}
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ flexShrink: 0 }}
+        >
           {!esMovil && iconosFactura}
           {chipEstado}
-          {/* En celular la flecha ya va flotando en la esquina,
-              arriba; acá solo se repite para pantallas más anchas,
-              donde comparte línea con el chip sin problema. */}
+          {/* En celular la factura se pliega tocando el encabezado, así que
+              acá la flecha-botón solo va en pantallas más anchas, donde
+              comparte línea con el chip sin problema. */}
           {!esMovil && (
             <Tooltip
               title={
@@ -442,9 +450,39 @@ export default function FacturaCard({
           600px en adelante ya están arriba, en el encabezado. */}
       {isFullScreen &&
         (facturaColapsada(factura.id) ? (
-          <Box sx={{ mt: 1 }}>
+          // En celular el panel también se toca: cerrado dice cuánto es y
+          // cuánto falta —que es lo que se busca al recorrer la lista—, y
+          // abierto suma las otras dos, Pagado y Abonos, de a dos por
+          // renglón. Las cuatro en una sola fila no entran: son importes de
+          // siete cifras en 294px.
+          <Box
+            {...(esMovil
+              ? propsRenglonPlegable({
+                  abierto: pizarraAbierta,
+                  alternar: alternarPizarra,
+                  etiqueta: pizarraAbierta
+                    ? "Ocultar el resto de la cuenta"
+                    : "Ver la cuenta completa",
+                })
+              : {})}
+            sx={{ mt: 1, ...sxSeccion }}
+          >
             {renderPizarraTotales(
-              casillasDeCuenta(cuenta, { resumida: true }),
+              casillasDeCuenta(cuenta, {
+                resumida: !esMovil || !pizarraAbierta,
+              }),
+              undefined,
+              {
+                cuadricula: esMovil && pizarraAbierta,
+                // La única flecha que NO va con el acento: el panel tiene
+                // fondo casi negro fijo en los dos modos, y en modo claro el
+                // acento es el azul del logo, que ahí adentro desaparece. Va
+                // con el amarillo del panel, que es el acento del modo
+                // oscuro y el color con el que ya se escriben sus cifras.
+                flechaAlLado:
+                  esMovil &&
+                  renderFlechaPlegable(pizarraAbierta, "custom.totalText"),
+              },
             )}
           </Box>
         ) : (
@@ -482,6 +520,8 @@ export default function FacturaCard({
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
+                {...propsSeccion("pagoGeneral", "Información de pago")}
+                sx={sxSeccion}
               >
                 <Typography
                   variant="overline"
@@ -515,7 +555,11 @@ export default function FacturaCard({
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
-                sx={{ mt: 1 }}
+                {...propsSeccion(
+                  "equiposFactura",
+                  `Equipos ${equiposOriginales.length}`,
+                )}
+                sx={{ mt: 1, ...sxSeccion }}
               >
                 <Typography
                   variant="overline"
@@ -781,6 +825,8 @@ export default function FacturaCard({
                 direction="row"
                 justifyContent="space-between"
                 alignItems="center"
+                {...propsSeccion("abonos", "Abonos")}
+                sx={sxSeccion}
               >
                 <Typography
                   variant="overline"

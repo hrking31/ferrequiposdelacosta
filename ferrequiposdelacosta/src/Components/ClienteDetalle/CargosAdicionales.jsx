@@ -30,6 +30,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import AddCardIcon from "@mui/icons-material/AddCard";
@@ -42,7 +43,15 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { calcularEquipo, diasDeEquipo, equipoLlevaIva } from "./facturaUtils";
-import { iconBtnSx, renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
+import {
+  detenerToque,
+  iconBtnSx,
+  propsRenglonPlegable,
+  renderFilaDatos,
+  renderFlechaPlegable,
+  renderRecuadroBloque,
+  sxRenglonPlegable,
+} from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
 
@@ -171,6 +180,7 @@ export default function CargosAdicionales({
   onToggle,
 }) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const color = theme.palette.custom.seccionAdicionales;
 
   // Cada equipo respeta su propia marca de IVA (o la de la factura, si no
@@ -350,7 +360,18 @@ export default function CargosAdicionales({
       <Stack
         direction="row"
         alignItems="flex-start"
-        sx={{ gap: 1 }}
+        // En celular el recuadro entero abre el detalle del IVA; el detalle
+        // ya abierto frena el toque, más abajo, para poder leerlo.
+        {...(esMovil && hayDesglose
+          ? propsRenglonPlegable({
+              abierto,
+              alternar: onToggle,
+              etiqueta: abierto
+                ? "Ocultar el detalle"
+                : "Ver de dónde sale el IVA",
+            })
+          : {})}
+        sx={{ gap: 1, ...(esMovil && hayDesglose ? sxRenglonPlegable : {}) }}
       >
         {/* El desglose va DENTRO de esta caja, junto a la fila de datos, y no
             debajo del Stack: así hereda el mismo ancho —el del recuadro menos
@@ -376,6 +397,7 @@ export default function CargosAdicionales({
             // entre tantas partes como datos haya—, así que los totales caen
             // justo bajo el "Total adicionales" que explican.
             <Box
+              onClick={detenerToque}
               sx={{
                 mt: 0.75,
                 // La línea separa los importes del bloque —lo que se ve
@@ -467,23 +489,28 @@ export default function CargosAdicionales({
             </Box>
           )}
         </Box>
-        {hayDesglose && (
-          <Tooltip
-            title={abierto ? "Ocultar el detalle" : "Ver de dónde sale el IVA"}
-          >
-            <IconButton
-              size="small"
-              onClick={onToggle}
-              sx={{ ...iconBtnSx, color, flexShrink: 0 }}
+        {hayDesglose &&
+          (esMovil ? (
+            // En celular la señal, porque el que abre es el recuadro entero.
+            // Con el acento, igual que las demás flechas de la ficha.
+            renderFlechaPlegable(abierto, theme.palette.custom.accent)
+          ) : (
+            <Tooltip
+              title={abierto ? "Ocultar el detalle" : "Ver de dónde sale el IVA"}
             >
-              {abierto ? (
-                <ExpandLessIcon fontSize="small" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        )}
+              <IconButton
+                size="small"
+                onClick={onToggle}
+                sx={{ ...iconBtnSx, color, flexShrink: 0 }}
+              >
+                {abierto ? (
+                  <ExpandLessIcon fontSize="small" />
+                ) : (
+                  <ExpandMoreIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          ))}
       </Stack>
 
     </>

@@ -3,13 +3,13 @@
 // cuánto es, cuánto entró y cuánto falta—, con el botón para devolverle al
 // cliente lo que pagó de más.
 //
-// En celular todo esto se pliega con la flecha: al recorrer una lista larga lo
-// que se busca primero es de qué factura se trata, no su cuenta al detalle.
+// En celular todo esto se pliega tocando el rótulo "Total factura": al
+// recorrer una lista larga lo que se busca primero es de qué factura se trata,
+// no su cuenta al detalle.
 import PropTypes from "prop-types";
 import {
   Box,
   Button,
-  IconButton,
   Paper,
   Stack,
   Typography,
@@ -18,8 +18,6 @@ import {
 } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import {
   calcularDepositoTotal,
@@ -28,7 +26,11 @@ import {
   datosFactura,
   entregasDe,
 } from "./facturaUtils";
-import { iconBtnSx } from "./recuadrosCuenta";
+import {
+  propsRenglonPlegable,
+  renderFlechaPlegable,
+  sxRenglonPlegable,
+} from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
 
@@ -146,6 +148,14 @@ export default function EstadoCuentaFactura({
         direction="row"
         justifyContent="space-between"
         alignItems="center"
+        {...(esMovil
+          ? propsRenglonPlegable({
+              abierto,
+              alternar: onToggle,
+              etiqueta: "Total factura",
+            })
+          : {})}
+        sx={esMovil ? sxRenglonPlegable : undefined}
       >
         <Typography
           variant="overline"
@@ -164,19 +174,7 @@ export default function EstadoCuentaFactura({
           <ReceiptLongIcon fontSize="small" />
           Total factura
         </Typography>
-        {esMovil && (
-          <IconButton
-            size="small"
-            onClick={onToggle}
-            sx={{ ...iconBtnSx, color: acento }}
-          >
-            {abierto ? (
-              <ExpandLessIcon fontSize="small" />
-            ) : (
-              <ExpandMoreIcon fontSize="small" />
-            )}
-          </IconButton>
-        )}
+        {esMovil && renderFlechaPlegable(abierto, acento)}
       </Stack>
       {mostrar && (
         <Box

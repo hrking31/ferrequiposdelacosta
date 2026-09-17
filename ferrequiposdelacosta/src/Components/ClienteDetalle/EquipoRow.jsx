@@ -18,6 +18,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -27,7 +28,13 @@ import EventIcon from "@mui/icons-material/Event";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HistorialEquipo from "./HistorialEquipo";
-import { iconBtnSx } from "./recuadrosCuenta";
+import {
+  detenerToque,
+  iconBtnSx,
+  propsRenglonPlegable,
+  renderFlechaPlegable,
+  sxRenglonPlegable,
+} from "./recuadrosCuenta";
 import {
   calcularEquipo,
   calcularEstadoEquipo,
@@ -99,9 +106,11 @@ const Separador = () => (
 
 export default function EquipoRow({ equipo, color }) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // La historia arranca plegada: de un equipo se quiere ver primero la lista
   // completa de la factura, y recién después lo que le pasó a uno.
   const [abierto, setAbierto] = useState(false);
+  const alternar = () => setAbierto((previo) => !previo);
 
   // La cuenta de la línea: sus días por el valor del día, con los descuentos
   // ya restados. De acá sale el único número de la tarjeta y los días que se
@@ -146,7 +155,20 @@ export default function EquipoRow({ equipo, color }) {
 
   return (
     <Box
+      // En celular la tarjeta entera abre y cierra la historia del equipo:
+      // la flecha sola es más chica que el dedo. En computador sigue siendo
+      // la flecha, que ahí se apunta con el mouse sin errarle.
+      {...(esMovil
+        ? propsRenglonPlegable({
+            abierto,
+            alternar,
+            etiqueta: abierto
+              ? "Ocultar la historia"
+              : "Ver qué pasó con este equipo",
+          })
+        : {})}
       sx={{
+        ...(esMovil ? sxRenglonPlegable : {}),
         p: 1,
         borderRadius: 1,
         bgcolor: "background.paper",
@@ -311,27 +333,45 @@ export default function EquipoRow({ equipo, color }) {
 
         {/* La flecha, al lado de la plata y a su misma altura: es la misma
             que abre cada factura y el detalle del IVA, así que se busca
-            arriba a la derecha del bloque que abre. */}
-        <Tooltip title={abierto ? "Ocultar la historia" : "Ver qué pasó con este equipo"}>
-          <IconButton
-            size="small"
-            onClick={() => setAbierto((previo) => !previo)}
-            sx={{ ...iconBtnSx, color, flexShrink: 0, alignSelf: "flex-start" }}
+            arriba a la derecha del bloque que abre. En celular es solo la
+            señal —el que abre es el recuadro entero—; en computador sigue
+            siendo el botón. */}
+        {esMovil ? (
+          // El acento, no el color del lote: todas las flechas de la ficha se
+          // ven iguales, así se reconocen como lo mismo.
+          <Box sx={{ alignSelf: "flex-start" }}>
+            {renderFlechaPlegable(abierto, theme.palette.custom.accent)}
+          </Box>
+        ) : (
+          <Tooltip
+            title={abierto ? "Ocultar la historia" : "Ver qué pasó con este equipo"}
           >
-            {abierto ? (
-              <ExpandLessIcon fontSize="small" />
-            ) : (
-              <ExpandMoreIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
+            <IconButton
+              size="small"
+              onClick={alternar}
+              sx={{ ...iconBtnSx, color, flexShrink: 0, alignSelf: "flex-start" }}
+            >
+              {abierto ? (
+                <ExpandLessIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
 
       {/* La historia completa, plegada: son hasta nueve renglones por equipo y
           una factura con cinco equipos no se podría recorrer. Va debajo de las
           dos columnas y no dentro de la del nombre, para que su línea cruce la
           tarjeta entera. */}
-      {abierto && <HistorialEquipo equipo={equipo} />}
+      {abierto && (
+        // En celular el recuadro entero pliega, así que la historia frena el
+        // toque: se lee sin que se cierre debajo del dedo.
+        <Box onClick={detenerToque}>
+          <HistorialEquipo equipo={equipo} />
+        </Box>
+      )}
     </Box>
   );
 }
