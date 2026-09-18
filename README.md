@@ -1240,7 +1240,9 @@ Cuando no hay ni una solicitud no hay filtros que dibujar, pero el botón de men
 
 ### Tres iconos no valen un renglón
 
-En el celular, la tarjeta de una solicitud —y la de una cuenta de cobro— gastaba dos renglones en cosas que no son datos: el chip del estado arriba, solo, y la fila de botones abajo, sola. **Los botones se mudaron a la esquina de arriba a la derecha**, a la altura del nombre, y el estado bajó a la línea del número, donde se lee junto a lo que describe. De paso el avatar pasó de 56 a 40px y el aire de la tarjeta de 24 a 16: cabe casi una tarjeta más por pantalla.
+En el celular, la tarjeta de una solicitud —y la de una cuenta de cobro— gastaba dos renglones en cosas que no son datos: el chip del estado arriba, solo, y la fila de botones abajo, sola. Ahora la cabecera son **dos renglones de lado a lado**: arriba quién es —icono, nombre y en qué anda—, abajo el número con **los botones a la derecha**. De paso el avatar pasó de 56 a 40px, el aire de la tarjeta de 24 a 16 y los tres datos de contacto quedaron más juntos: cabe casi una tarjeta más por pantalla.
+
+El rótulo y el número viajan sueltos, no como una sola frase: cuando no entran juntos en el renglón, **el número baja entero** en vez de partirse a la mitad.
 
 > Arriba a la derecha es adonde el pulgar llega estirado, y por eso en la ficha del cliente los botones se fueron al pie. Acá la decisión es la contraria **a propósito**: estas dos son listas largas que se recorren con el dedo, con varias tarjetas por pantalla. Un pie por tarjeta no existe, y lo que se busca al bajar es **encontrar** la solicitud, no operarla.
 

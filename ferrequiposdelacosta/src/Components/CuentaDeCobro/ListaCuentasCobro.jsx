@@ -478,25 +478,43 @@ export default function ListaCuentasCobro() {
                 </Avatar>
               );
 
+              const nombre = (
+                <Typography
+                  variant="h5"
+                  noWrap
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    color: (theme) => theme.palette.text.primary,
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {cuenta.empresa || "Sin cliente"}
+                </Typography>
+              );
+
+              // El rótulo y el número van sueltos para que, cuando no entren en
+              // un renglón, el número baje solo en vez de partirse a la mitad.
+              const numeroId = (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    minWidth: 0,
+                    color: "text.secondary",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    columnGap: 0.5,
+                  }}
+                >
+                  <span>Cuenta ID:</span>
+                  <span>{cuenta.cuentaCobroId || "sin número"}</span>
+                </Typography>
+              );
+
               const identidad = (
                 <Box sx={{ minWidth: 0, width: "100%" }}>
-                  <Typography
-                    variant="h5"
-                    noWrap
-                    sx={{
-                      color: (theme) => theme.palette.text.primary,
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {cuenta.empresa || "Sin cliente"}
-                  </Typography>
-
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
-                  >
-                    Cuenta ID: {cuenta.cuentaCobroId || "sin número"}
-                  </Typography>
+                  {nombre}
+                  {numeroId}
                 </Box>
               );
 
@@ -507,6 +525,7 @@ export default function ListaCuentasCobro() {
                   label={estado.label}
                   color={estado.color}
                   variant="outlined"
+                  sx={{ flexShrink: 0 }}
                 />
               );
 
@@ -605,7 +624,9 @@ export default function ListaCuentasCobro() {
               );
 
               const datos = (
-                <Stack spacing={1.5} sx={{ width: "100%" }}>
+                // En el celular los datos van más juntos: son renglones cortos
+                // de la misma cosa, no bloques distintos.
+                <Stack spacing={esCelular ? 0.75 : 1.5} sx={{ width: "100%" }}>
                   <Stack direction="row" alignItems="center" gap={1.5}>
                     <CalendarMonthIcon
                       fontSize="small"
@@ -669,34 +690,36 @@ export default function ListaCuentasCobro() {
                     }}
                   >
                     {esCelular ? (
-                      // EN CELULAR LOS BOTONES VAN ARRIBA, A LA DERECHA: al pie
-                      // se llevaban un renglón entero para tres iconos, y el
-                      // estado otro más. Acá el estado queda bajo el número y
-                      // la tarjeta se acorta como dos renglones.
-                      <Stack direction="row" alignItems="flex-start" gap={1.5}>
-                        {avatar}
-
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                          {identidad}
-
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            flexWrap="wrap"
-                            sx={{ gap: 0.5, mt: 0.5 }}
-                          >
-                            {chipEstado}
-                            {atendidaPor}
-                          </Stack>
-                        </Box>
+                      // EN CELULAR, DOS RENGLONES: arriba quién es —icono,
+                      // nombre y en qué anda— de lado a lado; abajo el número
+                      // con lo que se puede hacer, a la derecha. Antes el
+                      // estado se llevaba un renglón para él solo y los botones
+                      // otro, al pie.
+                      <Stack spacing={1}>
+                        <Stack direction="row" alignItems="center" gap={1.5}>
+                          {avatar}
+                          {nombre}
+                          {chipEstado}
+                        </Stack>
 
                         <Stack
                           direction="row"
-                          spacing={0.25}
-                          sx={{ flexShrink: 0 }}
+                          alignItems="flex-start"
+                          justifyContent="space-between"
+                          gap={1}
                         >
-                          {acciones}
+                          {numeroId}
+
+                          <Stack
+                            direction="row"
+                            spacing={0.25}
+                            sx={{ flexShrink: 0, mt: -0.75 }}
+                          >
+                            {acciones}
+                          </Stack>
                         </Stack>
+
+                        {atendidaPor}
                       </Stack>
                     ) : (
                       <Stack

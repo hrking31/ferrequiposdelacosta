@@ -494,22 +494,43 @@ export default function KioskAdminCotizaciones() {
 
           // Sin rótulo "Nombre"/"Empresa": el icono del avatar ya dice de cuál
           // de los dos se trata.
+          const nombre = (
+            <Typography
+              variant="h5"
+              noWrap
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                color: (theme) => theme.palette.text.primary,
+                textOverflow: "ellipsis",
+              }}
+            >
+              {quotation.empresa || "Cliente sin nombre"}
+            </Typography>
+          );
+
+          // El rótulo y el número van sueltos para que, cuando no entren en un
+          // renglón, el número baje solo en vez de partirse a la mitad.
+          const numeroId = (
+            <Typography
+              variant="caption"
+              sx={{
+                minWidth: 0,
+                color: "text.secondary",
+                display: "flex",
+                flexWrap: "wrap",
+                columnGap: 0.5,
+              }}
+            >
+              <span>Solicitud ID:</span>
+              <span>{quotation.cotizacionId}</span>
+            </Typography>
+          );
+
           const identidad = (
             <Box sx={{ minWidth: 0, width: "100%" }}>
-              <Typography
-                variant="h5"
-                noWrap
-                sx={{
-                  color: (theme) => theme.palette.text.primary,
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {quotation.empresa || "Cliente sin nombre"}
-              </Typography>
-
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Solicitud ID: {quotation.cotizacionId}
-              </Typography>
+              {nombre}
+              {numeroId}
             </Box>
           );
 
@@ -520,6 +541,7 @@ export default function KioskAdminCotizaciones() {
               label={estado.label}
               color={estado.color}
               variant="outlined"
+              sx={{ flexShrink: 0 }}
             />
           );
 
@@ -614,7 +636,9 @@ export default function KioskAdminCotizaciones() {
           );
 
           const datos = (
-            <Stack spacing={1.5} sx={{ width: "100%" }}>
+            // En el celular los tres datos van más juntos: son renglones
+            // cortos de la misma cosa, no tres bloques distintos.
+            <Stack spacing={esCelular ? 0.75 : 1.5} sx={{ width: "100%" }}>
               <Stack direction="row" alignItems="center" gap={1.5}>
                 <BadgeIcon fontSize="small" sx={{ color: "text.secondary" }} />
                 <Typography variant="body2">
@@ -684,36 +708,37 @@ export default function KioskAdminCotizaciones() {
                 }}
               >
                 {esCelular ? (
-                  // EN CELULAR LOS BOTONES VAN ARRIBA, A LA DERECHA: al pie se
-                  // llevaban un renglón entero para tres iconos, y el estado
-                  // otro más. Acá el estado queda bajo el número y la tarjeta
-                  // se acorta como dos renglones.
-                  <Stack direction="row" alignItems="flex-start" gap={1.5}>
-                    {avatar}
+                  // EN CELULAR, DOS RENGLONES: arriba quién es —icono, nombre y
+                  // en qué anda— de lado a lado; abajo el número con lo que se
+                  // puede hacer, a la derecha. Antes el estado se llevaba un
+                  // renglón para él solo y los botones otro, al pie.
+                  <Stack spacing={1}>
+                    <Stack direction="row" alignItems="center" gap={1.5}>
+                      {avatar}
+                      {nombre}
+                      {chipEstado}
+                    </Stack>
 
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      {identidad}
+                    <Stack
+                      direction="row"
+                      alignItems="flex-start"
+                      justifyContent="space-between"
+                      gap={1}
+                    >
+                      {numeroId}
 
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        flexWrap="wrap"
-                        sx={{ gap: 0.5, mt: 0.5 }}
-                      >
-                        {chipEstado}
-                        {atendidoPor}
-                      </Stack>
-                    </Box>
+                      {hayAcciones && (
+                        <Stack
+                          direction="row"
+                          spacing={0.25}
+                          sx={{ flexShrink: 0, mt: -0.75 }}
+                        >
+                          {acciones}
+                        </Stack>
+                      )}
+                    </Stack>
 
-                    {hayAcciones && (
-                      <Stack
-                        direction="row"
-                        spacing={0.25}
-                        sx={{ flexShrink: 0 }}
-                      >
-                        {acciones}
-                      </Stack>
-                    )}
+                    {atendidoPor}
                   </Stack>
                 ) : (
                   <Stack
