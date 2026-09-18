@@ -1222,6 +1222,22 @@ La flecha va **al lado y no debajo**: abajo le sumaba un renglón de alto al pan
 
 > La única flecha que no va del acento es la de estos dos paneles: su fondo es casi negro fijo en los dos modos, y en modo claro el acento es el azul del logo, que ahí adentro desaparece. Va con el amarillo del panel — el mismo color con el que ya se escriben sus cifras.
 
+### Los filtros que nadie sabía que se movían
+
+La lista de clientes y Seguimiento filtran por estado con una fila de chips. En computador entran los diez; en un celular de 360px esa fila **mide 971px contra 328 visibles**: seis de los diez quedaban fuera de pantalla, y nada en la pantalla decía que se podía arrastrar para verlos. Un filtro que no se ve es un filtro que no existe.
+
+Ahora en el celular son **dos desplegables** —uno de estado, otro de tipo—, cada uno con su conteo al lado, repartidos al ancho de la pantalla. Se ven los diez sin arrastrar nada y se sabe cuál está puesto sin contar chips.
+
+En esas dos pantallas también **se toca la tarjeta entera** para abrirla, el botón de menú subió al lado del buscador —el renglón del pie era todo lista desaprovechada— y con la factura plegada los botones de acción se esconden: ahí lo que se busca es a quién cobrarle y cuánto, no qué hacer con ella.
+
+### Girar el teléfono no lo convierte en un computador
+
+Toda la app decidía "esto es un celular" midiendo el ancho: 915px o menos. Pero **un teléfono acostado mide más que eso** —los grandes llegan a 932—, así que al girarlo la app se dibujaba como computador con 430px de alto. Las consecuencias, todas del mismo error: los seis botones del cliente desaparecían (en computador viven dentro de la tarjeta), el encabezado se llevaba el aire de escritorio, y a la lista de facturas no le quedaba alto — no había ni scroll.
+
+La pregunta pasó a ser por los dos lados, **angosta o baja**, y vive en un solo lugar (`src/Utils/pantalla.js`) en vez de repetida en treinta archivos. Con la pantalla baja, además, la tarjeta del cliente deja de estar fija y se desplaza junto con las facturas: fija se comía el poco alto que hay.
+
+> Lo que **no** cambió de criterio es la franja de la barra de navegación, y es a propósito: la barra se mueve por ancho —hasta 915px va pegada abajo, después sube—, así que el espacio se le reserva abajo o arriba según eso, no según la forma de la pantalla. Confundir las dos preguntas es lo que hacía que la barra tapara los botones en un teléfono y el encabezado en otro.
+
 ### Una pantalla no es un archivo
 
 La ficha del cliente llegó a 2.692 líneas en un solo archivo, y casi la mitad era un bloque corrido que dibujaba **una** factura: el estado, el subtotal, los equipos del alta, los agregados después, los abonos y la cuenta, todo seguido. Para mover de lugar el IVA había que leer mil líneas hasta encontrar dónde se dibujaba.
