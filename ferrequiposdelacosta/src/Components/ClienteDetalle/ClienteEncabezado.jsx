@@ -29,6 +29,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
 import BotonesCliente from "./BotonesCliente";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 import { calcularCuentaCliente, ESTADO_CLIENTE_INFO } from "./facturaUtils";
 import {
   casillasDeCuenta,
@@ -78,7 +79,9 @@ export default function ClienteEncabezado({
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // El contacto (teléfono, NIT, dirección) pasa de dos columnas a una, y
   // aparece el botón de volver al listado.
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: acostado el teléfono sigue siendo un teléfono, y los
+  // botones del cliente tienen que bajar al pie como en cualquier celular.
+  const isFullScreen = usePantallaCompacta();
   // Desde acá entran en un solo renglón el nombre, el recuadro de cuenta y los
   // botones. Por debajo, el recuadro baja a su propia fila (ver el armado del
   // encabezado). No se persigue el ancho exacto en que dejan de entrar —depende
@@ -290,10 +293,17 @@ export default function ClienteEncabezado({
 
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         // Los mismos márgenes y esquinas que la tarjeta de una factura: son
-        // dos tarjetas de la misma lista, una arriba de la otra.
+        // dos tarjetas de la misma lista, una arriba de la otra. Y como
+        // aquella, en el celular angosto aprieta los bordes.
         p: 2,
+        // En celular la tarjeta se achica a lo alto: es lo primero que se ve
+        // al abrir la ficha y empujaba la primera factura fuera de pantalla.
+        // Lo que se recorta es aire —el relleno de arriba y abajo—, no
+        // contenido.
+        ...(esMovil && { py: 1.25 }),
+        [theme.pantallaAngosta]: { px: 1 },
         borderRadius: 2,
         bgcolor: "background.paper",
         border: "1px solid",
@@ -310,7 +320,7 @@ export default function ClienteEncabezado({
         // Es fija, no parte del área con scroll: que no se achique si el
         // alto de la pantalla es chico.
         flexShrink: 0,
-      }}
+      })}
     >
       {/* En computador el resumen de cuenta va al lado del nombre; en celular
           no entra en la misma línea y pasa debajo, a todo el ancho. Los
@@ -347,7 +357,7 @@ export default function ClienteEncabezado({
           {botonesEncabezado}
         </Stack>
       ) : (
-        <Stack sx={{ rowGap: 2 }}>
+        <Stack sx={{ rowGap: esMovil ? 1 : 2 }}>
           {isFullScreen ? (
             // Hasta 915px la tarjeta se queda solo con el nombre: las acciones
             // están abajo, en el pie, al alcance del pulgar.

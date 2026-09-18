@@ -1,4 +1,4 @@
-import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
+import { Box, Stack, IconButton, Tooltip } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,11 @@ import { useSelector } from "react-redux";
 import SeguimientoClientes from "../../Components/SeguimientoClientes/SeguimientoClientes";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import {
+  usePantallaCompacta,
+  usePantallaBaja,
+  useNavbarAbajo,
+} from "../../Utils/pantalla";
 
 export default function VistaSeguimientoClientes() {
   const navigate = useNavigate();
@@ -14,7 +19,12 @@ export default function VistaSeguimientoClientes() {
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: el teléfono acostado pasa de los 915px de ancho.
+  const isFullScreen = usePantallaCompacta();
+  // El celular acostado: de alto quedan unos 390px y cada franja de aire pesa.
+  const altoCorto = usePantallaBaja();
+  // La franja de la barra de navegación, que se mueve solo por ancho.
+  const navbarAbajo = useNavbarAbajo();
 
   const handlerLogout = async () => {
     await logout();
@@ -27,8 +37,14 @@ export default function VistaSeguimientoClientes() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
-        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        // El aire va del lado en que esté la barra de navegación, no del
+        // lado que diga la forma de la pantalla.
+        pt: navbarAbajo ? 0 : { md: 8, lg: 9 },
+        // Con la barra arriba, abajo no hay nada que esquivar: los 16px de
+        // computador quedaban de aire muerto bajo los botones, y acostado el
+        // teléfono ese alto se nota. Quedan 4, lo justo para que no se peguen
+        // al borde.
+        pb: navbarAbajo ? { xs: 7, sm: 8 } : altoCorto ? 0.5 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -40,7 +56,7 @@ export default function VistaSeguimientoClientes() {
           // EN EL CELULAR, 12px arriba y abajo: el mismo aire que deja el pie
           // con sus botones, así el contenido queda parejo entre los dos. En
           // el computador no hay pie y el encabezado respira un poco más.
-          py: isFullScreen ? 1.5 : 2,
+          py: isFullScreen ? (altoCorto ? 0.5 : 1.5) : 2,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
@@ -57,6 +73,7 @@ export default function VistaSeguimientoClientes() {
             vista={"Seguimiento de Clientes"}
             descripcion={"Controla vencimientos y saldos pendientes"}
             icono={<SupportAgentIcon />}
+            compacto={isFullScreen}
           />
         </Box>
 
@@ -80,25 +97,8 @@ export default function VistaSeguimientoClientes() {
         <SeguimientoClientes />
       </Box>
 
-      {isFullScreen && (
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="stretch"
-          >
-            <Button
-              variant="contained"
-              fullWidth
-              size="small"
-              onClick={() => navigate("/adminforms")}
-            >
-              MENU
-            </Button>
-          </Stack>
-        </Box>
-      )}
+      {/* Sin pie: en celular el botón de menú se mudó arriba, al lado del
+          buscador, y ese renglón entero es ahora lista. */}
     </Box>
   );
 }

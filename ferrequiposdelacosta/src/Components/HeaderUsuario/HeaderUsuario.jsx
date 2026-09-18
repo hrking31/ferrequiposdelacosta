@@ -33,7 +33,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   // SOLO EN CELULAR: cerrar sesión se mudó acá desde el pie de cada vista. La
@@ -50,7 +50,12 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
   // 915px es el corte que usan todas las vistas para pasar a la forma de
   // celular (el "isFullScreen" de cada una). El encabezado cambia en el mismo
   // punto para que no queden dos formas mezcladas en la misma pantalla.
-  const isMobile = useMediaQuery("(max-width:915px)");
+  // La pantalla que lo contiene puede avisar que está en su forma de celular
+  // aunque el ancho diga otra cosa: es lo que pasa con el teléfono acostado,
+  // que pasa de los 915px. Si no, el encabezado se dibujaba como computador
+  // dentro de una pantalla de celular, y el botón de salir —que en celular
+  // vive acá— no aparecía por ningún lado.
+  const isMobile = useMediaQuery("(max-width:915px)") || Boolean(compacto);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
@@ -578,4 +583,5 @@ HeaderUsuario.propTypes = {
   // Solo para las vistas que tienen trabajo a medio hacer y necesitan
   // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
   onCerrarSesion: PropTypes.func,
+  compacto: PropTypes.bool,
 };

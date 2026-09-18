@@ -54,12 +54,17 @@ import EquipoRow from "./EquipoRow";
 import RecuadroPago, { ListaAbonos } from "./RecuadroPago";
 import CargosAdicionales from "./CargosAdicionales";
 import EstadoCuentaFactura from "./EstadoCuentaFactura";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 import {
   casillasDeCuenta,
+  detenerToque,
   iconBtnSx,
+  renderContenidoPlano,
   propsRenglonPlegable,
   renderFlechaPlegable,
   renderPizarraTotales,
+  renderRecuadroBloque,
+  renderRotuloEstadoEquipo,
   sxRenglonPlegable,
 } from "./recuadrosCuenta";
 // Con alias: la fecha DD/MM/AAAA.
@@ -88,7 +93,7 @@ export default function FacturaCard({
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // Hasta acá la pizarra completa no entra en el hueco del encabezado de la
   // factura y hay que mostrar la versión corta debajo.
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  const isFullScreen = usePantallaCompacta();
   const acento = theme.palette.custom.accent;
   // Cada bloque de la factura tiene su color: el pago, los equipos del
   // alta y los que se agregaron despues.
@@ -184,6 +189,100 @@ export default function FacturaCard({
   // bloques de adentro, con su propia clave.
   const pizarraAbierta = seccionAbierta(factura.id, "pizarra");
   const alternarPizarra = () => toggleSeccion(factura.id, "pizarra");
+
+  // ── Los bloques de la factura, en el celular ───────────────────────────
+  //
+  // Abierta, una factura con dos despachos son treinta renglones: no se
+  // recorre. Así que en el celular cada parte —el despacho inicial, cada
+  // despacho agregado, los abonos y el total— se presenta como UN recuadro
+  // con su rótulo, del color de esa parte, y lo demás queda adentro. Todos
+  // arrancan cerrados: lo único que se ve al abrir la factura es el panel
+  // oscuro con la cuenta.
+  //
+  // En computador devuelve el contenido tal cual, sin envolver: allá entra
+  // todo a la vez y el recuadro solo agregaría un clic.
+  // Los bloques de adentro de un despacho —pago y equipos— dentro de su
+  // propio recuadro del color que ya tiene su rótulo, para que se lean como
+  // cajas y no como una lista corrida. Su rótulo ya abre y cierra; acá solo
+  // se los enmarca. En computador no se envuelve nada.
+  const enRecuadro = (color, clave, contenido) =>
+    esMovil ? (
+      <Box sx={{ mt: 0.75 }} key={clave}>
+        {renderRecuadroBloque(color, contenido, clave)}
+      </Box>
+    ) : (
+      contenido
+    );
+
+  const renderBloqueMovil = (
+    clave,
+    // `extra` va pegado al rótulo (la fecha de un despacho); `derecha` se va
+    // al otro extremo del renglón, antes de la flecha (el estado de un
+    // equipo, que se busca de un vistazo en la misma columna para todos).
+    { rotulo, Icono, color, extra, derecha, sinRecuadro = false },
+    contenido,
+  ) => {
+    if (!esMovil) return contenido;
+    const abierto = seccionAbierta(factura.id, clave);
+
+    const cuerpo = (
+      <>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              {...propsRenglonPlegable({
+                abierto,
+                alternar: () => toggleSeccion(factura.id, clave),
+                etiqueta: rotulo,
+              })}
+              sx={sxRenglonPlegable}
+            >
+              <Typography
+                variant="overline"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  lineHeight: 1.6,
+                  color,
+                }}
+              >
+                <Icono fontSize="small" />
+                {rotulo}
+                {extra}
+              </Typography>
+              <Stack direction="row" alignItems="center" gap={0.75}>
+                {derecha}
+                {renderFlechaPlegable(abierto, acento)}
+              </Stack>
+            </Stack>
+        {/* Lo de adentro frena el toque: si no, abrir un equipo cerraría
+            el despacho entero que lo contiene. */}
+        {abierto && (
+          <Box onClick={detenerToque}>
+            {sinRecuadro ? renderContenidoPlano(color, contenido) : contenido}
+          </Box>
+        )}
+      </>
+    );
+
+    return (
+      // El bloque sin recuadro lleva el mismo relleno lateral que tienen los
+      // enmarcados: si no, su rótulo arrancaba 12px antes que el de sus
+      // hermanos y la columna quedaba en zigzag.
+      <Box
+        key={clave}
+        sx={(theme) => ({
+          mt: 1,
+          px: sinRecuadro ? 1.5 : 0,
+          [theme.pantallaAngosta]: { px: sinRecuadro ? 0.75 : 0 },
+        })}
+      >
+        {sinRecuadro ? cuerpo : renderRecuadroBloque(color, cuerpo, clave)}
+      </Box>
+    );
+  };
   // Los equipos del alta y los que se agregaron después con el botón
   // "Agregar equipo". Ya no hay que separarlos con una marca en cada equipo:
   // son grupos distintos, y cada uno muestra su propio pago.
@@ -228,9 +327,12 @@ export default function FacturaCard({
   );
 
   const iconosFactura = (
+    // En celular, 24px entre uno y otro: son botones chicos que se tocan con
+    // el dedo, y a 12px el de al lado quedaba dentro de lo que tapa el
+    // pulgar. En computador se apuntan con el mouse y van juntos.
     <Stack
       direction="row"
-      spacing={esMovil ? 1.5 : 0.75}
+      spacing={esMovil ? 3 : 0.75}
       alignItems="center"
     >
       <Tooltip
@@ -312,8 +414,11 @@ export default function FacturaCard({
 
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         p: 2,
+        // Celular angosto: la mitad de borde a los lados, para que el
+        // contenido tenga el ancho que le falta.
+        [theme.pantallaAngosta]: { px: 1 },
         borderRadius: 2,
         // El fondo de tarjeta sobre el fondo de la app ya alcanza
         // para que se despegue: en modo noche es el azul acero sobre
@@ -324,7 +429,7 @@ export default function FacturaCard({
         // Sin esto, la pizarra de totales estira la tarjeta más allá
         // del ancho de la pantalla y aparece scroll horizontal.
         minWidth: 0,
-      }}
+      })}
     >
       <Stack
         direction="row"
@@ -368,13 +473,9 @@ export default function FacturaCard({
           alignItems={esMovil ? "flex-start" : "baseline"}
           sx={{ gap: esMovil ? 0 : 1, minWidth: 0 }}
         >
-          <Stack direction="row" alignItems="center" sx={{ gap: 0.25 }}>
-            <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-              Factura {datos.numeroFactura ?? "s/n"}
-            </Typography>
-            {esMovil &&
-              renderFlechaPlegable(!facturaColapsada(factura.id), acento)}
-          </Stack>
+          <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+            Factura {datos.numeroFactura ?? "s/n"}
+          </Typography>
           {fecha && (
             <Typography
               variant="caption"
@@ -413,6 +514,11 @@ export default function FacturaCard({
         >
           {!esMovil && iconosFactura}
           {chipEstado}
+          {/* Después del chip, en la misma esquina: las dos cosas que dicen
+              en qué anda la factura y cómo abrirla se leen juntas, y el
+              título se queda solo con su número y su fecha. */}
+          {esMovil &&
+            renderFlechaPlegable(!facturaColapsada(factura.id), acento)}
           {/* En celular la factura se pliega tocando el encabezado, así que
               acá la flecha-botón solo va en pantallas más anchas, donde
               comparte línea con el chip sin problema. */}
@@ -487,7 +593,14 @@ export default function FacturaCard({
           </Box>
         ) : (
           esMovil && (
-            <Stack direction="row" alignItems="center" sx={{ mt: 1 }}>
+            // A la derecha, del lado en que cae el pulgar al sostener el
+            // teléfono.
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="flex-end"
+              sx={{ mt: 1 }}
+            >
               {iconosFactura}
             </Stack>
           )
@@ -498,7 +611,21 @@ export default function FacturaCard({
           scrollear cada una entera. */}
       {!facturaColapsada(factura.id) && (
         <>
-          {equiposOriginales.length > 0 && (
+          {equiposOriginales.length > 0 &&
+            // En celular, todo el despacho de alta detrás de un solo rótulo.
+            // Se llama "Equipo inicial" —sin fecha ni cantidad— porque la
+            // fecha ya está arriba, en el encabezado, y la cantidad la dice
+            // el rótulo "Equipos N" que tiene adentro.
+            renderBloqueMovil(
+              "despachoInicial",
+              {
+                rotulo: "Equipo inicial",
+                Icono: ConstructionIcon,
+                // El cian del tema: el azul lo llevan los equipos que van
+                // adentro, y con los dos iguales no se sabía dónde terminaba
+                // el despacho y empezaba un equipo.
+                color: theme.palette.custom.seccionDespacho,
+              },
             <Box
               sx={{
                 mt: 1.5,
@@ -516,6 +643,7 @@ export default function FacturaCard({
                 },
               }}
             >
+              {enRecuadro(colorPago, "pagoGeneral", <>
               <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -547,10 +675,35 @@ export default function FacturaCard({
                     tipoPago={tipoPagoDe(grupoInicial)}
                     fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
                     color={colorPago}
+                    plano={esMovil}
                   />
                 </Box>
               )}
+              </>)}
 
+              {/* EN CELULAR, UN BLOQUE POR EQUIPO. La lista agrupada bajo
+                  "Equipos 3" obligaba a dos toques para llegar a uno, y los
+                  marcos se anidaban de a tres —el despacho, la lista y cada
+                  tarjeta—. Ahora cada equipo tiene su propio rótulo
+                  numerado, su línea y su información, al mismo nivel que el
+                  pago y los cargos. */}
+              {esMovil
+                ? equiposOriginales.map((equipo, index) =>
+                    renderBloqueMovil(
+                      `equipo-inicial-${index}`,
+                      {
+                        rotulo: `Equipo ${index + 1}`,
+                        Icono: ConstructionIcon,
+                        color: colorEquipos,
+                        derecha: renderRotuloEstadoEquipo(equipo, theme),
+                      },
+                      renderContenidoPlano(
+                        colorEquipos,
+                        <EquipoRow equipo={equipo} color={colorEquipos} plano />,
+                      ),
+                    ),
+                  )
+                : (<>
               <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -559,7 +712,7 @@ export default function FacturaCard({
                   "equiposFactura",
                   `Equipos ${equiposOriginales.length}`,
                 )}
-                sx={{ mt: 1, ...sxSeccion }}
+                sx={{ mt: esMovil ? 0 : 1, ...sxSeccion }}
               >
                 <Typography
                   variant="overline"
@@ -602,23 +755,30 @@ export default function FacturaCard({
                       />
                     ))}
                   </Box>
-
-                  {/* Los cargos del lote original: los de la factura, sin
-                      sumar los de los equipos agregados —cada lote muestra
-                      los suyos. */}
-                  <CargosAdicionales
-                    equipos={equiposOriginales}
-                    deposito={Number(adicionalesInicial.valorDeposito) || 0}
-                    transporteTipo={transporteTipo}
-                    transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
-                    abierto={seccionAbierta(factura.id, "adicionales-factura")}
-                    onToggle={() =>
-                      toggleSeccion(factura.id, "adicionales-factura")
-                    }
-                  />
                 </Box>
               )}
-            </Box>
+              </>)}
+
+              {/* Los cargos del despacho de alta —los de la factura, sin
+                  sumar los de los equipos agregados, que cada lote muestra
+                  aparte—. Van FUERA del bloque de equipos: son un bloque
+                  hermano, como el pago, y no una parte de la lista de
+                  equipos. */}
+              <CargosAdicionales
+                equipos={equiposOriginales}
+                deposito={Number(adicionalesInicial.valorDeposito) || 0}
+                transporteTipo={transporteTipo}
+                transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
+                abierto={seccionAbierta(factura.id, "adicionales-factura")}
+                onToggle={() =>
+                  toggleSeccion(factura.id, "adicionales-factura")
+                }
+                bloqueAbierto={seccionAbierta(factura.id, "bloque-adicionales")}
+                onToggleBloque={() =>
+                  toggleSeccion(factura.id, "bloque-adicionales")
+                }
+              />
+            </Box>,
           )}
 
           {gruposAgregados.length > 0 && (
@@ -655,7 +815,24 @@ export default function FacturaCard({
                     2,
                   );
 
-                  return (
+                  // En celular el despacho entero va detrás de su rótulo, con
+                  // la fecha en que entró: es lo que lo distingue de los
+                  // otros. Adentro ya no se repite.
+                  return renderBloqueMovil(
+                    `lote-${indiceLote}`,
+                    {
+                      rotulo: "Agregados",
+                      Icono: LibraryAddIcon,
+                      color: colorEquiposAgregados,
+                      extra: lote.fechaSolicitud && (
+                        <Box
+                          component="span"
+                          sx={{ color: "text.secondary", fontWeight: 400 }}
+                        >
+                          {formatearFecha(lote.fechaSolicitud)}
+                        </Box>
+                      ),
+                    },
                     <Box
                       key={`lote-${indiceLote}`}
                       sx={{
@@ -675,7 +852,7 @@ export default function FacturaCard({
                         },
                       }}
                     >
-                      {lote.fechaSolicitud && (
+                      {!esMovil && lote.fechaSolicitud && (
                         <Typography
                           variant="overline"
                           sx={{
@@ -706,19 +883,35 @@ export default function FacturaCard({
                           El rótulo queda FUERA, apoyado encima, como todos los
                           rótulos de la ficha. */}
                       <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 2,
-                          bgcolor: "background.default",
-                          border: "1px solid",
-                          borderColor: alpha(colorEquiposAgregados, 0.4),
-                        }}
+                        sx={
+                          esMovil
+                            ? // En celular el despacho YA va dentro de su
+                              // recuadro violeta, con su rótulo y su fecha:
+                              // este de adentro era un segundo marco del
+                              // mismo color a 12px del primero.
+                              undefined
+                            : {
+                                p: 1.5,
+                                borderRadius: 2,
+                                bgcolor: "background.default",
+                                border: "1px solid",
+                                borderColor: alpha(colorEquiposAgregados, 0.4),
+                              }
+                        }
                       >
                       {/* El pago va PRIMERO, igual que en el alta de la
                           factura: lo primero que se pregunta de un equipo
                           agregado es si ya se pago. Antes cada bloque
                           arrancaba distinto segun donde estuviera. */}
-                      <Box>
+                      {renderBloqueMovil(
+                        `lote-pago-${indiceLote}`,
+                        {
+                          rotulo: "Información de pago",
+                          Icono: PaymentsIcon,
+                          color: colorPago,
+                        },
+                        <Box>
+                        {!esMovil && (
                         <Typography
                           variant="overline"
                           sx={{
@@ -732,6 +925,7 @@ export default function FacturaCard({
                           <PaymentsIcon fontSize="small" />
                           Información de pago
                         </Typography>
+                        )}
                         <Box sx={{ mt: 0.5 }}>
                           <RecuadroPago
                             pagos={pagosDe(lote)}
@@ -742,9 +936,11 @@ export default function FacturaCard({
                             // la factura. Lo de un equipo agregado se paga
                             // cuando se agrega, no al principio.
                             rotuloTipoPago="Tipo de pago"
+                            plano={esMovil}
                           />
                         </Box>
-                      </Box>
+                      </Box>,
+                      )}
 
                       {/* Los equipos de ESTE lote, con su propio rótulo:
                           el bloque tenía uno solo arriba con el total, y un
@@ -754,6 +950,31 @@ export default function FacturaCard({
 
                           Con varios despachos, el rótulo de cada uno va
                           arriba del todo, con su fecha. */}
+                      {esMovil
+                        ? equiposDelLote.map((equipo, index) =>
+                            renderBloqueMovil(
+                              `equipo-lote-${indiceLote}-${index}`,
+                              {
+                                rotulo: `Equipo ${index + 1}`,
+                                Icono: ConstructionIcon,
+                                // El mismo azul que los del alta: un equipo
+                                // es un equipo, venga de donde venga. De qué
+                                // despacho es lo dice el recuadro que lo
+                                // contiene, no su propio color.
+                                color: colorEquipos,
+                                derecha: renderRotuloEstadoEquipo(equipo, theme),
+                              },
+                              renderContenidoPlano(
+                                colorEquipos,
+                                <EquipoRow
+                                  equipo={equipo}
+                                  color={colorEquipos}
+                                  plano
+                                />,
+                              ),
+                            ),
+                          )
+                        : (<>
                       <Typography
                         variant="overline"
                         sx={{
@@ -761,7 +982,7 @@ export default function FacturaCard({
                           alignItems: "center",
                           gap: 0.5,
                           lineHeight: 1.6,
-                          mt: 1,
+                          mt: esMovil ? 0 : 1,
                           color: colorEquiposAgregados,
                         }}
                       >
@@ -790,7 +1011,11 @@ export default function FacturaCard({
                           />
                         ))}
                       </Box>
+                      </>)}
 
+                      {/* Los cargos del lote, FUERA de su lista de equipos:
+                          son un bloque hermano, igual que en el despacho de
+                          alta. */}
                       <CargosAdicionales
                         equipos={lote.equipos ?? []}
                         deposito={Number(adicionalesLote.valorDeposito) || 0}
@@ -808,9 +1033,19 @@ export default function FacturaCard({
                             `lote-adicionales-${indiceLote}`,
                           )
                         }
+                        bloqueAbierto={seccionAbierta(
+                          factura.id,
+                          `lote-bloque-adicionales-${indiceLote}`,
+                        )}
+                        onToggleBloque={() =>
+                          toggleSeccion(
+                            factura.id,
+                            `lote-bloque-adicionales-${indiceLote}`,
+                          )
+                        }
                       />
                       </Box>
-                    </Box>
+                    </Box>,
                   );
                 })}
             </Box>
@@ -819,7 +1054,18 @@ export default function FacturaCard({
           {/* Los abonos van al final de todo lo que se despachó:
               después de los equipos agregados si los hay, y si no,
               después de los equipos de la factura. */}
-          {abonos.length > 0 && (
+          {abonos.length > 0 &&
+            (esMovil ? (
+              // En celular su rótulo ya es la cabecera del recuadro, así que
+              // adentro va solo la lista.
+              renderBloqueMovil(
+                "abonos",
+                { rotulo: "Abonos", Icono: SavingsIcon, color: colorAbonos },
+                <Box sx={{ mt: 0.5 }}>
+                  <ListaAbonos abonos={abonos} color={colorAbonos} plano={esMovil} />
+                </Box>,
+              )
+            ) : (
             <Box sx={{ mt: 1 }}>
               <Stack
                 direction="row"
@@ -845,11 +1091,11 @@ export default function FacturaCard({
               </Stack>
               {mostrar("abonos") && (
                 <Box sx={{ mt: 0.5 }}>
-                  <ListaAbonos abonos={abonos} color={colorAbonos} />
+                  <ListaAbonos abonos={abonos} color={colorAbonos} plano={esMovil} />
                 </Box>
               )}
             </Box>
-          )}
+            ))}
 
           <EstadoCuentaFactura
             factura={factura}
@@ -857,6 +1103,8 @@ export default function FacturaCard({
             facturaEstado={facturaEstado}
             abierto={seccionAbierta(factura.id, "pagoTotal")}
             onToggle={() => toggleSeccion(factura.id, "pagoTotal")}
+            estadoAbierto={seccionAbierta(factura.id, "estadoCuenta")}
+            onToggleEstado={() => toggleSeccion(factura.id, "estadoCuenta")}
             onDevolverSaldo={onDevolverSaldo}
           />
         </>

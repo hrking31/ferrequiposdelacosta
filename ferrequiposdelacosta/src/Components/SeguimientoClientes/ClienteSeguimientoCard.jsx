@@ -7,6 +7,7 @@ import {
   Divider,
   useMediaQuery,
   IconButton,
+  Paper,
   Stack,
   Tooltip,
   Typography,
@@ -65,9 +66,18 @@ import {
 } from "../ClienteDetalle/facturaUtils";
 import {
   casillasDeCuenta,
+  detenerToque,
   iconBtnSx,
+  propsRenglonPlegable,
+  renderContenidoPlano,
   renderFilaDeCasillas,
+  renderFilasDeCuenta,
+  renderFlechaPlegable,
+  renderPizarraTotales,
+  renderRecuadroBloque,
+  sxRenglonPlegable,
 } from "../ClienteDetalle/recuadrosCuenta";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 import {
   formatearMonedaOVacio,
   formatearHoraLegible,
@@ -352,7 +362,9 @@ export default function ClienteSeguimientoCard({
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // El mismo corte que usa la ficha del cliente para su pizarra: hasta 915px
   // los cuatro importes no entran en el hueco del encabezado.
-  const anchoCorto = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: el teléfono acostado pasa de los 915px de ancho y la
+  // tarjeta se dibujaba como en computador dentro de una pantalla de celular.
+  const anchoCorto = usePantallaCompacta();
   const acento =
     theme.palette.custom.accent;
   const [tabFactura, setTabFactura] = useState(0);
@@ -360,6 +372,74 @@ export default function ClienteSeguimientoCard({
   // la lista completa puede ocupar la pantalla entera, en PC igual que en
   // móvil. Se pliega/despliega aparte del resto de la factura.
   const [gestionAbierta, setGestionAbierta] = useState(false);
+  // Qué bloques de la factura están abiertos, por clave. En celular cada uno
+  // —la bitácora, la cuenta, los equipos— se presenta como un recuadro con su
+  // rótulo adentro, y se toca para ver lo que guarda; es el mismo trato que
+  // recibieron los bloques de la ficha del cliente.
+  const [bloquesAbiertos, setBloquesAbiertos] = useState({});
+  const bloqueAbierto = (clave) => Boolean(bloquesAbiertos[clave]);
+  const alternarBloque = (clave) =>
+    setBloquesAbiertos((previo) => ({ ...previo, [clave]: !previo[clave] }));
+
+  // El rótulo DENTRO de su recuadro, tocable, con una línea que lo separa de
+  // lo que cuenta. En computador no se envuelve nada: allá entra todo junto.
+  const renderBloqueMovil = (
+    clave,
+    { rotulo, Icono, color, sinLinea },
+    contenido,
+  ) => {
+    if (!esMovil) return contenido;
+    const abierto = bloqueAbierto(clave);
+
+    return (
+      // El bloque ENTERO frena el toque: acá la tarjeta de la factura también
+      // es tocable, así que sin esto abrir un bloque cerraba la factura que
+      // lo contiene —el toque llegaba a los dos—.
+      //
+      // Y LLEVA LA CLAVE: los bloques de equipos salen de un map —uno por
+      // grupo del semáforo—, y en celular este Box es el que React ve en la
+      // lista. La clave que traía el contenido quedaba un piso más abajo.
+      <Box key={clave} sx={{ mb: 1 }} onClick={detenerToque}>
+        {renderRecuadroBloque(
+          color,
+          <>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              {...propsRenglonPlegable({
+                abierto,
+                alternar: () => alternarBloque(clave),
+                etiqueta: rotulo,
+              })}
+              sx={sxRenglonPlegable}
+            >
+              <Typography
+                variant="overline"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  lineHeight: 1.6,
+                  color,
+                }}
+              >
+                <Icono fontSize="small" />
+                {rotulo}
+              </Typography>
+              {renderFlechaPlegable(abierto, acento)}
+            </Stack>
+            {abierto && (
+              <Box onClick={detenerToque}>
+                {renderContenidoPlano(color, contenido, { sinLinea })}
+              </Box>
+            )}
+          </>,
+          clave,
+        )}
+      </Box>
+    );
+  };
   // Plegar la factura, igual que en Detalle Cliente: arrancan TODAS plegadas
   // y lo que se guarda es cuáles se fueron abriendo, así la lista de clientes
   // se ve completa de un vistazo.
@@ -367,11 +447,20 @@ export default function ClienteSeguimientoCard({
   // SOLO EN CELULAR: la cuenta y la ficha de cada equipo se abren para ver
   // todas sus casillas, una debajo de otra. En pantalla grande entran las
   // cuatro en fila y no hay nada que abrir.
-  const [cuentasAbiertas, setCuentasAbiertas] = useState({});
-  const [equiposAbiertos, setEquiposAbiertos] = useState({});
   const facturaPlegada = (facturaId) => !facturasAbiertas[facturaId];
   const togglePlegarFactura = (facturaId) =>
     setFacturasAbiertas((prev) => ({ ...prev, [facturaId]: !prev[facturaId] }));
+  // La pizarra de la cuenta con la factura CERRADA, igual que en la ficha del
+  // cliente: en celular arranca corta —total y saldo— y se toca para ver las
+  // cuatro cifras de a dos por fila. Se guarda por factura porque la pantalla
+  // muestra varias a la vez.
+  const [pizarrasAbiertas, setPizarrasAbiertas] = useState({});
+  const pizarraAbierta = (facturaId) => Boolean(pizarrasAbiertas[facturaId]);
+  const alternarPizarra = (facturaId) =>
+    setPizarrasAbiertas((previo) => ({
+      ...previo,
+      [facturaId]: !previo[facturaId],
+    }));
   const [ampliarOpen, setAmpliarOpen] = useState(false);
   const [devolucionOpen, setDevolucionOpen] = useState(false);
   const [llamadaOpen, setLlamadaOpen] = useState(false);
@@ -658,50 +747,42 @@ export default function ClienteSeguimientoCard({
 
   const renderEquipo = (equipo, key, situacion) => {
     const color = colorDeSituacion(situacion);
-    const abierta = Boolean(equiposAbiertos[key]);
 
     return (
-      <Box key={key} sx={recuadroDeBloque(color)}>
+      // En celular sin marco propio: el equipo ya va dentro del recuadro de
+      // su grupo —"Vencido 1"—, y otro marco adentro son dos bordes a 12px
+      // que no separan nada.
+      <Box key={key} sx={esMovil ? undefined : recuadroDeBloque(color)}>
         {/* Cerrada, la flecha se centra en el alto del recuadro: el de entrega
             indefinida es más alto —su nombre baja de línea— y arriba quedaba
             descolgada. Abierta vuelve al borde: con las cuatro casillas en
             columna, el centro cae lejos de donde se la dejó. */}
         <Stack
           direction="row"
-          alignItems={abierta ? "flex-start" : "center"}
+          alignItems="flex-start"
           sx={{ gap: 0.5 }}
         >
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            {renderFilaDeCasillas(casillasDeEquipo(equipo, situacion, abierta), {
-              colorDivisor: color,
-              // En el celular abierta va en columna: cuatro casillas no entran
-              // de lado en un teléfono sin que las fechas se corten.
-              columna: esMovil && abierta,
-            })}
+            {/* En celular SIEMPRE en columna y sin líneas entre casillas: es
+                como se leen los datos de un equipo en la ficha del cliente, y
+                las cuatro de lado no entran en un teléfono sin cortar las
+                fechas. El grupo que lo contiene ya tiene su marco.
+
+                EN COMPUTADOR siguen en fila, con su línea entre una y otra:
+                ahí el ancho sobra y las cuatro se leen de un vistazo, que es
+                para lo que está esa pantalla. */}
+            {renderFilaDeCasillas(
+              casillasDeEquipo(equipo, situacion, true),
+              {
+                colorDivisor: esMovil ? "transparent" : color,
+                columna: esMovil,
+              },
+            )}
           </Box>
 
-          {/* Su flecha, solo en el celular: en pantalla grande las cuatro
-              casillas ya están a la vista y no hay nada que abrir. */}
-          {esMovil && (
-            <Tooltip title={abierta ? "Ocultar el equipo" : "Ver el equipo"}>
-              <IconButton
-                size="small"
-                onClick={() =>
-                  setEquiposAbiertos((previos) => ({
-                    ...previos,
-                    [key]: !previos[key],
-                  }))
-                }
-                sx={{ ...iconBtnSx, color, flexShrink: 0 }}
-              >
-                {abierta ? (
-                  <ExpandLessIcon fontSize="small" />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
+          {/* Acá había una flecha que abría las casillas del equipo en
+              celular. Ya no hace falta: ahora se ven las cuatro, una debajo
+              de otra, apenas se abre el grupo que lo contiene. */}
         </Stack>
       </Box>
     );
@@ -853,17 +934,14 @@ export default function ClienteSeguimientoCard({
   // queda entre bloques y necesita decir qué es.
   // En el celular la cuenta se abre para ver los cuatro valores; en pantalla
   // grande ya están todos a la vista.
-  const cuentaAbierta = Boolean(cuentasAbiertas[factura.id]);
 
-  // LA CUENTA, con el mismo vestido que el resto de la tarjeta: su rótulo
-  // afuera y el recuadro transparente con su degradado, igual que la gestión y
-  // que cada grupo de equipos.
-  //
-  // Antes era el panel OSCURO FIJO que usa la ficha del cliente. Ahí encaja
-  // —es el encabezado de la pantalla— pero acá quedaba como un bloque negro
-  // entre recuadros de colores.
+  // LA CUENTA, SOBRE EL PANEL OSCURO DEL TEMA: es el mismo recuadro negro que
+  // muestra la factura contraída, así que abrirla no le cambia el vestido a la
+  // plata. Con el recuadro transparente de los otros bloques, la misma cuenta
+  // cambiaba de fondo según estuviera abierta o cerrada.
   const cuadroTotales = valorTotal && (
-    <Box sx={{ mb: 1 }}>
+    <Box sx={{ mb: esMovil ? 0 : 1 }}>
+      {!esMovil && (
       <Typography
         variant="overline"
         sx={{
@@ -877,20 +955,39 @@ export default function ClienteSeguimientoCard({
         <AccountBalanceWalletIcon fontSize="small" />
         Estado de cuenta
       </Typography>
+      )}
 
-      <Box sx={{ ...recuadroDeBloque(colorCuenta), mt: 0.5 }}>
+      {/* En celular sin marco: el bloque ya va dentro de su recuadro, con el
+          rótulo adentro y una línea que lo separa. En computador el marco lo
+          pone la pizarra de abajo, que es negra. */}
+      <Box sx={esMovil ? undefined : { mt: 0.5 }}>
         <Stack
           direction="row"
-          alignItems={cuentaAbierta ? "flex-start" : "center"}
+          // En celular las casillas van en columna, así que el bloque se
+          // alinea arriba; en computador van en fila y se centran.
+          alignItems={esMovil ? "flex-start" : "center"}
           sx={{ gap: 0.5 }}
         >
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            {renderFilaDeCasillas(
-              casillasDeCuenta(cuenta, {
-                resumida: esMovil && !cuentaAbierta,
-                sobrePanel: false,
-              }),
-              { colorDivisor: colorCuenta, columna: esMovil && cuentaAbierta },
+            {/* EN CELULAR, EL PANEL OSCURO, igual que en la ficha del cliente:
+                las cuatro casillas de a dos por fila sobre el fondo negro del
+                tema. Acá iban sueltas sobre la tarjeta, así que la misma
+                cuenta se veía de dos maneras distintas según la pantalla en
+                que se mirara. */}
+            {esMovil ? (
+              // EL MISMO PANEL QUE LA FICHA DEL CLIENTE: el rótulo a la
+              // izquierda, la cifra a la derecha y cada concepto en su color.
+              // La cuadrícula de dos por dos es la del panel de la factura
+              // CERRADA, que es otra cosa: ahí hay que resumir en poco alto.
+              <Paper variant="totales" sx={{ position: "relative", zIndex: 1 }}>
+                {renderFilasDeCuenta(cuenta)}
+              </Paper>
+            ) : (
+              // EN COMPUTADOR, LA PIZARRA NEGRA con las cuatro casillas en
+              // fila: las mismas que muestra la factura contraída, en el mismo
+              // recuadro. Antes iban sueltas sobre el degradado verde del
+              // bloque y la cuenta cambiaba de fondo al abrir la factura.
+              renderPizarraTotales(casillasDeCuenta(cuenta, { resumida: false }))
             )}
           </Box>
 
@@ -899,32 +996,10 @@ export default function ClienteSeguimientoCard({
               y desaparecía según se plegara, y un botón que se mueve de lugar
               hay que buscarlo cada vez. */}
 
-          {/* La flecha va DENTRO del recuadro, en su esquina, igual que la de
-              cada equipo: es lo que abre y cierra esta caja, y afuera quedaba
-              flotando al lado del rótulo sin decir sobre qué actuaba.
-
-              Solo en el celular: ahí entran dos valores y los otros dos se
-              abren. En pantalla grande están los cuatro. */}
-          {esMovil && (
-            <Tooltip title={cuentaAbierta ? "Ocultar la cuenta" : "Ver la cuenta"}>
-              <IconButton
-                size="small"
-                onClick={() =>
-                  setCuentasAbiertas((previas) => ({
-                    ...previas,
-                    [factura.id]: !previas[factura.id],
-                  }))
-                }
-                sx={{ ...iconBtnSx, color: acento, flexShrink: 0 }}
-              >
-                {cuentaAbierta ? (
-                  <ExpandLessIcon fontSize="small" />
-                ) : (
-                  <ExpandMoreIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
+          {/* Acá había una flecha que abría el resto de la cuenta en celular.
+              Se fue con el rediseño: ahora el rótulo del bloque —"Estado de
+              cuenta"— es el que abre, y abierto muestra las cuatro casillas.
+              Dos flechas para la misma caja eran una de más. */}
         </Stack>
 
       </Box>
@@ -1015,7 +1090,11 @@ export default function ClienteSeguimientoCard({
         {telefonoValido && (
           <Stack
             direction="row"
-            spacing={1.5}
+            // En el celular, 24px entre uno y otro: los mismos que se les
+            // dieron a los botones de la factura, y por lo mismo —son dos
+            // botones chicos y pegados, y el dedo alcanzaba al vecino—. Con
+            // mouse no hace falta tanto.
+            spacing={esMovil ? 3 : 1.5}
             alignItems="center"
             sx={{ flexShrink: 0 }}
           >
@@ -1156,7 +1235,20 @@ export default function ClienteSeguimientoCard({
           </Stack>
 
           <Box
+            // La tarjeta ENTERA abre y cierra, igual que en la ficha del
+            // cliente: la flecha sola es más chica que el dedo. Los botones
+            // que lleva adentro frenan el toque (ver más abajo).
+            {...(esMovil
+              ? propsRenglonPlegable({
+                  abierto: !facturaPlegada(factura.id),
+                  alternar: () => togglePlegarFactura(factura.id),
+                  etiqueta: facturaPlegada(factura.id)
+                    ? "Mostrar factura"
+                    : "Ocultar factura",
+                })
+              : {})}
             sx={{
+              ...(esMovil ? sxRenglonPlegable : {}),
               position: "relative",
               bgcolor: "background.paper",
               border: "1px solid",
@@ -1240,7 +1332,11 @@ export default function ClienteSeguimientoCard({
 
                 {/* En su propio renglón, así que entra con el año completo:
                     igual que en el computador. */}
-                {plazo && esMovil && (
+                {/* CERRADA, a la izquierda solo quedan el ícono y la
+                    palabra del estado: es lo que se busca al recorrer la
+                    lista. La fecha y los días que se pasó aparecen al
+                    abrirla. */}
+                {plazo && esMovil && !facturaPlegada(factura.id) && (
                   <Typography variant="body2" fontWeight="bold">
                     {formatearFecha(plazo.fecha)}
                   </Typography>
@@ -1257,7 +1353,7 @@ export default function ClienteSeguimientoCard({
                   />
                 )}
 
-                {plazo && plazo.dias > 0 && (
+                {plazo && plazo.dias > 0 && (!esMovil || !facturaPlegada(factura.id)) && (
                   <Typography
                     variant="body2"
                     fontWeight="bold"
@@ -1279,21 +1375,13 @@ export default function ClienteSeguimientoCard({
                   siete cifras se montan entre sí, así que en ese tramo la
                   pizarra pasa a su propia fila con todo el ancho; de 1200px en
                   adelante sí entra al lado. */}
-              {!anchoCorto && facturaPlegada(factura.id) && (
-                <Box
-                  sx={{
-                    ...recuadroDeBloque(colorCuenta),
-                    flexGrow: 1,
-                    flexBasis: { md: "100%", lg: 0 },
-                    order: { md: 1, lg: 0 },
-                  }}
-                >
-                  {renderFilaDeCasillas(
-                    casillasDeCuenta(cuenta, { sobrePanel: false }),
-                    { colorDivisor: colorCuenta },
-                  )}
-                </Box>
-              )}
+              {!anchoCorto &&
+                facturaPlegada(factura.id) &&
+                renderPizarraTotales(casillasDeCuenta(cuenta), {
+                  flexGrow: 1,
+                  flexBasis: { md: "100%", lg: 0 },
+                  order: { md: 1, lg: 0 },
+                })}
 
               {/* Las acciones y el estado de la factura.
 
@@ -1317,7 +1405,22 @@ export default function ClienteSeguimientoCard({
                 // izquierda, contra el borde.
                 sx={{ flexShrink: 0, ml: "auto" }}
               >
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                {/* SOLO EN CELULAR los botones se esconden con la factura
+                    cerrada: ahí lo que se busca es a quién cobrarle y cuánto,
+                    no qué hacer con ella, y la tarjeta entera es la que abre.
+                    En computador NO pueden esconderse: la flecha que abre la
+                    factura vive en este mismo grupo, y sin ella no había
+                    manera de desplegarla.
+                    En celular van con 24px entre uno y otro —lo que hace
+                    falta para que el dedo no alcance al vecino— y el toque
+                    muere en ellos, así no pliegan la tarjeta. */}
+                {(!esMovil || !facturaPlegada(factura.id)) && (
+                <Stack
+                  direction="row"
+                  spacing={esMovil ? 3 : 0.75}
+                  alignItems="center"
+                  onClick={detenerToque}
+                >
                 {/* EL ORDEN CUENTA EL FLUJO, y no es decorativo: primero
                     el EQUIPO —devolver, o pactarle plazo— y recién después la
                     PLATA. Al revés, que es como estaba, se cobraba primero y
@@ -1379,27 +1482,30 @@ export default function ClienteSeguimientoCard({
                   </span>
                 </Tooltip>
 
-                {/* Pliega la factura y deja a la vista solo este encabezado,
-                    igual que en Detalle Cliente. */}
-                <Tooltip
-                  title={
-                    facturaPlegada(factura.id)
-                      ? "Mostrar factura"
-                      : "Ocultar factura"
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => togglePlegarFactura(factura.id)}
-                    sx={{ ...iconBtnSx, color: acento }}
+                {/* En celular la flecha sube al renglón del chip —es la
+                    señal de que la tarjeta se abre— y quien pliega es la
+                    tarjeta entera. En computador sigue siendo este botón. */}
+                {!esMovil && (
+                  <Tooltip
+                    title={
+                      facturaPlegada(factura.id)
+                        ? "Mostrar factura"
+                        : "Ocultar factura"
+                    }
                   >
-                    {facturaPlegada(factura.id) ? (
-                      <ExpandMoreIcon fontSize="small" />
-                    ) : (
-                      <ExpandLessIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => togglePlegarFactura(factura.id)}
+                      sx={{ ...iconBtnSx, color: acento }}
+                    >
+                      {facturaPlegada(factura.id) ? (
+                        <ExpandMoreIcon fontSize="small" />
+                      ) : (
+                        <ExpandLessIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                )}
 
                 {/* LA PLATA QUE SALE. Vive acá y en un solo lugar, con la
                     factura abierta o cerrada: antes saltaba al recuadro de la
@@ -1432,7 +1538,10 @@ export default function ClienteSeguimientoCard({
                 )}
 
                 </Stack>
+                )}
 
+                {/* El chip de estado y, en celular, la flecha que avisa que
+                    la tarjeta se abre. */}
                 <Stack direction="row" spacing={0.75} alignItems="center">
                 {/* La gestión vigente. No se puede cambiar a mano: la ponen
                     las acciones de arriba (llamar, ampliar, devolver). Sin
@@ -1465,21 +1574,59 @@ export default function ClienteSeguimientoCard({
                   }}
                 />
 
+                {/* Después del chip, en la esquina: igual que en la ficha del
+                    cliente, las dos cosas que dicen en qué anda la factura y
+                    cómo abrirla se leen juntas. */}
+                {esMovil &&
+                  renderFlechaPlegable(!facturaPlegada(factura.id), acento)}
+
 
                 </Stack>
               </Stack>
             </Stack>
 
-            {/* Hasta 915px la pizarra completa no entra en el hueco del
-                encabezado, así que la factura cerrada muestra debajo la
-                versión corta: total y saldo, que es lo que se busca al
-                recorrer la lista. */}
+            {/* Hasta 915px la pizarra no entra en el hueco del encabezado,
+                así que la factura cerrada la muestra debajo: cuánto es y
+                cuánto falta es lo que se busca al recorrer la lista.
+
+                ES LA MISMA PIZARRA DE LA FICHA DEL CLIENTE, con el mismo
+                trato: corta de entrada y, en el celular, un toque para ver
+                las cuatro cifras de a dos por fila. La misma factura no puede
+                mostrar su cuenta de dos maneras según la pantalla en que se
+                mire. */}
             {anchoCorto && facturaPlegada(factura.id) && (
-              <Box sx={{ mb: 1 }}>
-                <Box sx={recuadroDeBloque(colorCuenta)}>
-                  {renderFilaDeCasillas(
-                    casillasDeCuenta(cuenta, { resumida: true, sobrePanel: false }),
-                    { colorDivisor: colorCuenta },
+              // El toque muere acá: la tarjeta entera abre la factura, y sin
+              // esto tocar la pizarra para ver el resto de la cuenta la abría.
+              <Box sx={{ mb: 1 }} onClick={esMovil ? detenerToque : undefined}>
+                <Box
+                  {...(esMovil
+                    ? propsRenglonPlegable({
+                        abierto: pizarraAbierta(factura.id),
+                        alternar: () => alternarPizarra(factura.id),
+                        etiqueta: pizarraAbierta(factura.id)
+                          ? "Ocultar el resto de la cuenta"
+                          : "Ver la cuenta completa",
+                      })
+                    : {})}
+                  sx={esMovil ? sxRenglonPlegable : undefined}
+                >
+                  {renderPizarraTotales(
+                    casillasDeCuenta(cuenta, {
+                      resumida: !esMovil || !pizarraAbierta(factura.id),
+                    }),
+                    undefined,
+                    {
+                      cuadricula: esMovil && pizarraAbierta(factura.id),
+                      // La única flecha que NO va con el acento: el panel es
+                      // negro en los dos modos, y en modo claro el acento es
+                      // el azul del logo, que ahí adentro desaparece.
+                      flechaAlLado:
+                        esMovil &&
+                        renderFlechaPlegable(
+                          pizarraAbierta(factura.id),
+                          "custom.totalText",
+                        ),
+                    },
                   )}
                 </Box>
               </Box>
@@ -1582,8 +1729,17 @@ export default function ClienteSeguimientoCard({
                 su PROPIA flecha: con varias llamadas registradas la lista
                 puede ser larga y no tiene por qué ocupar toda la pantalla
                 cada vez que se abre la factura, ni en PC ni en móvil. */}
-            {!facturaPlegada(factura.id) && gestiones.length > 0 && (
-              <Box sx={{ mb: 1 }}>
+            {!facturaPlegada(factura.id) &&
+              gestiones.length > 0 &&
+              renderBloqueMovil(
+                `gestion-${factura.id}`,
+                {
+                  rotulo: `Gestión ${gestiones.length}`,
+                  Icono: HistoryIcon,
+                  color: colorGestion,
+                },
+              <Box sx={{ mb: esMovil ? 0 : 1 }}>
+                {!esMovil && (
                 <Typography
                   variant="overline"
                   sx={{
@@ -1597,6 +1753,7 @@ export default function ClienteSeguimientoCard({
                   <HistoryIcon fontSize="small" />
                   Gestión {gestiones.length}
                 </Typography>
+                )}
 
                 {/* LA ÚLTIMA, siempre. Antes la bitácora arrancaba cerrada del
                     todo y había que abrirla para saber si a este cliente ya lo
@@ -1608,7 +1765,7 @@ export default function ClienteSeguimientoCard({
                     El botón va DENTRO del recuadro, en su esquina: es lo que
                     abre y cierra esta caja, y afuera quedaba flotando al lado
                     del rótulo sin decir sobre qué actuaba. */}
-                <Box sx={{ ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
+                <Box sx={esMovil ? undefined : { ...recuadroDeBloque(colorGestion), mt: 0.5 }}>
                   {/* Igual que el botón del IVA en la ficha: la flecha arriba,
                       con el mismo estilo de icono (iconBtnSx). Lo que se centra
                       es el TEXTO, con su propio alignSelf: la flecha es más
@@ -1631,29 +1788,15 @@ export default function ClienteSeguimientoCard({
                     }
                     sx={{ flexGrow: 1, minWidth: 0, alignSelf: "center" }}
                   >
-                    {(gestionAbierta ? gestiones : gestiones.slice(-1)).map((registro, i) => (
+                    {(gestionAbierta || esMovil ? gestiones : gestiones.slice(-1)).map((registro, i) => (
                         <Stack
                           key={`gestion-${i}`}
                           direction="row"
                           spacing={1}
                           alignItems="baseline"
                           flexWrap="wrap"
-                          // Y una vertical entre CUÁNDO fue y QUÉ pasó, igual
-                          // que entre las casillas de la cuenta y las de cada
-                          // equipo. También solo en el celular.
-                          divider={
-                            esMovil ? (
-                              <Divider
-                                orientation="vertical"
-                                flexItem
-                                sx={{
-                                  my: 0.25,
-                                  borderColor: colorGestion,
-                                  opacity: 0.25,
-                                }}
-                              />
-                            ) : undefined
-                          }
+                          // Sin línea vertical entre CUÁNDO fue y QUÉ pasó:
+                          // se lee igual sin ella, como en computador.
                         >
                           {/* CUÁNDO FUE, en las dos pantallas. En el celular
                               va corto —sin el año— porque ahí el renglón pelea
@@ -1675,7 +1818,9 @@ export default function ClienteSeguimientoCard({
                       ))}
                   </Stack>
 
-                  {gestiones.length > 1 && (
+                  {/* En celular no va: el rótulo del bloque ya abre, y
+                      abierto muestra la bitácora entera. */}
+                  {!esMovil && gestiones.length > 1 && (
                     <Tooltip
                       title={
                         gestionAbierta
@@ -1698,14 +1843,30 @@ export default function ClienteSeguimientoCard({
                   )}
                   </Stack>
                 </Box>
-              </Box>
-            )}
+              </Box>,
+              )}
 
             {/* LA PLATA, apenas termina la gestión y antes de los equipos:
                 es lo que se lee mientras se habla con el cliente. Las celdas
                 SON el estado de cuenta; no llevan rótulo encima porque no
                 necesitan que un renglón anuncie lo que ya dicen. */}
-            {!facturaPlegada(factura.id) && cuadroTotales}
+            {!facturaPlegada(factura.id) &&
+              cuadroTotales &&
+              renderBloqueMovil(
+                `cuenta-${factura.id}`,
+                {
+                  rotulo: "Estado de cuenta",
+                  Icono: AccountBalanceWalletIcon,
+                  // El verde de la plata, el mismo que lleva este bloque en
+                  // la ficha del cliente: las dos pantallas muestran la misma
+                  // cuenta y tienen que verse igual.
+                  color: theme.palette.success.main,
+                  // Sin línea bajo el rótulo: lo que sigue es el panel oscuro,
+                  // que ya se separa solo.
+                  sinLinea: true,
+                },
+                cuadroTotales,
+              )}
 
             {/* Una factura puede seguir en cartera sin un solo equipo vencido:
                 le renovaron el que la trajo, o ya devolvió todo, y se queda
@@ -1727,12 +1888,31 @@ export default function ClienteSeguimientoCard({
                     reclamar hoy. Los que todavía están en fecha se ven en la
                     ficha del cliente; acá solo harían preguntarse por qué
                     aparece algo que nadie tiene que devolver todavía. */}
-                {gruposEnCartera.map((grupo) => (
+                {gruposEnCartera.map((grupo) => {
+                  // El color del semáforo del grupo, que usan el rótulo y —en
+                  // celular— el recuadro que lo envuelve.
+                  const colorGrupo =
+                    grupo.clave === "vencido"
+                      ? theme.palette.error.main
+                      : grupo.clave === "hoy"
+                        ? theme.palette.warning.main
+                        : grupo.clave === "indefinido"
+                          ? colorIndefinido
+                          : theme.palette.text.secondary;
+
+                  return renderBloqueMovil(
+                    `equipos-${factura.id}-${grupo.clave}`,
+                    {
+                      rotulo: `${grupo.titulo} ${grupo.items.length}`,
+                      Icono: grupo.clave === "vencido" ? EventBusyIcon : EventIcon,
+                      color: colorGrupo,
+                    },
                   <Box key={grupo.clave} sx={anchoDelBloque(grupo.items.length)}>
                     {/* El encabezado dice en qué situación está el grupo, así
                         cada renglón solo necesita mostrar la fecha. Mismo
                         formato que los rótulos de sección de Detalle Cliente:
                         overline con el ícono adelante. */}
+                    {!esMovil && (
                     <Typography
                       variant="overline"
                       sx={{
@@ -1764,6 +1944,7 @@ export default function ClienteSeguimientoCard({
                       )}
                       {grupo.titulo} {grupo.items.length}
                     </Typography>
+                    )}
 
                     {/* La misma separación con su rótulo que el recuadro de la
                         gestión: pegados, los tres bloques no se leían a la
@@ -1773,8 +1954,9 @@ export default function ClienteSeguimientoCard({
                         renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
                       )}
                     </Box>
-                  </Box>
-                ))}
+                  </Box>,
+                  );
+                })}
 
                 {/* ACÁ NO VA LO DEVUELTO. Esta pantalla muestra lo que hay que
                     recordar: plata por cobrar, días que corren, equipo por

@@ -11,7 +11,6 @@ import {
   DialogActions,
   Stack,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
@@ -38,6 +37,10 @@ import AbonoDialog from "./AbonoDialog";
 import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
 import BotonesCliente from "./BotonesCliente";
 import ClienteEncabezado from "./ClienteEncabezado";
+import {
+  usePantallaCompacta,
+  usePantallaBaja,
+} from "../../Utils/pantalla";
 import FacturaCard from "./FacturaCard";
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
 import { abrirCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
@@ -60,7 +63,16 @@ export default function ClienteDetalle() {
   const theme = useTheme();
   // El mismo corte que usan todas las vistas para pasar a la forma de celular:
   // hasta ahí hay pie, y ahí abajo van las acciones del cliente.
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: acostado el teléfono pasa de los 915px de ancho, y con el
+  // corte viejo el pie con los botones del cliente no se dibujaba —en
+  // computador esos botones viven dentro de la tarjeta— y quedaba sin ninguno.
+  const isFullScreen = usePantallaCompacta();
+  // EL CELULAR ACOSTADO. De alto quedan unos 390px, y entre el bloque del
+  // usuario, la tarjeta del cliente y la fila de botones no sobraba nada: la
+  // lista de facturas se quedaba sin alto y no había manera de llegar a ella.
+  // Con la pantalla así de baja, la tarjeta del cliente deja de estar fija y
+  // se desplaza junto con las facturas.
+  const altoCorto = usePantallaBaja();
   const acento = theme.palette.custom.accent;
   const [cliente, setCliente] = useState(null);
   // `facturas` son SIEMPRE las abiertas. Las cerradas viven aparte y solo
@@ -295,6 +307,19 @@ export default function ClienteDetalle() {
         minHeight: 0,
       }}
     >
+      {/* CON LA PANTALLA ALTA esto es una columna y solo la lista de abajo se
+          desplaza; con el celular acostado es una sola caja que se desplaza
+          entera, tarjeta del cliente incluida. Los botones del pie quedan
+          afuera en los dos casos: son lo único que no se va con el scroll. */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          ...(altoCorto
+            ? { overflowY: "auto" }
+            : { display: "flex", flexDirection: "column" }),
+        }}
+      >
       {/* Los botones del cliente viven arriba o abajo según el ancho: hasta
           915px la pantalla tiene pie y bajan ahí. */}
       <ClienteEncabezado
@@ -311,8 +336,14 @@ export default function ClienteDetalle() {
       />
 
       {/* De acá para abajo es lo único que se desplaza: la tarjeta del
-          cliente queda fija, fuera de este contenedor. */}
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          cliente queda fija, fuera de este contenedor. Acostado el celular no
+          manda acá el scroll —lo manda la caja de afuera— o quedarían dos
+          áreas que se desplazan, una dentro de la otra. */}
+      <Box
+        sx={
+          altoCorto ? undefined : { flex: 1, minHeight: 0, overflowY: "auto" }
+        }
+      >
       {facturasVisibles.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           {cerradasCargadas
@@ -364,6 +395,7 @@ export default function ClienteDetalle() {
           </Button>
         </Box>
       )}
+      </Box>
       </Box>
 
       {/* EL PIE, hasta 915px: las acciones del cliente ocupan el renglón que
