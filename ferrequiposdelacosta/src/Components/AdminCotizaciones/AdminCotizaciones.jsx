@@ -16,7 +16,6 @@ import {
   IconButton,
   Stack,
   Tooltip,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
@@ -34,6 +33,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -43,6 +43,7 @@ import {
   calcularStatusPrevio,
   etiquetaEstado,
 } from "../../Utils/estadoDocumento";
+import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 import {
   eliminarCotizacion,
   escucharCotizaciones,
@@ -70,10 +71,13 @@ const estadoDe = (status) => ({
 
 export default function KioskAdminCotizaciones() {
   const theme = useTheme();
-  // El mismo corte que usan las vistas para su encabezado y su pie. No sirve
-  // el "sm" de MUI (600px): un celular ACOSTADO mide 740 y tomaba los valores
-  // del computador, así que el aire de acá se agrandaba justo al girar.
-  const esCelular = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: el teléfono acostado pasa de los 915px de ancho.
+  const esCelular = usePantallaCompacta();
+  // EL CELULAR ACOSTADO. De alto quedan unos 390px, y el buscador, los filtros
+  // y el renglón del conteo se llevaban casi todo: a las solicitudes les
+  // quedaba una franja donde no cabía ni una. Con la pantalla así de baja se
+  // desplaza todo junto, filtros incluidos.
+  const altoCorto = usePantallaBaja();
   // Acento del modo: naranja en claro, amarillo en oscuro.
   const acento = theme.palette.custom.accent;
   const dispatch = useDispatch();
@@ -213,6 +217,100 @@ export default function KioskAdminCotizaciones() {
     }
   };
 
+  const buscador = (
+    <BuscadorFiltro
+      value={busqueda}
+      onChange={setBusqueda}
+      placeholder="Buscar cliente..."
+    />
+  );
+
+  const contador = (
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+    >
+      {/* En celular, solo "50 de 50": al lado izquierdo ya dice de qué lista
+          se trata, así que la palabra sobraba. En computador va sola y sí
+          necesita decir de qué son. */}
+      {cotizacionesFiltradas.length} de {todas.length}
+      {esCelular ? "" : " solicitudes"}
+    </Typography>
+  );
+
+  // Los tres filtros de tipo de cliente.
+  const chipsTipo = (
+    // En celular los tres se reparten el ancho de la pantalla: sueltos a la
+    // izquierda dejaban un hueco vacío a la derecha y cada uno medía según el
+    // largo de su palabra.
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        flexShrink: 0,
+        ...(esCelular && { "& > *": { flex: 1, minWidth: 0 } }),
+      }}
+    >
+      <Chip
+        label="Todos"
+        clickable
+        onClick={() => setFiltroTipo("todos")}
+        variant={filtroTipo === "todos" ? "filled" : "outlined"}
+        sx={
+          filtroTipo === "todos"
+            ? {
+                bgcolor: acento,
+                color: theme.palette.getContrastText(acento),
+                "&:hover": { bgcolor: acento },
+                "&.Mui-focusVisible": { bgcolor: acento },
+              }
+            : undefined
+        }
+      />
+      <Chip
+        icon={<PersonIcon />}
+        label="Personas"
+        clickable
+        onClick={() => setFiltroTipo("persona")}
+        variant={filtroTipo === "persona" ? "filled" : "outlined"}
+        sx={
+          filtroTipo === "persona"
+            ? {
+                bgcolor: acento,
+                color: theme.palette.getContrastText(acento),
+                "& .MuiChip-icon": { color: "inherit" },
+                // Conserva su color: sin esto MUI le superpone un tinte
+                // al pasar el mouse y otro mientras tiene el foco.
+                "&:hover": { bgcolor: acento },
+                "&.Mui-focusVisible": { bgcolor: acento },
+              }
+            : undefined
+        }
+      />
+      <Chip
+        icon={<BusinessIcon />}
+        label="Empresas"
+        clickable
+        onClick={() => setFiltroTipo("empresa")}
+        variant={filtroTipo === "empresa" ? "filled" : "outlined"}
+        sx={
+          filtroTipo === "empresa"
+            ? {
+                bgcolor: acento,
+                color: theme.palette.getContrastText(acento),
+                "& .MuiChip-icon": { color: "inherit" },
+                // Conserva su color: sin esto MUI le superpone un tinte
+                // al pasar el mouse y otro mientras tiene el foco.
+                "&:hover": { bgcolor: acento },
+                "&.Mui-focusVisible": { bgcolor: acento },
+              }
+            : undefined
+        }
+      />
+    </Stack>
+  );
+
   if (cargando) {
     return <LoadingLogo height="40vh" text="Cargando solicitudes..." />;
   }
@@ -220,108 +318,96 @@ export default function KioskAdminCotizaciones() {
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
+        width: "100%",
         height: "100%",
         minHeight: 0,
-        // En el celular, los mismos 12px que dejan el encabezado y el pie: con
-        // 24 el hueco entre los filtros y la primera solicitud rompía el ritmo
-        // de la pantalla. En el computador se mantiene el aire de antes.
-        gap: esCelular ? 1.5 : 2,
         backgroundColor: (theme) => theme.palette.background.default,
         transition: "background-color 0.3s ease",
+        // Acostado el celular el scroll lo manda esta caja y se desplaza todo
+        // junto, filtros incluidos: dos áreas que se desplazan, una dentro de
+        // la otra, se pelean el dedo.
+        ...(altoCorto
+          ? { overflowY: "auto" }
+          : { display: "flex", flexDirection: "column" }),
       }}
     >
-      {todas.length > 0 && (
+      {/* Sin solicitudes no hay nada que buscar ni que filtrar, pero el botón
+          de menú tiene que quedar: desde que se fue el pie, es el camino de
+          vuelta en el celular. */}
+      {todas.length === 0 && esCelular && (
         <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1.5}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          sx={{ flexShrink: 0 }}
+          direction="row"
+          justifyContent="flex-end"
+          sx={{ mb: 1.5, flexShrink: 0 }}
         >
-          <BuscadorFiltro
-            value={busqueda}
-            onChange={setBusqueda}
-            placeholder="Buscar cliente..."
-          />
-
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
-          >
-            {cotizacionesFiltradas.length} de {todas.length} solicitudes
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Chip
-              label="Todos"
-              clickable
-              onClick={() => setFiltroTipo("todos")}
-              variant={filtroTipo === "todos" ? "filled" : "outlined"}
-              sx={
-                filtroTipo === "todos"
-                  ? {
-                      bgcolor: acento,
-                      color: theme.palette.getContrastText(acento),
-                      "&:hover": { bgcolor: acento },
-                      "&.Mui-focusVisible": { bgcolor: acento },
-                    }
-                  : undefined
-              }
-            />
-            <Chip
-              icon={<PersonIcon />}
-              label="Personas"
-              clickable
-              onClick={() => setFiltroTipo("persona")}
-              variant={filtroTipo === "persona" ? "filled" : "outlined"}
-              sx={
-                filtroTipo === "persona"
-                  ? {
-                      bgcolor: acento,
-                      color: theme.palette.getContrastText(acento),
-                      "& .MuiChip-icon": { color: "inherit" },
-                      // Conserva su color: sin esto MUI le superpone un tinte
-                      // al pasar el mouse y otro mientras tiene el foco.
-                      "&:hover": { bgcolor: acento },
-                      "&.Mui-focusVisible": { bgcolor: acento },
-                    }
-                  : undefined
-              }
-            />
-            <Chip
-              icon={<BusinessIcon />}
-              label="Empresas"
-              clickable
-              onClick={() => setFiltroTipo("empresa")}
-              variant={filtroTipo === "empresa" ? "filled" : "outlined"}
-              sx={
-                filtroTipo === "empresa"
-                  ? {
-                      bgcolor: acento,
-                      color: theme.palette.getContrastText(acento),
-                      "& .MuiChip-icon": { color: "inherit" },
-                      // Conserva su color: sin esto MUI le superpone un tinte
-                      // al pasar el mouse y otro mientras tiene el foco.
-                      "&:hover": { bgcolor: acento },
-                      "&.Mui-focusVisible": { bgcolor: acento },
-                    }
-                  : undefined
-              }
-            />
-          </Stack>
+          <Tooltip title="Menú">
+            <IconButton
+              onClick={() => navigate("/adminforms")}
+              aria-label="Menú"
+              color="primary"
+            >
+              <DashboardIcon />
+            </IconButton>
+          </Tooltip>
         </Stack>
       )}
 
+      {todas.length > 0 &&
+        (esCelular ? (
+          // EN CELULAR, TRES RENGLONES: el buscador con el botón de menú al
+          // lado —que antes era un botón ancho al pie—, los filtros debajo y,
+          // al final, qué lista es y cuántas se están viendo. Antes iban los
+          // tres apilados sin orden, con el conteo en el medio.
+          <Stack spacing={1} sx={{ mb: 1.5, flexShrink: 0 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box sx={{ flex: 1, minWidth: 0 }}>{buscador}</Box>
+              <Tooltip title="Menú">
+                <IconButton
+                  onClick={() => navigate("/adminforms")}
+                  aria-label="Menú"
+                  color="primary"
+                  sx={{ flexShrink: 0 }}
+                >
+                  <DashboardIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+
+            {chipsTipo}
+
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ gap: 1 }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Lista de solicitudes
+              </Typography>
+              {contador}
+            </Stack>
+          </Stack>
+        ) : (
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            sx={{ mb: 2, flexShrink: 0 }}
+          >
+            {buscador}
+            {contador}
+            {chipsTipo}
+          </Stack>
+        ))}
+
       <Box
         sx={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
           gap: 3,
+          ...(altoCorto
+            ? undefined
+            : { flex: 1, minHeight: 0, overflowY: "auto" }),
         }}
       >
       {todas.length === 0 ? (

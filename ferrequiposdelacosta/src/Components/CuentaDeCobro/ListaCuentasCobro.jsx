@@ -18,7 +18,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -33,7 +32,9 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -80,10 +81,13 @@ const saldoDe = (cuenta) =>
 
 export default function ListaCuentasCobro() {
   const theme = useTheme();
-  // El mismo corte que usan las vistas para su encabezado y su pie. No sirve
-  // el "sm" de MUI (600px): un celular ACOSTADO mide 740 y tomaba los valores
-  // del computador, así que el aire de acá se agrandaba justo al girar.
-  const esCelular = useMediaQuery("(max-width:915px)");
+  // Angosta O baja: el teléfono acostado pasa de los 915px de ancho.
+  const esCelular = usePantallaCompacta();
+  // EL CELULAR ACOSTADO. De alto quedan unos 390px, y el buscador, los filtros
+  // y el renglón del conteo se llevaban casi todo: a las cuentas les quedaba
+  // una franja donde no cabía ni una. Con la pantalla así de baja se desplaza
+  // todo junto, filtros incluidos.
+  const altoCorto = usePantallaBaja();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const acento = theme.palette.custom.accent;
@@ -273,64 +277,142 @@ export default function ListaCuentasCobro() {
     }
   };
 
+  const buscador = (
+    <BuscadorFiltro
+      value={busqueda}
+      onChange={setBusqueda}
+      placeholder="Buscar por número, cliente, NIT o concepto"
+    />
+  );
+
+  const contador = (
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+    >
+      {/* En celular, solo "50 de 50": al lado izquierdo ya dice de qué lista
+          se trata, así que la palabra sobraba. En computador va sola y sí
+          necesita decir de qué son. */}
+      {filtradas.length} de {todas.length}
+      {esCelular ? "" : " cuentas"}
+    </Typography>
+  );
+
+  // Los tres filtros de tipo de cliente.
+  const chipsTipo = (
+    // En celular los tres se reparten el ancho de la pantalla: sueltos a la
+    // izquierda dejaban un hueco vacío a la derecha y cada uno medía según el
+    // largo de su palabra.
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        flexShrink: 0,
+        ...(esCelular && { "& > *": { flex: 1, minWidth: 0 } }),
+      }}
+    >
+      <Chip
+        label="Todos"
+        clickable
+        onClick={() => setFiltroTipo("todos")}
+        variant={filtroTipo === "todos" ? "filled" : "outlined"}
+        sx={chipActivoSx(filtroTipo === "todos")}
+      />
+      <Chip
+        icon={<PersonIcon />}
+        label="Personas"
+        clickable
+        onClick={() => setFiltroTipo("persona")}
+        variant={filtroTipo === "persona" ? "filled" : "outlined"}
+        sx={chipActivoSx(filtroTipo === "persona")}
+      />
+      <Chip
+        icon={<BusinessIcon />}
+        label="Empresas"
+        clickable
+        onClick={() => setFiltroTipo("empresa")}
+        variant={filtroTipo === "empresa" ? "filled" : "outlined"}
+        sx={chipActivoSx(filtroTipo === "empresa")}
+      />
+    </Stack>
+  );
+
   if (cargando) {
     return <LoadingLogo height="40vh" text="Cargando cuentas de cobro..." />;
   }
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        // Acostado el celular el scroll lo manda esta caja y se desplaza todo
+        // junto, filtros incluidos: dos áreas que se desplazan, una dentro de
+        // la otra, se pelean el dedo.
+        ...(altoCorto
+          ? { overflowY: "auto" }
+          : { display: "flex", flexDirection: "column" }),
+      }}
+    >
       {/* Buscador, contador y filtros por tipo: el mismo juego que Solicitudes
           de Cotización. */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1.5}
-        alignItems={{ xs: "stretch", sm: "center" }}
-        // Los mismos 12px del encabezado y el pie en el celular; en el
-        // computador, el aire de antes.
-        sx={{ flexShrink: 0, pb: esCelular ? 1.5 : 2 }}
-      >
-        <BuscadorFiltro
-          value={busqueda}
-          onChange={setBusqueda}
-          placeholder="Buscar por número, cliente, NIT o concepto"
-        />
+      {esCelular ? (
+        // EN CELULAR, TRES RENGLONES: el buscador con el botón de menú al
+        // lado —que antes era un botón ancho al pie—, los filtros debajo y,
+        // al final, qué lista es y cuántas se están viendo. Antes iban los
+        // tres apilados sin orden, con el conteo en el medio.
+        <Stack spacing={1} sx={{ pb: 1.5, flexShrink: 0 }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Box sx={{ flex: 1, minWidth: 0 }}>{buscador}</Box>
+            <Tooltip title="Menú">
+              <IconButton
+                onClick={() => navigate("/adminforms")}
+                aria-label="Menú"
+                color="primary"
+                sx={{ flexShrink: 0 }}
+              >
+                <DashboardIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
-        >
-          {filtradas.length} de {todas.length} cuentas
-        </Typography>
+          {chipsTipo}
 
-        <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-          <Chip
-            label="Todos"
-            clickable
-            onClick={() => setFiltroTipo("todos")}
-            variant={filtroTipo === "todos" ? "filled" : "outlined"}
-            sx={chipActivoSx(filtroTipo === "todos")}
-          />
-          <Chip
-            icon={<PersonIcon />}
-            label="Personas"
-            clickable
-            onClick={() => setFiltroTipo("persona")}
-            variant={filtroTipo === "persona" ? "filled" : "outlined"}
-            sx={chipActivoSx(filtroTipo === "persona")}
-          />
-          <Chip
-            icon={<BusinessIcon />}
-            label="Empresas"
-            clickable
-            onClick={() => setFiltroTipo("empresa")}
-            variant={filtroTipo === "empresa" ? "filled" : "outlined"}
-            sx={chipActivoSx(filtroTipo === "empresa")}
-          />
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ gap: 1 }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Lista de cuentas
+            </Typography>
+            {contador}
+          </Stack>
         </Stack>
-      </Stack>
+      ) : (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
+          sx={{ flexShrink: 0, pb: 2 }}
+        >
+          {buscador}
+          {contador}
+          {chipsTipo}
+        </Stack>
+      )}
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.5 }}>
+      <Box
+        sx={{
+          pr: 0.5,
+          ...(altoCorto
+            ? undefined
+            : { flex: 1, minHeight: 0, overflowY: "auto" }),
+        }}
+      >
         {filtradas.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: "center", py: 6 }}>
             {todas.length === 0
