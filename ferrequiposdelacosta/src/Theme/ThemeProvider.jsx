@@ -545,6 +545,11 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usan en: ClienteDetalle.
           seccionPago: "#22C55E", // verde
           seccionEquipos: "#3B82F6", // azul
+          // El DESPACHO completo —el de alta—, que en el celular envuelve al
+          // pago, a los equipos y a los cargos. Cian porque es el único tono
+          // que no estaba tomado: con el azul de los equipos que lleva
+          // adentro quedaban dos marcos del mismo color, uno dentro del otro.
+          seccionDespacho: "#06B6D4", // cian
           seccionEquiposAgregados: "#A855F7", // violeta
           seccionAdicionales: "#F97316", // naranja
           // Un equipo que YA VOLVIO. Va en gris azulado y no en verde: el
@@ -608,6 +613,13 @@ export const CustomThemeProvider = ({ children }) => {
       // Cuadrado y no píldora a propósito: en esta pantalla los estados de
       // EQUIPO se ven así, y los de factura llevan la píldora. Son dos escalas
       // distintas y la forma ayuda a no confundirlas.
+      // EL CELULAR ANGOSTO: de 360px para abajo. No es un breakpoint más de
+      // MUI porque no reacomoda nada —lo que hace es apretar los bordes—: en
+      // una pantalla de 320px, la tarjeta de una factura y los dos recuadros
+      // que lleva adentro se comían 80px de los 320 solo en márgenes, y el
+      // contenido quedaba con menos de la mitad del ancho real.
+      pantallaAngosta: "@media (max-width:359.95px)",
+
       rotuloEstado: {
         display: "block",
         px: 0.75,

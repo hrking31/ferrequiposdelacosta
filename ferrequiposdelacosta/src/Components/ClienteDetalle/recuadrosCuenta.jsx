@@ -17,6 +17,11 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
 import daviplataLogo from "../../assets/mediosPago/daviplata.png";
+import {
+  calcularEstadoEquipo,
+  ESTADO_EQUIPO_INFO,
+  ROTULO_ESTADO_MAS_LARGO,
+} from "./facturaUtils";
 import { formatearMonedaOVacio } from "../../Utils/formato";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
@@ -89,8 +94,11 @@ export const renderMedioPago = (medio) => {
 export const renderRecuadroBloque = (color, contenido, key) => (
   <Box
     key={key}
-    sx={{
+    sx={(theme) => ({
       p: 1.5,
+      // En el celular angosto los bordes se aprietan a la mitad: el aire que
+      // sobra a los lados le hace falta al contenido.
+      [theme.pantallaAngosta]: { px: 0.75 },
       borderRadius: 1,
       bgcolor: "background.paper",
       border: "1px solid",
@@ -115,7 +123,7 @@ export const renderRecuadroBloque = (color, contenido, key) => (
         background: `linear-gradient(135deg, ${alpha(color, 0.16)}, ${alpha(color, 0.04)})`,
         pointerEvents: "none",
       },
-    }}
+    })}
   >
     {contenido}
   </Box>
@@ -140,8 +148,28 @@ export const renderFilaDatos = (color, datos) => (
       />
     }
   >
-    {datos.map(({ clave, rotulo, valor, contenido, Icono, colorIcono }) => (
-      <Box key={clave} sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 } }}>
+    {datos.map(
+      ({
+        clave,
+        rotulo,
+        valor,
+        contenido,
+        Icono,
+        colorIcono,
+        // Una casilla puede ser la que abre algo —la del IVA abre su
+        // desglose—: ahí recibe las props del renglón tocable y su estilo,
+        // para que se toque ELLA y no el bloque entero.
+        props: propsCasilla,
+        sxCasilla,
+        // Algo que acompaña al rótulo a su derecha, como la flecha que avisa
+        // que esa casilla abre un detalle.
+        rotuloExtra,
+      }) => (
+      <Box
+        key={clave}
+        {...(propsCasilla || {})}
+        sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 }, ...(sxCasilla || {}) }}
+      >
         {/* El rótulo lleva el color del bloque; el valor va en el color
             normal del texto, que es donde se lee la cifra.
 
@@ -177,10 +205,12 @@ export const renderFilaDatos = (color, datos) => (
             </Box>
           )}
           {rotulo}
+          {rotuloExtra}
         </Typography>
         {contenido || <Typography variant="valorDato">{valor}</Typography>}
       </Box>
-    ))}
+      ),
+    )}
   </Stack>
 );
 
@@ -229,6 +259,132 @@ export const sxRenglonPlegable = {
   userSelect: "none",
   // Quita el destello gris que Chrome de Android pinta sobre lo que se toca.
   WebkitTapHighlightColor: "transparent",
+};
+
+// LA CUENTA EN RENGLONES, dentro del panel oscuro: el rótulo a la izquierda,
+// la cifra a la derecha y cada concepto en su color —el total en ámbar, lo
+// que entró en verde y azul, lo que falta en rojo—. Las clases ("fila",
+// "fila total"…) las pinta el tema, en la variante "totales" del Paper.
+//
+// Es la forma en que la ficha del cliente muestra su estado de cuenta, y se
+// sacó acá para que Seguimiento muestre la misma cuenta de la misma manera.
+// La ficha agrega sobre esto sus propios renglones —el depósito devuelto, lo
+// entregado— y el botón de devolver el saldo a favor.
+export const renderFilasDeCuenta = (cuenta) => (
+  <>
+    <Box className="fila total">
+      <Typography variant="subtitle1" fontWeight="bold">
+        Total factura
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="bold">
+        {formatearMonedaOVacio(cuenta.totalFacturado ?? cuenta.total)}
+      </Typography>
+    </Box>
+
+    {cuenta.pagado > 0 && (
+      <Box className="fila pagado">
+        <Typography variant="body2">Pagado</Typography>
+        <Typography variant="body2">
+          {formatearMonedaOVacio(cuenta.pagado)}
+        </Typography>
+      </Box>
+    )}
+
+    {cuenta.abonos > 0 && (
+      <Box className="fila abono">
+        <Typography variant="body2">Abonos</Typography>
+        <Typography variant="body2">
+          {formatearMonedaOVacio(cuenta.abonos)}
+        </Typography>
+      </Box>
+    )}
+
+    {cuenta.saldoAFavor > 0 ? (
+      <Box className="fila ok" sx={{ mt: 1, mb: 0 }}>
+        <Typography variant="body2" fontWeight="bold">
+          Saldo a favor
+        </Typography>
+        <Typography variant="body2" fontWeight="bold">
+          {formatearMonedaOVacio(cuenta.saldoAFavor)}
+        </Typography>
+      </Box>
+    ) : (
+      <Box
+        className={cuenta.saldoPendiente > 0 ? "fila alerta" : "fila ok"}
+        sx={{ mt: 1, mb: 0 }}
+      >
+        <Typography variant="body2" fontWeight="bold">
+          Saldo pendiente
+        </Typography>
+        <Typography variant="body2" fontWeight="bold">
+          {formatearMonedaOVacio(cuenta.saldoPendiente)}
+        </Typography>
+      </Box>
+    )}
+  </>
+);
+
+// EL MISMO CONTENIDO, SIN MARCO. Cuando el bloque ya va dentro de un recuadro
+// —en el celular cada parte de la factura tiene el suyo—, el recuadro de
+// adentro es un marco dentro de otro marco: dos bordes a 12px de distancia que
+// no separan nada. Se cambia por una línea del color del bloque, que es lo
+// único que hacía falta: cortar entre el rótulo y lo que cuenta.
+//
+// `sinLinea` para lo que ya trae su propio borde —el panel oscuro de los
+// totales, que es una caja negra maciza—: ahí la línea queda pegada al canto
+// del panel y se lee como un error de dibujo, no como una separación.
+export const renderContenidoPlano = (color, contenido, { sinLinea } = {}) => (
+  <Box
+    sx={{
+      mt: 0.75,
+      ...(sinLinea
+        ? null
+        : {
+            pt: 0.75,
+            borderTop: "1px solid",
+            borderColor: alpha(color, 0.4),
+          }),
+    }}
+  >
+    {contenido}
+  </Box>
+);
+
+// EL RÓTULO DE ESTADO, para que lo pueda dibujar quien encabeza al equipo.
+// En celular no va dentro de la tarjeta sino al lado del rótulo del bloque, y
+// tiene que verse igual en los dos lugares: mismo molde del tema, mismo color
+// por estado.
+export const renderRotuloEstadoEquipo = (equipo, theme) => {
+  const estado = calcularEstadoEquipo(equipo);
+  const colorEstado =
+    theme.palette.custom.estadoEquipo[estado] ??
+    theme.palette.custom.estadoNeutro;
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        ...theme.rotuloEstado,
+        borderColor: colorEstado,
+        bgcolor: alpha(colorEstado, 0.12),
+        color: colorEstado,
+        // Todos los rótulos miden lo mismo —el ancho del más largo, escrito
+        // en un pseudo-elemento sin alto—, que es la regla del tema para los
+        // chips de estado: son listas, y con el ancho al gusto de cada texto
+        // los bordes quedan en diagonal. Es CSS, no texto del documento, así
+        // que no se lee ni aparece dos veces en una búsqueda.
+        "&::after": {
+          content: `"${ROTULO_ESTADO_MAS_LARGO}"`,
+          display: "block",
+          height: 0,
+          overflow: "hidden",
+          visibility: "hidden",
+        },
+      }}
+    >
+      {ESTADO_EQUIPO_INFO[estado]?.label ?? ""}
+    </Box>
+  );
 };
 
 // Para lo que queda DENTRO del renglón tocable pero ya desplegado: el toque
@@ -452,6 +608,12 @@ export const renderPizarraTotales = (casillas, sx, opciones = {}) => (
       py: 1.25,
       px: 1.5,
       mt: 0,
+      // POR ENCIMA del recuadro que lo contenga. Los recuadros de bloque
+      // pintan un degradado de su color sobre todo lo que llevan adentro, y
+      // este panel es negro opaco: el degradado se le montaba encima y le
+      // cambiaba el negro por un tinte del color del bloque.
+      position: "relative",
+      zIndex: 1,
       // Reemplaza la sombra difusa de la variante por el relieve: luz arriba,
       // sombra abajo.
       boxShadow: (theme) => theme.palette.custom.panelRelieve,

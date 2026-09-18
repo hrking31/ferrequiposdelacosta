@@ -104,7 +104,7 @@ const Separador = () => (
   </Typography>
 );
 
-export default function EquipoRow({ equipo, color }) {
+export default function EquipoRow({ equipo, color, plano = false }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // La historia arranca plegada: de un equipo se quiere ver primero la lista
@@ -153,6 +153,61 @@ export default function EquipoRow({ equipo, color }) {
     : color;
 
 
+  // LAS CONDICIONES DEL ALQUILER. En celular van en su propio renglón, debajo
+  // del nombre y del precio, y ahí aprovechan también el ancho que queda bajo
+  // la cifra: apretadas en media tarjeta se partían en cuatro líneas.
+  // Son las tres cosas que se preguntan de un equipo sin abrir nada: por
+  // cuántos días va, a cuánto el día y hasta cuándo. Acá vivían los chips de
+  // fechas, los mismos que usa Seguimiento: contaban el estado de hoy —vencía
+  // tal día, +5 días, 2 vencidos— pero no CUÁNDO pasó cada cosa, y la entrega
+  // indefinida desaparecía al renovar el plazo. Esa historia se cuenta abajo,
+  // hito por hito.
+  const condiciones = (
+    <Stack
+      direction="row"
+      flexWrap="wrap"
+      alignItems="center"
+      sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
+    >
+      {/* CUÁNDO SALIÓ, que abre la línea: el camión lo distingue de la
+        fecha del final, que es cuándo vuelve. */}
+    {equipo.fechaDespacho && (
+      <>
+        <Condicion
+          Icono={LocalShippingIcon}
+          texto={formatearFecha(equipo.fechaDespacho)}
+        />
+        <Separador />
+      </>
+    )}
+      <Condicion
+        Icono={ScheduleIcon}
+        texto={formatearDias(cuentaEquipo.dias)}
+      />
+      <Separador />
+      <Condicion
+        Icono={MonetizationOnIcon}
+        texto={`${formatearMoneda(Number(equipo.valorDia) || 0)}/día`}
+      />
+      <Separador />
+      <Condicion
+        Icono={EventIcon}
+        // HASTA CUÁNDO. El que ya volvió muestra el día en que volvió,
+        // no el que tenía pactado: esa fecha dejó de valer cuando el
+        // equipo entró a bodega, y dejarla puesta decía que seguía
+        // afuera hasta entonces. Cuándo vencía —y si se pasó— se lee
+        // en su historia.
+        texto={
+          devuelto && equipo.devolucion?.fechaDevolucion
+            ? formatearFecha(equipo.devolucion.fechaDevolucion)
+            : sinFechaDeEntrega(equipo)
+              ? "Sin fecha de entrega"
+              : formatearFecha(cubiertoHasta(equipo))
+        }
+      />
+    </Stack>
+  );
+
   return (
     <Box
       // En celular la tarjeta entera abre y cierra la historia del equipo:
@@ -169,26 +224,33 @@ export default function EquipoRow({ equipo, color }) {
         : {})}
       sx={{
         ...(esMovil ? sxRenglonPlegable : {}),
-        p: 1,
-        borderRadius: 1,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        // Mismo tratamiento que el recuadro de pago. El BORDE se queda
-        // siempre con el color del lote: es lo que ata la tarjeta a su grupo,
-        // y si también se volviera verde la devuelta parecería de otro lote.
-        // Lo que cambia es el relleno (ver colorEquipo, abajo).
-        borderColor: color,
-        boxShadow: `inset 0 0 12px ${alpha(colorEquipo, 0.2)}`,
-        position: "relative",
-        overflow: "hidden",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          background: `linear-gradient(135deg, ${alpha(colorEquipo, 0.12)}, ${alpha(colorEquipo, 0.03)})`,
-          pointerEvents: "none",
-        },
+        // "Plano" es sin marco propio: en el celular cada equipo ya va detrás
+        // de su rótulo "Equipo 1", con una línea que lo separa, así que el
+        // recuadro sería un marco dentro de otro.
+        ...(plano
+          ? { p: 0 }
+          : {
+              p: 1,
+              borderRadius: 1,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              // Mismo tratamiento que el recuadro de pago. El BORDE se queda
+              // siempre con el color del lote: es lo que ata la tarjeta a su
+              // grupo, y si también se volviera verde la devuelta parecería
+              // de otro lote. Lo que cambia es el relleno (ver colorEquipo).
+              borderColor: color,
+              boxShadow: `inset 0 0 12px ${alpha(colorEquipo, 0.2)}`,
+              position: "relative",
+              overflow: "hidden",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                borderRadius: "inherit",
+                background: `linear-gradient(135deg, ${alpha(colorEquipo, 0.12)}, ${alpha(colorEquipo, 0.03)})`,
+                pointerEvents: "none",
+              },
+            }),
       }}
     >
       {/* LAS DOS COLUMNAS. Antes las cifras vivían dentro de la fila del
@@ -206,7 +268,11 @@ export default function EquipoRow({ equipo, color }) {
         gap={CALIBRE.separacionColumnas}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" alignItems="center" gap={1}>
+          {/* Arriba, no al centro: al lado del chip va una columna entera
+              —nombre, días, precio y fecha—, y centrado el número quedaba a
+              la altura de la fecha, como si la contara a ella. Alineado
+              arriba acompaña al nombre, que es lo que cuenta. */}
+          <Stack direction="row" alignItems="flex-start" gap={1}>
             <Chip
               variant="meta"
               label={equipo.cantidadEquipos}
@@ -214,8 +280,10 @@ export default function EquipoRow({ equipo, color }) {
               sx={{
                 fontWeight: "bold",
                 flexShrink: 0,
-                height: 34,
-                fontSize: "0.9rem",
+                // El alto y el tamaño de letra los pone la variante "meta"
+                // del tema (22px / 0.7rem). Acá estaban escritos a mano en 34
+                // y 0.9rem, que competían con el nombre y empujaban la fila
+                // entera; se sacaron para que mande el tema.
                 // Antes era amarillo fijo, que en modo claro quedaba casi
                 // invisible sobre el chip. Es letra chica, así que va el
                 // acento en su versión oscura.
@@ -235,58 +303,7 @@ export default function EquipoRow({ equipo, color }) {
                   como la fecha en que el equipo entró a la factura. Vive en su
                   historia, en el hito de la devolución, que la muestra con su
                   día a la izquierda como todos los demás hechos. */}
-            {/* LAS CONDICIONES DEL ALQUILER, que son las tres cosas que se
-                preguntan de un equipo sin abrir nada: por cuántos días va, a
-                cuánto el día y hasta cuándo.
-
-                Acá vivían los chips de fechas, los mismos que usa Seguimiento.
-                Contaban el estado de hoy —vencía tal día, +5 días, 2 vencidos—
-                encadenados con flechas, pero no CUÁNDO pasó cada cosa, y la
-                entrega indefinida desaparecía al renovar el plazo. Esa historia
-                se cuenta abajo, hito por hito. */}
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              alignItems="center"
-              sx={{ gap: 0.5, color: "text.secondary", mt: 0.25 }}
-            >
-              {/* CUÁNDO SALIÓ, que abre la línea: el camión lo distingue de la
-                fecha del final, que es cuándo vuelve. */}
-            {equipo.fechaDespacho && (
-              <>
-                <Condicion
-                  Icono={LocalShippingIcon}
-                  texto={formatearFecha(equipo.fechaDespacho)}
-                />
-                <Separador />
-              </>
-            )}
-              <Condicion
-                Icono={ScheduleIcon}
-                texto={formatearDias(cuentaEquipo.dias)}
-              />
-              <Separador />
-              <Condicion
-                Icono={MonetizationOnIcon}
-                texto={`${formatearMoneda(Number(equipo.valorDia) || 0)}/día`}
-              />
-              <Separador />
-              <Condicion
-                Icono={EventIcon}
-                // HASTA CUÁNDO. El que ya volvió muestra el día en que volvió,
-                // no el que tenía pactado: esa fecha dejó de valer cuando el
-                // equipo entró a bodega, y dejarla puesta decía que seguía
-                // afuera hasta entonces. Cuándo vencía —y si se pasó— se lee
-                // en su historia.
-                texto={
-                  devuelto && equipo.devolucion?.fechaDevolucion
-                    ? formatearFecha(equipo.devolucion.fechaDevolucion)
-                    : sinFechaDeEntrega(equipo)
-                      ? "Sin fecha de entrega"
-                      : formatearFecha(cubiertoHasta(equipo))
-                }
-              />
-            </Stack>
+              {!esMovil && condiciones}
             </Box>
           </Stack>
         </Box>
@@ -316,9 +333,14 @@ export default function EquipoRow({ equipo, color }) {
             gap: CALIBRE.espacioEntreCifras,
           }}
         >
-          <Box component="span" sx={{ ...rotuloSx, mb: 0.25 }}>
-            {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
-          </Box>
+          {/* En celular el estado sube al rótulo del bloque —"Equipo 1 ·
+              Devuelto"—, así se sabe qué pasó con él sin abrirlo. Acá dentro
+              sería decirlo dos veces. */}
+          {!esMovil && (
+            <Box component="span" sx={{ ...rotuloSx, mb: 0.25 }}>
+              {ESTADO_EQUIPO_INFO[estadoEquipo]?.label ?? ""}
+            </Box>
+          )}
           {/* UN solo número: lo que vale el equipo entero, que es la cuenta
               que la app ya hace de cada línea —sus días por el valor del día,
               menos los descuentos—.
@@ -361,6 +383,11 @@ export default function EquipoRow({ equipo, color }) {
         )}
       </Stack>
 
+      {/* En celular, debajo de la fila del nombre y el precio: así usan el
+          ancho completo de la tarjeta —incluido el que queda bajo la cifra—
+          en vez de amontonarse en la mitad izquierda. */}
+      {esMovil && condiciones}
+
       {/* La historia completa, plegada: son hasta nueve renglones por equipo y
           una factura con cinco equipos no se podría recorrer. Va debajo de las
           dos columnas y no dentro de la del nombre, para que su línea cruce la
@@ -379,4 +406,5 @@ export default function EquipoRow({ equipo, color }) {
 EquipoRow.propTypes = {
   equipo: PropTypes.object.isRequired,
   color: PropTypes.string.isRequired,
+  plano: PropTypes.bool,
 };

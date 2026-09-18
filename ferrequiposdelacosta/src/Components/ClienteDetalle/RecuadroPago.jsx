@@ -20,6 +20,7 @@ import { Fragment } from "react";
 import {
   renderFilaDatos,
   renderMedioPago,
+  renderContenidoPlano,
   renderRecuadroBloque,
 } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número, y la fecha
@@ -48,6 +49,10 @@ export default function RecuadroPago({
   // que es el del alta de la factura; cada lote de equipos agregado despues
   // pasa "Tipo de pago", porque ahi ya no hay nada de inicial (ver abajo).
   rotuloTipoPago = "Pago inicial",
+  // Sin su propio marco: cuando ya va DENTRO de un recuadro —el celular mete
+  // cada bloque en uno—, dibujar otro adentro es un marco dentro de otro. En
+  // su lugar, una línea que lo separa del rótulo de arriba.
+  plano = false,
 }) {
   const theme = useTheme();
   // Cada ícono con su color, sacado del tema: azul el tiempo, verde la plata
@@ -151,6 +156,8 @@ export default function RecuadroPago({
     });
   }
 
+  if (plano) return renderContenidoPlano(color, renderFilaDatos(color, datos));
+
   return renderRecuadroBloque(color, renderFilaDatos(color, datos));
 }
 
@@ -160,6 +167,7 @@ RecuadroPago.propTypes = {
   fecha: PropTypes.string,
   color: PropTypes.string.isRequired,
   rotuloTipoPago: PropTypes.string,
+  plano: PropTypes.bool,
 };
 
 // DE DÓNDE SALIÓ ESTA PLATA. Todo abono entra por el mismo nodo, venga de
@@ -193,7 +201,7 @@ const origenDelAbono = (abono) => {
 };
 
 // Los abonos que se registraron después de emitida la factura.
-export function ListaAbonos({ abonos, color }) {
+export function ListaAbonos({ abonos, color, plano = false }) {
   const theme = useTheme();
   // Los mismos colores que el recuadro de pago: un abono es plata que entró.
   const colores = {
@@ -248,10 +256,13 @@ export function ListaAbonos({ abonos, color }) {
     </Stack>
   );
 
+  if (plano) return renderContenidoPlano(color, renglones);
+
   return renderRecuadroBloque(color, renglones);
 }
 
 ListaAbonos.propTypes = {
   abonos: PropTypes.array,
   color: PropTypes.string.isRequired,
+  plano: PropTypes.bool,
 };

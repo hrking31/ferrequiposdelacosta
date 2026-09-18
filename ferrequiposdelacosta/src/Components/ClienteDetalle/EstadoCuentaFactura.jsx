@@ -19,6 +19,10 @@ import {
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import PercentIcon from "@mui/icons-material/Percent";
+import SavingsIcon from "@mui/icons-material/Savings";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import {
   calcularDepositoTotal,
   depositoPendiente,
@@ -28,6 +32,8 @@ import {
 } from "./facturaUtils";
 import {
   propsRenglonPlegable,
+  renderContenidoPlano,
+  renderRecuadroBloque,
   renderFlechaPlegable,
   sxRenglonPlegable,
 } from "./recuadrosCuenta";
@@ -43,6 +49,9 @@ export default function EstadoCuentaFactura({
   facturaEstado,
   abierto,
   onToggle,
+  // El panel oscuro tiene su propio plegado, aparte del de los renglones.
+  estadoAbierto,
+  onToggleEstado,
   onDevolverSaldo,
 }) {
   const theme = useTheme();
@@ -98,34 +107,47 @@ export default function EstadoCuentaFactura({
   // Se separan en dos grupos (izquierda: subtotal/iva, derecha:
   // depósito/transporte) para poder acomodarlos en 2 columnas
   // prolijas en móvil, en vez de dejarlos ajustar solos.
+  // Cada renglón con el ícono que ya lo representa en el resto de la ficha:
+  // los equipos lo que se alquiló, el porcentaje el IVA, la alcancía el
+  // depósito —plata guardada, no cobrada— y el camión el flete. Van del color
+  // del bloque, como su rótulo.
+  const renglonTotal = (clave, Icono, rotulo, valor) => (
+    <Stack key={clave} direction="row" alignItems="center" spacing={0.75}>
+      <Icono fontSize="small" sx={{ color: acento, flexShrink: 0 }} />
+      <Typography variant="body2">
+        {rotulo} {valor}
+      </Typography>
+    </Stack>
+  );
+
   const lineasTotalesIzq = [];
   const lineasTotalesDer = [];
   if (subtotal) {
     lineasTotalesIzq.push(
-      <Typography key="subtotal" variant="body2">
-        Subtotal {subtotal}
-      </Typography>,
+      renglonTotal("subtotal", ConstructionIcon, "Subtotal", subtotal),
     );
   }
   if (iva) {
-    lineasTotalesIzq.push(
-      <Typography key="iva" variant="body2">
-        IVA (19%) {iva}
-      </Typography>,
-    );
+    lineasTotalesIzq.push(renglonTotal("iva", PercentIcon, "IVA (19%)", iva));
   }
   if (depositoTotalFactura > 0) {
     lineasTotalesDer.push(
-      <Typography key="deposito" variant="body2">
-        Depósito {formatearMoneda(depositoTotalFactura)}
-      </Typography>,
+      renglonTotal(
+        "deposito",
+        SavingsIcon,
+        "Depósito",
+        formatearMoneda(depositoTotalFactura),
+      ),
     );
   }
   if (transporteTotalFactura > 0) {
     lineasTotalesDer.push(
-      <Typography key="transporte" variant="body2">
-        Transporte {formatearMoneda(transporteTotalFactura)}
-      </Typography>,
+      renglonTotal(
+        "transporte",
+        LocalShippingIcon,
+        "Transporte",
+        formatearMoneda(transporteTotalFactura),
+      ),
     );
   }
   const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
@@ -135,15 +157,259 @@ export default function EstadoCuentaFactura({
 
   if (lineasTotales.length === 0 && !valorTotal) return null;
 
-  return (
+  // El panel oscuro con la cuenta. En celular es un bloque aparte —queda
+  // SIEMPRE a la vista, debajo de todo—; en computador va al lado de los
+  // renglones que lo explican, dentro del mismo bloque.
+  // Es la misma pizarra de totales que usa Seguimiento: el aspecto y los
+  // colores salen del tema, así los dos lugares se ven igual. El rótulo y la
+  // pizarra van juntos —sueltos, cada ancho de pantalla los acomodaba en un
+  // lugar distinto—.
+  const bloqueEstadoCuenta = (
     <Box
       sx={{
-        mt: 1.5,
-        pt: 1.5,
-        borderTop: "1px solid",
-        borderColor: "divider",
+        width: { xs: "100%", sm: "auto" },
+        // Pegado a la derecha aunque baje de línea: cuando
+        // la factura tiene depósito y transporte, esa fila
+        // se llena y el recuadro pasa al renglón de abajo,
+        // donde quedaba solo y se iba a la izquierda.
+        ml: { sm: "auto" },
       }}
     >
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        {...(esMovil
+          ? propsRenglonPlegable({
+              abierto: estadoAbierto,
+              alternar: onToggleEstado,
+              etiqueta: "Estado de cuenta",
+            })
+          : {})}
+        sx={esMovil ? sxRenglonPlegable : undefined}
+      >
+        <Typography
+          variant="overline"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            lineHeight: 1.6,
+            // El verde de la plata, no el acento: el acento ya lo lleva
+            // "Total factura", que es el bloque de al lado, y dos bloques
+            // seguidos del mismo color se leen como uno solo.
+            color: "success.main",
+          }}
+        >
+          <AccountBalanceWalletIcon fontSize="small" />
+          Estado de cuenta
+        </Typography>
+        {esMovil && renderFlechaPlegable(estadoAbierto, acento)}
+      </Stack>
+      {(!esMovil || estadoAbierto) && (
+      <Paper
+        variant="totales"
+        sx={{
+          // POR ENCIMA del recuadro que lo contiene. El recuadro de bloque
+          // pinta un degradado de su color sobre todo lo que tiene adentro, y
+          // acá adentro hay un panel negro opaco: el degradado se le montaba
+          // encima y le cambiaba el negro. El resto de los bloques no lo nota
+          // porque son del color de la tarjeta.
+          position: "relative",
+          zIndex: 1,
+          // La misma separación con su rótulo que el resto de los
+          // bloques de la tarjeta: sin ella quedaba pegado.
+          mt: 0.5,
+          width: { xs: "100%", sm: "auto" },
+          minWidth: { sm: 240 },
+        }}
+      >
+        {valorTotal && (
+          <Box className="fila total">
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+            >
+              Total factura
+            </Typography>
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+            >
+              {valorTotal}
+            </Typography>
+          </Box>
+        )}
+        {/* Lo que el cliente entregó. Se calla únicamente
+          cuando pagó el total exacto de una sola vez, que
+          es cuando repetiría la cifra de arriba. */}
+        {!cuentaCerroClavada && (
+          <Box className="fila pagado">
+            <Typography variant="body2">Pagado</Typography>
+            <Typography variant="body2">
+              {formatearMoneda(totalPagadoFactura)}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Solo el total de lo abonado: el detalle de cada
+          abono, con su fecha y su medio, va arriba en su
+          propia información de pago. */}
+        {totalAbonos > 0 && (
+          <Box className="fila abono">
+            <Typography variant="body2">Abonos</Typography>
+            <Typography variant="body2">
+              {formatearMoneda(totalAbonos)}
+            </Typography>
+          </Box>
+        )}
+
+        {/* LA GARANTÍA QUE VOLVIÓ. Es el renglón que explica por qué
+          un cliente que pagó menos que el total termina con plata a
+          favor: el depósito se le factura y, cuando devuelve el equipo,
+          se le acredita. Primero cubre lo que faltaba de la factura, y
+          lo que sobra es lo que hay que devolverle.
+
+          Estaba escrito desde el principio pero nunca se dibujó: la
+          cuenta no traía este dato, así que la condición era siempre
+          falsa. */}
+        {cuenta.depositoDevuelto > 0 && (
+          <Box className="fila abono">
+            {/* "Depósito" a secas: el renglón está entre los que bajan
+                la cuenta, así que ya se lee como plata que juega a
+                favor del cliente. "Devuelto" además sonaba a que ya
+                salió por caja, cuando puede seguir acá, esperando que
+                alguien se la entregue. */}
+            <Typography variant="body2">
+              Depósito
+            </Typography>
+            <Typography variant="body2">
+              {formatearMoneda(cuenta.depositoDevuelto)}
+            </Typography>
+          </Box>
+        )}
+
+        {cuenta.entregas > 0 && (
+          <Box className="fila">
+            <Typography variant="body2">
+              Entregado al cliente
+            </Typography>
+            <Typography variant="body2">
+              {formatearMoneda(cuenta.entregas)}
+            </Typography>
+          </Box>
+        )}
+
+        {/* A DÓNDE FUE ESA PLATA, debajo del renglón que dice cuánto
+            salió. Sin esta línea, una salida que NO se le entregó al
+            cliente —la que se cruzó contra otra factura suya— se leería
+            como plata que se le devolvió en mano. */}
+        {entregasDe(factura)
+          .filter((entrega) => entrega?.nota)
+          .map((entrega, indice) => (
+            <Typography
+              key={`${entrega.fecha}-${indice}`}
+              variant="caption"
+              sx={{ display: "block", opacity: 0.85, mt: 0.25 }}
+            >
+              {entrega.nota}
+            </Typography>
+          ))}
+
+        {/* Retener plata sin decir por qué no se puede,
+          así que el motivo siempre está a la vista. */}
+        {Number(datos.depositoResuelto?.retenido) > 0 && (
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 0.5,
+              color: "text.secondary",
+            }}
+          >
+            Se retuvieron{" "}
+            {formatearMoneda(
+              datos.depositoResuelto.retenido,
+            )}{" "}
+            del depósito: {datos.depositoResuelto.motivo}
+          </Typography>
+        )}
+
+        {/* Si el cliente pagó de más, el sobrante queda a
+          su favor en vez de mostrarse como saldo. */}
+        {saldoAFavorNumero > 0 ? (
+          <Box className="fila ok" sx={{ mt: 1, mb: 0 }}>
+            <Typography variant="body2" fontWeight="bold">
+              Saldo a favor
+            </Typography>
+            <Typography variant="body2" fontWeight="bold">
+              {formatearMoneda(saldoAFavorNumero)}
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            className={
+              hayColorAlerta ? "fila alerta" : "fila ok"
+            }
+            sx={{ mt: 1, mb: 0 }}
+          >
+            <Typography variant="body2" fontWeight="bold">
+              Saldo pendiente
+            </Typography>
+            <Typography variant="body2" fontWeight="bold">
+              {saldoPendiente}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Plata de la empresa hacia el cliente. Va con
+            botón y no como un dato más: mientras no se
+            entregue, la factura no puede terminar, así
+            que hay que verlo y poder resolverlo acá
+            mismo. */}
+        {saldoAFavorNumero > 0 && (
+          <Button
+            fullWidth
+            variant="contained"
+            color="warning"
+            startIcon={<CurrencyExchangeIcon />}
+            sx={{ mt: 1.5 }}
+            onClick={() => onDevolverSaldo(factura)}
+          >
+            Devolver {formatearMoneda(saldoAFavorNumero)}
+          </Button>
+        )}
+
+        {/* Volvieron todos los equipos pero nadie dijo
+            todavía en qué estado, así que el depósito
+            sigue retenido. Se define al registrar la
+            devolución, en Seguimiento. */}
+        {depositoPendiente(factura) &&
+          facturaEstado === "cobro" && (
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                mt: 1.5,
+                fontWeight: "bold",
+                color: "warning.main",
+              }}
+            >
+              Falta definir el depósito de{" "}
+              {formatearMoneda(
+                calcularDepositoTotal(factura),
+              )}
+              : se resuelve al registrar la devolución en
+              Seguimiento.
+            </Typography>
+          )}
+      </Paper>
+      )}
+    </Box>
+  );
+
+  const cuerpo = (
+    <>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -176,33 +442,34 @@ export default function EstadoCuentaFactura({
         </Typography>
         {esMovil && renderFlechaPlegable(abierto, acento)}
       </Stack>
-      {mostrar && (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            flexWrap: { sm: "wrap" },
-            justifyContent: "space-between",
-            // Arriba, no al fondo: así el subtotal y el IVA
-            // quedan justo debajo del rótulo "Total factura" en
-            // vez de caer al pie del recuadro de estado de
-            // cuenta, que es más alto y dejaba un hueco.
-            alignItems: { xs: "stretch", sm: "flex-start" },
-            gap: 2,
-          }}
-        >
-          {esMovil ? (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                columnGap: 2,
-                rowGap: 0.5,
-              }}
-            >
-              <Stack spacing={0.5}>{lineasTotalesIzq}</Stack>
-              <Stack spacing={0.5}>{lineasTotalesDer}</Stack>
-            </Box>
+      {/* El panel oscuro con la cuenta NO se pliega: es lo único que queda a
+          la vista cuando la factura se abre con todos sus bloques cerrados.
+          Lo que el rótulo "Total factura" esconde son los renglones que lo
+          explican —subtotal, IVA, depósito y transporte—. */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          flexWrap: { sm: "wrap" },
+          justifyContent: "space-between",
+          // Arriba, no al fondo: así el subtotal y el IVA
+          // quedan justo debajo del rótulo "Total factura" en
+          // vez de caer al pie del recuadro de estado de
+          // cuenta, que es más alto y dejaba un hueco.
+          alignItems: { xs: "stretch", sm: "flex-start" },
+          gap: 2,
+        }}
+      >
+        {mostrar &&
+          (esMovil ? (
+            // En columna y detrás de una línea, igual que la información de
+            // pago: son cuatro renglones cortos —subtotal, IVA, depósito y
+            // transporte— y en dos columnas quedaban en zigzag, con el ojo
+            // saltando de un lado al otro para leer la cuenta.
+            renderContenidoPlano(
+              acento,
+              <Stack spacing={0.5}>{lineasTotales}</Stack>,
+            )
           ) : (
             <Stack
               direction="row"
@@ -212,232 +479,41 @@ export default function EstadoCuentaFactura({
             >
               {lineasTotales}
             </Stack>
-          )}
+          ))}
 
-          {/* La misma pizarra de totales que usa Seguimiento:
-              el aspecto y los colores salen del tema, así los
-              dos lugares se ven igual.
+        {!esMovil && bloqueEstadoCuenta}
+      </Box>
+    </>
+  );
 
-              El rótulo y la pizarra van dentro de un mismo
-              bloque: sueltos eran dos elementos del contenedor
-              flex y cada ancho de pantalla los acomodaba en un
-              lugar distinto. */}
-          <Box
-            sx={{
-              width: { xs: "100%", sm: "auto" },
-              // Pegado a la derecha aunque baje de línea: cuando
-              // la factura tiene depósito y transporte, esa fila
-              // se llena y el recuadro pasa al renglón de abajo,
-              // donde quedaba solo y se iba a la izquierda.
-              ml: { sm: "auto" },
-            }}
-          >
-            <Typography
-              variant="overline"
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                lineHeight: 1.6,
-                color: "custom.accent",
-              }}
-            >
-              <AccountBalanceWalletIcon fontSize="small" />
-              Estado de cuenta
-            </Typography>
-            <Paper
-              variant="totales"
-              sx={{
-                // La misma separación con su rótulo que el resto de los
-                // bloques de la tarjeta: sin ella quedaba pegado.
-                mt: 0.5,
-                width: { xs: "100%", sm: "auto" },
-                minWidth: { sm: 240 },
-              }}
-            >
-              {valorTotal && (
-                <Box className="fila total">
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                  >
-                    Total factura
-                  </Typography>
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight="bold"
-                  >
-                    {valorTotal}
-                  </Typography>
-                </Box>
-              )}
-              {/* Lo que el cliente entregó. Se calla únicamente
-                cuando pagó el total exacto de una sola vez, que
-                es cuando repetiría la cifra de arriba. */}
-              {!cuentaCerroClavada && (
-                <Box className="fila pagado">
-                  <Typography variant="body2">Pagado</Typography>
-                  <Typography variant="body2">
-                    {formatearMoneda(totalPagadoFactura)}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Solo el total de lo abonado: el detalle de cada
-                abono, con su fecha y su medio, va arriba en su
-                propia información de pago. */}
-              {totalAbonos > 0 && (
-                <Box className="fila abono">
-                  <Typography variant="body2">Abonos</Typography>
-                  <Typography variant="body2">
-                    {formatearMoneda(totalAbonos)}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* LA GARANTÍA QUE VOLVIÓ. Es el renglón que explica por qué
-                un cliente que pagó menos que el total termina con plata a
-                favor: el depósito se le factura y, cuando devuelve el equipo,
-                se le acredita. Primero cubre lo que faltaba de la factura, y
-                lo que sobra es lo que hay que devolverle.
-
-                Estaba escrito desde el principio pero nunca se dibujó: la
-                cuenta no traía este dato, así que la condición era siempre
-                falsa. */}
-              {cuenta.depositoDevuelto > 0 && (
-                <Box className="fila abono">
-                  {/* "Depósito" a secas: el renglón está entre los que bajan
-                      la cuenta, así que ya se lee como plata que juega a
-                      favor del cliente. "Devuelto" además sonaba a que ya
-                      salió por caja, cuando puede seguir acá, esperando que
-                      alguien se la entregue. */}
-                  <Typography variant="body2">
-                    Depósito
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatearMoneda(cuenta.depositoDevuelto)}
-                  </Typography>
-                </Box>
-              )}
-
-              {cuenta.entregas > 0 && (
-                <Box className="fila">
-                  <Typography variant="body2">
-                    Entregado al cliente
-                  </Typography>
-                  <Typography variant="body2">
-                    {formatearMoneda(cuenta.entregas)}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* A DÓNDE FUE ESA PLATA, debajo del renglón que dice cuánto
-                  salió. Sin esta línea, una salida que NO se le entregó al
-                  cliente —la que se cruzó contra otra factura suya— se leería
-                  como plata que se le devolvió en mano. */}
-              {entregasDe(factura)
-                .filter((entrega) => entrega?.nota)
-                .map((entrega, indice) => (
-                  <Typography
-                    key={`${entrega.fecha}-${indice}`}
-                    variant="caption"
-                    sx={{ display: "block", opacity: 0.85, mt: 0.25 }}
-                  >
-                    {entrega.nota}
-                  </Typography>
-                ))}
-
-              {/* Retener plata sin decir por qué no se puede,
-                así que el motivo siempre está a la vista. */}
-              {Number(datos.depositoResuelto?.retenido) > 0 && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: "block",
-                    mt: 0.5,
-                    color: "text.secondary",
-                  }}
-                >
-                  Se retuvieron{" "}
-                  {formatearMoneda(
-                    datos.depositoResuelto.retenido,
-                  )}{" "}
-                  del depósito: {datos.depositoResuelto.motivo}
-                </Typography>
-              )}
-
-              {/* Si el cliente pagó de más, el sobrante queda a
-                su favor en vez de mostrarse como saldo. */}
-              {saldoAFavorNumero > 0 ? (
-                <Box className="fila ok" sx={{ mt: 1, mb: 0 }}>
-                  <Typography variant="body2" fontWeight="bold">
-                    Saldo a favor
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {formatearMoneda(saldoAFavorNumero)}
-                  </Typography>
-                </Box>
-              ) : (
-                <Box
-                  className={
-                    hayColorAlerta ? "fila alerta" : "fila ok"
-                  }
-                  sx={{ mt: 1, mb: 0 }}
-                >
-                  <Typography variant="body2" fontWeight="bold">
-                    Saldo pendiente
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold">
-                    {saldoPendiente}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Plata de la empresa hacia el cliente. Va con
-                  botón y no como un dato más: mientras no se
-                  entregue, la factura no puede terminar, así
-                  que hay que verlo y poder resolverlo acá
-                  mismo. */}
-              {saldoAFavorNumero > 0 && (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="warning"
-                  startIcon={<CurrencyExchangeIcon />}
-                  sx={{ mt: 1.5 }}
-                  onClick={() => onDevolverSaldo(factura)}
-                >
-                  Devolver {formatearMoneda(saldoAFavorNumero)}
-                </Button>
-              )}
-
-              {/* Volvieron todos los equipos pero nadie dijo
-                  todavía en qué estado, así que el depósito
-                  sigue retenido. Se define al registrar la
-                  devolución, en Seguimiento. */}
-              {depositoPendiente(factura) &&
-                facturaEstado === "cobro" && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: "block",
-                      mt: 1.5,
-                      fontWeight: "bold",
-                      color: "warning.main",
-                    }}
-                  >
-                    Falta definir el depósito de{" "}
-                    {formatearMoneda(
-                      calcularDepositoTotal(factura),
-                    )}
-                    : se resuelve al registrar la devolución en
-                    Seguimiento.
-                  </Typography>
-                )}
-            </Paper>
-          </Box>
-        </Box>
-      )}
+  // En celular el bloque va dentro de un recuadro del color del acento, como
+  // el resto de las partes de la factura, y su rótulo es el que lo abre. En
+  // computador cierra la tarjeta con una línea, que es como estuvo siempre.
+  return esMovil ? (
+    <>
+      <Box sx={{ mt: 1 }}>
+        {renderRecuadroBloque(acento, cuerpo, "totalFactura")}
+      </Box>
+      {/* Su propio recuadro, como el resto de los bloques: el panel oscuro
+          con la cuenta aparece al tocarlo. */}
+      <Box sx={{ mt: 1 }}>
+        {renderRecuadroBloque(
+          theme.palette.success.main,
+          bloqueEstadoCuenta,
+          "estadoCuenta",
+        )}
+      </Box>
+    </>
+  ) : (
+    <Box
+      sx={{
+        mt: 1.5,
+        pt: 1.5,
+        borderTop: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      {cuerpo}
     </Box>
   );
 }
@@ -448,5 +524,7 @@ EstadoCuentaFactura.propTypes = {
   facturaEstado: PropTypes.string,
   abierto: PropTypes.bool,
   onToggle: PropTypes.func.isRequired,
+  estadoAbierto: PropTypes.bool,
+  onToggleEstado: PropTypes.func.isRequired,
   onDevolverSaldo: PropTypes.func.isRequired,
 };

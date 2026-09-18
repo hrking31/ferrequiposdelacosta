@@ -18,7 +18,7 @@
 import { Fragment } from "react";
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
-import { Box, Stack, Typography, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
@@ -34,9 +34,12 @@ import {
 } from "./facturaUtils";
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
 
-// La fecha de la columna izquierda: "09 SEP" y el año debajo. Se parte el
-// texto del ISO en vez de armar un Date — con Date, un "2026-09-09" se lee
-// como medianoche UTC y en Colombia muestra el día anterior.
+// La fecha de la columna izquierda. En computador va "09 SEP" con el año
+// debajo; en el celular los tres datos se apilan —día, mes y año, uno por
+// renglón—, que es la única forma de que la columna no le robe ancho a lo que
+// cuenta cada hito. Se parte el texto del ISO en vez de armar un Date — con
+// Date, un "2026-09-09" se lee como medianoche UTC y en Colombia muestra el
+// día anterior.
 const MESES = [
   "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
   "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
@@ -45,7 +48,7 @@ const MESES = [
 const partirFecha = (iso) => {
   const [anio, mes, dia] = String(iso ?? "").split("-");
   if (!anio || !mes || !dia) return null;
-  return { dia: `${dia} ${MESES[Number(mes) - 1] ?? ""}`, anio };
+  return { dia, mes: MESES[Number(mes) - 1] ?? "", anio };
 };
 
 // El ícono de cada hito: dice de qué se trata sin leer.
@@ -63,6 +66,7 @@ const ICONOS = {
 
 export default function HistorialEquipo({ equipo, hoy }) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const hitos = historialEquipo(equipo, hoy);
 
   // El color de cada tono sale del tema, igual que el resto de la ficha: un
@@ -160,8 +164,16 @@ export default function HistorialEquipo({ equipo, hoy }) {
                 variant="caption"
                 sx={{ display: "block", fontWeight: 700, lineHeight: 1.2 }}
               >
-                {fecha?.dia ?? ""}
+                {fecha ? (esMovil ? fecha.dia : `${fecha.dia} ${fecha.mes}`) : ""}
               </Typography>
+              {esMovil && (
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", fontWeight: 700, lineHeight: 1.2 }}
+                >
+                  {fecha?.mes ?? ""}
+                </Typography>
+              )}
               <Typography
                 variant="caption"
                 color="text.secondary"

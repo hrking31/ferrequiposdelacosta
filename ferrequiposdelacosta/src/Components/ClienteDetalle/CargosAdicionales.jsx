@@ -45,6 +45,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { calcularEquipo, diasDeEquipo, equipoLlevaIva } from "./facturaUtils";
 import {
   detenerToque,
+  renderContenidoPlano,
   iconBtnSx,
   propsRenglonPlegable,
   renderFilaDatos,
@@ -178,6 +179,11 @@ export default function CargosAdicionales({
   // propia (las facturas viejas, migradas del Excel).
   abierto,
   onToggle,
+  // El plegado del BLOQUE entero, aparte del desglose del IVA que vive
+  // adentro: en celular su rótulo oculta las cifras como el de cualquier otro
+  // bloque de la factura.
+  bloqueAbierto,
+  onToggleBloque,
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
@@ -262,6 +268,7 @@ export default function CargosAdicionales({
       movimiento: theme.palette.custom.estadoEquipo.ampliacion,
       total: theme.palette.custom.accent,
     },
+
   });
   if (!datos) return null;
 
@@ -283,9 +290,27 @@ export default function CargosAdicionales({
   // entran acá: son un cargo único del lote, no de cada equipo (ver la nota
   // de arriba).
   const aportantes = equipos.filter((equipo) => ivaDeUnEquipo(equipo) > 0);
+  // La casilla del IVA es la que abre su propio desglose: el toque va en ella
+  // y no en el bloque entero, que es lo que se tocaba antes sin querer. Se le
+  // agrega acá abajo y no al armarla porque recién ahora se sabe si hay algo
+  // que abrir.
+  const marcarCasillaIva = (hay) => {
+    if (!esMovil || !hay) return;
+    const casillaIva = datos.find((dato) => dato.clave === "iva");
+    if (!casillaIva) return;
+    casillaIva.props = propsRenglonPlegable({
+      abierto,
+      alternar: onToggle,
+      etiqueta: abierto ? "Ocultar el detalle" : "Ver de dónde sale el IVA",
+    });
+    casillaIva.sxCasilla = sxRenglonPlegable;
+  };
+
   const hayDesglose =
     aportantes.length > 1 ||
     aportantes.some((equipo) => renglonesDeEquipo(equipo).length > 1);
+
+  marcarCasillaIva(hayDesglose);
 
   // Los renglones en el orden en que ocurrieron: primero el alta —todos los
   // equipos salieron en el mismo despacho— y después lo que fue pasando con
@@ -360,18 +385,10 @@ export default function CargosAdicionales({
       <Stack
         direction="row"
         alignItems="flex-start"
-        // En celular el recuadro entero abre el detalle del IVA; el detalle
-        // ya abierto frena el toque, más abajo, para poder leerlo.
-        {...(esMovil && hayDesglose
-          ? propsRenglonPlegable({
-              abierto,
-              alternar: onToggle,
-              etiqueta: abierto
-                ? "Ocultar el detalle"
-                : "Ver de dónde sale el IVA",
-            })
-          : {})}
-        sx={{ gap: 1, ...(esMovil && hayDesglose ? sxRenglonPlegable : {}) }}
+        // El detalle NO lo abre el bloque entero: lo abre la casilla del IVA,
+        // que es el número que explica (ver datosAdicionales). Tocando el
+        // resto no pasa nada, como debe ser.
+        sx={{ gap: 1 }}
       >
         {/* El desglose va DENTRO de esta caja, junto a la fila de datos, y no
             debajo del Stack: así hereda el mismo ancho —el del recuadro menos
@@ -491,8 +508,9 @@ export default function CargosAdicionales({
         </Box>
         {hayDesglose &&
           (esMovil ? (
-            // En celular la señal, porque el que abre es el recuadro entero.
-            // Con el acento, igual que las demás flechas de la ficha.
+            // La señal vuelve a su esquina, a la derecha del bloque, que es
+            // donde se busca. Quien ABRE es la casilla del IVA —la flecha
+            // solo avisa que hay algo detrás de ese número—.
             renderFlechaPlegable(abierto, theme.palette.custom.accent)
           ) : (
             <Tooltip
@@ -516,21 +534,54 @@ export default function CargosAdicionales({
     </>
   );
 
-  return (
-    <Box sx={{ mt: 1 }}>
+  const rotulo = (
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="center"
+      {...(esMovil
+        ? propsRenglonPlegable({
+            abierto: bloqueAbierto,
+            alternar: onToggleBloque,
+            etiqueta: "Cargos adicionales",
+          })
+        : {})}
+      sx={esMovil ? sxRenglonPlegable : undefined}
+    >
       <Typography
-        variant="overline"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          lineHeight: 1.6,
-          color,
-        }}
-      >
+      variant="overline"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        lineHeight: 1.6,
+        color,
+      }}
+    >
         <AddCardIcon fontSize="small" />
         Cargos adicionales
       </Typography>
+      {esMovil && renderFlechaPlegable(bloqueAbierto, theme.palette.custom.accent)}
+    </Stack>
+  );
+
+  // En celular, un solo recuadro con el rótulo adentro y una línea que lo
+  // separa de las cifras, igual que la información de pago y el total: así
+  // los bloques de la factura se leen todos igual. En computador el rótulo va
+  // apoyado encima del recuadro, como estuvo siempre.
+  return esMovil ? (
+    <Box sx={{ mt: 1 }}>
+      {renderRecuadroBloque(
+        color,
+        <>
+          {rotulo}
+          {bloqueAbierto && renderContenidoPlano(color, contenidoRecuadro)}
+        </>,
+      )}
+    </Box>
+  ) : (
+    <Box sx={{ mt: 1 }}>
+      {rotulo}
 
       <Box sx={{ mt: 0.5 }}>
         {renderRecuadroBloque(color, contenidoRecuadro)}
@@ -546,4 +597,6 @@ CargosAdicionales.propTypes = {
   transporteMonto: PropTypes.number,
   abierto: PropTypes.bool,
   onToggle: PropTypes.func.isRequired,
+  bloqueAbierto: PropTypes.bool,
+  onToggleBloque: PropTypes.func,
 };
