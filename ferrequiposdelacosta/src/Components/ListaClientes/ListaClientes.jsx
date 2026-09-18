@@ -7,6 +7,8 @@ import {
   Chip,
   Divider,
   Fab,
+  IconButton,
+  MenuItem,
   Pagination,
   Stack,
   Table,
@@ -15,13 +17,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import PhoneIcon from "@mui/icons-material/Phone";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -198,6 +202,31 @@ export default function ListaClientes() {
     />
   );
 
+  // EN CELULAR, EL MENÚ VIAJA CON EL BUSCADOR. Estaba en un botón ancho al
+  // pie, que se llevaba un renglón entero de pantalla para una acción que se
+  // usa una vez cada tanto; acá arriba ocupa el hueco que le sobra al
+  // buscador y libera ese renglón para la lista.
+  const buscadorConMenu = esMovil ? (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Box sx={{ flex: 1, minWidth: 0 }}>{buscador}</Box>
+      <Tooltip title="Menú">
+        {/* `color="primary"` y no el acento escrito a mano: es el mismo
+            botón de menú que tienen todas las vistas arriba a la derecha, y
+            su color sale del tema. */}
+        <IconButton
+          onClick={() => navigate("/adminforms")}
+          aria-label="Menú"
+          color="primary"
+          sx={{ flexShrink: 0 }}
+        >
+          <DashboardIcon />
+        </IconButton>
+      </Tooltip>
+    </Stack>
+  ) : (
+    buscador
+  );
+
   const chipsEstado = (direction) =>
       FILTROS.map((filtro) => {
         const seleccionado = filtroEstado === filtro.valor;
@@ -345,42 +374,15 @@ export default function ListaClientes() {
     </Typography>
   );
 
-  const renderFiltrosCombinados = (comportamiento) => (
+  // Los filtros de computador: las dos preguntas en una fila que envuelve.
+  // Acá vivía además una variante con scroll horizontal para el celular, que
+  // se borró al cambiar esos chips por dos desplegables.
+  const renderFiltrosCombinados = () => (
     <Stack
       direction="row"
       spacing={1}
       alignItems="center"
-      sx={
-        comportamiento === "scroll"
-          ? {
-              minWidth: 0,
-              overflowX: "auto",
-              pb: 1,
-              WebkitOverflowScrolling: "touch",
-              transform: "translateZ(0)",
-              scrollbarWidth: "thin",
-              scrollbarColor: `${alpha(acento, 0.4)} transparent`,
-              "&::-webkit-scrollbar": {
-                height: 6,
-              },
-              "&::-webkit-scrollbar-track": {
-                backgroundColor: "transparent",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: alpha(acento, 0.4),
-                borderRadius: (theme) => theme.shape.pill,
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: alpha(acento, 0.7),
-              },
-              "@media (pointer: coarse)": {
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                "&::-webkit-scrollbar": { display: "none" },
-              },
-            }
-          : { flexWrap: "wrap", rowGap: 1 }
-      }
+      sx={{ flexWrap: "wrap", rowGap: 1 }}
     >
       {chipsEstado("row")}
       <Divider orientation="vertical" flexItem sx={{ flexShrink: 0, my: 0.5 }} />
@@ -388,10 +390,58 @@ export default function ListaClientes() {
     </Stack>
   );
 
+  // EN CELULAR, DOS DESPLEGABLES EN VEZ DE DIEZ PÍLDORAS. La fila de chips
+  // medía 971px contra los 328 de la pantalla: seis de los diez filtros
+  // quedaban afuera, y nada avisaba que la fila se deslizaba. Además ahí
+  // convivían dos preguntas distintas —el estado y el tipo— sin nada que las
+  // separara. Así cada una tiene su rótulo, se ve cuál está puesta y no hay
+  // nada escondido.
+  //
+  // El id en inputProps y el htmlFor del rótulo son obligatorios en todo
+  // select de la app: sin ellos el rótulo apunta a un elemento que no es el
+  // campo y el lector de pantalla no lo asocia.
+  const desplegablesFiltro = (
+    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+      <TextField
+        select
+        size="small"
+        label="Estado"
+        value={filtroEstado}
+        onChange={(evento) => setFiltroEstado(evento.target.value)}
+        inputProps={{ id: "filtro-estado-clientes" }}
+        InputLabelProps={{ htmlFor: "filtro-estado-clientes" }}
+        sx={{ flex: 1, minWidth: 0 }}
+      >
+        {FILTROS.map((filtro) => (
+          <MenuItem key={filtro.valor} value={filtro.valor}>
+            {filtro.label} {conteosPorEstado[filtro.valor] || 0}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      <TextField
+        select
+        size="small"
+        label="Tipo"
+        value={filtroTipo}
+        onChange={(evento) => setFiltroTipo(evento.target.value)}
+        inputProps={{ id: "filtro-tipo-clientes" }}
+        InputLabelProps={{ htmlFor: "filtro-tipo-clientes" }}
+        sx={{ flex: 1, minWidth: 0 }}
+      >
+        {FILTROS_TIPO.map((filtro) => (
+          <MenuItem key={filtro.valor} value={filtro.valor}>
+            {filtro.label}
+          </MenuItem>
+        ))}
+      </TextField>
+    </Stack>
+  );
+
   const buscadorYFiltros = (
     <>
-      {buscador}
-      {renderFiltrosCombinados("scroll")}
+      {buscadorConMenu}
+      {desplegablesFiltro}
     </>
   );
 
@@ -436,6 +486,19 @@ export default function ListaClientes() {
                     return (
                       <Box
                         key={cliente.id}
+                        // La tarjeta ENTERA abre la ficha: el botón "Ver
+                        // Detalles" era un objetivo de 90px en una tarjeta de
+                        // 330, y el dedo cae en cualquier parte de ella.
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver detalles de ${nombreCompleto}`}
+                        onClick={() => navigate(`/vistaclientes/${cliente.id}`)}
+                        onKeyDown={(evento) => {
+                          if (evento.key === "Enter" || evento.key === " ") {
+                            evento.preventDefault();
+                            navigate(`/vistaclientes/${cliente.id}`);
+                          }
+                        }}
                         sx={{
                           p: 1.25,
                           borderRadius: 3,
@@ -443,6 +506,9 @@ export default function ListaClientes() {
                           border: "1px solid",
                           borderColor: "divider",
                           boxShadow: 1,
+                          cursor: "pointer",
+                          userSelect: "none",
+                          WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -494,28 +560,31 @@ export default function ListaClientes() {
                           />
                         </Stack>
 
-                        {cliente.direccion && (
+                        {/* La dirección y la flecha comparten renglón: el
+                            botón "Ver Detalles" con su línea divisoria se
+                            llevaba dos renglones enteros para decir algo que
+                            la flecha sola ya dice, y ahora la tarjeta entera
+                            es la que abre. La flecha se queda en su esquina
+                            de siempre, a la derecha. */}
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          sx={{ mt: 0.75, gap: 1 }}
+                        >
                           <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ display: "block", mt: 0.75, pl: "52px" }}
+                            sx={{ pl: "52px", minWidth: 0 }}
                           >
-                            {cliente.direccion}
+                            {cliente.direccion || ""}
                           </Typography>
-                        )}
-
-                        <Divider sx={{ my: 0.75 }} />
-
-                        <Box sx={{ textAlign: "right" }}>
-                          <Button
-                            size="small"
-                            endIcon={<ChevronRightIcon />}
-                            sx={{ color: acento, minHeight: 0, py: 0.25 }}
-                            onClick={() => navigate(`/vistaclientes/${cliente.id}`)}
-                          >
-                            Ver Detalles
-                          </Button>
-                        </Box>
+                          <ChevronRightIcon
+                            aria-hidden
+                            fontSize="small"
+                            sx={{ color: acento, flexShrink: 0 }}
+                          />
+                        </Stack>
                       </Box>
                     );
                   })}
@@ -539,7 +608,10 @@ export default function ListaClientes() {
           onClick={() => setCrearClienteOpen(true)}
           sx={{
             position: "fixed",
-            bottom: 120,
+            // Los 120 de antes dejaban libre el pie con el botón MENU, que se
+            // mudó arriba junto al buscador. Ahora solo tiene que librar la
+            // barra inferior de la app.
+            bottom: 80,
             right: 24,
             bgcolor: acento,
             color: theme.palette.getContrastText(acento),
@@ -623,7 +695,7 @@ export default function ListaClientes() {
               <Box sx={{ flex: 1, minWidth: 150 }}>{buscador}</Box>
               {botonAgregar}
             </Stack>
-            {renderFiltrosCombinados("wrap")}
+            {renderFiltrosCombinados()}
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="h6">
                 Lista de Clientes

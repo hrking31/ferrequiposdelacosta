@@ -1,4 +1,4 @@
-import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
+import { Box, Stack, IconButton, Tooltip, useMediaQuery } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
@@ -80,25 +80,8 @@ export default function VistaClientes() {
         <ListaClientes />
       </Box>
 
-      {isFullScreen && (
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="stretch"
-          >
-            <Button
-              variant="contained"
-              fullWidth
-              size="small"
-              onClick={() => navigate("/adminforms")}
-            >
-              MENU
-            </Button>
-          </Stack>
-        </Box>
-      )}
+      {/* Sin pie: en celular el botón de menú se mudó arriba, al lado del
+          buscador, y ese renglón entero es ahora lista. */}
     </Box>
   );
 }
