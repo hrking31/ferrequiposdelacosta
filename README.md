@@ -1230,6 +1230,22 @@ Ahora en el celular son **dos desplegables** —uno de estado, otro de tipo—, 
 
 En esas dos pantallas también **se toca la tarjeta entera** para abrirla, el botón de menú subió al lado del buscador —el renglón del pie era todo lista desaprovechada— y con la factura plegada los botones de acción se esconden: ahí lo que se busca es a quién cobrarle y cuánto, no qué hacer con ella.
 
+### El buzón y las cuentas, con el mismo molde
+
+Solicitudes de Cotización y el buscador de cuentas de cobro seguían con el reparto viejo: en el celular el buscador, el conteo y los tres filtros caían apilados sin orden —con el conteo en el medio—, cada chip medía lo que medía su palabra, y **un botón MENU se llevaba un renglón entero al pie**.
+
+Ahora repiten el molde de Seguimiento. Tres renglones: el buscador con el botón de menú al lado, los tres filtros repartidos al ancho de la pantalla, y al final **qué lista es** a la izquierda con **cuántas se están viendo** a la derecha — "50 de 50", sin la palabra que el rótulo de al lado ya dijo. En computador no cambió nada.
+
+Cuando no hay ni una solicitud no hay filtros que dibujar, pero el botón de menú queda igual: desde que se fue el pie, es el camino de vuelta.
+
+### Tres iconos no valen un renglón
+
+En el celular, la tarjeta de una solicitud —y la de una cuenta de cobro— gastaba dos renglones en cosas que no son datos: el chip del estado arriba, solo, y la fila de botones abajo, sola. **Los botones se mudaron a la esquina de arriba a la derecha**, a la altura del nombre, y el estado bajó a la línea del número, donde se lee junto a lo que describe. De paso el avatar pasó de 56 a 40px y el aire de la tarjeta de 24 a 16: cabe casi una tarjeta más por pantalla.
+
+> Arriba a la derecha es adonde el pulgar llega estirado, y por eso en la ficha del cliente los botones se fueron al pie. Acá la decisión es la contraria **a propósito**: estas dos son listas largas que se recorren con el dedo, con varias tarjetas por pantalla. Un pie por tarjeta no existe, y lo que se busca al bajar es **encontrar** la solicitud, no operarla.
+
+En computador la tarjeta quedó igual que siempre: ahí el ancho sobra y las acciones siguen abajo a la derecha.
+
 ### Girar el teléfono no lo convierte en un computador
 
 Toda la app decidía "esto es un celular" midiendo el ancho: 915px o menos. Pero **un teléfono acostado mide más que eso** —los grandes llegan a 932—, así que al girarlo la app se dibujaba como computador con 430px de alto. Las consecuencias, todas del mismo error: los seis botones del cliente desaparecían (en computador viven dentro de la tarjeta), el encabezado se llevaba el aire de escritorio, y a la lista de facturas no le quedaba alto — no había ni scroll.
@@ -1339,7 +1355,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**535 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**569 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

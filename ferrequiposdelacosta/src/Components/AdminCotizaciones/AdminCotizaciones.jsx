@@ -425,291 +425,357 @@ export default function KioskAdminCotizaciones() {
           No se encontraron cotizaciones con esos filtros.
         </Typography>
       ) : (
-        cotizacionesFiltradas.map((quotation) => (
-          <Card
-            key={quotation.id}
-            sx={{
-              position: "relative",
-              overflow: "visible",
-              backgroundColor: "background.paper",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: (theme) =>
-                `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-              outline: "1px solid transparent",
-              willChange: "transform, box-shadow",
-              transition:
-                "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
-              "&:hover": {
-                transform: "translateY(0)",
-                outlineColor: "custom.accent",
-                boxShadow: (theme) => theme.palette.custom.sombraTarjetaHover,
-              },
+        cotizacionesFiltradas.map((quotation) => {
+          const estado = estadoDe(quotation.status);
 
-              "&:not(:hover)": {
-                transform: "translateY(0)",
-              },
-            }}
-          >
-            {/* Barra superior */}
-            <Box
+          // Abrir la solicitud es siempre la misma acción; lo que cambia es
+          // cómo se llama según en qué punto quedó.
+          let tituloAbrir = null;
+
+          if (quotation.status === "creada") {
+            tituloAbrir = "Editar";
+          } else if (quotation.status === "pausada") {
+            tituloAbrir = "Continuar cotización";
+          } else if (quotation.status === "pendiente") {
+            tituloAbrir = "Crear cotización";
+          } else if (quotation.status === "enProceso") {
+            const laTengoYo = quotation.atendidoPor === name;
+            const asesorEstaConectado =
+              usuariosConectados[quotation.atendidoPorUid]?.online === true;
+
+            if (laTengoYo) {
+              tituloAbrir = "Retomar cotización";
+            } else if (!asesorEstaConectado) {
+              // La tiene otra persona pero está desconectada: se puede
+              // asumir. Si está conectada no se ofrece, para no pisarle el
+              // trabajo.
+              tituloAbrir = "Asumir gestión";
+            }
+          }
+
+          // Solo las emitidas tienen un documento que descargar.
+          const puedeDescargar =
+            quotation.status === "creada" &&
+            Array.isArray(quotation.items) &&
+            quotation.items.length > 0;
+
+          const hayAcciones =
+            Boolean(tituloAbrir) || puedeDescargar || esAdministrador;
+
+          // Las piezas de la tarjeta, sueltas: en el celular se arman en otro
+          // orden —las acciones arriba, a la derecha— y así la tarjeta no hay
+          // que escribirla dos veces.
+          const avatar = (
+            <Avatar
               sx={{
-                height: 6,
-                backgroundColor: "custom.accent",
-                borderRadius: (theme) =>
-                `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
+                bgcolor: "primary.main",
+                width: esCelular ? 40 : 56,
+                height: esCelular ? 40 : 56,
+                flexShrink: 0,
               }}
-            />
-
-            <CardContent sx={{ p: 3 }}>
-              {/* Nombre, Empresa y Estado */}
-              <Stack
-                direction={{ xs: "column-reverse", sm: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                mb={2}
-                gap={2}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  gap={2}
-                  sx={{ width: "100%", overflow: "hidden" }}
-                >
-                  <Avatar
-                    sx={{
-                      bgcolor: "primary.main",
-                      width: 56,
-                      height: 56,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {quotation.tipo === "empresa" ? (
-                      <BusinessIcon
-                        sx={{ fontSize: 32, color: "primary.contrastText" }}
-                      />
-                    ) : (
-                      <PersonIcon
-                        sx={{ fontSize: 32, color: "primary.contrastText" }}
-                      />
-                    )}
-                  </Avatar>
-
-                  {/* Sin rótulo "Nombre"/"Empresa": el icono del avatar ya
-                      dice de cuál de los dos se trata. */}
-                  <Box sx={{ minWidth: 0, width: "100%" }}>
-                    <Typography
-                      variant="h5"
-                      noWrap
-                      sx={{
-                        color: (theme) => theme.palette.text.primary,
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {quotation.empresa || "Cliente sin nombre"}
-                    </Typography>
-
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "text.secondary" }}
-                    >
-                      Solicitud ID: {quotation.cotizacionId}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Box
+            >
+              {quotation.tipo === "empresa" ? (
+                <BusinessIcon
                   sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: { xs: "flex-start", sm: "center" },
-                    gap: 0.5,
-                    // border: "2px solid red",
+                    fontSize: esCelular ? 24 : 32,
+                    color: "primary.contrastText",
                   }}
-                >
-                  {(() => {
-                    const estado = estadoDe(quotation.status);
-                    return (
-                      <Chip
-                        size="small"
-                        icon={<estado.Icono />}
-                        label={estado.label}
-                        color={estado.color}
-                        variant="outlined"
-                      />
-                    );
-                  })()}
+                />
+              ) : (
+                <PersonIcon
+                  sx={{
+                    fontSize: esCelular ? 24 : 32,
+                    color: "primary.contrastText",
+                  }}
+                />
+              )}
+            </Avatar>
+          );
 
-                  {quotation.status === "enProceso" &&
-                    quotation.atendidoPor && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "text.primary",
-                          fontStyle: "italic",
-                          whiteSpace: "nowrap",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.6,
-                        }}
-                      >
-                        <Box
-                          component="span"
-                          sx={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            backgroundColor: usuariosConectados[
-                              quotation.atendidoPorUid
-                            ]?.online
-                              ? theme.palette.custom.online
-                              : theme.palette.grey[500],
-                            display: "inline-block",
-                            position: "relative",
-                            ...(usuariosConectados[quotation.atendidoPorUid]
-                              ?.online && {
-                              "&::after": {
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                borderRadius: "50%",
-                                animation: "pulseDot 1.5s infinite ease-in-out",
-                                border: `1px solid ${theme.palette.custom.online}`,
-                                content: '""',
-                              },
-                            }),
-                            "@keyframes pulseDot": {
-                              "0%": { transform: "scale(0.8)", opacity: 1 },
-                              "100%": { transform: "scale(2.5)", opacity: 0 },
-                            },
-                          }}
-                        />
-                        <span>
-                          Atendido por: <strong>{quotation.atendidoPor}</strong>
-                        </span>
-                      </Typography>
-                    )}
-                </Box>
+          // Sin rótulo "Nombre"/"Empresa": el icono del avatar ya dice de cuál
+          // de los dos se trata.
+          const identidad = (
+            <Box sx={{ minWidth: 0, width: "100%" }}>
+              <Typography
+                variant="h5"
+                noWrap
+                sx={{
+                  color: (theme) => theme.palette.text.primary,
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {quotation.empresa || "Cliente sin nombre"}
+              </Typography>
+
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Solicitud ID: {quotation.cotizacionId}
+              </Typography>
+            </Box>
+          );
+
+          const chipEstado = (
+            <Chip
+              size="small"
+              icon={<estado.Icono />}
+              label={estado.label}
+              color={estado.color}
+              variant="outlined"
+            />
+          );
+
+          // Quién la tiene abierta, con el punto latiendo mientras esa persona
+          // siga conectada.
+          const atendidoPor = quotation.status === "enProceso" &&
+            quotation.atendidoPor && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.primary",
+                  fontStyle: "italic",
+                  whiteSpace: "nowrap",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.6,
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: usuariosConectados[
+                      quotation.atendidoPorUid
+                    ]?.online
+                      ? theme.palette.custom.online
+                      : theme.palette.grey[500],
+                    display: "inline-block",
+                    position: "relative",
+                    flexShrink: 0,
+                    ...(usuariosConectados[quotation.atendidoPorUid]?.online && {
+                      "&::after": {
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        animation: "pulseDot 1.5s infinite ease-in-out",
+                        border: `1px solid ${theme.palette.custom.online}`,
+                        content: '""',
+                      },
+                    }),
+                    "@keyframes pulseDot": {
+                      "0%": { transform: "scale(0.8)", opacity: 1 },
+                      "100%": { transform: "scale(2.5)", opacity: 0 },
+                    },
+                  }}
+                />
+                <span>
+                  Atendido por: <strong>{quotation.atendidoPor}</strong>
+                </span>
+              </Typography>
+            );
+
+          const acciones = (
+            <>
+              {tituloAbrir && (
+                <Tooltip title={tituloAbrir}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpenQuotation(quotation)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {puedeDescargar && (
+                <Tooltip title="Descargar PDF">
+                  <IconButton
+                    size="small"
+                    onClick={() => VistaCotPdf(quotation)}
+                  >
+                    <PictureAsPdfIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {esAdministrador && (
+                <Tooltip title="Eliminar">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => setAEliminar(quotation)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </>
+          );
+
+          const datos = (
+            <Stack spacing={1.5} sx={{ width: "100%" }}>
+              <Stack direction="row" alignItems="center" gap={1.5}>
+                <BadgeIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                <Typography variant="body2">
+                  <b>Identificación:</b> {quotation.nit}
+                </Typography>
               </Stack>
 
-              <Divider sx={{ my: 2 }} />
+              <Stack direction="row" alignItems="center" gap={1.5}>
+                <PhoneIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                <Typography variant="body2">
+                  <b>Teléfono:</b> {quotation.telefono}
+                </Typography>
+              </Stack>
 
-              {/* Información de Contacto del Cliente */}
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={{ xs: 2, sm: 4 }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", sm: "center" }}
+              <Stack direction="row" alignItems="center" gap={1.5}>
+                <LocationOnIcon
+                  fontSize="small"
+                  sx={{ color: "text.secondary" }}
+                />
+                <Typography variant="body2">
+                  <b>Dirección:</b> {quotation.direccion}
+                </Typography>
+              </Stack>
+            </Stack>
+          );
+
+          return (
+            <Card
+              key={quotation.id}
+              sx={{
+                position: "relative",
+                overflow: "visible",
+                backgroundColor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: (theme) =>
+                  `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
+                outline: "1px solid transparent",
+                willChange: "transform, box-shadow",
+                transition:
+                  "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
+                "&:hover": {
+                  transform: "translateY(0)",
+                  outlineColor: "custom.accent",
+                  boxShadow: (theme) => theme.palette.custom.sombraTarjetaHover,
+                },
+
+                "&:not(:hover)": {
+                  transform: "translateY(0)",
+                },
+              }}
+            >
+              {/* Barra superior */}
+              <Box
+                sx={{
+                  height: 6,
+                  backgroundColor: "custom.accent",
+                  borderRadius: (theme) =>
+                    `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
+                }}
+              />
+
+              <CardContent
+                sx={{
+                  p: esCelular ? 2 : 3,
+                  "&:last-child": { pb: esCelular ? 2 : 3 },
+                }}
               >
-                <Stack spacing={1.5} sx={{ width: "100%" }}>
-                  <Stack direction="row" alignItems="center" gap={1.5}>
-                    <BadgeIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                    <Typography variant="body2">
-                      <b>Identificación:</b> {quotation.nit}
-                    </Typography>
+                {esCelular ? (
+                  // EN CELULAR LOS BOTONES VAN ARRIBA, A LA DERECHA: al pie se
+                  // llevaban un renglón entero para tres iconos, y el estado
+                  // otro más. Acá el estado queda bajo el número y la tarjeta
+                  // se acorta como dos renglones.
+                  <Stack direction="row" alignItems="flex-start" gap={1.5}>
+                    {avatar}
+
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      {identidad}
+
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        flexWrap="wrap"
+                        sx={{ gap: 0.5, mt: 0.5 }}
+                      >
+                        {chipEstado}
+                        {atendidoPor}
+                      </Stack>
+                    </Box>
+
+                    {hayAcciones && (
+                      <Stack
+                        direction="row"
+                        spacing={0.25}
+                        sx={{ flexShrink: 0 }}
+                      >
+                        {acciones}
+                      </Stack>
+                    )}
                   </Stack>
-
-                  <Stack direction="row" alignItems="center" gap={1.5}>
-                    <PhoneIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                    <Typography variant="body2">
-                      <b>Teléfono:</b> {quotation.telefono}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" alignItems="center" gap={1.5}>
-                    <LocationOnIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                    <Typography variant="body2">
-                      <b>Dirección:</b> {quotation.direccion}
-                    </Typography>
-                  </Stack>
-                </Stack>
-
-                {(() => {
-                  // Abrir la cotización es siempre la misma acción; lo que
-                  // cambia es cómo se llama según en qué punto quedó.
-                  let tituloAbrir = null;
-
-                  if (quotation.status === "creada") {
-                    tituloAbrir = "Editar";
-                  } else if (quotation.status === "pausada") {
-                    tituloAbrir = "Continuar cotización";
-                  } else if (quotation.status === "pendiente") {
-                    tituloAbrir = "Crear cotización";
-                  } else if (quotation.status === "enProceso") {
-                    const laTengoYo = quotation.atendidoPor === name;
-                    const asesorEstaConectado =
-                      usuariosConectados[quotation.atendidoPorUid]?.online ===
-                      true;
-
-                    if (laTengoYo) {
-                      tituloAbrir = "Retomar cotización";
-                    } else if (!asesorEstaConectado) {
-                      // La tiene otra persona pero está desconectada: se
-                      // puede asumir. Si está conectada no se ofrece, para
-                      // no pisarle el trabajo.
-                      tituloAbrir = "Asumir gestión";
-                    }
-                  }
-
-                  // Solo las emitidas tienen un documento que descargar.
-                  const puedeDescargar =
-                    quotation.status === "creada" &&
-                    Array.isArray(quotation.items) &&
-                    quotation.items.length > 0;
-
-                  if (!tituloAbrir && !puedeDescargar && !esAdministrador) {
-                    return null;
-                  }
-
-                  return (
+                ) : (
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                    gap={2}
+                  >
                     <Stack
                       direction="row"
-                      spacing={0.5}
+                      alignItems="center"
+                      gap={2}
+                      sx={{ width: "100%", overflow: "hidden" }}
+                    >
+                      {avatar}
+                      {identidad}
+                    </Stack>
+
+                    <Box
                       sx={{
-                        flexShrink: 0,
-                        alignSelf: { xs: "flex-end", sm: "center" },
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 0.5,
                       }}
                     >
-                      {tituloAbrir && (
-                        <Tooltip title={tituloAbrir}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleOpenQuotation(quotation)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {puedeDescargar && (
-                        <Tooltip title="Descargar PDF">
-                          <IconButton
-                            size="small"
-                            onClick={() => VistaCotPdf(quotation)}
-                          >
-                            <PictureAsPdfIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {esAdministrador && (
-                        <Tooltip title="Eliminar">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setAEliminar(quotation)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  );
-                })()}
-              </Stack>
-            </CardContent>
-          </Card>
-        ))
+                      {chipEstado}
+                      {atendidoPor}
+                    </Box>
+                  </Stack>
+                )}
+
+                <Divider sx={{ my: esCelular ? 1.5 : 2 }} />
+
+                {/* Datos de contacto; en el computador, las acciones al lado. */}
+                {esCelular ? (
+                  datos
+                ) : (
+                  <Stack
+                    direction="row"
+                    spacing={4}
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    {datos}
+
+                    {hayAcciones && (
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ flexShrink: 0 }}
+                      >
+                        {acciones}
+                      </Stack>
+                    )}
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })
       )}
 
       {/* La lista trae de a tandas: la colección crece para siempre y traerla

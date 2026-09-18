@@ -448,9 +448,190 @@ export default function ListaCuentasCobro() {
               const puedeDescargar = emitida;
               const estaPagada = cuenta.status === "pagada";
 
+              // Las piezas de la tarjeta, sueltas: en el celular se arman en
+              // otro orden —las acciones arriba, a la derecha— y así la
+              // tarjeta no hay que escribirla dos veces.
+              const avatar = (
+                <Avatar
+                  sx={{
+                    bgcolor: "primary.main",
+                    width: esCelular ? 40 : 56,
+                    height: esCelular ? 40 : 56,
+                    flexShrink: 0,
+                  }}
+                >
+                  {cuenta.tipo === "empresa" ? (
+                    <BusinessIcon
+                      sx={{
+                        fontSize: esCelular ? 24 : 32,
+                        color: "primary.contrastText",
+                      }}
+                    />
+                  ) : (
+                    <PersonIcon
+                      sx={{
+                        fontSize: esCelular ? 24 : 32,
+                        color: "primary.contrastText",
+                      }}
+                    />
+                  )}
+                </Avatar>
+              );
+
+              const identidad = (
+                <Box sx={{ minWidth: 0, width: "100%" }}>
+                  <Typography
+                    variant="h5"
+                    noWrap
+                    sx={{
+                      color: (theme) => theme.palette.text.primary,
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {cuenta.empresa || "Sin cliente"}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    Cuenta ID: {cuenta.cuentaCobroId || "sin número"}
+                  </Typography>
+                </Box>
+              );
+
+              const chipEstado = (
+                <Chip
+                  size="small"
+                  icon={<estado.Icono />}
+                  label={estado.label}
+                  color={estado.color}
+                  variant="outlined"
+                />
+              );
+
+              // Quién la tiene abierta, con el punto encendido mientras esa
+              // persona siga conectada.
+              const atendidaPor = cuenta.status === "enProceso" &&
+                cuenta.atendidoPor && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.primary",
+                      fontStyle: "italic",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.6,
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        backgroundColor: usuariosConectados[
+                          cuenta.atendidoPorUid
+                        ]?.online
+                          ? theme.palette.custom.online
+                          : theme.palette.grey[500],
+                      }}
+                    />
+                    <span>
+                      Atendida por: <strong>{cuenta.atendidoPor}</strong>
+                    </span>
+                  </Typography>
+                );
+
+              const acciones = (
+                <>
+                  {!ocupada && (
+                    <Tooltip title={laTengoYo ? "Retomar" : "Abrir"}>
+                      <IconButton size="small" onClick={() => abrir(cuenta)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {puedeDescargar && (
+                    <Tooltip title="Descargar PDF">
+                      <IconButton
+                        size="small"
+                        onClick={() => VistaCcPdf({ value: cuenta })}
+                      >
+                        <PictureAsPdfIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {/* Registrar el pago es decir que entró la plata, así que
+                      queda solo en manos del administrador — mismo criterio
+                      que eliminar. Solo aparece en las emitidas: un borrador
+                      todavía no se cobró. */}
+                  {esAdministrador && emitida && (
+                    <Tooltip
+                      title={
+                        estaPagada ? "Marcar como no pagada" : "Marcar como pagada"
+                      }
+                    >
+                      <span>
+                        <IconButton
+                          size="small"
+                          color={estaPagada ? "default" : "primary"}
+                          disabled={marcandoPago === cuenta.id}
+                          onClick={() => alternarPagada(cuenta)}
+                        >
+                          {estaPagada ? (
+                            <MoneyOffIcon fontSize="small" />
+                          ) : (
+                            <PaidIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  )}
+                  {esAdministrador && (
+                    <Tooltip title="Eliminar">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => setAEliminar(cuenta)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </>
+              );
+
+              const datos = (
+                <Stack spacing={1.5} sx={{ width: "100%" }}>
+                  <Stack direction="row" alignItems="center" gap={1.5}>
+                    <CalendarMonthIcon
+                      fontSize="small"
+                      sx={{ color: "text.secondary" }}
+                    />
+                    <Typography variant="body2">
+                      <b>Fecha:</b>{" "}
+                      {formatearFechaLegible(cuenta.fecha) || "sin fecha"}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" alignItems="center" gap={1.5}>
+                    <PaymentsIcon
+                      fontSize="small"
+                      sx={{ color: "text.secondary" }}
+                    />
+                    <Typography variant="body2">
+                      <b>Total a cancelar:</b> {formatearMoneda(saldo)}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              );
+
               return (
                 // Misma tarjeta que el buzón de cotizaciones: barra de acento
-                // arriba, los datos, una divisoria y las acciones debajo.
+                // arriba, los datos, una divisoria y las acciones.
                 <Card
                   key={cuenta.id}
                   sx={{
@@ -481,215 +662,97 @@ export default function ListaCuentasCobro() {
                     }}
                   />
 
-                  <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
-                    {/* Cliente y estado. En celular el chip sube, para que el
-                        nombre no quede empujado. */}
-                    <Stack
-                      direction={{ xs: "column-reverse", sm: "row" }}
-                      justifyContent="space-between"
-                      alignItems={{ xs: "flex-start", sm: "center" }}
-                      mb={2}
-                      gap={2}
-                    >
+                  <CardContent
+                    sx={{
+                      p: esCelular ? 2 : 3,
+                      "&:last-child": { pb: esCelular ? 2 : 3 },
+                    }}
+                  >
+                    {esCelular ? (
+                      // EN CELULAR LOS BOTONES VAN ARRIBA, A LA DERECHA: al pie
+                      // se llevaban un renglón entero para tres iconos, y el
+                      // estado otro más. Acá el estado queda bajo el número y
+                      // la tarjeta se acorta como dos renglones.
+                      <Stack direction="row" alignItems="flex-start" gap={1.5}>
+                        {avatar}
+
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          {identidad}
+
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            flexWrap="wrap"
+                            sx={{ gap: 0.5, mt: 0.5 }}
+                          >
+                            {chipEstado}
+                            {atendidaPor}
+                          </Stack>
+                        </Box>
+
+                        <Stack
+                          direction="row"
+                          spacing={0.25}
+                          sx={{ flexShrink: 0 }}
+                        >
+                          {acciones}
+                        </Stack>
+                      </Stack>
+                    ) : (
                       <Stack
                         direction="row"
+                        justifyContent="space-between"
                         alignItems="center"
+                        mb={2}
                         gap={2}
-                        sx={{ width: "100%", overflow: "hidden" }}
                       >
-                        <Avatar
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          gap={2}
+                          sx={{ width: "100%", overflow: "hidden" }}
+                        >
+                          {avatar}
+                          {identidad}
+                        </Stack>
+
+                        <Box
                           sx={{
-                            bgcolor: "primary.main",
-                            width: 56,
-                            height: 56,
-                            flexShrink: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 0.5,
                           }}
                         >
-                          {cuenta.tipo === "empresa" ? (
-                            <BusinessIcon
-                              sx={{ fontSize: 32, color: "primary.contrastText" }}
-                            />
-                          ) : (
-                            <PersonIcon
-                              sx={{ fontSize: 32, color: "primary.contrastText" }}
-                            />
-                          )}
-                        </Avatar>
-
-                        <Box sx={{ minWidth: 0, width: "100%" }}>
-                          <Typography
-                            variant="h5"
-                            noWrap
-                            sx={{
-                              color: (theme) => theme.palette.text.primary,
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {cuenta.empresa || "Sin cliente"}
-                          </Typography>
-
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary" }}
-                          >
-                            Cuenta ID: {cuenta.cuentaCobroId || "sin número"}
-                          </Typography>
+                          {chipEstado}
+                          {atendidaPor}
                         </Box>
                       </Stack>
+                    )}
 
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: { xs: "flex-start", sm: "center" },
-                          gap: 0.5,
-                        }}
-                      >
-                        <Chip
-                          size="small"
-                          icon={<estado.Icono />}
-                          label={estado.label}
-                          color={estado.color}
-                          variant="outlined"
-                        />
+                    <Divider sx={{ my: esCelular ? 1.5 : 2 }} />
 
-                        {/* Quién la tiene abierta, con el punto encendido
-                            mientras esa persona siga conectada. */}
-                        {cuenta.status === "enProceso" && cuenta.atendidoPor && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.primary",
-                              fontStyle: "italic",
-                              whiteSpace: "nowrap",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 0.6,
-                            }}
-                          >
-                            <Box
-                              component="span"
-                              sx={{
-                                width: 7,
-                                height: 7,
-                                borderRadius: "50%",
-                                flexShrink: 0,
-                                backgroundColor: usuariosConectados[
-                                  cuenta.atendidoPorUid
-                                ]?.online
-                                  ? theme.palette.custom.online
-                                  : theme.palette.grey[500],
-                              }}
-                            />
-                            <span>
-                              Atendida por: <strong>{cuenta.atendidoPor}</strong>
-                            </span>
-                          </Typography>
-                        )}
-                      </Box>
-                    </Stack>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    {/* Fecha e importe a la izquierda, acciones a la derecha. */}
-                    <Stack
-                      direction={{ xs: "column", sm: "row" }}
-                      spacing={{ xs: 2, sm: 4 }}
-                      justifyContent="space-between"
-                      alignItems={{ xs: "flex-start", sm: "center" }}
-                    >
-                      <Stack spacing={1.5} sx={{ width: "100%" }}>
-                        <Stack direction="row" alignItems="center" gap={1.5}>
-                          <CalendarMonthIcon
-                            fontSize="small"
-                            sx={{ color: "text.secondary" }}
-                          />
-                          <Typography variant="body2">
-                            <b>Fecha:</b>{" "}
-                            {formatearFechaLegible(cuenta.fecha) || "sin fecha"}
-                          </Typography>
-                        </Stack>
-
-                        <Stack direction="row" alignItems="center" gap={1.5}>
-                          <PaymentsIcon
-                            fontSize="small"
-                            sx={{ color: "text.secondary" }}
-                          />
-                          <Typography variant="body2">
-                            <b>Total a cancelar:</b> {formatearMoneda(saldo)}
-                          </Typography>
-                        </Stack>
-                      </Stack>
-
+                    {/* Fecha e importe; en el computador, las acciones al lado. */}
+                    {esCelular ? (
+                      datos
+                    ) : (
                       <Stack
                         direction="row"
-                        spacing={0.5}
-                        sx={{
-                          flexShrink: 0,
-                          alignSelf: { xs: "flex-end", sm: "center" },
-                        }}
+                        spacing={4}
+                        justifyContent="space-between"
+                        alignItems="center"
                       >
-                        {!ocupada && (
-                          <Tooltip title={laTengoYo ? "Retomar" : "Abrir"}>
-                            <IconButton
-                              size="small"
-                              onClick={() => abrir(cuenta)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {puedeDescargar && (
-                          <Tooltip title="Descargar PDF">
-                            <IconButton
-                              size="small"
-                              onClick={() => VistaCcPdf({ value: cuenta })}
-                            >
-                              <PictureAsPdfIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {/* Registrar el pago es decir que entró la plata, así
-                            que queda solo en manos del administrador — mismo
-                            criterio que eliminar. Solo aparece en las emitidas:
-                            un borrador todavía no se cobró. */}
-                        {esAdministrador && emitida && (
-                          <Tooltip
-                            title={
-                              estaPagada
-                                ? "Marcar como no pagada"
-                                : "Marcar como pagada"
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                size="small"
-                                color={estaPagada ? "default" : "primary"}
-                                disabled={marcandoPago === cuenta.id}
-                                onClick={() => alternarPagada(cuenta)}
-                              >
-                                {estaPagada ? (
-                                  <MoneyOffIcon fontSize="small" />
-                                ) : (
-                                  <PaidIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
-                        {esAdministrador && (
-                          <Tooltip title="Eliminar">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => setAEliminar(cuenta)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                        {datos}
+
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          sx={{ flexShrink: 0 }}
+                        >
+                          {acciones}
+                        </Stack>
                       </Stack>
-                    </Stack>
+                    )}
                   </CardContent>
                 </Card>
               );
