@@ -2,7 +2,11 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import { formatearMoneda } from "../../Utils/formato";
 import CargosAdicionales from "./CargosAdicionales";
-import { unEquipoDevuelto, unTramoVencido } from "../../test/facturas";
+import {
+  unaAmpliacion,
+  unEquipoDevuelto,
+  unTramoVencido,
+} from "../../test/facturas";
 
 // El recuadro que explica lo que se cobra aparte del alquiler. Lo que se prueba
 // acá es el desglose que abre la flecha: cómo se llama cada renglón, cuánto IVA
@@ -71,6 +75,19 @@ const conTresDiasVencidos = benitin({
   dias: 5,
   vencidos: [unTramoVencido({ desde: "2026-08-11", hasta: "2026-08-13" })],
   fechaDevolucion: "2026-08-13",
+});
+
+// EL CASO DE LA 8932 de Hernando Rey, que es el que destapó todo. Salió el 08
+// por 4 días, se pasó tres —12, 13 y 14— y el 14 se le pactaron 5 más, hasta
+// el 19. Lo ÚLTIMO que pasó fue el acuerdo, no el vencimiento.
+const vencidoYDespuesPactado = benitin({
+  fechaDespacho: "2026-09-08",
+  dias: 4,
+  vencidos: [unTramoVencido({ desde: "2026-09-12", hasta: "2026-09-14" })],
+  ampliaciones: [
+    unaAmpliacion({ fecha: "2026-09-14", dias: 5, desde: "2026-09-15" }),
+  ],
+  fechaDevolucion: "2026-09-19",
 });
 
 // Un segundo equipo del mismo despacho: 2 días a $50.000, $19.000 de IVA.
@@ -215,6 +232,34 @@ describe("CargosAdicionales", () => {
     ]);
   });
 
+  // EL ORDEN SALE DE LAS FECHAS, no de la clase del tramo. Lo corriente es
+  // alta → lo que pidió → lo que se pasó, pero este equipo se venció PRIMERO
+  // y pidió días después: el acuerdo es lo más reciente y va arriba. Cuando el
+  // orden se deducía de la clase, los 3 días vencidos salían encima de los 5
+  // que se le habían pactado el 14 —tres días más tarde— y la cuenta del
+  // equipo había que armarla de atrás para adelante.
+  it("pone cada tramo en el día en que pasó, no en el orden de su clase", () => {
+    dibujar([vencidoYDespuesPactado]);
+
+    expect(renglonesEnPantalla()).toEqual([
+      "1 BENITIN · 5 días ampliados",
+      "1 BENITIN · 3 días vencidos",
+      "1 BENITIN · 4 días renta inicial",
+    ]);
+  });
+
+  // Y el reparto de la plata no se mueve: son los mismos días, cada uno en su
+  // renglón. 4 del alta, 5 pactados y 3 vencidos a $100.000 el día.
+  it("le pone a cada tramo el IVA que le toca aunque se hayan cruzado", () => {
+    dibujar([vencidoYDespuesPactado]);
+
+    expect(ivaDelRenglon("1 BENITIN · 4 días renta inicial")).toBe(
+      dinero(76000),
+    );
+    expect(ivaDelRenglon("1 BENITIN · 5 días ampliados")).toBe(dinero(95000));
+    expect(ivaDelRenglon("1 BENITIN · 3 días vencidos")).toBe(dinero(57000));
+  });
+
   // El nombre de un equipo de alquiler es largo —"1 COMPRESOR NEUMATICO
   // INGERSOLLRAND 185"— y repetido en cada renglón no entraba en una línea: al
   // partirse en dos descolocaba los totales de la derecha, que dejaban de caer
@@ -225,28 +270,37 @@ describe("CargosAdicionales", () => {
     expect(screen.getAllByText("1 BENITIN")).toHaveLength(1);
   });
 
-  // Manda el orden en que pasó, no el equipo: por eso un equipo que se movió
-  // en dos momentos distintos encabeza dos grupos en vez de juntar lo suyo.
-  it("vuelve a escribir el nombre cuando el historial cambia de equipo", () => {
+  // Cada equipo junta lo suyo: su nombre encabeza sus tramos una sola vez y
+  // no vuelve a aparecer más abajo. Antes mandaba el orden del historial y un
+  // equipo que se movió dos veces encabezaba dos grupos.
+  it("junta los tramos de cada equipo bajo su nombre", () => {
     dibujar([conTresDiasVencidos, otroEquipo], conCargosDelLote);
 
-    // Los vencidos del BENITIN, y debajo las altas de los dos equipos: el
-    // BENITIN aparece al principio y al final.
+    // El último equipo agregado primero, y dentro de cada uno lo más reciente
+    // arriba.
     expect(renglonesEnPantalla()).toEqual([
-      "1 BENITIN · 3 días vencidos",
       "1 ANDAMIO · 2 días renta inicial",
+      "1 BENITIN · 3 días vencidos",
       "1 BENITIN · 5 días renta inicial",
     ]);
-    expect(screen.getAllByText("1 BENITIN")).toHaveLength(2);
+    expect(screen.getAllByText("1 BENITIN")).toHaveLength(1);
   });
 
-  it("acumula el historial cuando el lote tiene varios equipos", () => {
-    // El alta de los dos equipos y después los días vencidos del primero:
-    // $795.000, $814.000 y el vigente, que no se repite.
+  // LA CUENTA ES DE CADA EQUIPO, no una cadena que los encadena a todos. Dos
+  // equipos que salieron en el MISMO despacho no ocurrieron uno después del
+  // otro: encadenarlos mostraba un número que nunca existió —el total si el
+  // otro equipo no hubiera salido—.
+  it("le lleva a cada equipo su propia cuenta", () => {
     dibujar([conTresDiasVencidos, otroEquipo], conCargosDelLote);
 
+    // El BENITIN: $700.000 del despacho más su alta ($95.000) y después sus
+    // vencidos ($57.000).
     expect(hayTotal(795000)).toBeInTheDocument();
-    expect(hayTotal(814000)).toBeInTheDocument();
+    expect(hayTotal(852000)).toBeInTheDocument();
+    // El ANDAMIO arranca de nuevo en los $700.000 del despacho, no sigue la
+    // cuenta del BENITIN: $719.000, y no $871.000.
+    expect(hayTotal(719000)).toBeInTheDocument();
+    // El total de arriba sigue apareciendo una sola vez.
     expect(vecesQueAparece(871000)).toBe(1);
   });
 

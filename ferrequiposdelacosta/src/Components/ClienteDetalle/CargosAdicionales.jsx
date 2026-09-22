@@ -42,7 +42,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { calcularEquipo, diasDeEquipo, equipoLlevaIva } from "./facturaUtils";
+import { equipoLlevaIva, tramosDeEquipo } from "./facturaUtils";
 import {
   detenerToque,
   renderContenidoPlano,
@@ -132,31 +132,6 @@ const datosAdicionales = ({
   return datos;
 };
 
-// Lo que vale cada parte de un equipo, separada por concepto. Sale todo de la
-// misma cuenta —calcularEquipo—, que ya expone lo pactado y lo vencido por
-// separado justamente para que una pantalla los pueda nombrar distinto.
-//
-// Ya no hay una parte "sin usar". Un equipo que volvió antes trae en sus días
-// los que de verdad estuvo afuera, así que lo que no usó nunca entró al
-// cobro: no hay nada que restar después.
-const partesDeEquipo = (equipo, hoyIso) => {
-  const porDia =
-    (Number(equipo?.cantidadEquipos) || 0) * (Number(equipo?.valorDia) || 0);
-  const cuenta = hoyIso ? calcularEquipo(equipo, hoyIso) : calcularEquipo(equipo);
-  const dias = hoyIso ? diasDeEquipo(equipo, hoyIso) : diasDeEquipo(equipo);
-
-  return {
-    inicial: dias.alta * porDia,
-    // Lo que se pactó DE MÁS al ampliarle el plazo, ya con su descuento.
-    ampliados: Math.max(0, dias.ampliados * porDia - cuenta.descuento),
-    // Los días vencidos se cobran al valor del día y sin descuento.
-    vencidos: dias.vencidos * porDia,
-    // Los días de cada tramo, para poder nombrarlos: un renglón que dice
-    // "3 días vencidos · $57.000" se entiende sin dividir de cabeza.
-    dias,
-  };
-};
-
 // Cómo se llama cada tramo, con su número de días por delante. En singular
 // cuando es uno solo: "1 día vencido" y no "1 días vencidos".
 const NOMBRES_DE_TRAMO = {
@@ -165,8 +140,8 @@ const NOMBRES_DE_TRAMO = {
   vencidos: { uno: "día vencido", varios: "días vencidos" },
 };
 
-const conceptoDelTramo = (clave, dias) => {
-  const nombre = NOMBRES_DE_TRAMO[clave];
+const conceptoDelTramo = (tipo, dias) => {
+  const nombre = NOMBRES_DE_TRAMO[tipo];
   return `${dias} ${dias === 1 ? nombre.uno : nombre.varios}`;
 };
 
@@ -204,55 +179,34 @@ export default function CargosAdicionales({
   // pagados"— no cabía en una línea, y al partirse en dos descolocaba los
   // totales de la derecha. La etiqueta completa sobrevive en el `title`, para
   // el que pare el mouse encima.
+  // Un renglón por tramo, en el orden en que pasaron: los trae así la cuenta
+  // del equipo (ver tramosDeEquipo), que es la única que sabe la fecha de
+  // cada uno. El que no mueve plata no se dibuja — un equipo que salió y
+  // volvió a tiempo tiene una sola línea, la suya.
   const renglonesDeEquipo = (equipo) => {
-    const partes = partesDeEquipo(equipo);
     const nombre = `${equipo.cantidadEquipos} ${equipo.nombre}`;
     const conIva = llevaIvaEquipo(equipo);
 
-    return [
-      {
-        clave: "inicial",
-        // Si salió por 3 días y devolvió a 1, este renglón vale 1 día: los
-        // días que quedaron escritos al volver son los que estuvo afuera.
-        valor: partes.inicial,
-      },
-      {
-        clave: "ampliados",
-        valor: partes.ampliados,
-      },
-      {
-        clave: "vencidos",
-        valor: partes.vencidos,
-      },
-    ]
-      .filter((renglon) => renglon.valor !== 0)
-      .map((renglon) => {
-        const concepto = conceptoDelTramo(
-          renglon.clave,
-          renglon.clave === "inicial"
-            ? partes.dias.alta
-            : partes.dias[renglon.clave],
-        );
+    return tramosDeEquipo(equipo)
+      .filter((tramo) => tramo.valor !== 0)
+      .map((tramo) => {
+        const concepto = conceptoDelTramo(tramo.tipo, tramo.dias);
 
         return {
-          ...renglon,
+          clave: tramo.clave,
           concepto,
           equipo: nombre,
           etiqueta: `${nombre} · ${concepto}`,
-          iva: conIva ? renglon.valor * IVA : 0,
+          valor: tramo.valor,
+          iva: conIva ? tramo.valor * IVA : 0,
         };
       });
   };
 
-  // El IVA de UN equipo completo. Sale de las mismas partes que el desglose,
+  // El IVA de UN equipo completo. Sale de los mismos tramos que el desglose,
   // así que los renglones de abajo siempre suman el número de arriba.
-  const ivaDeUnEquipo = (equipo) => {
-    if (!llevaIvaEquipo(equipo)) return 0;
-    const partes = partesDeEquipo(equipo);
-    return (
-      (partes.inicial + partes.ampliados + partes.vencidos) * IVA
-    );
-  };
+  const ivaDeUnEquipo = (equipo) =>
+    renglonesDeEquipo(equipo).reduce((total, renglon) => total + renglon.iva, 0);
 
   const ivaDeEquipos = (lista) =>
     lista.reduce((total, equipo) => total + ivaDeUnEquipo(equipo), 0);
@@ -312,69 +266,48 @@ export default function CargosAdicionales({
 
   marcarCasillaIva(hayDesglose);
 
-  // Los renglones en el orden en que ocurrieron: primero el alta —todos los
-  // equipos salieron en el mismo despacho— y después lo que fue pasando con
-  // cada uno, los días que se pactaron y los que se vencieron.
-  const conClave = (equipo, indice, renglon) => ({
-    ...renglon,
-    clave: `${equipo.nombre}-${indice}-${renglon.clave}`,
-    // De quién es el renglón: dos equipos pueden llamarse igual en el mismo
-    // lote, así que el índice va pegado. Sirve para saber cuándo el historial
-    // cambia de equipo y hay que volver a escribir el nombre.
-    idEquipo: `${equipo.nombre}-${indice}`,
-    esDelAlta: renglon.clave === "inicial",
-  });
-  const renglonesEnOrden = [
-    ...aportantes.flatMap((equipo, indice) =>
-      renglonesDeEquipo(equipo)
-        .filter((renglon) => renglon.clave === "inicial")
-        .map((renglon) => conClave(equipo, indice, renglon)),
-    ),
-    ...aportantes.flatMap((equipo, indice) =>
-      renglonesDeEquipo(equipo)
-        .filter((renglon) => renglon.clave !== "inicial")
-        .map((renglon) => conClave(equipo, indice, renglon)),
-    ),
-  ];
+  // CADA EQUIPO LLEVA SU PROPIA CUENTA. La columna de la derecha dice a
+  // cuánto llega el "Total adicionales" con este equipo: los cargos del
+  // despacho —depósito y flete, que son del lote— más el IVA de sus tramos,
+  // sumados de a uno.
+  //
+  // No se encadena entre equipos, y ahí estaba el error: dos equipos que
+  // salieron en el MISMO despacho no ocurrieron uno después del otro, así que
+  // encadenarlos mostraba un número que nunca existió —"el total si el otro
+  // equipo no hubiera salido"—. La columna se lee renglón por renglón y NO
+  // suma hacia abajo.
+  //
+  // El número que coincide con el "Total adicionales" de arriba no se repite.
+  // Pasa cuando el grupo tiene un solo equipo: ahí su último tramo cierra
+  // justo en el total que ya está a la vista.
+  const totalAdicionales = cargosDelLote + ivaDeEquipos(equipos);
+  const mismoNumero = (uno, otro) => Math.round(uno) === Math.round(otro);
 
-  // La columna de la derecha es el HISTORIAL del "Total adicionales": a
-  // cuánto llegaba ese número después de cada movimiento. Por eso es un
-  // acumulado —el despacho más todo el IVA hasta ahí— y no el aporte suelto
-  // de cada renglón.
-  //
-  // El último movimiento no lleva total: ese es justamente el número que está
-  // arriba, siempre a la vista. Repetirlo abajo no agregaría nada.
-  //
-  // Y se muestra al revés de como ocurrió: lo más reciente arriba, el alta
-  // abajo del todo, que es como se lee un historial.
-  let ivaAcumulado = 0;
-  const renglonesDelDesglose = renglonesEnOrden
-    .map((renglon, indice) => {
-      ivaAcumulado += renglon.iva;
-      const esElVigente = indice === renglonesEnOrden.length - 1;
+  // Los equipos, el último agregado primero; y dentro de cada uno sus tramos
+  // al revés de como pasaron —lo más reciente arriba—, que es como se lee.
+  // El orden de los tramos ya no se deduce de su clase: lo trae la cuenta del
+  // equipo, que sabe la fecha de cada uno (ver tramosDeEquipo).
+  const filasDelDesglose = [];
+  [...aportantes].reverse().forEach((equipo, indice) => {
+    let acumulado = cargosDelLote;
+    const renglones = renglonesDeEquipo(equipo).map((renglon) => {
+      acumulado += renglon.iva;
       return {
         ...renglon,
-        totalHistorico: esElVigente ? null : cargosDelLote + ivaAcumulado,
+        // Dos equipos pueden llamarse igual en el mismo lote, así que el
+        // índice va pegado a la clave.
+        clave: `${equipo.nombre}-${indice}-${renglon.clave}`,
+        totalHistorico: mismoNumero(acumulado, totalAdicionales)
+          ? null
+          : acumulado,
       };
-    })
-    .reverse();
+    });
 
-  // Lo que se dibuja, ya en el orden final: el nombre del equipo encabeza sus
-  // renglones y no se repite mientras los que siguen sean suyos. Como manda el
-  // historial y no el equipo, un equipo que se movió dos veces en momentos
-  // distintos aparece encabezando dos grupos —es el precio de leer la cuenta
-  // en el orden en que pasó, que es como se entiende—.
-  const filasDelDesglose = [];
-  let equipoEnCurso = null;
-  renglonesDelDesglose.forEach((renglon) => {
-    if (renglon.idEquipo !== equipoEnCurso) {
-      filasDelDesglose.push({
-        clave: `equipo-${renglon.clave}`,
-        titulo: renglon.equipo,
-      });
-      equipoEnCurso = renglon.idEquipo;
-    }
-    filasDelDesglose.push(renglon);
+    filasDelDesglose.push({
+      clave: `equipo-${equipo.nombre}-${indice}`,
+      titulo: `${equipo.cantidadEquipos} ${equipo.nombre}`,
+    });
+    filasDelDesglose.push(...renglones.reverse());
   });
 
   // La flecha va DENTRO del recuadro, al lado de los datos y a su mismo
@@ -484,9 +417,9 @@ export default function CargosAdicionales({
                     >
                       {formatearMoneda(fila.iva)}
                     </Typography>
-                    {/* A cuánto llegaba el total adicional después de este
-                        movimiento. El renglón vigente no lleva ninguno: su
-                        total es el que está arriba, siempre a la vista. */}
+                    {/* A cuánto llega el total adicional con este equipo. El
+                        renglón que daría el mismo número que está arriba no
+                        lo lleva: repetirlo no agregaría nada. */}
                     {fila.totalHistorico !== null && (
                       <Typography
                         variant="body2"

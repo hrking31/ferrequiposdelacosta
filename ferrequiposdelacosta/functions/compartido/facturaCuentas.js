@@ -281,6 +281,106 @@ export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   };
 };
 
+// ── LOS MISMOS DÍAS, PERO CON SU FECHA ─────────────────────────────────
+//
+// `diasDeEquipo` dice CUÁNTOS días de cada clase se le cobran. Esto dice
+// CUÁNDO pasó cada uno, y por eso es lo único que permite ponerlos en orden.
+//
+// Hace falta porque **la clase de tramo no dice el orden**. Lo corriente es
+// alta → lo que pidió → lo que se pasó, pero un equipo que se venció y recién
+// DESPUÉS pidió días va al revés: alta → lo que se pasó → lo que pidió.
+// Deducir el orden de la clase —que es como se hacía— cruzaba esos dos
+// renglones: en la 8932 de Hernando Rey los 3 días vencidos aparecían después
+// de los 5 que se le habían pactado el 14, cuando fue exactamente al revés.
+//
+// Cada tramo trae el día en que arrancó, sus días y lo que vale, ya con el
+// descuento aplicado. **La suma de los valores es exactamente el `neto` de
+// `calcularEquipo`**: esto reparte lo que ya se cobra, no recalcula nada, y
+// hay una prueba que lo fija.
+export const tramosDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
+  const dias = diasDeEquipo(equipo, hoyIso);
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+
+  const tramos = [];
+
+  // 1. LOS DÍAS DEL ALTA, desde que salió de la bodega.
+  if (dias.alta > 0) {
+    tramos.push({
+      clave: "inicial",
+      tipo: "inicial",
+      desde: equipo?.fechaDespacho ?? null,
+      dias: dias.alta,
+      valor: dias.alta * porDia,
+    });
+  }
+
+  // 2. CADA AMPLIACIÓN, con los días que de verdad se le cobran. El que
+  // devolvió antes no usó todo lo que había pedido, y ese recorte cae desde
+  // la última ampliación hacia atrás — la misma regla que reparte
+  // `diasDeEquipo`, acá aplicada tramo por tramo.
+  let pactadosPorRepartir = dias.ampliados;
+  ampliacionesDe(equipo).forEach((ampliacion, indice) => {
+    const cobrados = Math.min(numero(ampliacion?.dias), pactadosPorRepartir);
+    if (cobrados <= 0) return;
+    pactadosPorRepartir -= cobrados;
+
+    tramos.push({
+      clave: `ampliados-${indice}`,
+      tipo: "ampliados",
+      // El día en que arrancan los días nuevos. `fecha` —cuándo se pactó— es
+      // el respaldo para las ampliaciones viejas, que no guardaban el desde.
+      desde: ampliacion?.desde ?? ampliacion?.fecha ?? null,
+      dias: cobrados,
+      valor: cobrados * porDia,
+    });
+  });
+
+  // 3. CADA TRAMO VENCIDO. El que sigue abierto se cuenta contra hoy —o
+  // contra el día en que volvió—, igual que en `diasVencidosDe`.
+  vencidosDe(equipo).forEach((tramo, indice) => {
+    const hasta = tramo?.hasta ?? corte;
+    if (!tramo?.desde || hasta < tramo.desde) return;
+    const diasTramo = diasDeAlquiler(tramo.desde, hasta);
+    if (diasTramo <= 0) return;
+
+    tramos.push({
+      clave: `vencidos-${indice}`,
+      tipo: "vencidos",
+      desde: tramo.desde,
+      dias: diasTramo,
+      // Los días vencidos se cobran al valor del día y sin descuento: para
+      // perdonarlos está el descuento de la ampliación, que alguien decide.
+      valor: diasTramo * porDia,
+    });
+  });
+
+  // EL DESCUENTO se resta de lo pactado, que es de donde salió: primero de
+  // las ampliaciones y, si es más grande que ellas, lo que sobra sale del
+  // alta. Así la suma de los tramos da lo mismo que `neto`, que también lo
+  // resta del pactado completo. Repartirlo solo entre las ampliaciones dejaba
+  // el desglose por debajo del total cuando el descuento era mayor que ellas.
+  let porDescontar = sumar(ampliacionesDe(equipo), "descuento");
+  [...tramos]
+    .filter((tramo) => tramo.tipo === "ampliados")
+    .concat(tramos.filter((tramo) => tramo.tipo === "inicial"))
+    .forEach((tramo) => {
+      if (porDescontar <= 0) return;
+      const quita = Math.min(tramo.valor, porDescontar);
+      tramo.valor -= quita;
+      porDescontar -= quita;
+    });
+
+  // En orden de calendario, y los del mismo día en el orden en que se
+  // armaron: primero salió, después se le dio y al final se pasó.
+  return tramos
+    .map((tramo, orden) => ({ ...tramo, orden }))
+    .sort((a, b) => {
+      if (!a.desde || !b.desde || a.desde === b.desde) return a.orden - b.orden;
+      return a.desde < b.desde ? -1 : 1;
+    });
+};
+
 // ── El estado de un equipo ─────────────────────────────────────────────
 //
 // Se resuelve en orden y gana el primero. El orden no es un detalle: un equipo

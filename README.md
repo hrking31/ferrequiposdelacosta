@@ -1175,6 +1175,45 @@ Van **sin rótulo**: qué es cada una ya lo cuentan los tramos de abajo —*"+2 
 
 **Y la tarjeta no creció.** Contar más cosas suele costar alto, pero acá no hacía falta: las cifras vivían dentro de la fila del nombre, así que cada una nueva la estiraba hacia abajo mientras al lado de los chips de fechas sobraba lugar vacío. La tarjeta pasó a leerse en **dos columnas** —el equipo y su historia a la izquierda, la plata a la derecha— y ahora el alto lo manda la más alta de las dos. Las cifras que se sumaron caen en un espacio que ya estaba ahí.
 
+### El orden de una cuenta no se adivina, se lee de la fecha
+
+El desglose del IVA armaba los renglones de un equipo en un orden fijo —renta inicial, días pactados, días vencidos— dando por hecho que el vencimiento es siempre el último capítulo. En la 8932 de Hernando Rey no lo era: los tablones salieron el 08 por 4 días, se pasaron tres (12, 13 y 14) y **el 14 se les pactaron 5 más**. Lo último que pasó fue el acuerdo, no la mora, y los dos renglones salían cruzados: los 3 días vencidos encima de los 5 que se habían pactado tres días más tarde.
+
+Acomodar esos dos renglones a mano habría sido el parche. El problema de fondo era otro: **había dos lugares contando la misma historia y solo uno sabía las fechas.** La línea de tiempo del equipo las leía y las ordenaba bien; el desglose no las miraba.
+
+Ahora los días que se le cobran a un equipo se reparten en **tramos con fecha una sola vez**, dentro de la cuenta del equipo, y el IVA lee de ahí. Nadie vuelve a deducir el orden:
+
+```
+2 TABLÓN DE MADERA PARA ANDAMIO — $24.000/día
+  08 → 11 sep   4 días   renta inicial    $ 96.000
+  12 → 14 sep   3 días   vencidos         $ 72.000
+  15 → 19 sep   5 días   pactados         $120.000
+  20 → 22 sep   3 días   vencidos         $ 72.000
+                15 días                   $360.000
+```
+
+Ese cuarto renglón es la prueba de que el arreglo era de fondo: un equipo que se vence **dos veces**, con un acuerdo en el medio, antes no se podía ni dibujar — los dos vencimientos se fundían en un solo renglón, arriba de un acuerdo que había pasado entre ellos.
+
+> La regla que lo sostiene: **esto reparte, no recalcula**. La suma de los tramos tiene que dar exactamente el neto del equipo, y hay una prueba que lo fija en cuatro escenarios —el que se venció y después pidió días, el que tuvo descuento, el que devolvió antes de usar todo y el que sigue afuera con el contador corriendo—. Si alguien rompe el reparto, se entera antes de que llegue a una factura.
+
+### Cada equipo lleva su propia cuenta
+
+La columna de la derecha del desglose dice a cuánto llega el "Total adicionales" con cada equipo. Era **una sola cadena** que los encadenaba a todos: el primero sumaba su IVA a los cargos del despacho, el segundo seguía desde ahí, y así. Con dos equipos que salieron en el **mismo** despacho eso mostraba un número que nunca existió — el total *si el otro equipo no hubiera salido*.
+
+Ahora cada equipo arranca de nuevo en los cargos de su despacho:
+
+```
+IVA POR EQUIPO                    (depósito $80.000 + flete $60.000)
+5 GATOS METALICOS
+  1 día vencido          $ 1.425   → $147.125
+  4 días renta inicial   $ 5.700   → $145.700
+10 ANDAMIOS CONVENCIONALES
+  1 día vencido          $ 1.900   → $149.500
+  4 días renta inicial   $ 7.600   → $147.600
+```
+
+La columna **no suma hacia abajo**: cada renglón se lee solo. Y el número que coincidiría con el "Total adicionales" de arriba no se escribe — pasa cuando el grupo tiene un solo equipo, y repetirlo no agregaría nada.
+
 ### La pantalla angosta decide qué cede, no qué se rompe
 
 La ficha del cliente tiene tres piezas: quién es, cuánto debe y qué se puede hacer con él. Cuando el ancho deja de alcanzar, la que baja a su propia fila es **la cuenta** — que ahí gana espacio y muestra las cuatro casillas en vez de dos—; los botones se quedan arriba, junto al nombre.
@@ -1357,7 +1396,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**569 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**578 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

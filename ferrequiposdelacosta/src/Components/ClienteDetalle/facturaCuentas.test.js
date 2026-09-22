@@ -9,6 +9,7 @@ import {
   abrirTramoVencido,
   sellarFacturaPagada,
   diasDeEquipo,
+  tramosDeEquipo,
   obtenerFechaDespachoSugerida,
   obtenerFechaHoyBogota,
   calcularAlquiler,
@@ -1371,3 +1372,140 @@ describe("qué tiene la factura encima", () => {
 // vencido y su factura ya estaba en cartera.
 //
 // Antes esto no lo calculaba nadie: con los días vencidos solos, ese caso se
+
+// ── LOS TRAMOS CON SU FECHA ────────────────────────────────────────────
+//
+// El reparto que permite contar la cuenta de un equipo en el orden en que
+// pasó. Lo que se fija acá es que reparte y NO recalcula: la suma de los
+// tramos tiene que dar exactamente el neto del equipo, siempre.
+describe("tramosDeEquipo", () => {
+  // La 8932 de Hernando Rey: 2 tablones a $12.000 el día —$24.000 diarios—
+  // salieron el 08 por 4 días, se pasaron tres (12, 13 y 14) y el 14 se les
+  // pactaron 5 más, del 15 al 19.
+  const tablones = (extra = {}) => ({
+    nombre: "TABLÓN DE MADERA PARA ANDAMIO",
+    cantidadEquipos: 2,
+    valorDia: 12000,
+    diasAlquilados: 4,
+    fechaDespacho: "2026-09-08",
+    vencidos: [{ desde: "2026-09-12", hasta: "2026-09-14", indefinida: false }],
+    ampliaciones: [
+      {
+        fecha: "2026-09-14",
+        dias: 5,
+        desde: "2026-09-15",
+        hasta: "2026-09-19",
+        descuento: 0,
+      },
+    ],
+    ...extra,
+  });
+
+  // EL CASO QUE ROMPÍA: el vencimiento pasó ANTES que la ampliación. Deducir
+  // el orden de la clase del tramo —alta, pactados, vencidos— los cruzaba.
+  it("pone los tramos en el día en que pasaron", () => {
+    expect(
+      tramosDeEquipo(tablones(), "2026-09-18").map((tramo) => [
+        tramo.tipo,
+        tramo.desde,
+        tramo.dias,
+        tramo.valor,
+      ]),
+    ).toEqual([
+      ["inicial", "2026-09-08", 4, 96000],
+      ["vencidos", "2026-09-12", 3, 72000],
+      ["ampliados", "2026-09-15", 5, 120000],
+    ]);
+  });
+
+  // LA REGLA DE ORO: esto reparte lo que ya se cobra. Si la suma de los
+  // tramos se separa del neto, el desglose del IVA deja de cuadrar con el
+  // total de la factura y no hay forma de que el dueño confirme una cuenta.
+  const sumaDeTramos = (equipo, hoy) =>
+    tramosDeEquipo(equipo, hoy).reduce((total, tramo) => total + tramo.valor, 0);
+
+  it.each([
+    ["el que se venció y después pidió días", tablones(), "2026-09-18"],
+    [
+      "el que pidió días con descuento",
+      tablones({
+        ampliaciones: [
+          {
+            fecha: "2026-09-14",
+            dias: 5,
+            desde: "2026-09-15",
+            hasta: "2026-09-19",
+            descuento: 30000,
+          },
+        ],
+      }),
+      "2026-09-18",
+    ],
+    [
+      "el que devolvió antes de usar todo lo que pidió",
+      tablones({
+        devolucion: { fechaDevolucion: "2026-09-16", buenEstado: true },
+      }),
+      "2026-09-18",
+    ],
+    [
+      "el que sigue afuera con un tramo corriendo",
+      tablones({
+        ampliaciones: [],
+        vencidos: [{ desde: "2026-09-12", hasta: null, indefinida: false }],
+      }),
+      "2026-09-18",
+    ],
+  ])("suma lo mismo que el neto del equipo: %s", (_, equipo, hoy) => {
+    expect(sumaDeTramos(equipo, hoy)).toBe(calcularEquipo(equipo, hoy).neto);
+  });
+
+  // El descuento nació en la ampliación, así que sale de ahí y no de los días
+  // vencidos, que se cobran completos.
+  it("le resta el descuento al tramo que se pactó", () => {
+    const conDescuento = tablones({
+      ampliaciones: [
+        {
+          fecha: "2026-09-14",
+          dias: 5,
+          desde: "2026-09-15",
+          hasta: "2026-09-19",
+          descuento: 30000,
+        },
+      ],
+    });
+
+    const tramos = tramosDeEquipo(conDescuento, "2026-09-18");
+    expect(tramos.find((tramo) => tramo.tipo === "ampliados").valor).toBe(90000);
+    expect(tramos.find((tramo) => tramo.tipo === "vencidos").valor).toBe(72000);
+  });
+
+  // Salió el 08 por 4 días, el 11 pidió 5 más —hasta el 16— y devolvió el 14:
+  // de esos 5 usó 3. El recorte cae en la ampliación, que es lo que no
+  // alcanzó a usar, nunca en el alta.
+  it("recorta los días que el cliente no alcanzó a usar", () => {
+    const devueltoAntes = tablones({
+      vencidos: [],
+      ampliaciones: [
+        {
+          fecha: "2026-09-11",
+          dias: 5,
+          desde: "2026-09-12",
+          hasta: "2026-09-16",
+          descuento: 0,
+        },
+      ],
+      devolucion: { fechaDevolucion: "2026-09-14", buenEstado: true },
+    });
+
+    expect(
+      tramosDeEquipo(devueltoAntes, "2026-09-18").map((tramo) => [
+        tramo.tipo,
+        tramo.dias,
+      ]),
+    ).toEqual([
+      ["inicial", 4],
+      ["ampliados", 3],
+    ]);
+  });
+});
