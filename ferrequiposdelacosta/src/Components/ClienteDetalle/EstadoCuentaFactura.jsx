@@ -316,8 +316,9 @@ export default function EstadoCuentaFactura({
             </Typography>
           ))}
 
-        {/* Retener plata sin decir por qué no se puede,
-          así que el motivo siempre está a la vista. */}
+        {/* Acá va solo CUÁNTO se retuvo: este recuadro es la cuenta de la
+          factura. El motivo —qué le pasó a cada equipo— se lee en la
+          historia del equipo, al lado del equipo que volvió mal. */}
         {Number(datos.depositoResuelto?.retenido) > 0 && (
           <Typography
             variant="caption"
@@ -331,7 +332,7 @@ export default function EstadoCuentaFactura({
             {formatearMoneda(
               datos.depositoResuelto.retenido,
             )}{" "}
-            del depósito: {datos.depositoResuelto.motivo}
+            del depósito
           </Typography>
         )}
 

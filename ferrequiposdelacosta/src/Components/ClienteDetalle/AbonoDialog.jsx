@@ -126,8 +126,8 @@ export default function AbonoDialog({
     ? facturasConSaldo.filter(({ factura }) => elegidas.includes(factura.id))
     : facturasConSaldo;
 
-  // La simulación del reparto: a cada factura destino, en el orden de más a
-  // menos saldo, se le asigna lo que le falta hasta saldarla. La última que
+  // La simulación del reparto: a cada factura destino, de la más antigua a la
+  // más nueva, se le asigna lo que le falta hasta saldarla. La última que
   // llega a recibir algo se lleva TODO lo que quede del abono, así que si
   // sobra después de saldarlas, ese sobrante queda ahí como saldo a favor en
   // vez de perderse.

@@ -726,7 +726,7 @@ Ese recuadro **no muestra siempre lo mismo**: cada renglón aparece solo si tien
 | **Depósito** | Si ya volvieron los equipos y la garantía se liquidó. Va entre los renglones que **bajan** la cuenta: es plata que juega a favor del cliente |
 | **Entregado al cliente** | Si salió plata hacia él |
 | *Cruzado a la factura 1234* | Debajo del anterior y en letra chica, **solo** cuando esa plata no salió en mano sino que tapó otra factura suya. Sin esa línea se leería como devuelta |
-| *Se retuvieron $X del depósito: motivo* | Si al recibir un equipo se retuvo algo por daños. El motivo va siempre a la vista: retener plata sin decir por qué no se puede |
+| *Se retuvieron $X del depósito* | Si al recibir un equipo se retuvo algo por daños. Solo el monto: qué le pasó a cada equipo se lee en su historia |
 | **Saldo pendiente** *o* **Saldo a favor** | Siempre uno de los dos. Pendiente si el cliente debe; a favor si quedó plata suya sin entregar |
 | Botón **Devolver** | Solo con saldo a favor, y mientras no se le haya entregado |
 
@@ -734,6 +734,9 @@ Ese recuadro **no muestra siempre lo mismo**: cada renglón aparece solo si tien
 > **La entrega en mano no lleva nota (2026-09-16).** Cuando la plata salía por una devolución de depósito, debajo se escribía *"Devolución de depósito"* — un cuarto renglón repitiendo lo que ya decían los dos de arriba. La nota quedó **solo para el cruce**, que es el caso donde aporta: ahí la plata no salió.
 >
 > Esa nota **se guarda en la entrega**, no se calcula al mostrarla, así que las entregas registradas antes del cambio siguen mostrándola hasta que se rehagan.
+
+> [!NOTE]
+> **El motivo salió del recuadro (2026-09-22).** El renglón decía *"Se retuvieron $50.000 del depósito: SALTARÍN: rayadura y golpe"* — el nombre del equipo y lo que le pasó, metidos en medio de la cuenta, y con varios equipos dañados el renglón crecía sin límite. Ahora dice **solo cuánto**. Lo otro no se perdió: qué le pasó a cada equipo se lee en **su** historia, que es donde está al lado del equipo al que le pasó.
 
 #### Y si el cliente debe en otra factura, no se le entrega: se cruza
 
