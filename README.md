@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-555_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-581_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -673,6 +673,20 @@ Las facturas ya saldadas ni se tocan: no tiene sentido repartirle plata a quien 
 Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para la 1234". Cada factura de la lista tiene su casilla, pegada al número, que es justo lo que él nombra por teléfono. Marcando una o varias, el abono va solo a esas —con el mismo criterio de la más antigua primero— y el sobrante **le queda a favor a la que él eligió**: no se le pasa a otra, porque él dijo dónde iba esa plata.
 
 Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostrando **todas** las facturas con saldo, porque hay que poder elegir entre ellas y ver cómo queda cada una; y un renglón dice **quién está decidiendo ahora mismo**, porque una lista de casillas vacías se lee como "no va a ninguna parte" cuando en realidad ese es el caso normal.
+
+#### Qué parte de ese saldo es el depósito (2026-09-22)
+
+El depósito entra y sale de la cuenta **solo**: se le cobra mientras los equipos están afuera, y el día que vuelven se liquida y baja del total. Un saldo de $406.400 puede entonces significar dos cosas opuestas, y el diálogo de abono mostraba el número pelado, sin decir cuál de las dos.
+
+Ahora cada factura de la lista lo explica debajo de su saldo:
+
+- **Con los equipos afuera** — *"Incluye $300.000 de depósito en garantía, que se le devuelve al entregar los equipos"*. Ese saldo trae adentro plata que no es de la empresa: cobrarlo entero es cobrar de más y tener que devolver después.
+- **Ya devuelto y liquidado** — *"Depósito ya aplicado: $260.000"*. Lo que el cliente había dejado quedó cubriendo alquiler, el saldo ya es el excedente y cobrarlo completo es correcto: no queda nada por devolver.
+- **Si volvió algo dañado** — *"Retenido por daños: $40.000"*. No suma ni resta: es la plata que el cliente va a reclamar, y quien está cobrando necesita tener la respuesta a mano.
+
+Los tres son informativos y cuelgan del saldo, sangrados y en letra chica, porque lo explican en vez de sumársele. Van **en cada factura** y no en el total de arriba: el depósito es de cada despacho, y sumar los de contratos distintos daría un número que no significa nada.
+
+> Vale la pena decir lo que **no** hizo falta construir: un botón para "cambiar el depósito por pago". Esa conversión ya ocurre sola al liquidar la devolución —el depósito baja del total y lo que el cliente pagó pasa a cubrir alquiler—, así que un botón habría aplicado la misma plata dos veces. Lo que faltaba no era el cálculo, era decirlo.
 
 Cada abono guarda de dónde salió esa decisión: **`sistema`** cuando repartió la app, **`cliente`** cuando lo pidió él, y **`agregado`** cuando sobró de pagar unos equipos agregados (con `desdeFactura`, si el sobrante cruzó desde otra). No cambia ninguna cuenta —para el saldo los tres son un abono igual— pero un mes después permite explicar por qué esa plata terminó ahí, que es lo que no se podía cuando el reparto automático era la única forma.
 
@@ -1399,7 +1413,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**578 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**581 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

@@ -8,6 +8,14 @@ import {
   calcularCuentaFactura,
   obtenerFechaHoyBogota,
 } from "./facturaCuentas";
+import { formatearMoneda } from "../../Utils/formato";
+
+// La cifra tal como hay que buscarla en pantalla. Dos diferencias con el
+// literal escrito a mano, y las dos muerden: el formato del peso trae
+// decimales acá y no en el navegador ("$ 300.000,00" contra "$ 300.000"), y el
+// separador que pone Intl es un espacio duro, que Testing Library convierte en
+// uno normal antes de comparar.
+const enPantalla = (valor) => formatearMoneda(valor).replace(/\s/g, " ");
 
 // El diálogo donde se registra un pago que el cliente consigna después de
 // facturar. Es de los que más plata mueven: un solo valor puede repartirse
@@ -435,6 +443,99 @@ describe("AbonoDialog — lo que ya tenía", () => {
     expect(cambios.abonos).toHaveLength(2);
     expect(cambios.abonos[0]).toEqual(abonoViejo);
     expect(cambios.abonos[1].monto).toBe(10000);
+  });
+
+  // EL DEPÓSITO DENTRO DEL SALDO. Entra y sale de la cuenta solo —se cobra
+  // mientras los equipos están afuera y se descuenta al liquidarlo—, así que
+  // el saldo significa dos cosas distintas según el momento. Sin decirlo, el
+  // que cobra no puede saber si la cifra que tiene delante ya lo tiene
+  // adentro, y ahí es donde se cobra de más o se devuelve de más.
+  describe("el depósito dentro del saldo", () => {
+    // El caso de la 8215: el cliente dejó $300.000, devolvió todo, un equipo
+    // volvió dañado y se le retuvieron $40.000. El depósito ya se liquidó.
+    const conDepositoLiquidado = {
+      id: "liquidada",
+      ...unaFactura({
+        numeroFactura: "8215",
+        fechaCreacion: "2026-08-10",
+        depositoResuelto: true,
+        valorDeposito: 300000,
+        pagos: [{ medio: "Efectivo", monto: 300000 }],
+        equipos: [
+          unEquipoDevuelto({
+            cantidad: 1,
+            dias: 1,
+            valorDia: 500000,
+            fechaDespacho: "2026-08-10",
+            fechaDevolucion: "2026-08-10",
+            buenEstado: false,
+            motivo: "rayadura y golpe",
+            valorRetenido: 40000,
+          }),
+        ],
+      }),
+    };
+
+    // El mismo depósito, pero el equipo todavía está en la obra: la garantía
+    // sigue vigente y por eso está sumada al saldo.
+    const conEquipoAfuera = {
+      id: "afuera",
+      ...unaFactura({
+        numeroFactura: "8300",
+        fechaCreacion: "2026-08-10",
+        valorDeposito: 300000,
+        equipos: [
+          unEquipo({
+            cantidad: 1,
+            dias: 30,
+            valorDia: 10000,
+            fechaDespacho: "2026-08-10",
+          }),
+        ],
+      }),
+    };
+
+    it("con el equipo afuera avisa que el saldo trae el depósito adentro", () => {
+      abrir({ facturas: [conEquipoAfuera] });
+
+      // Se compara contra la MISMA función que pinta la cifra: el formato del
+      // peso cambia entre el navegador y las pruebas (allá "$ 300.000", acá
+      // "$ 300.000,00"), y un literal a mano se rompe sin que nada esté mal.
+      expect(
+        screen.getByText(
+          `Incluye ${enPantalla(300000)} de depósito en garantía, ` +
+            "que se le devuelve al entregar los equipos",
+        ),
+      ).toBeInTheDocument();
+      // Todavía no se aplicó nada: ese renglón es del otro momento.
+      expect(screen.queryByText("Depósito ya aplicado")).not.toBeInTheDocument();
+    });
+
+    it("liquidado, muestra cuánto se aplicó y cuánto se retuvo por daños", () => {
+      abrir({ facturas: [conDepositoLiquidado] });
+
+      // $300.000 menos los $40.000 del daño.
+      expect(screen.getByText("Depósito ya aplicado")).toBeInTheDocument();
+      expect(screen.getByText(enPantalla(260000))).toBeInTheDocument();
+      expect(screen.getByText("Retenido por daños")).toBeInTheDocument();
+      expect(screen.getByText(enPantalla(40000))).toBeInTheDocument();
+
+      // Y el saldo que se cobra ya es neto: $500.000 de alquiler más los
+      // $40.000 retenidos, menos los $300.000 que el cliente había dejado.
+      // Dos veces: como deuda del cliente arriba y como saldo de su única
+      // factura abajo. Que coincidan es justamente lo que se quiere ver.
+      expect(screen.getAllByText(enPantalla(240000))).toHaveLength(2);
+      // El aviso de la garantía NO va: ya no hay nada que devolverle.
+      expect(screen.queryByText(/depósito en garantía/)).not.toBeInTheDocument();
+    });
+
+    it("sin depósito no agrega ningún renglón", () => {
+      abrir();
+
+      expect(screen.queryByText(/depósito en garantía/)).not.toBeInTheDocument();
+      expect(screen.queryByText("Depósito ya aplicado")).not.toBeInTheDocument();
+      expect(screen.queryByText("Retenido por daños")).not.toBeInTheDocument();
+    });
   });
 });
 });

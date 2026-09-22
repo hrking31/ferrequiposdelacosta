@@ -41,6 +41,10 @@ import {
   equiposDe,
   sigueAfuera,
   equipoVencido,
+  calcularDepositoTotal,
+  calcularDepositoDevuelto,
+  calcularRetenido,
+  depositoPendiente,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
@@ -462,6 +466,31 @@ export default function AbonoDialog({
                     const quedaAFavor = Math.max(0, aplicado - cuenta.saldoPendiente);
                     const elegida = elegidas.includes(factura.id);
 
+                    // ── DE DÓNDE SALE ESE SALDO ────────────────────────
+                    //
+                    // El depósito entra y sale de la cuenta solo, y eso deja
+                    // al que cobra sin saber si la cifra que tiene delante ya
+                    // lo tiene adentro. Son dos momentos distintos:
+                    //
+                    // 1. Los equipos SIGUEN AFUERA: la garantía está vigente,
+                    //    así que se le cobra y el saldo la incluye. Pedirle
+                    //    ese saldo completo es cobrarle de más: parte de esa
+                    //    plata se le va a devolver.
+                    //
+                    // 2. YA DEVOLVIÓ y se liquidó: el depósito bajó del total
+                    //    y lo que el cliente había dejado quedó cubriendo
+                    //    alquiler. El saldo ya es el excedente y cobrarlo
+                    //    entero es correcto: no queda nada que devolver.
+                    //
+                    // Y lo retenido por daños se muestra en los dos casos, sin
+                    // sumar ni restar nada: es la plata que el cliente va a
+                    // reclamar, y quien cobra tiene que tener la respuesta.
+                    const enGarantia = depositoPendiente(factura)
+                      ? calcularDepositoTotal(factura)
+                      : 0;
+                    const depositoAplicado = calcularDepositoDevuelto(factura);
+                    const retenido = calcularRetenido(factura);
+
                     return (
                       <Box key={factura.id}>
                         <Box className="fila total">
@@ -494,6 +523,42 @@ export default function AbonoDialog({
                             {formatearMoneda(cuenta.saldoPendiente)}
                           </Typography>
                         </Box>
+
+                        {/* Cuelgan del saldo —sangrados y en letra chica—
+                            porque lo explican, no se le suman. */}
+                        {(enGarantia > 0 || depositoAplicado > 0 || retenido > 0) && (
+                          <Box sx={{ pl: 1.5, mt: -0.5, mb: 1, opacity: 0.85 }}>
+                            {enGarantia > 0 && (
+                              <Typography variant="caption" sx={{ display: "block" }}>
+                                {`Incluye ${formatearMoneda(
+                                  enGarantia,
+                                )} de depósito en garantía, que se le devuelve al entregar los equipos`}
+                              </Typography>
+                            )}
+
+                            {depositoAplicado > 0 && (
+                              <Box className="fila" sx={{ mb: 0 }}>
+                                <Typography variant="caption">
+                                  Depósito ya aplicado
+                                </Typography>
+                                <Typography variant="caption">
+                                  {formatearMoneda(depositoAplicado)}
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {retenido > 0 && (
+                              <Box className="fila" sx={{ mb: 0 }}>
+                                <Typography variant="caption">
+                                  Retenido por daños
+                                </Typography>
+                                <Typography variant="caption">
+                                  {formatearMoneda(retenido)}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
 
                         {aplicado > 0 && (
                           <>
