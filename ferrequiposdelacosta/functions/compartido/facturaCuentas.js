@@ -862,6 +862,13 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     deposito,
     pagado,
     abonos,
+    // Lo mismo, pero solo lo que le llegó a la FACTURA: es lo que muestran
+    // las casillas del recuadro negro, para que Total = Pagado + Abonos +
+    // Saldo. Del pago se saca lo que fue al depósito; a los abonos se les
+    // suma lo retenido por daños, que el depósito pagó como si fuera uno.
+    // Con la 8154: Pagado $1.014.000 + Abonos $1.142.400 = $2.156.400.
+    pagadoFactura: pagado - deposito.conLosDespachos,
+    abonosFactura: abonos - deposito.conAbonos + deposito.retenido,
     entregas,
     recibido,
     // Lo que el cliente debe: lo de la factura y, con equipos afuera, la
@@ -1100,6 +1107,8 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
         total: acumulado.total + cuenta.total,
         pagado: acumulado.pagado + cuenta.pagado,
         abonos: acumulado.abonos + cuenta.abonos,
+        pagadoFactura: acumulado.pagadoFactura + cuenta.pagadoFactura,
+        abonosFactura: acumulado.abonosFactura + cuenta.abonosFactura,
         recibido: acumulado.recibido + cuenta.recibido,
         depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
         depositoGuardado: acumulado.depositoGuardado + cuenta.deposito.guardado,
@@ -1109,6 +1118,8 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
       total: 0,
       pagado: 0,
       abonos: 0,
+      pagadoFactura: 0,
+      abonosFactura: 0,
       recibido: 0,
       depositoPorCobrar: 0,
       depositoGuardado: 0,

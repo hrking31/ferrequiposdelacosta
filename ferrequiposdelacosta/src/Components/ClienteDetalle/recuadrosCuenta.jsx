@@ -576,14 +576,17 @@ export const casillasDeCuenta = (
       clave: "pagado",
       Icono: PaymentsIcon,
       rotulo: "Pagado",
-      valor: formatearMonedaOVacio(cuenta.pagado),
+      // Lo que le llegó a la factura, sin la parte que fue al depósito —esa
+      // tiene su casilla—, y en abonos también lo retenido por daños: así
+      // Total = Pagado + Abonos + Saldo, siempre.
+      valor: formatearMonedaOVacio(cuenta.pagadoFactura ?? cuenta.pagado),
       color: tono("success.light", "success.main"),
     },
     {
       clave: "abonos",
       Icono: SavingsIcon,
       rotulo: "Abonos",
-      valor: formatearMonedaOVacio(cuenta.abonos),
+      valor: formatearMonedaOVacio(cuenta.abonosFactura ?? cuenta.abonos),
       color: tono("info.light", "info.main"),
     },
     casillaSaldo,
