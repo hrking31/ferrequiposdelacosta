@@ -166,7 +166,6 @@ export default function EstadoCuentaFactura({
   // garantía, y con lo que la garantía le pasó (daños y lo aplicado) aparte.
   const pagoALaFactura = cuenta.pagado - deposito.conLosDespachos;
   const abonosALaFactura = cuenta.abonos - deposito.aplicado - deposito.conAbonos;
-  const pagadoConDeposito = deposito.retenido + deposito.aplicado;
   const entregadoDeMas = cuenta.entregas - deposito.devuelto;
   // El saldo de la factura sola: el depósito por cobrar va en su recuadro.
   const saldoFactura = Math.max(0, cuenta.saldoPendiente - deposito.porCobrar);
@@ -321,12 +320,22 @@ export default function EstadoCuentaFactura({
 
         {/* Lo que el depósito pagó de la factura: lo retenido por daños y lo
             que el cliente pidió aplicar. */}
-        {pagadoConDeposito > 0 && (
+        {/* Lo que el depósito pagó de la factura, cada cosa con su nombre:
+            lo retenido por daños y lo que el cliente pidió aplicar. */}
+        {deposito.retenido > 0 && (
+          <Box className="fila" sx={{ color: "warning.light" }}>
+            <Typography variant="body2">
+              {conIcono(HandymanIcon, "Retenido por daños")}
+            </Typography>
+            <Typography variant="body2">- {formatearMoneda(deposito.retenido)}</Typography>
+          </Box>
+        )}
+        {deposito.aplicado > 0 && (
           <Box className="fila deposito">
             <Typography variant="body2">
-              {conIcono(IconoDeposito, "Pagado con el depósito")}
+              {conIcono(IconoDeposito, "Aplicado del depósito")}
             </Typography>
-            <Typography variant="body2">- {formatearMoneda(pagadoConDeposito)}</Typography>
+            <Typography variant="body2">- {formatearMoneda(deposito.aplicado)}</Typography>
           </Box>
         )}
 
@@ -399,7 +408,7 @@ export default function EstadoCuentaFactura({
       {/* ── EL DEPÓSITO ────────────────────────────────────────────
           Su propia cuenta: cuánto se recibió, qué salió de él y cuánto
           queda. Lo retenido y lo aplicado dicen que pasan a la factura,
-          que es donde aparecen como "Pagado con el depósito". */}
+          que es donde aparecen como "Retenido por daños" y "Aplicado del depósito". */}
       {hayDeposito && (
         <Paper variant="totales" sx={sxPanel}>
           <Stack
