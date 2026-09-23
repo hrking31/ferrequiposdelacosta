@@ -73,14 +73,6 @@ export default function RecuadroDeposito({ factura, cuenta, plano = false }) {
           ))}
         </Stack>
       )}
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mt: 0.75, fontStyle: "italic" }}
-      >
-        No es parte de la factura: es plata del cliente que la empresa guarda
-        mientras tiene los equipos.
-      </Typography>
     </>
   );
 
