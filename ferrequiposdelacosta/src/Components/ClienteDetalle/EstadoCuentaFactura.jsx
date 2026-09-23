@@ -111,8 +111,7 @@ export default function EstadoCuentaFactura({
   // Cada renglón con el ícono que ya lo representa en el resto de la ficha:
   // los equipos lo que se alquiló, el porcentaje el IVA, el camión el flete y
   // la herramienta rota los daños. Van del color del bloque, como su rótulo.
-  // El depósito va al final y APARTE —un chip de su color, no un renglón—,
-  // porque no se suma al total.
+  // El depósito no va acá: no se suma al total y tiene su propio recuadro.
   const renglonTotal = (clave, Icono, rotulo, valor) => (
     <Stack key={clave} direction="row" alignItems="center" spacing={0.75}>
       <Icono fontSize="small" sx={{ color: acento, flexShrink: 0 }} />
@@ -145,30 +144,6 @@ export default function EstadoCuentaFactura({
   if (cuenta.danos > 0) {
     lineasTotalesDer.push(
       renglonTotal("danos", HandymanIcon, "Daños", formatearMoneda(cuenta.danos)),
-    );
-  }
-  if (depositoTotalFactura > 0) {
-    const colorDeposito = theme.palette.custom.seccionDeposito;
-    lineasTotalesDer.push(
-      <Stack
-        key="deposito"
-        direction="row"
-        alignItems="center"
-        spacing={0.75}
-        sx={{
-          alignSelf: "flex-start",
-          px: 1.25,
-          py: 0.25,
-          borderRadius: 999,
-          border: `1px solid ${alpha(colorDeposito, 0.5)}`,
-          color: colorDeposito,
-        }}
-      >
-        <IconoDeposito fontSize="small" sx={{ flexShrink: 0 }} />
-        <Typography variant="body2" sx={{ color: "inherit" }}>
-          Depósito {formatearMoneda(depositoTotalFactura)}
-        </Typography>
-      </Stack>,
     );
   }
   const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
@@ -319,15 +294,6 @@ export default function EstadoCuentaFactura({
                 {valorTotal}
               </Typography>
             </Box>
-            {/* Lo retenido es parte del total: va con + debajo de él. */}
-            {cuenta.danos > 0 && (
-              <Box className="fila" sx={{ color: "warning.light" }}>
-                <Typography variant="body2">
-                  {conIcono(HandymanIcon, "Retenido por daños")}
-                </Typography>
-                <Typography variant="body2">+ {formatearMoneda(cuenta.danos)}</Typography>
-              </Box>
-            )}
           </>
         )}
 
