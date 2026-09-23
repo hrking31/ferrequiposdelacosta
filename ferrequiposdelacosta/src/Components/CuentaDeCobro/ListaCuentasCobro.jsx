@@ -71,13 +71,14 @@ const ESTADO_INFO = {
 // Lo que se cobra en una cuenta guardada. Se recalcula en vez de confiar en el
 // campo `saldo` para que una guardada por una versión anterior —que no lo
 // tenía— no se muestre en cero.
+// El depósito por cobrar va aparte del total y se suma.
 const saldoDe = (cuenta) =>
   Math.max(
     0,
     (Number(cuenta.total) || 0) -
       (Number(cuenta.pagado) || 0) -
       (Number(cuenta.abonos) || 0),
-  );
+  ) + (Number(cuenta.depositoPorCobrar) || 0);
 
 export default function ListaCuentasCobro() {
   const theme = useTheme();

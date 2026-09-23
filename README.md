@@ -674,19 +674,16 @@ Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para 
 
 Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostrando **todas** las facturas con saldo, porque hay que poder elegir entre ellas y ver cómo queda cada una; y un renglón dice **quién está decidiendo ahora mismo**, porque una lista de casillas vacías se lee como "no va a ninguna parte" cuando en realidad ese es el caso normal.
 
-#### Qué parte de ese saldo es el depósito (2026-09-22)
+#### Pagar con el depósito (2026-09-23)
 
-El depósito entra y sale de la cuenta **solo**: se le cobra mientras los equipos están afuera, y el día que vuelven se liquida y baja del total. Un saldo de $406.400 puede entonces significar dos cosas opuestas, y el diálogo de abono mostraba el número pelado, sin decir cuál de las dos.
+Desde que el depósito salió del total (ver la sección 7), usarlo para pagar ya no pasa solo: es un abono más, con el medio **Depósito**. Aparece en el diálogo únicamente si alguna factura tiene depósito libre —los equipos ya volvieron— y saldo por cobrar, y al elegirlo el valor se completa con lo disponible. Cada factura solo puede usar **su** depósito, hasta lo que tiene libre y hasta lo que debe: por eso ese abono no entra al reparto automático.
 
-Ahora cada factura de la lista lo explica debajo de su saldo:
+Debajo del saldo de cada factura queda una sola línea, en el color del depósito, cuando cambia cómo se lee ese saldo:
 
-- **Con los equipos afuera** — *"Incluye $300.000 de depósito en garantía, que se le devuelve al entregar los equipos"*. Ese saldo trae adentro plata que no es de la empresa: cobrarlo entero es cobrar de más y tener que devolver después.
-- **Ya devuelto y liquidado** — *"Depósito ya aplicado: $260.000"*. Lo que el cliente había dejado quedó cubriendo alquiler, el saldo ya es el excedente y cobrarlo completo es correcto: no queda nada por devolver.
-- **Si volvió algo dañado** — *"Retenido por daños: $40.000"*. No suma ni resta: es la plata que el cliente va a reclamar, y quien está cobrando necesita tener la respuesta a mano.
+- **Con los equipos afuera** — *"Incluye $300.000 de depósito por cobrar"*, si el cliente todavía no dejó la garantía completa.
+- **Ya devueltos** — *"Tiene $260.000 de depósito libre para pagar"*.
 
-Los tres son informativos y cuelgan del saldo, sangrados y en letra chica, porque lo explican en vez de sumársele. Van **en cada factura** y no en el total de arriba: el depósito es de cada despacho, y sumar los de contratos distintos daría un número que no significa nada.
-
-> Vale la pena decir lo que **no** hizo falta construir: un botón para "cambiar el depósito por pago". Esa conversión ya ocurre sola al liquidar la devolución —el depósito baja del total y lo que el cliente pagó pasa a cubrir alquiler—, así que un botón habría aplicado la misma plata dos veces. Lo que faltaba no era el cálculo, era decirlo.
+> El 22/09 se había descartado un botón para "cambiar el depósito por pago", porque el cambio ya ocurría solo y un botón habría aplicado la misma plata dos veces. Con el depósito fuera del total la situación se invirtió: ya no ocurre solo, así que hacía falta la forma de hacerlo a mano, y quedó escrita como un abono con fecha.
 
 Cada abono guarda de dónde salió esa decisión: **`sistema`** cuando repartió la app, **`cliente`** cuando lo pidió él, y **`agregado`** cuando sobró de pagar unos equipos agregados (con `desdeFactura`, si el sobrante cruzó desde otra). No cambia ninguna cuenta —para el saldo los tres son un abono igual— pero un mes después permite explicar por qué esa plata terminó ahí, que es lo que no se podía cuando el reparto automático era la única forma.
 
@@ -777,25 +774,28 @@ Tres reglas del reparto:
 
 ### 7. El depósito: una garantía, no un ingreso
 
-En el alquiler de equipos, el cliente deja un depósito como garantía. Se le cobra junto con el alquiler, **pero no es plata de la empresa**: vuelve a su bolsillo cuando entrega los equipos en buen estado.
+En el alquiler de equipos, el cliente deja un depósito como garantía. Se le pide junto con el alquiler, **pero no es plata de la empresa ni parte de la factura**: vuelve a su bolsillo cuando entrega los equipos en buen estado.
 
-**Don Pedro** alquila una mezcladora en $400.000 con $100.000 de depósito. Paga $500.000 y se lleva el equipo.
+**Don Pedro** alquila una mezcladora en $400.000 con $100.000 de depósito. Paga $500.000 y se lleva el equipo. Su factura es de **$400.000**, y los $100.000 van a un recuadro aparte, **Depósito**, con su propio color (verde agua) y su propio ícono (un candado).
+
+> [!NOTE]
+> **El depósito salió del total (2026-09-23).** Antes entraba en el total de la factura y, al devolver el equipo, se sacaba. La misma factura decía "Total $2.156.400" en el recuadro de arriba y "Total factura $2.656.400" adentro, sin decir por qué. Ahora el total **no cambia nunca por el depósito**: el depósito lleva su propia cuenta —recibido, retenido, aplicado, devuelto— y en el estado de cuenta aparece como un renglón que explica por qué Pagado + Abonos no da el total. Lo que se paga con cada despacho cubre **primero su depósito**, y lo retenido por daños entra a la factura como un cargo visible, "Daños", que se paga con la garantía.
 
 El botón para entregarle esa plata **vive en las dos pantallas**: en la ficha del cliente y en la fila de cartera. Estaba solo en la ficha, y esa era la falla — mientras no se entregue, la factura no puede terminar, así que se queda en cartera mostrando un pendiente que solo se podía resolver saliendo a otra pantalla.
 
 **Cuando devuelve la mezcladora**, quien la recibe la tiene delante y es el único momento en que alguien puede decir en qué estado volvió. Así que ahí mismo, al registrar la devolución, se define el depósito:
 
-- **Volvió bien** → se le devuelven los $100.000.
-- **Volvió rayada** → se retienen $30.000 con el motivo escrito, y esos $30.000 **sí** pasan a ser ingreso.
+- **Volvió bien** → los $100.000 quedan libres.
+- **Volvió rayada** → se retienen $30.000 con el motivo escrito. Esos $30.000 entran a la factura como **Daños** —un cargo que se ve— y se pagan con el depósito; quedan $70.000 libres.
 
-Desde ese momento, lo devuelto **deja de contar en el total** de la factura: lo que la empresa cobró de verdad fue el alquiler más lo retenido. Y ahí pasa una de dos cosas:
+El depósito libre es del cliente, y con él pasa una de dos cosas:
 
 | Si el cliente… | Entonces |
 |---|---|
-| **Todavía debía** $200.000 | El depósito se descuenta solo: paga **$100.000** y listo |
-| **Ya había pagado todo** | Quedan $100.000 **a su favor**: hay que entregárselos |
+| **Todavía debe** en esa factura | Se usa para pagar: un abono con el medio **Depósito**, que no es plata nueva y no se reparte a otras facturas |
+| **Ya pagó todo** | Se le devuelve con el botón **Devolver** |
 
-En el primer caso, cuando el usuario abre el diálogo de abono **el número ya viene neteado**: no hay que marcar nada ni acordarse de descontar. En el segundo, la factura muestra un botón para registrar la entrega.
+Nada se descuenta solo: usar el depósito para pagar es una decisión que queda anotada con su fecha. La única excepción es el botón Devolver: si esa misma factura todavía debe, **primero paga lo que falta** y devuelve solo el resto, mostrándolo antes de guardar. No se le entrega plata a quien la debe ahí mismo.
 
 > [!IMPORTANT]
 > Mientras el depósito no se resuelva, la factura **no puede llegar a Finalizada**. Esa es toda la protección: no hace falta que nadie se acuerde de revisar quién tiene depósitos sin devolver, porque esas facturas siguen apareciendo en cartera hasta que se resuelvan.
@@ -858,6 +858,12 @@ Y los rótulos no anuncian cuántos equipos trae el despacho. Ese número contab
 > **La columna "Devolución" va vacía mientras el equipo no vuelva (2026-09-22).** Antes, el equipo que seguía afuera mostraba ahí *hasta cuándo estaba cubierto*, y esa fecha bajo ese título afirmaba una devolución que no había ocurrido. En la factura 8154, el BENITIN figuraba devuelto el **16/09** —que era el fin de una ampliación de 2 días— mientras seguía en la obra; el cliente restaba 10/09 → 16/09, le daban 7 días y la fila le cobraba **13**. Los 13 estaban bien (5 del alta + 2 ampliados + 6 vencidos); lo que mentía era la fecha.
 >
 > Ahora esa celda solo lleva la fecha real de devolución, y queda en blanco si el equipo no volvió. Hasta cuándo está cubierto se lee en la pantalla —en la historia del equipo y en cartera—, que es donde ese dato es nuestro y no del cliente. El cambio vale para los dos documentos: la factura y el reporte de facturas.
+
+> [!NOTE]
+> **El reporte de varias facturas es un resumen (2026-09-23).** Cada factura mostraba sus abonos uno por uno —fecha, medio y valor— y la 8932, con cuatro abonos, ocupaba media hoja más. Ahora el reporte lleva **una sola línea "Abonos"** con el total por factura; el detalle abono por abono queda para el PDF de una sola factura, que es el que se usa para revisar una cuenta al centavo.
+
+> [!NOTE]
+> **El depósito, aparte en los dos documentos (2026-09-23).** Los cargos de cada despacho ya no lo traen. La factura tiene una sección **DEPÓSITO** con su cuenta —recibido, retenido, aplicado, devuelto, por devolver— y, en los totales, un renglón "Depósito" después de "Pagado", igual que en pantalla. En el reporte va en ese mismo lugar, y al final, si queda, "Depósito por devolver". La cuenta de cobro cobra aparte solo el depósito que el cliente **todavía no dejó**: *"Depósito (se devuelve al entregar los equipos)"*.
 
 ### Un solo botón para los dos PDF
 
@@ -1113,15 +1119,15 @@ pagos: {
 
 Y por último salió **`aplicaIva`**, que era el último interruptor único para toda la factura. La marca es de **cada equipo** y ahora se le escribe siempre al crearlo. Antes solo la llevaban los equipos agregados después: los del despacho inicial nacían sin ella y su IVA se decidía mirando el dato de arriba. Dos criterios distintos según por dónde hubiera entrado el equipo, en la misma factura. Que la factura lleve IVA pasó a ser una conclusión de sus equipos, y un equipo exento puede ir al lado de uno gravado.
 
-### Los cuatro cargos se suman una sola vez
+### Los cargos se suman una sola vez
 
-Una factura cierra con cuatro números: **subtotal, IVA, transporte y depósito**. Son cuatro cosas independientes y cada una entra al total una vez.
+Una factura cierra con sus cargos: **subtotal, IVA, transporte y, si hubo, daños**. Son cosas independientes y cada una entra al total una vez. El depósito ya no está en esta lista: desde el 2026-09-23 no es parte del total (ver la sección 7).
 
 Suena obvio, y estuvo mal. El **subtotal traía el flete adentro** y el flete además salía en su propio renglón, así que los cuatro números que mostraba la pantalla no daban el total escrito abajo: en una factura con $60.000 de transporte, sumarlos a mano daba $60.000 de más. Y como el IVA se sacaba de ese subtotal, **se le cobraba IVA al flete**.
 
 El IVA tampoco es el 19% del total. Se grava el alquiler y nada más —el depósito es una garantía, no una venta— y **cada equipo decide por su cuenta**: uno exento puede ir al lado de uno gravado en la misma factura. El PDF ya lo calculaba así, equipo por equipo; la función del total no, y miraba una sola marca de la factura entera. Dos lugares, dos respuestas para el mismo número.
 
-Ahora el subtotal es el alquiler pelado, el IVA se suma equipo por equipo y el total suma los cuatro por separado. Lo mismo en **lo exigible hoy**, que arrastraba el mismo error y es el número que decide si una factura sale de cartera.
+Ahora el subtotal es el alquiler pelado, el IVA se suma equipo por equipo y el total suma cada cargo por separado. Lo mismo en **lo exigible hoy**, que arrastraba el mismo error y es el número que decide si una factura sale de cartera.
 
 ### La historia se cuenta en tres tramos
 

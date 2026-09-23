@@ -27,11 +27,11 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
   MODOS_PAGO,
+  MEDIO_DEPOSITO,
   obtenerFechaHoyBogota,
   formatearMonedaInput,
   limpiarMonedaInput,
   calcularCuentaFactura,
-  calcularDepositoDevuelto,
   entregasDe,
   abonosDe,
   datosFactura,
@@ -79,16 +79,25 @@ export default function EntregarSaldoDialog({
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   const cuenta = calcularCuentaFactura(factura);
-  const aFavor = cuenta.saldoAFavor;
-  const depositoDevuelto = calcularDepositoDevuelto(factura);
-
-  // DE DÓNDE SALE LA CIFRA. Casi siempre el saldo a favor nace del depósito,
-  // y casi nunca es el depósito entero: primero tapa lo que el cliente todavía
-  // debía de la factura, y recién lo que sobra se le devuelve.
-  //
-  // Sin esta resta a la vista, el diálogo decía "Depósito $500.000 / A favor
-  // $286.000" y no había forma de saber a dónde se fueron los otros $214.000.
-  const faltabaPagar = Math.max(0, cuenta.totalFacturado - cuenta.recibido);
+  // Todo lo que hay que devolverle: el depósito que quedó libre y lo que
+  // pagó de más. Los dos salen por el mismo botón, y el recuadro de arriba
+  // dice cuánto es de cada uno.
+  const aFavor = cuenta.aDevolver;
+  const depositoLibre = cuenta.deposito.porDevolver;
+  const pagoDeMas = cuenta.saldoAFavor;
+  // La parte del depósito que paga lo que ESTA factura todavía debe. No se le
+  // devuelve plata a quien la debe ahí mismo: al guardar se anota como un
+  // abono con medio "Depósito", y el recuadro lo muestra antes.
+  const alSaldo = cuenta.depositoAlSaldo;
+  const abonosConDeposito = (fecha) =>
+    alSaldo > 0
+      ? {
+          abonos: [
+            ...abonosDe(factura),
+            { fecha, medio: MEDIO_DEPOSITO, monto: alSaldo, tipo: "sistema" },
+          ],
+        }
+      : {};
 
   // Las OTRAS facturas del cliente que todavía deben, de la más antigua a la
   // más nueva —el mismo orden con que se reparte un abono, porque esto es un
@@ -191,7 +200,7 @@ export default function EntregarSaldoDialog({
 
         await updateDoc(
           doc(db, "clientes", cliente.id, "facturas", factura.id),
-          { entregas },
+          { entregas, ...abonosConDeposito(form.fecha) },
         );
 
         showSnackbar("Entrega registrada correctamente.", "success");
@@ -236,6 +245,7 @@ export default function EntregarSaldoDialog({
           nota: `Cruzado a la factura ${destinos.join(", ")}`,
         },
       ],
+      ...abonosConDeposito(hoy),
     });
 
     reparto.forEach(({ factura: otra, aplicado }) => {
@@ -274,29 +284,42 @@ export default function EntregarSaldoDialog({
         <DialogTitle sx={{ color: acento }}>Devolver al cliente</DialogTitle>
         <DialogContent>
           <Paper variant="totales" sx={{ mt: 1, mb: 2 }}>
-            {depositoDevuelto > 0 && (
+            {/* De dónde sale la cifra, solo cuando no es un número solo:
+                con uno, el renglón repetiría el total. Sin línea propia: la
+                fila del total ya trae la punteada del tema. */}
+            {depositoLibre > 0 && (alSaldo > 0 || pagoDeMas > 0) && (
               <>
-                <Box className="fila">
+                <Box className="fila deposito">
                   <Typography variant="body2">Depósito</Typography>
                   <Typography variant="body2">
-                    {formatearMoneda(depositoDevuelto)}
+                    {formatearMoneda(depositoLibre)}
                   </Typography>
                 </Box>
-                {faltabaPagar > 0 && (
+                {alSaldo > 0 && (
                   <Box className="fila">
-                    <Typography variant="body2">Saldo pendiente</Typography>
                     <Typography variant="body2">
-                      {formatearMoneda(faltabaPagar)}
+                      Paga lo que debe esta factura
+                    </Typography>
+                    <Typography variant="body2">
+                      - {formatearMoneda(alSaldo)}
                     </Typography>
                   </Box>
                 )}
-                {/* Sin línea propia: la fila del total ya trae la punteada del
-                    tema, y dos rayas seguidas partían el recuadro en dos. */}
+                {pagoDeMas > 0 && (
+                  <Box className="fila">
+                    <Typography variant="body2">Pagó de más</Typography>
+                    <Typography variant="body2">
+                      {formatearMoneda(pagoDeMas)}
+                    </Typography>
+                  </Box>
+                )}
               </>
             )}
             <Box className="fila total">
               <Typography variant="subtitle1" fontWeight="bold">
-                A favor del cliente
+                {depositoLibre > 0 && pagoDeMas === 0
+                  ? "Depósito a devolver"
+                  : "A favor del cliente"}
               </Typography>
               <Typography variant="subtitle1" fontWeight="bold">
                 {formatearMoneda(aFavor)}

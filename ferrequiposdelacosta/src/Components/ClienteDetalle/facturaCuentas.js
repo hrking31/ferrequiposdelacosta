@@ -681,10 +681,14 @@ export const calcularTransporteTotal = (doc) =>
 
 // ── El depósito: una garantía, no un ingreso ───────────────────────────
 //
-// Se le cobra al cliente junto con el alquiler —entra en el total— pero no es
-// plata de la empresa: se devuelve cuando entrega los equipos en buen estado.
-// Si vuelven dañados se retiene lo que corresponda, y ESO sí pasa a ser
-// ingreso.
+// Se le pide al cliente junto con el alquiler, pero NO es parte de la
+// factura: es plata suya que la empresa guarda mientras tiene los equipos. Por
+// eso lleva su propia cuenta, al lado, y el total de la factura no lo incluye
+// nunca —ni al despachar ni al devolver—.
+//
+// Antes entraba en el total y, al resolverse la devolución, se sacaba. En la
+// 8154 la misma factura decía "Total $2.156.400" arriba y "Total factura
+// $2.656.400" adentro: el mismo número con y sin depósito, sin decir por qué.
 //
 // Es de cada DESPACHO: el cliente pidió el benitín y dejó $300.000, y a los
 // días pidió gatos y dejó otros $200.000. De ahí sale el tope de lo que se le
@@ -702,16 +706,9 @@ export const calcularRetenido = (doc) =>
     0,
   );
 
-// Lo que le corresponde al cliente. Cero mientras no se haya resuelto: hasta
-// ese momento la garantía sigue vigente y el cargo en pie.
-export const calcularDepositoDevuelto = (doc) => {
-  if (!datosFactura(doc).depositoResuelto) return 0;
-  const total = calcularDepositoTotal(doc);
-  return Math.max(0, total - Math.min(total, calcularRetenido(doc)));
-};
-
-// Si todavía falta definir qué pasa con el depósito. Una factura así no puede
-// terminar: la empresa está reteniendo plata que no es suya.
+// Si todavía falta definir qué pasa con el depósito: algún equipo sigue
+// afuera, así que la garantía sigue vigente. Se define con el último equipo
+// de vuelta, al registrar la devolución.
 export const depositoPendiente = (doc) =>
   calcularDepositoTotal(doc) > 0 && !datosFactura(doc).depositoResuelto;
 
@@ -720,36 +717,123 @@ export const depositoPendiente = (doc) =>
 export const sumarPagos = (doc) =>
   gruposDe(doc).reduce((total, grupo) => total + sumar(pagosDe(grupo), "monto"), 0);
 
+// El medio con el que se registra un abono pagado CON EL DEPÓSITO: el cliente
+// pide que lo que dejó de garantía se use para pagar la factura. No entra
+// plata nueva —se mueve de una cuenta a la otra—, y por eso no está en
+// MODOS_PAGO ni se reparte entre facturas: el depósito es de su factura.
+export const MEDIO_DEPOSITO = "Depósito";
+
+export const esAbonoConDeposito = (abono) => abono?.medio === MEDIO_DEPOSITO;
+
+// Todos los abonos, los de plata y los pagados con el depósito.
 export const sumarAbonos = (doc) => sumar(abonosDe(doc), "monto");
+
+export const sumarAbonosConDeposito = (doc) =>
+  sumar(abonosDe(doc).filter(esAbonoConDeposito), "monto");
 
 // Plata que SALIÓ hacia el cliente: el depósito que se le devuelve, o un
 // sobrepago que se le reintegra. Es lo contrario de un abono y por eso resta.
 export const sumarEntregas = (doc) => sumar(entregasDe(doc), "monto");
 
-// La cuenta completa, tal como se muestra: el alquiler al día de hoy, los
-// fletes, el depósito que todavía está en la empresa, y lo que el cliente
-// entregó. Si pagó de más, el sobrante no baja el saldo —que nunca es
-// negativo— sino que sale aparte como saldo a favor.
+// LA CUENTA DEL DEPÓSITO, aparte de la de la factura.
 //
-// Los cuatro cargos son INDEPENDIENTES y entran al total una sola vez cada
-// uno: el subtotal es el alquiler pelado, sin el flete adentro. Antes el flete
-// iba dentro del subtotal Y en su propio renglón, así que los cuatro números
-// de la pantalla no daban el total; y el IVA salía de ese subtotal, con lo que
-// se le cobraba IVA al flete.
+// Con la 8154: el depósito pactado es $500.000 y el pago del despacho fue
+// $1.514.000. De ese pago, $500.000 son el depósito —recibido— y el resto
+// paga la factura. El benitín volvió bien —nada retenido—, así que al
+// resolverse la devolución los $500.000 quedan por devolver, hasta que se le
+// entregan o el cliente pide usarlos para pagar —aplicado—.
+//
+// Las reglas, en el orden en que se aplican:
+//   - Lo que se paga con cada despacho cubre PRIMERO su depósito: el equipo
+//     no sale sin garantía.
+//   - Si el despacho no lo cubrió entero, los abonos lo completan mientras
+//     haya equipos afuera. Resuelta la devolución ya no hace falta garantía:
+//     lo que falte no se cobra, y los abonos van enteros a la factura.
+//   - Lo retenido por daños sale del depósito recibido: es un cargo de la
+//     factura (ver `danos` en la cuenta) que se paga con la garantía.
+//   - Lo que se le entrega al cliente sale primero de lo que queda del
+//     depósito, y recién después de un saldo a favor.
+export const calcularDeposito = (doc) => {
+  const pactado = calcularDepositoTotal(doc);
+  const resuelto = Boolean(datosFactura(doc).depositoResuelto);
+
+  const conLosDespachos = gruposDe(doc).reduce(
+    (total, grupo) =>
+      total +
+      Math.min(numero(adicionalesDe(grupo).valorDeposito), sumar(pagosDe(grupo), "monto")),
+    0,
+  );
+  const aplicado = sumarAbonosConDeposito(doc);
+  const abonosEnPlata = sumarAbonos(doc) - aplicado;
+  const conAbonos = resuelto ? 0 : Math.min(pactado - conLosDespachos, abonosEnPlata);
+  const recibido = conLosDespachos + conAbonos;
+
+  const retenido = Math.min(calcularRetenido(doc), recibido);
+  const disponible = Math.max(0, recibido - retenido - aplicado);
+  const devuelto = Math.min(sumarEntregas(doc), disponible);
+  const guardado = disponible - devuelto;
+
+  return {
+    pactado,
+    recibido,
+    // Lo que el cliente todavía tiene que dejar de garantía.
+    porCobrar: resuelto ? 0 : pactado - recibido,
+    retenido,
+    aplicado,
+    devuelto,
+    // Lo que la empresa tiene hoy en la mano: con equipos afuera es la
+    // garantía; resuelta la devolución, es plata que hay que devolverle.
+    guardado,
+    porDevolver: resuelto ? guardado : 0,
+  };
+};
+
+// La cuenta completa, tal como se muestra: el alquiler al día de hoy, los
+// fletes, los daños, y lo que el cliente entregó. Si pagó de más, el sobrante
+// no baja el saldo —que nunca es negativo— sino que sale aparte como saldo a
+// favor.
+//
+// Los cargos son INDEPENDIENTES y entran al total una sola vez cada uno: el
+// subtotal es el alquiler pelado, sin el flete adentro. Antes el flete iba
+// dentro del subtotal Y en su propio renglón, así que los números de la
+// pantalla no daban el total; y el IVA salía de ese subtotal, con lo que se le
+// cobraba IVA al flete.
+//
+// El depósito va en su propia cuenta (`deposito`), y de él a la factura solo
+// pasa lo que se usa para pagarla: lo retenido por daños y lo aplicado.
 export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   const alquiler = calcularAlquiler(doc, hoyIso);
   const transporte = calcularTransporteTotal(doc);
   const subtotal = alquiler.neto;
 
   const iva = calcularIvaEquipos(doc, hoyIso);
-  const depositoDevuelto = calcularDepositoDevuelto(doc);
-  const deposito = calcularDepositoTotal(doc) - depositoDevuelto;
-  const total = subtotal + iva + transporte + deposito;
+  // Lo retenido por daños es un cargo de verdad: sube el total, a la vista,
+  // en su propio renglón. Se paga con el depósito.
+  const danos = calcularRetenido(doc);
+  const total = subtotal + iva + transporte + danos;
 
+  const deposito = calcularDeposito(doc);
   const pagado = sumarPagos(doc);
   const abonos = sumarAbonos(doc);
   const entregas = sumarEntregas(doc);
-  const recibido = pagado + abonos - entregas;
+
+  // Lo que le llegó a la FACTURA: todo lo que el cliente entregó, menos la
+  // parte que fue a la garantía, más lo que de la garantía pasó a pagarla, y
+  // menos lo que se le devolvió aparte del depósito.
+  const recibido =
+    pagado +
+    abonos -
+    deposito.recibido +
+    deposito.retenido -
+    (entregas - deposito.devuelto);
+
+  const neto = total - recibido;
+  const saldoAFavor = Math.max(0, -neto);
+  // Si la misma factura todavía debe, el depósito libre primero la paga: no
+  // se le devuelve plata a quien la debe ahí mismo. La 2455: $500.000 de
+  // depósito libre y $214.000 de saldo → se aplican $214.000 y se le
+  // devuelven $286.000. Lo aplica el diálogo de devolver, a la vista.
+  const depositoAlSaldo = Math.min(deposito.porDevolver, Math.max(0, neto));
 
   return {
     alquiler: alquiler.neto,
@@ -759,24 +843,22 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     transporte,
     subtotal,
     iva,
-    deposito,
-    // La garantía que ya volvió al cliente. `deposito` es lo que todavía
-    // retiene la empresa, así que sin este dato el total baja sin decir por
-    // qué: se factura con depósito y, cuando se devuelve, deja de cobrarse.
-    depositoDevuelto,
+    danos,
     total,
-    // Lo que se le facturó al cliente, con el depósito entero adentro —el
-    // número del recuadro "Total factura" de la ficha, el que él vio—.
-    // `total` es lo que se le cobra HOY, ya sin el depósito devuelto, y los
-    // dos se llaman igual en pantalla: mostrar uno donde va el otro es lo que
-    // deja a la cuenta sin explicación.
-    totalFacturado: total + depositoDevuelto,
+    deposito,
     pagado,
     abonos,
     entregas,
     recibido,
-    saldoPendiente: Math.max(0, total - recibido),
-    saldoAFavor: Math.max(0, recibido - total),
+    // Lo que el cliente debe: lo de la factura y, con equipos afuera, la
+    // garantía que todavía no dejó.
+    saldoPendiente: Math.max(0, neto) + deposito.porCobrar,
+    saldoAFavor,
+    depositoAlSaldo,
+    // Todo lo que hay que devolverle: lo que pagó de más y el depósito libre,
+    // menos la parte del depósito que paga lo que esta factura todavía debe.
+    // Es lo que ofrece el botón DEVOLVER.
+    aDevolver: saldoAFavor + deposito.porDevolver - depositoAlSaldo,
   };
 };
 
@@ -816,10 +898,14 @@ export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   );
 
   const transporte = calcularTransporteTotal(doc);
-  const deposito = calcularDepositoTotal(doc) - calcularDepositoDevuelto(doc);
   const cuenta = calcularCuentaFactura(doc, hoyIso);
 
-  return Math.max(0, consumido + iva + transporte + deposito - cuenta.recibido);
+  // La garantía que falta dejar también se reclama: sin ella el equipo no
+  // debería estar afuera.
+  return Math.max(
+    0,
+    consumido + iva + transporte + cuenta.danos - cuenta.recibido + cuenta.deposito.porCobrar,
+  );
 };
 
 // ── ¿A esta factura se le venció la fecha alguna vez? ──────────────────
@@ -868,7 +954,8 @@ export const calcularEstadoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   if (afuera.length === 0) {
     const cuenta = calcularCuentaFactura(doc, hoyIso);
     if (cuenta.saldoPendiente > 0) return "cobro";
-    if (cuenta.saldoAFavor > 0) return "cobro";
+    // Pagó de más o hay depósito por devolverle: la empresa le debe plata.
+    if (cuenta.aDevolver > 0) return "cobro";
     if (depositoPendiente(doc)) return "cobro";
     return "finalizada";
   }
@@ -988,6 +1075,9 @@ export const equiposQueVencieronHoy = (doc, hoyIso, ayerIso) =>
 // El resumen de TODAS las facturas de un cliente. Acá el saldo es NETO, a
 // diferencia de una factura suelta: lo que sobró en una descuenta lo que se
 // debe en otra, porque se mira su cuenta como un todo.
+//
+// El depósito NO entra al neto: es plata del cliente que la empresa guarda,
+// no un pago de más. Va aparte, sumando lo guardado en cada factura.
 export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()) => {
   const resumen = (Array.isArray(facturas) ? facturas : []).reduce(
     (acumulado, doc) => {
@@ -997,15 +1087,24 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
         pagado: acumulado.pagado + cuenta.pagado,
         abonos: acumulado.abonos + cuenta.abonos,
         recibido: acumulado.recibido + cuenta.recibido,
+        depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
+        depositoGuardado: acumulado.depositoGuardado + cuenta.deposito.guardado,
       };
     },
-    { total: 0, pagado: 0, abonos: 0, recibido: 0 },
+    {
+      total: 0,
+      pagado: 0,
+      abonos: 0,
+      recibido: 0,
+      depositoPorCobrar: 0,
+      depositoGuardado: 0,
+    },
   );
 
   const neto = resumen.total - resumen.recibido;
   return {
     ...resumen,
-    saldoPendiente: Math.max(0, neto),
+    saldoPendiente: Math.max(0, neto) + resumen.depositoPorCobrar,
     saldoAFavor: Math.max(0, -neto),
   };
 };

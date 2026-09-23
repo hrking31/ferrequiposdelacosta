@@ -840,7 +840,8 @@ export default function RegistrarDevolucionDialog({
                 ) : (
                   <Box sx={{ mt: 0.5 }}>
                     <Typography variant="body2" fontWeight="bold">
-                      Se retienen {formatearMoneda(retenido)}:
+                      Se retienen {formatearMoneda(retenido)}, que pasan a la
+                      factura como cargo por daños:
                     </Typography>
                     {retenciones.map(({ nombre, motivo, monto }, posicion) => (
                       <Typography
@@ -859,8 +860,13 @@ export default function RegistrarDevolucionDialog({
                   variant="caption"
                   sx={{ display: "block", mt: 1, color: "custom.accent" }}
                 >
-                  Se le devuelven {formatearMoneda(aDevolver)} al liquidar la
-                  factura.
+                  {/* Lo retenido ya entró a la factura como cargo por daños;
+                      lo que queda libre es del cliente. */}
+                  {aDevolver > 0
+                    ? `Quedan ${formatearMoneda(
+                        aDevolver,
+                      )} de depósito libre: se le devuelven, o se usan para pagar la factura con un abono de medio "Depósito".`
+                    : "No queda depósito por devolver."}
                 </Typography>
               </Grid>
             )}

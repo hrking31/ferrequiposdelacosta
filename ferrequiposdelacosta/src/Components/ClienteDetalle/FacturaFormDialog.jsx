@@ -289,8 +289,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
   const subtotalTotal = subtotalCalculado + alquilerAgregados;
   const ivaTotal = ivaCalculado + ivaAgregados;
 
-  // Total = Subtotal + IVA + Valor transporte + Depósito. Se calcula solo,
-  // no se digita a mano.
+  // Lo que el cliente paga al emitirla: Subtotal + IVA + Valor transporte +
+  // Depósito. El depósito no es parte de la factura —ver calcularDeposito—,
+  // pero se entrega junto, así que el pago tiene que cubrirlo. Se calcula
+  // solo, no se digita a mano.
   const valorTotalCalculado = subtotalTotal + ivaTotal + transporteTotal + depositoTotal;
 
   // Qué tiene la factura encima, para el aviso de arriba del formulario. Se
@@ -975,13 +977,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   </Box>
                 )}
 
-                {depositoTotal > 0 && (
-                  <Box className="fila">
-                    <Typography variant="body2">Depósito</Typography>
-                    <Typography variant="body2">{formatearMoneda(depositoTotal)}</Typography>
-                  </Box>
-                )}
-
                 {transporteTotal > 0 && (
                   <Box className="fila">
                     <Typography variant="body2">Transporte</Typography>
@@ -989,9 +984,18 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                   </Box>
                 )}
 
+                {/* El depósito al final y en su color: se paga junto, pero no
+                    es parte de la factura. */}
+                {depositoTotal > 0 && (
+                  <Box className="fila deposito">
+                    <Typography variant="body2">Depósito</Typography>
+                    <Typography variant="body2">{formatearMoneda(depositoTotal)}</Typography>
+                  </Box>
+                )}
+
                 <Box className="fila total">
                   <Typography variant="subtitle1" fontWeight="bold">
-                    Total
+                    {depositoTotal > 0 ? "Total a pagar" : "Total"}
                   </Typography>
                   <Typography variant="subtitle1" fontWeight="bold">
                     {formatearMoneda(valorTotalCalculado)}
@@ -1096,7 +1100,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                 {excedenteCalculado > 0 && (
                   <>
                     <Box className="fila">
-                      <Typography variant="body2">Cubre la factura</Typography>
+                      <Typography variant="body2">
+                        {depositoTotal > 0 ? "Cubre factura y depósito" : "Cubre la factura"}
+                      </Typography>
                       <Typography variant="body2">
                         {formatearMoneda(valorTotalCalculado)}
                       </Typography>

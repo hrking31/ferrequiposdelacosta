@@ -142,8 +142,11 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   const datosDeLaFactura = datosFactura(factura);
   const valorTransporteNuevo = Number(form.valorTransporte) || 0;
   const depositoNuevo = Number(form.deposito) || 0;
-  // Lo que cuesta agregar estos equipos (antes de sumarlos a la factura).
-  const totalEsteEquipo = subtotalNuevoEquipo + ivaNuevoEquipo + valorTransporteNuevo + depositoNuevo;
+  // Lo que estos equipos le suman a la FACTURA: alquiler, IVA y flete.
+  const cargosEsteEquipo = subtotalNuevoEquipo + ivaNuevoEquipo + valorTransporteNuevo;
+  // Lo que el cliente paga al despacharlos: eso más el depósito, que no es de
+  // la factura pero se entrega junto.
+  const totalEsteEquipo = cargosEsteEquipo + depositoNuevo;
 
   // La cuenta de la factura tal como está HOY. Sale entera de sus grupos: el
   // alquiler de cada equipo con sus días, el flete y el depósito de cada
@@ -166,11 +169,11 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
   // que muestra la pantalla de atrás, así que los dos números no pueden
   // discrepar.
   const totalActualMostrado = cuenta.total;
-  const totalConEstosEquipos = totalActualMostrado + totalEsteEquipo;
-  const saldoMostrado = Math.max(
-    0,
-    totalConEstosEquipos - (cuenta.recibido + pagoEsteEquipo),
-  );
+  const totalConEstosEquipos = totalActualMostrado + cargosEsteEquipo;
+  // Lo que se debe hoy —con el depósito por cobrar adentro, y restando lo que
+  // haya a favor— más lo que se paga con este despacho, depósito incluido.
+  const debeHoy = cuenta.saldoPendiente - cuenta.saldoAFavor;
+  const saldoMostrado = Math.max(0, debeHoy + totalEsteEquipo - pagoEsteEquipo);
 
   // Con "Total de estos equipos" el monto se completa solo: es todo lo que
   // hay que cobrar (subtotal + IVA + transporte + depósito). Si el pago se
@@ -362,10 +365,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     const pagadoEnLote = pagosGuardados.reduce((total, pago) => total + pago.monto, 0);
 
     // Lo que quedaría debiendo con este despacho ya sumado.
-    const saldoSinExcedente = Math.max(
-      0,
-      totalConEstosEquipos - (cuenta.recibido + pagadoEnLote),
-    );
+    const saldoSinExcedente = Math.max(0, debeHoy + totalEsteEquipo - pagadoEnLote);
     const abonoEnEstaFactura = Math.min(excedente, saldoSinExcedente);
     const sobranteExcedente = excedente - abonoEnEstaFactura;
 
@@ -775,13 +775,6 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                   </Box>
                 )}
 
-                {depositoNuevo > 0 && (
-                  <Box className="fila">
-                    <Typography variant="body2">Depósito</Typography>
-                    <Typography variant="body2">{formatearMoneda(depositoNuevo)}</Typography>
-                  </Box>
-                )}
-
                 {valorTransporteNuevo > 0 && (
                   <Box className="fila">
                     <Typography variant="body2">Transporte</Typography>
@@ -791,9 +784,18 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                   </Box>
                 )}
 
+                {/* El depósito al final y en su color: se paga junto con el
+                    despacho, pero no es parte de la factura. */}
+                {depositoNuevo > 0 && (
+                  <Box className="fila deposito">
+                    <Typography variant="body2">Depósito</Typography>
+                    <Typography variant="body2">{formatearMoneda(depositoNuevo)}</Typography>
+                  </Box>
+                )}
+
                 <Box className="fila total">
                   <Typography variant="subtitle1" fontWeight="bold">
-                    Total
+                    {depositoNuevo > 0 ? "Total a pagar" : "Total"}
                   </Typography>
                   <Typography variant="subtitle1" fontWeight="bold">
                     {formatearMoneda(totalEsteEquipo)}
@@ -941,7 +943,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
 
                 <Box className="fila abono">
                   <Typography variant="body2">+ Equipos agregados</Typography>
-                  <Typography variant="body2">{formatearMoneda(totalEsteEquipo)}</Typography>
+                  <Typography variant="body2">{formatearMoneda(cargosEsteEquipo)}</Typography>
                 </Box>
 
                 <Box className="fila total">

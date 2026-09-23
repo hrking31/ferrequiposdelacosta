@@ -6,7 +6,6 @@ import {
   equipoLlevaIva,
   estaDevuelto,
   calcularCuentaFactura,
-  calcularDepositoTotal,
   calcularTransporteTotal,
   formatearFechaLegible,
   calcularEstadoFactura,
@@ -244,11 +243,11 @@ export default function generarFacturaPdf({ factura, cliente }) {
   };
 
   // Lo que se cobra aparte del alquiler.
-  const tablaAdicionales = ({ iva, deposito, transporteTipo, transporteMonto }) => {
+  // El depósito no va acá: no es un cargo, y tiene su propia sección.
+  const tablaAdicionales = ({ iva, transporteTipo, transporteMonto }) => {
     const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
     const filas = [];
     if (iva > 0) filas.push(["IVA (19%)", moneda(iva)]);
-    if (deposito > 0) filas.push(["Depósito", moneda(deposito)]);
     if (hayTransporte) {
       filas.push([
         `Transporte · ${transporteTipo}`,
@@ -257,10 +256,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
     }
     if (filas.length === 0) return;
 
-    const total =
-      (iva > 0 ? iva : 0) +
-      (deposito > 0 ? deposito : 0) +
-      (hayTransporte ? transporteMonto : 0);
+    const total = (iva > 0 ? iva : 0) + (hayTransporte ? transporteMonto : 0);
     filas.push(["Total", moneda(total)]);
 
     y = titulo("CARGOS ADICIONALES");
@@ -311,7 +307,6 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
     tablaAdicionales({
       iva: ivaDeEquipos(equiposDelGrupo),
-      deposito: Number(adicionales.valorDeposito) || 0,
       transporteTipo: adicionales.transporte,
       transporteMonto: Number(adicionales.valorTransporte) || 0,
     });
@@ -329,6 +324,37 @@ export default function generarFacturaPdf({ factura, cliente }) {
   gruposAgregados.forEach((grupo, indice) => {
     bloqueDeGrupo(grupo, `EQUIPOS AGREGADOS ${indice + 1}`);
   });
+
+  // ── Depósito ───────────────────────────────────────────────────────────
+  //
+  // Aparte de los cargos y de la factura: es plata del cliente que la empresa
+  // guarda mientras tiene los equipos. La misma cuenta que el recuadro de la
+  // pantalla (ver calcularDeposito).
+  const deposito = cuenta.deposito;
+  if (deposito.pactado > 0) {
+    const resuelto = Boolean(datos.depositoResuelto);
+    const filasDeposito = [["Recibido", moneda(deposito.recibido)]];
+    if (deposito.porCobrar > 0) filasDeposito.push(["Por cobrar", moneda(deposito.porCobrar)]);
+    if (deposito.retenido > 0) {
+      filasDeposito.push(["Retenido por daños", moneda(deposito.retenido)]);
+    }
+    if (deposito.aplicado > 0) {
+      filasDeposito.push(["Aplicado a la factura", moneda(deposito.aplicado)]);
+    }
+    if (deposito.devuelto > 0) filasDeposito.push(["Devuelto", moneda(deposito.devuelto)]);
+    if (deposito.guardado > 0) {
+      filasDeposito.push([
+        resuelto ? "Por devolver" : "En garantía",
+        moneda(deposito.guardado),
+      ]);
+    }
+    y = titulo("DEPÓSITO");
+    tabla({
+      head: [["Concepto", "Valor"]],
+      body: filasDeposito,
+      startY: y,
+    });
+  }
 
   // ── Abonos ─────────────────────────────────────────────────────────────
   const abonos = abonosDe(factura);
@@ -356,7 +382,6 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const totalFactura = cuenta.total;
   const subtotal = cuenta.subtotal;
   const iva = cuenta.iva;
-  const depositoTotal = calcularDepositoTotal(factura);
   const transporteTotal = calcularTransporteTotal(factura);
   const pagadoEnFactura = cuenta.pagado;
   const saldoPendiente = cuenta.saldoPendiente;
@@ -365,12 +390,15 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const filasTotales = [];
   if (subtotal > 0) filasTotales.push(["Subtotal", moneda(subtotal)]);
   if (iva > 0) filasTotales.push(["IVA (19%)", moneda(iva)]);
-  if (depositoTotal > 0) filasTotales.push(["Depósito", moneda(depositoTotal)]);
   if (transporteTotal > 0) {
     filasTotales.push(["Transporte", moneda(transporteTotal)]);
   }
+  if (cuenta.danos > 0) filasTotales.push(["Daños", moneda(cuenta.danos)]);
   filasTotales.push(["TOTAL FACTURA", moneda(totalFactura)]);
   filasTotales.push(["Pagado", moneda(pagadoEnFactura)]);
+  // La parte de lo pagado que quedó de garantía, igual que en la pantalla.
+  const depositoEnCuenta = Math.max(0, deposito.recibido - deposito.retenido);
+  if (depositoEnCuenta > 0) filasTotales.push(["Depósito", moneda(depositoEnCuenta)]);
   if (totalAbonos > 0) filasTotales.push(["Abonos", moneda(totalAbonos)]);
   filasTotales.push([
     saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",

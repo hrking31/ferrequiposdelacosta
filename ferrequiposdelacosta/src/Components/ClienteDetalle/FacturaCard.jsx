@@ -4,8 +4,9 @@
 //
 // Acá se arma la factura completa; cada pieza de adentro tiene su archivo:
 // EquipoRow (la fila de un equipo), RecuadroPago y ListaAbonos (la plata que
-// entró), CargosAdicionales (IVA, depósito y transporte) y
-// EstadoCuentaFactura (el cierre con lo que falta cobrar).
+// entró), CargosAdicionales (IVA y transporte), RecuadroDeposito (la
+// garantía, aparte de la factura) y EstadoCuentaFactura (el cierre con lo que
+// falta cobrar).
 //
 // El plegado —el de la factura entera y el de cada sección— vive en la
 // pantalla, no acá: así abrir una factura no se pierde al recargar la lista
@@ -53,8 +54,10 @@ import {
 import EquipoRow from "./EquipoRow";
 import RecuadroPago, { ListaAbonos } from "./RecuadroPago";
 import CargosAdicionales from "./CargosAdicionales";
+import RecuadroDeposito from "./RecuadroDeposito";
 import EstadoCuentaFactura from "./EstadoCuentaFactura";
 import { usePantallaCompacta } from "../../Utils/pantalla";
+import IconoDeposito from "./IconoDeposito";
 import {
   casillasDeCuenta,
   detenerToque,
@@ -104,6 +107,7 @@ export default function FacturaCard({
   // cuenta del encabezado. Se usa el tono .main y no .light porque acá el
   // recuadro va sobre fondo de tarjeta, no sobre la pizarra oscura.
   const colorAbonos = theme.palette.info.main;
+  const colorDeposito = theme.palette.custom.seccionDeposito;
   const avatarBgPorEstado = theme.palette.custom.estadoFactura;
 
   // El estado sale de los datos de la factura, no de un campo
@@ -766,7 +770,6 @@ export default function FacturaCard({
                   equipos. */}
               <CargosAdicionales
                 equipos={equiposOriginales}
-                deposito={Number(adicionalesInicial.valorDeposito) || 0}
                 transporteTipo={transporteTipo}
                 transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
                 abierto={seccionAbierta(factura.id, "adicionales-factura")}
@@ -1018,7 +1021,6 @@ export default function FacturaCard({
                           alta. */}
                       <CargosAdicionales
                         equipos={lote.equipos ?? []}
-                        deposito={Number(adicionalesLote.valorDeposito) || 0}
                         transporteTipo={adicionalesLote.transporte || null}
                         transporteMonto={
                           Number(adicionalesLote.valorTransporte) || 0
@@ -1050,6 +1052,37 @@ export default function FacturaCard({
                 })}
             </Box>
           )}
+
+          {/* EL DEPÓSITO, después de todos los despachos y antes de los
+              abonos: es uno solo para la factura —la suma del de cada
+              despacho— y no es un cargo, así que no va dentro de ninguno. */}
+          {cuenta.deposito.pactado > 0 &&
+            (esMovil ? (
+              renderBloqueMovil(
+                "deposito",
+                { rotulo: "Depósito", Icono: IconoDeposito, color: colorDeposito },
+                <RecuadroDeposito factura={factura} cuenta={cuenta} plano />,
+              )
+            ) : (
+              <Box sx={{ mt: 1 }}>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    lineHeight: 1.6,
+                    color: colorDeposito,
+                  }}
+                >
+                  <IconoDeposito fontSize="small" />
+                  Depósito
+                </Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <RecuadroDeposito factura={factura} cuenta={cuenta} />
+                </Box>
+              </Box>
+            ))}
 
           {/* Los abonos van al final de todo lo que se despachó:
               después de los equipos agregados si los hay, y si no,

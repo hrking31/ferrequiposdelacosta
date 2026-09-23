@@ -19,7 +19,8 @@ import {
   calcularTransporteTotal,
   calcularDepositoTotal,
   calcularRetenido,
-  calcularDepositoDevuelto,
+  calcularDeposito,
+  MEDIO_DEPOSITO,
   depositoPendiente,
   sumarPagos,
   sumarAbonos,
@@ -558,14 +559,15 @@ describe("la cuenta de la factura", () => {
     expect(cuenta.total).toBe(1290000);
   });
 
-  it("los cuatro cargos suman el total, cada uno una sola vez", () => {
+  it("los cargos suman el total, cada uno una sola vez, y el depósito no entra", () => {
     const doc = facturaCon([unEquipoDe()], {
       factura: { aplicaIva: true },
       adicionales: { transporte: "Ida y vuelta", valorTransporte: 100000, deposito: true, valorDeposito: 300000 },
     });
     const cuenta = calcularCuentaFactura(doc, HOY);
-    expect(cuenta.subtotal + cuenta.iva + cuenta.transporte + cuenta.deposito).toBe(cuenta.total);
-    expect(cuenta.total).toBe(1590000); // 1.000.000 + 190.000 + 100.000 + 300.000
+    expect(cuenta.subtotal + cuenta.iva + cuenta.transporte + cuenta.danos).toBe(cuenta.total);
+    expect(cuenta.total).toBe(1290000); // 1.000.000 + 190.000 + 100.000
+    expect(cuenta.deposito.pactado).toBe(300000);
   });
 
   it("al depósito tampoco se le cobra IVA", () => {
@@ -576,13 +578,13 @@ describe("la cuenta de la factura", () => {
     expect(calcularCuentaFactura(doc, HOY).iva).toBe(190000);
   });
 
-  it("sin IVA el total es alquiler, flete y depósito", () => {
+  it("sin IVA el total es alquiler y flete", () => {
     const doc = facturaCon([unEquipoDe()], {
       adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: true, valorDeposito: 300000 },
     });
     const cuenta = calcularCuentaFactura(doc, HOY);
     expect(cuenta.iva).toBe(0);
-    expect(cuenta.total).toBe(1400000);
+    expect(cuenta.total).toBe(1100000);
   });
 
   // ── El IVA es de cada equipo ─────────────────────────────────────────
@@ -722,46 +724,198 @@ describe("la cuenta de la factura", () => {
   });
 });
 
-describe("el depósito", () => {
-  const conDeposito = (extra = {}) =>
-    facturaCon(
-      [
-        equipo({
-          cantidadEquipos: 1,
-          valorDia: 10000,
-          diasAlquilados: 1,
-          devolucion: {
-            fechaDevolucion: "2026-09-04",
-            buenEstado: extra.buenEstado ?? true,
-            valorRetenido: extra.valorRetenido ?? 0,
-          },
-        }),
-      ],
-      {
-        factura: { depositoResuelto: extra.depositoResuelto ?? false },
-        adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 500000 },
+describe("el depósito, aparte de la factura", () => {
+  // Un equipo que ya volvió: sus días quedaron congelados al devolverlo.
+  const devuelto = ({ valorDia, dias, valorRetenido = 0, aplicaIva = true }) =>
+    equipo({
+      nombre: "BENITIN",
+      cantidadEquipos: 1,
+      valorDia,
+      diasAlquilados: dias,
+      fechaDespacho: "2026-08-20",
+      aplicaIva,
+      devolucion: {
+        fechaDevolucion: "2026-09-01",
+        buenEstado: valorRetenido === 0,
+        valorRetenido,
       },
+    });
+
+  // LA 8154 DE AIDA MARIA MAURY, con sus números reales: el benitín 13 días
+  // a $120.000, IVA, flete de $300.000 y $500.000 de depósito. Pagó
+  // $1.514.000 al despachar y abonó $1.142.400; el benitín volvió bien.
+  const la8154 = ({ abonos, entregas = [] } = {}) =>
+    facturaCon([devuelto({ valorDia: 120000, dias: 13 })], {
+      factura: { depositoResuelto: { retenido: 0, fecha: "2026-09-01" } },
+      adicionales: { transporte: "Solo ida", valorTransporte: 300000, deposito: true, valorDeposito: 500000 },
+      pagos: [{ medio: "Efectivo", monto: 1514000 }],
+      abonos: abonos ?? [{ fecha: "2026-09-01", medio: "Nequi", monto: 1142400, tipo: "sistema" }],
+      entregas,
+    });
+
+  it("la 8154: el total no incluye el depósito y queda por devolver entero", () => {
+    const cuenta = calcularCuentaFactura(la8154(), HOY);
+    expect(cuenta.total).toBe(2156400); // 1.560.000 + 296.400 + 300.000
+    expect(cuenta.deposito.recibido).toBe(500000);
+    expect(cuenta.deposito.porDevolver).toBe(500000);
+    // La factura quedó pagada: los $500.000 no son un pago de más, son su
+    // depósito.
+    expect(cuenta.saldoPendiente).toBe(0);
+    expect(cuenta.saldoAFavor).toBe(0);
+    expect(cuenta.aDevolver).toBe(500000);
+    // Y mientras no se le devuelva, la factura no termina.
+    expect(calcularEstadoFactura(la8154(), HOY)).toBe("cobro");
+  });
+
+  it("devuelto el depósito, la factura termina", () => {
+    const doc = la8154({
+      entregas: [{ fecha: HOY, medio: "Efectivo", monto: 500000, nota: "" }],
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.deposito.devuelto).toBe(500000);
+    expect(cuenta.deposito.guardado).toBe(0);
+    expect(cuenta.aDevolver).toBe(0);
+    expect(cuenta.total).toBe(2156400);
+    expect(calcularEstadoFactura(doc, HOY)).toBe("finalizada");
+  });
+
+  it("sin el abono, el depósito se aplica a mano y baja el saldo", () => {
+    const sinAbono = la8154({ abonos: [] });
+    // Hasta que alguien lo aplique, el saldo es el de la factura sola y el
+    // depósito sigue por devolver: no se descuenta solo.
+    expect(calcularCuentaFactura(sinAbono, HOY).saldoPendiente).toBe(1142400);
+    expect(calcularCuentaFactura(sinAbono, HOY).deposito.porDevolver).toBe(500000);
+    // Y como la factura debe más que el depósito, no hay nada que devolverle:
+    // el depósito entero va a pagarla.
+    expect(calcularCuentaFactura(sinAbono, HOY).depositoAlSaldo).toBe(500000);
+    expect(calcularCuentaFactura(sinAbono, HOY).aDevolver).toBe(0);
+
+    const aplicado = la8154({
+      abonos: [{ fecha: HOY, medio: MEDIO_DEPOSITO, monto: 500000, tipo: "cliente" }],
+    });
+    const cuenta = calcularCuentaFactura(aplicado, HOY);
+    expect(cuenta.total).toBe(2156400);
+    expect(cuenta.deposito.aplicado).toBe(500000);
+    expect(cuenta.deposito.guardado).toBe(0);
+    expect(cuenta.saldoPendiente).toBe(642400);
+    expect(cuenta.aDevolver).toBe(0);
+  });
+
+  // LA 8215 DE REYAZ: $960.000 de alquiler con IVA, $150.000 de flete,
+  // $300.000 de depósito y $40.000 retenidos por daño.
+  const la8215 = (abonosExtra = []) =>
+    facturaCon([devuelto({ valorDia: 80000, dias: 12, valorRetenido: 40000 })], {
+      factura: { depositoResuelto: { retenido: 40000, fecha: "2026-09-01" } },
+      adicionales: { transporte: "Solo ida", valorTransporte: 150000, deposito: true, valorDeposito: 300000 },
+      pagos: [{ medio: "Efectivo", monto: 830800 }],
+      abonos: [
+        { fecha: "2026-09-01", medio: "Nequi", monto: 95200, tipo: "sistema" },
+        ...abonosExtra,
+      ],
+    });
+
+  it("la 8215: lo retenido es un cargo por daños que se paga con el depósito", () => {
+    const cuenta = calcularCuentaFactura(la8215(), HOY);
+    expect(cuenta.danos).toBe(40000);
+    expect(cuenta.total).toBe(1332400); // 960.000 + 182.400 + 150.000 + 40.000
+    expect(cuenta.deposito.retenido).toBe(40000);
+    expect(cuenta.deposito.porDevolver).toBe(260000);
+    expect(cuenta.saldoPendiente).toBe(666400);
+  });
+
+  it("la 8215: con el depósito aplicado queda lo mismo que cobraba la cuenta vieja", () => {
+    const cuenta = calcularCuentaFactura(
+      la8215([{ fecha: HOY, medio: MEDIO_DEPOSITO, monto: 260000, tipo: "cliente" }]),
+      HOY,
     );
-
-  it("mientras no se resuelva, sigue siendo un cargo", () => {
-    const sinResolver = conDeposito();
-    expect(calcularDepositoDevuelto(sinResolver)).toBe(0);
-    expect(depositoPendiente(sinResolver)).toBe(true);
-    expect(calcularCuentaFactura(sinResolver, HOY).deposito).toBe(500000);
+    expect(cuenta.saldoPendiente).toBe(406400);
+    expect(cuenta.aDevolver).toBe(0);
   });
 
-  it("al resolverse, lo que se le devuelve deja de cobrarse", () => {
-    const resuelto = conDeposito({ depositoResuelto: true, valorRetenido: 50000, buenEstado: false });
-    expect(calcularRetenido(resuelto)).toBe(50000);
-    expect(calcularDepositoDevuelto(resuelto)).toBe(450000);
-    expect(depositoPendiente(resuelto)).toBe(false);
-    // Queda como cargo solo lo retenido, que sí es ingreso.
-    expect(calcularCuentaFactura(resuelto, HOY).deposito).toBe(50000);
+  // ── Con los equipos afuera ──────────────────────────────────────────
+  const afuera = ({ pago = 0, abonos = [] } = {}) =>
+    facturaCon([equipo({ cantidadEquipos: 1, valorDia: 100000, diasAlquilados: 10 })], {
+      adicionales: { transporte: "Solo ida", valorTransporte: 100000, deposito: true, valorDeposito: 500000 },
+      pagos: pago > 0 ? [{ medio: "Efectivo", monto: pago }] : [],
+      abonos,
+    });
+
+  it("lo que se paga al despachar cubre primero el depósito", () => {
+    const cuenta = calcularCuentaFactura(afuera({ pago: 1000000 }), HOY);
+    expect(cuenta.total).toBe(1100000);
+    expect(cuenta.deposito.recibido).toBe(500000);
+    expect(cuenta.deposito.guardado).toBe(500000);
+    expect(cuenta.deposito.porDevolver).toBe(0); // es garantía: los equipos siguen afuera
+    expect(cuenta.saldoPendiente).toBe(600000);
+    expect(depositoPendiente(afuera({ pago: 1000000 }))).toBe(true);
   });
 
-  it("nunca se retiene más de lo que el cliente dejó", () => {
-    const excedido = conDeposito({ depositoResuelto: true, valorRetenido: 900000, buenEstado: false });
-    expect(calcularDepositoDevuelto(excedido)).toBe(0);
+  it("el depósito que no se dejó está dentro del saldo, y un abono lo completa", () => {
+    const corto = calcularCuentaFactura(afuera({ pago: 200000 }), HOY);
+    expect(corto.deposito.recibido).toBe(200000);
+    expect(corto.deposito.porCobrar).toBe(300000);
+    expect(corto.saldoPendiente).toBe(1400000); // 1.100.000 + 300.000
+
+    const completo = calcularCuentaFactura(
+      afuera({
+        pago: 200000,
+        abonos: [{ fecha: HOY, medio: "Nequi", monto: 300000, tipo: "sistema" }],
+      }),
+      HOY,
+    );
+    expect(completo.deposito.recibido).toBe(500000);
+    expect(completo.deposito.porCobrar).toBe(0);
+    expect(completo.saldoPendiente).toBe(1100000);
+  });
+
+  it("resuelta la devolución, el depósito que nunca se dejó ya no se cobra", () => {
+    const doc = facturaCon([devuelto({ valorDia: 100000, dias: 10, aplicaIva: false })], {
+      factura: { depositoResuelto: { retenido: 0, fecha: "2026-09-01" } },
+      adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 500000 },
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.deposito.porCobrar).toBe(0);
+    expect(cuenta.deposito.porDevolver).toBe(0);
+    expect(cuenta.saldoPendiente).toBe(1000000);
+  });
+
+  it("sin depósito recibido, los daños se cobran como cualquier cargo", () => {
+    const doc = facturaCon([devuelto({ valorDia: 100000, dias: 10, valorRetenido: 50000, aplicaIva: false })], {
+      factura: { depositoResuelto: { retenido: 50000, fecha: "2026-09-01" } },
+      adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 500000 },
+    });
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(calcularRetenido(doc)).toBe(50000);
+    expect(cuenta.deposito.retenido).toBe(0);
+    expect(cuenta.saldoPendiente).toBe(1050000);
+  });
+
+  it("cada despacho cubre su propio depósito con su propio pago", () => {
+    const doc = facturaCon([equipo()], {
+      adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 300000 },
+      pagos: [{ medio: "Efectivo", monto: 100000 }],
+      grupos: [
+        {
+          grupo: "grupo-agregados-1",
+          fechaSolicitud: "2026-09-06",
+          pagos: { tipoPago: "total", medios: [{ medio: "Efectivo", monto: 500000 }] },
+          adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 200000 },
+          equipos: [],
+        },
+      ],
+    });
+    // El alta dejó 100.000 de sus 300.000; el agregado, sus 200.000 enteros.
+    // Lo que sobró del agregado no tapa el depósito del alta.
+    expect(calcularDeposito(doc).recibido).toBe(300000);
+    expect(calcularDeposito(doc).porCobrar).toBe(200000);
+  });
+
+  it("el cliente suma el depósito guardado de todas sus facturas, aparte del saldo", () => {
+    const cuenta = calcularCuentaCliente([la8154(), afuera({ pago: 1000000 })], HOY);
+    expect(cuenta.depositoGuardado).toBe(1000000);
+    expect(cuenta.total).toBe(2156400 + 1100000);
+    expect(cuenta.saldoPendiente).toBe(600000);
+    expect(cuenta.saldoAFavor).toBe(0);
   });
 });
 

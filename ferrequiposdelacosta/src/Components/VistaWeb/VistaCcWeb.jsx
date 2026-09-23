@@ -31,7 +31,11 @@ export default function VistaCcWeb() {
   const pagado = Number(cuenta.pagado) || 0;
   const abonos = Number(cuenta.abonos) || 0;
   const yaCobrado = pagado + abonos;
-  const aCancelar = Math.max(0, (Number(cuenta.total) || 0) - yaCobrado);
+  // El depósito que el cliente todavía no dejó se cobra, pero no es parte del
+  // total de las facturas: se suma aparte.
+  const depositoPorCobrar = Number(cuenta.depositoPorCobrar) || 0;
+  const aCancelar =
+    Math.max(0, (Number(cuenta.total) || 0) - yaCobrado) + depositoPorCobrar;
 
   const conFactura = items.some((item) => item.factura);
 
@@ -65,6 +69,12 @@ export default function VistaCcWeb() {
     if (abonos > 0) {
       filasTotales.push({ etiqueta: "Abonos", valor: abonos, resta: true });
     }
+  }
+  if (depositoPorCobrar > 0) {
+    filasTotales.push({
+      etiqueta: "Depósito (se devuelve al entregar los equipos)",
+      valor: depositoPorCobrar,
+    });
   }
   filasTotales.push({
     etiqueta: "Total a Cancelar",

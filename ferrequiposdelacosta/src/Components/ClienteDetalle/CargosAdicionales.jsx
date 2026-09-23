@@ -1,5 +1,5 @@
-// Lo que se cobra aparte del alquiler de un lote de equipos: el IVA, el
-// depósito y el transporte, con su total, y —al desplegar la flecha— el IVA
+// Lo que se cobra aparte del alquiler de un lote de equipos: el IVA y el
+// transporte, con su total, y —al desplegar la flecha— el IVA
 // discriminado equipo por equipo.
 //
 // El IVA del recuadro es la suma del de todos los equipos del grupo, y sumado
@@ -20,8 +20,12 @@
 // se lee como un solo renglón de 1 día —lo que se le cobra— en vez de 3 y −2,
 // que obliga a restar de cabeza para saber lo que interesa.
 //
-// El depósito y el transporte no se desglosan porque no son por equipo: se
-// cobran una vez por despacho, no importa cuántos equipos hayan salido en él.
+// El transporte no se desglosa porque no es por equipo: se cobra una vez por
+// despacho, no importa cuántos equipos hayan salido en él.
+//
+// El depósito NO está acá: no es un cargo sino una garantía, y tiene su
+// propio recuadro (RecuadroDeposito). Mientras estuvo entre los cargos se
+// sumaba al "Total adicionales" como si fuera un cobro.
 import { Fragment } from "react";
 import PropTypes from "prop-types";
 import {
@@ -34,10 +38,9 @@ import {
   useTheme,
 } from "@mui/material";
 import AddCardIcon from "@mui/icons-material/AddCard";
-// Un ícono por cargo: el porcentaje es el IVA, la alcancía el depósito —una
-// garantía guardada, no un cobro—, el camión el flete y el recibo la suma.
+// Un ícono por cargo: el porcentaje es el IVA, el camión el flete y el recibo
+// la suma.
 import PercentIcon from "@mui/icons-material/Percent";
-import SavingsIcon from "@mui/icons-material/Savings";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -63,7 +66,6 @@ const IVA = 0.19;
 // los equipos. Devuelve la lista de datos en vez del recuadro ya armado,
 // para que el componente pueda meterle la flecha y el desglose adentro.
 const datosAdicionales = ({
-  deposito,
   transporteTipo,
   transporteMonto,
   iva,
@@ -71,12 +73,9 @@ const datosAdicionales = ({
 }) => {
   const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
   const hayIva = Number(iva) > 0;
-  if (deposito <= 0 && !hayTransporte && !hayIva) return null;
+  if (!hayTransporte && !hayIva) return null;
 
-  const total =
-    (hayIva ? Number(iva) : 0) +
-    deposito +
-    (hayTransporte ? transporteMonto : 0);
+  const total = (hayIva ? Number(iva) : 0) + (hayTransporte ? transporteMonto : 0);
 
   const datos = [];
   if (hayIva) {
@@ -88,17 +87,6 @@ const datosAdicionales = ({
       colorIcono: colores.impuesto,
       rotulo: "IVA (19%)",
       valor: formatearMoneda(Number(iva)),
-    });
-  }
-  if (deposito > 0) {
-    datos.push({
-      clave: "deposito",
-      Icono: SavingsIcon,
-      // Verde, el de la plata: el depósito no es un cargo, es del cliente y
-      // vuelve a su bolsillo al final salvo que se retenga.
-      colorIcono: colores.deposito,
-      rotulo: "Depósito",
-      valor: formatearMoneda(deposito),
     });
   }
   // El tipo de transporte y su valor van juntos: son un solo dato, no dos
@@ -147,7 +135,6 @@ const conceptoDelTramo = (tipo, dias) => {
 
 export default function CargosAdicionales({
   equipos,
-  deposito,
   transporteTipo,
   transporteMonto,
   // La marca de IVA de la factura: vale para los equipos que no traen la suya
@@ -213,12 +200,10 @@ export default function CargosAdicionales({
 
   const datos = datosAdicionales({
     iva: ivaDeEquipos(equipos),
-    deposito,
     transporteTipo,
     transporteMonto,
     colores: {
       impuesto: theme.palette.custom.seccionEquiposAgregados,
-      deposito: theme.palette.success.main,
       movimiento: theme.palette.custom.estadoEquipo.ampliacion,
       total: theme.palette.custom.accent,
     },
@@ -226,22 +211,20 @@ export default function CargosAdicionales({
   });
   if (!datos) return null;
 
-  // El depósito y el transporte del despacho, que cada renglón del desglose
-  // suma a su propio IVA para mostrar a cuánto llegaría el total con esa
-  // parte. Es una lectura por renglón, no una suma: el despacho se cobra una
+  // El transporte del despacho, que cada renglón del desglose suma a su
+  // propio IVA para mostrar a cuánto llegaría el total con esa parte. Es una lectura por renglón, no una suma: el despacho se cobra una
   // sola vez, así que la columna NO totaliza —sumarla daría más que el
   // "Total adicionales" de arriba, que es el número que manda—.
   const cargosDelLote =
-    Math.max(0, Number(deposito) || 0) +
-    (transporteTipo && transporteTipo !== "Sin transporte"
+    transporteTipo && transporteTipo !== "Sin transporte"
       ? Number(transporteMonto) || 0
-      : 0);
+      : 0;
 
   // Hay algo que desglosar si más de un equipo aporta IVA —si fuera uno
   // solo, la línea repetiría el total que ya está arriba— o si ese único
   // equipo se parte en varios renglones, porque ahí sí hay algo nuevo que
-  // mostrar: de dónde salió cada pedazo. El depósito y el transporte no
-  // entran acá: son un cargo único del lote, no de cada equipo (ver la nota
+  // mostrar: de dónde salió cada pedazo. El transporte no entra acá: es un
+  // cargo único del lote, no de cada equipo (ver la nota
   // de arriba).
   const aportantes = equipos.filter((equipo) => ivaDeUnEquipo(equipo) > 0);
   // La casilla del IVA es la que abre su propio desglose: el toque va en ella
@@ -268,7 +251,7 @@ export default function CargosAdicionales({
 
   // CADA EQUIPO LLEVA SU PROPIA CUENTA. La columna de la derecha dice a
   // cuánto llega el "Total adicionales" con este equipo: los cargos del
-  // despacho —depósito y flete, que son del lote— más el IVA de sus tramos,
+  // despacho —el flete, que es del lote— más el IVA de sus tramos,
   // sumados de a uno.
   //
   // No se encadena entre equipos, y ahí estaba el error: dos equipos que
@@ -525,7 +508,6 @@ export default function CargosAdicionales({
 
 CargosAdicionales.propTypes = {
   equipos: PropTypes.array.isRequired,
-  deposito: PropTypes.number,
   transporteTipo: PropTypes.string,
   transporteMonto: PropTypes.number,
   abierto: PropTypes.bool,

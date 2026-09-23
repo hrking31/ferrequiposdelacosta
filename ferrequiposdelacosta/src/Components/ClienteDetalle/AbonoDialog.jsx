@@ -41,11 +41,9 @@ import {
   equiposDe,
   sigueAfuera,
   equipoVencido,
-  calcularDepositoTotal,
-  calcularDepositoDevuelto,
-  calcularRetenido,
-  depositoPendiente,
+  MEDIO_DEPOSITO,
 } from "./facturaUtils";
+import IconoDeposito from "./IconoDeposito";
 import { formatearMoneda } from "../../Utils/formato";
 
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
@@ -74,6 +72,14 @@ const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 // saldo los dos son un abono igual— pero deja explicar después por qué esa
 // plata terminó ahí, que es justo lo que no se podía cuando el reparto era la
 // única forma.
+//
+// ── PAGAR CON EL DEPÓSITO ──────────────────────────────────────────────
+//
+// Cuando los equipos ya volvieron, el depósito que queda libre es plata del
+// cliente, y puede pedir que se use para pagar en vez de que se lo devuelvan.
+// Eso se registra acá, con el medio "Depósito". No es plata nueva: cada
+// factura solo puede usar SU depósito —hasta lo que tiene libre y hasta lo
+// que debe—, así que ese abono no se reparte entre facturas ni deja sobrante.
 export default function AbonoDialog({
   open,
   onClose,
@@ -114,6 +120,19 @@ export default function AbonoDialog({
 
   const montoNuevo = Number(form.monto) || 0;
 
+  // Las facturas que pueden pagarse con su depósito, y hasta cuánto cada una:
+  // lo que tiene libre, sin pasarse de lo que debe.
+  const conDepositoLibre = facturasConSaldo
+    .map((item) => ({
+      ...item,
+      tope: Math.min(item.cuenta.deposito.porDevolver, item.cuenta.saldoPendiente),
+    }))
+    .filter(({ tope }) => tope > 0);
+  const conDeposito = form.medio === MEDIO_DEPOSITO;
+  const depositoDisponible = conDepositoLibre
+    .filter(({ factura }) => elegidas.length === 0 || elegidas.includes(factura.id))
+    .reduce((total, { tope }) => total + tope, 0);
+
   // Lo que el cliente debe HOY, sumando sus facturas con saldo. Sale de las
   // mismas cuentas que la lista de abajo: si se calculara aparte, el total y
   // el detalle podrían discrepar.
@@ -135,7 +154,20 @@ export default function AbonoDialog({
   // llega a recibir algo se lleva TODO lo que quede del abono, así que si
   // sobra después de saldarlas, ese sobrante queda ahí como saldo a favor en
   // vez de perderse.
-  const reparto = repartirEntreFacturas(destinos, montoNuevo);
+  //
+  // Con el depósito no hay reparto: cada factura usa el suyo, hasta su tope.
+  const reparto = conDeposito
+    ? (() => {
+        let restante = montoNuevo;
+        return conDepositoLibre
+          .filter(({ factura }) => destinos.some((d) => d.factura.id === factura.id))
+          .map(({ factura, cuenta, tope }) => {
+            const aplicado = Math.min(restante, tope);
+            restante -= aplicado;
+            return { factura, cuenta, aplicado };
+          });
+      })()
+    : repartirEntreFacturas(destinos, montoNuevo);
 
   // Para dibujar: la lista de abajo muestra TODAS las facturas con saldo —hay
   // que poder elegir entre ellas— pero solo las destino reciben algo.
@@ -205,6 +237,17 @@ export default function AbonoDialog({
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
   };
 
+  // Elegir el depósito trae el monto ya puesto —todo lo disponible—, que es
+  // lo que se hace casi siempre.
+  const handleMedio = (e) => {
+    const medio = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      medio,
+      ...(medio === MEDIO_DEPOSITO ? { monto: String(depositoDisponible) } : {}),
+    }));
+  };
+
   const handleCerrar = () => {
     if (guardando) return;
     onClose();
@@ -215,6 +258,9 @@ export default function AbonoDialog({
     if (!form.fecha) errores.fecha = "Este campo es obligatorio.";
     if (!form.medio) errores.medio = "Elegí el medio de pago.";
     if (montoNuevo <= 0) errores.monto = "El valor debe ser mayor a 0.";
+    if (conDeposito && montoNuevo > depositoDisponible) {
+      errores.monto = `Del depósito hay disponibles ${formatearMoneda(depositoDisponible)}.`;
+    }
     setErrors(errores);
     return Object.keys(errores).length === 0;
   };
@@ -339,13 +385,28 @@ export default function AbonoDialog({
                   inputProps={{ id: "abono-medio-input" }}
                   label="Medio de pago"
                   value={form.medio}
-                  onChange={handleChange("medio")}
+                  onChange={handleMedio}
                 >
                   {MODOS_PAGO.map((medio) => (
                     <MenuItem key={medio} value={medio}>
                       {medio}
                     </MenuItem>
                   ))}
+                  {/* Solo si alguna factura tiene depósito libre y algo que
+                      pagar con él. */}
+                  {conDepositoLibre.length > 0 && (
+                    <MenuItem value={MEDIO_DEPOSITO}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        gap={0.75}
+                        sx={{ color: "custom.seccionDeposito" }}
+                      >
+                        <IconoDeposito fontSize="small" />
+                        {MEDIO_DEPOSITO}
+                      </Stack>
+                    </MenuItem>
+                  )}
                 </Select>
                 {errors.medio && (
                   <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
@@ -363,7 +424,12 @@ export default function AbonoDialog({
                   setForm((prev) => ({ ...prev, monto: limpiarMonedaInput(e.target.value) }))
                 }
                 error={!!errors.monto}
-                helperText={errors.monto}
+                helperText={
+                  errors.monto ||
+                  (conDeposito
+                    ? `Disponible del depósito: ${formatearMoneda(depositoDisponible)}`
+                    : undefined)
+                }
                 fullWidth
                 autoFocus
               />
@@ -466,30 +532,11 @@ export default function AbonoDialog({
                     const quedaAFavor = Math.max(0, aplicado - cuenta.saldoPendiente);
                     const elegida = elegidas.includes(factura.id);
 
-                    // ── DE DÓNDE SALE ESE SALDO ────────────────────────
-                    //
-                    // El depósito entra y sale de la cuenta solo, y eso deja
-                    // al que cobra sin saber si la cifra que tiene delante ya
-                    // lo tiene adentro. Son dos momentos distintos:
-                    //
-                    // 1. Los equipos SIGUEN AFUERA: la garantía está vigente,
-                    //    así que se le cobra y el saldo la incluye. Pedirle
-                    //    ese saldo completo es cobrarle de más: parte de esa
-                    //    plata se le va a devolver.
-                    //
-                    // 2. YA DEVOLVIÓ y se liquidó: el depósito bajó del total
-                    //    y lo que el cliente había dejado quedó cubriendo
-                    //    alquiler. El saldo ya es el excedente y cobrarlo
-                    //    entero es correcto: no queda nada que devolver.
-                    //
-                    // Y lo retenido por daños se muestra en los dos casos, sin
-                    // sumar ni restar nada: es la plata que el cliente va a
-                    // reclamar, y quien cobra tiene que tener la respuesta.
-                    const enGarantia = depositoPendiente(factura)
-                      ? calcularDepositoTotal(factura)
-                      : 0;
-                    const depositoAplicado = calcularDepositoDevuelto(factura);
-                    const retenido = calcularRetenido(factura);
+                    // El depósito, en una línea y solo cuando cambia cómo se
+                    // lee el saldo: con equipos afuera, parte del saldo es
+                    // garantía por cobrar; ya devueltos, hay depósito libre
+                    // que puede pagarlo.
+                    const { porCobrar, porDevolver } = cuenta.deposito;
 
                     return (
                       <Box key={factura.id}>
@@ -524,40 +571,23 @@ export default function AbonoDialog({
                           </Typography>
                         </Box>
 
-                        {/* Cuelgan del saldo —sangrados y en letra chica—
-                            porque lo explican, no se le suman. */}
-                        {(enGarantia > 0 || depositoAplicado > 0 || retenido > 0) && (
-                          <Box sx={{ pl: 1.5, mt: -0.5, mb: 1, opacity: 0.85 }}>
-                            {enGarantia > 0 && (
-                              <Typography variant="caption" sx={{ display: "block" }}>
-                                {`Incluye ${formatearMoneda(
-                                  enGarantia,
-                                )} de depósito en garantía, que se le devuelve al entregar los equipos`}
-                              </Typography>
-                            )}
-
-                            {depositoAplicado > 0 && (
-                              <Box className="fila" sx={{ mb: 0 }}>
-                                <Typography variant="caption">
-                                  Depósito ya aplicado
-                                </Typography>
-                                <Typography variant="caption">
-                                  {formatearMoneda(depositoAplicado)}
-                                </Typography>
-                              </Box>
-                            )}
-
-                            {retenido > 0 && (
-                              <Box className="fila" sx={{ mb: 0 }}>
-                                <Typography variant="caption">
-                                  Retenido por daños
-                                </Typography>
-                                <Typography variant="caption">
-                                  {formatearMoneda(retenido)}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
+                        {/* Cuelga del saldo —sangrado y en letra chica—
+                            porque lo explica, no se le suma. */}
+                        {(porCobrar > 0 || porDevolver > 0) && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              pl: 1.5,
+                              mt: -0.5,
+                              mb: 1,
+                              color: "custom.depositoText",
+                            }}
+                          >
+                            {porCobrar > 0
+                              ? `Incluye ${formatearMoneda(porCobrar)} de depósito por cobrar`
+                              : `Tiene ${formatearMoneda(porDevolver)} de depósito libre para pagar`}
+                          </Typography>
                         )}
 
                         {aplicado > 0 && (

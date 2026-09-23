@@ -71,6 +71,9 @@ const valorInicial = {
   // El depósito no tiene casilla que lo habilite: entra en el documento con
   // solo tener valor, venga de la factura o escrito a mano.
   valorDeposito: 0,
+  // El depósito que el cliente todavía no dejó, cuando la cuenta sale de las
+  // facturas: se cobra aparte del total, que ya no lo incluye.
+  depositoPorCobrar: 0,
   descuento: 0,
   subtotalNumero: 0,
   ivaNumero: 0,

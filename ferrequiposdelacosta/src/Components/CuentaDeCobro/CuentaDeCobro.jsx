@@ -77,7 +77,10 @@ export default function CuentaCobro() {
         subtotalNumero: nuevoSubtotal,
         ivaNumero: nuevoIva,
         total: nuevoTotal,
-        saldo: Math.max(0, nuevoTotal - yaCobrado),
+        // El depósito que falta dejar va aparte del total (ver
+        // cuentaCobroDesdeFacturas.js), pero se cobra.
+        saldo:
+          Math.max(0, nuevoTotal - yaCobrado) + (Number(value.depositoPorCobrar) || 0),
       }),
     );
   };

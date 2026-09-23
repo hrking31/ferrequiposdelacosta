@@ -98,9 +98,9 @@ const otroEquipo = benitin({
   fechaDevolucion: "2026-08-07",
 });
 
-// El despacho del ejemplo real: $500.000 de depósito y $200.000 de transporte.
+// El despacho del ejemplo real: $200.000 de transporte. Su depósito no va en
+// este recuadro: no es un cargo (ver RecuadroDeposito).
 const conCargosDelLote = {
-  deposito: 500000,
   transporteTipo: "Ida y vuelta",
   transporteMonto: 200000,
 };
@@ -109,7 +109,6 @@ const dibujar = (equipos, extras = {}) =>
   renderConProviders(
     <CargosAdicionales
       equipos={equipos}
-      deposito={0}
       transporteTipo="Sin transporte"
       transporteMonto={0}
       aplicaIvaFactura
@@ -209,18 +208,18 @@ describe("CargosAdicionales", () => {
   it("muestra a cuánto llegaba el total antes del último movimiento", () => {
     dibujar([conTresDiasVencidos], conCargosDelLote);
 
-    // El alta dejó el total en $700.000 de despacho más $95.000 de IVA.
-    expect(hayTotal(795000)).toBeInTheDocument();
+    // El alta dejó el total en $200.000 de flete más $95.000 de IVA.
+    expect(hayTotal(295000)).toBeInTheDocument();
   });
 
   it("no repite abajo el total que ya está arriba", () => {
     // Los días vencidos son el último movimiento: dejaron el total en
-    // $852.000, que es el "Total adicionales" de arriba. Si el desglose lo
+    // $352.000, que es el "Total adicionales" de arriba. Si el desglose lo
     // repitiera, el mismo número aparecería dos veces y el historial diría
     // que pasó algo después, cuando no pasó nada.
     dibujar([conTresDiasVencidos], conCargosDelLote);
 
-    expect(vecesQueAparece(852000)).toBe(1);
+    expect(vecesQueAparece(352000)).toBe(1);
   });
 
   it("deja el movimiento más reciente arriba y el alta abajo", () => {
@@ -293,15 +292,15 @@ describe("CargosAdicionales", () => {
   it("le lleva a cada equipo su propia cuenta", () => {
     dibujar([conTresDiasVencidos, otroEquipo], conCargosDelLote);
 
-    // El BENITIN: $700.000 del despacho más su alta ($95.000) y después sus
+    // El BENITIN: $200.000 del flete más su alta ($95.000) y después sus
     // vencidos ($57.000).
-    expect(hayTotal(795000)).toBeInTheDocument();
-    expect(hayTotal(852000)).toBeInTheDocument();
-    // El ANDAMIO arranca de nuevo en los $700.000 del despacho, no sigue la
-    // cuenta del BENITIN: $719.000, y no $871.000.
-    expect(hayTotal(719000)).toBeInTheDocument();
+    expect(hayTotal(295000)).toBeInTheDocument();
+    expect(hayTotal(352000)).toBeInTheDocument();
+    // El ANDAMIO arranca de nuevo en los $200.000 del flete, no sigue la
+    // cuenta del BENITIN: $219.000, y no $371.000.
+    expect(hayTotal(219000)).toBeInTheDocument();
     // El total de arriba sigue apareciendo una sola vez.
-    expect(vecesQueAparece(871000)).toBe(1);
+    expect(vecesQueAparece(371000)).toBe(1);
   });
 
   // Un equipo que volvió TARDE sigue mostrando sus días vencidos aparte,
@@ -317,11 +316,11 @@ describe("CargosAdicionales", () => {
 
   it("el Total adicionales de arriba no cambia con el desglose", () => {
     // El número que manda sigue siendo este: los $171.000 de IVA de los dos
-    // equipos más los $700.000 del despacho, contado una sola vez.
+    // equipos más los $200.000 del flete, contado una sola vez.
     dibujar([conTresDiasVencidos, otroEquipo], conCargosDelLote);
 
     const bloqueTotal = screen.getByText("Total adicionales").closest("div");
-    expect(sinEspacioDuro(bloqueTotal.textContent)).toContain(dinero(871000));
+    expect(sinEspacioDuro(bloqueTotal.textContent)).toContain(dinero(371000));
   });
 
   it("le resta al equipo los días que devolvió sin usar, sin renglón aparte", () => {

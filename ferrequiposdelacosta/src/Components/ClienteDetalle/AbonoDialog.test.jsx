@@ -452,7 +452,8 @@ describe("AbonoDialog — lo que ya tenía", () => {
   // adentro, y ahí es donde se cobra de más o se devuelve de más.
   describe("el depósito dentro del saldo", () => {
     // El caso de la 8215: el cliente dejó $300.000, devolvió todo, un equipo
-    // volvió dañado y se le retuvieron $40.000. El depósito ya se liquidó.
+    // volvió dañado y se le retuvieron $40.000. El depósito ya se liquidó y
+    // quedan $260.000 libres.
     const conDepositoLiquidado = {
       id: "liquidada",
       ...unaFactura({
@@ -495,46 +496,71 @@ describe("AbonoDialog — lo que ya tenía", () => {
       }),
     };
 
-    it("con el equipo afuera avisa que el saldo trae el depósito adentro", () => {
-      abrir({ facturas: [conEquipoAfuera] });
+    it("con el equipo afuera avisa que el saldo trae el depósito por cobrar", async () => {
+      const { usuario } = abrir({ facturas: [conEquipoAfuera] });
 
       // Se compara contra la MISMA función que pinta la cifra: el formato del
       // peso cambia entre el navegador y las pruebas (allá "$ 300.000", acá
       // "$ 300.000,00"), y un literal a mano se rompe sin que nada esté mal.
       expect(
-        screen.getByText(
-          `Incluye ${enPantalla(300000)} de depósito en garantía, ` +
-            "que se le devuelve al entregar los equipos",
-        ),
+        screen.getByText(`Incluye ${enPantalla(300000)} de depósito por cobrar`),
       ).toBeInTheDocument();
-      // Todavía no se aplicó nada: ese renglón es del otro momento.
-      expect(screen.queryByText("Depósito ya aplicado")).not.toBeInTheDocument();
+
+      // Con el equipo afuera no hay depósito libre: no se ofrece pagar con él.
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      expect(screen.queryByRole("option", { name: "Depósito" })).not.toBeInTheDocument();
     });
 
-    it("liquidado, muestra cuánto se aplicó y cuánto se retuvo por daños", () => {
+    it("liquidado, dice cuánto depósito quedó libre para pagar", () => {
       abrir({ facturas: [conDepositoLiquidado] });
 
       // $300.000 menos los $40.000 del daño.
-      expect(screen.getByText("Depósito ya aplicado")).toBeInTheDocument();
-      expect(screen.getByText(enPantalla(260000))).toBeInTheDocument();
-      expect(screen.getByText("Retenido por daños")).toBeInTheDocument();
-      expect(screen.getByText(enPantalla(40000))).toBeInTheDocument();
+      expect(
+        screen.getByText(`Tiene ${enPantalla(260000)} de depósito libre para pagar`),
+      ).toBeInTheDocument();
 
-      // Y el saldo que se cobra ya es neto: $500.000 de alquiler más los
-      // $40.000 retenidos, menos los $300.000 que el cliente había dejado.
-      // Dos veces: como deuda del cliente arriba y como saldo de su única
-      // factura abajo. Que coincidan es justamente lo que se quiere ver.
-      expect(screen.getAllByText(enPantalla(240000))).toHaveLength(2);
-      // El aviso de la garantía NO va: ya no hay nada que devolverle.
-      expect(screen.queryByText(/depósito en garantía/)).not.toBeInTheDocument();
+      // El saldo NO trae el depósito descontado: $500.000 de alquiler más los
+      // $40.000 del daño, que se pagaron con el depósito. Dos veces: como deuda
+      // del cliente arriba y como saldo de su única factura abajo.
+      expect(screen.getAllByText(enPantalla(500000))).toHaveLength(2);
+    });
+
+    it("pagar con el depósito trae el monto disponible y lo guarda con ese medio", async () => {
+      const { usuario } = abrir({ facturas: [conDepositoLiquidado] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Depósito" }));
+
+      expect(screen.getByLabelText("Valor del abono")).toHaveValue("260.000");
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      expect(updateSimulado).toHaveBeenCalledTimes(1);
+      const [ruta, cambios] = updateSimulado.mock.calls[0];
+      expect(ruta).toBe("clientes/cli1/facturas/liquidada");
+      expect(cambios.abonos).toEqual([
+        { fecha: expect.any(String), medio: "Depósito", monto: 260000, tipo: "sistema" },
+      ]);
+    });
+
+    it("con el depósito no se puede pagar más de lo que hay libre, ni pasarlo a otra factura", async () => {
+      const { usuario } = abrir({ facturas: [conDepositoLiquidado, ...facturas] });
+
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Depósito" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
+      await usuario.type(screen.getByLabelText("Valor del abono"), "400000");
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+      expect(
+        screen.getByText(`Del depósito hay disponibles ${enPantalla(260000)}.`),
+      ).toBeInTheDocument();
+      expect(commitSimulado).not.toHaveBeenCalled();
     });
 
     it("sin depósito no agrega ningún renglón", () => {
       abrir();
 
-      expect(screen.queryByText(/depósito en garantía/)).not.toBeInTheDocument();
-      expect(screen.queryByText("Depósito ya aplicado")).not.toBeInTheDocument();
-      expect(screen.queryByText("Retenido por daños")).not.toBeInTheDocument();
+      expect(screen.queryByText(/de depósito/)).not.toBeInTheDocument();
     });
   });
 });

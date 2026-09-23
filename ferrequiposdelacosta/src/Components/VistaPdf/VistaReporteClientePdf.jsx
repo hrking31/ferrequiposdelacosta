@@ -5,7 +5,6 @@ import {
   calcularEquipo,
   calcularCuentaFactura,
   calcularCuentaCliente,
-  calcularDepositoTotal,
   calcularTransporteTotal,
   datosFactura,
   gruposDe,
@@ -163,10 +162,16 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
   // vez para todas juntas.
   let subtotalGeneral = 0;
   let ivaGeneral = 0;
+  let transporteGeneral = 0;
+  let danosGeneral = 0;
   let depositoGeneral = 0;
+  let porDevolverGeneral = 0;
 
   // ── El detalle de una factura: equipos, agregados, y un solo total que
-  //    junta cargos (IVA, depósito, transporte, descuento) y abonos ───────
+  //    junta cargos (IVA, transporte, daños, descuento) y abonos ──────────
+  //
+  // El depósito no es un cargo: va después de lo pagado, como la parte que
+  // quedó de garantía, igual que en la pantalla.
   const seccionFactura = (factura) => {
     const datos = datosFactura(factura);
     y = titulo(
@@ -187,23 +192,28 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     const subtotal = cuentaFactura.subtotal;
     const iva = cuentaFactura.iva;
     const descuentoTotal = cuentaFactura.descuento;
-    const depositoTotal = calcularDepositoTotal(factura);
     const transporteTotal = calcularTransporteTotal(factura);
+    const { deposito } = cuentaFactura;
+    const depositoEnCuenta = Math.max(0, deposito.recibido - deposito.retenido);
 
     subtotalGeneral += subtotal;
     ivaGeneral += iva;
-    depositoGeneral += depositoTotal;
+    transporteGeneral += transporteTotal;
+    danosGeneral += cuentaFactura.danos;
+    depositoGeneral += depositoEnCuenta;
+    porDevolverGeneral += deposito.porDevolver;
 
     // Un solo total por factura: cargos, el total, lo pagado, los abonos en
     // UNA línea y el saldo. El detalle abono por abono queda para el PDF de
     // una sola factura: este es un resumen. Nada de "Cargos adicionales" aparte.
     const filas = [];
     if (iva > 0) filas.push(["IVA (19%)", formatearMoneda(iva)]);
-    if (depositoTotal > 0) filas.push(["Depósito", formatearMoneda(depositoTotal)]);
     if (transporteTotal > 0) filas.push(["Transporte", formatearMoneda(transporteTotal)]);
+    if (cuentaFactura.danos > 0) filas.push(["Daños", formatearMoneda(cuentaFactura.danos)]);
     if (descuentoTotal > 0) filas.push(["Descuento", formatearMoneda(descuentoTotal)]);
     filas.push(["TOTAL FACTURA", formatearMoneda(cuentaFactura.total)]);
     filas.push(["Pagado", formatearMoneda(cuentaFactura.pagado)]);
+    if (depositoEnCuenta > 0) filas.push(["Depósito", formatearMoneda(depositoEnCuenta)]);
     if (cuentaFactura.abonos > 0) {
       filas.push(["Abonos", formatearMoneda(cuentaFactura.abonos)]);
     }
@@ -215,6 +225,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
           : cuentaFactura.saldoPendiente,
       ),
     ]);
+    if (deposito.porDevolver > 0) {
+      filas.push(["Depósito por devolver", formatearMoneda(deposito.porDevolver)]);
+    }
 
     saltarSiNoCabe();
     autoTable(doc, {
@@ -253,9 +266,13 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     body: [
       ["Subtotal", formatearMoneda(subtotalGeneral)],
       ["IVA (19%)", formatearMoneda(ivaGeneral)],
-      ["Depósito", formatearMoneda(depositoGeneral)],
+      ...(transporteGeneral > 0
+        ? [["Transporte", formatearMoneda(transporteGeneral)]]
+        : []),
+      ...(danosGeneral > 0 ? [["Daños", formatearMoneda(danosGeneral)]] : []),
       ["TOTAL FACTURAS", formatearMoneda(cuentaGeneral.total)],
       ["Pagado", formatearMoneda(cuentaGeneral.pagado)],
+      ...(depositoGeneral > 0 ? [["Depósito", formatearMoneda(depositoGeneral)]] : []),
       ["Abonos", formatearMoneda(cuentaGeneral.abonos)],
       [
         cuentaGeneral.saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
@@ -265,6 +282,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
             : cuentaGeneral.saldoPendiente,
         ),
       ],
+      ...(porDevolverGeneral > 0
+        ? [["Depósito por devolver", formatearMoneda(porDevolverGeneral)]]
+        : []),
     ],
     ...ESTILO_TABLA,
     styles: { fontSize: 10 },

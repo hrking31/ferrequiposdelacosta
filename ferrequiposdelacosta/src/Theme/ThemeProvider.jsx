@@ -552,6 +552,15 @@ export const CustomThemeProvider = ({ children }) => {
           seccionDespacho: "#06B6D4", // cian
           seccionEquiposAgregados: "#A855F7", // violeta
           seccionAdicionales: "#F97316", // naranja
+          // EL DEPÓSITO: plata del cliente que la empresa guarda mientras
+          // tiene los equipos, con su propia cuenta al lado de la factura.
+          // Verde agua porque no es pago (verde), ni abono (azul), ni cargo
+          // (naranja): no es plata de la empresa. Va con el candado —
+          // IconoDeposito—, que no usa nadie más.
+          // Se usa en: ClienteDetalle, AbonoDialog y los recuadros de cuenta.
+          seccionDeposito: "#14B8A6", // verde agua
+          // El mismo, más claro, para escribir sobre la pizarra oscura.
+          depositoText: lighten("#14B8A6", 0.25),
           // Un equipo que YA VOLVIO. Va en gris azulado y no en verde: el
           // verde en esta pantalla significa PAGO —el recuadro de pago, los
           // chips de lo que va a favor del cliente— y un equipo devuelto no
@@ -1251,6 +1260,12 @@ export const CustomThemeProvider = ({ children }) => {
 
                 "& .fila.abono": {
                   color: theme.palette.info.light,
+                },
+
+                // El depósito, con el tono claro de su color: la pizarra es
+                // oscura en los dos modos.
+                "& .fila.deposito": {
+                  color: theme.palette.custom.depositoText,
                 },
               }),
             },

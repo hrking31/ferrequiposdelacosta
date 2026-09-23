@@ -14,6 +14,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SavingsIcon from "@mui/icons-material/Savings";
+import IconoDeposito from "./IconoDeposito";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
 import daviplataLogo from "../../assets/mediosPago/daviplata.png";
@@ -268,8 +269,30 @@ export const sxRenglonPlegable = {
 //
 // Es la forma en que la ficha del cliente muestra su estado de cuenta, y se
 // sacó acá para que Seguimiento muestre la misma cuenta de la misma manera.
-// La ficha agrega sobre esto sus propios renglones —el depósito devuelto, lo
-// entregado— y el botón de devolver el saldo a favor.
+// La ficha agrega sobre esto sus propios renglones —lo entregado, lo retenido—
+// y el botón de devolver.
+// EL RENGLÓN DEL DEPÓSITO dentro de la cuenta: la parte de lo que el cliente
+// entregó que quedó de garantía y no pagó la factura. Con la 8154: Pagado
+// $1.514.000, Depósito $500.000, Abonos $1.142.400 → saldo $0 sobre un total
+// de $2.156.400. Lo retenido por daños no va: esa parte sí pagó la factura
+// —el cargo de los daños—.
+export const depositoEnCuenta = (cuenta) =>
+  Math.max(0, (cuenta.deposito?.recibido ?? 0) - (cuenta.deposito?.retenido ?? 0));
+
+export const renderFilaDeposito = (cuenta) => {
+  const monto = depositoEnCuenta(cuenta);
+  if (monto <= 0) return null;
+  return (
+    <Box className="fila deposito">
+      <Stack direction="row" alignItems="center" gap={0.5}>
+        <IconoDeposito sx={{ fontSize: "1rem" }} />
+        <Typography variant="body2">Depósito</Typography>
+      </Stack>
+      <Typography variant="body2">{formatearMonedaOVacio(monto)}</Typography>
+    </Box>
+  );
+};
+
 export const renderFilasDeCuenta = (cuenta) => (
   <>
     <Box className="fila total">
@@ -277,7 +300,7 @@ export const renderFilasDeCuenta = (cuenta) => (
         Total factura
       </Typography>
       <Typography variant="subtitle1" fontWeight="bold">
-        {formatearMonedaOVacio(cuenta.totalFacturado ?? cuenta.total)}
+        {formatearMonedaOVacio(cuenta.total)}
       </Typography>
     </Box>
 
@@ -289,6 +312,8 @@ export const renderFilasDeCuenta = (cuenta) => (
         </Typography>
       </Box>
     )}
+
+    {renderFilaDeposito(cuenta)}
 
     {cuenta.abonos > 0 && (
       <Box className="fila abono">
@@ -448,6 +473,24 @@ export const casillasDeCuenta = (
 
   if (resumida) return [casillaTotal, casillaSaldo];
 
+  // EL DEPÓSITO, solo mientras la empresa lo tiene en la mano: con equipos
+  // afuera es la garantía, y resuelta la devolución es lo que falta
+  // devolverle. Devuelto o usado para pagar, la casilla desaparece. Llega de
+  // una factura (`deposito.guardado`) o sumado de todas (`depositoGuardado`).
+  const depositoGuardado = cuenta.depositoGuardado ?? cuenta.deposito?.guardado ?? 0;
+  const casillaDeposito =
+    depositoGuardado > 0
+      ? [
+          {
+            clave: "deposito",
+            Icono: IconoDeposito,
+            rotulo: "Depósito",
+            valor: formatearMonedaOVacio(depositoGuardado),
+            color: tono("custom.depositoText", "custom.seccionDeposito"),
+          },
+        ]
+      : [];
+
   return [
     casillaTotal,
     {
@@ -465,6 +508,7 @@ export const casillasDeCuenta = (
       color: tono("info.light", "info.main"),
     },
     casillaSaldo,
+    ...casillaDeposito,
   ];
 };
 

@@ -201,7 +201,7 @@ describe("los equipos como ítems", () => {
 });
 
 describe("el resumen", () => {
-  it("suma subtotal, IVA, depósito y transporte de todas las facturas", () => {
+  it("suma subtotal, IVA y transporte de todas las facturas, y el depósito va aparte", () => {
     const otra = {
       ...facturaCon({
         numeroFactura: "1235",
@@ -228,7 +228,10 @@ describe("el resumen", () => {
     // El IVA sale del ALQUILER de cada factura, y de nada más: los $80.000 de
     // flete de la segunda no tributan, ni tributa el depósito.
     expect(cuenta.ivaNumero).toBeCloseTo(300000 * 0.19 + 100000 * 0.19, 2);
-    expect(cuenta.valorDeposito).toBe(120000);
+    // El depósito no es parte de las facturas: va aparte, y solo lo que el
+    // cliente todavía no dejó.
+    expect(cuenta.valorDeposito).toBe(0);
+    expect(cuenta.depositoPorCobrar).toBe(120000);
     expect(cuenta.valorTransporte).toBe(80000);
     expect(cuenta.iva).toBe(true);
     expect(cuenta.transporte).toBe("Ida y vuelta");
@@ -262,7 +265,7 @@ describe("el resumen", () => {
     });
 
     const cuenta = construir([conAgregado]);
-    expect(cuenta.valorDeposito).toBe(70000);
+    expect(cuenta.depositoPorCobrar).toBe(70000);
     expect(cuenta.valorTransporte).toBe(40000);
   });
 
@@ -330,7 +333,7 @@ describe("lo que se cobra es el saldo", () => {
     expect(cuenta.saldo).toBe(cuenta.total);
   });
 
-  it("el desglose cuadra con el total de las facturas", () => {
+  it("el desglose cuadra con el total de las facturas, y el depósito se suma aparte", () => {
     const completa = facturaCon({
       valorDeposito: 120000,
       valorTransporte: 80000,
@@ -339,13 +342,24 @@ describe("lo que se cobra es el saldo", () => {
 
     const cuenta = construir([completa]);
     const desglose =
-      cuenta.subtotalNumero -
-      cuenta.descuento +
-      cuenta.ivaNumero +
-      cuenta.valorDeposito +
-      cuenta.valorTransporte;
+      cuenta.subtotalNumero - cuenta.descuento + cuenta.ivaNumero + cuenta.valorTransporte;
 
     expect(desglose).toBeCloseTo(cuenta.total, 2);
+    expect(cuenta.saldo).toBeCloseTo(cuenta.total + 120000, 2);
+  });
+
+  it("el depósito ya pagado no se cobra ni se cuenta como pago de la factura", () => {
+    // Pagó $200.000 al despachar y el depósito es de $120.000: $120.000
+    // quedaron de garantía y solo $80.000 pagaron la factura.
+    const conDeposito = facturaCon({
+      valorDeposito: 120000,
+      pagos: [{ medio: "Efectivo", monto: 200000 }],
+    });
+
+    const cuenta = construir([conDeposito]);
+    expect(cuenta.depositoPorCobrar).toBe(0);
+    expect(cuenta.pagado).toBe(80000);
+    expect(cuenta.saldo).toBe(cuenta.total - 80000);
   });
 });
 

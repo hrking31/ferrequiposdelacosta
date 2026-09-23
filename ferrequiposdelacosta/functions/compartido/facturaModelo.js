@@ -73,6 +73,8 @@
 //   abonos[]      la plata que ENTRA después:
 //                   { fecha, medio, monto, tipo, desdeFactura? }
 //                   tipo: "sistema" | "cliente" | "agregado"
+//                   medio "Depósito": no entró plata, se pagó con el
+//                   depósito del cliente (ver calcularDeposito)
 //
 //   entregas[]    la plata que SALE hacia el cliente, el reverso del abono:
 //                   { fecha, medio, monto, nota }

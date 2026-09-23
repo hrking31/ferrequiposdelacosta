@@ -71,8 +71,9 @@ beforeEach(() => {
 });
 
 // EL CASO REAL, la 2455 de ReYaz: una rana de 6 días a $100.000 con IVA y
-// $500.000 de depósito. Se le facturaron $1.214.000, pagó $1.000.000, y al
-// devolver el equipo se le acreditó el depósito entero.
+// $500.000 de depósito. La factura es de $714.000 y pagó $1.000.000: de eso,
+// $500.000 fueron el depósito y $500.000 la factura, que quedó debiendo
+// $214.000. Al devolver la rana el depósito quedó libre.
 const conDeposito = () => ({
   id: "2455",
   ...unaFactura({
@@ -98,20 +99,36 @@ const conDeposito = () => ({
 });
 
 describe("EntregarSaldoDialog", () => {
-  // De los $500.000 del depósito, $214.000 taparon lo que el cliente todavía
-  // debía. Sin esa resta escrita, el diálogo mostraba el depósito y el saldo a
-  // favor sin nada que explicara la diferencia.
-  it("muestra de dónde sale la plata: el depósito menos lo que faltaba", () => {
+  // De los $500.000 del depósito, $214.000 pagan lo que esa misma factura
+  // todavía debía: no se le devuelve plata a quien la debe ahí mismo. Sin esa
+  // resta escrita, el diálogo mostraría el depósito y lo que se devuelve sin
+  // nada que explicara la diferencia.
+  it("muestra de dónde sale la plata: el depósito menos lo que debía la factura", () => {
     abrir({ factura: conDeposito() });
 
     const deposito = screen.getByText("Depósito").closest("div");
     expect(deposito).toHaveTextContent(/500\.000/);
 
-    const pendiente = screen.getByText("Saldo pendiente").closest("div");
+    const pendiente = screen.getByText("Paga lo que debe esta factura").closest("div");
     expect(pendiente).toHaveTextContent(/214\.000/);
 
-    const favor = screen.getByText("A favor del cliente").closest("div");
+    const favor = screen.getByText("Depósito a devolver").closest("div");
     expect(favor).toHaveTextContent(/286\.000/);
+  });
+
+  it("al devolver, anota con el depósito lo que la factura debía", async () => {
+    const { usuario } = abrir({ factura: conDeposito(), facturas: [conDeposito()] });
+
+    await usuario.click(screen.getByRole("combobox", { name: "Se entregó por" }));
+    await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    await usuario.click(screen.getByRole("button", { name: "Registrar entrega" }));
+
+    expect(updateDocSimulado).toHaveBeenCalledTimes(1);
+    const [, datos] = updateDocSimulado.mock.calls[0];
+    expect(datos.entregas[0]).toMatchObject({ monto: 286000, medio: "Efectivo" });
+    expect(datos.abonos).toEqual([
+      { fecha: expect.any(String), medio: "Depósito", monto: 214000, tipo: "sistema" },
+    ]);
   });
 
   // Cuando el saldo a favor no viene de un depósito sino de un sobrepago, no
@@ -120,7 +137,7 @@ describe("EntregarSaldoDialog", () => {
     abrir();
 
     expect(screen.queryByText("Depósito")).not.toBeInTheDocument();
-    expect(screen.queryByText("Saldo pendiente")).not.toBeInTheDocument();
+    expect(screen.queryByText("Paga lo que debe esta factura")).not.toBeInTheDocument();
   });
 
   it("muestra lo que le quedó a favor al cliente", () => {

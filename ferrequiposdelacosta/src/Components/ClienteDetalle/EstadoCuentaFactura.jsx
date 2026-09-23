@@ -1,7 +1,7 @@
 // El cierre de la factura: a la izquierda los renglones que la componen
-// (subtotal, IVA, depósito, transporte) y a la derecha el estado de cuenta —
-// cuánto es, cuánto entró y cuánto falta—, con el botón para devolverle al
-// cliente lo que pagó de más.
+// (subtotal, IVA, transporte, daños) con el depósito aparte, y a la derecha el
+// estado de cuenta —cuánto es, cuánto entró y cuánto falta—, con el botón
+// para devolverle al cliente el depósito o lo que pagó de más.
 //
 // En celular todo esto se pliega tocando el rótulo "Total factura": al
 // recorrer una lista larga lo que se busca primero es de qué factura se trata,
@@ -21,16 +21,17 @@ import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import PercentIcon from "@mui/icons-material/Percent";
-import SavingsIcon from "@mui/icons-material/Savings";
+import HandymanIcon from "@mui/icons-material/Handyman";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import { alpha } from "@mui/material/styles";
 import {
-  calcularDepositoTotal,
   depositoPendiente,
   calcularTransporteTotal,
-  datosFactura,
   entregasDe,
 } from "./facturaUtils";
+import IconoDeposito from "./IconoDeposito";
 import {
+  renderFilaDeposito,
   propsRenglonPlegable,
   renderContenidoPlano,
   renderRecuadroBloque,
@@ -64,22 +65,14 @@ export default function EstadoCuentaFactura({
   // emisión, los renglones de la izquierda no cuadrarían con él.
   //
   // Ya no hay que armarlos a mano: la misma cuenta que da el total los trae.
-  const datos = datosFactura(factura);
   const subtotal = formatearMoneda(cuenta.subtotal);
   const iva = formatearMoneda(cuenta.iva > 0 ? cuenta.iva : undefined);
-  // EL TOTAL QUE SE LE FACTURÓ, con el depósito entero adentro: el mismo
-  // número que el recuadro "Total factura" de arriba.
-  //
-  // Antes acá iba `cuenta.total`, que es lo que se le cobra HOY —ya con el
-  // depósito devuelto restado—. Los dos se llaman "Total factura" y en una
-  // factura con el depósito ya devuelto mostraban cifras distintas en la
-  // misma pantalla: arriba $1.214.000 y acá $714.000, sin nada que explicara
-  // la diferencia. El depósito que volvió se muestra ahora en su propio
-  // renglón, que es lo que hace cuadrar la cuenta a la vista.
-  const valorTotal = formatearMoneda(cuenta.totalFacturado);
+  // El mismo total que la pizarra de arriba: el depósito no está adentro, así
+  // que no cambia al devolverse.
+  const valorTotal = formatearMoneda(cuenta.total);
 
   // Depósito y transporte de TODA la factura: el de cada despacho, sumado.
-  const depositoTotalFactura = calcularDepositoTotal(factura);
+  const depositoTotalFactura = cuenta.deposito.pactado;
   const transporteTotalFactura = calcularTransporteTotal(factura);
 
   // Lo cobrado al emitir la factura más lo de cada equipo agregado
@@ -101,16 +94,22 @@ export default function EstadoCuentaFactura({
   // ese renglón es justamente lo que explica cómo se llegó al saldo. Sin él,
   // una factura con saldo a favor mostraba "Total $714.000 / A favor
   // $286.000" y no había forma de saber que había entregado $1.000.000.
+  // Con depósito tampoco: parte de lo pagado fue a la garantía, y el renglón
+  // "Pagado" es lo que deja ver de dónde sale el renglón "Depósito".
   const cuentaCerroClavada =
-    saldoPendienteNumero === 0 && saldoAFavorNumero === 0 && totalAbonos === 0;
+    saldoPendienteNumero === 0 &&
+    saldoAFavorNumero === 0 &&
+    totalAbonos === 0 &&
+    depositoTotalFactura === 0;
 
   // Se separan en dos grupos (izquierda: subtotal/iva, derecha:
-  // depósito/transporte) para poder acomodarlos en 2 columnas
+  // transporte/daños) para poder acomodarlos en 2 columnas
   // prolijas en móvil, en vez de dejarlos ajustar solos.
   // Cada renglón con el ícono que ya lo representa en el resto de la ficha:
-  // los equipos lo que se alquiló, el porcentaje el IVA, la alcancía el
-  // depósito —plata guardada, no cobrada— y el camión el flete. Van del color
-  // del bloque, como su rótulo.
+  // los equipos lo que se alquiló, el porcentaje el IVA, el camión el flete y
+  // la herramienta rota los daños. Van del color del bloque, como su rótulo.
+  // El depósito va al final y APARTE —un chip de su color, no un renglón—,
+  // porque no se suma al total.
   const renglonTotal = (clave, Icono, rotulo, valor) => (
     <Stack key={clave} direction="row" alignItems="center" spacing={0.75}>
       <Icono fontSize="small" sx={{ color: acento, flexShrink: 0 }} />
@@ -130,16 +129,6 @@ export default function EstadoCuentaFactura({
   if (iva) {
     lineasTotalesIzq.push(renglonTotal("iva", PercentIcon, "IVA (19%)", iva));
   }
-  if (depositoTotalFactura > 0) {
-    lineasTotalesDer.push(
-      renglonTotal(
-        "deposito",
-        SavingsIcon,
-        "Depósito",
-        formatearMoneda(depositoTotalFactura),
-      ),
-    );
-  }
   if (transporteTotalFactura > 0) {
     lineasTotalesDer.push(
       renglonTotal(
@@ -148,6 +137,35 @@ export default function EstadoCuentaFactura({
         "Transporte",
         formatearMoneda(transporteTotalFactura),
       ),
+    );
+  }
+  if (cuenta.danos > 0) {
+    lineasTotalesDer.push(
+      renglonTotal("danos", HandymanIcon, "Daños", formatearMoneda(cuenta.danos)),
+    );
+  }
+  if (depositoTotalFactura > 0) {
+    const colorDeposito = theme.palette.custom.seccionDeposito;
+    lineasTotalesDer.push(
+      <Stack
+        key="deposito"
+        direction="row"
+        alignItems="center"
+        spacing={0.75}
+        sx={{
+          alignSelf: "flex-start",
+          px: 1.25,
+          py: 0.25,
+          borderRadius: 999,
+          border: `1px solid ${alpha(colorDeposito, 0.5)}`,
+          color: colorDeposito,
+        }}
+      >
+        <IconoDeposito fontSize="small" sx={{ flexShrink: 0 }} />
+        <Typography variant="body2" sx={{ color: "inherit" }}>
+          Depósito aparte {formatearMoneda(depositoTotalFactura)}
+        </Typography>
+      </Stack>,
     );
   }
   const lineasTotales = [...lineasTotalesIzq, ...lineasTotalesDer];
@@ -252,6 +270,10 @@ export default function EstadoCuentaFactura({
           </Box>
         )}
 
+        {/* La parte de lo pagado que quedó de garantía: sin este
+            renglón, Pagado + Abonos no daría el total. */}
+        {renderFilaDeposito(cuenta)}
+
         {/* Solo el total de lo abonado: el detalle de cada
           abono, con su fecha y su medio, va arriba en su
           propia información de pago. */}
@@ -260,31 +282,6 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">Abonos</Typography>
             <Typography variant="body2">
               {formatearMoneda(totalAbonos)}
-            </Typography>
-          </Box>
-        )}
-
-        {/* LA GARANTÍA QUE VOLVIÓ. Es el renglón que explica por qué
-          un cliente que pagó menos que el total termina con plata a
-          favor: el depósito se le factura y, cuando devuelve el equipo,
-          se le acredita. Primero cubre lo que faltaba de la factura, y
-          lo que sobra es lo que hay que devolverle.
-
-          Estaba escrito desde el principio pero nunca se dibujó: la
-          cuenta no traía este dato, así que la condición era siempre
-          falsa. */}
-        {cuenta.depositoDevuelto > 0 && (
-          <Box className="fila abono">
-            {/* "Depósito" a secas: el renglón está entre los que bajan
-                la cuenta, así que ya se lee como plata que juega a
-                favor del cliente. "Devuelto" además sonaba a que ya
-                salió por caja, cuando puede seguir acá, esperando que
-                alguien se la entregue. */}
-            <Typography variant="body2">
-              Depósito
-            </Typography>
-            <Typography variant="body2">
-              {formatearMoneda(cuenta.depositoDevuelto)}
             </Typography>
           </Box>
         )}
@@ -319,7 +316,7 @@ export default function EstadoCuentaFactura({
         {/* Acá va solo CUÁNTO se retuvo: este recuadro es la cuenta de la
           factura. El motivo —qué le pasó a cada equipo— se lee en la
           historia del equipo, al lado del equipo que volvió mal. */}
-        {Number(datos.depositoResuelto?.retenido) > 0 && (
+        {cuenta.deposito.retenido > 0 && (
           <Typography
             variant="caption"
             sx={{
@@ -329,10 +326,25 @@ export default function EstadoCuentaFactura({
             }}
           >
             Se retuvieron{" "}
-            {formatearMoneda(
-              datos.depositoResuelto.retenido,
-            )}{" "}
-            del depósito
+            {formatearMoneda(cuenta.deposito.retenido)} del
+            depósito por daños
+          </Typography>
+        )}
+
+        {/* La garantía que el cliente todavía no dejó: está dentro
+            del saldo, y sin decirlo el saldo no cuadraría con el total. */}
+        {cuenta.deposito.porCobrar > 0 && (
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 0.5,
+              color: "custom.depositoText",
+            }}
+          >
+            El saldo incluye{" "}
+            {formatearMoneda(cuenta.deposito.porCobrar)} de
+            depósito por cobrar
           </Typography>
         )}
 
@@ -363,12 +375,13 @@ export default function EstadoCuentaFactura({
           </Box>
         )}
 
-        {/* Plata de la empresa hacia el cliente. Va con
-            botón y no como un dato más: mientras no se
-            entregue, la factura no puede terminar, así
-            que hay que verlo y poder resolverlo acá
-            mismo. */}
-        {saldoAFavorNumero > 0 && (
+        {/* Plata de la empresa hacia el cliente: el depósito
+            libre y lo que pagó de más. Va con botón y no
+            como un dato más: mientras no se entregue, la
+            factura no puede terminar, así que hay que verlo
+            y poder resolverlo acá mismo. El botón ya dice
+            cuánto, así que no lleva un renglón aparte. */}
+        {cuenta.aDevolver > 0 && (
           <Button
             fullWidth
             variant="contained"
@@ -377,7 +390,7 @@ export default function EstadoCuentaFactura({
             sx={{ mt: 1.5 }}
             onClick={() => onDevolverSaldo(factura)}
           >
-            Devolver {formatearMoneda(saldoAFavorNumero)}
+            Devolver {formatearMoneda(cuenta.aDevolver)}
           </Button>
         )}
 
@@ -397,9 +410,7 @@ export default function EstadoCuentaFactura({
               }}
             >
               Falta definir el depósito de{" "}
-              {formatearMoneda(
-                calcularDepositoTotal(factura),
-              )}
+              {formatearMoneda(depositoTotalFactura)}
               : se resuelve al registrar la devolución en
               Seguimiento.
             </Typography>

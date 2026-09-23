@@ -39,7 +39,11 @@ export default function generarCuentaCobro(values) {
   const pagado = Number(cuenta.pagado) || 0;
   const abonos = Number(cuenta.abonos) || 0;
   const yaCobrado = pagado + abonos;
-  const aCancelar = Math.max(0, (Number(cuenta.total) || 0) - yaCobrado);
+  // El depósito que el cliente todavía no dejó se cobra, pero no es parte del
+  // total de las facturas: se suma aparte.
+  const depositoPorCobrar = Number(cuenta.depositoPorCobrar) || 0;
+  const aCancelar =
+    Math.max(0, (Number(cuenta.total) || 0) - yaCobrado) + depositoPorCobrar;
 
   // Fecha
   doc.setFontSize(10);
@@ -165,6 +169,12 @@ export default function generarCuentaCobro(values) {
     filas.push([etiquetaTotal, formatearMoneda(cuenta.total)]);
     if (pagado > 0) filas.push(["Pagado", enNegativo(pagado)]);
     if (abonos > 0) filas.push(["Abonos", enNegativo(abonos)]);
+  }
+  if (depositoPorCobrar > 0) {
+    filas.push([
+      "Depósito (se devuelve al entregar los equipos)",
+      formatearMoneda(depositoPorCobrar),
+    ]);
   }
   filas.push(["Total a Cancelar", formatearMoneda(aCancelar)]);
 

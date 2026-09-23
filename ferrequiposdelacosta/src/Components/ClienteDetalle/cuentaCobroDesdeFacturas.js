@@ -10,7 +10,6 @@
 import {
   calcularEquipo,
   calcularCuentaFactura,
-  calcularDepositoTotal,
   calcularTransporteTotal,
   obtenerFechaHoyBogota,
   datosFactura,
@@ -99,23 +98,43 @@ export default function construirCuentaCobroDesdeFacturas({
 
       const cuenta = calcularCuentaFactura(factura, hoyIso);
 
+      // Lo retenido por daños es un cargo de la factura: va como un renglón
+      // más, así la suma de los renglones sigue dando el subtotal.
+      if (cuenta.danos > 0) {
+        items.push({
+          factura: rotularFactura ? String(datosFactura(factura).numeroFactura ?? "s/n") : "",
+          description: "DAÑOS (retenido del depósito)",
+          quantity: 1,
+          day: "",
+          price: cuenta.danos,
+          subtotal: cuenta.danos,
+          fechaDespacho: "",
+          fechaDevolucion: "",
+        });
+      }
+
       return {
         iva: acumulado.iva + cuenta.iva,
         // Lo que se descontó en las renovaciones, para restarlo una sola vez
         // al final: los ítems van a precio de lista.
         descuento: acumulado.descuento + cuenta.descuento,
-        // El de TODOS los despachos, cada uno con el suyo.
-        deposito: acumulado.deposito + calcularDepositoTotal(factura),
+        // El depósito NO es parte de la factura: entra solo lo que el
+        // cliente todavía no dejó, y va aparte del total (ver
+        // `depositoPorCobrar` en el documento).
+        depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
         transporte: acumulado.transporte + calcularTransporteTotal(factura),
         total: acumulado.total + cuenta.total,
-        pagado: acumulado.pagado + cuenta.pagado,
+        // Lo que de los pagos le llegó a la FACTURA: sin la parte que quedó de
+        // garantía. Con el depósito adentro, "Pagado" restaría plata que no
+        // pagó el alquiler.
+        pagado: acumulado.pagado + cuenta.recibido - cuenta.abonos,
         abonos: acumulado.abonos + cuenta.abonos,
       };
     },
     {
       iva: 0,
       descuento: 0,
-      deposito: 0,
+      depositoPorCobrar: 0,
       transporte: 0,
       total: 0,
       pagado: 0,
@@ -156,13 +175,16 @@ export default function construirCuentaCobroDesdeFacturas({
     valorTransporte: resumen.transporte,
     iva: resumen.iva > 0,
     ivaNumero: resumen.iva,
-    valorDeposito: resumen.deposito,
+    valorDeposito: 0,
+    depositoPorCobrar: resumen.depositoPorCobrar,
     descuento: resumen.descuento,
     subtotalNumero: subtotal,
     total: resumen.total,
     pagado: resumen.pagado,
     abonos: resumen.abonos,
-    saldo: Math.max(0, resumen.total - resumen.pagado - resumen.abonos),
+    saldo:
+      Math.max(0, resumen.total - resumen.pagado - resumen.abonos) +
+      resumen.depositoPorCobrar,
     // Mientras esté marcada, el IVA no se recalcula: es el que traen las
     // facturas, que puede no ser el 19% redondo si algunas se emitieron sin
     // IVA. Se apaga sola en cuanto se toca un ítem o la casilla de IVA (ver
