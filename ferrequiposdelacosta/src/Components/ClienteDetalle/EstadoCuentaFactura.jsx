@@ -438,22 +438,6 @@ export default function EstadoCuentaFactura({
                 DEPÓSITO
               </Typography>
             </Box>
-            {deposito.retenido > 0 && (
-              <Box
-                component="span"
-                sx={{
-                  px: 1,
-                  py: 0.25,
-                  borderRadius: 1,
-                  fontSize: "0.72rem",
-                  fontWeight: "bold",
-                  bgcolor: "warning.main",
-                  color: "#1a1a1a",
-                }}
-              >
-                Con retención por daños
-              </Box>
-            )}
           </Stack>
 
           <Box className="fila">
