@@ -1517,8 +1517,11 @@ export default function ClienteSeguimientoCard({
                     igual a los demás, se perdía entre otros tres y al lado del
                     de abonar, que se apaga justo cuando este aparece. El monto
                     lo dice el globo, y la cifra está en la cuenta de abajo. */}
-                {cuenta.saldoAFavor > 0 && (
-                  <Tooltip title={`Devolver ${formatearMoneda(cuenta.saldoAFavor)}`}>
+                {/* `aDevolver` y no el saldo a favor: el depósito libre no es un
+                    pago de más, va aparte, y con el saldo a favor el botón
+                    desaparecía justo cuando había un depósito por devolver. */}
+                {cuenta.aDevolver > 0 && (
+                  <Tooltip title={`Devolver ${formatearMoneda(cuenta.aDevolver)}`}>
                     <IconButton
                       size="small"
                       onClick={() => setEntregarOpen(true)}
