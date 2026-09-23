@@ -7,7 +7,15 @@
 // Son funciones que devuelven JSX, no componentes: se llaman como
 // renderPizarraTotales(...) desde el JSX del que las usa.
 import { alpha } from "@mui/material/styles";
-import { Box, Divider, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Divider,
+  IconButton,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -420,6 +428,68 @@ export const renderRotuloEstadoEquipo = (equipo, theme) => {
 // muere ahí y no vuelve a plegar. Sin esto, tocar la historia de un equipo
 // para leerla la cerraría.
 export const detenerToque = (evento) => evento.stopPropagation();
+
+// ── Un recuadro con su detalle plegado ─────────────────────────────────
+//
+// Lo que hace el recuadro del IVA, para cualquiera que tenga un resumen a la
+// vista y un detalle detrás: el resumen siempre, el detalle debajo al abrirlo,
+// y la flecha arriba a la derecha, DENTRO del recuadro.
+//
+// En computador la flecha es un botón. En celular es solo la señal: lo abre
+// la casilla que lleva `propsCasillaQueAbre`, como la del IVA —tocar el
+// bloque entero ya abre y cierra el bloque—.
+export const renderFlechaDetalle = ({ abierto, alternar, color, esMovil, titulo }) =>
+  esMovil ? (
+    renderFlechaPlegable(abierto, color)
+  ) : (
+    <Tooltip title={abierto ? "Ocultar el detalle" : titulo}>
+      <IconButton
+        size="small"
+        onClick={alternar}
+        sx={{ ...iconBtnSx, color, flexShrink: 0 }}
+      >
+        {abierto ? (
+          <ExpandLessIcon fontSize="small" />
+        ) : (
+          <ExpandMoreIcon fontSize="small" />
+        )}
+      </IconButton>
+    </Tooltip>
+  );
+
+// Lo que se le agrega a la casilla que abre el detalle en el celular.
+export const casillaQueAbre = ({ abierto, alternar, titulo }) => ({
+  props: propsRenglonPlegable({
+    abierto,
+    alternar,
+    etiqueta: abierto ? "Ocultar el detalle" : titulo,
+  }),
+  sxCasilla: sxRenglonPlegable,
+});
+
+export const renderConDetalle = (resumen, detalle, flecha) => (
+  <Stack direction="row" alignItems="flex-start" sx={{ gap: 1 }}>
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      {resumen}
+      {detalle && (
+        <Box
+          onClick={detenerToque}
+          sx={{
+            mt: 0.75,
+            // La línea separa lo que se ve siempre del detalle que abre la
+            // flecha, igual que en el IVA.
+            pt: 0.75,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          {detalle}
+        </Box>
+      )}
+    </Box>
+    {flecha}
+  </Stack>
+);
 
 // La flecha como señal: ya no es un botón, así que no la lee el lector de
 // pantalla —el renglón que la contiene ya dice que se abre y se cierra—.

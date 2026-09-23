@@ -1063,7 +1063,13 @@ export default function FacturaCard({
               renderBloqueMovil(
                 "deposito",
                 { rotulo: "Depósito", Icono: IconoDeposito, color: colorDeposito },
-                <RecuadroDeposito factura={factura} cuenta={cuenta} plano />,
+                <RecuadroDeposito
+                  factura={factura}
+                  cuenta={cuenta}
+                  plano
+                  abierto={seccionAbierta(factura.id, "deposito-detalle")}
+                  onToggle={() => toggleSeccion(factura.id, "deposito-detalle")}
+                />,
               )
             ) : (
               // Media grilla, como un despacho de un solo equipo: es un
@@ -1084,7 +1090,12 @@ export default function FacturaCard({
                   Depósito
                 </Typography>
                 <Box sx={{ mt: 0.5 }}>
-                  <RecuadroDeposito factura={factura} cuenta={cuenta} />
+                  <RecuadroDeposito
+                    factura={factura}
+                    cuenta={cuenta}
+                    abierto={seccionAbierta(factura.id, "deposito-detalle")}
+                    onToggle={() => toggleSeccion(factura.id, "deposito-detalle")}
+                  />
                 </Box>
               </Box>
             ))}
@@ -1100,7 +1111,13 @@ export default function FacturaCard({
                 "abonos",
                 { rotulo: "Abonos", Icono: SavingsIcon, color: colorAbonos },
                 <Box sx={{ mt: 0.5 }}>
-                  <ListaAbonos abonos={abonos} color={colorAbonos} plano={esMovil} />
+                  <ListaAbonos
+                    abonos={abonos}
+                    color={colorAbonos}
+                    plano={esMovil}
+                    abierto={seccionAbierta(factura.id, "abonos-detalle")}
+                    onToggle={() => toggleSeccion(factura.id, "abonos-detalle")}
+                  />
                 </Box>,
               )
             ) : (
@@ -1131,7 +1148,13 @@ export default function FacturaCard({
               </Stack>
               {mostrar("abonos") && (
                 <Box sx={{ mt: 0.5 }}>
-                  <ListaAbonos abonos={abonos} color={colorAbonos} plano={esMovil} />
+                  <ListaAbonos
+                    abonos={abonos}
+                    color={colorAbonos}
+                    plano={esMovil}
+                    abierto={seccionAbierta(factura.id, "abonos-detalle")}
+                    onToggle={() => toggleSeccion(factura.id, "abonos-detalle")}
+                  />
                 </Box>
               )}
             </Box>

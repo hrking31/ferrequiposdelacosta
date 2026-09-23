@@ -15,10 +15,20 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import PropTypes from "prop-types";
-import { Box, Divider, Stack, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  Divider,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { Fragment } from "react";
 import {
+  casillaQueAbre,
+  renderConDetalle,
   renderFilaDatos,
+  renderFlechaDetalle,
   renderMedioPago,
   renderContenidoPlano,
   renderRecuadroBloque,
@@ -239,14 +249,39 @@ const origenDelAbono = (abono) => {
 };
 
 // Los abonos que se registraron después de emitida la factura.
-export function ListaAbonos({ abonos, color, plano = false }) {
+//
+// Cerrados muestran solo cuántos son y el total abonado —en la 8154, 1 abono
+// por $1.142.400—; la flecha abre la lista, cada uno con su fecha y su medio.
+// Igual que el recuadro del IVA.
+export function ListaAbonos({ abonos, color, plano = false, abierto = false, onToggle }) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   // Los mismos colores que el recuadro de pago: un abono es plata que entró.
   const colores = {
     plata: theme.palette.success.main,
   };
 
   if (!abonos || abonos.length === 0) return null;
+
+  const totalAbonado = abonos.reduce((total, abono) => total + (Number(abono.monto) || 0), 0);
+  const titulo = "Ver cada abono";
+  const resumen = [
+    {
+      clave: "cuantos",
+      Icono: PaymentsIcon,
+      colorIcono: colores.plata,
+      rotulo: "Abonos",
+      valor: String(abonos.length),
+      ...(esMovil ? casillaQueAbre({ abierto, alternar: onToggle, titulo }) : {}),
+    },
+    {
+      clave: "total",
+      Icono: MonetizationOnIcon,
+      colorIcono: colores.plata,
+      rotulo: "Total",
+      valor: formatearMoneda(totalAbonado),
+    },
+  ];
 
   const renglones = (
     <Stack spacing={1} divider={<Divider />}>
@@ -294,13 +329,27 @@ export function ListaAbonos({ abonos, color, plano = false }) {
     </Stack>
   );
 
-  if (plano) return renderContenidoPlano(color, renglones);
+  const contenido = renderConDetalle(
+    renderFilaDatos(color, resumen),
+    abierto ? renglones : null,
+    renderFlechaDetalle({
+      abierto,
+      alternar: onToggle,
+      color: esMovil ? theme.palette.custom.accent : color,
+      esMovil,
+      titulo,
+    }),
+  );
 
-  return renderRecuadroBloque(color, renglones);
+  if (plano) return renderContenidoPlano(color, contenido);
+
+  return renderRecuadroBloque(color, contenido);
 }
 
 ListaAbonos.propTypes = {
   abonos: PropTypes.array,
   color: PropTypes.string.isRequired,
   plano: PropTypes.bool,
+  abierto: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
 };

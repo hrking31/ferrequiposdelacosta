@@ -5,10 +5,10 @@
 // la factura". Cada número sale de calcularDeposito, la misma cuenta
 // que usa el estado de cuenta, así que los dos lugares dicen siempre lo mismo.
 //
-// Con más de un despacho con depósito se anota de cuál salió cada parte: el
-// depósito es de cada despacho, y la suma sola no dice cuánto dejó en cada uno.
+// Con más de un despacho con depósito se anota cuánto dejó cada uno, con el
+// nombre de sus equipos: la suma sola no dice cuánto dejó en cada uno.
 import PropTypes from "prop-types";
-import { Stack, Typography, useTheme } from "@mui/material";
+import { Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { adicionalesDe, gruposDe } from "./facturaUtils";
 import TollIcon from "@mui/icons-material/Toll";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -17,13 +17,30 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import IconoDeposito from "./IconoDeposito";
-import { renderFilaDatos, renderRecuadroBloque } from "./recuadrosCuenta";
-import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
+import {
+  casillaQueAbre,
+  renderConDetalle,
+  renderFilaDatos,
+  renderFlechaDetalle,
+  renderRecuadroBloque,
+} from "./recuadrosCuenta";
+import { formatearMoneda } from "../../Utils/formato";
 
 // `plano` lo deja sin marco: en el celular el bloque ya va dentro del
 // recuadro de su rótulo, y un marco dentro de otro no separa nada.
-export default function RecuadroDeposito({ factura, cuenta, plano = false }) {
+//
+// Con más de un despacho con depósito, la flecha abre de cuál salió cada
+// parte, igual que el IVA abre el de cada equipo. Con uno solo no hay nada
+// que abrir y no aparece.
+export default function RecuadroDeposito({
+  factura,
+  cuenta,
+  plano = false,
+  abierto = false,
+  onToggle,
+}) {
   const theme = useTheme();
+  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const color = theme.palette.custom.seccionDeposito;
   const deposito = cuenta.deposito;
 
@@ -83,31 +100,59 @@ export default function RecuadroDeposito({ factura, cuenta, plano = false }) {
     ),
   );
 
+  // Cada despacho se nombra por sus equipos, con la cantidad: "1 SALTARIN",
+  // "5 ANDAMIOS, 5 GATOS". Una devolución parcial parte un equipo en dos
+  // líneas con el mismo nombre; se juntan para no decir "3 ANDAMIOS, 2
+  // ANDAMIOS".
+  const nombreDelDespacho = (grupo) => {
+    const cantidades = new Map();
+    (grupo?.equipos ?? []).forEach((equipo) => {
+      const nombre = equipo?.nombre || "Equipo";
+      cantidades.set(nombre, (cantidades.get(nombre) || 0) + (Number(equipo?.cantidadEquipos) || 0));
+    });
+    return [...cantidades].map(([nombre, cantidad]) => `${cantidad} ${nombre}`).join(", ");
+  };
+
   const despachos = gruposDe(factura)
     .map((grupo) => ({
-      fecha: grupo?.fechaSolicitud,
+      nombre: nombreDelDespacho(grupo),
       monto: Number(adicionalesDe(grupo).valorDeposito) || 0,
     }))
     .filter(({ monto }) => monto > 0);
 
-  const contenido = (
-    <>
-      {renderFilaDatos(color, datos)}
-      {despachos.length > 1 && (
-        <Stack sx={{ mt: 1 }} spacing={0.25}>
-          {despachos.map(({ fecha, monto }, indice) => (
-            <Typography
-              key={`${fecha}-${indice}`}
-              variant="caption"
-              color="text.secondary"
-            >
-              Despacho del {formatearFechaLegible(fecha) || "s/f"}:{" "}
-              {formatearMoneda(monto)}
-            </Typography>
-          ))}
-        </Stack>
-      )}
-    </>
+  const hayDetalle = despachos.length > 1;
+  const titulo = "Ver el depósito de cada despacho";
+  // En el celular la abre la casilla del total, como la del IVA.
+  if (hayDetalle && esMovil) {
+    Object.assign(datos[0], casillaQueAbre({ abierto, alternar: onToggle, titulo }));
+  }
+
+  const detalle = (
+    <Stack spacing={0.25}>
+      {despachos.map(({ nombre, monto }, indice) => (
+        <Typography
+          key={`${nombre}-${indice}`}
+          variant="body2"
+          color="text.secondary"
+        >
+          {nombre}: {formatearMoneda(monto)}
+        </Typography>
+      ))}
+    </Stack>
+  );
+
+  const contenido = renderConDetalle(
+    renderFilaDatos(color, datos),
+    hayDetalle && abierto ? detalle : null,
+    hayDetalle
+      ? renderFlechaDetalle({
+          abierto,
+          alternar: onToggle,
+          color: esMovil ? theme.palette.custom.accent : color,
+          esMovil,
+          titulo,
+        })
+      : null,
   );
 
   return plano ? contenido : renderRecuadroBloque(color, contenido);
@@ -117,4 +162,6 @@ RecuadroDeposito.propTypes = {
   factura: PropTypes.object.isRequired,
   cuenta: PropTypes.object.isRequired,
   plano: PropTypes.bool,
+  abierto: PropTypes.bool,
+  onToggle: PropTypes.func.isRequired,
 };
