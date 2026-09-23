@@ -189,24 +189,25 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   plazos.forEach((plazo, indice) => {
     if (plazo >= corte) return;
 
-    // Se le venció de verdad si al día siguiente corrieron días. Existe un
-    // tramo que no suma ninguno —el que se abre y se cierra el mismo día
-    // cuando el cliente renueva justo el día que vencía—, y ese no es mora:
-    // hubo acuerdo. El chip queda para cuando no lo hubo.
-    const tramoSiguiente = tramos.find(
-      (tramo) => tramo?.desde === calcularVencimiento(plazo, 1),
-    );
-    const diasDeMora = tramoSiguiente?.desde
-      ? diasDeAlquiler(tramoSiguiente.desde, tramoSiguiente.hasta ?? corte)
-      : 0;
-
+    // LLEGÓ A VENCERSE si al día siguiente arrancó un tramo, aunque ese tramo
+    // no sume un solo día. El que se abre y se cierra en el acto —el cliente
+    // renovó justo el día que vencía— igual deja escrito que el equipo llegó
+    // a estar vencido, que es el caso de la 0123 de ReYaz, y así es como entra
+    // a cartera ese día para poder avisarle que vence mañana.
+    //
+    // Al que le dieron más días ANTES de su fecha no se le venció nada: no
+    // tiene tramo, y decírselo sería inventarle una mora.
     hitos.push({
       clave: `vencimiento-${indice}`,
       fecha: plazo,
       tono: "vencido",
       titulo: "Venció el plazo",
       detalle: "Debía devolverse este día.",
-      chip: diasDeMora > 0 ? "vencido" : null,
+      chip: tramos.some(
+        (tramo) => tramo?.desde === calcularVencimiento(plazo, 1),
+      )
+        ? "vencido"
+        : null,
     });
   });
 

@@ -143,15 +143,14 @@ describe("historialEquipo", () => {
   });
 
   // El caso de la 0123 de ReYaz: los gatos vencían el 11 y ese mismo 11 se les
-  // pactaron 4 días. No se pasó ni un día.
+  // pactaron 4 días. No se pasó ni un día, pero ese día el equipo ya estaba
+  // vencido —así entra a cartera, para poder avisarle al cliente que vence
+  // mañana— y el renglón tiene que decirlo.
   //
-  // El renglón salía marcado VENCIDO, para que se viera que ese día el equipo
-  // llegó a vencerse. El dueño lo cambió el 2026-09-22: si hubo acuerdo el
-  // renglón queda sin nada, y el chip se guarda para cuando NO se logró. Que
-  // el equipo entre a cartera ese día no depende de esto —lo decide su
-  // estado— y marcarlo acá le mostraba una mora al cliente que renovó a
-  // tiempo.
-  it("no marca vencido al equipo que se renovó el día que vencía", () => {
+  // El 2026-09-22 se probó quitarle el chip —"hubo acuerdo, no hubo mora"— y
+  // el dueño lo devolvió a esta regla el mismo día: el tramo vacío está
+  // justamente para dejar escrito que llegó a vencerse. No volver a proponerlo.
+  it("marca vencido el renglón del equipo que se renovó el día que vencía", () => {
     const renovadoEseDia = unEquipo({
       cantidad: 10,
       valorDia: 1500,
@@ -174,7 +173,7 @@ describe("historialEquipo", () => {
 
     const renglon = buscar(renovadoEseDia, "vencimiento-0", "2026-09-12");
     expect(renglon.titulo).toBe("Venció el plazo");
-    expect(renglon.chip).toBe(null);
+    expect(renglon.chip).toBe("vencido");
   });
 
   // Y el espejo: al que le dieron más días antes de su fecha no se le venció
@@ -246,13 +245,16 @@ describe("historialEquipo", () => {
       ]);
     });
 
-    it("el del alta no lleva chip: renovó el mismo día que vencía", () => {
+    // Los dos llevan chip: el del 14 porque llegó a vencerse aunque renovara
+    // ese mismo día (el tramo vacío lo deja escrito), y el del 16 porque ahí
+    // arrancó la mora de verdad.
+    it("el del alta lleva chip: ese día llegó a estar vencido", () => {
       const alta = buscar(benitin, "vencimiento-0", HOY);
       expect(alta.fecha).toBe("2026-09-14");
-      expect(alta.chip).toBe(null);
+      expect(alta.chip).toBe("vencido");
     });
 
-    it("el de la ampliación sí, que es donde arrancó la mora", () => {
+    it("y el de la ampliación también, que es donde arrancó la mora", () => {
       const ampliado = buscar(benitin, "vencimiento-1", HOY);
       expect(ampliado.fecha).toBe("2026-09-16");
       expect(ampliado.chip).toBe("vencido");

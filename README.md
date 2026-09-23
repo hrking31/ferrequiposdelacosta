@@ -1170,7 +1170,9 @@ Ahora cada plazo cumplido deja su propio renglón, y el mismo equipo se cuenta e
 
 Es un solo renglón con dos caras: se llama **"Próximo vencimiento"** mientras la fecha no llegó, y **"Venció el plazo"** una vez que pasó. Nada desaparece al devolver, y el que volvió **antes** de su fecha no muestra ninguno: nunca llegó a vencer.
 
-> **El chip rojo quedó para cuando no hubo acuerdo.** Antes lo llevaba todo plazo que llegara a vencerse, incluido el del cliente que renovaba **ese mismo día** — se le abre un tramo de mora que no suma ni un día, y alcanzaba para encenderlo. En el BENITIN, el 14 salía marcado en rojo aunque hubiera renovado a tiempo. Ahora el chip pide **días de mora de verdad**: el 14 queda limpio y el rojo va en el 16, que es donde el contador arrancó. Que el equipo entre a cartera ese día no depende de este chip — eso lo decide su estado.
+> **El chip rojo marca que el plazo llegó a vencerse**, aunque el cliente renueve ese mismo día. Ahí se le abre un tramo de mora que no suma ni un día, y ese tramo vacío está justamente para dejarlo escrito: el equipo estuvo vencido esa jornada y así entra a cartera, que es como se le avisa que vence. En el BENITIN los dos renglones lo llevan — el 14 porque llegó a vencer, el 16 porque además arrancó la mora de verdad. Solo queda sin chip el plazo de quien pidió más días **antes** de su fecha: ese nunca venció, y marcarlo sería inventarle una mora.
+>
+> Se probó lo contrario el 2026-09-22 —encender el chip solo con días de mora— y se volvió atrás el mismo día: la regla es del negocio, no del renglón.
 
 **El pago no aparece, y es a propósito.** Esto es el historial del EQUIPO: un abono es plata y se lee en su bloque. Lo que sí pertenece al equipo es que el contador de días vencidos volvió a cero, y eso lo dice el propio tramo con un **· pagados** al lado de sus días. Sin él, dos tramos seguidos de 2 días no se explicarían.
 
