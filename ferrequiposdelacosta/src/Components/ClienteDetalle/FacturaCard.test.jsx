@@ -322,7 +322,12 @@ describe("FacturaCard — el estado de cuenta discrimina la plata", () => {
     mostrar(pagoDeMas);
 
     // El renglón y su cifra, uno al lado del otro en la misma fila.
-    const pagado = screen.getByText("Pagado").closest("div");
+    // "Pago inicial" es también el rótulo de la información de pago: se busca
+    // el renglón del estado de cuenta, que es el que va en una fila.
+    const pagado = screen
+      .getAllByText("Pago inicial")
+      .map((texto) => texto.closest(".fila"))
+      .find(Boolean);
     expect(pagado).toHaveTextContent(/400\.000/);
 
     const aFavor = screen.getByText("Saldo a favor").closest("div");
@@ -330,10 +335,12 @@ describe("FacturaCard — el estado de cuenta discrimina la plata", () => {
   });
 
   // La única excepción: pagó el total exacto, de una sola vez y sin abonos.
-  // Ahí "Pagado" repetiría la cifra de arriba.
+  // Ahí "Pago inicial" repetiría la cifra de arriba.
   it("y se calla cuando el pago fue por el total exacto", () => {
     mostrar(facturaFinalizada);
 
-    expect(screen.queryByText("Pagado")).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText("Pago inicial").some((texto) => texto.closest(".fila")),
+    ).toBe(false);
   });
 });

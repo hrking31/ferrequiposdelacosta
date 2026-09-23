@@ -49,6 +49,10 @@ export default function RecuadroPago({
   // que es el del alta de la factura; cada lote de equipos agregado despues
   // pasa "Tipo de pago", porque ahi ya no hay nada de inicial (ver abajo).
   rotuloTipoPago = "Pago inicial",
+  // El depósito de ESTE despacho. El pago lo cubre primero (ver
+  // calcularDeposito), así que con depósito el recuadro dice el total que
+  // entregó el cliente y, al final, el valor que le quedó a la factura.
+  deposito = 0,
   // Sin su propio marco: cuando ya va DENTRO de un recuadro —el celular mete
   // cada bloque en uno—, dibujar otro adentro es un marco dentro de otro. En
   // su lugar, una línea que lo separa del rótulo de arriba.
@@ -131,29 +135,62 @@ export default function RecuadroPago({
       ),
     });
   }
-  if (pagos.length > 0) {
+  // Lo que de este pago fue al depósito: primero lo cubre, hasta su valor.
+  const alDeposito = Math.min(Math.max(0, Number(deposito) || 0), totalPagos);
+  const conDeposito = alDeposito > 0;
+
+  // SIN DEPÓSITO, como siempre: "Valor" con lo que entregó y, si vino por
+  // varios medios, "Total" con la suma.
+  //
+  // CON DEPÓSITO, lo que entregó el cliente se llama "Total" —es lo que cuadra
+  // con el banco— y al final va "Valor": lo que le quedó a la factura después
+  // del depósito. Con la 8154: Total $1.514.000 · Valor $1.014.000. Varios
+  // medios van primero desglosados, en "Montos".
+  const montos = pagos
+    .map((pago) => formatearMoneda(Number(pago.monto)))
+    .filter(Boolean)
+    .join(" + ");
+  const datoTotal = {
+    clave: "total",
+    Icono: ReceiptLongIcon,
+    colorIcono: colores.total,
+    rotulo: "Total",
+    valor: formatearMoneda(totalPagos),
+  };
+
+  if (conDeposito) {
+    if (pagos.length > 1) {
+      datos.push({
+        clave: "montos",
+        Icono: MonetizationOnIcon,
+        colorIcono: colores.plata,
+        rotulo: "Montos",
+        valor: montos,
+      });
+    }
+    datos.push(datoTotal);
     datos.push({
       clave: "valor",
       Icono: MonetizationOnIcon,
-      // Verde, el de la plata que entró.
+      // Verde, el de la plata que entró a la factura.
       colorIcono: colores.plata,
       rotulo: "Valor",
-      valor: pagos
-        .map((pago) => formatearMoneda(Number(pago.monto)))
-        .filter(Boolean)
-        .join(" + "),
+      valor: formatearMoneda(totalPagos - alDeposito),
     });
-  }
-  // Con el pago repartido en varios medios, el renglon de arriba queda como
-  // una suma sin resolver: aca va el resultado.
-  if (pagos.length > 1) {
-    datos.push({
-      clave: "total",
-      Icono: ReceiptLongIcon,
-      colorIcono: colores.total,
-      rotulo: "Total",
-      valor: formatearMoneda(totalPagos),
-    });
+  } else {
+    if (pagos.length > 0) {
+      datos.push({
+        clave: "valor",
+        Icono: MonetizationOnIcon,
+        // Verde, el de la plata que entró.
+        colorIcono: colores.plata,
+        rotulo: "Valor",
+        valor: montos,
+      });
+    }
+    // Con el pago repartido en varios medios, el renglon de arriba queda como
+    // una suma sin resolver: aca va el resultado.
+    if (pagos.length > 1) datos.push(datoTotal);
   }
 
   if (plano) return renderContenidoPlano(color, renderFilaDatos(color, datos));
@@ -167,6 +204,7 @@ RecuadroPago.propTypes = {
   fecha: PropTypes.string,
   color: PropTypes.string.isRequired,
   rotuloTipoPago: PropTypes.string,
+  deposito: PropTypes.number,
   plano: PropTypes.bool,
 };
 

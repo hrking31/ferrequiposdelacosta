@@ -784,6 +784,11 @@ export const calcularDeposito = (doc) => {
 
   return {
     pactado,
+    // De dónde salió lo recibido: de los pagos de cada despacho o de los
+    // abonos que lo completaron. El estado de cuenta los resta de su renglón
+    // —"Pago inicial", "Abonos"— para mostrar solo lo que pagó la factura.
+    conLosDespachos,
+    conAbonos,
     recibido,
     // Lo que el cliente todavía tiene que dejar de garantía.
     porCobrar: resuelto ? 0 : pactado - recibido,

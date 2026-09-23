@@ -678,6 +678,7 @@ export default function FacturaCard({
                     pagos={pagosOriginales}
                     tipoPago={tipoPagoDe(grupoInicial)}
                     fecha={grupoInicial?.fechaSolicitud ?? datos.fechaCreacion}
+                    deposito={Number(adicionalesInicial.valorDeposito) || 0}
                     color={colorPago}
                     plano={esMovil}
                   />
@@ -934,6 +935,7 @@ export default function FacturaCard({
                             pagos={pagosDe(lote)}
                             tipoPago={tipoPagoDe(lote)}
                             fecha={lote.fechaSolicitud}
+                            deposito={Number(adicionalesLote.valorDeposito) || 0}
                             color={colorPago}
                             // "Pago inicial" hay uno solo y es el del alta de
                             // la factura. Lo de un equipo agregado se paga
