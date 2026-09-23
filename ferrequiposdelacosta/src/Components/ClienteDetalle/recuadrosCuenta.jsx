@@ -22,6 +22,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SavingsIcon from "@mui/icons-material/Savings";
+import HandymanIcon from "@mui/icons-material/Handyman";
 import IconoDeposito from "./IconoDeposito";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
@@ -570,6 +571,22 @@ export const casillasDeCuenta = (
         ]
       : [];
 
+  // LO RETENIDO POR DAÑOS, solo si hubo: no es un abono del cliente —lo
+  // pagó su depósito—, así que va en su casilla y no mezclado en Abonos.
+  const retenido = cuenta.retenidoFactura ?? 0;
+  const casillaRetenido =
+    retenido > 0
+      ? [
+          {
+            clave: "retenido",
+            Icono: HandymanIcon,
+            rotulo: "Retenido",
+            valor: formatearMonedaOVacio(retenido),
+            color: tono("warning.light", "warning.main"),
+          },
+        ]
+      : [];
+
   return [
     casillaTotal,
     {
@@ -577,8 +594,8 @@ export const casillasDeCuenta = (
       Icono: PaymentsIcon,
       rotulo: "Pagado",
       // Lo que le llegó a la factura, sin la parte que fue al depósito —esa
-      // tiene su casilla—, y en abonos también lo retenido por daños: así
-      // Total = Pagado + Abonos + Saldo, siempre.
+      // tiene su casilla—. Con la de Retenido, Total = Pagado + Abonos +
+      // Retenido + Saldo, siempre.
       valor: formatearMonedaOVacio(cuenta.pagadoFactura ?? cuenta.pagado),
       color: tono("success.light", "success.main"),
     },
@@ -589,6 +606,7 @@ export const casillasDeCuenta = (
       valor: formatearMonedaOVacio(cuenta.abonosFactura ?? cuenta.abonos),
       color: tono("info.light", "info.main"),
     },
+    ...casillaRetenido,
     casillaSaldo,
     ...casillaDeposito,
   ];

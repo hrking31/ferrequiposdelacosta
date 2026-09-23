@@ -828,12 +828,16 @@ describe("el depósito, aparte de la factura", () => {
     expect(cuenta.deposito.retenido).toBe(40000);
     expect(cuenta.deposito.porDevolver).toBe(260000);
     expect(cuenta.saldoPendiente).toBe(666400);
-    // Lo retenido cuenta como abono en las casillas: el depósito lo pagó.
+    // Lo retenido tiene su casilla: no es un abono del cliente.
     expect(cuenta.pagadoFactura).toBe(530800); // 830.800 − 300.000 del depósito
-    expect(cuenta.abonosFactura).toBe(135200); // 95.200 + 40.000 retenidos
-    expect(cuenta.pagadoFactura + cuenta.abonosFactura + cuenta.saldoPendiente).toBe(
-      cuenta.total,
-    );
+    expect(cuenta.abonosFactura).toBe(95200);
+    expect(cuenta.retenidoFactura).toBe(40000);
+    expect(
+      cuenta.pagadoFactura +
+        cuenta.abonosFactura +
+        cuenta.retenidoFactura +
+        cuenta.saldoPendiente,
+    ).toBe(cuenta.total);
   });
 
   it("la 8215: con el depósito aplicado queda lo mismo que cobraba la cuenta vieja", () => {
