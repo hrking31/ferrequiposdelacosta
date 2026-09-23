@@ -278,8 +278,8 @@ export default function EstadoCuentaFactura({
         }}
       >
       {/* ── LA FACTURA ─────────────────────────────────────────────
-          Solo la plata que le llegó a ELLA, con su signo: lo que suma al
-          total con +, lo que lo paga con -. Lo que del pago inicial fue al
+          Solo la plata que le llegó a ELLA, sin signos: cada renglón dice
+          qué es. Lo que del pago inicial fue al
           depósito no está acá: "Información de pago" lo aclara, con el
           Total que entregó el cliente y el Valor que le quedó a la factura. */}
       <Paper variant="totales" sx={sxPanel}>
@@ -302,7 +302,7 @@ export default function EstadoCuentaFactura({
           <>
             <Box className="fila pagado">
               <Typography variant="body2">{conIcono(PaidIcon, "Pago inicial")}</Typography>
-              <Typography variant="body2">- {formatearMoneda(pagoALaFactura)}</Typography>
+              <Typography variant="body2">{formatearMoneda(pagoALaFactura)}</Typography>
             </Box>
           </>
         )}
@@ -313,7 +313,7 @@ export default function EstadoCuentaFactura({
           <>
             <Box className="fila abono">
               <Typography variant="body2">{conIcono(AddCircleIcon, "Abonos")}</Typography>
-              <Typography variant="body2">- {formatearMoneda(abonosALaFactura)}</Typography>
+              <Typography variant="body2">{formatearMoneda(abonosALaFactura)}</Typography>
             </Box>
           </>
         )}
@@ -327,7 +327,7 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">
               {conIcono(HandymanIcon, "Retenido por daños")}
             </Typography>
-            <Typography variant="body2">- {formatearMoneda(deposito.retenido)}</Typography>
+            <Typography variant="body2">{formatearMoneda(deposito.retenido)}</Typography>
           </Box>
         )}
         {deposito.aplicado > 0 && (
@@ -335,7 +335,7 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">
               {conIcono(IconoDeposito, "Aplicado del depósito")}
             </Typography>
-            <Typography variant="body2">- {formatearMoneda(deposito.aplicado)}</Typography>
+            <Typography variant="body2">{formatearMoneda(deposito.aplicado)}</Typography>
           </Box>
         )}
 
@@ -345,7 +345,7 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">
               {conIcono(CurrencyExchangeIcon, "Entregado al cliente")}
             </Typography>
-            <Typography variant="body2">+ {formatearMoneda(entregadoDeMas)}</Typography>
+            <Typography variant="body2">{formatearMoneda(entregadoDeMas)}</Typography>
           </Box>
         )}
 
