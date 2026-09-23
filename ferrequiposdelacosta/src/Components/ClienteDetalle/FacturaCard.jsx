@@ -1066,7 +1066,10 @@ export default function FacturaCard({
                 <RecuadroDeposito factura={factura} cuenta={cuenta} plano />,
               )
             ) : (
-              <Box sx={{ mt: 1 }}>
+              // Media grilla, como un despacho de un solo equipo: es un
+              // bloque solo, y a todo el ancho quedaba estirado con dos
+              // cifras en los extremos.
+              <Box sx={{ mt: 1, width: { sm: "calc(50% - 4px)" } }}>
                 <Typography
                   variant="overline"
                   sx={{
@@ -1101,7 +1104,9 @@ export default function FacturaCard({
                 </Box>,
               )
             ) : (
-            <Box sx={{ mt: 1 }}>
+            // Media grilla, igual que el depósito y un despacho de un solo
+            // equipo.
+            <Box sx={{ mt: 1, width: { sm: "calc(50% - 4px)" } }}>
               <Stack
                 direction="row"
                 justifyContent="space-between"

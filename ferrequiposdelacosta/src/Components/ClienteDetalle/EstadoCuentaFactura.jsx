@@ -166,7 +166,7 @@ export default function EstadoCuentaFactura({
       >
         <IconoDeposito fontSize="small" sx={{ flexShrink: 0 }} />
         <Typography variant="body2" sx={{ color: "inherit" }}>
-          Depósito aparte {formatearMoneda(depositoTotalFactura)}
+          Depósito {formatearMoneda(depositoTotalFactura)}
         </Typography>
       </Stack>,
     );
@@ -222,16 +222,6 @@ export default function EstadoCuentaFactura({
       <Icono sx={{ fontSize: "1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
       {texto}
     </>
-  );
-
-  // Una aclaración debajo de su renglón, alineada con el texto.
-  const nota = (texto) => (
-    <Typography
-      variant="caption"
-      sx={{ display: "block", pl: 2.75, mt: -0.75, mb: 1, opacity: 0.7 }}
-    >
-      {texto}
-    </Typography>
   );
 
   // Plata de la empresa hacia el cliente: el depósito libre y lo que pagó de
@@ -314,10 +304,10 @@ export default function EstadoCuentaFactura({
         }}
       >
       {/* ── LA FACTURA ─────────────────────────────────────────────
-          Solo la plata que le llegó a ELLA. Lo que del pago inicial fue
-          al depósito no está acá: el renglón lo resta y lo dice abajo, en
-          letra chica. "Información de pago" sigue mostrando lo que el
-          cliente entregó entero, que es lo que cuadra con el banco. */}
+          Solo la plata que le llegó a ELLA, con su signo: lo que suma al
+          total con +, lo que lo paga con -. Lo que del pago inicial fue al
+          depósito no está acá: "Información de pago" lo aclara, con el
+          Total que entregó el cliente y el Valor que le quedó a la factura. */}
       <Paper variant="totales" sx={sxPanel}>
         {valorTotal && (
           <>
@@ -329,8 +319,15 @@ export default function EstadoCuentaFactura({
                 {valorTotal}
               </Typography>
             </Box>
-            {cuenta.danos > 0 &&
-              nota(`incluye ${formatearMoneda(cuenta.danos)} de daños en el equipo`)}
+            {/* Lo retenido es parte del total: va con + debajo de él. */}
+            {cuenta.danos > 0 && (
+              <Box className="fila" sx={{ color: "warning.light" }}>
+                <Typography variant="body2">
+                  {conIcono(HandymanIcon, "Retenido por daños")}
+                </Typography>
+                <Typography variant="body2">+ {formatearMoneda(cuenta.danos)}</Typography>
+              </Box>
+            )}
           </>
         )}
 
@@ -340,14 +337,8 @@ export default function EstadoCuentaFactura({
           <>
             <Box className="fila pagado">
               <Typography variant="body2">{conIcono(PaidIcon, "Pago inicial")}</Typography>
-              <Typography variant="body2">{formatearMoneda(pagoALaFactura)}</Typography>
+              <Typography variant="body2">- {formatearMoneda(pagoALaFactura)}</Typography>
             </Box>
-            {deposito.conLosDespachos > 0 &&
-              nota(
-                `de ${formatearMoneda(cuenta.pagado)}: ${formatearMoneda(
-                  deposito.conLosDespachos,
-                )} fueron el depósito`,
-              )}
           </>
         )}
 
@@ -357,10 +348,8 @@ export default function EstadoCuentaFactura({
           <>
             <Box className="fila abono">
               <Typography variant="body2">{conIcono(AddCircleIcon, "Abonos")}</Typography>
-              <Typography variant="body2">{formatearMoneda(abonosALaFactura)}</Typography>
+              <Typography variant="body2">- {formatearMoneda(abonosALaFactura)}</Typography>
             </Box>
-            {deposito.conAbonos > 0 &&
-              nota(`${formatearMoneda(deposito.conAbonos)} completaron el depósito`)}
           </>
         )}
 
@@ -371,7 +360,7 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">
               {conIcono(IconoDeposito, "Pagado con el depósito")}
             </Typography>
-            <Typography variant="body2">{formatearMoneda(pagadoConDeposito)}</Typography>
+            <Typography variant="body2">- {formatearMoneda(pagadoConDeposito)}</Typography>
           </Box>
         )}
 
@@ -381,7 +370,7 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2">
               {conIcono(CurrencyExchangeIcon, "Entregado al cliente")}
             </Typography>
-            <Typography variant="body2">- {formatearMoneda(entregadoDeMas)}</Typography>
+            <Typography variant="body2">+ {formatearMoneda(entregadoDeMas)}</Typography>
           </Box>
         )}
 
@@ -505,7 +494,7 @@ export default function EstadoCuentaFactura({
           {deposito.retenido > 0 && (
             <Box className="fila" sx={{ color: "warning.light" }}>
               <Typography variant="body2">
-                {conIcono(HandymanIcon, "Retenido por daños → pasa a la factura")}
+                {conIcono(HandymanIcon, "Retenido por daños")}
               </Typography>
               <Typography variant="body2">- {formatearMoneda(deposito.retenido)}</Typography>
             </Box>
@@ -571,14 +560,6 @@ export default function EstadoCuentaFactura({
             <estadoDeposito.Icono sx={{ fontSize: "1rem" }} />
             <Typography variant="body2">{estadoDeposito.texto}</Typography>
           </Box>
-
-          {/* Si la misma factura debe, el depósito primero la paga (ver
-              EntregarSaldoDialog): el botón ofrece solo lo que sobra, y lo
-              dice. */}
-          {cuenta.depositoAlSaldo > 0 &&
-            nota(
-              `${formatearMoneda(cuenta.depositoAlSaldo)} del depósito pagan lo que debe esta factura`,
-            )}
 
           {botonDevolver}
         </Paper>
