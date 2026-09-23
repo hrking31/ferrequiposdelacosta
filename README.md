@@ -854,6 +854,11 @@ Lo único que se reordena es la lista **dentro** de cada despacho, con la misma 
 
 Y los rótulos no anuncian cuántos equipos trae el despacho. Ese número contaba **renglones**, y una devolución parcial parte el renglón en dos: un despacho de un solo equipo con una devolución encima anunciaba *"EQUIPOS AGREGADOS 1 (2)"*, donde el 1 era el despacho y el 2 el mismo equipo contado dos veces. La fecha del pedido tampoco va en el rótulo: cada despacho ya la muestra en su tabla de pago, junto a lo que se pagó ese día.
 
+> [!NOTE]
+> **La columna "Devolución" va vacía mientras el equipo no vuelva (2026-09-22).** Antes, el equipo que seguía afuera mostraba ahí *hasta cuándo estaba cubierto*, y esa fecha bajo ese título afirmaba una devolución que no había ocurrido. En la factura 8154, el BENITIN figuraba devuelto el **16/09** —que era el fin de una ampliación de 2 días— mientras seguía en la obra; el cliente restaba 10/09 → 16/09, le daban 7 días y la fila le cobraba **13**. Los 13 estaban bien (5 del alta + 2 ampliados + 6 vencidos); lo que mentía era la fecha.
+>
+> Ahora esa celda solo lleva la fecha real de devolución, y queda en blanco si el equipo no volvió. Hasta cuándo está cubierto se lee en la pantalla —en la historia del equipo y en cartera—, que es donde ese dato es nuestro y no del cliente. El cambio vale para los dos documentos: la factura y el reporte de facturas.
+
 ### Un solo botón para los dos PDF
 
 La ficha del cliente tenía dos botones de PDF: uno en cada tarjeta de factura y otro arriba, para el reporte. Eran el mismo documento por dos caminos y no se distinguían — mismo ícono, misma palabra.

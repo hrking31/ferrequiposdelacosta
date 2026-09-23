@@ -11,8 +11,6 @@ import {
   gruposDe,
   abonosDe,
   obtenerFechaHoyBogota,
-  cubiertoHasta,
-  sinFechaDeEntrega,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 
@@ -133,15 +131,16 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     // La columna de días muestra los que se COBRAN. Para un equipo devuelto
     // son los que de verdad estuvo afuera, así que días por valor vuelve a dar
     // el subtotal sin ninguna nota que lo explique.
+    //
+    // La de devolución va vacía mientras el equipo no vuelva: una fecha ahí
+    // afirma una devolución que no ocurrió (ver VistaFacturaPdf, mismo caso).
     return [
       equipo.cantidadEquipos ?? "",
       detalles.join("\n"),
       formatearFechaLegible(equipo.fechaDespacho) || "—",
       equipo.devolucion?.fechaDevolucion
         ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : sinFechaDeEntrega(equipo)
-          ? "Indefinida"
-          : formatearFechaLegible(cubiertoHasta(equipo)) || "—",
+        : "",
       cuentaEquipo.dias ?? "",
       formatearMoneda(equipo.valorDia),
       formatearMoneda(cuentaEquipo.neto),

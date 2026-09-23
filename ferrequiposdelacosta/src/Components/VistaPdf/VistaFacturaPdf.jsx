@@ -20,8 +20,6 @@ import {
   abonosDe,
   tipoPagoDe,
   ESTADO_FACTURA_INFO,
-  cubiertoHasta,
-  sinFechaDeEntrega,
 } from "../ClienteDetalle/facturaUtils";
 
 const GRIS = [68, 68, 68];
@@ -190,15 +188,20 @@ export default function generarFacturaPdf({ factura, cliente }) {
     // La columna de días muestra los que se COBRAN, que para un equipo ya
     // devuelto son los que de verdad estuvo afuera. Así los días por el valor
     // por día vuelven a dar el subtotal de la fila, sin nota que lo explique.
+    //
+    // Y la de devolución solo lleva fecha si el equipo VOLVIÓ. Antes, el que
+    // seguía afuera mostraba hasta cuándo estaba cubierto, y esa fecha bajo el
+    // título "Devolución" decía una devolución que no pasó: el BENITIN de la
+    // 8154 figuraba devuelto el 16/09 —el fin de una ampliación— mientras
+    // seguía en la obra, y al cliente le quedaba una resta que no daba los
+    // días cobrados (del 10 al 16 son 7, y se le cobraban 13).
     return [
       equipo.cantidadEquipos ?? "",
       detalles.join("\n"),
       formatearFechaLegible(equipo.fechaDespacho) || "—",
       equipo.devolucion?.fechaDevolucion
         ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : sinFechaDeEntrega(equipo)
-          ? "Indefinida"
-          : formatearFechaLegible(cubiertoHasta(equipo)) || "—",
+        : "",
       cuentaEquipo.dias ?? "",
       moneda(equipo.valorDia),
       moneda(cuentaEquipo.neto),
