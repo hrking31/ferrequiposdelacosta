@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-581_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-585_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -1143,13 +1143,34 @@ En la ficha, cada equipo muestra sus tres condiciones —por cuántos días va, 
 
 ```
 01 SEP   Salida en alquiler                       $ 1.050.000
-07 SEP   Vencimiento inicial                         [Vencido]
+07 SEP   Venció el plazo                             [Vencido]
 09 SEP   Días vencidos · 2 días · pagados            $ 300.000
 09 SEP   Seguimiento con cliente         [Entrega indefinida]
 11 SEP   Entrega indefinida · 2 días · pagados       $ 300.000
 11 SEP   Seguimiento con cliente                     $ 450.000
 14 SEP   Próximo vencimiento                      [Ampliación]
 ```
+
+#### Cada plazo deja su renglón (2026-09-22)
+
+Un equipo puede vencer **más de una vez**: la fecha del alta, y después la de cada ampliación que se le dio. Antes solo quedaba escrita la del alta; la de una ampliación se leía abajo, en *Próximo vencimiento* — un renglón que se apaga en cuanto el equipo vuelve a bodega.
+
+El BENITIN de la 8154 lo mostró: vencía el 14, ese mismo 14 se le pactaron 2 días —hasta el **16**—, se pasó 6 y volvió el 22. Mientras estuvo afuera, el 16 se veía abajo. Al registrar la devolución desapareció, y la historia quedaba así: *"se pactaron 2 días"* y enseguida *"6 días vencidos"*, **sin decir nunca desde cuándo corrían**.
+
+Ahora cada plazo cumplido deja su propio renglón, y el mismo equipo se cuenta entero:
+
+```
+10 SEP   Salida en alquiler · 5 días                $ 600.000
+14 SEP   Venció el plazo
+14 SEP   Seguimiento con cliente · 2 días           $ 240.000
+16 SEP   Venció el plazo                             [Vencido]
+22 SEP   Días vencidos · 6 días                     $ 720.000
+22 SEP   Devolución                                 [Devuelto]
+```
+
+Es un solo renglón con dos caras: se llama **"Próximo vencimiento"** mientras la fecha no llegó, y **"Venció el plazo"** una vez que pasó. Nada desaparece al devolver, y el que volvió **antes** de su fecha no muestra ninguno: nunca llegó a vencer.
+
+> **El chip rojo quedó para cuando no hubo acuerdo.** Antes lo llevaba todo plazo que llegara a vencerse, incluido el del cliente que renovaba **ese mismo día** — se le abre un tramo de mora que no suma ni un día, y alcanzaba para encenderlo. En el BENITIN, el 14 salía marcado en rojo aunque hubiera renovado a tiempo. Ahora el chip pide **días de mora de verdad**: el 14 queda limpio y el rojo va en el 16, que es donde el contador arrancó. Que el equipo entre a cartera ese día no depende de este chip — eso lo decide su estado.
 
 **El pago no aparece, y es a propósito.** Esto es el historial del EQUIPO: un abono es plata y se lee en su bloque. Lo que sí pertenece al equipo es que el contador de días vencidos volvió a cero, y eso lo dice el propio tramo con un **· pagados** al lado de sus días. Sin él, dos tramos seguidos de 2 días no se explicarían.
 
@@ -1418,7 +1439,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**581 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**585 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 

@@ -61,7 +61,7 @@ describe("historialEquipo", () => {
   it("cuenta la historia completa, en el orden en que pasó", () => {
     expect(titulos(compresor)).toEqual([
       "Salida en alquiler",
-      "Vencimiento inicial",
+      "Venció el plazo",
       "Días vencidos",
       "Seguimiento con cliente",
       "Entrega indefinida",
@@ -143,10 +143,15 @@ describe("historialEquipo", () => {
   });
 
   // El caso de la 0123 de ReYaz: los gatos vencían el 11 y ese mismo 11 se les
-  // pactaron 4 días. No se pasó ni un día, pero ese día el equipo ya estaba
-  // vencido —así entra a cartera, para poder avisarle al cliente que vence
-  // mañana— y el renglón tiene que decirlo.
-  it("marca vencido el renglón del equipo que se renovó el día que vencía", () => {
+  // pactaron 4 días. No se pasó ni un día.
+  //
+  // El renglón salía marcado VENCIDO, para que se viera que ese día el equipo
+  // llegó a vencerse. El dueño lo cambió el 2026-09-22: si hubo acuerdo el
+  // renglón queda sin nada, y el chip se guarda para cuando NO se logró. Que
+  // el equipo entre a cartera ese día no depende de esto —lo decide su
+  // estado— y marcarlo acá le mostraba una mora al cliente que renovó a
+  // tiempo.
+  it("no marca vencido al equipo que se renovó el día que vencía", () => {
     const renovadoEseDia = unEquipo({
       cantidad: 10,
       valorDia: 1500,
@@ -167,9 +172,9 @@ describe("historialEquipo", () => {
       ],
     });
 
-    expect(buscar(renovadoEseDia, "vencimiento-inicial", "2026-09-12").chip).toBe(
-      "vencido",
-    );
+    const renglon = buscar(renovadoEseDia, "vencimiento-0", "2026-09-12");
+    expect(renglon.titulo).toBe("Venció el plazo");
+    expect(renglon.chip).toBe(null);
   });
 
   // Y el espejo: al que le dieron más días antes de su fecha no se le venció
@@ -193,9 +198,82 @@ describe("historialEquipo", () => {
       ],
     });
 
-    expect(
-      buscar(renovadoAntes, "vencimiento-inicial", "2026-09-12").chip,
-    ).toBe(null);
+    expect(buscar(renovadoAntes, "vencimiento-0", "2026-09-12").chip).toBe(null);
+  });
+
+  // EL CASO QUE LO DESTAPÓ: el BENITIN de la 8154. Salió el 10 por 5 días,
+  // venció el 14, ese mismo 14 se le pactaron 2 días —hasta el 16—, se pasó 6
+  // y volvió el 22.
+  //
+  // Su vencimiento del 16 solo se veía abajo, como próximo vencimiento, y ese
+  // renglón se apaga cuando el equipo vuelve: la historia pasaba de "se
+  // pactaron 2 días" a "6 días vencidos" sin decir nunca desde cuándo
+  // corrían. Ahora cada plazo cumplido deja su propio renglón, y quedan los
+  // dos.
+  describe("los dos plazos del BENITIN de la 8154", () => {
+    const benitin = unEquipoDevuelto({
+      nombre: "BENITIN",
+      cantidad: 1,
+      valorDia: 120000,
+      dias: 5,
+      fechaDespacho: "2026-09-10",
+      fechaDevolucion: "2026-09-22",
+      vencidos: [
+        // El que no suma días: se abrió y se cerró el 14, cuando renovó.
+        unTramoVencido({ desde: "2026-09-15", hasta: "2026-09-14" }),
+        unTramoVencido({ desde: "2026-09-17", hasta: "2026-09-22" }),
+      ],
+      ampliaciones: [
+        unaAmpliacion({
+          fecha: "2026-09-14",
+          dias: 2,
+          desde: "2026-09-15",
+          hasta: "2026-09-16",
+        }),
+      ],
+    });
+
+    const HOY = "2026-09-22";
+
+    it("cuenta los dos vencimientos aunque el equipo ya haya vuelto", () => {
+      expect(titulos(benitin, HOY)).toEqual([
+        "Salida en alquiler",
+        "Venció el plazo", // el 14, el del alta
+        "Seguimiento con cliente",
+        "Venció el plazo", // el 16, el de los 2 días que pidió
+        "Días vencidos",
+        "Devolución",
+      ]);
+    });
+
+    it("el del alta no lleva chip: renovó el mismo día que vencía", () => {
+      const alta = buscar(benitin, "vencimiento-0", HOY);
+      expect(alta.fecha).toBe("2026-09-14");
+      expect(alta.chip).toBe(null);
+    });
+
+    it("el de la ampliación sí, que es donde arrancó la mora", () => {
+      const ampliado = buscar(benitin, "vencimiento-1", HOY);
+      expect(ampliado.fecha).toBe("2026-09-16");
+      expect(ampliado.chip).toBe("vencido");
+    });
+
+    // El que volvió ANTES de su fecha no tiene ningún plazo cumplido: nunca
+    // llegó a vencer, y un renglón diciendo que venció sería falso.
+    it("al que volvió antes de tiempo no le inventa un vencimiento", () => {
+      const anticipado = unEquipoDevuelto({
+        cantidad: 1,
+        valorDia: 120000,
+        dias: 5,
+        fechaDespacho: "2026-09-10",
+        fechaDevolucion: "2026-09-12",
+      });
+
+      expect(titulos(anticipado, HOY)).toEqual([
+        "Salida en alquiler",
+        "Devolución",
+      ]);
+    });
   });
 
   it("al que todavía no sale le cuenta la salida como programada", () => {

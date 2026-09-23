@@ -161,35 +161,54 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     valor: dias.alta * porDia,
   });
 
-  // 2. EL VENCIMIENTO INICIAL: el día en que se acababan los días del alta,
-  // y solo cuando dejó de ser el vigente. Mientras siga siéndolo se lee
-  // abajo, en el próximo vencimiento: repetirlo arriba sería la misma fecha
-  // dos veces.
+  // 2. CADA PLAZO QUE SE CUMPLIÓ. Un renglón por cada fecha en la que el
+  // equipo debía volver: la del alta y la de cada ampliación que se le dio
+  // después.
+  //
+  // Antes solo existía el del alta, y el de una ampliación se leía abajo, en
+  // el próximo vencimiento — que se apaga en cuanto el equipo vuelve. Así, el
+  // BENITIN de la 8154 perdía el 16/09 el día que entró a bodega: la historia
+  // decía que vencía el 14, que se le dieron 2 días, y después saltaba a 6
+  // días vencidos sin decir nunca desde cuándo corrían.
+  //
+  // Se muestra el plazo que QUEDÓ ATRÁS. El que todavía no llegó es el
+  // vigente y se lee abajo; el del equipo que volvió antes de tiempo no se
+  // muestra, porque nunca llegó a vencer.
   const finDelAlta = calcularFechaDevolucion(
     equipo?.fechaDespacho,
     Number(equipo?.diasAlquilados) || 0,
   );
-  if (finDelAlta && cubierto && finDelAlta < cubierto) {
+  const plazos = [
+    ...new Set(
+      [finDelAlta, ...ampliacionesDe(equipo).map((a) => a?.hasta)].filter(
+        Boolean,
+      ),
+    ),
+  ].sort();
+
+  plazos.forEach((plazo, indice) => {
+    if (plazo >= corte) return;
+
+    // Se le venció de verdad si al día siguiente corrieron días. Existe un
+    // tramo que no suma ninguno —el que se abre y se cierra el mismo día
+    // cuando el cliente renueva justo el día que vencía—, y ese no es mora:
+    // hubo acuerdo. El chip queda para cuando no lo hubo.
+    const tramoSiguiente = tramos.find(
+      (tramo) => tramo?.desde === calcularVencimiento(plazo, 1),
+    );
+    const diasDeMora = tramoSiguiente?.desde
+      ? diasDeAlquiler(tramoSiguiente.desde, tramoSiguiente.hasta ?? corte)
+      : 0;
+
     hitos.push({
-      clave: "vencimiento-inicial",
-      fecha: finDelAlta,
+      clave: `vencimiento-${indice}`,
+      fecha: plazo,
       tono: "vencido",
-      titulo: "Vencimiento inicial",
+      titulo: "Venció el plazo",
       detalle: "Debía devolverse este día.",
-      // Llegó a vencerse si al día siguiente arrancó un tramo. Al que le
-      // dieron más días ANTES de esa fecha no se le venció nada, y decírselo
-      // sería inventarle una mora.
-      //
-      // Antes esto se deducía comparando el día de la renovación con la fecha
-      // que el equipo tenía. Ahora el tramo lo dice sin que nadie lo deduzca:
-      // es el caso de la 0123 de ReYaz, renovada el mismo día que vencía.
-      chip: tramos.some(
-        (tramo) => tramo?.desde === calcularVencimiento(finDelAlta, 1),
-      )
-        ? "vencido"
-        : null,
+      chip: diasDeMora > 0 ? "vencido" : null,
     });
-  }
+  });
 
   // 3. CADA TRAMO QUE YA SE CERRÓ. El equipo se pasó de plazo y alguien lo
   // cerró —pagó, pidió días o devolvió—, así que sus dos fechas quedaron
@@ -294,7 +313,12 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   // 8. HASTA CUÁNDO QUEDÓ. El que está afuera sin fecha no lo lleva: eso ya
   // lo cuenta el hito del acuerdo, y una fila que dijera "sin fecha" sería
   // repetirlo.
-  if (!devuelto && cubierto && !indefinida?.activa) {
+  //
+  // Solo si esa fecha TODAVÍA NO LLEGÓ: es un próximo vencimiento, no un
+  // vencimiento cualquiera. La que ya pasó la cuenta arriba el plazo cumplido,
+  // y sin esta condición el mismo día saldría dos veces —una como "venció" y
+  // otra como "próximo"— en cuanto un equipo amanece pasado de fecha.
+  if (!devuelto && cubierto && !indefinida?.activa && cubierto >= hoyIso) {
     hitos.push({
       clave: "proximo-vencimiento",
       fecha: cubierto,
