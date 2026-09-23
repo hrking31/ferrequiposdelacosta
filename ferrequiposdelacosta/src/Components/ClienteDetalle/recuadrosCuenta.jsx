@@ -284,10 +284,14 @@ export const renderFilaDeposito = (cuenta) => {
   if (monto <= 0) return null;
   return (
     <Box className="fila deposito">
-      <Stack direction="row" alignItems="center" gap={0.5}>
-        <IconoDeposito sx={{ fontSize: "1rem" }} />
-        <Typography variant="body2">Depósito</Typography>
-      </Stack>
+      {/* El candado va DENTRO del texto y a su altura: en una caja aparte le
+          sumaba alto al renglón y la cifra quedaba más abajo que las demás. */}
+      <Typography variant="body2">
+        <IconoDeposito
+          sx={{ fontSize: "0.9rem", verticalAlign: "-0.15em", mr: 0.5 }}
+        />
+        Depósito
+      </Typography>
       <Typography variant="body2">{formatearMonedaOVacio(monto)}</Typography>
     </Box>
   );
@@ -468,7 +472,12 @@ export const casillasDeCuenta = (
     valor: formatearMonedaOVacio(
       aFavor ? cuenta.saldoAFavor : cuenta.saldoPendiente,
     ),
-    color: aFavor ? tono("success.light", "success.main") : tono("error.light", "error.main"),
+    // Rojo solo si de verdad debe: un saldo en cero es una cuenta al día, y en
+    // rojo se leía como deuda (la 8154, pagada y con su depósito por devolver).
+    color:
+      cuenta.saldoPendiente > 0
+        ? tono("error.light", "error.main")
+        : tono("success.light", "success.main"),
   };
 
   if (resumida) return [casillaTotal, casillaSaldo];
