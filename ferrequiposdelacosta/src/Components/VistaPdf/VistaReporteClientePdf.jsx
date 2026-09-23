@@ -9,7 +9,6 @@ import {
   calcularTransporteTotal,
   datosFactura,
   gruposDe,
-  abonosDe,
   obtenerFechaHoyBogota,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
@@ -39,8 +38,8 @@ const obtenerNombreCliente = (cliente) => {
 };
 
 // El reporte de las facturas de un cliente: cada factura seleccionada con su
-// propio detalle —equipos, equipos agregados, cargos y abonos, plegados en un
-// solo total por factura— y al final la discriminación de TODAS juntas.
+// propio detalle —equipos, equipos agregados, cargos y el total de abonos,
+// plegados en un solo total por factura— y al final la discriminación de TODAS juntas.
 //
 // Tamaño carta, a diferencia de los demás PDF de la app (que son A4): así se
 // pidió para este reporte. El pie de página se calcula desde el alto real de
@@ -195,10 +194,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     ivaGeneral += iva;
     depositoGeneral += depositoTotal;
 
-    const abonos = abonosDe(factura);
-
-    // Un solo total por factura: cargos, el total, lo pagado, cada abono (si
-    // los tiene) y el saldo. Nada de "Cargos adicionales" aparte.
+    // Un solo total por factura: cargos, el total, lo pagado, los abonos en
+    // UNA línea y el saldo. El detalle abono por abono queda para el PDF de
+    // una sola factura: este es un resumen. Nada de "Cargos adicionales" aparte.
     const filas = [];
     if (iva > 0) filas.push(["IVA (19%)", formatearMoneda(iva)]);
     if (depositoTotal > 0) filas.push(["Depósito", formatearMoneda(depositoTotal)]);
@@ -206,12 +204,6 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (descuentoTotal > 0) filas.push(["Descuento", formatearMoneda(descuentoTotal)]);
     filas.push(["TOTAL FACTURA", formatearMoneda(cuentaFactura.total)]);
     filas.push(["Pagado", formatearMoneda(cuentaFactura.pagado)]);
-    abonos.forEach((abono) => {
-      filas.push([
-        `Abono ${formatearFechaLegible(abono.fecha) || ""} · ${abono.medio || ""}`,
-        formatearMoneda(abono.monto),
-      ]);
-    });
     if (cuentaFactura.abonos > 0) {
       filas.push(["Abonos", formatearMoneda(cuentaFactura.abonos)]);
     }
