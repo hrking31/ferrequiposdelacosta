@@ -301,6 +301,13 @@ export default function FacturaCard({
     equiposOriginales.length || 1,
     2,
   );
+  // El depósito y los abonos toman el ancho de los despachos: si alguno
+  // tiene dos equipos o más —se ven uno al lado del otro—, a todo el ancho;
+  // si todos tienen uno solo, a media grilla, alineados con ellos.
+  const hayDespachoAncho =
+    columnasOriginales === 2 ||
+    gruposAgregados.some((lote) => (lote.equipos ?? []).length >= 2);
+  const anchoBloqueSuelto = { sm: hayDespachoAncho ? "100%" : "calc(50% - 4px)" };
   const pagosOriginales = pagosDe(grupoInicial);
 
   // Cuántos equipos se agregaron DE VERDAD. No es la cantidad de renglones:
@@ -1072,10 +1079,8 @@ export default function FacturaCard({
                 />,
               )
             ) : (
-              // Media grilla, como un despacho de un solo equipo: es un
-              // bloque solo, y a todo el ancho quedaba estirado con dos
-              // cifras en los extremos.
-              <Box sx={{ mt: 1, width: { sm: "calc(50% - 4px)" } }}>
+              // Del ancho de los despachos (ver anchoBloqueSuelto).
+              <Box sx={{ mt: 1, width: anchoBloqueSuelto }}>
                 <Typography
                   variant="overline"
                   sx={{
@@ -1121,9 +1126,8 @@ export default function FacturaCard({
                 </Box>,
               )
             ) : (
-            // Media grilla, igual que el depósito y un despacho de un solo
-            // equipo.
-            <Box sx={{ mt: 1, width: { sm: "calc(50% - 4px)" } }}>
+            // Del ancho de los despachos (ver anchoBloqueSuelto).
+            <Box sx={{ mt: 1, width: anchoBloqueSuelto }}>
               <Stack
                 direction="row"
                 justifyContent="space-between"
