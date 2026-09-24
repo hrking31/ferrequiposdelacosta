@@ -82,7 +82,9 @@ export default function HistorialEquipoDialog({
           Historia del equipo
         </Box>
         <Tooltip title="Cerrar">
-          <IconButton size="small" aria-label="Cerrar" onClick={onClose}>
+          {/* El rojo del tema para cancelar y salir, el mismo de "Cerrar
+              sesión" en el encabezado. */}
+          <IconButton size="small" color="error" aria-label="Cerrar" onClick={onClose}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Tooltip>
