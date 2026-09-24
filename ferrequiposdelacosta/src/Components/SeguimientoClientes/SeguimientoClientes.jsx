@@ -279,9 +279,11 @@ export default function SeguimientoClientes() {
     return <LoadingLogo height="40vh" text="Cargando seguimiento de clientes..." />;
   }
 
-  const lista = (
-    <>
-      {clientesConSeguimiento.length > 0 &&
+  // El buscador y los filtros van aparte de la lista: en computador ocupan
+  // TODO el ancho, y el panel de la derecha arranca debajo de ellos, a la
+  // altura de la primera tarjeta.
+  const encabezado =
+    clientesConSeguimiento.length > 0 &&
         (esCelular ? (
           // EN CELULAR, TRES RENGLONES: el buscador con el botón de menú al
           // lado —que antes era un botón ancho al pie—, los filtros debajo y,
@@ -327,11 +329,11 @@ export default function SeguimientoClientes() {
             {contador}
             {chipsTipo}
           </Stack>
-        ))}
+        ));
 
-      {/* Acostado el celular el scroll lo manda la caja de afuera, no esta:
-          dos áreas que se desplazan, una dentro de la otra, se pelean el
-          dedo. */}
+  const cuerpo = (
+      // Acostado el celular el scroll lo manda la caja de afuera, no esta:
+      // dos áreas que se desplazan, una dentro de la otra, se pelean el dedo.
       <Box
         sx={
           altoCorto ? undefined : { flex: 1, minHeight: 0, overflowY: "auto" }
@@ -366,7 +368,6 @@ export default function SeguimientoClientes() {
           </Stack>
         )}
       </Box>
-    </>
   );
 
   return (
@@ -377,15 +378,15 @@ export default function SeguimientoClientes() {
         minHeight: 0,
         ...(altoCorto
           ? { overflowY: "auto" }
-          : {
-              display: "flex",
-              flexDirection: conPanel ? "row" : "column",
-              gap: conPanel ? 3 : 0,
-            }),
+          : { display: "flex", flexDirection: "column" }),
       }}
     >
+      {encabezado}
+
       {conPanel ? (
-        <>
+        // La lista y el panel, lado a lado debajo del buscador. Cada uno se
+        // desplaza por su cuenta: el panel no se va al bajar por la lista.
+        <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
           <Box
             sx={{
               flex: 1,
@@ -395,14 +396,14 @@ export default function SeguimientoClientes() {
               flexDirection: "column",
             }}
           >
-            {lista}
+            {cuerpo}
           </Box>
           <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
             <PanelSeguimiento elegido={elegido} hoy={obtenerFechaHoyBogota()} />
           </Box>
-        </>
+        </Box>
       ) : (
-        lista
+        cuerpo
       )}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
