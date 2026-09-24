@@ -6,7 +6,9 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  ButtonBase,
   Checkbox,
+  FormControlLabel,
   TextField,
   FormControl,
   InputLabel,
@@ -20,8 +22,11 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import ChecklistIcon from "@mui/icons-material/Checklist";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
@@ -49,37 +54,34 @@ import { formatearMoneda } from "../../Utils/formato";
 const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 
 // Registra un pago que el cliente consigna después de facturar, y que puede
-// alcanzar para varias facturas a la vez: el usuario ingresa un solo valor
-// —una sola fecha, un solo medio— y acá se decide a cuáles va.
+// alcanzar para varias facturas a la vez.
+//
+// ── EN TRES PASOS, en el orden en que se piensa un cobro ───────────────
+//
+// 1. ¿Qué va a pagar? Toda la deuda, o facturas específicas. Hasta elegirlo
+//    no aparece nada más: mostrar de entrada el valor, el depósito, la deuda y
+//    la lista de facturas era demasiado junto.
+// 2. ¿Cómo paga? Primero, si lo elegido tiene depósito libre, la casilla para
+//    usarlo; después el medio y el valor de la plata que trae.
+// 3. Así queda: la deuda, lo que se paga y lo que queda. El reparto por
+//    factura va plegado.
 //
 // ── QUIÉN DECIDE A QUÉ FACTURA VA ─────────────────────────────────────
 //
-// Por defecto lo decide la app: reparte entre TODAS las que tengan saldo,
-// empezando por la MÁS ANTIGUA, y si sobra sigue con la siguiente. Si el abono
-// alcanza para saldarlas todas, lo que sobre queda como saldo a favor en la
-// última que se tocó.
+// Con "toda la deuda" reparte la app, empezando por la MÁS ANTIGUA —la que
+// está más cerca de volverse incobrable, y como se imputa un pago cuando el
+// deudor no elige—; lo que sobre queda a favor en la última. Con "facturas
+// específicas" manda el cliente: se reparte solo entre las que nombró, con el
+// mismo criterio. Queda escrito en el abono: `tipo: "sistema"` o `"cliente"`.
 //
-// La más antigua primero, y no la que más debe, porque es la que está más
-// cerca de volverse incobrable y la que dispara la cobranza —y porque es como
-// se imputa un pago cuando el deudor no elige—.
+// ── EL DEPÓSITO LIBRE ─────────────────────────────────────────────────
 //
-// Pero el cliente puede pedir otra cosa —"esto es para la 1234"—, y entonces
-// manda él: se marcan las facturas que dijo y el abono se reparte solo entre
-// esas, con el mismo criterio de la más antigua primero.
-//
-// La diferencia queda escrita en el abono: `tipo: "sistema"` cuando repartió la
-// app, `tipo: "cliente"` cuando lo pidió él. No cambia ninguna cuenta —para el
-// saldo los dos son un abono igual— pero deja explicar después por qué esa
-// plata terminó ahí, que es justo lo que no se podía cuando el reparto era la
-// única forma.
-//
-// ── PAGAR CON EL DEPÓSITO ──────────────────────────────────────────────
-//
-// Cuando los equipos ya volvieron, el depósito que queda libre es plata del
-// cliente, y puede pedir que se use para pagar en vez de que se lo devuelvan.
-// Eso se registra acá, con el medio "Depósito". No es plata nueva: cada
-// factura solo puede usar SU depósito —hasta lo que tiene libre y hasta lo
-// que debe—, así que ese abono no se reparte entre facturas ni deja sobrante.
+// Con los equipos de vuelta, el depósito que queda es plata del cliente, y
+// puede pedir que pague con él. No es un medio de pago: es una casilla, y
+// marcada hace que cada factura pague PRIMERO con su propio depósito —hasta lo
+// que tiene libre y hasta lo que debe—. Lo que traiga en plata cubre el resto,
+// repartido como siempre. Se guardan los dos abonos juntos: el del depósito
+// con medio "Depósito", para que la lista de abonos diga cómo se pagó.
 export default function AbonoDialog({
   open,
   onClose,
@@ -90,9 +92,14 @@ export default function AbonoDialog({
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
+  const colorDeposito = theme.palette.custom.depositoText;
   const [form, setForm] = useState(ESTADO_INICIAL);
-  // Las facturas que el cliente eligió. Vacío = la app reparte.
+  // Paso 1: "todo" o "facturas". Null hasta que se elige.
+  const [que, setQue] = useState(null);
+  // Las facturas que el cliente nombró, cuando eligió "facturas".
   const [elegidas, setElegidas] = useState([]);
+  const [usarDeposito, setUsarDeposito] = useState(false);
+  const [verReparto, setVerReparto] = useState(false);
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
@@ -100,103 +107,83 @@ export default function AbonoDialog({
   useEffect(() => {
     if (!open) return;
     // La fecha de HOY, no la del despacho: un abono es plata que ya entró.
-    // Antes usaba la regla de las 3 p.m. —la que corre el alquiler al día
-    // siguiente— y un pago recibido a las 4 de la tarde quedaba fechado
-    // mañana.
     setForm({ ...ESTADO_INICIAL, fecha: obtenerFechaHoyBogota() });
-    // Cada abono arranca sin nada elegido, o sea en automático: es lo que pasa
-    // casi siempre, y dejar marcada la elección del abono anterior mandaría
+    // Cada abono arranca de cero: dejar la elección del anterior mandaría
     // este a una factura que nadie nombró.
+    setQue(null);
     setElegidas([]);
+    setUsarDeposito(false);
+    setVerReparto(false);
     setErrors({});
   }, [open]);
 
-  // Solo entran las facturas que todavía deben algo: son las únicas que
-  // pueden recibir parte de este abono. El total ya trae los días ampliados
-  // sumados, igual que en la tarjeta de cada factura, para que la cifra que
-  // se ve acá sea la misma que se ve afuera. Van de la más antigua a la más
-  // nueva, que es el orden en que las va saldando.
+  // Solo entran las facturas que todavía deben algo, de la más antigua a la
+  // más nueva, que es el orden en que las va saldando.
   const facturasConSaldo = ordenarFacturasConSaldo(facturas);
-
-  const montoNuevo = Number(form.monto) || 0;
-
-  // Las facturas que pueden pagarse con su depósito, y hasta cuánto cada una:
-  // lo que tiene libre, sin pasarse de lo que debe.
-  const conDepositoLibre = facturasConSaldo
-    .map((item) => ({
-      ...item,
-      tope: Math.min(item.cuenta.deposito.porDevolver, item.cuenta.saldoPendiente),
-    }))
-    .filter(({ tope }) => tope > 0);
-  const conDeposito = form.medio === MEDIO_DEPOSITO;
-  const depositoDisponible = conDepositoLibre
-    .filter(({ factura }) => elegidas.length === 0 || elegidas.includes(factura.id))
-    .reduce((total, { tope }) => total + tope, 0);
-
-  // Lo que el cliente debe HOY, sumando sus facturas con saldo. Sale de las
-  // mismas cuentas que la lista de abajo: si se calculara aparte, el total y
-  // el detalle podrían discrepar.
   const deudaActual = facturasConSaldo.reduce(
     (total, { cuenta }) => total + cuenta.saldoPendiente,
     0,
   );
 
-  // Adónde va este abono: a las que el cliente eligió, o a todas si no eligió
-  // ninguna. El orden lo puso `ordenarFacturasConSaldo` y se respeta: la más
-  // antigua primero, también dentro de las elegidas.
-  const loEligioElCliente = elegidas.length > 0;
+  const loEligioElCliente = que === "facturas";
   const destinos = loEligioElCliente
     ? facturasConSaldo.filter(({ factura }) => elegidas.includes(factura.id))
     : facturasConSaldo;
+  const pasoUnoListo = que === "todo" || (loEligioElCliente && destinos.length > 0);
 
-  // La simulación del reparto: a cada factura destino, de la más antigua a la
-  // más nueva, se le asigna lo que le falta hasta saldarla. La última que
-  // llega a recibir algo se lleva TODO lo que quede del abono, así que si
-  // sobra después de saldarlas, ese sobrante queda ahí como saldo a favor en
-  // vez de perderse.
-  //
-  // Con el depósito no hay reparto: cada factura usa el suyo, hasta su tope.
-  const reparto = conDeposito
-    ? (() => {
-        let restante = montoNuevo;
-        return conDepositoLibre
-          .filter(({ factura }) => destinos.some((d) => d.factura.id === factura.id))
-          .map(({ factura, cuenta, tope }) => {
-            const aplicado = Math.min(restante, tope);
-            restante -= aplicado;
-            return { factura, cuenta, aplicado };
-          });
-      })()
-    : repartirEntreFacturas(destinos, montoNuevo);
+  // Hasta cuánto puede pagar cada factura con SU depósito: lo que tiene
+  // libre, sin pasarse de lo que debe.
+  const topeDeposito = ({ cuenta }) =>
+    Math.min(cuenta.deposito.porDevolver, cuenta.saldoPendiente);
+  const depositoDisponible = destinos.reduce((total, item) => total + topeDeposito(item), 0);
+  const conDeposito = usarDeposito && depositoDisponible > 0;
 
-  // Para dibujar: la lista de abajo muestra TODAS las facturas con saldo —hay
-  // que poder elegir entre ellas— pero solo las destino reciben algo.
-  const aplicadoEn = new Map(
-    reparto.map(({ factura, aplicado }) => [factura.id, aplicado]),
-  );
+  const montoNuevo = Number(form.monto) || 0;
+  const debeLoElegido = destinos.reduce((total, { cuenta }) => total + cuenta.saldoPendiente, 0);
+
+  // EL REPARTO: primero el depósito de cada una, después la plata, como
+  // cualquier abono —de la más antigua a la más nueva, la última se lleva el
+  // sobrante—, sobre lo que cada una siga debiendo.
+  const filas = destinos.map((item) => ({
+    ...item,
+    deposito: conDeposito ? topeDeposito(item) : 0,
+    plata: 0,
+  }));
+  const conSaldoTrasDeposito = filas
+    .filter((fila) => fila.cuenta.saldoPendiente - fila.deposito > 0)
+    .map((fila) => ({
+      fila,
+      factura: fila.factura,
+      cuenta: { ...fila.cuenta, saldoPendiente: fila.cuenta.saldoPendiente - fila.deposito },
+    }));
+  // Si el depósito ya las saldó todas y el cliente trae plata igual, esa plata
+  // queda a favor en la última elegida.
+  const destinosDeLaPlata =
+    conSaldoTrasDeposito.length > 0
+      ? conSaldoTrasDeposito
+      : filas.slice(-1).map((fila) => ({ fila, factura: fila.factura, cuenta: fila.cuenta }));
+  repartirEntreFacturas(destinosDeLaPlata, montoNuevo).forEach(({ aplicado }, indice) => {
+    destinosDeLaPlata[indice].fila.plata = aplicado;
+  });
+
+  const pagadoConDeposito = filas.reduce((total, fila) => total + fila.deposito, 0);
+  const faltaPorPagar = Math.max(0, debeLoElegido - pagadoConDeposito);
+  const quedaDespues = debeLoElegido - pagadoConDeposito - montoNuevo;
+  const hayAlgoQueRegistrar = pagadoConDeposito > 0 || montoNuevo > 0;
 
   // ── EL RECORDATORIO DE LOS EQUIPOS ────────────────────────────────
   //
   // Las facturas que reciben plata de ESTE abono y todavía tienen equipos
   // vencidos en la obra. Es un aviso y nada más: no pregunta, no bloquea. Está
   // para que la plata no tape lo otro —una factura puede quedar pagada con el
-  // equipo afuera y sin fecha de retorno, que fue lo que pasó con la 5698— y
-  // el plazo se pacta con el botón de renovación, que es donde vive.
-  //
-  // Acá vivía un formulario: por cada equipo, días o entrega indefinida, con
-  // el botón de guardar apagado hasta contestar. Se sacó el 2026-09-15 porque
-  // trababa el cobro; el modelo de tramos ya deja escritos los días vencidos
-  // aunque nadie pacte nada, así que lo único que se perdía era el
-  // recordatorio. (El formulario completo está en el commit que anota el
-  // README, por si alguna vez se quiere volver.)
-  //
-  // SOLO DESDE CARTERA: en la ficha del cliente se registra lo que pasó con la
-  // plata y nada más.
+  // equipo afuera y sin fecha de retorno, que fue lo que pasó con la 5698—.
+  // Se sacó un formulario el 2026-09-15 porque trababa el cobro. SOLO DESDE
+  // CARTERA: en la ficha del cliente se registra lo que pasó con la plata.
   const hoy = obtenerFechaHoyBogota();
   const facturasConEquiposVencidos = !avisarEquiposVencidos
     ? []
-    : reparto
-        .filter(({ aplicado }) => aplicado > 0)
+    : filas
+        .filter((fila) => fila.deposito + fila.plata > 0)
         .map(({ factura }) => ({
           numero: datosFactura(factura).numeroFactura ?? "s/n",
           cuantos: equiposDe(factura).filter(
@@ -204,15 +191,10 @@ export default function AbonoDialog({
           ).length,
         }))
         .filter(({ cuantos }) => cuantos > 0);
-
   const equiposVencidos = facturasConEquiposVencidos.reduce(
     (total, { cuantos }) => total + cuantos,
     0,
   );
-
-  // El título del aviso: cuántos equipos quedaron sin definir. El número de
-  // factura solo aparece cuando hay más de una recibiendo plata —con una sola
-  // es la que se está mirando y nombrarla sobra—.
   const tituloAviso =
     equiposVencidos === 0
       ? ""
@@ -220,9 +202,7 @@ export default function AbonoDialog({
           equiposVencidos === 1 ? "" : "s"
         } pendiente${equiposVencidos === 1 ? "" : "s"} de gestión${
           facturasConEquiposVencidos.length > 1
-            ? ` (facturas ${facturasConEquiposVencidos
-                .map(({ numero }) => numero)
-                .join(", ")})`
+            ? ` (facturas ${facturasConEquiposVencidos.map(({ numero }) => numero).join(", ")})`
             : ""
         }`;
 
@@ -237,17 +217,6 @@ export default function AbonoDialog({
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
   };
 
-  // Elegir el depósito trae el monto ya puesto —todo lo disponible—, que es
-  // lo que se hace casi siempre.
-  const handleMedio = (e) => {
-    const medio = e.target.value;
-    setForm((prev) => ({
-      ...prev,
-      medio,
-      ...(medio === MEDIO_DEPOSITO ? { monto: String(depositoDisponible) } : {}),
-    }));
-  };
-
   const handleCerrar = () => {
     if (guardando) return;
     onClose();
@@ -256,11 +225,8 @@ export default function AbonoDialog({
   const validar = () => {
     const errores = {};
     if (!form.fecha) errores.fecha = "Este campo es obligatorio.";
-    if (!form.medio) errores.medio = "Elegí el medio de pago.";
-    if (montoNuevo <= 0) errores.monto = "El valor debe ser mayor a 0.";
-    if (conDeposito && montoNuevo > depositoDisponible) {
-      errores.monto = `Del depósito hay disponibles ${formatearMoneda(depositoDisponible)}.`;
-    }
+    if (montoNuevo > 0 && !form.medio) errores.medio = "Elegí el medio de pago.";
+    if (!hayAlgoQueRegistrar) errores.monto = "El valor debe ser mayor a 0.";
     setErrors(errores);
     return Object.keys(errores).length === 0;
   };
@@ -268,52 +234,36 @@ export default function AbonoDialog({
   const handleGuardar = async () => {
     if (!validar()) return;
 
-    const aplicaciones = reparto.filter((item) => item.aplicado > 0);
+    const aplicaciones = filas.filter((fila) => fila.deposito + fila.plata > 0);
     if (aplicaciones.length === 0) return;
 
     setGuardando(true);
     try {
-      // El día de HOY, no la fecha que el usuario le puso al abono: los días
-      // vencidos se cuentan contra el calendario real, y un abono cargado con
-      // fecha de ayer no cierra los días que corrieron desde entonces.
-      const hoy = obtenerFechaHoyBogota();
+      // El día de HOY, no la fecha que se le puso al abono: los días vencidos
+      // se cuentan contra el calendario real.
+      const hoyAlGuardar = obtenerFechaHoyBogota();
+      const tipo = loEligioElCliente ? "cliente" : "sistema";
       const batch = writeBatch(db);
-      aplicaciones.forEach(({ factura, aplicado }) => {
+      aplicaciones.forEach(({ factura, deposito, plata }) => {
         const abonos = [
           ...abonosDe(factura),
-          {
-            fecha: form.fecha,
-            medio: form.medio,
-            monto: aplicado,
-            // De dónde salió la decisión de que fuera a ESTA factura: el
-            // cliente lo pidió, o lo repartió la app entre las que tenían
-            // saldo.
-            tipo: loEligioElCliente ? "cliente" : "sistema",
-          },
+          // El del depósito primero: es lo que se usó primero.
+          ...(deposito > 0
+            ? [{ fecha: form.fecha, medio: MEDIO_DEPOSITO, monto: deposito, tipo }]
+            : []),
+          ...(plata > 0 ? [{ fecha: form.fecha, medio: form.medio, monto: plata, tipo }] : []),
         ];
         // Si con este abono la factura queda sin nada que reclamarle HOY, los
         // días que sus equipos llevan vencidos quedan cobrados: se sellan para
-        // que el contador arranque de cero desde acá y no se le vuelvan a
-        // pedir mañana sumados a los nuevos (ver sellarDiasVencidos).
-        //
-        // Se mira lo EXIGIBLE y no el saldo porque un equipo que sigue afuera
-        // tiene días por delante ya pactados: esos se cobran cuando devuelva,
-        // y esperarlos dejaría el sellado para nunca.
-        //
-        // El equipo no cambia de plazo por esto: sigue con la fecha que tenía
-        // y, si ya estaba pasado, mañana le abre un tramo nuevo. Lo único que
-        // se cierra es lo que el cliente acaba de pagar.
+        // que el contador arranque de cero (ver sellarDiasVencidos). Se mira lo
+        // EXIGIBLE y no el saldo: los días ya pactados por delante se cobran al
+        // devolver.
         const conAbono = { ...factura, abonos };
         const grupos =
-          calcularExigible(conAbono, hoy) === 0
-            ? sellarFacturaPagada(conAbono, hoy)
+          calcularExigible(conAbono, hoyAlGuardar) === 0
+            ? sellarFacturaPagada(conAbono, hoyAlGuardar)
             : null;
 
-        // Los abonos y, si hubo, los equipos con su tramo cerrado: el saldo no
-        // se guarda, se calcula al mostrarlo (ver FacturaFormDialog). Guardarlo
-        // acá era justo donde más daño hacía: el recálculo daba cero en cuanto
-        // el alta estaba paga, y el abono que se acababa de registrar se
-        // perdía sin dejar rastro.
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,
           ...(grupos ? { grupos } : {}),
@@ -335,6 +285,70 @@ export default function AbonoDialog({
       setGuardando(false);
     }
   };
+
+  // Una de las dos opciones grandes del paso 1.
+  const opcion = (valor, Icono, titulo, texto) => (
+    <ButtonBase
+      aria-pressed={que === valor}
+      onClick={() => {
+        setQue(valor);
+        setErrors({});
+      }}
+      sx={{
+        flex: 1,
+        display: "grid",
+        justifyItems: "start",
+        gap: 0.25,
+        textAlign: "left",
+        p: 1.5,
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: que === valor ? acento : "divider",
+        bgcolor: que === valor ? alpha(acento, 0.08) : "transparent",
+      }}
+    >
+      <Icono fontSize="small" sx={{ color: acento }} />
+      <Typography variant="body2" fontWeight="bold">
+        {titulo}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        {texto}
+      </Typography>
+    </ButtonBase>
+  );
+
+  const rotuloPaso = (numero, texto) => (
+    <Typography
+      variant="overline"
+      color="text.secondary"
+      sx={{ display: "flex", alignItems: "center", gap: 1, lineHeight: 1.6, mb: 1 }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          bgcolor: acento,
+          color: theme.palette.getContrastText(acento),
+          fontSize: "0.7rem",
+          fontWeight: "bold",
+        }}
+      >
+        {numero}
+      </Box>
+      {texto}
+    </Typography>
+  );
+
+  const renglon = (clase, rotulo, valor, sx) => (
+    <Box className={clase} sx={sx}>
+      <Typography variant="body2">{rotulo}</Typography>
+      <Typography variant="body2">{valor}</Typography>
+    </Box>
+  );
 
   return (
     <>
@@ -359,276 +373,273 @@ export default function AbonoDialog({
               </Typography>
             )}
           </Stack>
+          {facturasConSaldo.length > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              Debe {formatearMoneda(deudaActual)}
+            </Typography>
+          )}
         </DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Fecha del abono"
-                type="date"
-                value={form.fecha}
-                onChange={handleChange("fecha")}
-                error={!!errors.fecha}
-                helperText={errors.fecha}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth error={!!errors.medio}>
-                <InputLabel id="abono-medio-label" htmlFor="abono-medio-input">
-                  Medio de pago
-                </InputLabel>
-                <Select
-                  labelId="abono-medio-label"
-                  inputProps={{ id: "abono-medio-input" }}
-                  label="Medio de pago"
-                  value={form.medio}
-                  onChange={handleMedio}
-                >
-                  {MODOS_PAGO.map((medio) => (
-                    <MenuItem key={medio} value={medio}>
-                      {medio}
-                    </MenuItem>
-                  ))}
-                  {/* Solo si alguna factura tiene depósito libre y algo que
-                      pagar con él. */}
-                  {conDepositoLibre.length > 0 && (
-                    <MenuItem value={MEDIO_DEPOSITO}>
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        gap={0.75}
-                        sx={{ color: "custom.seccionDeposito" }}
-                      >
-                        <IconoDeposito fontSize="small" />
-                        {MEDIO_DEPOSITO}
-                      </Stack>
-                    </MenuItem>
+          {facturasConSaldo.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Este cliente no tiene facturas con saldo pendiente.
+            </Typography>
+          ) : (
+            <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+              {/* ── 1. ¿Qué va a pagar? ── */}
+              <Box>
+                {rotuloPaso(1, "¿Qué va a pagar?")}
+                <Stack direction="row" gap={1.25}>
+                  {opcion(
+                    "todo",
+                    AccountBalanceWalletIcon,
+                    "Toda la deuda",
+                    "Se reparte de la más antigua a la más nueva",
                   )}
-                </Select>
-                {errors.medio && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
-                    {errors.medio}
-                  </Typography>
-                )}
-              </FormControl>
-            </Grid>
+                  {opcion("facturas", ChecklistIcon, "Facturas específicas", "El cliente dice a cuáles va")}
+                </Stack>
 
-            <Grid item xs={12}>
-              <TextField
-                label="Valor del abono"
-                value={formatearMonedaInput(form.monto)}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, monto: limpiarMonedaInput(e.target.value) }))
-                }
-                error={!!errors.monto}
-                helperText={
-                  errors.monto ||
-                  (conDeposito
-                    ? `Disponible del depósito: ${formatearMoneda(depositoDisponible)}`
-                    : undefined)
-                }
-                fullWidth
-                autoFocus
-              />
-            </Grid>
-
-            {/* LA DEUDA DEL CLIENTE, que es como se piensa un abono: no se
-                paga una factura, se baja lo que se debe. El reparto entre
-                facturas viene abajo y lo hace la app; acá arriba va la cuenta
-                que el cliente tiene en la cabeza cuando entrega la plata. */}
-            {facturasConSaldo.length > 0 && (
-              <Grid item xs={12}>
-                <Paper variant="totales">
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2">Deuda actual</Typography>
-                    <Typography variant="body2">
-                      {formatearMoneda(deudaActual)}
-                    </Typography>
-                  </Stack>
-                  {montoNuevo > 0 && (
-                    <>
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="body2">Abono</Typography>
-                        <Typography variant="body2">
-                          −{formatearMoneda(montoNuevo)}
-                        </Typography>
-                      </Stack>
-                      <Divider sx={{ my: 0.75 }} />
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                          {/* No dice "Queda debiendo" a secas: cada factura
-                              de la lista de abajo usa ese mismo rótulo para
-                              LO SUYO, y dos veces la misma frase con dos
-                              significados se lee como si tuvieran que
-                              coincidir. */}
-                          {deudaActual > montoNuevo
-                            ? "Deuda después del abono"
-                            : "Saldo a favor"}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                          {formatearMoneda(Math.abs(deudaActual - montoNuevo))}
-                        </Typography>
-                      </Stack>
-                    </>
-                  )}
-                </Paper>
-              </Grid>
-            )}
-
-            {/* El reparto automático: cada factura con saldo, en el orden en
-                que se le va aplicando la plata, y cómo queda si se guarda
-                este abono. */}
-            <Grid item xs={12}>
-              <Typography
-                variant="overline"
-                color="text.secondary"
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  lineHeight: 1.6,
-                }}
-              >
-                <AccountBalanceWalletIcon fontSize="small" />
-                Facturas con saldo
-              </Typography>
-
-              {/* Quién está decidiendo ahora mismo. Sin esto, una lista con
-                  casillas sin marcar se lee como "no va a ninguna". */}
-              {facturasConSaldo.length > 0 && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
-                >
-                  {loEligioElCliente ? (
-                    `Va solo a ${
-                      elegidas.length === 1
-                        ? "la factura marcada"
-                        : `las ${elegidas.length} facturas marcadas`
-                    }`
-                  ) : (
-                    <>
-                      <AutoAwesomeIcon sx={{ fontSize: 14 }} />
-                      Se reparte solo, de la más antigua a la más nueva. Marcá
-                      una factura si el cliente pidió que fuera a esa.
-                    </>
-                  )}
-                </Typography>
-              )}
-
-              {facturasConSaldo.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  Este cliente no tiene facturas con saldo pendiente.
-                </Typography>
-              ) : (
-                <Paper variant="totales">
-                  {facturasConSaldo.map(({ factura, cuenta }) => {
-                    const aplicado = aplicadoEn.get(factura.id) ?? 0;
-                    const quedaSaldo = Math.max(0, cuenta.saldoPendiente - aplicado);
-                    const quedaAFavor = Math.max(0, aplicado - cuenta.saldoPendiente);
-                    const elegida = elegidas.includes(factura.id);
-
-                    // El depósito, en una línea y solo cuando cambia cómo se
-                    // lee el saldo: con equipos afuera, parte del saldo es
-                    // garantía por cobrar.
-                    const { porCobrar } = cuenta.deposito;
-
-                    return (
-                      <Box key={factura.id}>
-                        <Box className="fila total">
-                          <Stack direction="row" alignItems="center" gap={0.5}>
-                            {/* La casilla va pegada al número de la factura,
-                                que es lo que el cliente nombra por teléfono. */}
+                {loEligioElCliente && (
+                  <Stack spacing={0.75} sx={{ mt: 1.25 }}>
+                    {facturasConSaldo.map((item) => {
+                      const { factura, cuenta } = item;
+                      const numero = datosFactura(factura).numeroFactura ?? "s/n";
+                      const libre = topeDeposito(item);
+                      return (
+                        <FormControlLabel
+                          key={factura.id}
+                          sx={{
+                            m: 0,
+                            px: 1,
+                            py: 0.5,
+                            border: "1px solid",
+                            borderColor: elegidas.includes(factura.id) ? acento : "divider",
+                            borderRadius: 1.5,
+                            "& .MuiFormControlLabel-label": { flex: 1 },
+                          }}
+                          control={
                             <Checkbox
                               size="small"
-                              checked={elegida}
+                              checked={elegidas.includes(factura.id)}
                               onChange={() => alternarElegida(factura.id)}
-                              inputProps={{
-                                "aria-label": `Abonar a la factura ${
-                                  datosFactura(factura).numeroFactura ?? "s/n"
-                                }`,
-                              }}
-                              sx={{ p: 0.25, color: "inherit" }}
+                              inputProps={{ "aria-label": `Abonar a la factura ${numero}` }}
                             />
-                            <Typography variant="body2">
-                              Factura {datosFactura(factura).numeroFactura ?? "s/n"}
-                            </Typography>
-                          </Stack>
-                          <Typography variant="body2">
-                            {formatearMoneda(cuenta.total)}
-                          </Typography>
-                        </Box>
+                          }
+                          label={
+                            <Stack direction="row" justifyContent="space-between" gap={1}>
+                              <Box>
+                                <Typography variant="body2" fontWeight="bold" sx={{ color: acento }}>
+                                  Factura {numero}
+                                </Typography>
+                                {libre > 0 && (
+                                  <Typography variant="caption" sx={{ color: colorDeposito }}>
+                                    Depósito libre {formatearMoneda(libre)}
+                                  </Typography>
+                                )}
+                                {cuenta.deposito.porCobrar > 0 && (
+                                  <Typography variant="caption" sx={{ display: "block", color: colorDeposito }}>
+                                    {`Incluye ${formatearMoneda(cuenta.deposito.porCobrar)} de depósito por cobrar`}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Typography variant="body2">{formatearMoneda(cuenta.saldoPendiente)}</Typography>
+                            </Stack>
+                          }
+                        />
+                      );
+                    })}
+                  </Stack>
+                )}
+              </Box>
 
-                        <Box className="fila">
-                          <Typography variant="body2">Saldo actual</Typography>
-                          <Typography variant="body2">
-                            {formatearMoneda(cuenta.saldoPendiente)}
-                          </Typography>
-                        </Box>
+              {/* ── 2. ¿Cómo paga? ── */}
+              {pasoUnoListo && (
+                <Box>
+                  {rotuloPaso(2, "¿Cómo paga?")}
 
-                        {/* Cuelga del saldo —sangrado y en letra chica—
-                            porque lo explica, no se le suma. */}
-                        {porCobrar > 0 && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: "block",
-                              pl: 1.5,
-                              mt: -0.5,
-                              mb: 1,
-                              color: "custom.depositoText",
-                            }}
-                          >
-                            {`Incluye ${formatearMoneda(porCobrar)} de depósito por cobrar`}
+                  {depositoDisponible > 0 && (
+                    <FormControlLabel
+                      sx={{
+                        m: 0,
+                        mb: 1.5,
+                        px: 1,
+                        width: "100%",
+                        border: "1px solid",
+                        borderColor: alpha(theme.palette.custom.seccionDeposito, 0.5),
+                        borderRadius: 1.5,
+                        bgcolor: alpha(theme.palette.custom.seccionDeposito, 0.07),
+                        color: colorDeposito,
+                      }}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={usarDeposito}
+                          onChange={(e) => {
+                            setUsarDeposito(e.target.checked);
+                            setErrors({});
+                          }}
+                          sx={{ color: colorDeposito, "&.Mui-checked": { color: colorDeposito } }}
+                        />
+                      }
+                      label={
+                        <Stack direction="row" alignItems="center" gap={0.75}>
+                          <IconoDeposito fontSize="small" />
+                          <Typography variant="body2">
+                            Usar primero el depósito libre ({formatearMoneda(depositoDisponible)})
+                          </Typography>
+                        </Stack>
+                      }
+                    />
+                  )}
+
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth error={!!errors.medio}>
+                        <InputLabel id="abono-medio-label" htmlFor="abono-medio-input">
+                          Medio de pago
+                        </InputLabel>
+                        <Select
+                          labelId="abono-medio-label"
+                          inputProps={{ id: "abono-medio-input" }}
+                          label="Medio de pago"
+                          value={form.medio}
+                          onChange={handleChange("medio")}
+                        >
+                          {MODOS_PAGO.map((medio) => (
+                            <MenuItem key={medio} value={medio}>
+                              {medio}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.medio && (
+                          <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>
+                            {errors.medio}
                           </Typography>
                         )}
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Valor del abono"
+                        value={formatearMonedaInput(form.monto)}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, monto: limpiarMonedaInput(e.target.value) }))
+                        }
+                        error={!!errors.monto}
+                        helperText={errors.monto}
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
 
-                        {aplicado > 0 && (
-                          <>
-                            <Box className="fila abono">
-                              <Typography variant="body2">
-                                {/* Con el depósito lo dice: no es plata nueva. */}
-                                {conDeposito ? "+ Se abona depósito" : "+ Se abona"}
-                              </Typography>
-                              <Typography variant="body2">
-                                {formatearMoneda(aplicado)}
-                              </Typography>
-                            </Box>
+                  {/* Cuánto falta, y el atajo para llenarlo. */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.75 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Falta por pagar: <b>{formatearMoneda(faltaPorPagar)}</b>
+                    </Typography>
+                    {faltaPorPagar > 0 && montoNuevo !== faltaPorPagar && (
+                      <Button
+                        size="small"
+                        onClick={() => setForm((prev) => ({ ...prev, monto: String(faltaPorPagar) }))}
+                        sx={{ p: 0, minWidth: 0 }}
+                      >
+                        Pagar lo que falta
+                      </Button>
+                    )}
+                  </Stack>
 
-                            <Box className={quedaSaldo > 0 ? "fila alerta" : "fila ok"}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {quedaAFavor > 0
-                                  ? "Saldo a favor"
-                                  : quedaSaldo > 0
-                                    ? "Queda debiendo"
-                                    : "Queda saldada"}
-                              </Typography>
-                              <Typography variant="body2" fontWeight="bold">
-                                {quedaAFavor > 0
-                                  ? formatearMoneda(quedaAFavor)
-                                  : quedaSaldo > 0
-                                    ? formatearMoneda(quedaSaldo)
-                                    : ""}
-                              </Typography>
-                            </Box>
-                          </>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Paper>
+                  <TextField
+                    label="Fecha del abono"
+                    type="date"
+                    value={form.fecha}
+                    onChange={handleChange("fecha")}
+                    error={!!errors.fecha}
+                    helperText={errors.fecha}
+                    fullWidth
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mt: 1.5 }}
+                  />
+                </Box>
               )}
-            </Grid>
 
-            {/* EL RECORDATORIO DE LOS EQUIPOS. Va al final y no arriba a
-                propósito: recién cuando hay un valor escrito se sabe a qué
-                facturas va la plata, que es lo que decide por cuáles avisar. */}
-            {tituloAviso && (
-              <Grid item xs={12}>
+              {/* ── 3. Así queda ── */}
+              {pasoUnoListo && (
+                <Box>
+                  {rotuloPaso(3, "Así queda")}
+                  <Paper variant="totales">
+                    {renglon(
+                      "fila",
+                      loEligioElCliente ? "Deben las facturas elegidas" : "Deuda actual",
+                      formatearMoneda(debeLoElegido),
+                    )}
+                    {pagadoConDeposito > 0 &&
+                      renglon("fila deposito", "Con el depósito", `−${formatearMoneda(pagadoConDeposito)}`)}
+                    {montoNuevo > 0 &&
+                      renglon("fila abono", `Con ${form.medio || "…"}`, `−${formatearMoneda(montoNuevo)}`)}
+                    <Divider sx={{ my: 0.75 }} />
+                    <Box className={quedaDespues > 0 ? "fila alerta" : "fila ok"} sx={{ mb: 0 }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {quedaDespues < 0
+                          ? "Queda a favor"
+                          : quedaDespues > 0
+                            ? "Deuda después del abono"
+                            : "Queda al día"}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        {formatearMoneda(Math.abs(quedaDespues))}
+                      </Typography>
+                    </Box>
+
+                    {/* El reparto por factura, plegado: se mira si hace falta. */}
+                    {hayAlgoQueRegistrar && (
+                      <Button
+                        size="small"
+                        onClick={() => setVerReparto((antes) => !antes)}
+                        startIcon={verReparto ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        sx={{ mt: 1, p: 0, color: "inherit", opacity: 0.8 }}
+                      >
+                        {verReparto ? "Ocultar el reparto" : "Ver cómo se reparte"}
+                      </Button>
+                    )}
+                    {hayAlgoQueRegistrar &&
+                      verReparto &&
+                      filas.map(({ factura, cuenta, deposito, plata }) => {
+                        const queda = cuenta.saldoPendiente - deposito - plata;
+                        return (
+                          <Box key={factura.id} sx={{ mt: 1, pt: 1, borderTop: "1px solid", borderColor: "divider" }}>
+                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                              Factura {datosFactura(factura).numeroFactura ?? "s/n"} · debe{" "}
+                              {formatearMoneda(cuenta.saldoPendiente)}
+                            </Typography>
+                            {deposito > 0 &&
+                              renglon("fila deposito", "+ Se abona depósito", formatearMoneda(deposito))}
+                            {plata > 0 && renglon("fila abono", "+ Se abona", formatearMoneda(plata))}
+                            {deposito + plata === 0 && (
+                              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                No recibe nada
+                              </Typography>
+                            )}
+                            {deposito + plata > 0 && (
+                              <Box className={queda > 0 ? "fila alerta" : "fila ok"} sx={{ mb: 0 }}>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {queda < 0 ? "Saldo a favor" : queda > 0 ? "Queda debiendo" : "Queda saldada"}
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {queda === 0 ? "" : formatearMoneda(Math.abs(queda))}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      })}
+                  </Paper>
+                </Box>
+              )}
+
+              {/* EL RECORDATORIO DE LOS EQUIPOS, al final: recién con el
+                  reparto se sabe a qué facturas va la plata. */}
+              {tituloAviso && (
                 <Paper
                   variant="outlined"
                   sx={{
@@ -643,32 +654,28 @@ export default function AbonoDialog({
                       <Typography variant="body2" fontWeight="bold">
                         {tituloAviso}
                       </Typography>
-                      {/* La salida está a la vista: el aviso se puede omitir.
-                          Sin esa línea, un recuadro amarillo que no se puede
-                          quitar se lee como un error que hay que resolver. */}
                       <Typography variant="body2" color="text.secondary">
-                        Confirma con el cliente la renovación o la fecha de
-                        devolución. Si ya lo gestionaste, puedes omitir este
-                        aviso.
+                        Confirma con el cliente la renovación o la fecha de devolución. Si ya lo
+                        gestionaste, puedes omitir este aviso.
                       </Typography>
                     </Box>
                   </Stack>
                 </Paper>
-              </Grid>
-            )}
-          </Grid>
+              )}
+            </Stack>
+          )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", gap: 2, px: 3, pb: 3 }}>
           <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          {/* Nada traba el cobro: el aviso de los equipos es un recordatorio,
-              no un permiso. */}
+          {/* Apagado hasta que haya algo que registrar. El aviso de los equipos
+              no traba nada: es un recordatorio, no un permiso. */}
           <Button
             variant="contained"
             color="success"
             onClick={handleGuardar}
-            disabled={guardando}
+            disabled={guardando || !pasoUnoListo}
           >
             {guardando ? "Guardando..." : "Registrar abono"}
           </Button>

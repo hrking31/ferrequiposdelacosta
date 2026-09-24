@@ -674,16 +674,17 @@ Ese reparto es el caso normal, pero **el cliente puede decidir**: "esto es para 
 
 Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostrando **todas** las facturas con saldo, porque hay que poder elegir entre ellas y ver cómo queda cada una; y un renglón dice **quién está decidiendo ahora mismo**, porque una lista de casillas vacías se lee como "no va a ninguna parte" cuando en realidad ese es el caso normal.
 
-#### Pagar con el depósito (2026-09-23)
+#### El diálogo en tres pasos, y el depósito como casilla (2026-09-23)
 
-Desde que el depósito salió del total (ver la sección 7), usarlo para pagar ya no pasa solo: es un abono más, con el medio **Depósito**. Aparece en el diálogo únicamente si alguna factura tiene depósito libre —los equipos ya volvieron— y saldo por cobrar, y al elegirlo el valor se completa con lo disponible. Cada factura solo puede usar **su** depósito, hasta lo que tiene libre y hasta lo que debe: por eso ese abono no entra al reparto automático.
+El diálogo mostraba todo junto —el valor, la deuda, la lista de facturas— antes de saber qué se quería pagar. Ahora va en el orden en que se piensa un cobro, y cada paso aparece cuando el anterior está resuelto:
 
-Debajo del saldo de cada factura queda una sola línea, en el color del depósito, cuando cambia cómo se lee ese saldo:
+1. **¿Qué va a pagar?** Toda la deuda —la app reparte, de la más antigua a la más nueva— o facturas específicas, que se marcan en una lista con lo que debe cada una y si tiene depósito libre.
+2. **¿Cómo paga?** Si lo elegido tiene depósito libre, la casilla **"Usar primero el depósito libre ($X)"**; después el medio y el valor de la plata que trae, con *"Falta por pagar"* y el atajo **"Pagar lo que falta"**.
+3. **Así queda:** la deuda, lo que se paga con el depósito, lo que se paga en plata y lo que queda. El reparto por factura va plegado en *"Ver cómo se reparte"*.
 
-- **Con los equipos afuera** — *"Incluye $300.000 de depósito por cobrar"*, si el cliente todavía no dejó la garantía completa.
-- **Ya devueltos** — *"Tiene $260.000 de depósito libre para pagar"*.
+**El depósito no es un medio de pago:** es una casilla. Marcada, cada factura paga primero con **su** depósito —hasta lo que tiene libre y hasta lo que debe—, y la plata cubre el resto, repartida como siempre. Se guardan los dos abonos en la misma operación: el del depósito con medio *"Depósito"*, para que la lista de abonos diga cómo se pagó. Con un cliente que debe $650.000 y tiene $340.000 de depósito libre, marcar la casilla y pagar $310.000 por Bancolombia lo deja al día en un solo paso.
 
-> El 22/09 se había descartado un botón para "cambiar el depósito por pago", porque el cambio ya ocurría solo y un botón habría aplicado la misma plata dos veces. Con el depósito fuera del total la situación se invirtió: ya no ocurre solo, así que hacía falta la forma de hacerlo a mano, y quedó escrita como un abono con fecha.
+> El 22/09 se había descartado un botón para "cambiar el depósito por pago", porque el cambio ya ocurría solo. Con el depósito fuera del total ya no ocurre solo, así que hacía falta la forma de hacerlo a mano. Primero se probó como un medio de pago más, y no se entendía; quedó como casilla.
 
 Cada abono guarda de dónde salió esa decisión: **`sistema`** cuando repartió la app, **`cliente`** cuando lo pidió él, y **`agregado`** cuando sobró de pagar unos equipos agregados (con `desdeFactura`, si el sobrante cruzó desde otra). No cambia ninguna cuenta —para el saldo los tres son un abono igual— pero un mes después permite explicar por qué esa plata terminó ahí, que es lo que no se podía cuando el reparto automático era la única forma.
 
