@@ -48,13 +48,27 @@ export default function HistorialEquipoDialog({
   hoy,
 }) {
   return (
-    <Dialog open={open && Boolean(equipo)} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog
+      open={open && Boolean(equipo)}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      // EN EL CELULAR, casi todo el ancho. Con los 32px de margen que MUI deja
+      // a cada lado, la historia quedaba en 300px: cada hito se partía en
+      // cuatro renglones y el rótulo "Vencido" se salía por la derecha.
+      sx={{
+        "& .MuiDialog-paper": {
+          mx: { xs: 1, sm: 4 },
+          width: { xs: "calc(100% - 16px)", sm: undefined },
+        },
+      }}
+    >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <TimelineIcon sx={{ color: "custom.accent" }} />
         Historia del equipo
       </DialogTitle>
       {equipo && (
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ px: { xs: 1.5, sm: 3 } }}>
           <EncabezadoHistoria
             equipo={equipo}
             numeroFactura={numeroFactura}
