@@ -386,7 +386,8 @@ export const CustomThemeProvider = ({ children }) => {
           // más marcado que "divider", que ahí quedaba casi invisible sobre el
           // fondo del diálogo.
           // Se usa en: Agregar equipo y Crear/Editar factura, en la lista de
-          // equipos que se están cargando.
+          // equipos que se están cargando; y en la línea de tiempo del equipo
+          // cuando se abre en un diálogo (Seguimiento, en el celular).
           itemBorder: esClaro ? BORDE_INPUT : GRIS_TEXTO,
 
           // El gris de los textos chiquitos de apoyo: epígrafes de fotos,

@@ -60,7 +60,10 @@ export default function HistorialEquipoDialog({
             numeroFactura={numeroFactura}
             nombreCliente={nombreCliente}
           />
-          <HistorialEquipo equipo={equipo} hoy={hoy} />
+          {/* Su raya de arriba es la que separa al cliente de la historia:
+              con `enDialogo` usa el borde que se ve sobre el fondo del
+              diálogo. */}
+          <HistorialEquipo equipo={equipo} hoy={hoy} enDialogo />
         </DialogContent>
       )}
       <DialogActions>

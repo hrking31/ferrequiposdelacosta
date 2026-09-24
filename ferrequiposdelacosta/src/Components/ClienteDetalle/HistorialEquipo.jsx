@@ -64,10 +64,15 @@ const ICONOS = {
 };
 
 
-export default function HistorialEquipo({ equipo, hoy }) {
+export default function HistorialEquipo({ equipo, hoy, enDialogo = false }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
   const hitos = historialEquipo(equipo, hoy);
+  // La raya de arriba y el riel. En modo oscuro el fondo de un diálogo es
+  // del MISMO azul que "divider", y ahí la línea se dibujaba pero no se veía:
+  // la historia quedaba como íconos sueltos. Dentro de un diálogo va el borde
+  // que el tema tiene para eso (ver custom.itemBorder).
+  const colorLinea = enDialogo ? theme.palette.custom.itemBorder : "divider";
 
   // El color de cada tono sale del tema, igual que el resto de la ficha: un
   // hito vencido se ve del mismo rojo que el estado "Vencido" de la fila.
@@ -140,7 +145,7 @@ export default function HistorialEquipo({ equipo, hoy }) {
         mt: 1,
         pt: 1,
         borderTop: "1px solid",
-        borderColor: "divider",
+        borderColor: colorLinea,
         display: "grid",
         // Fecha, riel, qué pasó y cuánto. La última mide lo que mide el
         // estado más largo (ver ESTADO_MAS_LARGO) y es igual en todas las
@@ -207,7 +212,7 @@ export default function HistorialEquipo({ equipo, hoy }) {
                     flex: 1,
                     minHeight: 8,
                     my: 0.25,
-                    bgcolor: "divider",
+                    bgcolor: colorLinea,
                   }}
                 />
               )}
@@ -252,4 +257,6 @@ HistorialEquipo.propTypes = {
   equipo: PropTypes.object.isRequired,
   // La fecha de hoy, para que la prueba no dependa del reloj.
   hoy: PropTypes.string,
+  // Dentro de un diálogo, las líneas usan un borde más marcado.
+  enDialogo: PropTypes.bool,
 };

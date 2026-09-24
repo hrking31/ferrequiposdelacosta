@@ -1477,9 +1477,8 @@ export default function ClienteSeguimientoCard({
                 {/* SOLO EN CELULAR los botones se esconden con la factura
                     cerrada: ahí lo que se busca es a quién cobrarle y cuánto,
                     no qué hacer con ella, y la tarjeta entera es la que abre.
-                    En computador NO pueden esconderse: la flecha que abre la
-                    factura vive en este mismo grupo, y sin ella no había
-                    manera de desplegarla.
+                    En computador NO se esconden: con la factura cerrada se
+                    sigue cobrando y devolviendo desde la lista.
                     En celular van con 24px entre uno y otro —lo que hace
                     falta para que el dedo no alcance al vecino— y el toque
                     muere en ellos, así no pliegan la tarjeta. */}
@@ -1550,31 +1549,6 @@ export default function ClienteSeguimientoCard({
                     </IconButton>
                   </span>
                 </Tooltip>
-
-                {/* En celular la flecha sube al renglón del chip —es la
-                    señal de que la tarjeta se abre— y quien pliega es la
-                    tarjeta entera. En computador sigue siendo este botón. */}
-                {!esMovil && (
-                  <Tooltip
-                    title={
-                      facturaPlegada(factura.id)
-                        ? "Mostrar factura"
-                        : "Ocultar factura"
-                    }
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => togglePlegarFactura(factura.id)}
-                      sx={{ ...iconBtnSx, color: acento }}
-                    >
-                      {facturaPlegada(factura.id) ? (
-                        <ExpandMoreIcon fontSize="small" />
-                      ) : (
-                        <ExpandLessIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </Tooltip>
-                )}
 
                 {/* LA PLATA QUE SALE. Vive acá y en un solo lugar, con la
                     factura abierta o cerrada: antes saltaba al recuadro de la
@@ -1651,6 +1625,33 @@ export default function ClienteSeguimientoCard({
                     cómo abrirla se leen juntas. */}
                 {esMovil &&
                   renderFlechaPlegable(!facturaPlegada(factura.id), acento)}
+
+                {/* EN COMPUTADOR, el botón que despliega la factura va también
+                    a la derecha del chip, en el mismo orden que la ficha del
+                    cliente: acciones, estado y, al final, abrir. En celular
+                    quien pliega es la tarjeta entera y la flecha de arriba es
+                    solo la señal. */}
+                {!esMovil && (
+                  <Tooltip
+                    title={
+                      facturaPlegada(factura.id)
+                        ? "Mostrar factura"
+                        : "Ocultar factura"
+                    }
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => togglePlegarFactura(factura.id)}
+                      sx={{ ...iconBtnSx, color: acento }}
+                    >
+                      {facturaPlegada(factura.id) ? (
+                        <ExpandMoreIcon fontSize="small" />
+                      ) : (
+                        <ExpandLessIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                )}
 
 
                 </Stack>
