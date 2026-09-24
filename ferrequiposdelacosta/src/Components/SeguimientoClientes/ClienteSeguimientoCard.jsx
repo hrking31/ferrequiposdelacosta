@@ -39,6 +39,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import {
   calcularCuentaCliente,
   calcularCuentaFactura,
@@ -89,6 +90,7 @@ import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
 import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
 import AbonoDialog from "../ClienteDetalle/AbonoDialog";
 import EntregarSaldoDialog from "../ClienteDetalle/EntregarSaldoDialog";
+import HistorialEquipoDialog from "./HistorialEquipoDialog";
 
 
 // Una factura entra a Seguimiento cuando vence, pero adentro puede tener
@@ -357,6 +359,8 @@ export default function ClienteSeguimientoCard({
   facturasConSaldo,
   hoy,
   onEquiposActualizados,
+  equipoElegido,
+  onElegirEquipo,
 }) {
   const theme = useTheme();
   const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
@@ -466,6 +470,11 @@ export default function ClienteSeguimientoCard({
   const [llamadaOpen, setLlamadaOpen] = useState(false);
   const [abonoOpen, setAbonoOpen] = useState(false);
   const [entregarOpen, setEntregarOpen] = useState(false);
+  // EN EL CELULAR, el equipo cuya historia está abierta en el diálogo. En el
+  // computador la historia va en el panel de la derecha, y quién está elegido
+  // lo guarda la pantalla (`equipoElegido`), porque el panel es uno solo para
+  // toda la lista.
+  const [historiaMovil, setHistoriaMovil] = useState(null);
 
   // El abono es del CLIENTE: se reparte entre todas sus facturas con saldo,
   // estén o no en cartera. Si la pantalla no las manda, se usan las de acá.
@@ -748,11 +757,56 @@ export default function ClienteSeguimientoCard({
   const renderEquipo = (equipo, key, situacion) => {
     const color = colorDeSituacion(situacion);
 
+    // EN EL COMPUTADOR el recuadro entero elige el equipo, y su historia sale
+    // en el panel de la derecha. Se lo identifica por su lugar en la factura:
+    // al refrescar la lista llegan objetos nuevos, y así el panel encuentra
+    // el mismo equipo ya con lo que se le acaba de registrar.
+    const posicion = equiposDe(factura).findIndex((item) => item.equipo === equipo);
+    const clave = `${cliente.id}/${factura.id}/${posicion}`;
+    // Lo decide la pantalla y no el ancho de acá: hay panel solo si la lista
+    // lo dibujó, y entonces manda `onElegirEquipo`. Sin panel, cada equipo
+    // lleva su botón para abrir la historia en un diálogo.
+    const elegible = Boolean(onElegirEquipo);
+    const elegido = elegible && equipoElegido === clave;
+    // Un segundo clic en el mismo lo suelta.
+    const elegir = () =>
+      onElegirEquipo(
+        elegido
+          ? null
+          : { clave, clienteId: cliente.id, facturaId: factura.id, posicion },
+      );
+
     return (
       // En celular sin marco propio: el equipo ya va dentro del recuadro de
       // su grupo —"Vencido 1"—, y otro marco adentro son dos bordes a 12px
       // que no separan nada.
-      <Box key={key} sx={esMovil ? undefined : recuadroDeBloque(color)}>
+      <Box
+        key={key}
+        {...(elegible && {
+          role: "button",
+          tabIndex: 0,
+          "aria-pressed": elegido,
+          "aria-label": `Ver la historia de ${equipo.nombre}`,
+          onClick: elegir,
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              elegir();
+            }
+          },
+        })}
+        sx={
+          esMovil
+            ? undefined
+            : {
+                ...recuadroDeBloque(color),
+                ...(elegible && { cursor: "pointer" }),
+                // El elegido, marcado con el acento por fuera de su borde: el
+                // color del borde es el de su urgencia y no se toca.
+                ...(elegido && { outline: `2px solid ${acento}`, outlineOffset: 1 }),
+              }
+        }
+      >
         {/* Cerrada, la flecha se centra en el alto del recuadro: el de entrega
             indefinida es más alto —su nombre baja de línea— y arriba quedaba
             descolgada. Abierta vuelve al borde: con las cuatro casillas en
@@ -780,9 +834,24 @@ export default function ClienteSeguimientoCard({
             )}
           </Box>
 
-          {/* Acá había una flecha que abría las casillas del equipo en
-              celular. Ya no hace falta: ahora se ven las cuatro, una debajo
-              de otra, apenas se abre el grupo que lo contiene. */}
+          {/* EN EL CELULAR, la historia del equipo en un diálogo: el dato que
+              la tarjeta no trae, sin salir de Seguimiento. En el computador la
+              historia va en el panel de la derecha. */}
+          {!elegible && (
+            <Tooltip title="Ver la historia del equipo">
+              <IconButton
+                size="small"
+                aria-label={`Ver la historia de ${equipo.nombre}`}
+                onClick={(e) => {
+                  detenerToque(e);
+                  setHistoriaMovil(equipo);
+                }}
+                sx={{ ...iconBtnSx, color: acento, flexShrink: 0 }}
+              >
+                <TimelineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Stack>
       </Box>
     );
@@ -2022,6 +2091,15 @@ export default function ClienteSeguimientoCard({
         facturas={facturasDelCliente}
         onEntregado={onEquiposActualizados}
       />
+
+      <HistorialEquipoDialog
+        open={Boolean(historiaMovil)}
+        onClose={() => setHistoriaMovil(null)}
+        equipo={historiaMovil}
+        numeroFactura={datos.numeroFactura}
+        nombreCliente={obtenerNombreCompleto(cliente)}
+        hoy={hoy}
+      />
     </Box>
   );
 }
@@ -2035,4 +2113,9 @@ ClienteSeguimientoCard.propTypes = {
   facturasConSaldo: PropTypes.array,
   hoy: PropTypes.string,
   onEquiposActualizados: PropTypes.func,
+  // Solo en el computador: qué equipo tiene su historia en el panel de la
+  // derecha, y a quién avisarle cuando se elige otro. Sin `onElegirEquipo`
+  // los recuadros no se pueden elegir.
+  equipoElegido: PropTypes.string,
+  onElegirEquipo: PropTypes.func,
 };

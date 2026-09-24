@@ -612,6 +612,8 @@ Ese costo va con el equipo y no arriba con la cuenta: una cosa es decirle al cli
 
 Acá vivió hasta el 14/09/2026 la historia completa del equipo en fichas —cuándo salió, a qué precio, los vencimientos por los que pasó, lo que costó cada tramo—. Contestaba *"¿cómo llegamos hasta acá?"*, que es la pregunta de la ficha del cliente y la que responde su línea de tiempo. Cartera pregunta otra: **a quién llamo hoy**.
 
+> **La historia vuelve, pero al lado (2026-09-24).** Con el cliente al teléfono a veces hace falta un dato que la ficha no trae —cuándo se pactó la última ampliación, qué días ya pagó—, y para verlo había que salir de Seguimiento. Ahora, **en computador**, la pantalla tiene una columna a la derecha: arriba los dos números del menú, *Equipos activos* y *Pagos pendientes* (de la misma pizarra, así que no pueden diferir), y abajo **la misma línea de tiempo de la ficha del cliente**, la del equipo al que se le hace clic. El elegido queda marcado con el acento; otro clic lo suelta. **En el celular** no hay columna: cada equipo lleva un botón que abre esa historia en un diálogo. La tarjeta no cambia; la historia sigue sin vivir adentro de ella.
+
 ### La misma tarjeta en el celular
 
 Las cuatro casillas no entran de lado en un teléfono sin que las fechas se corten, así que ahí la tarjeta se acomoda —y **en computador no cambia nada**:

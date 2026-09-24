@@ -16,6 +16,7 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
+import PanelSeguimiento from "./PanelSeguimiento";
 import {
   usePantallaCompacta,
   usePantallaBaja,
@@ -26,6 +27,8 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import {
   obtenerFechaHoyBogota,
   facturaEnSeguimiento,
+  equiposDe,
+  datosFactura,
 } from "../ClienteDetalle/facturaUtils";
 
 const obtenerNombreCompleto = (cliente) => {
@@ -53,6 +56,9 @@ export default function SeguimientoClientes() {
   const [clientesConSeguimiento, setClientesConSeguimiento] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  // Qué equipo tiene su historia en el panel: { clave, clienteId, facturaId,
+  // posicion }. Se guarda dónde está y no el equipo mismo (ver `elegido`).
+  const [seleccion, setSeleccion] = useState(null);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
 
   const fetchSeguimiento = useCallback(
@@ -245,21 +251,36 @@ export default function SeguimientoClientes() {
     </Stack>
   );
 
+  // EL PANEL DE LA DERECHA, solo en computador: los números del menú y la
+  // historia del equipo que se elija en la lista. En el celular no entra al
+  // lado, y cada equipo abre su historia en un diálogo.
+  const conPanel = !esCelular;
+
+  // El equipo elegido se busca de nuevo en la lista vigente cada vez: después
+  // de registrar una devolución o una ampliación la lista se recarga, y así el
+  // panel muestra la historia ya con lo que se acaba de anotar. Si la factura
+  // salió de Seguimiento, el panel vuelve a quedar vacío.
+  const elegido = useMemo(() => {
+    if (!seleccion) return null;
+    const item = clientesConSeguimiento.find(
+      ({ cliente }) => cliente.id === seleccion.clienteId,
+    );
+    const factura = item?.facturas.find((f) => f.id === seleccion.facturaId);
+    const equipo = factura && equiposDe(factura)[seleccion.posicion]?.equipo;
+    if (!equipo) return null;
+    return {
+      equipo,
+      numeroFactura: datosFactura(factura).numeroFactura,
+      nombreCliente: obtenerNombreCompleto(item.cliente),
+    };
+  }, [seleccion, clientesConSeguimiento]);
+
   if (loading) {
     return <LoadingLogo height="40vh" text="Cargando seguimiento de clientes..." />;
   }
 
-  return (
-    <Box
-      sx={{
-        width: "100%",
-        height: "100%",
-        minHeight: 0,
-        ...(altoCorto
-          ? { overflowY: "auto" }
-          : { display: "flex", flexDirection: "column" }),
-      }}
-    >
+  const lista = (
+    <>
       {clientesConSeguimiento.length > 0 &&
         (esCelular ? (
           // EN CELULAR, TRES RENGLONES: el buscador con el botón de menú al
@@ -336,11 +357,53 @@ export default function SeguimientoClientes() {
                 facturasConSaldo={facturasAbiertas}
                 hoy={obtenerFechaHoyBogota()}
                 onEquiposActualizados={() => fetchSeguimiento(true)}
+                {...(conPanel && {
+                  equipoElegido: elegido ? seleccion.clave : undefined,
+                  onElegirEquipo: setSeleccion,
+                })}
               />
             ))}
           </Stack>
         )}
       </Box>
+    </>
+  );
+
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        ...(altoCorto
+          ? { overflowY: "auto" }
+          : {
+              display: "flex",
+              flexDirection: conPanel ? "row" : "column",
+              gap: conPanel ? 3 : 0,
+            }),
+      }}
+    >
+      {conPanel ? (
+        <>
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {lista}
+          </Box>
+          <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+            <PanelSeguimiento elegido={elegido} hoy={obtenerFechaHoyBogota()} />
+          </Box>
+        </>
+      ) : (
+        lista
+      )}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

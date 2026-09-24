@@ -1,19 +1,16 @@
-import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
-import PropTypes from "prop-types";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Box,
   Grid,
   Button,
   IconButton,
-  Paper,
   Tooltip,
   Stack,
-  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
+import KpiCard from "../../Components/KpiCard/KpiCard";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
@@ -39,69 +36,6 @@ import { leerTotalesPanel } from "./totalesPanelDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
 import { formatearMoneda } from "../../Utils/formato";
-
-// Tarjeta resumen del panel de KPIs: ícono con tinte del color, número
-// grande y subtítulo. Sin botón "Ver detalle" (a pedido, no lo trae).
-//
-// El borde de color y el resplandor van FIJOS, no en el hover: estas tarjetas
-// no se pulsan —solo informan— y reaccionar al mouse las hacía parecer
-// botones. Se quedan con el aspecto que antes solo se veía al pasar por
-// encima, que además es el que mejor las separa del fondo.
-const KpiCard = ({ icono, etiqueta, valor, subtitulo, color, tamanoValor = "h1" }) => (
-  <Paper
-    elevation={0}
-    sx={{
-      flex: 1,
-      minWidth: 0,
-      maxWidth: 320,
-      aspectRatio: "2",
-      p: 2.5,
-      borderRadius: 3,
-      border: "1px solid",
-      borderColor: color,
-      boxShadow: `0 0 16px ${alpha(color, 0.35)}`,
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 1.5,
-    }}
-  >
-    <Box
-      sx={{
-        width: 72,
-        height: 72,
-        borderRadius: "50%",
-        bgcolor: alpha(color, 0.12),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
-    >
-      {cloneElement(icono, { sx: { color, fontSize: 36 } })}
-    </Box>
-    <Box sx={{ minWidth: 0 }}>
-      <Typography variant="subtitle1" sx={{ color, fontWeight: 700, letterSpacing: 0.3 }}>
-        {etiqueta}
-      </Typography>
-      <Typography variant={tamanoValor} fontWeight="bold" sx={{ mt: 1.5, mb: 1.5 }}>
-        {valor}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {subtitulo}
-      </Typography>
-    </Box>
-  </Paper>
-);
-
-KpiCard.propTypes = {
-  icono: PropTypes.element.isRequired,
-  etiqueta: PropTypes.string.isRequired,
-  valor: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  subtitulo: PropTypes.string.isRequired,
-  color: PropTypes.string.isRequired,
-  tamanoValor: PropTypes.string,
-};
 
 export default function AdminForms() {
   const theme = useTheme();
