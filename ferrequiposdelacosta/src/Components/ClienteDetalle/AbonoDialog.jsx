@@ -534,9 +534,8 @@ export default function AbonoDialog({
 
                     // El depósito, en una línea y solo cuando cambia cómo se
                     // lee el saldo: con equipos afuera, parte del saldo es
-                    // garantía por cobrar; ya devueltos, hay depósito libre
-                    // que puede pagarlo.
-                    const { porCobrar, porDevolver } = cuenta.deposito;
+                    // garantía por cobrar.
+                    const { porCobrar } = cuenta.deposito;
 
                     return (
                       <Box key={factura.id}>
@@ -573,7 +572,7 @@ export default function AbonoDialog({
 
                         {/* Cuelga del saldo —sangrado y en letra chica—
                             porque lo explica, no se le suma. */}
-                        {(porCobrar > 0 || porDevolver > 0) && (
+                        {porCobrar > 0 && (
                           <Typography
                             variant="caption"
                             sx={{
@@ -584,9 +583,7 @@ export default function AbonoDialog({
                               color: "custom.depositoText",
                             }}
                           >
-                            {porCobrar > 0
-                              ? `Incluye ${formatearMoneda(porCobrar)} de depósito por cobrar`
-                              : `Tiene ${formatearMoneda(porDevolver)} de depósito libre para pagar`}
+                            {`Incluye ${formatearMoneda(porCobrar)} de depósito por cobrar`}
                           </Typography>
                         )}
 

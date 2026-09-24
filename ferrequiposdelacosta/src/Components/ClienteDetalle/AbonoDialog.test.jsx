@@ -511,13 +511,10 @@ describe("AbonoDialog — lo que ya tenía", () => {
       expect(screen.queryByRole("option", { name: "Depósito" })).not.toBeInTheDocument();
     });
 
-    it("liquidado, dice cuánto depósito quedó libre para pagar", () => {
+    it("liquidado, no agrega ninguna línea del depósito", () => {
       abrir({ facturas: [conDepositoLiquidado] });
 
-      // $300.000 menos los $40.000 del daño.
-      expect(
-        screen.getByText(`Tiene ${enPantalla(260000)} de depósito libre para pagar`),
-      ).toBeInTheDocument();
+      expect(screen.queryByText(/depósito libre/)).not.toBeInTheDocument();
 
       // El saldo NO trae el depósito descontado: $500.000 de alquiler más los
       // $40.000 del daño, que se pagaron con el depósito. Dos veces: como deuda
