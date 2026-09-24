@@ -46,6 +46,7 @@ import {
   separarExcedentePago,
   calcularEstadoCliente,
   facturaCerrada,
+  abrirTramosFactura,
   describirMovimientosFactura,
   GRUPO_INICIAL,
   IVA,
@@ -586,6 +587,10 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
       entregas: entregasDe(factura),
       gestiones: gestionesDe(factura),
     };
+    // EL EQUIPO QUE YA NACE VENCIDO estrena su tramo acá, sin esperar a la
+    // madrugada: la factura cargada con la fecha de despacho atrasada. Sin el
+    // tramo la cuenta no le contaba ni un día vencido hasta las 3 a.m.
+    documento.grupos = abrirTramosFactura(documento) ?? documento.grupos;
     documento.factura.cerrada = facturaCerrada(documento);
 
     setGuardando(true);

@@ -7,6 +7,7 @@ import {
   proyectarAmpliacion,
   cerrarTramoVencido,
   abrirTramoVencido,
+  abrirTramosFactura,
   sellarFacturaPagada,
   diasDeEquipo,
   tramosDeEquipo,
@@ -351,6 +352,43 @@ describe("ampliar el plazo de un equipo vencido", () => {
   });
 });
 
+// El caso del 2026-09-24: una factura cargada ese día con un equipo que salió
+// el 15/09 por 3 días. Venció el 17, y al cargarla ya lleva 7 días vencidos
+// —del 18 al 24— que la madrugada todavía no anotó. El formulario le abre el
+// tramo al guardar, con la misma función que usa el repaso.
+describe("la factura cargada con la fecha de despacho atrasada", () => {
+  const atrasada = () =>
+    facturaCon([
+      equipo({
+        nombre: "PULIDORA",
+        cantidadEquipos: 1,
+        valorDia: 100000,
+        diasAlquilados: 3,
+        fechaDespacho: "2026-09-15",
+        vencidos: [],
+      }),
+    ]);
+
+  it("sin el tramo no cuenta ningún día vencido", () => {
+    expect(calcularCuentaFactura(atrasada(), "2026-09-24").total).toBe(300000);
+  });
+
+  it("al guardarla estrena su tramo y cobra los 7 días", () => {
+    const factura = atrasada();
+    const guardada = { ...factura, grupos: abrirTramosFactura(factura, "2026-09-24") };
+
+    expect(guardada.grupos[0].equipos[0].vencidos).toEqual([
+      { desde: "2026-09-18", hasta: null, indefinida: false },
+    ]);
+    // 3 del alta + 7 vencidos a $100.000.
+    expect(calcularCuentaFactura(guardada, "2026-09-24").total).toBe(1000000);
+  });
+
+  it("el que todavía está en plazo no estrena nada", () => {
+    expect(abrirTramosFactura(atrasada(), "2026-09-17")).toBeNull();
+  });
+});
+
 describe("cerrar el tramo vencido cuando el cliente paga", () => {
   // El caso real: un compresor de $150.000 el día, despachado el 01/09 por 7
   // días, cubierto hasta el 07. La madrugada del 08 le abrió su tramo, y al 09
@@ -416,9 +454,51 @@ describe("cerrar el tramo vencido cuando el cliente paga", () => {
     });
   });
 
-  it("el que no tiene ningún tramo abierto no se toca", () => {
+  it("el que todavía está en plazo no se toca", () => {
+    // Cubierto hasta el 07: ese día todavía está pagado, no hay mora.
     const alDia = compresor({ vencidos: [] });
-    expect(cerrarTramoVencido(alDia, "2026-09-09")).toBe(alDia);
+    expect(cerrarTramoVencido(alDia, "2026-09-07")).toBe(alDia);
+  });
+
+  // LA FACTURA CARGADA CON LA FECHA ATRASADA, o el equipo que se venció
+  // después del último repaso: la madrugada todavía no le abrió el tramo.
+  // Antes, cerrar un tramo que no existía no hacía nada y esos días se
+  // perdían para siempre.
+  it("el vencido sin tramo lo estrena y lo cierra en el acto", () => {
+    const sinTramo = compresor({ vencidos: [] });
+    const cerrado = cerrarTramoVencido(sinTramo, "2026-09-09");
+
+    expect(cerrado.vencidos).toEqual([
+      { desde: "2026-09-08", hasta: "2026-09-09", indefinida: false },
+    ]);
+    expect(calcularEquipo(cerrado, "2026-09-09").diasVencidos).toBe(2);
+    // Lo mismo que si la madrugada lo hubiera abierto a tiempo.
+    expect(cerrado).toEqual(cerrarTramoVencido(compresor(), "2026-09-09"));
+  });
+
+  it("devolverlo sin tramo abierto igual cobra los días vencidos", () => {
+    const devuelto = {
+      ...cerrarTramoVencido(compresor({ vencidos: [] }), "2026-09-09"),
+      devolucion: { fechaDevolucion: "2026-09-09", buenEstado: true },
+    };
+
+    // 7 del alta + 2 vencidos a $150.000.
+    expect(calcularCuentaFactura(facturaCon([devuelto]), "2026-09-20").total).toBe(
+      1350000,
+    );
+  });
+
+  it("ampliar sin tramo abierto arranca los días nuevos mañana, no encima de la mora", () => {
+    const sinTramo = compresor({ vencidos: [] });
+    const conTramo = compresor();
+
+    const proyeccion = proyectarAmpliacion(sinTramo, 3, "2026-09-09");
+    expect(proyeccion).toEqual(proyectarAmpliacion(conTramo, 3, "2026-09-09"));
+    expect(proyeccion).toMatchObject({
+      diasVencidos: 2,
+      desde: "2026-09-10",
+      hasta: "2026-09-12",
+    });
   });
 
   it("el que ya volvió corta su tramo el día de la devolución", () => {

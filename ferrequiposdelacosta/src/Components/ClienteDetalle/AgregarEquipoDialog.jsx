@@ -46,6 +46,7 @@ import {
   datosFactura,
   abonosDe,
   gruposDe,
+  abrirTramosFactura,
   siguienteGrupoAgregados,
   nuevoGrupo,
   facturaLlevaIva,
@@ -438,13 +439,18 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
       })),
     });
 
+    // Los grupos viajan enteros: no hay forma de agregarle uno a un array de
+    // Firestore sin reescribirlo. Y el equipo cargado con la fecha de despacho
+    // atrasada —que ya nace vencido— estrena su tramo acá, sin esperar a la
+    // madrugada (ver abrirTramosFactura).
+    const gruposNuevos = [...gruposDe(factura), grupoNuevo];
+    const grupos = abrirTramosFactura({ grupos: gruposNuevos }) ?? gruposNuevos;
+
     setGuardando(true);
     try {
       const batch = writeBatch(db);
       batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
-        // Los grupos viajan enteros: no hay forma de agregarle uno a un array
-        // de Firestore sin reescribirlo.
-        grupos: [...gruposDe(factura), grupoNuevo],
+        grupos,
         abonos,
       });
 

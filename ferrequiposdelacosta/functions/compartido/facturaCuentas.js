@@ -461,13 +461,20 @@ export const abrirTramoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   };
 };
 
+// Si el tramo todavía no se abrió, se abre acá mismo y se cierra en el acto.
+// Pasa con el equipo que se venció después del último repaso de la madrugada,
+// y sobre todo con la factura cargada con la fecha de despacho atrasada: se
+// despachó el 15/09 por 3 días y se carga el 24, así que lleva 7 días vencidos
+// que nadie anotó. Sin esto, devolverlo ese mismo día cerraba un tramo que no
+// existía y esos 7 días se perdían para siempre.
 export const cerrarTramoVencido = (equipo, hastaIso) => {
-  const abierto = tramoVencidoAbierto(equipo);
+  const base = abrirTramoVencido(equipo, hastaIso);
+  const abierto = tramoVencidoAbierto(base);
   if (!abierto) return equipo;
 
   return {
-    ...equipo,
-    vencidos: vencidosDe(equipo).map((tramo) =>
+    ...base,
+    vencidos: vencidosDe(base).map((tramo) =>
       tramo === abierto ? { ...tramo, hasta: hastaIso } : tramo,
     ),
   };
@@ -539,10 +546,14 @@ export const proyectarAmpliacion = (
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
   const pedidos = Math.max(0, numero(diasPedidos));
-  const desde = siguienteDia(cubiertoHasta(cerrarTramoVencido(equipo, hoyIso)));
+  // Con el tramo de hoy ya cerrado —y abierto antes, si la madrugada todavía
+  // no lo había escrito—: de ahí salen los días vencidos y el día en que
+  // arrancan los nuevos.
+  const cerrado = cerrarTramoVencido(equipo, hoyIso);
+  const desde = siguienteDia(cubiertoHasta(cerrado));
 
   return {
-    diasVencidos: diasVencidosDe(equipo, hoyIso),
+    diasVencidos: diasVencidosDe(cerrado, hoyIso),
     // Los que se le prometieron, que es lo que el cliente escuchó. Y nada más:
     // el renglón de la ampliación ya no mezcla los vencidos adentro.
     diasPedidos: pedidos,
