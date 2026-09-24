@@ -590,7 +590,10 @@ export default function AbonoDialog({
                         {aplicado > 0 && (
                           <>
                             <Box className="fila abono">
-                              <Typography variant="body2">+ Se abona</Typography>
+                              <Typography variant="body2">
+                                {/* Con el depósito lo dice: no es plata nueva. */}
+                                {conDeposito ? "+ Se abona depósito" : "+ Se abona"}
+                              </Typography>
                               <Typography variant="body2">
                                 {formatearMoneda(aplicado)}
                               </Typography>
