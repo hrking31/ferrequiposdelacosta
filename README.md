@@ -263,6 +263,9 @@ Ahora es al revés: **hacer algo es justamente lo que lo deja escrito**, así qu
 > [!IMPORTANT]
 > **El caso límite, que es el que lo destapó.** Si le renuevan el plazo el mismo día en que se le acaba, el tramo todavía no alcanzó a abrirse: la madrugada lo abre al día siguiente. Ahí se le anota uno que no suma ni un día, solo para dejar constancia de que llegó a vencerse. Sin eso, la 0123 se habría vuelto a escapar de cartera.
 
+> [!IMPORTANT]
+> **La factura cargada con la fecha atrasada (2026-09-24).** Una factura cargada el 24 con un equipo que salió el 15 por 3 días ya nace con 7 días vencidos, y la madrugada todavía no los anotó. Hasta las 3 a.m. la cuenta no le contaba **ni uno**; y si ese día se devolvía el equipo, se cerraba un tramo que no existía y los 7 días **se perdían para siempre**. Ahora el tramo se abre **al guardar** —crear o editar la factura, agregarle equipos— con la misma función del repaso, y **cerrar un tramo que no se alcanzó a abrir lo abre y lo cierra en el acto**. La madrugada queda como red de seguridad.
+
 **La plata no se mueve.** Esos días se cobran igual, el tramo esté cerrado o corriendo. Lo que el equipo **no** guarda es si el cliente los pagó: eso vive en los abonos de la factura, porque un abono entra a la cuenta del cliente —que puede tener varias facturas abiertas— y atribuirlo a dos días de un equipo sería inventarlo.
 
 La regla que ordena todo esto: **la plata es de la factura, el equipo son días**. El costo sí se muestra en la ficha —es lo que deja confirmar la cuenta—; la plata cobrada, no.
