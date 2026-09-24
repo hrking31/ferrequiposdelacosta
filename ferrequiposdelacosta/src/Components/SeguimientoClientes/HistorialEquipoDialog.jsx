@@ -1,14 +1,16 @@
 import PropTypes from "prop-types";
 import {
-  Button,
+  Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import CloseIcon from "@mui/icons-material/Close";
 import HistorialEquipo from "../ClienteDetalle/HistorialEquipo";
 
 // De qué equipo es la historia: "Fact. 8154 · BENITIN" y, debajo, el cliente.
@@ -63,12 +65,33 @@ export default function HistorialEquipoDialog({
         },
       }}
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      {/* LA X ARRIBA, al lado del título, y sin botón "Cerrar" al pie: en el
+          celular ese renglón se comía alto que la historia necesita. Y poco
+          aire entre el título y la factura, por lo mismo. */}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          py: { xs: 1, sm: 1.5 },
+          pr: 1,
+        }}
+      >
         <TimelineIcon sx={{ color: "custom.accent" }} />
-        Historia del equipo
+        <Box component="span" sx={{ flex: 1 }}>
+          Historia del equipo
+        </Box>
+        <Tooltip title="Cerrar">
+          <IconButton size="small" aria-label="Cerrar" onClick={onClose}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </DialogTitle>
       {equipo && (
-        <DialogContent dividers sx={{ px: { xs: 1.5, sm: 3 } }}>
+        // Sin `dividers`: su línea es del color de "divider", que en modo
+        // oscuro es el mismo del fondo del diálogo. No se veía y solo dejaba
+        // un hueco entre el título y la factura.
+        <DialogContent sx={{ px: { xs: 1.5, sm: 3 }, pb: 2 }}>
           <EncabezadoHistoria
             equipo={equipo}
             numeroFactura={numeroFactura}
@@ -80,9 +103,6 @@ export default function HistorialEquipoDialog({
           <HistorialEquipo equipo={equipo} hoy={hoy} enDialogo />
         </DialogContent>
       )}
-      <DialogActions>
-        <Button onClick={onClose}>Cerrar</Button>
-      </DialogActions>
     </Dialog>
   );
 }
