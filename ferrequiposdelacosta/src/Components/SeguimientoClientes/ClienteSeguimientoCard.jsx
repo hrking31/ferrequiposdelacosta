@@ -1587,8 +1587,9 @@ export default function ClienteSeguimientoCard({
                 )}
 
                 {/* El chip de estado y, en celular, la flecha que avisa que
-                    la tarjeta se abre. */}
-                <Stack direction="row" spacing={0.75} alignItems="center">
+                    la tarjeta se abre. En celular con 16px entre los dos: a
+                    6px la flecha se leía pegada al chip, como parte de él. */}
+                <Stack direction="row" spacing={esMovil ? 2 : 0.75} alignItems="center">
                 {/* La gestión vigente. No se puede cambiar a mano: la ponen
                     las acciones de arriba (llamar, ampliar, devolver). Sin
                     contador: cuántas veces se llamó queda en la línea de
