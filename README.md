@@ -684,10 +684,12 @@ Sobre la pantalla, dos decisiones que no son cosméticas: la lista sigue mostran
 El diálogo mostraba todo junto —el valor, la deuda, la lista de facturas— antes de saber qué se quería pagar. Ahora va en el orden en que se piensa un cobro, y cada paso aparece cuando el anterior está resuelto:
 
 1. **¿Qué va a pagar?** Toda la deuda —la app reparte, de la más antigua a la más nueva— o facturas específicas, que se marcan en una lista con lo que debe cada una y si tiene depósito libre.
-2. **¿Cómo paga?** Si lo elegido tiene depósito libre, la casilla **"Usar primero el depósito libre ($X)"**; después el medio y el valor de la plata que trae, con *"Falta por pagar"* y el atajo **"Pagar lo que falta"**.
+2. **¿Cómo paga?** Si lo elegido tiene depósito libre, la casilla **"Usar primero el depósito libre ($X)"**; después el medio y el valor de la plata que trae.
 3. **Así queda:** la deuda, lo que se paga con el depósito, lo que se paga en plata y lo que queda. El reparto por factura va plegado en *"Ver cómo se reparte"*.
 
 **El depósito no es un medio de pago:** es una casilla. Marcada, cada factura paga primero con **su** depósito —hasta lo que tiene libre y hasta lo que debe—, y la plata cubre el resto, repartida como siempre. Se guardan los dos abonos en la misma operación: el del depósito con medio *"Depósito"*, para que la lista de abonos diga cómo se pagó. Con un cliente que debe $650.000 y tiene $340.000 de depósito libre, marcar la casilla y pagar $310.000 por Bancolombia lo deja al día en un solo paso.
+
+**El valor ya viene escrito (2026-09-25).** Lo común es que el cliente pague todo, así que al elegir el medio el valor se llena con lo que falta —con el depósito ya descontado si la casilla está marcada—. Si trae menos o más, se corrige. Mientras nadie lo toque, **sigue a lo que falta**: marcar el depósito después de elegir el medio lo baja solo; lo escrito a mano no se pisa. Una **caneca** al lado del valor deja el medio y el valor en blanco, que es la salida cuando el cliente al final paga solo con el depósito. Con eso sobraron el atajo *"Pagar lo que falta"* y el renglón *"Falta por pagar"*; el total de arriba dice **Saldo**, y las dos opciones del paso 1 son una sola barra partida en dos, con sus íconos.
 
 > El 22/09 se había descartado un botón para "cambiar el depósito por pago", porque el cambio ya ocurría solo. Con el depósito fuera del total ya no ocurre solo, así que hacía falta la forma de hacerlo a mano. Primero se probó como un medio de pago más, y no se entendía; quedó como casilla.
 
@@ -1196,6 +1198,12 @@ Es un solo renglón con dos caras: se llama **"Próximo vencimiento"** mientras 
 Las cifras usan las tres plantas que la tarjeta ya tenía: **blanco** lo del despacho, **amarillo** lo que se pactó después —incluidos los días vencidos que el cliente pagó, porque al pagarse se consolidan— y **rojo** lo único que todavía se le reclama, el tramo que sigue corriendo.
 
 Casi todo eso ya estaba guardado. **Lo único que hubo que empezar a anotar es el día en que el equipo quedó sin fecha de entrega**: esa marca se prende y se apaga, así que sin su fecha no quedaba rastro de que existió. No toca ninguna cuenta.
+
+#### En Seguimiento, al lado de la lista (2026-09-25)
+
+En Seguimiento la historia se ve sin salir de la lista: un panel a la derecha, de 420px, con los dos números del menú y la historia del equipo que se toque. **Aparece desde 1200px.** Entre 916 y 1200 esos 420px apretaban las facturas, así que ahí la lista va con todo el ancho y la historia se abre con el botón de cada equipo, como en el celular.
+
+La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el que le deja el panel. Por eso en Seguimiento la barra negra de los totales baja a su propio renglón hasta **1600px** —en la ficha del cliente lo hace hasta 1200, donde no hay panel que le quite espacio—.
 
 ### Los totales se pueden abrir
 
