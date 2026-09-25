@@ -6,9 +6,9 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  ButtonBase,
   Checkbox,
   FormControlLabel,
+  IconButton,
   TextField,
   FormControl,
   InputLabel,
@@ -19,12 +19,15 @@ import {
   Divider,
   Paper,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ChecklistIcon from "@mui/icons-material/Checklist";
+import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -99,6 +102,8 @@ export default function AbonoDialog({
   // Las facturas que el cliente nombró, cuando eligió "facturas".
   const [elegidas, setElegidas] = useState([]);
   const [usarDeposito, setUsarDeposito] = useState(false);
+  // El valor lo puso la app al elegir el medio, y nadie lo ha tocado.
+  const [montoAutomatico, setMontoAutomatico] = useState(false);
   const [verReparto, setVerReparto] = useState(false);
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
@@ -113,6 +118,7 @@ export default function AbonoDialog({
     setQue(null);
     setElegidas([]);
     setUsarDeposito(false);
+    setMontoAutomatico(false);
     setVerReparto(false);
     setErrors({});
   }, [open]);
@@ -138,8 +144,11 @@ export default function AbonoDialog({
   const depositoDisponible = destinos.reduce((total, item) => total + topeDeposito(item), 0);
   const conDeposito = usarDeposito && depositoDisponible > 0;
 
-  const montoNuevo = Number(form.monto) || 0;
   const debeLoElegido = destinos.reduce((total, { cuenta }) => total + cuenta.saldoPendiente, 0);
+  const faltaPorPagar = Math.max(0, debeLoElegido - (conDeposito ? depositoDisponible : 0));
+  // Mientras el valor sea el que puso la app, sigue a lo que falta: marcar el
+  // depósito o cambiar de facturas lo ajusta solo. Lo escrito a mano no se toca.
+  const montoNuevo = montoAutomatico ? faltaPorPagar : Number(form.monto) || 0;
 
   // EL REPARTO: primero el depósito de cada una, después la plata, como
   // cualquier abono —de la más antigua a la más nueva, la última se lleva el
@@ -167,7 +176,6 @@ export default function AbonoDialog({
   });
 
   const pagadoConDeposito = filas.reduce((total, fila) => total + fila.deposito, 0);
-  const faltaPorPagar = Math.max(0, debeLoElegido - pagadoConDeposito);
   const quedaDespues = debeLoElegido - pagadoConDeposito - montoNuevo;
   const hayAlgoQueRegistrar = pagadoConDeposito > 0 || montoNuevo > 0;
 
@@ -286,36 +294,11 @@ export default function AbonoDialog({
     }
   };
 
-  // Una de las dos opciones grandes del paso 1.
-  const opcion = (valor, Icono, titulo, texto) => (
-    <ButtonBase
-      aria-pressed={que === valor}
-      onClick={() => {
-        setQue(valor);
-        setErrors({});
-      }}
-      sx={{
-        flex: 1,
-        display: "grid",
-        justifyItems: "start",
-        gap: 0.25,
-        textAlign: "left",
-        p: 1.5,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: que === valor ? acento : "divider",
-        bgcolor: que === valor ? alpha(acento, 0.08) : "transparent",
-      }}
-    >
-      <Icono fontSize="small" sx={{ color: acento }} />
-      <Typography variant="body2" fontWeight="bold">
-        {titulo}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {texto}
-      </Typography>
-    </ButtonBase>
-  );
+  // Las dos opciones del paso 1, en una barra partida del alto de un botón.
+  const OPCIONES = [
+    { valor: "todo", Icono: AccountBalanceWalletIcon, titulo: "Toda la deuda" },
+    { valor: "facturas", Icono: ChecklistIcon, titulo: "Facturas específicas" },
+  ];
 
   const rotuloPaso = (numero, texto) => (
     <Typography
@@ -375,7 +358,7 @@ export default function AbonoDialog({
           </Stack>
           {facturasConSaldo.length > 0 && (
             <Typography variant="body2" color="text.secondary">
-              Debe {formatearMoneda(deudaActual)}
+              Saldo {formatearMoneda(deudaActual)}
             </Typography>
           )}
         </DialogTitle>
@@ -389,16 +372,42 @@ export default function AbonoDialog({
               {/* ── 1. ¿Qué va a pagar? ── */}
               <Box>
                 {rotuloPaso(1, "¿Qué va a pagar?")}
-                <Stack direction="row" gap={1.25}>
-                  {opcion(
-                    "todo",
-                    AccountBalanceWalletIcon,
-                    "Toda la deuda",
-                    "Se reparte de la más antigua a la más nueva",
-                  )}
-                  {opcion("facturas", ChecklistIcon, "Facturas específicas", "El cliente dice a cuáles va")}
-                </Stack>
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  size="small"
+                  value={que}
+                  onChange={(_, valor) => {
+                    // Tocar la que ya está elegida no la deja sin elegir.
+                    if (valor === null) return;
+                    setQue(valor);
+                    setErrors({});
+                  }}
+                >
+                  {OPCIONES.map(({ valor, Icono, titulo }) => (
+                    <ToggleButton
+                      key={valor}
+                      value={valor}
+                      sx={{
+                        gap: 0.75,
+                        textTransform: "none",
+                        fontWeight: "bold",
+                        lineHeight: 1.3,
+                        "&.Mui-selected, &.Mui-selected:hover": {
+                          color: acento,
+                          bgcolor: alpha(acento, 0.1),
+                        },
+                      }}
+                    >
+                      <Icono fontSize="small" sx={{ color: acento }} />
+                      {titulo}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
 
+                {/* En modo oscuro el fondo del diálogo es del color "divider":
+                    la raya va con custom.itemBorder para que se vea. */}
+                {que && <Divider sx={{ mt: 1.25, borderColor: "custom.itemBorder" }} />}
                 {loEligioElCliente && (
                   <Stack spacing={0.75} sx={{ mt: 1.25 }}>
                     {facturasConSaldo.map((item) => {
@@ -503,7 +512,14 @@ export default function AbonoDialog({
                           inputProps={{ id: "abono-medio-input" }}
                           label="Medio de pago"
                           value={form.medio}
-                          onChange={handleChange("medio")}
+                          // Al elegir el medio, el valor se llena con lo que
+                          // falta: lo común es que pague todo. Si trae menos o
+                          // más, lo corrige. Solo si está vacío: una cifra ya
+                          // escrita no se pisa al cambiar de medio.
+                          onChange={(e) => {
+                            setForm((prev) => ({ ...prev, medio: e.target.value }));
+                            if (!form.monto) setMontoAutomatico(true);
+                          }}
                         >
                           {MODOS_PAGO.map((medio) => (
                             <MenuItem key={medio} value={medio}>
@@ -519,34 +535,38 @@ export default function AbonoDialog({
                       </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField
-                        label="Valor del abono"
-                        value={formatearMonedaInput(form.monto)}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, monto: limpiarMonedaInput(e.target.value) }))
-                        }
-                        error={!!errors.monto}
-                        helperText={errors.monto}
-                        fullWidth
-                      />
+                      <Stack direction="row" alignItems="center" gap={0.5}>
+                        <TextField
+                          label="Valor del abono"
+                          value={formatearMonedaInput(
+                            montoAutomatico ? (faltaPorPagar > 0 ? String(faltaPorPagar) : "") : form.monto,
+                          )}
+                          onChange={(e) => {
+                            setMontoAutomatico(false);
+                            setForm((prev) => ({ ...prev, monto: limpiarMonedaInput(e.target.value) }));
+                          }}
+                          error={!!errors.monto}
+                          helperText={errors.monto}
+                          fullWidth
+                        />
+                        {/* Deshace la plata: el medio y el valor en blanco. Es la
+                            salida cuando al final paga solo con el depósito. */}
+                        {form.medio && (
+                          <IconButton
+                            size="small"
+                            aria-label="Quitar el medio de pago"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, medio: "", monto: "" }));
+                              setMontoAutomatico(false);
+                              setErrors({});
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Stack>
                     </Grid>
                   </Grid>
-
-                  {/* Cuánto falta, y el atajo para llenarlo. */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 0.75 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Falta por pagar: <b>{formatearMoneda(faltaPorPagar)}</b>
-                    </Typography>
-                    {faltaPorPagar > 0 && montoNuevo !== faltaPorPagar && (
-                      <Button
-                        size="small"
-                        onClick={() => setForm((prev) => ({ ...prev, monto: String(faltaPorPagar) }))}
-                        sx={{ p: 0, minWidth: 0 }}
-                      >
-                        Pagar lo que falta
-                      </Button>
-                    )}
-                  </Stack>
 
                   <TextField
                     label="Fecha del abono"
@@ -560,6 +580,7 @@ export default function AbonoDialog({
                     InputLabelProps={{ shrink: true }}
                     sx={{ mt: 1.5 }}
                   />
+                  <Divider sx={{ mt: 2.5, borderColor: "custom.itemBorder" }} />
                 </Box>
               )}
 

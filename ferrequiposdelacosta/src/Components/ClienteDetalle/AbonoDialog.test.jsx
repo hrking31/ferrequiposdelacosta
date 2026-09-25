@@ -171,6 +171,23 @@ describe("AbonoDialog", () => {
     expect(commitSimulado).not.toHaveBeenCalled();
   });
 
+  // Lo común es que pague todo: al elegir el medio el valor ya viene con lo
+  // que debe, y si trae menos o más, se corrige.
+  it("al elegir el medio llena el valor con lo que debe, sin pisar una cifra ya escrita", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+    await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    expect(screen.getByLabelText("Valor del abono")).toHaveValue("800.000");
+
+    await usuario.clear(screen.getByLabelText("Valor del abono"));
+    await usuario.type(screen.getByLabelText("Valor del abono"), "300000");
+    await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+    await usuario.click(await screen.findByRole("option", { name: "Nequi" }));
+    expect(screen.getByLabelText("Valor del abono")).toHaveValue("300.000");
+  });
+
   it("guarda el abono en cada factura que recibió plata, con su parte", async () => {
     const alCerrar = vi.fn();
     const alAbonar = vi.fn();
@@ -179,6 +196,7 @@ describe("AbonoDialog", () => {
     await pagarTodo(usuario);
     await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
     await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    await usuario.clear(screen.getByLabelText("Valor del abono"));
     await usuario.type(screen.getByLabelText("Valor del abono"), "600000");
     await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -216,6 +234,7 @@ describe("AbonoDialog — cuando el cliente elige la factura", () => {
   const cargarAbono = async (usuario, monto) => {
     await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
     await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    await usuario.clear(screen.getByLabelText("Valor del abono"));
     await usuario.type(screen.getByLabelText("Valor del abono"), monto);
   };
 
@@ -336,6 +355,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await pagarTodo(usuario);
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
       await usuario.type(screen.getByLabelText("Valor del abono"), String(monto));
       await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
       return updateSimulado.mock.calls[0]?.[1];
@@ -372,6 +392,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await pagarTodo(usuario);
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
       expect(
@@ -402,6 +423,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await pagarTodo(usuario);
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
       await usuario.type(screen.getByLabelText("Valor del abono"), "5000000");
 
       expect(
@@ -417,6 +439,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await pagarTodo(usuario);
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
       expect(screen.queryByText(/pendiente.? de gestión/)).not.toBeInTheDocument();
@@ -433,6 +456,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await pagarTodo(usuario);
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.clear(screen.getByLabelText("Valor del abono"));
       await usuario.type(screen.getByLabelText("Valor del abono"), "100000");
 
       expect(screen.queryByText(/pendiente.? de gestión/)).not.toBeInTheDocument();
@@ -470,6 +494,7 @@ describe("AbonoDialog — lo que ya tenía", () => {
     await pagarTodo(usuario);
     await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
     await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+    await usuario.clear(screen.getByLabelText("Valor del abono"));
     await usuario.type(screen.getByLabelText("Valor del abono"), "10000");
     await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
 
@@ -570,6 +595,43 @@ describe("AbonoDialog — lo que ya tenía", () => {
       ]);
     });
 
+    // El valor que puso la app sigue a lo que falta: si después se marca el
+    // depósito, baja solo.
+    it("marcar el depósito después de elegir el medio ajusta el valor", async () => {
+      const { usuario } = abrir({ facturas: [conDepositoLiquidado] });
+
+      await pagarTodo(usuario);
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      expect(screen.getByLabelText("Valor del abono")).toHaveValue("500.000");
+
+      await usuario.click(screen.getByRole("checkbox"));
+      expect(screen.getByLabelText("Valor del abono")).toHaveValue("240.000");
+    });
+
+    // Se equivocó de medio y al final paga solo con el depósito: la caneca
+    // deja el medio y el valor en blanco.
+    it("la caneca quita el medio y el valor, y queda solo el depósito", async () => {
+      const { usuario } = abrir({ facturas: [conDepositoLiquidado] });
+
+      await pagarTodo(usuario);
+      await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+      await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+      await usuario.click(screen.getByRole("checkbox"));
+      await usuario.click(screen.getByRole("button", { name: "Quitar el medio de pago" }));
+
+      expect(screen.getByLabelText("Valor del abono")).toHaveValue("");
+      expect(
+        screen.queryByRole("button", { name: "Quitar el medio de pago" }),
+      ).not.toBeInTheDocument();
+
+      await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+      const [, cambios] = updateSimulado.mock.calls[0];
+      expect(cambios.abonos).toEqual([
+        { fecha: expect.any(String), medio: "Depósito", monto: 260000, tipo: "sistema" },
+      ]);
+    });
+
     it("depósito y plata en un solo paso: cada factura usa el suyo y la plata cubre el resto", async () => {
       // La liquidada debe $500.000 con $260.000 libres; la grande $500.000 y la
       // chica $300.000, sin depósito. Deben $1.300.000 en total.
@@ -579,7 +641,8 @@ describe("AbonoDialog — lo que ya tenía", () => {
       await usuario.click(screen.getByRole("checkbox"));
       await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
       await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
-      await usuario.click(screen.getByRole("button", { name: "Pagar lo que falta" }));
+      // Al elegir el medio, el valor se llena solo con lo que falta después
+      // del depósito.
       expect(screen.getByLabelText("Valor del abono")).toHaveValue("1.040.000");
       expect(screen.getByText("Queda al día")).toBeInTheDocument();
 
