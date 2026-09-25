@@ -7,6 +7,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
@@ -254,7 +255,13 @@ export default function SeguimientoClientes() {
   // EL PANEL DE LA DERECHA, solo en computador: los números del menú y la
   // historia del equipo que se elija en la lista. En el celular no entra al
   // lado, y cada equipo abre su historia en un diálogo.
-  const conPanel = !esCelular;
+  //
+  // Desde 1200px, el mismo corte en que la tarjeta sube el recuadro negro al
+  // lado de los botones. Entre 916 y 1200 los 420px del panel apretaban las
+  // facturas: ahí la lista va con todo el ancho y la historia se abre con el
+  // botón de cada equipo, como en el celular.
+  const anchoParaPanel = useMediaQuery(theme.breakpoints.up("lg"));
+  const conPanel = !esCelular && anchoParaPanel;
 
   // El equipo elegido se busca de nuevo en la lista vigente cada vez: después
   // de registrar una devolución o una ampliación la lista se recarga, y así el

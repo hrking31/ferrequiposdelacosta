@@ -1439,17 +1439,18 @@ export default function ClienteSeguimientoCard({
                   ficha del cliente: al recorrer la lista lo que se busca es
                   cuánto es y cuánto falta.
 
-                  Los tamaños son los de allá, y por el mismo motivo: entre 916
-                  y 1200px el hueco no pasa de unos 300px y cuatro importes de
-                  siete cifras se montan entre sí, así que en ese tramo la
-                  pizarra pasa a su propia fila con todo el ancho; de 1200px en
-                  adelante sí entra al lado. */}
+                  Por debajo de cierto ancho el hueco no pasa de unos 300px y
+                  cuatro importes de siete cifras se montan entre sí, así que
+                  la pizarra pasa a su propia fila con todo el ancho. En la
+                  ficha ese corte es 1200px; acá es 1600, porque desde 1200
+                  está el panel de la derecha y se lleva sus 420px. */}
               {!anchoCorto &&
                 facturaPlegada(factura.id) &&
                 renderPizarraTotales(casillasDeCuenta(cuenta), {
                   flexGrow: 1,
-                  flexBasis: { md: "100%", lg: 0 },
-                  order: { md: 1, lg: 0 },
+                  flexBasis: "100%",
+                  order: 1,
+                  "@media (min-width:1600px)": { flexBasis: 0, order: 0 },
                 })}
 
               {/* Las acciones y el estado de la factura.
@@ -1467,7 +1468,7 @@ export default function ClienteSeguimientoCard({
                 alignItems={esMovil ? "flex-end" : "center"}
                 // SIEMPRE PEGADOS A LA DERECHA, aunque queden solos en su
                 // renglón. El `space-between` de la fila los acomodaba mientras
-                // hubiera algo a la izquierda, pero entre 916 y 1200px la
+                // hubiera algo a la izquierda, pero entre 916 y 1600px la
                 // pizarra baja a su propia línea y una factura SIN PLAZO —la
                 // que sigue en cartera solo por la plata— dejaba este bloque
                 // como único hijo: los botones y el chip se iban a la
