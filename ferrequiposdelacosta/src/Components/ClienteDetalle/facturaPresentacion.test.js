@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import {
   describirSalidaEquipo,
+  eventoAnterior,
   historialEquipo,
   ultimoAcuerdoEquipo,
 } from "./facturaPresentacion";
@@ -87,6 +88,28 @@ describe("historialEquipo", () => {
     expect(tramo.detalle).toBe("2 días");
     // El COSTO sí se muestra, que es lo que deja confirmar la cuenta.
     expect(tramo.valor).toBe(300000);
+  });
+
+  // La segunda casilla de la ficha en cartera: lo que pasó justo antes del
+  // estado de hoy. Los días que corren y el próximo vencimiento ya los dicen
+  // las otras casillas.
+  it("el evento anterior es el último que no es el estado de hoy", () => {
+    // Al 16 corre un tramo desde el 15: lo de antes es que el 14 se venció
+    // el plazo pactado.
+    const vencidoOtraVez = {
+      ...compresor,
+      vencidos: [...compresor.vencidos, unTramoVencido({ desde: "2026-09-15", hasta: null })],
+    };
+    expect(eventoAnterior(vencidoOtraVez, "2026-09-16")).toMatchObject({
+      titulo: "Venció el plazo",
+      fecha: "2026-09-14",
+    });
+
+    // Al 12, en plazo: lo último que pasó es que se le pactaron 3 días.
+    expect(eventoAnterior(compresor, HOY_COMPRESOR)).toMatchObject({
+      titulo: "Seguimiento con cliente",
+      fecha: "2026-09-11",
+    });
   });
 
   // El descuento que se pactó sobre esos días al ampliar viaja restado, igual

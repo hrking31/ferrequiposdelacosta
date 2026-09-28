@@ -344,6 +344,24 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     });
 };
 
+// ── LO QUE PASÓ JUSTO ANTES DEL ESTADO DE HOY ──────────────────────────
+//
+// La ficha del equipo en cartera dice cómo está hoy —"Vencido 26/09 - 28/09,
+// 3 días"— y, al lado, qué fue lo último que pasó antes: en la 03685, "Venció
+// el plazo · 25/09". Con eso se lee de dónde arrancan esos días sin abrir la
+// historia. Pedido del dueño el 2026-09-28.
+//
+// Sale de la MISMA historia del panel, para que la ficha y la historia no
+// puedan contar cosas distintas. El estado de hoy son los dos hitos que
+// cambian con el calendario —los días que están corriendo y el próximo
+// vencimiento—, y eso ya lo dicen las otras casillas.
+const HITOS_DE_HOY = ["vencidos-hoy", "proximo-vencimiento"];
+
+export const eventoAnterior = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
+  historialEquipo(equipo, hoyIso)
+    .filter((hito) => !HITOS_DE_HOY.includes(hito.clave))
+    .at(-1) ?? null;
+
 // ── LO ÚLTIMO QUE SE PACTÓ POR ESTE EQUIPO ─────────────────────────────
 //
 // Cartera no pregunta por la historia del equipo, pregunta a quién llamar

@@ -605,13 +605,17 @@ Al abrir la factura ese renglón desaparece: abajo cada equipo tiene su propio r
 Cuatro casillas del mismo ancho, separadas por una línea, en la misma pizarra que la cuenta de la factura:
 
 ```
-[1] SALTARIN              VENCE        Vencido           4 DÍAS VENCIDOS
-    🚚 07/09/2026 · 4 días 10/09/2026   11/09 - 14/09     $ 400.000 + IVA
+[1] SALTARIN              VENCIÓ EL PLAZO  Vencido           4 DÍAS VENCIDOS
+    🚚 07/09/2026 · 4 días 10/09/2026       11/09 - 14/09     $ 400.000 + IVA
 ```
 
 **El equipo abre la ficha**, como el nombre abre cualquier renglón: la cantidad en su recuadro y, debajo, con qué salió —el día y los días que se le contrataron—. Ese plazo del alta no se toca nunca, así que dice con qué se despachó el equipo, no en qué quedó.
 
-**Vence** es la fecha **vigente**, la del último acuerdo, y si salió de una ampliación dice debajo cuándo se pactó (*"ampliado el 22/09"*). Hasta el 2026-09-28 mostraba el vencimiento del alta, que ya se lee debajo del nombre; en la 03685 eso dejaba un 21/09 al lado de "Vencido 26/09" y un hueco del 22 al 25 que el recuadro no explicaba. Lo que pasó después lo cuenta la tercera: **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
+**La segunda es lo que pasó justo antes** del estado de hoy, con su nombre y su fecha: en la 03685, *"Venció el plazo · 25/09"*, que es de donde arrancan los días de las dos siguientes. Sale de la misma historia del panel, así que no pueden contar cosas distintas. Hasta el 2026-09-28 era *"Vence"* con la fecha del alta, que ya se lee debajo del nombre; en la 03685 eso dejaba un 21/09 al lado de "Vencido 26/09" y un hueco del 22 al 25 que el recuadro no explicaba. Con entrega indefinida la fecha sale dos veces —el acuerdo y el estado son del mismo día—, y es a propósito.
+
+**La casilla del nombre mide lo que ocupa el nombre**, hasta el 40% del recuadro; las otras tres se reparten lo que queda. Con las cuatro del mismo ancho, *"ANDAMIOS CONVENCIONALES"* se montaba sobre la de al lado.
+
+La tercera cuenta **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
 
 **La cuarta es la plata**: los días en el rótulo y lo que cuestan en el valor, *"4 días vencidos · $400.000 + IVA"*, que es como se dice al hablar. La cifra va **sin IVA** y el impuesto se avisa al lado, que es como se cotiza. Al que vence hoy le dice *"0 días vencidos"* y deja el valor en blanco: una raya se leería como que el dato falta, y lo que pasa es que todavía no hay nada que cobrar.
 

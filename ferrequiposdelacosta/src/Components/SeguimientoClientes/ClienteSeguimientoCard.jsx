@@ -63,7 +63,7 @@ import {
   describirSalidaEquipo,
   equipoLlevaIva,
   vencidoQueCorre,
-  ampliacionesDe,
+  eventoAnterior,
 } from "../ClienteDetalle/facturaUtils";
 import {
   casillasDeCuenta,
@@ -672,29 +672,27 @@ export default function ClienteSeguimientoCard({
       ),
       color: colorDeSituacion(situacion),
       envolver: true,
+      // Del ancho de su nombre (ver renderFilaDeCasillas): "ANDAMIOS
+      // CONVENCIONALES" no entraba en un cuarto y se montaba sobre la de al
+      // lado, y con el doble de ancho a los nombres cortos les sobraba aire.
+      ajustada: true,
     };
 
-    // Hasta cuándo lo tenía: la fecha VIGENTE, la del último acuerdo. Es la
-    // misma que dice la fila de la factura, y de ahí corre la casilla del
-    // estado. La del alta ya se lee debajo del nombre ("18/09 · 4 días"), y
-    // repetirla acá dejaba un hueco sin explicar: en la 03685 decía 21/09 al
-    // lado de "Vencido 26/09", y los días del 22 al 25 no aparecían en ningún
-    // lado del recuadro.
+    // LO QUE PASÓ JUSTO ANTES del estado de hoy, con su nombre y su fecha:
+    // en la 03685, "Venció el plazo · 25/09", que es de donde arrancan los
+    // días de las dos casillas siguientes. Sale de la misma historia del panel
+    // (ver eventoAnterior).
     //
-    // Si esa fecha salió de una ampliación, se dice cuándo se pactó. Si salió
-    // de otra cosa —el cliente pagó sus días vencidos—, no: la nota sería
-    // falsa.
-    const vigente = cubiertoHasta(equipo);
-    const ultimaAmpliacion = ampliacionesDe(equipo).at(-1);
-    const casillaVence = {
-      clave: "vence",
+    // Antes era "Vence" con la fecha del alta, que ya se lee debajo del
+    // nombre, y dejaba sin explicar todo lo que pasó entre esa fecha y el
+    // vencimiento de hoy.
+    const anterior = eventoAnterior(equipo, hoy);
+    const casillaAnterior = {
+      clave: "anterior",
       Icono: EventIcon,
-      rotulo: "Vence",
-      valor: formatearFecha(vigente) || "—",
-      extra:
-        ultimaAmpliacion?.hasta && ultimaAmpliacion.hasta === vigente
-          ? `ampliado el ${formatearFecha(ultimaAmpliacion.fecha)}`
-          : null,
+      rotulo: anterior?.titulo ?? null,
+      valor: formatearFecha(anterior?.fecha) || "—",
+      envolver: true,
       color: "text.secondary",
     };
 
@@ -762,7 +760,7 @@ export default function ClienteSeguimientoCard({
     // que las fechas se corten.
     if (esMovil && !abierta) return [casillaEquipo, casillaEstado];
 
-    return [casillaEquipo, casillaVence, casillaEstado, casillaVencidos];
+    return [casillaEquipo, casillaAnterior, casillaEstado, casillaVencidos];
   };
 
   const renderEquipo = (equipo, key, situacion) => {

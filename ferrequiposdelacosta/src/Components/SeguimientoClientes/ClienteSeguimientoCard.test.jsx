@@ -235,7 +235,9 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   // se le cerró 1 día vencido al pactarle 3 más —hasta el 17— y desde el 18
   // corre otro tramo. Al 20 lleva 3 días desde el 17; la tarjeta decía 4
   // (sumaba el del 14, que ya se cerró) y en "Vence" ponía el 13 del alta.
-  it("los días vencidos cuentan desde la fecha vigente, que es la que dice Vence", async () => {
+  // Desde el mismo día, la segunda casilla dice lo que pasó justo antes:
+  // "Venció el plazo · 17/08".
+  it("los días vencidos cuentan desde el último plazo, que dice la segunda casilla", async () => {
     const { usuario } = mostrar([
       facturaCon({
         equipos: [
@@ -261,9 +263,9 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.getAllByText(/3 días vencidos/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/4 días vencidos/i)).not.toBeInTheDocument();
     expect(screen.getByText(/15\.000/)).toBeInTheDocument();
-    // La fecha vigente, con la ampliación que la dejó ahí.
+    // Lo que pasó justo antes: venció el plazo que se le había pactado.
+    expect(screen.getByText("Venció el plazo")).toBeInTheDocument();
     expect(screen.getAllByText("17/08/2026").length).toBeGreaterThan(0);
-    expect(screen.getByText("ampliado el 14/08/2026")).toBeInTheDocument();
     expect(screen.queryByText("13/08/2026")).not.toBeInTheDocument();
   });
 
@@ -409,8 +411,11 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     await desplegarFactura(usuario);
 
     expect(screen.getByText("Entrega indefinida")).toBeInTheDocument();
-    // Sin un "hasta" que contar: justamente no tiene fecha.
-    expect(screen.getByText("10/08/2026")).toBeInTheDocument();
+    // Sin un "hasta" que contar: justamente no tiene fecha. La fecha sale dos
+    // veces porque lo que pasó justo antes —la casilla de al lado— es ese
+    // mismo acuerdo con el cliente.
+    expect(screen.getAllByText("10/08/2026")).toHaveLength(2);
+    expect(screen.getByText("Seguimiento con cliente")).toBeInTheDocument();
   });
 
   it("sin un teléfono usable no ofrece escribirle: no hay a dónde", () => {

@@ -641,12 +641,24 @@ export const renderFilaDeCasillas = (
       />
     }
   >
-    {casillas.map(({ clave, Icono, rotulo, valor, color, envolver, extra }) => (
+    {casillas.map(({ clave, Icono, rotulo, valor, color, envolver, extra, ajustada = false }) => (
       <Box
         key={clave}
-        // En fila todas miden lo mismo; en columna cada una ocupa su
-        // renglón y no hay nada que repartir.
-        sx={{ flex: columna ? "none" : 1, minWidth: 0, color, px: 0.75, py: columna ? 0.5 : 0 }}
+        // En fila todas miden lo mismo; en columna cada una ocupa su renglón
+        // y no hay nada que repartir.
+        //
+        // La `ajustada` —el nombre de un equipo— mide lo que ocupa su texto,
+        // con un tope. Con el mismo ancho que las otras, un nombre largo se
+        // montaba sobre la de al lado; con el doble, a uno corto le sobraba
+        // aire hasta el divisor. Las demás se reparten lo que quede.
+        sx={{
+          flex: columna ? "none" : ajustada ? "0 1 auto" : 1,
+          minWidth: 0,
+          maxWidth: ajustada && !columna ? "40%" : "none",
+          color,
+          px: 0.75,
+          py: columna ? 0.5 : 0,
+        }}
       >
         {/* El icono queda a la izquierda, alineado con el rotulo; como es
             mas alto que las dos lineas, ocupa el espacio que sobra abajo. El
@@ -673,6 +685,9 @@ export const renderFilaDeCasillas = (
               variant="valorDato"
               sx={{
                 whiteSpace: envolver ? "normal" : "nowrap",
+                // Una palabra sola más ancha que la casilla ("CONVENCIONALES")
+                // se parte en vez de salirse sobre la de al lado.
+                overflowWrap: envolver ? "anywhere" : "normal",
                 fontSize: { lg: "1rem" },
               }}
             >
