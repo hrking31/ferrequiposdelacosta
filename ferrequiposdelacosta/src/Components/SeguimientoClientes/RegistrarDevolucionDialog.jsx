@@ -249,7 +249,6 @@ export default function RegistrarDevolucionDialog({
     depositoTotal,
     retenciones.reduce((total, { monto }) => total + monto, 0),
   );
-  const aDevolver = depositoTotal - retenido;
 
   const handleCerrar = () => {
     if (guardando) return;
@@ -855,19 +854,6 @@ export default function RegistrarDevolucionDialog({
                     ))}
                   </Box>
                 )}
-
-                <Typography
-                  variant="caption"
-                  sx={{ display: "block", mt: 1, color: "custom.accent" }}
-                >
-                  {/* Lo retenido ya entró a la factura como cargo por daños;
-                      lo que queda libre es del cliente. */}
-                  {aDevolver > 0
-                    ? `Quedan ${formatearMoneda(
-                        aDevolver,
-                      )} de depósito libre: se le devuelven, o se usan para pagar la factura con un abono de medio "Depósito".`
-                    : "No queda depósito por devolver."}
-                </Typography>
               </Grid>
             )}
           </Grid>
