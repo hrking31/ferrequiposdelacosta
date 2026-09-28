@@ -348,6 +348,10 @@ Cada factura de la lista trae las acciones del cobro a la mano:
 | **Renovar** | Le da más días al alquiler, con la opción de descuento, y recalcula lo que pasa a valer |
 | **Registrar devolución** | Anota qué equipos volvieron —todos o una parte— y resuelve el depósito |
 
+**Los dos descuentos al renovar (2026-09-28).** El descuento se negocia con el cliente, y puede ir sobre los días nuevos, sobre los vencidos o sobre los dos. Por eso el diálogo trae dos casillas, y arriba de ellas, a cómo se cobra el día —*"Valor del día: 5 × $20.000 = $100.000"*—, que es la base para saber cuánto descontar. Cada casilla dice cuánto valen sus días y en cuánto quedan; ninguna deja pasar de ahí. El de los días nuevos se guarda en la ampliación, como siempre; el de los vencidos, en el tramo que se cierra ese día, y el renglón de la historia del equipo ya sale con el descuento restado. Los vencidos de esa casilla son **los del tramo que se cierra hoy**, no todos los que el equipo acumuló: los anteriores ya se cerraron con su propia gestión.
+
+> Antes había una sola casilla y el diálogo decía *"Este equipo no tiene precio cargado"* de cualquier equipo: leía un dato que había desaparecido con los tramos del 23/09. El diálogo de devolución, que ofrece lo mismo para lo que el cliente se queda, decía *"undefined días"*.
+
 Los mensajes de WhatsApp se arman siempre sobre **la factura abierta**, no sobre todas las del cliente: con varias facturas, los números no se podrían atribuir a ninguna.
 
 ### El recordatorio del equipo, al cobrar
@@ -494,6 +498,8 @@ Cuando la devolución es **parcial**, la línea del equipo se parte en dos: una 
 
 > [!WARNING]
 > **Partir la línea en dos costó plata.** Las dos mitades se armaban copiando la línea entera, y con ella se copiaban cargos que son **del lote, no del renglón**: el pago, el tipo de pago, el transporte y el depósito. Como las cuentas los suman recorriendo todos los equipos, cada uno pasaba a contarse dos veces. Una factura real quedó con $1.397.000 pagados en vez de $1.198.500, y la pantalla ofrecía **devolverle** $54.060 a un cliente que todavía debía $144.440. El transporte se duplicaba igual, y por eso los renglones no sumaban el total. Esos cargos ahora quedan solo en la línea que volvió.
+>
+> **Y lo mismo pasaba con los descuentos (arreglado el 2026-09-28).** Las dos mitades se llevaban el descuento entero: 5 andamios con $50.000 de descuento, vuelven 2, y la factura restaba $100.000. Ahora se reparte según la cantidad —$20.000 con los que volvieron, $30.000 con los que siguen afuera— y lo que sobra del redondeo va con la parte que se queda, para que las dos sumen exacto.
 
 ### Devolver no significa lo mismo desde los dos lados
 
@@ -1008,7 +1014,7 @@ documento de la factura
 │       ├── AMPLIACIONES[] ── lo que el cliente PIDIÓ:
 │       │                     fecha, dias, desde, hasta, descuento
 │       ├── VENCIDOS[]     ── un tramo por cada vez que se pasó:
-│       │                     desde, hasta, indefinida
+│       │                     desde, hasta, indefinida, descuento?
 │       │                     (sin `hasta` = el que corre hoy)
 │       ├── INDEFINIDA{}   ── activa, desde, hasta
 │       └── DEVOLUCION{}   ── fechaDevolucion, buenEstado,
@@ -1420,7 +1426,7 @@ npm run dev
 
 | Comando | Qué hace |
 |---|---|
-| `npm run dev` | Servidor de desarrollo, accesible desde celulares en la misma red |
+| `npm run dev` | Servidor de desarrollo, solo en este computador (`localhost`). Desde el 2026-09-28 ya no se abre a los celulares de la red local |
 | `npm run build` | Compila la versión de producción |
 | `npm run preview` | Sirve la versión ya compilada |
 | `npm run lint` | Revisa el estilo del código (un aviso ya hace fallar) |

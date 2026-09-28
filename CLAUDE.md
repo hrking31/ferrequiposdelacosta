@@ -15,7 +15,7 @@ The Cloud Functions are a nested npm project at `ferrequiposdelacosta/functions/
 
 Run from `ferrequiposdelacosta/`:
 
-- `npm run dev` — Vite dev server, bound to `0.0.0.0` so phones/tablets on the LAN can load the PWA (and the service worker is enabled in dev via `devOptions`).
+- `npm run dev` — Vite dev server on `localhost` only: since 2026-09-28 it is no longer exposed to the LAN, so phones/tablets can't load the local build. The service worker is enabled in dev via `devOptions`.
 - `npm run build` — production build to `dist/`.
 - `npm run preview` — serve the built `dist/`.
 - `npm run lint` — ESLint over `src` with `--max-warnings 0` (a warning fails the command). There is **no test framework** configured.
