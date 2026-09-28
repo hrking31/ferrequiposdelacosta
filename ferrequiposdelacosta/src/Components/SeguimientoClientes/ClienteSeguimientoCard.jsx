@@ -60,10 +60,10 @@ import {
   indefinidaDe,
   tramoVencidoAbierto,
   calcularVencimiento,
-  calcularFechaDevolucion,
   describirSalidaEquipo,
-  calcularEquipo,
   equipoLlevaIva,
+  vencidoQueCorre,
+  ampliacionesDe,
 } from "../ClienteDetalle/facturaUtils";
 import {
   casillasDeCuenta,
@@ -591,7 +591,10 @@ export default function ClienteSeguimientoCard({
   // 350 píxeles no dejan entrar una fecha.
   const casillasDeEquipo = (equipo, situacion, abierta = false) => {
     const salida = describirSalidaEquipo(equipo, hoy);
-    const { diasVencidos, netoVencido } = calcularEquipo(equipo, hoy);
+    // Lo que lleva vencido desde la fecha vigente, no todo lo que acumuló: los
+    // tramos ya cerrados se cobran igual y se leen en la historia del equipo
+    // (ver vencidoQueCorre).
+    const { dias: diasVencidos, valor: valorVencido } = vencidoQueCorre(equipo, hoy);
     const vencido = diasVencidos > 0;
 
     // Desde cuándo corre lo que dice la casilla del estado. El tramo abierto
@@ -671,19 +674,27 @@ export default function ClienteSeguimientoCard({
       envolver: true,
     };
 
-    // Hasta cuándo lo tenía: el vencimiento del ALTA. Lo que pasó después
-    // —que se venció, o que quedó sin fecha— lo cuenta la casilla del estado.
+    // Hasta cuándo lo tenía: la fecha VIGENTE, la del último acuerdo. Es la
+    // misma que dice la fila de la factura, y de ahí corre la casilla del
+    // estado. La del alta ya se lee debajo del nombre ("18/09 · 4 días"), y
+    // repetirla acá dejaba un hueco sin explicar: en la 03685 decía 21/09 al
+    // lado de "Vencido 26/09", y los días del 22 al 25 no aparecían en ningún
+    // lado del recuadro.
+    //
+    // Si esa fecha salió de una ampliación, se dice cuándo se pactó. Si salió
+    // de otra cosa —el cliente pagó sus días vencidos—, no: la nota sería
+    // falsa.
+    const vigente = cubiertoHasta(equipo);
+    const ultimaAmpliacion = ampliacionesDe(equipo).at(-1);
     const casillaVence = {
       clave: "vence",
       Icono: EventIcon,
       rotulo: "Vence",
-      valor:
-        formatearFecha(
-          calcularFechaDevolucion(
-            equipo?.fechaDespacho,
-            Number(equipo?.diasAlquilados) || 0,
-          ),
-        ) || "—",
+      valor: formatearFecha(vigente) || "—",
+      extra:
+        ultimaAmpliacion?.hasta && ultimaAmpliacion.hasta === vigente
+          ? `ampliado el ${formatearFecha(ultimaAmpliacion.fecha)}`
+          : null,
       color: "text.secondary",
     };
 
@@ -701,7 +712,7 @@ export default function ClienteSeguimientoCard({
       // impuesto se suma al final, sobre el total de la factura.
       valor: vencido ? (
         <Box component="span">
-          {formatearMoneda(netoVencido)}
+          {formatearMoneda(valorVencido)}
           {equipoLlevaIva(equipo) && (
             <Box
               component="span"

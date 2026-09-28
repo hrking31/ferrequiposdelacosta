@@ -8,6 +8,7 @@ import {
   ampliarEquipo,
   partirLinea,
   descuentoExcedido,
+  vencidoQueCorre,
   cerrarTramoVencido,
   abrirTramoVencido,
   abrirTramosFactura,
@@ -439,6 +440,47 @@ describe("los dos descuentos de una ampliación", () => {
     expect(descuentoExcedido(proyeccion, { descuento: 15001 })).toBe(true);
     expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60000 })).toBe(false);
     expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60001 })).toBe(true);
+  });
+});
+
+// La 03685 de Hernando Rey, como estaba el 2026-09-28: 5 andamios a $1.000
+// salieron el 18/09 por 4 días (vencían el 21). El 22 se les cerró 1 día
+// vencido al pactarles 3 más, hasta el 25, y desde el 26 corre otro tramo. La
+// tarjeta decía "Vencida 25/09 · 4 días" cuando desde el 25 llevaban 3.
+describe("lo que lleva vencido desde el último acuerdo", () => {
+  const andamios = () =>
+    equipo({
+      nombre: "ANDAMIOS CONVENCIONALES",
+      cantidadEquipos: 5,
+      valorDia: 1000,
+      diasAlquilados: 4,
+      fechaDespacho: "2026-09-18",
+      ampliaciones: [
+        { fecha: "2026-09-22", dias: 3, desde: "2026-09-23", hasta: "2026-09-25", descuento: 0 },
+      ],
+      vencidos: [tramo("2026-09-22", "2026-09-22"), tramo("2026-09-26")],
+    });
+
+  it("cuenta solo el tramo que corre, con su valor", () => {
+    expect(vencidoQueCorre(andamios(), "2026-09-28")).toEqual({ dias: 3, valor: 15000 });
+  });
+
+  it("y se siguen cobrando los dos tramos", () => {
+    const cuenta = calcularEquipo(andamios(), "2026-09-28");
+    expect(cuenta.diasVencidos).toBe(4);
+    expect(cuenta.netoVencido).toBe(20000);
+  });
+
+  it("la fila de la factura dice la fecha vigente y los días desde ella", () => {
+    expect(plazoVencidoFactura(facturaCon([andamios()]), "2026-09-28")).toMatchObject({
+      fecha: "2026-09-25",
+      dias: 3,
+    });
+  });
+
+  it("sin tramo corriendo, el contador está en cero", () => {
+    const pagado = equipo({ vencidos: [tramo("2026-09-14", "2026-09-17")] });
+    expect(vencidoQueCorre(pagado, "2026-09-17")).toEqual({ dias: 0, valor: 0 });
   });
 });
 

@@ -16,25 +16,27 @@
 //   Pasaron 2 días y nadie pactó nada  →  Vence: 30/08/2026 - 2 días vencidos
 //   El 30/08 se le dieron 4 días más   →  Vence: 03/09/2026
 //   Y se pasó un día de esos           →  Vence: 03/09/2026 - 1 día vencido
+//                                          (no 3: los 2 de antes ya se
+//                                          cerraron al darle los 4 días)
 //
 // Sin los días hay que restar de cabeza contra el día de hoy para saber de qué
 // tamaño es el atraso, que es justo lo que hace falta saber al recibir el
 // equipo o al pactar el plazo nuevo.
 //
-// Los días salen del mismo cálculo que los COBRA (calcularEquipo),
-// así que el diálogo no puede decir un número distinto del que termina en la
-// cuenta del cliente.
+// Los días son los que corren DESDE esa fecha (vencidoQueCorre), no todos los
+// que el equipo acumuló: los tramos ya cerrados se cobran igual, pero ponerlos
+// al lado de la fecha vigente los hacía parecer parte de este atraso.
 import PropTypes from "prop-types";
 import { Box, Typography } from "@mui/material";
 import {
-  calcularEquipo,
   cubiertoHasta,
   sinFechaDeEntrega,
+  vencidoQueCorre,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearFechaLegible } from "../../Utils/formato";
 
 const PlazoEquipo = ({ equipo, hoy }) => {
-  const diasVencidos = calcularEquipo(equipo, ...(hoy ? [hoy] : [])).diasVencidos;
+  const diasVencidos = vencidoQueCorre(equipo, ...(hoy ? [hoy] : [])).dias;
 
   return (
     <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>

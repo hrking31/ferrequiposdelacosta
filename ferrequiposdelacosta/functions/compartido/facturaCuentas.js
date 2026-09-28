@@ -210,6 +210,27 @@ export const diasVencidosDe = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   );
 };
 
+// LO QUE LLEVA VENCIDO DESDE EL ÚLTIMO ACUERDO: los días del tramo que está
+// corriendo y lo que valen. Es lo que se dice al lado de la fecha vigente
+// —"Vencida 25/09 · 3 días"— y lo que se le reclama al llamar.
+//
+// No es lo mismo que `diasVencidosDe`, que suma TODOS los tramos porque todos
+// se cobran. La 03685 de Hernando Rey: 1 día vencido el 22/09, que se cerró al
+// pactarle 3 días más, y otros 3 desde el 26. Se cobran 4, pero desde el 25/09
+// lleva 3; la tarjeta decía 4 al lado de esa fecha.
+//
+// El equipo que pagó sus días o pidió más no tiene tramo corriendo: el
+// contador vuelve a cero, que es la regla del 09/09.
+export const vencidoQueCorre = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  const tramo = tramoVencidoAbierto(equipo);
+  const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
+  return {
+    dias: diasDelTramo(tramo, corte),
+    valor: tramo ? valorDelTramo(tramo, corte, porDia) : 0,
+  };
+};
+
 // Los días de UN tramo vencido. El abierto se cuenta hasta el corte; el que se
 // abrió y se cerró en el acto —su `hasta` cae antes que su `desde`— no suma.
 const diasDelTramo = (tramo, corte) => {
@@ -1175,16 +1196,18 @@ export const plazoVencidoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   // La fecha y los días salen del MISMO equipo. Antes la fecha era la más
   // antigua de todos y los días los del que más llevaba, que podían ser
   // equipos distintos: la fila mostraba una fecha de uno con los días de otro.
+  //
+  // Y los días son los que corren desde ESA fecha, no todos los que el equipo
+  // acumuló (ver vencidoQueCorre).
   const peor = vencidos.reduce((masViejo, equipo) =>
-    calcularEquipo(equipo, hoyIso).diasVencidos >
-    calcularEquipo(masViejo, hoyIso).diasVencidos
+    vencidoQueCorre(equipo, hoyIso).dias > vencidoQueCorre(masViejo, hoyIso).dias
       ? equipo
       : masViejo,
   );
 
   return {
     fecha: cubiertoHasta(peor),
-    dias: calcularEquipo(peor, hoyIso).diasVencidos,
+    dias: vencidoQueCorre(peor, hoyIso).dias,
     // Sin fecha de entrega, el cliente quedó de avisar. La fila lo dice con
     // otra palabra: para este equipo esa fecha no es un vencimiento sino el
     // día en que se pactó que no tendría ninguno.

@@ -231,6 +231,42 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
   // que la bitácora ya dice con su fecha, y en una factura de un solo equipo
   // llenaba la tarjeta con algo ya resuelto. Su historia vive en la ficha del
   // cliente.
+  // El caso de la 03685 del 2026-09-28, corrido a agosto: vencía el 13, el 14
+  // se le cerró 1 día vencido al pactarle 3 más —hasta el 17— y desde el 18
+  // corre otro tramo. Al 20 lleva 3 días desde el 17; la tarjeta decía 4
+  // (sumaba el del 14, que ya se cerró) y en "Vence" ponía el 13 del alta.
+  it("los días vencidos cuentan desde la fecha vigente, que es la que dice Vence", async () => {
+    const { usuario } = mostrar([
+      facturaCon({
+        equipos: [
+          unEquipo({
+            nombre: "ANDAMIOS CONVENCIONALES",
+            cantidad: 5,
+            dias: 4,
+            valorDia: 1000,
+            fechaDespacho: "2026-08-10",
+            ampliaciones: [
+              { fecha: "2026-08-14", dias: 3, desde: "2026-08-15", hasta: "2026-08-17", descuento: 0 },
+            ],
+            vencidos: [
+              unTramoVencido({ desde: "2026-08-14", hasta: "2026-08-14" }),
+              unTramoVencido({ desde: "2026-08-18", hasta: null }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+    await desplegarFactura(usuario);
+
+    expect(screen.getAllByText(/3 días vencidos/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/4 días vencidos/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/15\.000/)).toBeInTheDocument();
+    // La fecha vigente, con la ampliación que la dejó ahí.
+    expect(screen.getAllByText("17/08/2026").length).toBeGreaterThan(0);
+    expect(screen.getByText("ampliado el 14/08/2026")).toBeInTheDocument();
+    expect(screen.queryByText("13/08/2026")).not.toBeInTheDocument();
+  });
+
   it("no muestra los equipos devueltos, ni los que volvieron tarde", async () => {
     const { usuario } = mostrar([facturaEnCobro]);
     await desplegarFactura(usuario);
