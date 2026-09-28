@@ -611,9 +611,11 @@ Cuatro casillas del mismo ancho, separadas por una línea, en la misma pizarra q
 
 **El equipo abre la ficha**, como el nombre abre cualquier renglón: la cantidad en su recuadro y, debajo, con qué salió —el día y los días que se le contrataron—. Ese plazo del alta no se toca nunca, así que dice con qué se despachó el equipo, no en qué quedó.
 
-**Vence** es el vencimiento inicial. Lo que pasó después lo cuenta la tercera: **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
+**Vence** es la fecha **vigente**, la del último acuerdo, y si salió de una ampliación dice debajo cuándo se pactó (*"ampliado el 22/09"*). Hasta el 2026-09-28 mostraba el vencimiento del alta, que ya se lee debajo del nombre; en la 03685 eso dejaba un 21/09 al lado de "Vencido 26/09" y un hueco del 22 al 25 que el recuadro no explicaba. Lo que pasó después lo cuenta la tercera: **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
 
 **La cuarta es la plata**: los días en el rótulo y lo que cuestan en el valor, *"4 días vencidos · $400.000 + IVA"*, que es como se dice al hablar. La cifra va **sin IVA** y el impuesto se avisa al lado, que es como se cotiza. Al que vence hoy le dice *"0 días vencidos"* y deja el valor en blanco: una raya se leería como que el dato falta, y lo que pasa es que todavía no hay nada que cobrar.
+
+**Los días son los que corren desde la fecha vigente (2026-09-28).** Antes sumaba todos los tramos vencidos del equipo. La 03685 decía *"Vencida 25/09 · 4 días"* cuando desde el 25 llevaba 3: el cuarto era un día del 22/09 que ya se había cerrado al pactarle 3 días más. Ese día se sigue cobrando —está en el total y en la historia del equipo, con su valor— pero no es parte del atraso de hoy. Lo mismo la fila de la factura y la línea *"Vence: … – N días vencidos"* de los diálogos.
 
 Ese costo va con el equipo y no arriba con la cuenta: una cosa es decirle al cliente *"debe dos millones"* y otra *"el compresor solo ya va en un millón"*. Con lo segundo se negocia, con lo primero se discute — y en la factura no se sabría cuál de los cinco equipos lo está corriendo.
 
