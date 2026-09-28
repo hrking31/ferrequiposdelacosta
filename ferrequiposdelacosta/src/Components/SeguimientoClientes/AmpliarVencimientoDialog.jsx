@@ -20,9 +20,11 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
+import DescuentosAmpliacion from "./DescuentosAmpliacion";
 import {
   ampliarEquipo,
   dejarSinFechaDeEntrega,
+  descuentoExcedido,
   proyectarAmpliacion,
   equipoVencido,
   obtenerGestiones,
@@ -35,19 +37,14 @@ import {
   sinFechaDeEntrega,
   indefinidaDe,
 } from "../ClienteDetalle/facturaUtils";
-import {
-  formatearMoneda,
-  formatearMonedaInput,
-  limpiarMonedaInput,
-} from "../../Utils/formato";
+import { formatearFechaLegible } from "../../Utils/formato";
 
-const formatearFechaLegible = (fechaIso) => {
-  if (!fechaIso) return "";
-  const [anio, mes, dia] = fechaIso.split("-");
-  return `${dia}/${mes}/${anio}`;
+const ESTADO_INICIAL_CAMBIO = {
+  dias: "",
+  descuento: "",
+  descuentoVencidos: "",
+  indefinida: false,
 };
-
-const ESTADO_INICIAL_CAMBIO = { dias: "", descuento: "", indefinida: false };
 
 
 export default function AmpliarVencimientoDialog({ open, onClose, cliente, factura, onActualizado }) {
@@ -103,10 +100,11 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
     }));
   };
 
-  const handleCambiarDescuento = (clave, valor) => {
+  // `campo` es "descuento" (los días nuevos) o "descuentoVencidos".
+  const handleCambiarDescuento = (clave, campo, valor) => {
     setCambios((prev) => ({
       ...prev,
-      [clave]: { ...ESTADO_INICIAL_CAMBIO, ...prev[clave], descuento: valor },
+      [clave]: { ...ESTADO_INICIAL_CAMBIO, ...prev[clave], [campo]: valor },
     }));
   };
 
@@ -116,6 +114,20 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
     );
     if (!huboCambios) {
       showSnackbar("Marcá al menos un equipo para ampliar o dejar indefinido.", "warning");
+      return;
+    }
+
+    const hayExcedido = equiposAmpliables.some(({ equipo, clave }) => {
+      const cambio = cambios[clave];
+      return (
+        cambio &&
+        !cambio.indefinida &&
+        Number(cambio.dias) > 0 &&
+        descuentoExcedido(proyectarAmpliacion(equipo, cambio.dias), cambio)
+      );
+    });
+    if (hayExcedido) {
+      showSnackbar("Un descuento pasa de lo que valen sus días.", "warning");
       return;
     }
 
@@ -157,6 +169,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
             {
               dias: extra,
               descuento: Math.max(0, Number(cambio.descuento) || 0),
+              descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
             },
             hoy,
           );
@@ -219,18 +232,10 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
             {equiposAmpliables.map(({ equipo, clave }, posicion) => {
               const cambio = cambios[clave] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
-              const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
-              // La fecha en que queda el equipo y los días que se le cobran:
-              // si venía vencido, el plazo nuevo arranca HOY y los días que ya
-              // corrieron se consolidan en la ampliación (ver
-              // proyectarAmpliacion).
+              // La fecha en que queda el equipo y lo que valen los días nuevos
+              // y los vencidos que se cierran hoy, que es la base de cada
+              // descuento (ver proyectarAmpliacion).
               const proyeccion = proyectarAmpliacion(equipo, diasNumero);
-              // Lo que valen esos días, para poder ver sobre qué monto se está
-              // haciendo el descuento.
-              const valorDias =
-                proyeccion.dias *
-                (Number(equipo.cantidadEquipos) || 0) *
-                (Number(equipo.valorDia) || 0);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
               const yaIndefinido = sinFechaDeEntrega(equipo);
@@ -259,42 +264,17 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                   />
 
                   {diasNumero > 0 && !cambio.indefinida && (
-                    <TextField
-                      label="Descuento sobre esos días"
-                      // Con puntos de miles mientras se escribe, como los demás
-                      // campos de plata: "200.000" y no "200000", que a simple
-                      // vista se confunde con 20.000 o 2.000.000. Va como texto
-                      // y no como número porque un campo numérico no acepta los
-                      // puntos; lo que se guarda son solo los dígitos.
-                      inputProps={{ inputMode: "numeric" }}
-                      value={formatearMonedaInput(cambio.descuento)}
-                      onChange={(e) =>
-                        handleCambiarDescuento(clave, limpiarMonedaInput(e.target.value))
+                    <DescuentosAmpliacion
+                      proyeccion={proyeccion}
+                      cantidad={Number(equipo.cantidadEquipos) || 0}
+                      valorDia={Number(equipo.valorDia) || 0}
+                      descuento={cambio.descuento}
+                      descuentoVencidos={cambio.descuentoVencidos}
+                      onCambiarDescuento={(valor) =>
+                        handleCambiarDescuento(clave, "descuento", valor)
                       }
-                      fullWidth
-                      size="small"
-                      sx={{ mt: 1 }}
-                      helperText={
-                        valorDias > 0
-                          ? `${proyeccion.dias} día${
-                              proyeccion.dias === 1 ? "" : "s"
-                            } = ${formatearMoneda(valorDias)}${
-                              // De dónde salen esos días cuando no son solo
-                              // los que se pactaron: si no se dice, el monto
-                              // parece un error de cuentas.
-                              proyeccion.diasVencidos > 0
-                                ? ` (${proyeccion.diasVencidos} vencido${
-                                    proyeccion.diasVencidos === 1 ? "" : "s"
-                                  } + ${proyeccion.diasPedidos} pactado${
-                                    proyeccion.diasPedidos === 1 ? "" : "s"
-                                  })`
-                                : ""
-                            }${
-                              descuentoNumero > 0
-                                ? ` · queda en ${formatearMoneda(valorDias - descuentoNumero)}`
-                                : ""
-                            }`
-                          : "Este equipo no tiene precio cargado"
+                      onCambiarDescuentoVencidos={(valor) =>
+                        handleCambiarDescuento(clave, "descuentoVencidos", valor)
                       }
                     />
                   )}

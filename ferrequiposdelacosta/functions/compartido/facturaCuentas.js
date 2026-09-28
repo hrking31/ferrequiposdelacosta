@@ -204,12 +204,24 @@ export const cubiertoHasta = (equipo) => {
 export const diasVencidosDe = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
 
-  return vencidosDe(equipo).reduce((total, tramo) => {
-    const hasta = tramo?.hasta ?? corte;
-    if (!tramo?.desde || hasta < tramo.desde) return total;
-    return total + diasDeAlquiler(tramo.desde, hasta);
-  }, 0);
+  return vencidosDe(equipo).reduce(
+    (total, tramo) => total + diasDelTramo(tramo, corte),
+    0,
+  );
 };
+
+// Los días de UN tramo vencido. El abierto se cuenta hasta el corte; el que se
+// abrió y se cerró en el acto —su `hasta` cae antes que su `desde`— no suma.
+const diasDelTramo = (tramo, corte) => {
+  const hasta = tramo?.hasta ?? corte;
+  if (!tramo?.desde || hasta < tramo.desde) return 0;
+  return diasDeAlquiler(tramo.desde, hasta);
+};
+
+// Lo que se cobra de un tramo vencido: sus días al valor del día, menos el
+// descuento que se le hizo al cerrarlo, si se le hizo (ver ampliarEquipo).
+const valorDelTramo = (tramo, corte, porDia) =>
+  Math.max(0, diasDelTramo(tramo, corte) * porDia - numero(tramo?.descuento));
 
 // ── La cuenta de un equipo ─────────────────────────────────────────────
 //
@@ -222,7 +234,6 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const ampliaciones = ampliacionesDe(equipo);
 
   const diasAmpliados = sumar(ampliaciones, "dias");
-  const descuento = sumar(ampliaciones, "descuento");
 
   // Lo que se le prometió: los días del despacho más los que pidió después.
   const prometidos = numero(equipo?.diasAlquilados) + diasAmpliados;
@@ -238,15 +249,29 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const diasPactados = Math.min(prometidos, Math.max(0, usados));
 
   const dias = diasPactados + diasVencidos;
-  const netoPactado = Math.max(0, diasPactados * porDia - descuento);
-  const netoVencido = diasVencidos * porDia;
+
+  // Dos descuentos, cada uno sobre sus propios días: el de las ampliaciones
+  // sale de lo pactado, y el de cada tramo vencido, de ese tramo y de nada
+  // más. Ninguno pasa de lo que valen sus días, así que `bruto - descuento`
+  // es siempre el neto: la cuenta de cobro resta el descuento una sola vez
+  // al final y tiene que dar lo mismo.
+  const descuentoPactado = Math.min(
+    sumar(ampliaciones, "descuento"),
+    diasPactados * porDia,
+  );
+  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  const netoPactado = diasPactados * porDia - descuentoPactado;
+  const netoVencido = vencidosDe(equipo).reduce(
+    (total, tramo) => total + valorDelTramo(tramo, corte, porDia),
+    0,
+  );
 
   return {
     dias,
     diasPactados,
     diasVencidos,
     bruto: dias * porDia,
-    descuento,
+    descuento: descuentoPactado + (diasVencidos * porDia - netoVencido),
     neto: netoPactado + netoVencido,
     netoPactado,
     netoVencido,
@@ -339,9 +364,7 @@ export const tramosDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   // 3. CADA TRAMO VENCIDO. El que sigue abierto se cuenta contra hoy —o
   // contra el día en que volvió—, igual que en `diasVencidosDe`.
   vencidosDe(equipo).forEach((tramo, indice) => {
-    const hasta = tramo?.hasta ?? corte;
-    if (!tramo?.desde || hasta < tramo.desde) return;
-    const diasTramo = diasDeAlquiler(tramo.desde, hasta);
+    const diasTramo = diasDelTramo(tramo, corte);
     if (diasTramo <= 0) return;
 
     tramos.push({
@@ -349,17 +372,17 @@ export const tramosDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       tipo: "vencidos",
       desde: tramo.desde,
       dias: diasTramo,
-      // Los días vencidos se cobran al valor del día y sin descuento: para
-      // perdonarlos está el descuento de la ampliación, que alguien decide.
-      valor: diasTramo * porDia,
+      // Al valor del día, menos el descuento que se le haya hecho a ESTE
+      // tramo al cerrarlo: se pacta con el cliente y queda en su renglón.
+      valor: valorDelTramo(tramo, corte, porDia),
     });
   });
 
-  // EL DESCUENTO se resta de lo pactado, que es de donde salió: primero de
-  // las ampliaciones y, si es más grande que ellas, lo que sobra sale del
+  // EL DESCUENTO DE LAS AMPLIACIONES se resta de lo pactado, que es de donde
+  // salió: primero de las ampliaciones y, si es más grande que ellas —el que
+  // devolvió antes no usó todos los días que pidió—, lo que sobra sale del
   // alta. Así la suma de los tramos da lo mismo que `neto`, que también lo
-  // resta del pactado completo. Repartirlo solo entre las ampliaciones dejaba
-  // el desglose por debajo del total cuando el descuento era mayor que ellas.
+  // resta del pactado completo.
   let porDescontar = sumar(ampliacionesDe(equipo), "descuento");
   [...tramos]
     .filter((tramo) => tramo.tipo === "ampliados")
@@ -537,37 +560,66 @@ export const cerrarIndefinida = (equipo, hoyIso) =>
 // venía corriendo —esos 4 días quedan escritos— y recién sobre esa base
 // arrancan los días nuevos.
 //
-// Los 4 vencidos NO se regalan ni se descuentan: se siguen cobrando, solo que
-// en su propio renglón y no disfrazados de días ampliados. Para perdonárselos
-// está el descuento, que es una decisión que alguien toma y queda escrita.
+// Los 4 vencidos NO se regalan: se siguen cobrando, solo que en su propio
+// renglón y no disfrazados de días ampliados. Perdonarlos es una decisión que
+// se negocia con el cliente, y por eso la ampliación trae DOS descuentos: uno
+// sobre los días nuevos y otro sobre los vencidos que se cierran hoy.
+//
+// Los vencidos de la proyección son los del tramo que se cierra HOY, no todos
+// los que el equipo acumuló: los de tramos anteriores ya se cerraron con su
+// propia gestión, y el descuento de hoy no los toca.
 export const proyectarAmpliacion = (
   equipo,
   diasPedidos,
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
   const pedidos = Math.max(0, numero(diasPedidos));
+  const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
   // Con el tramo de hoy ya cerrado —y abierto antes, si la madrugada todavía
   // no lo había escrito—: de ahí salen los días vencidos y el día en que
   // arrancan los nuevos.
   const cerrado = cerrarTramoVencido(equipo, hoyIso);
   const desde = siguienteDia(cubiertoHasta(cerrado));
+  const tramo = tramoQueCierraHoy(cerrado, hoyIso);
+  const diasVencidos = diasDelTramo(tramo, hoyIso);
 
   return {
-    diasVencidos: diasVencidosDe(cerrado, hoyIso),
+    porDia,
+    diasVencidos,
+    vencidosDesde: diasVencidos > 0 ? tramo.desde : null,
+    // Hasta cuánto se les puede descontar: lo que valen, y nada más.
+    valorVencidos: diasVencidos * porDia,
     // Los que se le prometieron, que es lo que el cliente escuchó. Y nada más:
     // el renglón de la ampliación ya no mezcla los vencidos adentro.
     diasPedidos: pedidos,
+    valorPedidos: pedidos * porDia,
     desde,
     hasta: pedidos > 0 ? calcularFechaDevolucion(desde, pedidos) : null,
   };
 };
 
+// Si alguno de los dos descuentos pasa de lo que valen sus días.
+export const descuentoExcedido = (proyeccion, { descuento, descuentoVencidos } = {}) =>
+  numero(descuento) > proyeccion.valorPedidos ||
+  numero(descuentoVencidos) > proyeccion.valorVencidos;
+
+// El tramo vencido que termina hoy: el que cierra una ampliación. El que se
+// abrió y se cerró en el acto no suma días, así que no cuenta.
+const tramoQueCierraHoy = (equipo, hoyIso) =>
+  vencidosDe(equipo).find(
+    (tramo) => tramo?.hasta === hoyIso && diasDelTramo(tramo, hoyIso) > 0,
+  ) ?? null;
+
 // El equipo con su plazo nuevo: el tramo vencido cerrado hoy, la entrega
 // indefinida apagada —ya tiene fecha— y la ampliación anotada con lo que el
 // cliente PIDIÓ.
+//
+// Cada descuento queda pegado a los días de donde sale: el de los días nuevos
+// en la ampliación, y el de los vencidos en el tramo que se cierra hoy. Así la
+// historia del equipo muestra cada renglón con lo que de verdad se cobra.
 export const ampliarEquipo = (
   equipo,
-  { dias, descuento } = {},
+  { dias, descuento, descuentoVencidos } = {},
   hoyIso = obtenerFechaHoyBogota(),
 ) => {
   const pedidos = Math.max(0, numero(dias));
@@ -576,8 +628,18 @@ export const ampliarEquipo = (
   const proyeccion = proyectarAmpliacion(equipo, pedidos, hoyIso);
   const base = cerrarIndefinida(cerrarMora(equipo, hoyIso), hoyIso);
 
+  const aVencidos = Math.max(0, numero(descuentoVencidos));
+  const tramo = aVencidos > 0 ? tramoQueCierraHoy(base, hoyIso) : null;
+
   return {
     ...base,
+    ...(tramo && {
+      vencidos: vencidosDe(base).map((cada) =>
+        cada === tramo
+          ? { ...cada, descuento: numero(cada.descuento) + aVencidos }
+          : cada,
+      ),
+    }),
     ampliaciones: [
       ...ampliacionesDe(base),
       {
@@ -589,6 +651,50 @@ export const ampliarEquipo = (
       },
     ],
   };
+};
+
+// ── PARTIR UNA LÍNEA cuando el cliente devuelve una parte ───────────────
+//
+// Las dos mitades se llevan la misma historia —el alta, las ampliaciones, los
+// tramos vencidos—, porque la vivieron juntas. Pero los descuentos son PLATA,
+// no historia: copiados tal cual, cada mitad restaba el descuento entero y el
+// cliente terminaba con el doble. 4 tablones con $20.000 de descuento, vuelven
+// 2: $10.000 van con los que volvieron y $10.000 con los que siguen afuera.
+//
+// Devuelve [la parte que vuelve, la que se queda]. Lo que sobra del redondeo
+// va con la que se queda, para que las dos sumen exactamente el descuento.
+export const partirLinea = (equipo, cantidadQueVuelve) => {
+  const total = numero(equipo?.cantidadEquipos);
+  const vuelve = Math.min(Math.max(0, numero(cantidadQueVuelve)), total);
+  const parteQueVuelve = (monto) =>
+    total > 0 ? Math.round((numero(monto) * vuelve) / total) : 0;
+
+  const partir = (queda) => {
+    const repartir = (lista) =>
+      lista.map((item) =>
+        numero(item?.descuento) > 0
+          ? {
+              ...item,
+              descuento: queda
+                ? numero(item.descuento) - parteQueVuelve(item.descuento)
+                : parteQueVuelve(item.descuento),
+            }
+          : item,
+      );
+
+    return {
+      ...equipo,
+      cantidadEquipos: queda ? total - vuelve : vuelve,
+      ...(Array.isArray(equipo?.ampliaciones) && {
+        ampliaciones: repartir(equipo.ampliaciones),
+      }),
+      ...(Array.isArray(equipo?.vencidos) && {
+        vencidos: repartir(equipo.vencidos),
+      }),
+    };
+  };
+
+  return [partir(false), partir(true)];
 };
 
 // El equipo que queda SIN FECHA DE ENTREGA: el cliente se lo queda y avisará.

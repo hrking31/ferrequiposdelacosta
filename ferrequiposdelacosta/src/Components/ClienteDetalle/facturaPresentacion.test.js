@@ -89,6 +89,20 @@ describe("historialEquipo", () => {
     expect(tramo.valor).toBe(300000);
   });
 
+  // El descuento que se pactó sobre esos días al ampliar viaja restado, igual
+  // que el de lo pactado: el renglón dice lo que de verdad se cobra.
+  it("el tramo vencido con descuento vale sus días menos el descuento", () => {
+    const conDescuento = {
+      ...compresor,
+      vencidos: [
+        { ...compresor.vencidos[0], descuento: 100000 },
+        compresor.vencidos[1],
+      ],
+    };
+    expect(buscar(conDescuento, "vencidos-0").valor).toBe(200000);
+    expect(buscar(conDescuento, "vencidos-1").valor).toBe(300000);
+  });
+
   // La entrega indefinida no es un estado aparte: el equipo está vencido
   // igual, solo que con permiso. Por eso el tramo posterior al acuerdo cambia
   // de NOMBRE y conserva el tono del vencimiento.

@@ -20,11 +20,14 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
+import DescuentosAmpliacion from "./DescuentosAmpliacion";
 import {
   ampliarEquipo,
   cerrarIndefinida,
   cerrarTramoVencido,
   dejarSinFechaDeEntrega,
+  descuentoExcedido,
+  partirLinea,
   proyectarAmpliacion,
   equipoAlDia,
   equipoVencido,
@@ -58,6 +61,7 @@ const ESTADO_INICIAL_CAMBIO = {
   cantidad: "",
   dias: "",
   descuento: "",
+  descuentoVencidos: "",
   indefinida: false,
   buenEstado: true,
   motivoEstado: "",
@@ -299,11 +303,22 @@ export default function RegistrarDevolucionDialog({
     }));
   };
 
-  const handleCambiarDescuento = (index, valor) => {
+  // `campo` es "descuento" (los días nuevos) o "descuentoVencidos".
+  const handleCambiarDescuento = (index, campo, valor) => {
     setCambios((prev) => ({
       ...prev,
-      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], descuento: valor },
+      [index]: { ...ESTADO_INICIAL_CAMBIO, ...prev[index], [campo]: valor },
     }));
+  };
+
+  // Lo que queda afuera de una línea, con la cantidad que se queda: es sobre
+  // eso que se da el plazo nuevo y se hacen los descuentos.
+  const proyeccionDelResto = (equipo, clave) => {
+    const restante = pendienteDe(equipo) - cantidadQueDevuelve(equipo, clave);
+    return proyectarAmpliacion(
+      { ...equipo, cantidadEquipos: restante },
+      Number(cambios[clave]?.dias) || 0,
+    );
   };
 
   const handleGuardar = async () => {
@@ -348,6 +363,25 @@ export default function RegistrarDevolucionDialog({
         )}.`,
         "warning",
       );
+      return;
+    }
+
+    // Los descuentos del plazo nuevo, igual que en el diálogo de ampliar:
+    // ninguno puede pasar de lo que valen sus días.
+    const descuentoDeMas = equiposPendientes.some(({ equipo, clave }) => {
+      const cambio = cambios[clave];
+      const quedan = pendienteDe(equipo) - cantidadQueDevuelve(equipo, clave);
+      return (
+        cambio &&
+        cantidadQueDevuelve(equipo, clave) > 0 &&
+        quedan > 0 &&
+        !cambio.indefinida &&
+        Number(cambio.dias) > 0 &&
+        descuentoExcedido(proyeccionDelResto(equipo, clave), cambio)
+      );
+    });
+    if (descuentoDeMas) {
+      showSnackbar("Un descuento pasa de lo que valen sus días.", "warning");
       return;
     }
 
@@ -408,20 +442,19 @@ export default function RegistrarDevolucionDialog({
           //
           // Nada de la plata se copia: el pago, el flete y el depósito son
           // del GRUPO y se quedaron arriba. Con ellos abajo, partir la línea
-          // duplicaba el pago y la factura inventaba un saldo a favor.
+          // duplicaba el pago y la factura inventaba un saldo a favor. Los
+          // descuentos de la línea sí viajan, pero repartidos según la
+          // cantidad (ver partirLinea).
+          const [parteQueVuelve, parteQueQueda] = partirLinea(equipo, cantidadDevuelta);
           equiposActualizados.push({
             ...cerrarIndefinida(
-              cerrarTramoVencido(equipo, devolucion.fechaDevolucion),
+              cerrarTramoVencido(parteQueVuelve, devolucion.fechaDevolucion),
               devolucion.fechaDevolucion,
             ),
-            cantidadEquipos: cantidadDevuelta,
             devolucion,
           });
 
-          let restante = {
-            ...equipo,
-            cantidadEquipos: pendiente - cantidadDevuelta,
-          };
+          let restante = { ...parteQueQueda };
           // Lo que sigue afuera todavía no volvió.
           delete restante.devolucion;
 
@@ -438,6 +471,7 @@ export default function RegistrarDevolucionDialog({
                 {
                   dias: extra,
                   descuento: Math.max(0, Number(cambio.descuento) || 0),
+                  descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
                 },
                 hoy,
               );
@@ -574,10 +608,7 @@ export default function RegistrarDevolucionDialog({
               const cantidadDevuelta = cambio.cantidad === "" ? 0 : Number(cambio.cantidad) || 0;
               const restante = pendiente - cantidadDevuelta;
               const diasNumero = Number(cambio.dias);
-              const descuentoNumero = Math.max(0, Number(cambio.descuento) || 0);
-              const proyeccion = proyectarAmpliacion(equipo, diasNumero);
-              const valorDias =
-                proyeccion.diasPedidos * restante * (Number(equipo.valorDia) || 0);
+              const proyeccion = proyeccionDelResto(equipo, clave);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
 
@@ -731,33 +762,17 @@ export default function RegistrarDevolucionDialog({
                       />
 
                       {diasNumero > 0 && !cambio.indefinida && (
-                        <TextField
-                          label="Descuento sobre esos días"
-                          type="number"
-                          inputProps={{ min: 0 }}
-                          value={cambio.descuento}
-                          onChange={(e) => handleCambiarDescuento(clave, e.target.value)}
-                          fullWidth
-                          size="small"
-                          sx={{ mt: 1 }}
-                          helperText={
-                            valorDias > 0
-                              ? `${proyeccion.dias} día${
-                                  proyeccion.dias === 1 ? "" : "s"
-                                } = ${formatearMoneda(valorDias)}${
-                                  proyeccion.diasVencidos > 0
-                                    ? ` (${proyeccion.diasVencidos} vencido${
-                                        proyeccion.diasVencidos === 1 ? "" : "s"
-                                      } + ${proyeccion.diasPedidos} pactado${
-                                        proyeccion.diasPedidos === 1 ? "" : "s"
-                                      })`
-                                    : ""
-                                }${
-                                  descuentoNumero > 0
-                                    ? ` · queda en ${formatearMoneda(valorDias - descuentoNumero)}`
-                                    : ""
-                                }`
-                              : "Este equipo no tiene precio cargado"
+                        <DescuentosAmpliacion
+                          proyeccion={proyeccion}
+                          cantidad={restante}
+                          valorDia={Number(equipo.valorDia) || 0}
+                          descuento={cambio.descuento}
+                          descuentoVencidos={cambio.descuentoVencidos}
+                          onCambiarDescuento={(valor) =>
+                            handleCambiarDescuento(clave, "descuento", valor)
+                          }
+                          onCambiarDescuentoVencidos={(valor) =>
+                            handleCambiarDescuento(clave, "descuentoVencidos", valor)
                           }
                         />
                       )}

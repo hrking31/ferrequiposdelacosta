@@ -5,6 +5,9 @@ import {
   equipoVencido,
   equipoAlDia,
   proyectarAmpliacion,
+  ampliarEquipo,
+  partirLinea,
+  descuentoExcedido,
   cerrarTramoVencido,
   abrirTramoVencido,
   abrirTramosFactura,
@@ -349,6 +352,142 @@ describe("ampliar el plazo de un equipo vencido", () => {
     // el 15.
     expect(proyeccion.desde).toBe("2026-09-14");
     expect(proyeccion.hasta).toBe("2026-09-15");
+  });
+});
+
+// Pedido del dueño el 2026-09-28: el descuento de una ampliación se negocia
+// con el cliente, y puede ir sobre los días nuevos, sobre los vencidos o sobre
+// los dos. Cada uno sale de sus propios días y ninguno pasa de lo que valen.
+//
+// El equipo de siempre: 10 gatos a $1.500 → $15.000 por día, cubierto hasta el
+// 13. Con su tramo abierto desde el 14, el 17 lleva 4 días vencidos.
+describe("los dos descuentos de una ampliación", () => {
+  const vencido = () => equipo({ vencidos: [tramo("2026-09-14")] });
+
+  it("la proyección dice cuánto vale el día y cada grupo de días", () => {
+    const proyeccion = proyectarAmpliacion(vencido(), 3, "2026-09-17");
+
+    expect(proyeccion).toMatchObject({
+      porDia: 15000,
+      diasPedidos: 3,
+      valorPedidos: 45000,
+      diasVencidos: 4,
+      vencidosDesde: "2026-09-14",
+      valorVencidos: 60000,
+    });
+  });
+
+  // Los vencidos de un tramo anterior ya se cerraron con su propia gestión:
+  // el descuento de hoy no los alcanza.
+  it("los vencidos son los del tramo que se cierra hoy, no los de antes", () => {
+    const conTramoViejo = equipo({
+      vencidos: [tramo("2026-09-14", "2026-09-15"), tramo("2026-09-16")],
+    });
+    const proyeccion = proyectarAmpliacion(conTramoViejo, 1, "2026-09-17");
+
+    expect(proyeccion.diasVencidos).toBe(2); // el 16 y el 17
+    expect(proyeccion.vencidosDesde).toBe("2026-09-16");
+    expect(proyeccion.valorVencidos).toBe(30000);
+  });
+
+  it("el descuento de los vencidos queda en el tramo que se cierra hoy", () => {
+    const ampliado = ampliarEquipo(
+      vencido(),
+      { dias: 1, descuento: 5000, descuentoVencidos: 20000 },
+      "2026-09-17",
+    );
+
+    expect(ampliado.vencidos).toEqual([
+      { desde: "2026-09-14", hasta: "2026-09-17", indefinida: false, descuento: 20000 },
+    ]);
+    expect(ampliado.ampliaciones[0].descuento).toBe(5000);
+  });
+
+  it("sin descuento en los vencidos, el tramo no estrena el campo", () => {
+    const ampliado = ampliarEquipo(vencido(), { dias: 1 }, "2026-09-17");
+
+    expect(ampliado.vencidos).toEqual([
+      { desde: "2026-09-14", hasta: "2026-09-17", indefinida: false },
+    ]);
+  });
+
+  it("cada descuento sale de sus días, y el total cuadra", () => {
+    const ampliado = ampliarEquipo(
+      vencido(),
+      { dias: 1, descuento: 5000, descuentoVencidos: 20000 },
+      "2026-09-17",
+    );
+    const cuenta = calcularEquipo(ampliado, "2026-09-17");
+
+    // Pactados: 10 del alta + 1 pedido = 11 × $15.000 = $165.000, menos $5.000.
+    expect(cuenta.netoPactado).toBe(160000);
+    // Vencidos: 4 × $15.000 = $60.000, menos $20.000.
+    expect(cuenta.netoVencido).toBe(40000);
+    expect(cuenta.descuento).toBe(25000);
+    expect(cuenta.bruto - cuenta.descuento).toBe(cuenta.neto);
+
+    // Y el desglose por tramos reparte exactamente lo mismo.
+    const tramos = tramosDeEquipo(ampliado, "2026-09-17");
+    expect(tramos.find((t) => t.tipo === "vencidos").valor).toBe(40000);
+    expect(tramos.reduce((total, t) => total + t.valor, 0)).toBe(cuenta.neto);
+  });
+
+  it("ningún descuento puede pasar de lo que valen sus días", () => {
+    const proyeccion = proyectarAmpliacion(vencido(), 1, "2026-09-17");
+
+    expect(descuentoExcedido(proyeccion, { descuento: 15000 })).toBe(false);
+    expect(descuentoExcedido(proyeccion, { descuento: 15001 })).toBe(true);
+    expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60000 })).toBe(false);
+    expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60001 })).toBe(true);
+  });
+});
+
+// Al devolver una parte, la línea se parte en dos. Antes cada mitad se llevaba
+// el descuento entero y el cliente terminaba con el doble.
+describe("partir una línea con descuentos", () => {
+  // 3 gatos → $4.500 por día. Una ampliación con $10.000 de descuento y un
+  // tramo vencido con $5.000.
+  const conDescuentos = () =>
+    equipo({
+      cantidadEquipos: 3,
+      ampliaciones: [
+        {
+          fecha: "2026-09-13",
+          dias: 2,
+          desde: "2026-09-14",
+          hasta: "2026-09-15",
+          descuento: 10000,
+        },
+      ],
+      vencidos: [
+        { desde: "2026-09-16", hasta: "2026-09-17", indefinida: false, descuento: 5000 },
+      ],
+    });
+
+  it("reparte cada descuento según la cantidad, y las dos partes suman el total", () => {
+    const [vuelve, queda] = partirLinea(conDescuentos(), 1);
+
+    expect(vuelve.cantidadEquipos).toBe(1);
+    expect(queda.cantidadEquipos).toBe(2);
+    expect(vuelve.ampliaciones[0].descuento).toBe(3333);
+    expect(queda.ampliaciones[0].descuento).toBe(6667);
+    expect(vuelve.vencidos[0].descuento).toBe(1667);
+    expect(queda.vencidos[0].descuento).toBe(3333);
+
+    const antes = calcularEquipo(conDescuentos(), "2026-09-17").descuento;
+    const despues =
+      calcularEquipo(vuelve, "2026-09-17").descuento +
+      calcularEquipo(queda, "2026-09-17").descuento;
+    expect(antes).toBe(15000);
+    expect(despues).toBe(antes);
+  });
+
+  it("lo que no tiene descuento pasa igual a las dos partes", () => {
+    const [vuelve, queda] = partirLinea(equipo({ vencidos: [tramo("2026-09-14")] }), 4);
+
+    expect(vuelve.vencidos).toEqual([tramo("2026-09-14")]);
+    expect(queda.vencidos).toEqual([tramo("2026-09-14")]);
+    expect(vuelve.cantidadEquipos + queda.cantidadEquipos).toBe(10);
   });
 });
 

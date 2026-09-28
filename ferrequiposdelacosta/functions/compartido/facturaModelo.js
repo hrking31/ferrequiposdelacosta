@@ -39,9 +39,11 @@
 //                     ampliaciones[]  lo que el cliente PIDIÓ, y nada más:
 //                                     { fecha, dias, desde, hasta, descuento }
 //                     vencidos[]      un tramo por cada vez que se pasó de
-//                                     plazo: { desde, hasta, indefinida }.
-//                                     El último puede tener `hasta` vacío:
-//                                     es el que está corriendo hoy.
+//                                     plazo: { desde, hasta, indefinida,
+//                                     descuento? }. El último puede tener
+//                                     `hasta` vacío: es el que está
+//                                     corriendo hoy. El descuento se le pone
+//                                     al cerrarlo con una ampliación.
 //                     indefinida{}    { activa, desde, hasta } — desde cuándo
 //                                     quedó sin fecha de entrega y hasta
 //                                     cuándo lo estuvo.

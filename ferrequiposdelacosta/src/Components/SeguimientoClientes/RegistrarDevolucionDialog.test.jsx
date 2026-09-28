@@ -7,6 +7,7 @@ import {
   calcularEquipo,
 } from "../ClienteDetalle/facturaUtils";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
+import { formatearMoneda } from "../../Utils/formato";
 import {
   grupoAgregados,
   unEquipo,
@@ -37,6 +38,10 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 const HOY = obtenerFechaHoyBogota();
+
+// Un importe tal como sale en pantalla: el formato de pesos separa el "$" con
+// un espacio especial, que al leer la pantalla cuenta como uno normal.
+const enPantalla = (valor) => formatearMoneda(valor).replace(/\s/g, " ");
 
 const cliente = { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" };
 
@@ -740,6 +745,81 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       desde: HOY,
       hasta: HOY,
     });
+  });
+
+  // Antes las dos mitades se llevaban el descuento entero: 5 andamios con
+  // $50.000 de descuento, vuelven 2, y la factura restaba $100.000.
+  it("al partir la línea, el descuento se reparte según la cantidad", async () => {
+    const { usuario } = abrir({
+      factura: {
+        ...factura,
+        ...unaFactura({
+          numeroFactura: "1573",
+          valorDeposito: 100000,
+          equipos: [
+            andamio({
+              ampliaciones: [
+                {
+                  fecha: "2026-08-03",
+                  dias: 2,
+                  desde: "2026-08-04",
+                  hasta: "2026-08-05",
+                  descuento: 50000,
+                },
+              ],
+            }),
+          ],
+        }),
+      },
+    });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [devuelto, afuera] = equiposGuardados();
+    expect(devuelto.ampliaciones[0].descuento).toBe(20000);
+    expect(afuera.ampliaciones[0].descuento).toBe(30000);
+  });
+
+  it("a lo que queda afuera se le puede descontar el día vencido", async () => {
+    const AYER = calcularVencimiento(HOY, -1);
+    const { usuario } = abrir({
+      factura: {
+        ...factura,
+        ...unaFactura({
+          numeroFactura: "1573",
+          valorDeposito: 100000,
+          equipos: [
+            andamio({
+              fechaDespacho: calcularVencimiento(AYER, -2),
+              vencidos: [unTramoVencido({ desde: HOY, hasta: null })],
+            }),
+          ],
+        }),
+      },
+    });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
+
+    // La base es lo que se queda afuera: 2 andamios, no los 5.
+    expect(
+      screen.getByText(`Valor del día: 2 × ${enPantalla(20000)} = ${enPantalla(40000)}`),
+    ).toBeInTheDocument();
+
+    await usuario.type(screen.getByLabelText("Descuento en el día vencido"), "10000");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [devuelto, restante] = equiposGuardados();
+    expect(restante.vencidos.at(-1)).toMatchObject({
+      desde: HOY,
+      hasta: HOY,
+      descuento: 10000,
+    });
+    // Lo que volvió paga su día vencido completo.
+    expect(devuelto.vencidos.at(-1).descuento).toBeUndefined();
   });
 
   it("no se puede devolver más de lo que hay afuera", async () => {

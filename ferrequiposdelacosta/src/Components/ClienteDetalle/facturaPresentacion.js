@@ -233,7 +233,9 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       // plata del cliente, que entra a su cuenta y puede repartirse entre
       // varias facturas.
       detalle: enDias(diasTramo),
-      valor: diasTramo * porDia,
+      // Con el descuento que se le hizo al cerrarlo, si se le hizo: igual que
+      // el renglón de lo pactado, muestra lo que de verdad se cobra.
+      valor: Math.max(0, diasTramo * porDia - (Number(tramo?.descuento) || 0)),
       // Ya cerrados: van con el acento de lo pactado y no con el rojo de lo
       // que se está reclamando.
       valorTono: "acordado",

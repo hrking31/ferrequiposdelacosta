@@ -7,6 +7,11 @@ import {
 } from "../ClienteDetalle/facturaUtils";
 import AmpliarVencimientoDialog from "./AmpliarVencimientoDialog";
 import { unEquipo, unEquipoDevuelto, unTramoVencido, unaFactura } from "../../test/facturas";
+import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
+
+// Un importe tal como sale en pantalla: el formato de pesos separa el "$" con
+// un espacio especial, que al leer la pantalla cuenta como uno normal.
+const enPantalla = (valor) => formatearMoneda(valor).replace(/\s/g, " ");
 
 // Darle más días al cliente. Es una operación de plata: los días que se agregan
 // se cobran, salvo que se les haga un descuento, y la ampliación queda anotada
@@ -186,12 +191,71 @@ describe("AmpliarVencimientoDialog — al ampliar", () => {
 
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
     // El campo de descuento aparece recién cuando hay días cargados.
-    await usuario.type(screen.getByLabelText("Descuento sobre esos días"), "50000");
+    await usuario.type(screen.getByLabelText("Descuento en los 2 días nuevos"), "50000");
     await guardar(usuario);
 
     expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
     expect(primerEquipo().ampliaciones[0].descuento).toBe(50000);
   });
+});
+
+// Pedido del dueño el 2026-09-28: el cliente pidió descuento al ampliar y el
+// diálogo decía "Este equipo no tiene precio cargado" —era un dato que ya no
+// existía—, no mostraba a cómo se cobraba el día y no dejaba elegir sobre qué
+// días se descontaba.
+describe("AmpliarVencimientoDialog — los descuentos", () => {
+  it("muestra a cómo se cobra el día", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
+
+    expect(
+      screen.getByText(`Valor del día: 5 × ${enPantalla(20000)} = ${enPantalla(100000)}`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no tiene precio/)).not.toBeInTheDocument();
+    // Cada casilla dice cuánto valen sus días.
+    expect(screen.getByText(`Valen ${enPantalla(200000)}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Desde el ${formatearFechaLegible(HOY)} · Valen ${enPantalla(100000)}`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("el descuento de los vencidos queda en el tramo que se cierra hoy", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
+    await usuario.type(screen.getByLabelText("Descuento en el día vencido"), "30000");
+    await guardar(usuario);
+
+    expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
+    const equipo = primerEquipo();
+    expect(equipo.vencidos).toEqual([
+      { desde: HOY, hasta: HOY, indefinida: false, descuento: 30000 },
+    ]);
+    // Y el de los días nuevos queda en cero: no se escribió nada.
+    expect(equipo.ampliaciones[0].descuento).toBe(0);
+  });
+
+  it("no deja guardar un descuento que pasa de lo que valen sus días", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "1");
+    await usuario.type(screen.getByLabelText("Descuento en el día nuevo"), "100001");
+
+    expect(screen.getByText(`No puede pasar de ${enPantalla(100000)}`)).toBeInTheDocument();
+
+    await guardar(usuario);
+
+    expect(
+      await screen.findByText("Un descuento pasa de lo que valen sus días."),
+    ).toBeInTheDocument();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+});
+
+describe("AmpliarVencimientoDialog — la gestión", () => {
 
   it("anota la prórroga en la línea de tiempo de la factura", async () => {
     const { usuario } = abrir();
