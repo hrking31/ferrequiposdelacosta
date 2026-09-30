@@ -26,6 +26,8 @@ import {
   calcularRetenido,
   calcularDeposito,
   MEDIO_DEPOSITO,
+  MEDIO_CRUCE,
+  repartirEntregas,
   depositoPendiente,
   sumarPagos,
   sumarAbonos,
@@ -948,7 +950,7 @@ describe("la cuenta de la factura", () => {
   it("las entregas restan de lo recibido", () => {
     const conEntrega = facturaCon([equipo()], {
       pagos: [{ medio: "Efectivo", monto: 200000 }],
-      entregas: [{ fecha: HOY, medio: "Nequi", monto: 50000, nota: "" }],
+      entregas: [{ fecha: HOY, medio: "Nequi", monto: 50000 }],
     });
     expect(sumarEntregas(conEntrega)).toBe(50000);
     const cuenta = calcularCuentaFactura(conEntrega, HOY);
@@ -1037,7 +1039,7 @@ describe("el depósito, aparte de la factura", () => {
 
   it("devuelto el depósito, la factura termina", () => {
     const doc = la8154({
-      entregas: [{ fecha: HOY, medio: "Efectivo", monto: 500000, nota: "" }],
+      entregas: [{ fecha: HOY, medio: "Efectivo", monto: 500000 }],
     });
     const cuenta = calcularCuentaFactura(doc, HOY);
     expect(cuenta.deposito.devuelto).toBe(500000);
@@ -1045,6 +1047,54 @@ describe("el depósito, aparte de la factura", () => {
     expect(cuenta.aDevolver).toBe(0);
     expect(cuenta.total).toBe(2156400);
     expect(calcularEstadoFactura(doc, HOY)).toBe("finalizada");
+  });
+
+  // A DÓNDE FUE LO QUE SALIÓ: el recuadro dice "Devuelto al cliente" o
+  // "Cruzado a factura 2496" según esto, y sin cambiar ninguna cifra.
+  describe("repartirEntregas", () => {
+    const cruce = (monto, haciaFacturas) => ({
+      fecha: HOY,
+      medio: MEDIO_CRUCE,
+      monto,
+      haciaFacturas,
+    });
+
+    it("el depósito cruzado entero a otra factura no dice que se devolvió", () => {
+      const doc = la8154({ entregas: [cruce(500000, ["2496"])] });
+      expect(repartirEntregas(doc)).toEqual({
+        deposito: [{ clave: "2496", cruzadoA: ["2496"], monto: 500000 }],
+        deMas: [],
+      });
+      // La cuenta es la misma que si se le hubiera entregado en mano.
+      expect(calcularCuentaFactura(doc, HOY).aDevolver).toBe(0);
+      expect(calcularEstadoFactura(doc, HOY)).toBe("finalizada");
+    });
+
+    it("una parte en mano y otra cruzada salen en dos renglones", () => {
+      const doc = la8154({
+        entregas: [
+          { fecha: HOY, medio: "Efectivo", monto: 200000 },
+          cruce(300000, ["2496"]),
+        ],
+      });
+      expect(repartirEntregas(doc).deposito).toEqual([
+        { clave: "", cruzadoA: null, monto: 200000 },
+        { clave: "2496", cruzadoA: ["2496"], monto: 300000 },
+      ]);
+    });
+
+    it("lo pagado de más va aparte del depósito, aunque salga en el mismo cruce", () => {
+      // Abonó $200.000 de más: queda el depósito y además un saldo a favor.
+      const doc = la8154({
+        abonos: [{ fecha: "2026-09-01", medio: "Nequi", monto: 1342400, tipo: "sistema" }],
+        entregas: [cruce(700000, ["2496", "2510"])],
+      });
+      expect(repartirEntregas(doc)).toEqual({
+        deposito: [{ clave: "2496,2510", cruzadoA: ["2496", "2510"], monto: 500000 }],
+        deMas: [{ clave: "2496,2510", cruzadoA: ["2496", "2510"], monto: 200000 }],
+      });
+      expect(calcularCuentaFactura(doc, HOY).aDevolver).toBe(0);
+    });
   });
 
   it("sin el abono, el depósito se aplica a mano y baja el saldo", () => {

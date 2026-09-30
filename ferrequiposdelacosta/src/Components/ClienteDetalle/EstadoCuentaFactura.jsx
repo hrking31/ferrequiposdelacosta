@@ -24,6 +24,7 @@ import PaidIcon from "@mui/icons-material/Paid";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TollIcon from "@mui/icons-material/Toll";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import PercentIcon from "@mui/icons-material/Percent";
@@ -34,7 +35,7 @@ import {
   depositoPendiente,
   calcularTransporteTotal,
   datosFactura,
-  entregasDe,
+  repartirEntregas,
 } from "./facturaUtils";
 import IconoDeposito from "./IconoDeposito";
 import {
@@ -166,7 +167,9 @@ export default function EstadoCuentaFactura({
   // garantía, y con lo que la garantía le pasó (daños y lo aplicado) aparte.
   const pagoALaFactura = cuenta.pagado - deposito.conLosDespachos;
   const abonosALaFactura = cuenta.abonos - deposito.aplicado - deposito.conAbonos;
-  const entregadoDeMas = cuenta.entregas - deposito.devuelto;
+  // Lo que salió hacia el cliente, partido en lo que salió del depósito —va en
+  // su recuadro— y lo que salió de un pago de más —va en el de la factura—.
+  const salidas = repartirEntregas(factura);
   // El saldo de la factura sola: el depósito por cobrar va en su recuadro.
   const saldoFactura = Math.max(0, cuenta.saldoPendiente - deposito.porCobrar);
 
@@ -197,6 +200,17 @@ export default function EstadoCuentaFactura({
       {texto}
     </>
   );
+
+  // Cada salida dice lo que pasó con ella: si se le dio al cliente, el rótulo
+  // de siempre; si pagó otra factura suya, a cuál. Sin eso un cruce se leía
+  // como plata que el cliente se llevó.
+  const rotuloSalida = ({ cruzadoA }, enMano) =>
+    cruzadoA
+      ? conIcono(
+          SwapHorizIcon,
+          `Cruzado a ${cruzadoA.length > 1 ? "facturas" : "factura"} ${cruzadoA.join(", ")}`,
+        )
+      : conIcono(CurrencyExchangeIcon, enMano);
 
   // Plata de la empresa hacia el cliente: el depósito libre y lo que pagó de
   // más. Va con botón y no como un dato más: mientras no se entregue, la
@@ -340,14 +354,14 @@ export default function EstadoCuentaFactura({
         )}
 
         {/* Lo que se le devolvió aparte del depósito: un pago de más. */}
-        {entregadoDeMas > 0 && (
-          <Box className="fila">
+        {salidas.deMas.map((salida) => (
+          <Box key={salida.clave} className="fila">
             <Typography variant="body2">
-              {conIcono(CurrencyExchangeIcon, "Entregado al cliente")}
+              {rotuloSalida(salida, "Entregado al cliente")}
             </Typography>
-            <Typography variant="body2">{formatearMoneda(entregadoDeMas)}</Typography>
+            <Typography variant="body2">{formatearMoneda(salida.monto)}</Typography>
           </Box>
-        )}
+        ))}
 
         {!cuentaCerroClavada && (
           <Box className="fila separada pagado">
@@ -384,21 +398,6 @@ export default function EstadoCuentaFactura({
             </Typography>
           </Box>
         )}
-
-        {/* A DÓNDE FUE ESA PLATA. Sin esta línea, una salida que NO se le
-            entregó al cliente —la que se cruzó contra otra factura suya— se
-            leería como plata que se le devolvió en mano. */}
-        {entregasDe(factura)
-          .filter((entrega) => entrega?.nota)
-          .map((entrega, indice) => (
-            <Typography
-              key={`${entrega.fecha}-${indice}`}
-              variant="caption"
-              sx={{ display: "block", opacity: 0.85, mt: 0.5 }}
-            >
-              {entrega.nota}
-            </Typography>
-          ))}
 
         {/* Sin depósito, lo único que se le puede devolver es un pago de
             más, y el botón va acá. Con depósito va en su recuadro. */}
@@ -466,14 +465,14 @@ export default function EstadoCuentaFactura({
               <Typography variant="body2">- {formatearMoneda(deposito.aplicado)}</Typography>
             </Box>
           )}
-          {deposito.devuelto > 0 && (
-            <Box className="fila">
+          {salidas.deposito.map((salida) => (
+            <Box key={salida.clave} className="fila">
               <Typography variant="body2">
-                {conIcono(CurrencyExchangeIcon, "Devuelto al cliente")}
+                {rotuloSalida(salida, "Devuelto al cliente")}
               </Typography>
-              <Typography variant="body2">- {formatearMoneda(deposito.devuelto)}</Typography>
+              <Typography variant="body2">- {formatearMoneda(salida.monto)}</Typography>
             </Box>
-          )}
+          ))}
 
           {/* Lo que queda en la mano de la empresa, dicho según el momento.
               La raya va aparte, encima del fondo resaltado y no adentro. */}

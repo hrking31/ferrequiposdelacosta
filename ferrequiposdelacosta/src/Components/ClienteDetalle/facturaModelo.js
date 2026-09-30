@@ -64,13 +64,17 @@
 //                                                      solo si lo anotaron
 //
 //   abonos[]      la plata que ENTRA después:
-//                   { fecha, medio, monto, tipo, desdeFactura? }
-//                   tipo: "sistema" | "cliente" | "agregado"
+//                   { fecha, medio, monto, tipo, desdeFactura?, desdeDeposito? }
+//                   tipo: "sistema" | "cliente" | "agregado" | "cruce"
+//                   desdeDeposito: el cruce vino del depósito de la otra
+//                   factura, no de un pago de más
 //                   medio "Depósito": no entró plata, se pagó con el
 //                   depósito del cliente (ver calcularDeposito)
 //
 //   entregas[]    la plata que SALE hacia el cliente, el reverso del abono:
-//                   { fecha, medio, monto, nota }
+//                   { fecha, medio, monto, haciaFacturas? }
+//                   medio "Cruce": no salió plata, pagó otras facturas del
+//                   cliente, y haciaFacturas dice cuáles (ver repartirEntregas)
 //
 //   gestiones[]   la bitácora de la cobranza.
 //

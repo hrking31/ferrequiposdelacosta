@@ -940,6 +940,49 @@ export const calcularDeposito = (doc) => {
   };
 };
 
+// El medio de una salida que no pasó por caja: la plata que la empresa le
+// debía al cliente acá se usó para pagar otra factura suya. Lo llevan las
+// dos puntas del cruce, la entrega de esta y el abono de la otra.
+export const MEDIO_CRUCE = "Cruce";
+
+// A DÓNDE FUE CADA PESO QUE SALIÓ, partido en lo que salió del depósito y lo
+// que salió de un pago de más —con la misma regla de calcularDeposito:
+// primero el depósito—. Cada parte dice si se le entregó al cliente o se cruzó,
+// y a qué facturas: "Devuelto al cliente" y "Cruzado a factura 2496" son dos
+// renglones distintos aunque los dos resten.
+//
+// Con la 8154: $500.000 de depósito cruzados a la 2496 dan
+// deposito: [{ cruzadoA: ["2496"], monto: 500000 }] y deMas: [].
+export const repartirEntregas = (doc) => {
+  let quedaDelDeposito = calcularDeposito(doc).devuelto;
+  const deposito = [];
+  const deMas = [];
+
+  // Las de un mismo destino se juntan en un solo renglón: dos entregas en mano
+  // son "Devuelto al cliente" una vez, con la suma.
+  const anotar = (renglones, entrega, monto) => {
+    if (monto <= 0) return;
+    const cruzadoA =
+      entrega?.medio === MEDIO_CRUCE
+        ? (Array.isArray(entrega.haciaFacturas) ? entrega.haciaFacturas : [])
+        : null;
+    const clave = cruzadoA ? cruzadoA.join(",") : "";
+    const existente = renglones.find((renglon) => renglon.clave === clave);
+    if (existente) existente.monto += monto;
+    else renglones.push({ clave, cruzadoA, monto });
+  };
+
+  entregasDe(doc).forEach((entrega) => {
+    const monto = numero(entrega?.monto);
+    const delDeposito = Math.min(monto, quedaDelDeposito);
+    quedaDelDeposito -= delDeposito;
+    anotar(deposito, entrega, delDeposito);
+    anotar(deMas, entrega, monto - delDeposito);
+  });
+
+  return { deposito, deMas };
+};
+
 // La cuenta completa, tal como se muestra: el alquiler al día de hoy, los
 // fletes, los daños, y lo que el cliente entregó. Si pagó de más, el sobrante
 // no baja el saldo —que nunca es negativo— sino que sale aparte como saldo a

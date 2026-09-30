@@ -28,6 +28,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import {
   MODOS_PAGO,
   MEDIO_DEPOSITO,
+  MEDIO_CRUCE,
   obtenerFechaHoyBogota,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -85,6 +86,10 @@ export default function EntregarSaldoDialog({
   const aFavor = cuenta.aDevolver;
   const depositoLibre = cuenta.deposito.porDevolver;
   const pagoDeMas = cuenta.saldoAFavor;
+  // Si todo lo que sobra es depósito, se dice "depósito" —en el recuadro y en
+  // el abono que llega a la otra factura—. Con algo pagado de más en la
+  // mezcla ya no lo es todo, y se dice "a favor".
+  const todoEsDeposito = depositoLibre > 0 && pagoDeMas === 0;
   // La parte del depósito que paga lo que ESTA factura todavía debe. No se le
   // devuelve plata a quien la debe ahí mismo: al guardar se anota como un
   // abono con medio "Depósito", y el recuadro lo muestra antes.
@@ -188,13 +193,9 @@ export default function EntregarSaldoDialog({
             fecha: form.fecha,
             medio: form.medio,
             monto,
-            // SIN NOTA. La plata que se le entrega en mano no necesita
-            // explicación: el renglón dice "Entregado al cliente" y, dos más
-            // arriba, el "Depósito" que la originó. Decir además "Devolución
-            // de depósito" era un cuarto renglón repitiendo lo mismo.
-            //
-            // La nota existe para el OTRO caso, el cruce contra otra factura:
-            // ahí la plata NO salió, y sin esa línea se leería como devuelta.
+            // Nada más: el medio ya dice que salió en mano, y el recuadro la
+            // muestra como "Devuelto al cliente". Solo el cruce lleva a dónde
+            // fue (`haciaFacturas`), porque ahí la plata NO salió.
           },
         ];
 
@@ -219,8 +220,8 @@ export default function EntregarSaldoDialog({
   // abono, el cliente perdería la plata en las dos puntas.
   //
   // De ESTE lado sale una entrega igual que cualquier otra —la factura entregó
-  // la plata, aunque no haya pasado por caja— con la nota que dice a dónde
-  // fue. Del otro entra un abono `tipo: "cruce"` con el número de esta
+  // la plata, aunque no haya pasado por caja— con los números de las facturas
+  // a las que fue. Del otro entra un abono `tipo: "cruce"` con el número de esta
   // factura, que es lo que después explica por qué esa factura bajó sin que el
   // cliente pagara nada.
   const guardarCruce = async () => {
@@ -240,9 +241,11 @@ export default function EntregarSaldoDialog({
           // No hubo medio de pago: la plata nunca salió de la empresa, cambió
           // de factura. Escribir "Efectivo" acá sería inventar un movimiento
           // de caja que nadie hizo.
-          medio: "Cruce",
+          medio: MEDIO_CRUCE,
           monto: totalCruzado,
-          nota: `Cruzado a la factura ${destinos.join(", ")}`,
+          // A qué facturas fue: con esto el recuadro dice "Cruzado a factura
+          // 2496" en vez de "Devuelto al cliente".
+          haciaFacturas: destinos,
         },
       ],
       ...abonosConDeposito(hoy),
@@ -254,10 +257,11 @@ export default function EntregarSaldoDialog({
           ...abonosDe(otra),
           {
             fecha: hoy,
-            medio: "Cruce",
+            medio: MEDIO_CRUCE,
             monto: aplicado,
             tipo: "cruce",
             desdeFactura: numeroPropio,
+            ...(todoEsDeposito ? { desdeDeposito: true } : {}),
           },
         ],
       });
@@ -317,7 +321,7 @@ export default function EntregarSaldoDialog({
             )}
             <Box className="fila total">
               <Typography variant="subtitle1" fontWeight="bold">
-                {depositoLibre > 0 && pagoDeMas === 0
+                {todoEsDeposito
                   ? "Depósito a devolver"
                   : "A favor del cliente"}
               </Typography>
@@ -393,12 +397,7 @@ export default function EntregarSaldoDialog({
                           </Box>
                           <Box className="fila deposito">
                             <Typography variant="body2">
-                              {/* Mismo criterio que el título del recuadro de
-                                  arriba: "Depósito" solo si lo que sobra es
-                                  depósito; si pagó de más, es plata a favor. */}
-                              {depositoLibre > 0 && pagoDeMas === 0
-                                ? "Depósito"
-                                : "A favor"}{" "}
+                              {todoEsDeposito ? "Depósito" : "A favor"}{" "}
                               factura {datosFactura(factura).numeroFactura ?? "s/n"}
                             </Typography>
                             <Typography variant="body2">

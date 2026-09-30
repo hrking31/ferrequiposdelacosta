@@ -206,7 +206,9 @@ describe("EntregarSaldoDialog", () => {
       expect(salida.entregas[0]).toMatchObject({
         monto: 286000,
         medio: "Cruce",
-        nota: "Cruzado a la factura 8215",
+        // A dónde fue: el recuadro dice "Cruzado a factura 8215" y no
+        // "Entregado al cliente".
+        haciaFacturas: ["8215"],
         fecha: obtenerFechaHoyBogota(),
       });
 
@@ -219,9 +221,50 @@ describe("EntregarSaldoDialog", () => {
         // sin que el cliente pagara nada.
         desdeFactura: "2455",
       });
+      // Era un pago de más, no el depósito.
+      expect(entrada.abonos[0].desdeDeposito).toBeUndefined();
 
       // Las dos puntas por el mismo valor: el cruce no inventa ni pierde plata.
       expect(salida.entregas[0].monto).toBe(entrada.abonos[0].monto);
+    });
+
+    // Si lo que sobra es el depósito, el abono de la otra lo dice: allá se lee
+    // "Viene del depósito de la factura 8154" y no "del saldo a favor".
+    it("cruzar el depósito lo deja anotado en el abono", async () => {
+      // La 8154: pagó justo el total más los $500.000 de depósito, y el equipo
+      // ya volvió.
+      const la8154 = {
+        id: "8154",
+        ...unaFactura({
+          numeroFactura: "8154",
+          depositoResuelto: { retenido: 0, fecha: "2026-08-10" },
+          equipos: [
+            unEquipoDevuelto({
+              cantidad: 1,
+              dias: 1,
+              valorDia: 714000,
+              fechaDespacho: "2026-08-10",
+              fechaDevolucion: "2026-08-10",
+            }),
+          ],
+          valorDeposito: 500000,
+          pagos: [{ medio: "Efectivo", monto: 1214000 }],
+        }),
+      };
+      const { usuario } = abrir({ factura: la8154, facturas: [la8154, laQueDebe()] });
+
+      expect(screen.getByText("Depósito factura 8154")).toBeInTheDocument();
+
+      await usuario.click(screen.getByRole("button", { name: "Cruzar" }));
+
+      const escrituras = Object.fromEntries(
+        updateSimulado.mock.calls.map(([ruta, datos]) => [ruta, datos]),
+      );
+      expect(escrituras["clientes/cli1/facturas/8215"].abonos[0]).toMatchObject({
+        monto: 500000,
+        desdeFactura: "8154",
+        desdeDeposito: true,
+      });
     });
 
     // El saldo a favor puede ser más grande que la deuda: se cruza lo que

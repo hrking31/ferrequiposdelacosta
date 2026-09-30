@@ -232,11 +232,13 @@ RecuadroPago.propTypes = {
 const origenDelAbono = (abono) => {
   // El cruce NO es plata que entró por caja: es la que la empresa le debía al
   // cliente en otra factura y se usó acá. Sin esta línea, el abono parecería
-  // un pago que nunca hizo.
+  // un pago que nunca hizo. `desdeDeposito` dice si esa plata era el
+  // depósito, que no es lo mismo que un pago de más.
   if (abono?.tipo === "cruce") {
+    const origen = abono.desdeDeposito ? "del depósito" : "del saldo a favor";
     return abono.desdeFactura
-      ? `Viene del saldo a favor de la factura ${abono.desdeFactura}`
-      : "Viene de un saldo a favor del cliente";
+      ? `Viene ${origen} de la factura ${abono.desdeFactura}`
+      : `Viene ${origen} del cliente`;
   }
   if (abono?.tipo === "agregado") {
     return abono.desdeFactura

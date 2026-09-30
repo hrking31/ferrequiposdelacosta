@@ -755,16 +755,23 @@ Ese recuadro **no muestra siempre lo mismo**: cada renglón aparece solo si tien
 | **Pagado** | Siempre, **salvo** que el cliente haya pagado el total exacto de una sola vez: ahí repetiría la cifra de arriba |
 | **Abonos** | Si hubo abonos posteriores. Solo el total: el detalle de cada uno vive arriba, con su fecha y su medio |
 | **Depósito** | Si ya volvieron los equipos y la garantía se liquidó. Va entre los renglones que **bajan** la cuenta: es plata que juega a favor del cliente |
-| **Entregado al cliente** | Si salió plata hacia él |
-| *Cruzado a la factura 1234* | Debajo del anterior y en letra chica, **solo** cuando esa plata no salió en mano sino que tapó otra factura suya. Sin esa línea se leería como devuelta |
+| **Entregado al cliente** *o* **Cruzado a factura 1234** | Si salió hacia él plata que había pagado de más. El rótulo dice lo que pasó: en mano, o a pagar otra factura suya. Lo que salió del depósito va en **su** recuadro, con el mismo criterio |
 | *Se retuvieron $X del depósito* | Si al recibir un equipo se retuvo algo por daños. Solo el monto: qué le pasó a cada equipo se lee en su historia |
 | **Saldo pendiente** *o* **Saldo a favor** | Siempre uno de los dos. Pendiente si el cliente debe; a favor si quedó plata suya sin entregar |
 | Botón **Devolver** | Solo con saldo a favor, y mientras no se le haya entregado |
 
 > [!NOTE]
-> **La entrega en mano no lleva nota (2026-09-16).** Cuando la plata salía por una devolución de depósito, debajo se escribía *"Devolución de depósito"* — un cuarto renglón repitiendo lo que ya decían los dos de arriba. La nota quedó **solo para el cruce**, que es el caso donde aporta: ahí la plata no salió.
+> **La nota del cruce pasó a ser el rótulo (2026-09-30).** El cruce escribía una nota suelta, *"Cruzado a la factura 2496"*, debajo del estado de cuenta, mientras el recuadro del depósito seguía diciendo *"Devuelto al cliente - $500.000"* — que no era cierto: el cliente no recibió nada. Ahora la entrega guarda **a qué facturas fue** (`haciaFacturas`) y el renglón mismo lo dice:
 >
-> Esa nota **se guarda en la entrega**, no se calcula al mostrarla, así que las entregas registradas antes del cambio siguen mostrándola hasta que se rehagan.
+> ```
+> DEPÓSITO
+>   Depósito recibido            $ 500.000
+>   Cruzado a factura 2496     - $ 500.000
+>   ───────────────────────────────────────
+>   Monto a devolver                   $ 0
+> ```
+>
+> Si una parte se entregó en mano y otra se cruzó, salen los dos renglones. Las cifras no cambian: `repartirEntregas` solo parte lo que ya se sabía que salió, con la misma regla de siempre —primero el depósito, después lo pagado de más—.
 
 > [!NOTE]
 > **El motivo salió del recuadro (2026-09-22).** El renglón decía *"Se retuvieron $50.000 del depósito: SALTARÍN: rayadura y golpe"* — el nombre del equipo y lo que le pasó, metidos en medio de la cuenta, y con varios equipos dañados el renglón crecía sin límite. Ahora dice **solo cuánto**. Lo otro no se perdió: qué le pasó a cada equipo se lee en **su** historia, que es donde está al lado del equipo al que le pasó.
@@ -788,7 +795,7 @@ Este cliente debe en otra factura.
 
 El recuadro se escribe como **la resta que es** (2026-09-30): antes decía *"A la factura 8215 … Le queda debiendo"*, que obligaba a adivinar de dónde salía cada número. El segundo renglón dice *Depósito* solo cuando lo que sobra es depósito; si el cliente pagó de más, dice *A favor factura 2455*.
 
-El cruce escribe **las dos puntas en una sola operación**: una salida en la factura que tenía el saldo a favor, con la nota *"Cruzado a la factura 8215"*, y un abono `tipo: "cruce"` en la que debe, que muestra debajo *"Viene del saldo a favor de la factura 2455"*. Ninguna de las dos inventa plata y en cada una queda escrito de dónde salió. Si se escribiera solo una, el cliente perdería esa plata o la pagaría dos veces.
+El cruce escribe **las dos puntas en una sola operación**: una salida en la factura que tenía el saldo a favor, con los números de las facturas a las que fue (`haciaFacturas`), y un abono `tipo: "cruce"` en la que debe, que muestra debajo *"Viene del depósito de la factura 8154"* —o *"del saldo a favor"*, si lo que sobraba era un pago de más; lo dice `desdeDeposito`—. Ninguna de las dos inventa plata y en cada una queda escrito de dónde salió. Si se escribiera solo una, el cliente perdería esa plata o la pagaría dos veces.
 
 Tres reglas del reparto:
 
