@@ -167,7 +167,7 @@ describe("EntregarSaldoDialog", () => {
       abrir({ facturas: [conSaldoAFavor(), laQueDebe()] });
 
       expect(
-        screen.getByText(/Este cliente debe .*500\.000.*en la factura 8215/),
+        screen.getByText("Este cliente debe en otra factura."),
       ).toBeInTheDocument();
       // El cruce viene marcado: entregar la plata pasa a ser la excepción.
       expect(screen.getByRole("radio", { name: /Cruzarlo/ })).toBeChecked();

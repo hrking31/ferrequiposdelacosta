@@ -332,14 +332,13 @@ export default function EntregarSaldoDialog({
               siempre —fecha, medio y se entrega—. */}
           {puedeCruzar && (
             <Box sx={{ mb: 2 }}>
+              {/* Sin cifras ni números de factura: esos los da el recuadro
+                  del cruce. La frase queda para cuando se elige entregar y el
+                  recuadro desaparece: sigue avisando que hay deuda. */}
               <Typography variant="body2" sx={{ mb: 0.5 }}>
                 {otrasConSaldo.length === 1
-                  ? `Este cliente debe ${formatearMoneda(
-                      otrasConSaldo[0].cuenta.saldoPendiente,
-                    )} en la factura ${
-                      datosFactura(otrasConSaldo[0].factura).numeroFactura ?? "s/n"
-                    }.`
-                  : `Este cliente debe en ${otrasConSaldo.length} facturas más.`}
+                  ? "Este cliente debe en otra factura."
+                  : "Este cliente debe en otras facturas."}
               </Typography>
 
               <RadioGroup

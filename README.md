@@ -776,7 +776,7 @@ Devolverle plata a alguien que debe en la factura de al lado es sacarla de la ca
 Ahora lo dice antes de entregar:
 
 ```
-Este cliente debe $ 500.000 en la factura 8215.
+Este cliente debe en otra factura.
  (•) Cruzarlo con lo que debe
  ( ) Entregárselo al cliente
 
