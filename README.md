@@ -777,12 +777,16 @@ Ahora lo dice antes de entregar:
 
 ```
 Este cliente debe $ 500.000 en la factura 8215.
- (•) Cruzarlo con lo que debe — no sale plata
+ (•) Cruzarlo con lo que debe
  ( ) Entregárselo al cliente
 
-   A la factura 8215        $ 286.000
-   Le queda debiendo        $ 214.000
+   Total factura 8215       $ 500.000
+   Depósito factura 2455  - $ 286.000
+   - - - - - - - - - - - - - - - - - -
+   Saldo                    $ 214.000
 ```
+
+El recuadro se escribe como **la resta que es** (2026-09-30): antes decía *"A la factura 8215 … Le queda debiendo"*, que obligaba a adivinar de dónde salía cada número. El segundo renglón dice *Depósito* solo cuando lo que sobra es depósito; si el cliente pagó de más, dice *A favor factura 2455*.
 
 El cruce escribe **las dos puntas en una sola operación**: una salida en la factura que tenía el saldo a favor, con la nota *"Cruzado a la factura 8215"*, y un abono `tipo: "cruce"` en la que debe, que muestra debajo *"Viene del saldo a favor de la factura 2455"*. Ninguna de las dos inventa plata y en cada una queda escrito de dónde salió. Si se escribiera solo una, el cliente perdería esa plata o la pagaría dos veces.
 

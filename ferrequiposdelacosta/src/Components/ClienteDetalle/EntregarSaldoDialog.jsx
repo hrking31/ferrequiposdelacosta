@@ -352,7 +352,7 @@ export default function EntregarSaldoDialog({
                   control={<Radio size="small" />}
                   label={
                     <Typography variant="body2">
-                      Cruzarlo con lo que debe — no sale plata
+                      Cruzarlo con lo que debe
                     </Typography>
                   }
                 />
@@ -368,34 +368,60 @@ export default function EntregarSaldoDialog({
               </RadioGroup>
 
               {/* CÓMO QUEDA CADA FACTURA, antes de guardar: el cruce toca dos
-                  documentos a la vez y hay que poder verlo sin abrirlos. */}
+                  documentos a la vez y hay que poder verlo sin abrirlos. Se
+                  escribe como la resta que es —lo que debe, menos lo que se
+                  cruza, igual al saldo— para que se lea sin pensar. */}
               {cruzando && (
                 <Paper variant="totales" sx={{ mt: 1 }}>
-                  {reparto.map(({ factura: otra, aplicado, cuenta: cuentaOtra }) => {
-                    const numero = datosFactura(otra).numeroFactura ?? "s/n";
-                    const queda = Math.max(0, cuentaOtra.saldoPendiente - aplicado);
+                  {reparto.map(
+                    ({ factura: otra, aplicado, cuenta: cuentaOtra }, indice) => {
+                      const numero = datosFactura(otra).numeroFactura ?? "s/n";
+                      const queda = Math.max(
+                        0,
+                        cuentaOtra.saldoPendiente - aplicado,
+                      );
 
-                    return (
-                      <Box key={otra.id}>
-                        <Box className="fila abono">
-                          <Typography variant="body2">
-                            A la factura {numero}
-                          </Typography>
-                          <Typography variant="body2">
-                            {formatearMoneda(aplicado)}
-                          </Typography>
+                      return (
+                        <Box key={otra.id}>
+                          {indice > 0 && <Divider sx={{ my: 0.75 }} />}
+                          <Box className="fila">
+                            <Typography variant="body2">
+                              Total factura {numero}
+                            </Typography>
+                            <Typography variant="body2">
+                              {formatearMoneda(cuentaOtra.saldoPendiente)}
+                            </Typography>
+                          </Box>
+                          <Box className="fila deposito">
+                            <Typography variant="body2">
+                              {/* Mismo criterio que el título del recuadro de
+                                  arriba: "Depósito" solo si lo que sobra es
+                                  depósito; si pagó de más, es plata a favor. */}
+                              {depositoLibre > 0 && pagoDeMas === 0
+                                ? "Depósito"
+                                : "A favor"}{" "}
+                              factura {datosFactura(factura).numeroFactura ?? "s/n"}
+                            </Typography>
+                            <Typography variant="body2">
+                              - {formatearMoneda(aplicado)}
+                            </Typography>
+                          </Box>
+                          <Box
+                            className={
+                              queda > 0 ? "fila total alerta" : "fila total ok"
+                            }
+                          >
+                            <Typography variant="body2" fontWeight="bold">
+                              Saldo
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold">
+                              {formatearMoneda(queda)}
+                            </Typography>
+                          </Box>
                         </Box>
-                        <Box className={queda > 0 ? "fila alerta" : "fila ok"}>
-                          <Typography variant="body2">
-                            {queda > 0 ? "Le queda debiendo" : "Queda saldada"}
-                          </Typography>
-                          <Typography variant="body2">
-                            {queda > 0 ? formatearMoneda(queda) : ""}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    );
-                  })}
+                      );
+                    },
+                  )}
 
                   {/* Lo que no alcanzó a cruzarse sigue siendo del cliente:
                       esta factura queda con ese saldo a favor y el botón

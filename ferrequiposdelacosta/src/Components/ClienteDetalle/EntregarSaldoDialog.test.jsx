@@ -179,8 +179,11 @@ describe("EntregarSaldoDialog", () => {
     it("muestra cómo queda la otra factura antes de guardar", () => {
       abrir({ facturas: [conSaldoAFavor(), laQueDebe()] });
 
-      expect(screen.getByText("A la factura 8215")).toBeInTheDocument();
-      expect(screen.getByText("Le queda debiendo")).toBeInTheDocument();
+      // Como la resta que es: lo que debe la 8215, menos lo que sobra en la
+      // 2455 (acá es pago de más, no depósito), igual al saldo.
+      expect(screen.getByText("Total factura 8215")).toBeInTheDocument();
+      expect(screen.getByText("A favor factura 2455")).toBeInTheDocument();
+      expect(screen.getByText("Saldo")).toBeInTheDocument();
       // $500.000 − $286.000
       expect(screen.getByText(/214\.000/)).toBeInTheDocument();
     });
