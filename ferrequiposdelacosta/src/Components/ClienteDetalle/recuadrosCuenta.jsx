@@ -33,6 +33,7 @@ import {
   ROTULO_ESTADO_MAS_LARGO,
 } from "./facturaUtils";
 import { formatearMonedaOVacio } from "../../Utils/formato";
+import { EN_COMPACTA } from "../../Utils/pantalla";
 
 // Cada medio de pago con su logo (ver MODOS_PAGO en facturaUtils.js). "Nequi"
 // y "Nequi A" son dos cuentas de personas distintas —Yaz y Armando— con el
@@ -45,8 +46,10 @@ const LOGOS_PAGO = {
   Daviplata: daviplataLogo,
 };
 
-// Los cuatro logos miden lo mismo, así el renglón queda parejo.
-const TAMANO_LOGO_PAGO = { xs: 20, sm: 26 };
+// Los cuatro logos miden lo mismo, así el renglón queda parejo. En celular
+// —hasta 915px, o acostado— van más chicos.
+const TAMANO_LOGO_PAGO = 26;
+const TAMANO_LOGO_PAGO_MOVIL = 20;
 
 export const renderMedioPago = (medio) => {
   const logo = LOGOS_PAGO[medio];
@@ -73,13 +76,21 @@ export const renderMedioPago = (medio) => {
           sx={{
             height: TAMANO_LOGO_PAGO,
             width: TAMANO_LOGO_PAGO,
+            [EN_COMPACTA]: {
+              height: TAMANO_LOGO_PAGO_MOVIL,
+              width: TAMANO_LOGO_PAGO_MOVIL,
+            },
             objectFit: "contain",
             display: "block",
           }}
         />
       ) : (
         <PaymentsIcon
-          sx={{ fontSize: TAMANO_LOGO_PAGO, color: "custom.pagoEfectivo" }}
+          sx={{
+            fontSize: TAMANO_LOGO_PAGO,
+            [EN_COMPACTA]: { fontSize: TAMANO_LOGO_PAGO_MOVIL },
+            color: "custom.pagoEfectivo",
+          }}
         />
       )}
 
@@ -140,21 +151,22 @@ export const renderRecuadroBloque = (color, contenido, key) => (
 );
 
 // Los datos de adentro de un recuadro: cada uno es una columna con el rotulo
-// arriba y el valor abajo, separadas por una linea vertical. En celular no
-// entran cuatro columnas, asi que se apilan y la linea desaparece.
+// arriba y el valor abajo, separadas por una linea vertical. En celular —hasta
+// 915px, o acostado— no entran cuatro columnas, asi que se apilan y la linea
+// desaparece.
 //
 // Un dato puede traer `contenido` en vez de `valor` cuando lo que va abajo no
 // es texto sino algo dibujado, como el logo del medio de pago.
 export const renderFilaDatos = (color, datos) => (
   <Stack
-    direction={{ xs: "column", sm: "row" }}
+    direction="row"
     rowGap={1}
-    sx={{ minWidth: 0 }}
+    sx={{ minWidth: 0, [EN_COMPACTA]: { flexDirection: "column" } }}
     divider={
       <Divider
         orientation="vertical"
         flexItem
-        sx={{ my: 0.5, display: { xs: "none", sm: "block" } }}
+        sx={{ my: 0.5, [EN_COMPACTA]: { display: "none" } }}
       />
     }
   >
@@ -178,7 +190,13 @@ export const renderFilaDatos = (color, datos) => (
       <Box
         key={clave}
         {...(propsCasilla || {})}
-        sx={{ flex: 1, minWidth: 0, px: { sm: 0.75 }, ...(sxCasilla || {}) }}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          px: 0.75,
+          [EN_COMPACTA]: { px: 0 },
+          ...(sxCasilla || {}),
+        }}
       >
         {/* El rótulo lleva el color del bloque; el valor va en el color
             normal del texto, que es donde se lee la cifra.

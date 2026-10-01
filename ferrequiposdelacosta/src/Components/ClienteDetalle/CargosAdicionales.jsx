@@ -34,7 +34,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import AddCardIcon from "@mui/icons-material/AddCard";
@@ -58,6 +57,7 @@ import {
 } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 const IVA = 0.19;
 
@@ -148,7 +148,7 @@ export default function CargosAdicionales({
   onToggleBloque,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   const color = theme.palette.custom.seccionAdicionales;
 
   // Cada equipo respeta su propia marca de IVA (o la de la factura, si no
@@ -340,18 +340,17 @@ export default function CargosAdicionales({
                 borderTop: "1px solid",
                 borderColor: "divider",
                 display: "grid",
-                gridTemplateColumns: {
-                  xs: "minmax(0, max-content) max-content 1fr max-content",
-                  sm: `minmax(0, max-content) max-content 1fr calc((100% - ${
-                    datos.length - 1
-                  }px) / ${datos.length})`,
-                },
+                gridTemplateColumns: esMovil
+                  ? "minmax(0, max-content) max-content 1fr max-content"
+                  : `minmax(0, max-content) max-content 1fr calc((100% - ${
+                      datos.length - 1
+                    }px) / ${datos.length})`,
                 rowGap: 0.25,
               }}
             >
               <Typography
                 variant="rotuloDato"
-                sx={{ color: color, gridColumn: "1 / 4", px: { sm: 0.75 } }}
+                sx={{ color: color, gridColumn: "1 / 4", px: esMovil ? 0 : 0.75 }}
               >
                 IVA POR EQUIPO
               </Typography>
@@ -365,7 +364,7 @@ export default function CargosAdicionales({
                     fontWeight="bold"
                     sx={{
                       gridColumn: "1 / 4",
-                      px: { sm: 0.75 },
+                      px: esMovil ? 0 : 0.75,
                       mt: 0.75,
                     }}
                   >
@@ -383,7 +382,7 @@ export default function CargosAdicionales({
                       sx={{
                         gridColumn: 1,
                         minWidth: 0,
-                        pl: { xs: 1.5, sm: 2.25 },
+                        pl: esMovil ? 1.5 : 2.25,
                       }}
                     >
                       {fila.concepto}
@@ -409,7 +408,7 @@ export default function CargosAdicionales({
                         fontWeight="bold"
                         sx={{
                           gridColumn: 4,
-                          pl: { sm: 0.75 },
+                          pl: esMovil ? 0 : 0.75,
                           whiteSpace: "nowrap",
                         }}
                       >

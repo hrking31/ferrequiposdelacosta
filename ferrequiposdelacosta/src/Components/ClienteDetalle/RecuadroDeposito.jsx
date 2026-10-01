@@ -8,7 +8,7 @@
 // Con más de un despacho con depósito se anota cuánto dejó cada uno, con el
 // nombre de sus equipos: la suma sola no dice cuánto dejó en cada uno.
 import PropTypes from "prop-types";
-import { Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Stack, Typography, useTheme } from "@mui/material";
 import { adicionalesDe, gruposDe } from "./facturaUtils";
 import TollIcon from "@mui/icons-material/Toll";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -25,6 +25,7 @@ import {
   renderRecuadroBloque,
 } from "./recuadrosCuenta";
 import { formatearMoneda } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 // `plano` lo deja sin marco: en el celular el bloque ya va dentro del
 // recuadro de su rótulo, y un marco dentro de otro no separa nada.
@@ -40,7 +41,7 @@ export default function RecuadroDeposito({
   onToggle,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   const color = theme.palette.custom.seccionDeposito;
   const deposito = cuenta.deposito;
 

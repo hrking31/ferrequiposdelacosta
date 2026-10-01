@@ -18,7 +18,7 @@
 import { Fragment } from "react";
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
-import { Box, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
@@ -33,6 +33,7 @@ import {
   historialEquipo,
 } from "./facturaUtils";
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 // La fecha de la columna izquierda. En computador va "09 SEP" con el año
 // debajo; en el celular los tres datos se apilan —día, mes y año, uno por
@@ -66,7 +67,7 @@ const ICONOS = {
 
 export default function HistorialEquipo({ equipo, hoy, enDialogo = false }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   const hitos = historialEquipo(equipo, hoy);
   // La raya de arriba y el riel. En modo oscuro el fondo de un diálogo es
   // del MISMO azul que "divider", y ahí la línea se dibujaba pero no se veía:

@@ -76,12 +76,11 @@ export default function ClienteEncabezado({
   onEditarCliente,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
-  // El contacto (teléfono, NIT, dirección) pasa de dos columnas a una, y
-  // aparece el botón de volver al listado.
-  // Angosta O baja: acostado el teléfono sigue siendo un teléfono, y los
-  // botones del cliente tienen que bajar al pie como en cualquier celular.
-  const isFullScreen = usePantallaCompacta();
+  // Celular: hasta 915px de ancho, o angosta O baja —acostado el teléfono
+  // sigue siendo un teléfono—. Ahí la cuenta se pliega, el contacto pasa de
+  // dos columnas a una, aparece el botón de volver al listado y los botones
+  // del cliente bajan al pie.
+  const esMovil = usePantallaCompacta();
   // Desde acá entran en un solo renglón el nombre, el recuadro de cuenta y los
   // botones. Por debajo, el recuadro baja a su propia fila (ver el armado del
   // encabezado). No se persigue el ancho exacto en que dejan de entrar —depende
@@ -192,7 +191,7 @@ export default function ClienteEncabezado({
           // un contenedor en columna, ese estirado no se aplica y cada
           // hijo vuelve a su ancho de contenido, más ancho que la
           // tarjeta. Forzarlo así es lo que evita que se salga.
-          width: { xs: "100%", sm: "auto" },
+          width: esMovil ? "100%" : "auto",
           // Le deja la esquina libre a la flecha de plegar, que está anclada
           // ahí arriba: un nombre largo le pasaría por debajo.
           pr: esMovil ? 5 : 0,
@@ -212,16 +211,16 @@ export default function ClienteEncabezado({
           <Avatar
             sx={{
               // Más chico en celular: libera ancho para el nombre.
-              width: { xs: 44, sm: 56 },
-              height: { xs: 44, sm: 56 },
+              width: esMovil ? 44 : 56,
+              height: esMovil ? 44 : 56,
               bgcolor:
                 avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
             }}
           >
             {cliente.tipo === "empresa" ? (
-              <BusinessIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+              <BusinessIcon sx={{ fontSize: esMovil ? 22 : 28 }} />
             ) : (
-              <PersonIcon sx={{ fontSize: { xs: 22, sm: 28 } }} />
+              <PersonIcon sx={{ fontSize: esMovil ? 22 : 28 }} />
             )}
           </Avatar>
         </Badge>
@@ -254,8 +253,8 @@ export default function ClienteEncabezado({
   const bloquePizarra = facturas.length > 0 && (
     // En celular la pizarra se toca: cerrada dice el total y el saldo —las
     // cuatro casillas, con importes de siete cifras, no entran en un renglón
-    // sin montarse—, y abierta muestra las cuatro de a dos por fila. De 600px
-    // para arriba tiene una fila entera para ella y las cuatro caben.
+    // sin montarse—, y abierta muestra las cuatro de a dos por fila. Pasados
+    // los 915px tiene una fila entera para ella y las cuatro caben.
     <Box
       {...(esMovil
         ? propsRenglonPlegable({
@@ -271,7 +270,7 @@ export default function ClienteEncabezado({
         // Sin el ancho forzado, en pantalla angosta la pizarra vuelve a su
         // ancho de contenido y se sale de la tarjeta por la derecha.
         flexGrow: 1,
-        width: { xs: "100%", sm: "auto" },
+        width: esMovil ? "100%" : "auto",
       }}
     >
       {renderPizarraTotales(
@@ -312,7 +311,7 @@ export default function ClienteEncabezado({
         // El mismo aire que el resto de la app: 12px en el celular y 16 en el
         // computador. Con 24, el hueco hasta la primera factura era el doble
         // que el que deja el encabezado arriba.
-        mb: isFullScreen ? 1.5 : 2,
+        mb: esMovil ? 1.5 : 2,
         position: "relative",
         // Sin esto, una pizarra de cuatro importes largos estira la tarjeta
         // más allá del ancho de la pantalla y aparece scroll horizontal.
@@ -332,7 +331,7 @@ export default function ClienteEncabezado({
           ahí se leería como si hiciera algo con el cliente, y lo que hace es
           plegar lo que estás mirando. En computador la fila no se centra ni
           baja, así que el botón viaja con ella (ver botonesEncabezado). */}
-      {isFullScreen && (
+      {esMovil && (
         <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
           {botonPlegarContacto}
         </Box>
@@ -358,7 +357,7 @@ export default function ClienteEncabezado({
         </Stack>
       ) : (
         <Stack sx={{ rowGap: esMovil ? 1 : 2 }}>
-          {isFullScreen ? (
+          {esMovil ? (
             // Hasta 915px la tarjeta se queda solo con el nombre: las acciones
             // están abajo, en el pie, al alcance del pulgar.
             bloqueNombre
@@ -387,13 +386,13 @@ export default function ClienteEncabezado({
               (teléfono y NIT/cédula), a la derecha la ubicación (dirección y
               obra). Hasta 915px se apilan en una sola columna. */}
           <Stack
-            direction={isFullScreen ? "column" : "row"}
-            spacing={isFullScreen ? 1 : 4}
+            direction={esMovil ? "column" : "row"}
+            spacing={esMovil ? 1 : 4}
             // Línea divisoria vertical entre las dos columnas, solo en
             // computador. `flexItem` la estira a la altura del contenido y el
             // margen vertical evita que llegue a los bordes.
             divider={
-              !isFullScreen ? (
+              !esMovil ? (
                 <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
               ) : undefined
             }
@@ -403,8 +402,8 @@ export default function ClienteEncabezado({
                 En móvil van uno al lado del otro (fila): son cortos y entran
                 bien, así ahorran una línea. */}
             <Stack
-              direction={isFullScreen ? "row" : "column"}
-              spacing={isFullScreen ? 2 : 1}
+              direction={esMovil ? "row" : "column"}
+              spacing={esMovil ? 2 : 1}
               alignItems="center"
               justifyContent="center"
               // En móvil, teléfono y NIT/cédula van en fila con una línea
@@ -412,7 +411,7 @@ export default function ClienteEncabezado({
               // cada uno centrado en su mitad. En PC quedan apilados, sin
               // divisor.
               divider={
-                isFullScreen ? (
+                esMovil ? (
                   <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
                 ) : undefined
               }
@@ -424,11 +423,11 @@ export default function ClienteEncabezado({
                   spacing={0.5}
                   alignItems="center"
                   justifyContent="center"
-                  sx={{ flex: isFullScreen ? 1 : "none" }}
+                  sx={{ flex: esMovil ? 1 : "none" }}
                 >
                   <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {!isFullScreen && "Teléfono: "}
+                    {!esMovil && "Teléfono: "}
                     {cliente.telefono}
                   </Typography>
                 </Stack>
@@ -444,11 +443,11 @@ export default function ClienteEncabezado({
                   spacing={0.5}
                   alignItems="center"
                   justifyContent="center"
-                  sx={{ flex: isFullScreen ? 1 : "none" }}
+                  sx={{ flex: esMovil ? 1 : "none" }}
                 >
                   <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {!isFullScreen &&
+                    {!esMovil &&
                       `${cliente.tipo === "empresa" ? "NIT" : "Cédula"}: `}
                     {formatearNit(cliente.nit)}
                   </Typography>
@@ -471,7 +470,7 @@ export default function ClienteEncabezado({
                 >
                   <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                   <Typography variant="body2">
-                    {!isFullScreen && "Dirección: "}
+                    {!esMovil && "Dirección: "}
                     {cliente.direccion}
                   </Typography>
                 </Stack>
@@ -488,7 +487,7 @@ export default function ClienteEncabezado({
                     sx={{ fontSize: 18, color: "text.secondary" }}
                   />
                   <Typography variant="body2">
-                    {!isFullScreen && "Obra: "}
+                    {!esMovil && "Obra: "}
                     {cliente.obra}
                   </Typography>
                 </Stack>

@@ -18,7 +18,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
@@ -51,6 +50,7 @@ import {
   formatearFechaLegible as formatearFecha,
   formatearDias,
 } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 // ── Calibrado del bloque de cifras ──────────────────────────────────────
 //
@@ -106,7 +106,7 @@ const Separador = () => (
 
 export default function EquipoRow({ equipo, color, plano = false }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   // La historia arranca plegada: de un equipo se quiere ver primero la lista
   // completa de la factura, y recién después lo que le pasó a uno.
   const [abierto, setAbierto] = useState(false);

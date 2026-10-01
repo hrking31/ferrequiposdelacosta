@@ -14,9 +14,13 @@
 import { useMediaQuery } from "@mui/material";
 
 const PANTALLA_BAJA = "(max-height:500px)";
+const PANTALLA_COMPACTA = `(max-width:915px), ${PANTALLA_BAJA}`;
 
-export const usePantallaCompacta = () =>
-  useMediaQuery(`(max-width:915px), ${PANTALLA_BAJA}`);
+export const usePantallaCompacta = () => useMediaQuery(PANTALLA_COMPACTA);
+
+// La misma pregunta como clave de `sx`, para las piezas que son funciones y
+// no componentes —no pueden llamar al hook—: { [EN_COMPACTA]: {...} }.
+export const EN_COMPACTA = `@media ${PANTALLA_COMPACTA}`;
 
 // Solo el alto, para lo que cambia por falta de espacio vertical y no por
 // ancho: qué queda fijo en pantalla y qué se desplaza.

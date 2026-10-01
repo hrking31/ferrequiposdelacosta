@@ -13,7 +13,6 @@ import {
   Paper,
   Stack,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -47,6 +46,7 @@ import {
 } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
 import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 export default function EstadoCuentaFactura({
   factura,
@@ -63,7 +63,7 @@ export default function EstadoCuentaFactura({
   onDevolverSaldo,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   const acento = theme.palette.custom.accent;
 
   // Subtotal e IVA son los de HOY —con los días ampliados y los vencidos ya
@@ -239,12 +239,12 @@ export default function EstadoCuentaFactura({
   const bloqueEstadoCuenta = (
     <Box
       sx={{
-        width: { xs: "100%", sm: "auto" },
+        width: esMovil ? "100%" : "auto",
         // Pegado a la derecha aunque baje de línea: cuando
         // la factura tiene depósito y transporte, esa fila
         // se llena y el recuadro pasa al renglón de abajo,
         // donde quedaba solo y se iba a la izquierda.
-        ml: { sm: "auto" },
+        ml: esMovil ? 0 : "auto",
       }}
     >
       <Stack
@@ -284,8 +284,8 @@ export default function EstadoCuentaFactura({
           // La misma separación con su rótulo que el resto de los bloques de
           // la tarjeta: sin ella quedaba pegado.
           mt: 0.5,
-          width: { xs: "100%", sm: "auto" },
-          minWidth: { sm: 300 },
+          width: esMovil ? "100%" : "auto",
+          minWidth: esMovil ? 0 : 300,
           display: "flex",
           flexDirection: "column",
           gap: 1.5,
@@ -568,14 +568,14 @@ export default function EstadoCuentaFactura({
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          flexWrap: { sm: "wrap" },
+          flexDirection: esMovil ? "column" : "row",
+          flexWrap: esMovil ? "nowrap" : "wrap",
           justifyContent: "space-between",
           // Arriba, no al fondo: así el subtotal y el IVA
           // quedan justo debajo del rótulo "Total factura" en
           // vez de caer al pie del recuadro de estado de
           // cuenta, que es más alto y dejaba un hueco.
-          alignItems: { xs: "stretch", sm: "flex-start" },
+          alignItems: esMovil ? "stretch" : "flex-start",
           gap: 2,
         }}
       >

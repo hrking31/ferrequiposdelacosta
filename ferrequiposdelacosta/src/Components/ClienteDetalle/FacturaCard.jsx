@@ -21,7 +21,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -93,10 +92,10 @@ export default function FacturaCard({
   onDevolverSaldo,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
-  // Hasta acá la pizarra completa no entra en el hueco del encabezado de la
-  // factura y hay que mostrar la versión corta debajo.
-  const isFullScreen = usePantallaCompacta();
+  // Celular: hasta 915px de ancho, o el teléfono acostado. Es el mismo corte
+  // en que la pizarra completa deja de entrar en el hueco del encabezado y
+  // hay que mostrar la versión corta debajo.
+  const esMovil = usePantallaCompacta();
   const acento = theme.palette.custom.accent;
   // Cada bloque de la factura tiene su color: el pago, los equipos del
   // alta y los que se agregaron despues.
@@ -307,7 +306,11 @@ export default function FacturaCard({
   const hayDespachoAncho =
     columnasOriginales === 2 ||
     gruposAgregados.some((lote) => (lote.equipos ?? []).length >= 2);
-  const anchoBloqueSuelto = { sm: hayDespachoAncho ? "100%" : "calc(50% - 4px)" };
+  const anchoBloqueSuelto = esMovil
+    ? undefined
+    : hayDespachoAncho
+      ? "100%"
+      : "calc(50% - 4px)";
   const pagosOriginales = pagosDe(grupoInicial);
 
   // Cuántos equipos se agregaron DE VERDAD. No es la cantidad de renglones:
@@ -501,7 +504,7 @@ export default function FacturaCard({
             cuenta ocupa el hueco que queda entre el titulo y los
             botones. Va sobre la pizarra del tema, que tiene fondo
             oscuro fijo en los dos modos. */}
-        {!isFullScreen &&
+        {!esMovil &&
           facturaColapsada(factura.id) &&
           renderPizarraTotales(casillasDeCuenta(cuenta), {
             // Entre 916 y 1200px el hueco que dejan el titulo, los
@@ -566,9 +569,8 @@ export default function FacturaCard({
           cuánto es y cuánto falta, no editarla.
 
           En celular los botones tienen su propio renglón —el mismo
-          que ocupa la pizarra— y vuelven al desplegar la factura; de
-          600px en adelante ya están arriba, en el encabezado. */}
-      {isFullScreen &&
+          que ocupa la pizarra— y vuelven al desplegar la factura. */}
+      {esMovil &&
         (facturaColapsada(factura.id) ? (
           // En celular el panel también se toca: cerrado dice cuánto es y
           // cuánto falta —que es lo que se busca al recorrer la lista—, y
@@ -576,48 +578,45 @@ export default function FacturaCard({
           // renglón. Las cuatro en una sola fila no entran: son importes de
           // siete cifras en 294px.
           <Box
-            {...(esMovil
-              ? propsRenglonPlegable({
-                  abierto: pizarraAbierta,
-                  alternar: alternarPizarra,
-                  etiqueta: pizarraAbierta
-                    ? "Ocultar el resto de la cuenta"
-                    : "Ver la cuenta completa",
-                })
-              : {})}
+            {...propsRenglonPlegable({
+              abierto: pizarraAbierta,
+              alternar: alternarPizarra,
+              etiqueta: pizarraAbierta
+                ? "Ocultar el resto de la cuenta"
+                : "Ver la cuenta completa",
+            })}
             sx={{ mt: 1, ...sxSeccion }}
           >
             {renderPizarraTotales(
               casillasDeCuenta(cuenta, {
-                resumida: !esMovil || !pizarraAbierta,
+                resumida: !pizarraAbierta,
               }),
               undefined,
               {
-                cuadricula: esMovil && pizarraAbierta,
+                cuadricula: pizarraAbierta,
                 // La única flecha que NO va con el acento: el panel tiene
                 // fondo casi negro fijo en los dos modos, y en modo claro el
                 // acento es el azul del logo, que ahí adentro desaparece. Va
                 // con el amarillo del panel, que es el acento del modo
                 // oscuro y el color con el que ya se escriben sus cifras.
-                flechaAlLado:
-                  esMovil &&
-                  renderFlechaPlegable(pizarraAbierta, "custom.totalText"),
+                flechaAlLado: renderFlechaPlegable(
+                  pizarraAbierta,
+                  "custom.totalText",
+                ),
               },
             )}
           </Box>
         ) : (
-          esMovil && (
-            // A la derecha, del lado en que cae el pulgar al sostener el
-            // teléfono.
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="flex-end"
-              sx={{ mt: 1 }}
-            >
-              {iconosFactura}
-            </Stack>
-          )
+          // A la derecha, del lado en que cae el pulgar al sostener el
+          // teléfono.
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="flex-end"
+            sx={{ mt: 1 }}
+          >
+            {iconosFactura}
+          </Stack>
         ))}
 
       {/* Todo lo que va debajo del encabezado se pliega con la
@@ -649,12 +648,11 @@ export default function FacturaCard({
                 // adentro, los rótulos y sus flechas de plegado se
                 // iban al extremo derecho de la pantalla mientras el
                 // contenido quedaba a media grilla.
-                width: {
-                  sm:
-                    columnasOriginales === 1
-                      ? "calc(50% - 4px)"
-                      : "100%",
-                },
+                width: esMovil
+                  ? undefined
+                  : columnasOriginales === 1
+                    ? "calc(50% - 4px)"
+                    : "100%",
               }}
             >
               {enRecuadro(colorPago, "pagoGeneral", <>
@@ -749,10 +747,9 @@ export default function FacturaCard({
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: {
-                        xs: "1fr",
-                        sm: `repeat(${columnasOriginales}, 1fr)`,
-                      },
+                      gridTemplateColumns: esMovil
+                        ? "1fr"
+                        : `repeat(${columnasOriginales}, 1fr)`,
                       gap: 1,
                       mt: 0.5,
                       // Cada tarjeta mide lo suyo. Sin esto la cuadrícula las
@@ -858,12 +855,11 @@ export default function FacturaCard({
                         mt: indiceLote === 0 ? 0.5 : 1,
                         // gap 1 = 8px, así que media pantalla es 50%
                         // menos la mitad de esa separación.
-                        width: {
-                          sm:
-                            columnasLote === 1
-                              ? "calc(50% - 4px)"
-                              : "100%",
-                        },
+                        width: esMovil
+                          ? undefined
+                          : columnasLote === 1
+                            ? "calc(50% - 4px)"
+                            : "100%",
                       }}
                     >
                       {!esMovil && lote.fechaSolicitud && (
@@ -1009,10 +1005,9 @@ export default function FacturaCard({
                         sx={{
                           mt: 0.5,
                           display: "grid",
-                          gridTemplateColumns: {
-                            xs: "1fr",
-                            sm: `repeat(${columnasLote}, 1fr)`,
-                          },
+                          gridTemplateColumns: esMovil
+                            ? "1fr"
+                            : `repeat(${columnasLote}, 1fr)`,
                           gap: 1,
                           // Igual que los del alta: cada tarjeta mide lo suyo.
                           alignItems: "start",

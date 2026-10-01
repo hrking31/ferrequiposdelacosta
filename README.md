@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-585_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-630_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -1238,6 +1238,8 @@ La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el qu
 > | desde 1800px | La pizarra sube al lado de los botones y los equipos van de a dos |
 >
 > Antes la tarjeta tenía dos cortes —600px para lo de celular, 915 para la pizarra— y entre los dos quedaba una tarjeta de computador con la pizarra de celular.
+
+> **La ficha del cliente, con el mismo corte (2026-10-01).** La ficha tenía la misma mezcla: en una tableta de 800px la pizarra salía como en el celular y todo lo demás —los botones, las secciones de la factura, los datos de cada recuadro— como en el computador. Ahora hasta 915px, o con el teléfono acostado, la ficha entera es de celular: la cuenta del cliente y las secciones de cada factura se pliegan, los equipos van uno por renglón y los datos de los recuadros se apilan. Los formularios que se abren encima (crear factura, agregar equipo, abono) siguen como estaban: son ventanas angostas y su corte es el de ellas.
 
 ### Los totales se pueden abrir
 

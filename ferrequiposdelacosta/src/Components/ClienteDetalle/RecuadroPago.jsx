@@ -20,7 +20,6 @@ import {
   Divider,
   Stack,
   Typography,
-  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { Fragment } from "react";
@@ -39,6 +38,7 @@ import {
   formatearMonedaOVacio as formatearMoneda,
   formatearFechaLegible as formatearFecha,
 } from "../../Utils/formato";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 
 const TIPO_PAGO_LABELS = {
   total: "Total",
@@ -257,7 +257,7 @@ const origenDelAbono = (abono) => {
 // Igual que el recuadro del IVA.
 export function ListaAbonos({ abonos, color, plano = false, abierto = false, onToggle }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
+  const esMovil = usePantallaCompacta();
   // Los mismos colores que el recuadro de pago: un abono es plata que entró.
   const colores = {
     plata: theme.palette.success.main,
