@@ -867,7 +867,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
       screen.getByText(`Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`),
     ).toBeInTheDocument();
 
-    await usuario.type(screen.getByLabelText("Descuento del día vencido del equipo"), "30000");
+    await usuario.type(screen.getByLabelText("Descuento del día vencido"), "30000");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -886,7 +886,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
     await usuario.type(
-      screen.getByLabelText("Descuento del día vencido del equipo"),
+      screen.getByLabelText("Descuento del día vencido"),
       "40001",
     );
 
@@ -904,7 +904,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
 
     await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
     await usuario.type(
-      screen.getByLabelText("Descuento del día vencido del equipo"),
+      screen.getByLabelText("Descuento del día vencido"),
       "10000",
     );
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");

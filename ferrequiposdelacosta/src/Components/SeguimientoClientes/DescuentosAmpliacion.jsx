@@ -91,9 +91,9 @@ export default function DescuentosAmpliacion({
 // Solo aparece si de verdad se cierran días vencidos hoy: al que le renuevan o
 // devuelve el mismo día en que vence no hay nada que perdonarle.
 //
-// `etiqueta` reemplaza el nombre de la casilla: la devolución la llama "del
-// equipo", y así no se confunde con la de lo que se queda cuando en la misma
-// pantalla hay dos.
+// `etiqueta` reemplaza el nombre de la casilla: la devolución la llama
+// "Descuento de…", y la de lo que se queda, en la misma pantalla, sigue
+// diciendo "Descuento en…".
 export function DescuentoVencidos({ proyeccion, descuento, onCambiar, etiqueta = "" }) {
   if (proyeccion.porDia <= 0 || proyeccion.diasVencidos <= 0) return null;
 

@@ -335,12 +335,13 @@ export default function RegistrarDevolucionDialog({
       0,
     );
 
-  // El nombre de la casilla de lo que vuelve: "del equipo", para que no se
-  // confunda con la de lo que se queda, que sigue diciendo "Descuento en…".
+  // El nombre de la casilla de lo que vuelve: "Descuento de…". La de lo que
+  // se queda sigue diciendo "Descuento en…" y va más abajo, dentro de lo que
+  // queda sin devolver.
   const etiquetaDescuentoDevueltos = (dias) =>
     dias === 1
-      ? "Descuento del día vencido del equipo"
-      : `Descuento de los ${dias} días vencidos del equipo`;
+      ? "Descuento del día vencido"
+      : `Descuento de los ${dias} días vencidos`;
 
   const handleGuardar = async () => {
     const huboCambios = equiposPendientes.some(({ clave }) => {
