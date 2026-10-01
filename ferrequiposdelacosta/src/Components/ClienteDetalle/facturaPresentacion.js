@@ -218,6 +218,8 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     if (!tramo?.hasta || !tramo?.desde) return;
     const diasTramo = diasDeAlquiler(tramo.desde, tramo.hasta);
     if (diasTramo <= 0) return;
+    const brutoTramo = diasTramo * porDia;
+    const descuentoTramo = Math.min(brutoTramo, Number(tramo?.descuento) || 0);
 
     hitos.push({
       clave: `vencidos-${indice}`,
@@ -235,7 +237,11 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       detalle: enDias(diasTramo),
       // Con el descuento que se le hizo al cerrarlo, si se le hizo: igual que
       // el renglón de lo pactado, muestra lo que de verdad se cobra.
-      valor: Math.max(0, diasTramo * porDia - (Number(tramo?.descuento) || 0)),
+      valor: brutoTramo - descuentoTramo,
+      // Y el descuento dicho aparte, solo para informar: sin él, la cifra
+      // salía más baja que días × precio y no había cómo saber por qué.
+      // Viene de la ampliación o de la devolución que cerró el tramo.
+      descuento: descuentoTramo > 0 ? descuentoTramo : null,
       // Ya cerrados: van con el acento de lo pactado y no con el rojo de lo
       // que se está reclamando.
       valorTono: "acordado",
@@ -247,6 +253,11 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   ampliacionesDe(equipo).forEach((ampliacion, indice) => {
     const pedidos = Number(ampliacion?.dias) || 0;
     if (pedidos <= 0) return;
+    const brutoPactado = pedidos * porDia;
+    const descuentoPactado = Math.min(
+      brutoPactado,
+      Number(ampliacion?.descuento) || 0,
+    );
 
     hitos.push({
       clave: `pactado-${indice}`,
@@ -254,10 +265,8 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       tono: "acordado",
       titulo: "Seguimiento con cliente",
       detalle: `Se pactaron ${enDias(pedidos)}`,
-      valor: Math.max(
-        0,
-        pedidos * porDia - (Number(ampliacion?.descuento) || 0),
-      ),
+      valor: brutoPactado - descuentoPactado,
+      descuento: descuentoPactado > 0 ? descuentoPactado : null,
       valorTono: "acordado",
     });
   });

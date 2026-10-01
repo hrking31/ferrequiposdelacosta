@@ -8,6 +8,7 @@ import {
   ampliarEquipo,
   partirLinea,
   descuentoExcedido,
+  descontarVencidosDeHoy,
   vencidoQueCorre,
   cerrarTramoVencido,
   abrirTramoVencido,
@@ -442,6 +443,58 @@ describe("los dos descuentos de una ampliación", () => {
     expect(descuentoExcedido(proyeccion, { descuento: 15001 })).toBe(true);
     expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60000 })).toBe(false);
     expect(descuentoExcedido(proyeccion, { descuentoVencidos: 60001 })).toBe(true);
+  });
+});
+
+// Pedido del dueño el 2026-10-01: el que DEVUELVE también negocia sus días
+// vencidos, igual que el que pide más días. Antes, para hacerle un descuento
+// había que ampliarle el plazo aunque el cliente trajera el equipo.
+//
+// El mismo equipo: 10 gatos a $1.500, 4 días vencidos al 17 = $60.000.
+describe("el descuento de los vencidos al devolver", () => {
+  const vencido = () => equipo({ vencidos: [tramo("2026-09-14")] });
+  const devolver = (eq, descuento) =>
+    descontarVencidosDeHoy(cerrarTramoVencido(eq, "2026-09-17"), descuento, "2026-09-17");
+
+  it("queda en el tramo que se cierra hoy, como el de la ampliación", () => {
+    expect(devolver(vencido(), 20000).vencidos).toEqual([
+      { desde: "2026-09-14", hasta: "2026-09-17", indefinida: false, descuento: 20000 },
+    ]);
+  });
+
+  it("sin descuento, el tramo no estrena el campo", () => {
+    expect(devolver(vencido(), 0).vencidos).toEqual([
+      { desde: "2026-09-14", hasta: "2026-09-17", indefinida: false },
+    ]);
+  });
+
+  it("los tramos de antes no se tocan", () => {
+    const conTramoViejo = equipo({
+      vencidos: [tramo("2026-09-14", "2026-09-15"), tramo("2026-09-16")],
+    });
+
+    const devuelto = devolver(conTramoViejo, 10000);
+
+    expect(devuelto.vencidos[0].descuento).toBeUndefined();
+    expect(devuelto.vencidos[1]).toMatchObject({ hasta: "2026-09-17", descuento: 10000 });
+  });
+
+  it("al que no se le venció nada no se le descuenta de ningún lado", () => {
+    const enFecha = equipo({ venceEl: "2026-09-20" });
+
+    expect(devolver(enFecha, 20000)).toBe(enFecha);
+  });
+
+  it("la cuenta del equipo devuelto resta el descuento y cuadra", () => {
+    const devuelto = {
+      ...devolver(vencido(), 20000),
+      devolucion: { fechaDevolucion: "2026-09-17" },
+    };
+    const cuenta = calcularEquipo(devuelto, "2026-09-20");
+
+    // 4 × $15.000 = $60.000, menos $20.000. Y deja de correr al volver.
+    expect(cuenta.netoVencido).toBe(40000);
+    expect(cuenta.bruto - cuenta.descuento).toBe(cuenta.neto);
   });
 });
 

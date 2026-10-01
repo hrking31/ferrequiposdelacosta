@@ -20,12 +20,13 @@ import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
-import DescuentosAmpliacion from "./DescuentosAmpliacion";
+import DescuentosAmpliacion, { DescuentoVencidos } from "./DescuentosAmpliacion";
 import {
   ampliarEquipo,
   cerrarIndefinida,
   cerrarTramoVencido,
   dejarSinFechaDeEntrega,
+  descontarVencidosDeHoy,
   descuentoExcedido,
   partirLinea,
   proyectarAmpliacion,
@@ -62,6 +63,9 @@ const ESTADO_INICIAL_CAMBIO = {
   dias: "",
   descuento: "",
   descuentoVencidos: "",
+  // El descuento sobre los días vencidos de lo que VUELVE. Los dos de arriba
+  // son del plazo nuevo de lo que se queda.
+  descuentoDevueltos: "",
   indefinida: false,
   buenEstado: true,
   motivoEstado: "",
@@ -303,7 +307,8 @@ export default function RegistrarDevolucionDialog({
     }));
   };
 
-  // `campo` es "descuento" (los días nuevos) o "descuentoVencidos".
+  // `campo` es "descuento" (los días nuevos), "descuentoVencidos" (los
+  // vencidos de lo que se queda) o "descuentoDevueltos" (los de lo que vuelve).
   const handleCambiarDescuento = (index, campo, valor) => {
     setCambios((prev) => ({
       ...prev,
@@ -320,6 +325,15 @@ export default function RegistrarDevolucionDialog({
       Number(cambios[clave]?.dias) || 0,
     );
   };
+
+  // Lo que vuelve de una línea, con la cantidad que vuelve: sus días vencidos
+  // son los que se cierran hoy al devolver, y de ahí sale el tope de su
+  // descuento. Mismo cálculo que la ampliación, sin días nuevos.
+  const proyeccionDeLoQueVuelve = (equipo, clave) =>
+    proyectarAmpliacion(
+      { ...equipo, cantidadEquipos: cantidadQueDevuelve(equipo, clave) },
+      0,
+    );
 
   const handleGuardar = async () => {
     const huboCambios = equiposPendientes.some(({ clave }) => {
@@ -380,7 +394,15 @@ export default function RegistrarDevolucionDialog({
         descuentoExcedido(proyeccionDelResto(equipo, clave), cambio)
       );
     });
-    if (descuentoDeMas) {
+    // Y el de lo que vuelve, con la misma regla.
+    const descuentoDevueltosDeMas = equiposPendientes.some(
+      ({ equipo, clave }) =>
+        !desdeLaFicha &&
+        cantidadQueDevuelve(equipo, clave) > 0 &&
+        Number(cambios[clave]?.descuentoDevueltos) >
+          proyeccionDeLoQueVuelve(equipo, clave).valorVencidos,
+    );
+    if (descuentoDeMas || descuentoDevueltosDeMas) {
       showSnackbar("Un descuento pasa de lo que valen sus días.", "warning");
       return;
     }
@@ -419,6 +441,19 @@ export default function RegistrarDevolucionDialog({
             desdeLaFicha ? motivoDevolucion : "",
           );
 
+          // Lo que vuelve cierra su mora hoy, con el descuento que se le haya
+          // hecho a esos días —el mismo lugar donde lo deja la ampliación—.
+          // Desde la ficha no se ofrece: ahí solo vuelve lo que está en plazo.
+          const cerrarLoQueVuelve = (linea) =>
+            descontarVencidosDeHoy(
+              cerrarIndefinida(
+                cerrarTramoVencido(linea, devolucion.fechaDevolucion),
+                devolucion.fechaDevolucion,
+              ),
+              desdeLaFicha ? 0 : cambio.descuentoDevueltos,
+              devolucion.fechaDevolucion,
+            );
+
           if (cantidadDevuelta >= pendiente) {
             // Vuelve la línea entera: se cierra donde está.
             //
@@ -426,10 +461,7 @@ export default function RegistrarDevolucionDialog({
             // la fecha de devolución (ver calcularEquipo), así que
             // pisarlos borraría con cuántos días había salido.
             equiposActualizados.push({
-              ...cerrarIndefinida(
-                cerrarTramoVencido(equipo, devolucion.fechaDevolucion),
-                devolucion.fechaDevolucion,
-              ),
+              ...cerrarLoQueVuelve(equipo),
               devolucion,
             });
             return;
@@ -447,10 +479,7 @@ export default function RegistrarDevolucionDialog({
           // cantidad (ver partirLinea).
           const [parteQueVuelve, parteQueQueda] = partirLinea(equipo, cantidadDevuelta);
           equiposActualizados.push({
-            ...cerrarIndefinida(
-              cerrarTramoVencido(parteQueVuelve, devolucion.fechaDevolucion),
-              devolucion.fechaDevolucion,
-            ),
+            ...cerrarLoQueVuelve(parteQueVuelve),
             devolucion,
           });
 
@@ -660,6 +689,24 @@ export default function RegistrarDevolucionDialog({
                     >
                       Se devuelve todo: esta línea queda cerrada.
                     </Typography>
+                  )}
+
+                  {/* LO QUE SE PASÓ DE LO QUE VUELVE. El cliente que devuelve
+                      también negocia sus días vencidos, igual que el que pide
+                      más días: misma casilla, misma regla, y el tope es lo que
+                      valen esos días para las unidades que vuelven. Solo desde
+                      Seguimiento: la ficha devuelve lo que está en plazo. */}
+                  {cantidadDevuelta > 0 && !desdeLaFicha && (
+                    <DescuentoVencidos
+                      proyeccion={proyeccionDeLoQueVuelve(equipo, clave)}
+                      descuento={cambio.descuentoDevueltos}
+                      onCambiar={(valor) =>
+                        handleCambiarDescuento(clave, "descuentoDevueltos", valor)
+                      }
+                      quienes={
+                        restante > 0 ? `de los ${cantidadDevuelta} que vuelven` : ""
+                      }
+                    />
                   )}
 
                   {/* CÓMO VOLVIÓ ESTE EQUIPO. Aparece apenas se escribe una

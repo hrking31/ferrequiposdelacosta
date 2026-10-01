@@ -126,6 +126,43 @@ describe("historialEquipo", () => {
     expect(buscar(conDescuento, "vencidos-1").valor).toBe(300000);
   });
 
+  // Pedido del dueño el 2026-10-01: el renglón ya traía el descuento restado,
+  // pero no lo decía, y la cifra salía más baja que días × precio sin que se
+  // supiera por qué. Ahora el descuento va aparte, solo como dato.
+  it("el descuento de un tramo cerrado se dice aparte", () => {
+    const conDescuento = {
+      ...compresor,
+      vencidos: [
+        { ...compresor.vencidos[0], descuento: 100000 },
+        compresor.vencidos[1],
+      ],
+    };
+    expect(buscar(conDescuento, "vencidos-0").descuento).toBe(100000);
+    expect(buscar(conDescuento, "vencidos-1").descuento).toBeNull();
+  });
+
+  it("y el de los días pactados también", () => {
+    const conDescuento = {
+      ...compresor,
+      ampliaciones: [{ ...compresor.ampliaciones[0], descuento: 50000 }],
+    };
+    const pactado = buscar(conDescuento, "pactado-0");
+    // 3 × $150.000 = $450.000, menos $50.000.
+    expect(pactado.valor).toBe(400000);
+    expect(pactado.descuento).toBe(50000);
+    expect(buscar(compresor, "pactado-0").descuento).toBeNull();
+  });
+
+  // Nunca dice que se descontó más de lo que valían los días: el renglón
+  // quedaría en cero y el rótulo inventaría plata.
+  it("el descuento que se dice no pasa de lo que valen sus días", () => {
+    const deMas = {
+      ...compresor,
+      vencidos: [{ ...compresor.vencidos[0], descuento: 999999 }, compresor.vencidos[1]],
+    };
+    expect(buscar(deMas, "vencidos-0")).toMatchObject({ valor: 0, descuento: 300000 });
+  });
+
   // La entrega indefinida no es un estado aparte: el equipo está vencido
   // igual, solo que con permiso. Por eso el tramo posterior al acuerdo cambia
   // de NOMBRE y conserva el tono del vencimiento.

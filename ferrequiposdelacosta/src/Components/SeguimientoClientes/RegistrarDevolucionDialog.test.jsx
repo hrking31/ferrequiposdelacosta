@@ -7,7 +7,7 @@ import {
   calcularEquipo,
 } from "../ClienteDetalle/facturaUtils";
 import RegistrarDevolucionDialog from "./RegistrarDevolucionDialog";
-import { formatearMoneda } from "../../Utils/formato";
+import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
 import {
   grupoAgregados,
   unEquipo,
@@ -834,5 +834,94 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     expect(equipos).toHaveLength(1);
     expect(equipos[0].cantidadEquipos).toBe(5);
     expect(equipos[0].devolucion).toBeTruthy();
+  });
+});
+
+// Pedido del dueño el 2026-10-01: al ampliar se le puede perdonar al cliente
+// parte de sus días vencidos, pero si en vez de pedir más días los DEVOLVÍA,
+// el diálogo cobraba todo. Ahora la devolución trae la misma casilla.
+//
+// 5 andamios a $20.000 que vencieron ayer: hoy llevan 1 día vencido, que para
+// los 5 vale $100.000.
+describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () => {
+  const AYER = calcularVencimiento(HOY, -1);
+  const facturaVencidaAyer = {
+    ...factura,
+    ...unaFactura({
+      numeroFactura: "1573",
+      valorDeposito: 100000,
+      equipos: [
+        andamio({
+          fechaDespacho: calcularVencimiento(AYER, -2),
+          vencidos: [unTramoVencido({ desde: HOY, hasta: null })],
+        }),
+      ],
+    }),
+  };
+
+  it("devolviendo todo, el descuento queda en el día vencido que se cierra", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    expect(
+      screen.getByText(`Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`),
+    ).toBeInTheDocument();
+
+    await usuario.type(screen.getByLabelText("Descuento en el día vencido"), "30000");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [devuelto] = equiposGuardados();
+    expect(devuelto.vencidos.at(-1)).toMatchObject({
+      desde: HOY,
+      hasta: HOY,
+      descuento: 30000,
+    });
+    // Y la cuenta lo resta: $100.000 del día, menos $30.000.
+    expect(calcularEquipo(devuelto, HOY).netoVencido).toBe(70000);
+  });
+
+  it("el tope es lo que vale el día de lo que VUELVE, no de toda la línea", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await usuario.type(
+      screen.getByLabelText("Descuento en el día vencido de los 2 que vuelven"),
+      "40001",
+    );
+
+    expect(screen.getByText(`No puede pasar de ${enPantalla(40000)}`)).toBeInTheDocument();
+
+    await guardar(usuario);
+    expect(
+      await screen.findByText("Un descuento pasa de lo que valen sus días."),
+    ).toBeInTheDocument();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+
+  it("al devolver una parte y ampliar el resto, cada parte lleva el suyo", async () => {
+    const { usuario } = abrir({ factura: facturaVencidaAyer });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await usuario.type(
+      screen.getByLabelText("Descuento en el día vencido de los 3 que vuelven"),
+      "10000",
+    );
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
+    await usuario.type(screen.getByLabelText("Descuento en el día vencido"), "5000");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [devuelto, restante] = equiposGuardados();
+    expect(devuelto.vencidos.at(-1).descuento).toBe(10000);
+    expect(restante.vencidos.at(-1).descuento).toBe(5000);
+  });
+
+  it("desde la ficha no aparece: ahí solo vuelve lo que está en plazo", async () => {
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+
+    expect(screen.queryByLabelText(/^Descuento en/)).not.toBeInTheDocument();
   });
 });

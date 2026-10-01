@@ -49,7 +49,6 @@ export default function DescuentosAmpliacion({
   }
 
   const nuevos = Number(descuento) || 0;
-  const vencidos = Number(descuentoVencidos) || 0;
 
   return (
     <>
@@ -76,28 +75,62 @@ export default function DescuentosAmpliacion({
         sx={{ mt: 1 }}
       />
 
-      {/* Solo si de verdad se cierran días vencidos hoy: al que le renuevan
-          el mismo día en que vence no hay nada que perdonarle. */}
-      {proyeccion.diasVencidos > 0 && (
-        <TextField
-          label={`Descuento en ${enLosDias(proyeccion.diasVencidos, "vencido")}`}
-          inputProps={{ inputMode: "numeric" }}
-          value={formatearMonedaInput(descuentoVencidos)}
-          onChange={(e) => onCambiarDescuentoVencidos(limpiarMonedaInput(e.target.value))}
-          error={vencidos > proyeccion.valorVencidos}
-          helperText={ayudaDe(
-            proyeccion.valorVencidos,
-            vencidos,
-            `Desde el ${formatearFechaLegible(proyeccion.vencidosDesde)} · `,
-          )}
-          fullWidth
-          size="small"
-          sx={{ mt: 1 }}
-        />
-      )}
+      <DescuentoVencidos
+        proyeccion={proyeccion}
+        descuento={descuentoVencidos}
+        onCambiar={onCambiarDescuentoVencidos}
+      />
     </>
   );
 }
+
+// LA CASILLA DE LOS VENCIDOS sola. La usan la ampliación (con los días nuevos
+// al lado) y la devolución, donde no hay días nuevos: el cliente devuelve, y lo
+// único que se negocia es lo que se pasó.
+//
+// Solo aparece si de verdad se cierran días vencidos hoy: al que le renuevan o
+// devuelve el mismo día en que vence no hay nada que perdonarle.
+//
+// `quienes` aclara de qué unidades se habla cuando en la misma pantalla hay dos
+// casillas iguales: la devolución parcial descuenta por separado lo que vuelve
+// y lo que se queda.
+export function DescuentoVencidos({ proyeccion, descuento, onCambiar, quienes = "" }) {
+  if (proyeccion.porDia <= 0 || proyeccion.diasVencidos <= 0) return null;
+
+  const monto = Number(descuento) || 0;
+
+  return (
+    <TextField
+      label={`Descuento en ${enLosDias(proyeccion.diasVencidos, "vencido")}${
+        quienes ? ` ${quienes}` : ""
+      }`}
+      inputProps={{ inputMode: "numeric" }}
+      value={formatearMonedaInput(descuento)}
+      onChange={(e) => onCambiar(limpiarMonedaInput(e.target.value))}
+      error={monto > proyeccion.valorVencidos}
+      helperText={ayudaDe(
+        proyeccion.valorVencidos,
+        monto,
+        `Desde el ${formatearFechaLegible(proyeccion.vencidosDesde)} · `,
+      )}
+      fullWidth
+      size="small"
+      sx={{ mt: 1 }}
+    />
+  );
+}
+
+DescuentoVencidos.propTypes = {
+  proyeccion: PropTypes.shape({
+    porDia: PropTypes.number.isRequired,
+    diasVencidos: PropTypes.number.isRequired,
+    valorVencidos: PropTypes.number.isRequired,
+    vencidosDesde: PropTypes.string,
+  }).isRequired,
+  descuento: PropTypes.string.isRequired,
+  onCambiar: PropTypes.func.isRequired,
+  quienes: PropTypes.string,
+};
 
 DescuentosAmpliacion.propTypes = {
   proyeccion: PropTypes.shape({

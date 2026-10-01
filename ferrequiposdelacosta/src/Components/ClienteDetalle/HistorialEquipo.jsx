@@ -231,6 +231,17 @@ export default function HistorialEquipo({ equipo, hoy, enDialogo = false }) {
                   {hito.detalle}
                 </Typography>
               )}
+              {/* El descuento que se le hizo a esos días, solo como dato: la
+                  cifra de la derecha ya lo trae restado. En verde, que es el
+                  color de la plata a favor del cliente. */}
+              {hito.descuento > 0 && (
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", color: "success.main", fontWeight: 600 }}
+                >
+                  Descuento {formatearMoneda(hito.descuento)}
+                </Typography>
+              )}
             </Box>
 
             {/* La columna de la derecha: la plata de ese hito o el estado en

@@ -622,6 +622,32 @@ const tramoQueCierraHoy = (equipo, hoyIso) =>
     (tramo) => tramo?.hasta === hoyIso && diasDelTramo(tramo, hoyIso) > 0,
   ) ?? null;
 
+// EL DESCUENTO SOBRE LOS VENCIDOS QUE SE CIERRAN HOY. Queda pegado al tramo,
+// que es de donde sale la plata: así la cuenta y la historia del equipo lo
+// leen del mismo lugar. Lo usan las dos gestiones que cierran la mora
+// negociando con el cliente: ampliar el plazo y devolver.
+//
+// El equipo ya tiene que llegar con el tramo cerrado hoy. Sin tramo —no se
+// le venció nada— no hay de dónde descontar y vuelve tal cual.
+export const descontarVencidosDeHoy = (
+  equipo,
+  monto,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const descuento = Math.max(0, numero(monto));
+  const tramo = descuento > 0 ? tramoQueCierraHoy(equipo, hoyIso) : null;
+  if (!tramo) return equipo;
+
+  return {
+    ...equipo,
+    vencidos: vencidosDe(equipo).map((cada) =>
+      cada === tramo
+        ? { ...cada, descuento: numero(cada.descuento) + descuento }
+        : cada,
+    ),
+  };
+};
+
 // El equipo con su plazo nuevo: el tramo vencido cerrado hoy, la entrega
 // indefinida apagada —ya tiene fecha— y la ampliación anotada con lo que el
 // cliente PIDIÓ.
@@ -638,20 +664,14 @@ export const ampliarEquipo = (
   if (pedidos <= 0) return equipo;
 
   const proyeccion = proyectarAmpliacion(equipo, pedidos, hoyIso);
-  const base = cerrarIndefinida(cerrarMora(equipo, hoyIso), hoyIso);
-
-  const aVencidos = Math.max(0, numero(descuentoVencidos));
-  const tramo = aVencidos > 0 ? tramoQueCierraHoy(base, hoyIso) : null;
+  const base = descontarVencidosDeHoy(
+    cerrarIndefinida(cerrarMora(equipo, hoyIso), hoyIso),
+    descuentoVencidos,
+    hoyIso,
+  );
 
   return {
     ...base,
-    ...(tramo && {
-      vencidos: vencidosDe(base).map((cada) =>
-        cada === tramo
-          ? { ...cada, descuento: numero(cada.descuento) + aVencidos }
-          : cada,
-      ),
-    }),
     ampliaciones: [
       ...ampliacionesDe(base),
       {
