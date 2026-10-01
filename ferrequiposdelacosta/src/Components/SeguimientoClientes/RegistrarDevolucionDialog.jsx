@@ -37,6 +37,7 @@ import {
   obtenerGestiones,
   crearRegistroGestion,
   facturaEnSeguimiento,
+  calcularDeposito,
   calcularDepositoTotal,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -240,14 +241,15 @@ export default function RegistrarDevolucionDialog({
     }));
 
   // Y lo que se está anotando en ESTA tanda.
+  const retenidoAhoraDe = (equipo, grupo, clave) =>
+    cantidadQueDevuelve(equipo, clave) > 0 && cambios[clave]?.buenEstado === false
+      ? devolucionDe(cambios[clave], "", depositoDelGrupo(grupo)).valorRetenido
+      : 0;
   const retencionesAhora = equiposPendientes
     .map(({ equipo, grupo, clave }) => ({
       nombre: equipo.nombre,
       motivo: (cambios[clave]?.motivoEstado || "").trim(),
-      monto:
-        cantidadQueDevuelve(equipo, clave) > 0 && cambios[clave]?.buenEstado === false
-          ? devolucionDe(cambios[clave], "", depositoDelGrupo(grupo)).valorRetenido
-          : 0,
+      monto: retenidoAhoraDe(equipo, grupo, clave),
     }))
     .filter(({ monto }) => monto > 0);
 
@@ -257,6 +259,35 @@ export default function RegistrarDevolucionDialog({
     depositoTotal,
     retenciones.reduce((total, { monto }) => total + monto, 0),
   );
+
+  // CUÁNTO SE LE DEVUELVE AL CLIENTE cuando se liquide. Es la misma cuenta
+  // que harán la ficha y el diálogo de abono (calcularDeposito), hecha sobre
+  // la factura como quedará al guardar: el depósito resuelto y lo retenido
+  // anotado en cada equipo. Así cuenta lo que el cliente de verdad pagó, lo
+  // que ya se usó para pagar la factura y lo que ya se le devolvió — decir
+  // "se le devuelve completo" de un depósito que no pagó sería mentirle a
+  // quien recibe los equipos.
+  const porDevolverAlCliente = resolverDeposito
+    ? calcularDeposito({
+        ...factura,
+        grupos: gruposDe(factura).map((grupo) => ({
+          ...grupo,
+          equipos: (grupo.equipos ?? []).map((equipo, indice) => {
+            const ahora = retenidoAhoraDe(equipo, grupo, claveDe(grupo, indice));
+            return ahora > 0
+              ? { ...equipo, devolucion: { ...(equipo.devolucion ?? {}), valorRetenido: ahora } }
+              : equipo;
+          }),
+        })),
+        factura: { ...datosFactura(factura), depositoResuelto: { retenido } },
+      }).porDevolver
+    : 0;
+  const queSeLeDevuelve =
+    porDevolverAlCliente <= 0
+      ? "No queda nada por devolverle"
+      : porDevolverAlCliente >= depositoTotal
+        ? "Se le devuelve completo al cliente"
+        : `Se le devuelven ${formatearMoneda(porDevolverAlCliente)} al cliente`;
 
   const handleCerrar = () => {
     if (guardando) return;
@@ -868,12 +899,17 @@ export default function RegistrarDevolucionDialog({
                 pregunta nada —eso se respondió equipo por equipo, arriba y el
                 día que cada uno volvió—: este bloque solo muestra la cuenta
                 que sale de lo anotado, incluida la de devoluciones de otros
-                días. */}
+                días.
+
+                Y dice la CONSECUENCIA, no el estado de los equipos: antes
+                cerraba con "Volvió todo completo y en buen estado", que
+                repetía la casilla de arriba y no decía qué pasaba con la
+                plata (pedido del dueño, 2026-10-01). */}
             {resolverDeposito && (
               <Grid item xs={12}>
                 <Divider sx={{ mb: 2 }} />
                 <Typography variant="subtitle2" sx={{ color: acento }}>
-                  Depósito: {formatearMoneda(depositoTotal)}
+                  Depósito: {formatearMoneda(depositoTotal)} · {queSeLeDevuelve}
                 </Typography>
 
                 {/* De dónde sale ese total. Con una sola entrega el desglose
@@ -903,15 +939,11 @@ export default function RegistrarDevolucionDialog({
                     </Typography>
                   ))}
 
-                {retenciones.length === 0 ? (
-                  <Typography variant="body2" sx={{ mt: 0.5 }}>
-                    Volvió todo completo y en buen estado.
-                  </Typography>
-                ) : (
+                {retenciones.length > 0 && (
                   <Box sx={{ mt: 0.5 }}>
                     <Typography variant="body2" fontWeight="bold">
-                      Se retienen {formatearMoneda(retenido)}, que pasan a la
-                      factura como cargo por daños:
+                      Se retienen {formatearMoneda(retenido)} por daños, que pasan
+                      a la factura como cargo:
                     </Typography>
                     {retenciones.map(({ nombre, motivo, monto }, posicion) => (
                       <Typography

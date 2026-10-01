@@ -273,6 +273,65 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
 
 // El depósito es de cada DESPACHO, no de la factura: el cliente dejó $100.000
 // por el andamio y, cuando días después pidió la rana, otros $50.000.
+// Con el último equipo de vuelta el diálogo cierra diciendo qué pasa con el
+// depósito. Antes decía "Volvió todo completo y en buen estado", que repetía
+// la casilla de arriba y no decía qué pasaba con la plata (2026-10-01).
+describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
+  // La misma factura, con los $100.000 del depósito pagados en el despacho.
+  const facturaConDepositoPagado = {
+    ...factura,
+    ...unaFactura({
+      numeroFactura: "1573",
+      fechaCreacion: "2026-08-01",
+      valorDeposito: 100000,
+      pagos: [{ medio: "Efectivo", monto: 100000 }],
+      equipos: [andamio()],
+    }),
+  };
+
+  it("si todo vuelve bien, se le devuelve completo", async () => {
+    const { usuario } = abrir({ factura: facturaConDepositoPagado });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+
+    expect(
+      screen.getByText(`Depósito: ${enPantalla(100000)} · Se le devuelve completo al cliente`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Volvió todo completo/)).not.toBeInTheDocument();
+  });
+
+  it("con daños, dice cuánto se retiene y cuánto se le devuelve", async () => {
+    const { usuario } = abrir({ factura: facturaConDepositoPagado });
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await usuario.click(screen.getByLabelText(/en buen estado/));
+    await usuario.type(screen.getByLabelText("Qué le pasó"), "Andamio rayado");
+    await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
+
+    expect(
+      screen.getByText(
+        `Depósito: ${enPantalla(100000)} · Se le devuelven ${enPantalla(70000)} al cliente`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Se retienen ${enPantalla(30000)} por daños, que pasan a la factura como cargo:`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  // No se le puede prometer al cliente una plata que nunca dejó.
+  it("si el depósito no se pagó, no promete devolverlo", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+
+    expect(
+      screen.getByText(`Depósito: ${enPantalla(100000)} · No queda nada por devolverle`),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
   it("cada equipo muestra el depósito de su propio despacho", () => {
     abrir({ factura: facturaConDosDepositos });

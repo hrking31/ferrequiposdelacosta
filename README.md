@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-644_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-647_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -840,6 +840,8 @@ Nada se descuenta solo: usar el depósito para pagar es una decisión que queda 
 > Mientras el depósito no se resuelva, la factura **no puede llegar a Finalizada**. Esa es toda la protección: no hace falta que nadie se acuerde de revisar quién tiene depósitos sin devolver, porque esas facturas siguen apareciendo en cartera hasta que se resuelvan.
 
 El depósito se salda **una sola vez y por el total** —contando el de la factura y el de cada equipo agregado después— cuando vuelve el último equipo. Nunca por partes en una devolución parcial.
+
+Ese día el diálogo de devolución cierra diciendo **qué pasa con la plata** (2026-10-01): *"Depósito: $80.000 · Se le devuelve completo al cliente"*, o *"· Se le devuelven $50.000 al cliente"* con *"Se retienen $30.000 por daños"* debajo, o *"· No queda nada por devolverle"*. Antes cerraba con *"Volvió todo completo y en buen estado"*, que repetía la casilla de arriba y no decía en qué quedaba la garantía. La cifra sale de la misma cuenta que usan la ficha y el abono, hecha sobre la factura como quedará al guardar: si el cliente no pagó el depósito, o una parte ya se usó para pagar la factura, no se le promete devolver lo que no hay.
 
 > [!NOTE]
 > **"El último equipo" es el de la factura, no el de la pantalla (2026-09-16).** El diálogo de devolución se preguntaba si ya había vuelto todo mirando **solo los equipos que esa pantalla ofrece**, y ninguna de las dos ve la factura entera: cartera muestra lo vencido, la ficha lo que está en plazo.
