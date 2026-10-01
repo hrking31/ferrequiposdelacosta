@@ -335,6 +335,13 @@ export default function RegistrarDevolucionDialog({
       0,
     );
 
+  // El nombre de la casilla de lo que vuelve: "del equipo", para que no se
+  // confunda con la de lo que se queda, que sigue diciendo "Descuento en…".
+  const etiquetaDescuentoDevueltos = (dias) =>
+    dias === 1
+      ? "Descuento del día vencido del equipo"
+      : `Descuento de los ${dias} días vencidos del equipo`;
+
   const handleGuardar = async () => {
     const huboCambios = equiposPendientes.some(({ clave }) => {
       const cambio = cambios[clave];
@@ -658,15 +665,16 @@ export default function RegistrarDevolucionDialog({
                       buscarlo al final del diálogo.
 
                       Cuando esa entrega trajo varios equipos el depósito es
-                      de todos juntos, y hay que decirlo: repartirlo por
-                      equipo sería inventar un número que nadie pactó. */}
+                      de todos juntos y se muestra entero: repartirlo por
+                      equipo sería inventar un número que nadie pactó. El
+                      "(del despacho)" que lo aclaraba se quitó el 2026-10-01,
+                      a pedido del dueño: solo "Depósito". */}
                   {deposito > 0 && (
                     <Typography
                       variant="caption"
                       sx={{ display: "block", color: "custom.accent" }}
                     >
                       Depósito: {formatearMoneda(deposito)}
-                      {(grupo.equipos ?? []).length > 1 && " (del despacho)"}
                     </Typography>
                   )}
 
@@ -703,9 +711,9 @@ export default function RegistrarDevolucionDialog({
                       onCambiar={(valor) =>
                         handleCambiarDescuento(clave, "descuentoDevueltos", valor)
                       }
-                      quienes={
-                        restante > 0 ? `de los ${cantidadDevuelta} que vuelven` : ""
-                      }
+                      etiqueta={etiquetaDescuentoDevueltos(
+                        proyeccionDeLoQueVuelve(equipo, clave).diasVencidos,
+                      )}
                     />
                   )}
 
@@ -794,7 +802,7 @@ export default function RegistrarDevolucionDialog({
                         color="text.secondary"
                         sx={{ display: "block", mb: 0.5 }}
                       >
-                        Quedan {restante} sin devolver — ¿qué pasa con esos?
+                        Quedan {restante} sin devolver
                       </Typography>
 
                       <TextField

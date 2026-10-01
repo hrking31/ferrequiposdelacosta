@@ -91,19 +91,17 @@ export default function DescuentosAmpliacion({
 // Solo aparece si de verdad se cierran días vencidos hoy: al que le renuevan o
 // devuelve el mismo día en que vence no hay nada que perdonarle.
 //
-// `quienes` aclara de qué unidades se habla cuando en la misma pantalla hay dos
-// casillas iguales: la devolución parcial descuenta por separado lo que vuelve
-// y lo que se queda.
-export function DescuentoVencidos({ proyeccion, descuento, onCambiar, quienes = "" }) {
+// `etiqueta` reemplaza el nombre de la casilla: la devolución la llama "del
+// equipo", y así no se confunde con la de lo que se queda cuando en la misma
+// pantalla hay dos.
+export function DescuentoVencidos({ proyeccion, descuento, onCambiar, etiqueta = "" }) {
   if (proyeccion.porDia <= 0 || proyeccion.diasVencidos <= 0) return null;
 
   const monto = Number(descuento) || 0;
 
   return (
     <TextField
-      label={`Descuento en ${enLosDias(proyeccion.diasVencidos, "vencido")}${
-        quienes ? ` ${quienes}` : ""
-      }`}
+      label={etiqueta || `Descuento en ${enLosDias(proyeccion.diasVencidos, "vencido")}`}
       inputProps={{ inputMode: "numeric" }}
       value={formatearMonedaInput(descuento)}
       onChange={(e) => onCambiar(limpiarMonedaInput(e.target.value))}
@@ -129,7 +127,7 @@ DescuentoVencidos.propTypes = {
   }).isRequired,
   descuento: PropTypes.string.isRequired,
   onCambiar: PropTypes.func.isRequired,
-  quienes: PropTypes.string,
+  etiqueta: PropTypes.string,
 };
 
 DescuentosAmpliacion.propTypes = {
