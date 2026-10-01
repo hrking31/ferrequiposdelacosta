@@ -256,8 +256,7 @@ export default function SeguimientoClientes() {
   // historia del equipo que se elija en la lista. En el celular no entra al
   // lado, y cada equipo abre su historia en un diálogo.
   //
-  // Desde 1200px, el mismo corte en que la tarjeta sube el recuadro negro al
-  // lado de los botones. Entre 916 y 1200 los 420px del panel apretaban las
+  // Desde 1200px. Entre 916 y 1200 los 420px del panel apretaban las
   // facturas: ahí la lista va con todo el ancho y la historia se abre con el
   // botón de cada equipo, como en el celular.
   const anchoParaPanel = useMediaQuery(theme.breakpoints.up("lg"));

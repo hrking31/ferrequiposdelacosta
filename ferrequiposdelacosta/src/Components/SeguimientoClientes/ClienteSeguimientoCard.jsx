@@ -5,7 +5,6 @@ import {
   Box,
   Chip,
   Divider,
-  useMediaQuery,
   IconButton,
   Paper,
   Stack,
@@ -142,11 +141,6 @@ const agruparPorVencimiento = (equipos = [], hoy) => {
     items: porGrupo[grupo.clave] || [],
   })).filter((grupo) => grupo.items.length > 0);
 };
-
-// Cuántos equipos se nombran en la tarjeta plegada antes de contar el resto.
-// Tres entran en un renglón hasta en un celular; el cuarto ya obliga a leer
-// en vez de reconocer.
-const MAX_EQUIPOS_PLEGADA = 3;
 
 const CODIGOS_SIN_TELEFONO = ["SN", "NT", "N/A", ""];
 
@@ -363,12 +357,12 @@ export default function ClienteSeguimientoCard({
   onElegirEquipo,
 }) {
   const theme = useTheme();
-  const esMovil = useMediaQuery(theme.breakpoints.down("sm"));
-  // El mismo corte que usa la ficha del cliente para su pizarra: hasta 915px
-  // los cuatro importes no entran en el hueco del encabezado.
-  // Angosta O baja: el teléfono acostado pasa de los 915px de ancho y la
-  // tarjeta se dibujaba como en computador dentro de una pantalla de celular.
-  const anchoCorto = usePantallaCompacta();
+  // UN SOLO CORTE para toda la tarjeta: hasta 915px de ancho, o con el
+  // teléfono acostado, se comporta como en el celular (2026-09-30). Antes
+  // había dos —600px para plegar, esconder botones y apilar, y 915 para la
+  // pizarra— y entre los dos quedaba una tarjeta de computador con la pizarra
+  // de celular.
+  const esMovil = usePantallaCompacta();
   const acento =
     theme.palette.custom.accent;
   const [tabFactura, setTabFactura] = useState(0);
@@ -549,11 +543,16 @@ export default function ClienteSeguimientoCard({
   //
   // `alignItems: start` para que cada recuadro mida lo suyo — si no, la
   // cuadrícula los estira todos a la altura del más alto.
+  //
+  // Acá las dos columnas arrancan en 1800px, no en 600 como en la ficha: así
+  // lo pidió el dueño (2026-09-30). Por debajo los equipos van como en el
+  // celular, uno por renglón y con todo el ancho. Es el mismo corte en que la
+  // pizarra sube al encabezado.
   const cuadriculaDeEquipos = (cuantos) => ({
     display: "grid",
-    gridTemplateColumns: {
-      xs: "1fr",
-      sm: `repeat(${Math.min(cuantos || 1, 2)}, 1fr)`,
+    gridTemplateColumns: "1fr",
+    "@media (min-width:1800px)": {
+      gridTemplateColumns: `repeat(${Math.min(cuantos || 1, 2)}, 1fr)`,
     },
     gap: 1,
     mt: 0.5,
@@ -561,7 +560,9 @@ export default function ClienteSeguimientoCard({
   });
 
   const anchoDelBloque = (cuantos) => ({
-    width: { sm: Math.min(cuantos || 1, 2) === 1 ? "calc(50% - 4px)" : "100%" },
+    "@media (min-width:1800px)": {
+      width: Math.min(cuantos || 1, 2) === 1 ? "calc(50% - 4px)" : "100%",
+    },
   });
 
   // Y su ícono, el mismo que encabeza su grupo al abrir la factura: calendario
@@ -706,26 +707,19 @@ export default function ClienteSeguimientoCard({
       // Al que se le acaba el plazo HOY le dice "0 días vencidos": ese día
       // todavía está pagado y no debe nada de más, la mora le empieza mañana.
       rotulo: `${formatearDias(diasVencidos)} vencidos`,
-      // La cifra va SIN IVA y el "+ IVA" al lado, que es como se cotiza: el
-      // impuesto se suma al final, sobre el total de la factura.
-      valor: vencido ? (
-        <Box component="span">
-          {formatearMoneda(valorVencido)}
-          {equipoLlevaIva(equipo) && (
-            <Box
-              component="span"
-              sx={{ fontSize: "0.72rem", fontWeight: 400, opacity: 0.85 }}
-            >
-              {" + IVA"}
-            </Box>
-          )}
-        </Box>
-      ) : (
-        // Sin plata que mostrar, la casilla queda en blanco: una raya se lee
-        // como que el dato falta, y acá lo que pasa es que no hay nada que
-        // cobrar todavía.
-        ""
-      ),
+      // La cifra va SIN IVA, que es como se cotiza: el impuesto se suma al
+      // final, sobre el total de la factura.
+      //
+      // Sin plata que mostrar, la casilla queda en blanco: una raya se lee
+      // como que el dato falta, y acá lo que pasa es que no hay nada que
+      // cobrar todavía.
+      valor: vencido ? formatearMoneda(valorVencido) : "",
+      // El "+ IVA" DEBAJO de la cifra, como la fecha debajo del estado en la
+      // casilla de al lado (2026-09-30). Al lado no entraba: entre 1200 y
+      // 1230px, con el panel de la derecha y un nombre largo, "$ 1.234.000
+      // + IVA" pide 150px y a la casilla le quedan 140, y se salía por el
+      // borde. La fila no crece: la de Estado ya ocupa dos renglones.
+      extra: vencido && equipoLlevaIva(equipo) ? "+ IVA" : null,
       color: vencido ? "error.main" : "text.secondary",
     };
 
@@ -1101,7 +1095,7 @@ export default function ClienteSeguimientoCard({
         // chip y los botones no entraban al lado de la fecha y bajaban a otro
         // renglón. A 6px alcanza para que los botones conserven su separación
         // de siempre: el aire entre ellos se nota más que el del borde.
-        p: { xs: 0.75, sm: 2 },
+        p: esMovil ? 0.75 : 2,
       }}
     >
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 0.5, pb: 1 }}>
@@ -1337,8 +1331,8 @@ export default function ClienteSeguimientoCard({
               borderBottomRightRadius: 8,
               boxShadow: 4,
               // El otro relleno de 16px: ver el de la tarjeta, más arriba.
-              p: { xs: 0.75, sm: 2 },
-              pt: { xs: 1.5, sm: 2.5 },
+              p: esMovil ? 0.75 : 2,
+              pt: esMovil ? 1.5 : 2.5,
             }}
           >
             {/* En el celular los dos lados se leen como dos bloques: a la
@@ -1451,15 +1445,19 @@ export default function ClienteSeguimientoCard({
                   Por debajo de cierto ancho el hueco no pasa de unos 300px y
                   cuatro importes de siete cifras se montan entre sí, así que
                   la pizarra pasa a su propia fila con todo el ancho. En la
-                  ficha ese corte es 1200px; acá es 1600, porque desde 1200
-                  está el panel de la derecha y se lleva sus 420px. */}
-              {!anchoCorto &&
+                  ficha ese corte es 1200px; acá es 1800, porque desde 1200
+                  está el panel de la derecha y se lleva sus 420px.
+
+                  Era 1600 y a 1663px las cifras se montaban: el renglón pide
+                  unos 270px de plazo, 580 de pizarra y 340 de botones, chip y
+                  flecha, y con el panel y los márgenes eso son ~1750px. */}
+              {!esMovil &&
                 facturaPlegada(factura.id) &&
                 renderPizarraTotales(casillasDeCuenta(cuenta), {
                   flexGrow: 1,
                   flexBasis: "100%",
                   order: 1,
-                  "@media (min-width:1600px)": { flexBasis: 0, order: 0 },
+                  "@media (min-width:1800px)": { flexBasis: 0, order: 0 },
                 })}
 
               {/* Las acciones y el estado de la factura.
@@ -1477,7 +1475,7 @@ export default function ClienteSeguimientoCard({
                 alignItems={esMovil ? "flex-end" : "center"}
                 // SIEMPRE PEGADOS A LA DERECHA, aunque queden solos en su
                 // renglón. El `space-between` de la fila los acomodaba mientras
-                // hubiera algo a la izquierda, pero entre 916 y 1600px la
+                // hubiera algo a la izquierda, pero entre 916 y 1800px la
                 // pizarra baja a su propia línea y una factura SIN PLAZO —la
                 // que sigue en cartera solo por la plata— dejaba este bloque
                 // como único hijo: los botones y el chip se iban a la
@@ -1622,11 +1620,10 @@ export default function ClienteSeguimientoCard({
                     // En el celular, la medida chica del tema: a 360px la fila
                     // no puede con la fecha, los cuatro botones y un chip de
                     // 135.
-                    width: {
-                      xs: theme.anchoChip.movil,
-                      sm: theme.anchoChip.gestion,
-                    },
-                    fontSize: { xs: theme.anchoChip.letraMovil, sm: null },
+                    width: esMovil
+                      ? theme.anchoChip.movil
+                      : theme.anchoChip.gestion,
+                    fontSize: esMovil ? theme.anchoChip.letraMovil : undefined,
                     justifyContent: "center",
                   }}
                 />
@@ -1678,7 +1675,7 @@ export default function ClienteSeguimientoCard({
                 las cuatro cifras de a dos por fila. La misma factura no puede
                 mostrar su cuenta de dos maneras según la pantalla en que se
                 mire. */}
-            {anchoCorto && facturaPlegada(factura.id) && (
+            {esMovil && facturaPlegada(factura.id) && (
               // El toque muere acá: la tarjeta entera abre la factura, y sin
               // esto tocar la pizarra para ver el resto de la cuenta la abría.
               <Box sx={{ mb: 1 }} onClick={esMovil ? detenerToque : undefined}>
@@ -1716,25 +1713,20 @@ export default function ClienteSeguimientoCard({
               </Box>
             )}
 
-            {/* QUÉ HAY AFUERA, sin abrir la tarjeta. Plegada, la factura decía
-                su número y cuánto se pasó, pero no de qué equipos se trata —y
-                esa es la pregunta que le da nombre a esta pantalla—. Con diez
-                clientes en la lista, contestarla costaba diez clics.
+            {/* QUÉ HAY AFUERA, sin abrir la tarjeta: un recuadro del color de
+                su urgencia con el ícono de equipos y cuántas unidades hay
+                afuera. Plegada, la factura decía su número y cuánto se pasó,
+                pero no cuánto equipo tiene el cliente —y esa es la pregunta
+                que le da nombre a esta pantalla—.
 
-                Cada uno va en el color de su urgencia, el mismo que tendrá su
-                recuadro al abrir. Se muestran los tres primeros y el resto se
-                cuenta: la idea es reconocer el equipo de un vistazo, no leer
-                el inventario. */}
-            {/* EN EL CELULAR, con la factura cerrada, los equipos se cuentan
-                en vez de nombrarse: un recuadro del color de su urgencia con
-                el ícono de equipos y cuántas unidades hay afuera.
-
-                Los nombres no entran —"TABLÓN DE MADERA PARA ANDAMIO" ocupa la
-                pantalla entera— y con la tarjeta cerrada lo que se busca es
-                cuánto hay y qué tan urgente es; el detalle está a un toque, al
-                abrir la factura. El color sale del grupo más urgente, que es el
-                primero de la lista. */}
-            {esMovil && facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
+                Se cuentan en vez de nombrarse, en el celular Y en el
+                computador (2026-09-30): en computador iban chips con el
+                nombre de los tres primeros, y "TABLÓN DE MADERA PARA ANDAMIO"
+                no se reconoce de un vistazo, se lee. Con la tarjeta cerrada lo
+                que se busca es cuánto hay y qué tan urgente es; el detalle
+                está al abrir la factura. El color sale del grupo más urgente,
+                que es el primero de la lista. */}
+            {facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
               <Box
                 sx={{
                   ...recuadroDeBloque(colorDeSituacion(equiposEnCartera[0].situacion)),
@@ -1754,57 +1746,6 @@ export default function ClienteSeguimientoCard({
                   {unidadesEnCartera} equipo{unidadesEnCartera === 1 ? "" : "s"}
                 </Typography>
               </Box>
-            )}
-
-            {!esMovil && facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
-              <Stack
-                direction="row"
-                alignItems="center"
-                flexWrap="wrap"
-                sx={{ gap: 0.75, mb: 1 }}
-              >
-                {/* El mismo ícono con que la ficha del cliente encabeza su
-                    sección "Equipos": lo que sigue son los equipos, no un
-                    despacho. El camión queda para la fecha de salida, adentro
-                    de la ficha de cada uno.
-
-                    Va del color del equipo MÁS urgente —el primero de la
-                    lista, que es el mismo criterio del recuadro del celular—:
-                    apagado no decía nada, y encabezando chips de colores
-                    parecía que le faltaba el suyo. */}
-                <ConstructionIcon
-                  fontSize="small"
-                  sx={{ color: colorDeSituacion(equiposEnCartera[0].situacion) }}
-                />
-
-                {equiposEnCartera
-                  .slice(0, MAX_EQUIPOS_PLEGADA)
-                  .map(({ equipo, situacion }, indice) => {
-                    const color = colorDeSituacion(situacion);
-                    const IconoSituacion = iconoDeSituacion(situacion);
-
-                    return (
-                      <Chip
-                        key={`afuera-${indice}`}
-                        size="small"
-                        variant="estadoCompacto"
-                        icon={<IconoSituacion />}
-                        label={`${equipo.cantidadEquipos} ${equipo.nombre}`}
-                        sx={{
-                          bgcolor: color,
-                          color: theme.palette.getContrastText(color),
-                          "& .MuiChip-icon": { color: "inherit" },
-                        }}
-                      />
-                    );
-                  })}
-
-                {equiposEnCartera.length > MAX_EQUIPOS_PLEGADA && (
-                  <Typography variant="body2" color="text.secondary">
-                    y {equiposEnCartera.length - MAX_EQUIPOS_PLEGADA} más
-                  </Typography>
-                )}
-              </Stack>
             )}
 
             {/* La línea de tiempo de la factura: todo lo que se hizo para

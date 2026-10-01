@@ -348,7 +348,7 @@ Cada factura de la lista trae las acciones del cobro a la mano:
 | **Renovar** | Le da más días al alquiler, con la opción de descuento, y recalcula lo que pasa a valer |
 | **Registrar devolución** | Anota qué equipos volvieron —todos o una parte— y resuelve el depósito |
 
-**Los dos descuentos al renovar (2026-09-28).** El descuento se negocia con el cliente, y puede ir sobre los días nuevos, sobre los vencidos o sobre los dos. Por eso el diálogo trae dos casillas, y arriba de ellas, a cómo se cobra el día —*"Valor del día: 5 × $20.000 = $100.000"*—, que es la base para saber cuánto descontar. Cada casilla dice cuánto valen sus días y en cuánto quedan; ninguna deja pasar de ahí. El de los días nuevos se guarda en la ampliación, como siempre; el de los vencidos, en el tramo que se cierra ese día, y el renglón de la historia del equipo ya sale con el descuento restado. Los vencidos de esa casilla son **los del tramo que se cierra hoy**, no todos los que el equipo acumuló: los anteriores ya se cerraron con su propia gestión.
+**Los dos descuentos al renovar (2026-09-28).** El descuento se negocia con el cliente, y puede ir sobre los días nuevos, sobre los vencidos o sobre los dos. Por eso el diálogo trae dos casillas, y arriba de ellas, a cómo se cobra el día —*"Valor del día: 5 × $20.000 = $100.000"*—, que es la base para saber cuánto descontar. Cada casilla dice cuánto valen sus días y en cuánto quedan —*"Valor $180.000 · Con descuento $160.000"*—; ninguna deja pasar de ahí. El de los días nuevos se guarda en la ampliación, como siempre; el de los vencidos, en el tramo que se cierra ese día, y el renglón de la historia del equipo ya sale con el descuento restado. Los vencidos de esa casilla son **los del tramo que se cierra hoy**, no todos los que el equipo acumuló: los anteriores ya se cerraron con su propia gestión.
 
 > Antes había una sola casilla y el diálogo decía *"Este equipo no tiene precio cargado"* de cualquier equipo: leía un dato que había desaparecido con los tramos del 23/09. El diálogo de devolución, que ofrece lo mismo para lo que el cliente se queda, decía *"undefined días"*.
 
@@ -594,9 +594,9 @@ Las facturas arrancan plegadas, para ver de un vistazo a quiénes hay que cobrar
 
 > **Fact. 0123**
 > Vencía **07/09/2026** | 7 días vencidos
-> *5 Gatos hidráulicos* (rojo) · *1 Compresor 185* (teal) · *1 Mezcladora* (ámbar)
+> 🛠 **7 equipos** (en rojo)
 
-Cada equipo va en **el color de su urgencia** —el mismo que tendrá su recuadro al abrir la factura—, así que la fila se lee como un semáforo sin leer una palabra. Se nombran **tres** y el resto se cuenta (*"y 2 más"*): la idea es reconocer el equipo de un vistazo, no leer el inventario.
+Un recuadro a todo el ancho con **cuántas unidades hay afuera**, en **el color del equipo más urgente** —el mismo que tendrá su recuadro al abrir la factura—. Hasta el 2026-09-30 en computador iban chips con el nombre de los tres primeros (*"5 Gatos hidráulicos · 1 Compresor 185 · y 2 más"*), pero *"TABLÓN DE MADERA PARA ANDAMIO"* no se reconoce de un vistazo: se lee. Ahora el computador muestra lo mismo que el celular, y los nombres se ven al abrir la factura.
 
 Al abrir la factura ese renglón desaparece: abajo cada equipo tiene su propio recuadro, y repetir la lista arriba sería decir dos veces lo mismo.
 
@@ -606,7 +606,8 @@ Cuatro casillas del mismo ancho, separadas por una línea, en la misma pizarra q
 
 ```
 [1] SALTARIN              VENCIÓ EL PLAZO  Vencido           4 DÍAS VENCIDOS
-    🚚 07/09/2026 · 4 días 10/09/2026       11/09 - 14/09     $ 400.000 + IVA
+    🚚 07/09/2026 · 4 días 10/09/2026       11/09 - 14/09     $ 400.000
+                                                              + IVA
 ```
 
 **El equipo abre la ficha**, como el nombre abre cualquier renglón: la cantidad en su recuadro y, debajo, con qué salió —el día y los días que se le contrataron—. Ese plazo del alta no se toca nunca, así que dice con qué se despachó el equipo, no en qué quedó.
@@ -617,7 +618,7 @@ Cuatro casillas del mismo ancho, separadas por una línea, en la misma pizarra q
 
 La tercera cuenta **el estado y desde cuándo lo está**. El vencido lleva el tramo de su mora —del primer día vencido a hoy—; el que quedó sin fecha, solo el día en que se pactó, porque no hay un "hasta" que contar. Y el que vence hoy dice *Vence hoy*: ese día todavía está pagado.
 
-**La cuarta es la plata**: los días en el rótulo y lo que cuestan en el valor, *"4 días vencidos · $400.000 + IVA"*, que es como se dice al hablar. La cifra va **sin IVA** y el impuesto se avisa al lado, que es como se cotiza. Al que vence hoy le dice *"0 días vencidos"* y deja el valor en blanco: una raya se leería como que el dato falta, y lo que pasa es que todavía no hay nada que cobrar.
+**La cuarta es la plata**: los días en el rótulo y lo que cuestan en el valor, *"4 días vencidos · $400.000 + IVA"*, que es como se dice al hablar. La cifra va **sin IVA**, que es como se cotiza, y el *"+ IVA"* va **debajo** (2026-09-30), como la fecha debajo del estado en la casilla de al lado: al lado no entraba entre 1200 y 1230px, con el panel de la derecha y un nombre largo, y se salía por el borde. Al que vence hoy le dice *"0 días vencidos"* y deja el valor en blanco: una raya se leería como que el dato falta, y lo que pasa es que todavía no hay nada que cobrar.
 
 **Los días son los que corren desde la fecha vigente (2026-09-28).** Antes sumaba todos los tramos vencidos del equipo. La 03685 decía *"Vencida 25/09 · 4 días"* cuando desde el 25 llevaba 3: el cuarto era un día del 22/09 que ya se había cerrado al pactarle 3 días más. Ese día se sigue cobrando —está en el total y en la historia del equipo, con su valor— pero no es parte del atraso de hoy. Lo mismo la fila de la factura y la línea *"Vence: … – N días vencidos"* de los diálogos.
 
@@ -697,7 +698,7 @@ El diálogo mostraba todo junto —el valor, la deuda, la lista de facturas— a
 
 1. **¿Qué va a pagar?** Toda la deuda —la app reparte, de la más antigua a la más nueva— o facturas específicas, que se marcan en una lista con lo que debe cada una y si tiene depósito libre.
 2. **¿Cómo paga?** Si lo elegido tiene depósito libre, la casilla **"Usar primero el depósito libre ($X)"**; después el medio y el valor de la plata que trae.
-3. **Así queda:** la deuda, lo que se paga con el depósito, lo que se paga en plata y lo que queda. El reparto por factura va plegado en *"Ver cómo se reparte"*.
+3. **Así queda:** la deuda, lo que se paga con el depósito, lo que se paga en plata y lo que queda. Si el cliente eligió facturas, el primer renglón las nombra —*"Facturas 2496, 2510"*— en vez de decir *"las facturas elegidas"*. El reparto por factura va plegado en *"Ver cómo se reparte"*, y solo cuando el abono va a **dos o más** facturas: con una sola repetía los renglones de arriba (2026-09-30).
 
 **El depósito no es un medio de pago:** es una casilla. Marcada, cada factura paga primero con **su** depósito —hasta lo que tiene libre y hasta lo que debe—, y la plata cubre el resto, repartida como siempre. Se guardan los dos abonos en la misma operación: el del depósito con medio *"Depósito"*, para que la lista de abonos diga cómo se pagó. Con un cliente que debe $650.000 y tiene $340.000 de depósito libre, marcar la casilla y pagar $310.000 por Bancolombia lo deja al día en un solo paso.
 
@@ -1226,7 +1227,17 @@ Casi todo eso ya estaba guardado. **Lo único que hubo que empezar a anotar es e
 
 En Seguimiento la historia se ve sin salir de la lista: un panel a la derecha, de 420px, con los dos números del menú y la historia del equipo que se toque. **Aparece desde 1200px.** Entre 916 y 1200 esos 420px apretaban las facturas, así que ahí la lista va con todo el ancho y la historia se abre con el botón de cada equipo, como en el celular.
 
-La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el que le deja el panel. Por eso en Seguimiento la barra negra de los totales baja a su propio renglón hasta **1600px** —en la ficha del cliente lo hace hasta 1200, donde no hay panel que le quite espacio—.
+La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el que le deja el panel. Por eso en Seguimiento la barra negra de los totales baja a su propio renglón hasta **1800px** —en la ficha del cliente lo hace hasta 1200, donde no hay panel que le quite espacio—. Era 1600 y a 1663 las cifras se montaban (2026-09-30).
+
+> **Los tres anchos de Seguimiento (2026-09-30).**
+>
+> | Ancho | Cómo se ve |
+> |---|---|
+> | hasta 915px, o el teléfono acostado | Como en el celular: la tarjeta se toca para abrir, los botones se esconden con la factura cerrada y la pizarra va abajo, corta |
+> | 916 a 1799px | Computador: los botones a la vista, la pizarra completa en su propio renglón y los equipos uno por renglón. Desde 1200 aparece el panel de la derecha |
+> | desde 1800px | La pizarra sube al lado de los botones y los equipos van de a dos |
+>
+> Antes la tarjeta tenía dos cortes —600px para lo de celular, 915 para la pizarra— y entre los dos quedaba una tarjeta de computador con la pizarra de celular.
 
 ### Los totales se pueden abrir
 

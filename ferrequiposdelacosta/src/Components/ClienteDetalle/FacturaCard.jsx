@@ -517,9 +517,12 @@ export default function FacturaCard({
 
         {/* El chip no se achica ni se parte: en celular es lo único que tiene
             el ancho fijo, y el título de al lado es el que cede. */}
+        {/* En celular acá solo van el chip y la flecha, y con 8px la flecha
+            quedaba pegada al chip: 16px la despegan sin quitarle el ancho a
+            nadie más que al título, que es el que cede. */}
         <Stack
           direction="row"
-          spacing={1}
+          spacing={esMovil ? 2 : 1}
           alignItems="center"
           sx={{ flexShrink: 0 }}
         >

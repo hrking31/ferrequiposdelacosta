@@ -178,6 +178,7 @@ export default function AbonoDialog({
   const pagadoConDeposito = filas.reduce((total, fila) => total + fila.deposito, 0);
   const quedaDespues = debeLoElegido - pagadoConDeposito - montoNuevo;
   const hayAlgoQueRegistrar = pagadoConDeposito > 0 || montoNuevo > 0;
+  const hayReparto = hayAlgoQueRegistrar && filas.length > 1;
 
   // ── EL RECORDATORIO DE LOS EQUIPOS ────────────────────────────────
   //
@@ -337,11 +338,20 @@ export default function AbonoDialog({
     <>
       <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="xs">
         <DialogTitle sx={{ color: acento }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
-            <span>Registrar abono</span>
-            {facturasConSaldo.length > 0 && (
+          {/* El título solo arriba (2026-09-30). Debajo, el saldo a la
+              izquierda y el contador a la derecha, como marca de agua más
+              chica: al lado del título competía con él por el renglón. */}
+          <Box component="span" sx={{ display: "block" }}>
+            Registrar abono
+          </Box>
+          {facturasConSaldo.length > 0 && (
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+              <Typography variant="body2" color="text.secondary">
+                Saldo {formatearMoneda(deudaActual)}
+              </Typography>
               <Typography
-                variant="h6"
+                variant="subtitle2"
+                component="span"
                 color="text.secondary"
                 sx={{
                   opacity: 0.35,
@@ -351,15 +361,9 @@ export default function AbonoDialog({
                   whiteSpace: "nowrap",
                 }}
               >
-                {facturasConSaldo.length} factura{facturasConSaldo.length === 1 ? "" : "s"} con
-                saldo
+                {`${facturasConSaldo.length} factura${facturasConSaldo.length === 1 ? "" : "s"} con saldo`}
               </Typography>
-            )}
-          </Stack>
-          {facturasConSaldo.length > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              Saldo {formatearMoneda(deudaActual)}
-            </Typography>
+            </Stack>
           )}
         </DialogTitle>
         <DialogContent>
@@ -591,7 +595,13 @@ export default function AbonoDialog({
                   <Paper variant="totales">
                     {renglon(
                       "fila",
-                      loEligioElCliente ? "Deben las facturas elegidas" : "Deuda actual",
+                      // Con el número de cada una en vez de "las facturas
+                      // elegidas": dice cuáles sin tener que subir a mirarlas.
+                      loEligioElCliente
+                        ? `${destinos.length === 1 ? "Factura" : "Facturas"} ${destinos
+                            .map(({ factura }) => datosFactura(factura).numeroFactura ?? "s/n")
+                            .join(", ")}`
+                        : "Deuda actual",
                       formatearMoneda(debeLoElegido),
                     )}
                     {pagadoConDeposito > 0 &&
@@ -612,8 +622,10 @@ export default function AbonoDialog({
                       </Typography>
                     </Box>
 
-                    {/* El reparto por factura, plegado: se mira si hace falta. */}
-                    {hayAlgoQueRegistrar && (
+                    {/* El reparto por factura, plegado: se mira si hace falta.
+                        Y solo con dos o más (2026-09-30): con una sola, el
+                        reparto repetía los renglones de arriba. */}
+                    {hayReparto && (
                       <Button
                         size="small"
                         onClick={() => setVerReparto((antes) => !antes)}
@@ -623,7 +635,7 @@ export default function AbonoDialog({
                         {verReparto ? "Ocultar el reparto" : "Ver cómo se reparte"}
                       </Button>
                     )}
-                    {hayAlgoQueRegistrar &&
+                    {hayReparto &&
                       verReparto &&
                       filas.map(({ factura, cuenta, deposito, plata }) => {
                         const queda = cuenta.saldoPendiente - deposito - plata;

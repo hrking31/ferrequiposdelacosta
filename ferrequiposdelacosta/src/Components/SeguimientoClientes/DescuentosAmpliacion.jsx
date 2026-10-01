@@ -26,8 +26,8 @@ const enLosDias = (cantidad, adjetivo) =>
 
 const ayudaDe = (valor, descuento, prefijo = "") => {
   if (descuento > valor) return `No puede pasar de ${formatearMoneda(valor)}`;
-  return `${prefijo}Valen ${formatearMoneda(valor)}${
-    descuento > 0 ? ` · quedan en ${formatearMoneda(valor - descuento)}` : ""
+  return `${prefijo}Valor ${formatearMoneda(valor)}${
+    descuento > 0 ? ` · Con descuento ${formatearMoneda(valor - descuento)}` : ""
   }`;
 };
 

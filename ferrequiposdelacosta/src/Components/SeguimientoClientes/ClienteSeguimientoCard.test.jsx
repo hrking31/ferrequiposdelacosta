@@ -333,28 +333,32 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
   // La pregunta que le da nombre a esta pantalla: que hay afuera. Antes habia
   // que abrir cada tarjeta para contestarla.
-  it("sin abrir la tarjeta ya dice que equipos hay afuera", () => {
+  // Se cuentan, no se nombran: con la tarjeta cerrada se busca cuánto hay, y
+  // los nombres se leen al abrirla.
+  it("sin abrir la tarjeta ya dice cuántos equipos hay afuera", () => {
     mostrar([facturaVencida]);
 
-    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("5 equipos")).toBeInTheDocument();
+    expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
   });
 
-  // Se nombran tres y el resto se cuenta: la idea es reconocer el equipo de un
-  // vistazo, no leer el inventario.
-  it("con mas de tres equipos cuenta los que faltan", () => {
+  // Las unidades de todos los equipos, sumadas: 5 + 2 + 1 + 1.
+  it("con varios equipos suma todas las unidades", () => {
     mostrar([facturaConCuatroEquipos]);
 
-    expect(screen.getByText("y 1 más")).toBeInTheDocument();
+    expect(screen.getByText("9 equipos")).toBeInTheDocument();
   });
 
-  // Abierta, el equipo pasa a su ficha de cuatro columnas: el chip de arriba
-  // se va y el nombre reaparece en la primera casilla.
+  // Abierta, el recuadro que cuenta se va y cada equipo aparece en su ficha
+  // de cuatro columnas, con su nombre en la primera casilla.
   it("al abrir la tarjeta el equipo pasa a su ficha", async () => {
     const { usuario } = mostrar([facturaVencida]);
-    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("5 equipos")).toBeInTheDocument();
     expect(screen.queryByText("Vencido")).not.toBeInTheDocument();
 
     await desplegarFactura(usuario);
+
+    expect(screen.queryByText("5 equipos")).not.toBeInTheDocument();
 
     // En su ficha ya no es un texto solo: la cantidad vuelve a su recuadro, al
     // lado del nombre, y las otras casillas hablan de él.

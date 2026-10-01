@@ -214,10 +214,10 @@ describe("AmpliarVencimientoDialog — los descuentos", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/no tiene precio/)).not.toBeInTheDocument();
     // Cada casilla dice cuánto valen sus días.
-    expect(screen.getByText(`Valen ${enPantalla(200000)}`)).toBeInTheDocument();
+    expect(screen.getByText(`Valor ${enPantalla(200000)}`)).toBeInTheDocument();
     expect(
       screen.getByText(
-        `Desde el ${formatearFechaLegible(HOY)} · Valen ${enPantalla(100000)}`,
+        `Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`,
       ),
     ).toBeInTheDocument();
   });
