@@ -24,7 +24,7 @@ import {
 } from "@mui/material";
 import { LADOS_DOCUMENTO } from "../ListaClientes/documentoCliente";
 
-export default function DocumentoClienteVista({ documento }) {
+export default function DocumentoClienteVista({ documento, apiladas = false }) {
   const theme = useTheme();
   const [ladoAbierto, setLadoAbierto] = useState(null);
 
@@ -37,7 +37,7 @@ export default function DocumentoClienteVista({ documento }) {
     <>
       {/* Solo las fotos, sin rótulo: la imagen ya dice qué es. */}
       <Stack
-        direction="row"
+        direction={apiladas ? "column" : "row"}
         spacing={1}
         alignItems="center"
         justifyContent="center"
@@ -122,4 +122,6 @@ export default function DocumentoClienteVista({ documento }) {
 DocumentoClienteVista.propTypes = {
   // { frente, atras }: el enlace de cada foto, o vacío.
   documento: PropTypes.object,
+  // Una encima de la otra (celular) en vez de lado a lado (computador).
+  apiladas: PropTypes.bool,
 };

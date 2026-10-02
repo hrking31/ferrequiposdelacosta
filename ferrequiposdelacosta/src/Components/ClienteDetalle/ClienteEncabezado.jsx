@@ -105,6 +105,10 @@ export default function ClienteEncabezado({
   const estadoColor =
     avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo;
   const telefonoValido = tieneTelefonoValido(cliente.telefono);
+  const conDocumento = tieneDocumento(cliente);
+  // En celular el teléfono y la cédula van lado a lado, salvo que las fotos
+  // del documento les quiten la mitad del ancho.
+  const telYNitEnFila = esMovil && !conDocumento;
   // La cuenta del cliente: la suma de sus facturas ABIERTAS, o sea lo que
   // tiene abierto hoy, no lo que compró en toda su vida. A diferencia de una
   // factura suelta, acá el saldo es neto (lo que sobró en una descuenta lo que
@@ -384,121 +388,132 @@ export default function ClienteEncabezado({
               queda centrado al 95% del ancho. */}
           <Divider sx={{ my: 2, width: "95%", mx: "auto" }} />
 
-          {/* En computador (>915px), en un renglón: primero las fotos del
-              documento (si las tiene), después el contacto (teléfono y
-              NIT/cédula) y a la derecha la ubicación (dirección y obra).
-              Hasta 915px se apilan en una sola columna, en el mismo orden. */}
+          {/* Las fotos del documento, si las tiene, van SIEMPRE a la
+              izquierda, separadas de los datos por una línea vertical: en
+              computador las dos lado a lado, en celular una encima de la
+              otra. */}
           <Stack
-            direction={esMovil ? "column" : "row"}
-            spacing={esMovil ? 1 : 4}
-            // Línea divisoria vertical entre las columnas, solo en
-            // computador. `flexItem` la estira a la altura del contenido y el
-            // margen vertical evita que llegue a los bordes.
-            divider={
-              !esMovil ? (
-                <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
-              ) : undefined
-            }
+            direction="row"
+            spacing={esMovil ? 1.5 : 4}
+            divider={<Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />}
             sx={{ minWidth: 0 }}
           >
-            {tieneDocumento(cliente) && (
-              <DocumentoClienteVista documento={cliente.documento} />
+            {conDocumento && (
+              <DocumentoClienteVista documento={cliente.documento} apiladas={esMovil} />
             )}
 
-            {/* En computador, teléfono arriba y NIT/cédula debajo (columna).
-                En móvil van uno al lado del otro (fila): son cortos y entran
-                bien, así ahorran una línea. */}
+            {/* Los datos. En computador (>915px), dos columnas: a la izquierda
+                el contacto (teléfono y NIT/cédula), a la derecha la ubicación
+                (dirección y obra). Hasta 915px se apilan en una sola columna. */}
             <Stack
-              direction={esMovil ? "row" : "column"}
-              spacing={esMovil ? 2 : 1}
-              alignItems="center"
-              justifyContent="center"
-              // En móvil, teléfono y NIT/cédula van en fila con una línea
-              // divisoria vertical entre ellos (como las columnas en PC), y
-              // cada uno centrado en su mitad. En PC quedan apilados, sin
-              // divisor.
+              direction={esMovil ? "column" : "row"}
+              spacing={esMovil ? 1 : 4}
+              // Línea divisoria vertical entre las columnas, solo en
+              // computador. `flexItem` la estira a la altura del contenido y el
+              // margen vertical evita que llegue a los bordes.
               divider={
-                esMovil ? (
+                !esMovil ? (
                   <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
                 ) : undefined
               }
               sx={{ flex: 1, minWidth: 0 }}
             >
-              {telefonoValido ? (
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
-                  justifyContent="center"
-                  sx={{ flex: esMovil ? 1 : "none" }}
-                >
-                  <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    {!esMovil && "Teléfono: "}
-                    {cliente.telefono}
+              {/* En computador, teléfono arriba y NIT/cédula debajo (columna).
+                  En móvil van uno al lado del otro (fila): son cortos y entran
+                  bien, así ahorran una línea. Salvo que haya fotos del
+                  documento: ahí les toca la mitad del ancho y vuelven a
+                  apilarse. */}
+              <Stack
+                direction={telYNitEnFila ? "row" : "column"}
+                spacing={telYNitEnFila ? 2 : 1}
+                alignItems="center"
+                justifyContent="center"
+                // En fila, teléfono y NIT/cédula llevan una línea divisoria
+                // vertical entre ellos (como las columnas en PC), y cada uno
+                // centrado en su mitad. Apilados van sin divisor.
+                divider={
+                  telYNitEnFila ? (
+                    <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+                  ) : undefined
+                }
+                sx={{ flex: 1, minWidth: 0 }}
+              >
+                {telefonoValido ? (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{ flex: telYNitEnFila ? 1 : "none" }}
+                  >
+                    <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">
+                      {!esMovil && "Teléfono: "}
+                      {cliente.telefono}
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Sin teléfono registrado
                   </Typography>
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Sin teléfono registrado
-                </Typography>
-              )}
+                )}
 
-              {cliente.nit && (
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
-                  justifyContent="center"
-                  sx={{ flex: esMovil ? 1 : "none" }}
-                >
-                  <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    {!esMovil &&
-                      `${cliente.tipo === "empresa" ? "NIT" : "Cédula"}: `}
-                    {formatearNit(cliente.nit)}
-                  </Typography>
-                </Stack>
-              )}
-            </Stack>
+                {cliente.nit && (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{ flex: telYNitEnFila ? 1 : "none" }}
+                  >
+                    <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">
+                      {!esMovil &&
+                        `${cliente.tipo === "empresa" ? "NIT" : "Cédula"}: `}
+                      {formatearNit(cliente.nit)}
+                    </Typography>
+                  </Stack>
+                )}
+              </Stack>
 
-            <Stack
-              spacing={1}
-              alignItems="center"
-              justifyContent="center"
-              sx={{ flex: 1, minWidth: 0 }}
-            >
-              {cliente.direccion && (
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    {!esMovil && "Dirección: "}
-                    {cliente.direccion}
-                  </Typography>
-                </Stack>
-              )}
+              <Stack
+                spacing={1}
+                alignItems="center"
+                justifyContent="center"
+                sx={{ flex: 1, minWidth: 0 }}
+              >
+                {cliente.direccion && (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                    <Typography variant="body2">
+                      {!esMovil && "Dirección: "}
+                      {cliente.direccion}
+                    </Typography>
+                  </Stack>
+                )}
 
-              {cliente.obra && (
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <ConstructionIcon
-                    sx={{ fontSize: 18, color: "text.secondary" }}
-                  />
-                  <Typography variant="body2">
-                    {!esMovil && "Obra: "}
-                    {cliente.obra}
-                  </Typography>
-                </Stack>
-              )}
+                {cliente.obra && (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <ConstructionIcon
+                      sx={{ fontSize: 18, color: "text.secondary" }}
+                    />
+                    <Typography variant="body2">
+                      {!esMovil && "Obra: "}
+                      {cliente.obra}
+                    </Typography>
+                  </Stack>
+                )}
+              </Stack>
             </Stack>
           </Stack>
         </>
