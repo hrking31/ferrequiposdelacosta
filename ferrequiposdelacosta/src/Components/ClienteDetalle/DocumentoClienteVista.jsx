@@ -22,7 +22,11 @@ import {
   ToggleButtonGroup,
   useTheme,
 } from "@mui/material";
+import BadgeIcon from "@mui/icons-material/Badge";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import { LADOS_DOCUMENTO } from "../ListaClientes/documentoCliente";
+
+const ICONO_DEL_LADO = { frente: BadgeIcon, atras: FingerprintIcon };
 
 export default function DocumentoClienteVista({ documento, apiladas = false }) {
   const theme = useTheme();
@@ -87,11 +91,23 @@ export default function DocumentoClienteVista({ documento, apiladas = false }) {
               onChange={(_e, lado) => lado && setLadoAbierto(lado)}
               sx={{ mb: 1.5, display: "flex", justifyContent: "center" }}
             >
-              {lados.map(({ clave, etiqueta }) => (
-                <ToggleButton key={clave} value={clave}>
-                  {etiqueta}
-                </ToggleButton>
-              ))}
+              {/* Íconos en vez de palabras, los mismos de los dibujos de la
+                  tarjeta en el formulario: la silueta es el frente y la
+                  huella, atrás. */}
+              {lados.map(({ clave, etiqueta }) => {
+                const Icono = ICONO_DEL_LADO[clave];
+                return (
+                  <ToggleButton
+                    key={clave}
+                    value={clave}
+                    aria-label={etiqueta}
+                    title={etiqueta}
+                    sx={{ px: 2 }}
+                  >
+                    <Icono fontSize="small" />
+                  </ToggleButton>
+                );
+              })}
             </ToggleButtonGroup>
           )}
           {abierto && (
