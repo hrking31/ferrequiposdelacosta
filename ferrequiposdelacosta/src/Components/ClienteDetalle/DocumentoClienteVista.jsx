@@ -1,0 +1,122 @@
+// El documento de identidad del cliente en su ficha: dos miniaturas, frente y
+// atrás, que al tocarlas se ven en grande.
+//
+// Vive dentro del contacto plegable del encabezado (ver ClienteEncabezado): la
+// ficha abre plegada, así que las fotos se bajan solo cuando alguien pide ver
+// los datos del cliente, no cada vez que se abre la ficha.
+//
+// Se cargan o se cambian desde el lápiz de editar cliente.
+import { useState } from "react";
+import PropTypes from "prop-types";
+import {
+  Box,
+  Button,
+  ButtonBase,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import { LADOS_DOCUMENTO } from "../ListaClientes/documentoCliente";
+
+export default function DocumentoClienteVista({ documento, esMovil }) {
+  const theme = useTheme();
+  const [ladoAbierto, setLadoAbierto] = useState(null);
+
+  const lados = LADOS_DOCUMENTO.filter(({ clave }) => documento?.[clave]);
+  if (lados.length === 0) return null;
+
+  const abierto = lados.find(({ clave }) => clave === ladoAbierto);
+
+  return (
+    <>
+      <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+        <BadgeOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+        {!esMovil && <Typography variant="body2">Documento:</Typography>}
+        {lados.map(({ clave, etiqueta }) => (
+          <ButtonBase
+            key={clave}
+            onClick={() => setLadoAbierto(clave)}
+            aria-label={`Ver el documento, ${etiqueta.toLowerCase()}`}
+            sx={{
+              width: 72,
+              aspectRatio: "1.586",
+              borderRadius: 1,
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Box
+              component="img"
+              src={documento[clave]}
+              alt={`Documento, ${etiqueta.toLowerCase()}`}
+              loading="lazy"
+              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </ButtonBase>
+        ))}
+      </Stack>
+
+      <Dialog
+        open={Boolean(abierto)}
+        onClose={() => setLadoAbierto(null)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle sx={{ color: theme.palette.custom.accent }}>
+          Documento de identidad
+        </DialogTitle>
+        <DialogContent>
+          {/* Con los dos lados cargados se pasa de uno a otro sin cerrar. */}
+          {lados.length > 1 && (
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={ladoAbierto}
+              onChange={(_e, lado) => lado && setLadoAbierto(lado)}
+              sx={{ mb: 1.5, display: "flex", justifyContent: "center" }}
+            >
+              {lados.map(({ clave, etiqueta }) => (
+                <ToggleButton key={clave} value={clave}>
+                  {etiqueta}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          )}
+          {abierto && (
+            <Box
+              component="img"
+              src={documento[abierto.clave]}
+              alt={`Documento, ${abierto.etiqueta.toLowerCase()}`}
+              sx={{
+                display: "block",
+                width: "100%",
+                maxHeight: "70vh",
+                objectFit: "contain",
+                borderRadius: 1,
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setLadoAbierto(null)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+DocumentoClienteVista.propTypes = {
+  // { frente, atras }: el enlace de cada foto, o vacío.
+  documento: PropTypes.object,
+  esMovil: PropTypes.bool,
+};

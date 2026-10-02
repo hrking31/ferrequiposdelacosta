@@ -29,6 +29,14 @@ import { db } from "../Firebase/Firebase";
 import { formatearNit, limpiarNit } from "../../Utils/formato";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import DocumentoClienteCampos from "./DocumentoClienteCampos";
+import {
+  descartarFotos,
+  enlacesDelDocumento,
+  fotosQueSobran,
+  subirFotosDocumento,
+  tieneDocumento,
+} from "./documentoCliente";
 
 const obtenerNombreCliente = (cliente) => {
   if (!cliente) return "";
@@ -49,11 +57,23 @@ const ESTADO_INICIAL = {
 
 const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
 
+// Las fotos del documento como las maneja el formulario: por lado, el enlace
+// ya guardado (`url`), el archivo recién elegido (`archivo`) y su vista previa
+// (`vista`). Se arranca de lo que el cliente ya tiene.
+const fotosIniciales = (documento) => ({
+  frente: { url: documento?.frente || "", archivo: null, vista: null },
+  atras: { url: documento?.atras || "", archivo: null, vista: null },
+});
+
+const MENSAJE_FOTO_FALLIDA =
+  "No se pudo subir la foto del documento. Revisá la señal e intentá de nuevo.";
+
 export default function ClienteFormDialog({ open, onClose, onGuardado, onEliminado, cliente }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const esEdicion = Boolean(cliente);
   const [form, setForm] = useState(ESTADO_INICIAL);
+  const [fotos, setFotos] = useState(fotosIniciales());
   const [errors, setErrors] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [confirmarOpen, setConfirmarOpen] = useState(false);
@@ -79,7 +99,27 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
     } else {
       setForm(ESTADO_INICIAL);
     }
+    setFotos(fotosIniciales(cliente?.documento));
   }, [open, cliente]);
+
+  // La vista previa de una foto elegida es un enlace que vive en la memoria
+  // del navegador: se suelta cuando se reemplaza o se quita.
+  const soltarVista = (foto) => {
+    if (foto?.vista) URL.revokeObjectURL(foto.vista);
+  };
+
+  const handleElegirFoto = (lado, archivo) => {
+    soltarVista(fotos[lado]);
+    const vista = URL.createObjectURL(archivo);
+    setFotos((prev) => ({ ...prev, [lado]: { ...prev[lado], archivo, vista } }));
+  };
+
+  // Quitar deja el lado vacío. La foto que ya estaba guardada no se borra
+  // acá: recién al guardar, cuando el cliente ya no apunte a ella.
+  const handleQuitarFoto = (lado) => {
+    soltarVista(fotos[lado]);
+    setFotos((prev) => ({ ...prev, [lado]: { url: "", archivo: null, vista: null } }));
+  };
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -115,9 +155,41 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
     onClose();
   };
 
+  // GUARDAR, CON FOTOS. Primero se suben las fotos y después se escribe el
+  // cliente con sus enlaces, todo en el mismo toque:
+  //
+  //   - Sin fotos nuevas no se sube nada y se guarda como siempre.
+  //   - Si una foto no sube (se cayó la señal en la obra), el cliente NO se
+  //     guarda: sale el aviso y el formulario queda abierto, con lo escrito y
+  //     las fotos, para tocar Guardar de nuevo. Así nadie queda sin documento
+  //     sin que se note.
+  //
+  // El cliente nuevo todavía no tiene id, y su carpeta en Storage lleva ese
+  // id: se pide antes (`doc(collection(...))` lo inventa en el navegador, sin
+  // escribir nada) y se usa para la carpeta y para el documento.
   const handleGuardar = async () => {
     if (!validar()) return;
     setGuardando(true);
+
+    const clienteRef = esEdicion
+      ? doc(db, "clientes", cliente.id)
+      : doc(collection(db, "clientes"));
+
+    let documento;
+    let subidas = [];
+    try {
+      ({ documento, subidas } = await subirFotosDocumento(clienteRef.id, fotos));
+    } catch {
+      showSnackbar(MENSAJE_FOTO_FALLIDA, "error");
+      setGuardando(false);
+      return;
+    }
+    // El documento se escribe si hay alguna foto, o si el cliente tenía y se
+    // las quitaron (ahí queda con los dos lados vacíos). Un cliente que nunca
+    // tuvo fotos no gana un campo vacío.
+    const conDocumento =
+      enlacesDelDocumento(documento).length > 0 || tieneDocumento(cliente);
+
     try {
       const data = {
         tipo: form.tipo,
@@ -128,13 +200,13 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         telefono: form.telefono.trim(),
         direccion: form.direccion.trim(),
         obra: form.obra.trim(),
+        ...(conDocumento && { documento }),
       };
 
       if (esEdicion) {
-        await updateDoc(doc(db, "clientes", cliente.id), data);
+        await updateDoc(clienteRef, data);
         showSnackbar("Cliente actualizado correctamente.", "success");
       } else {
-        const clienteRef = doc(collection(db, "clientes"));
         await setDoc(clienteRef, {
           ...data,
           estado: "inactivo",
@@ -142,9 +214,16 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
         showSnackbar("Cliente creado correctamente.", "success");
       }
 
+      // Recién ahora, con el cliente apuntando a las nuevas, se borran las
+      // fotos que se cambiaron o se quitaron.
+      await descartarFotos(fotosQueSobran(cliente?.documento, documento));
+
       onGuardado?.();
       onClose();
     } catch (error) {
+      // El cliente no se guardó: las fotos que se acaban de subir no las
+      // usa nadie.
+      await descartarFotos(subidas);
       showSnackbar(`Error al guardar el cliente: ${error.message}`, "error");
     } finally {
       setGuardando(false);
@@ -179,6 +258,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
       facturasSnap.forEach((facturaDoc) => batch.delete(facturaDoc.ref));
       batch.delete(doc(db, "clientes", cliente.id));
       await batch.commit();
+      // Y las fotos de su documento: no queda la cédula de alguien que ya
+      // no existe en la app. Van después del borrado y no antes, para que si
+      // éste falla el cliente no quede con enlaces a fotos que ya no están.
+      await descartarFotos(enlacesDelDocumento(cliente.documento));
 
       showSnackbar("Cliente eliminado correctamente.", "success");
       setConfirmarOpen(false);
@@ -273,6 +356,13 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
               value={form.obra}
               onChange={handleChange("obra")}
               fullWidth
+            />
+
+            <DocumentoClienteCampos
+              fotos={fotos}
+              onElegir={handleElegirFoto}
+              onQuitar={handleQuitarFoto}
+              deshabilitado={guardando}
             />
           </Stack>
         </DialogContent>

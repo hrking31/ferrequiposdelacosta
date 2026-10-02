@@ -18,25 +18,59 @@ const bd = vi.hoisted(() => ({
   confirmarLote: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock("../Firebase/Firebase", () => ({ db: {} }));
+// Las fotos del documento van a Storage. `ref` devuelve la ruta, así la
+// prueba puede afirmar DÓNDE se subió y QUÉ se borró.
+const almacen = vi.hoisted(() => ({
+  subir: vi.fn(() => Promise.resolve()),
+  borrar: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("../Firebase/Firebase", () => ({ db: {}, storage: {} }));
 
 vi.mock("firebase/firestore", () => ({
-  // collection y doc devuelven la ruta como texto, así la prueba puede afirmar
-  // a QUÉ documento se escribió sin necesitar una base de verdad.
+  // collection y doc devuelven la ruta, así la prueba puede afirmar a QUÉ
+  // documento se escribió sin necesitar una base de verdad. El doc trae
+  // también su `id`, que es lo que nombra la carpeta de las fotos.
   collection: (_db, ...partes) => partes.join("/"),
-  doc: (primero, ...partes) => (partes.length ? partes.join("/") : `${primero}/nuevo`),
+  doc: (primero, ...partes) => {
+    const ruta = partes.length ? partes.join("/") : `${primero}/nuevo`;
+    return { path: ruta, id: ruta.split("/").pop() };
+  },
   getDocs: bd.getDocs,
   setDoc: bd.setDoc,
   updateDoc: bd.updateDoc,
   writeBatch: () => ({ delete: bd.borrarEnLote, commit: bd.confirmarLote }),
 }));
 
+vi.mock("firebase/storage", () => ({
+  ref: (_storage, ruta) => ({ ruta }),
+  uploadBytes: almacen.subir,
+  getDownloadURL: (destino) => Promise.resolve(`https://fotos/${destino.ruta}`),
+  deleteObject: almacen.borrar,
+}));
+
+// Achicar la foto necesita un navegador de verdad (canvas): acá pasa tal cual.
+vi.mock("../../Utils/achicarImagen", () => ({
+  default: (archivo) => Promise.resolve(archivo),
+}));
+
 const abrir = (props = {}) =>
   renderConProviders(<ClienteFormDialog open onClose={() => {}} {...props} />);
+
+const fotoDePrueba = (nombre = "cedula.jpg") =>
+  new File(["foto"], nombre, { type: "image/jpeg" });
+
+// El selector de archivos de cada lado. El input va escondido dentro del
+// botón de la galería, así que se lo busca por su nombre.
+const inputGaleria = (lado) =>
+  document.querySelector(`input[name="documento-${lado}-galeria"]`);
 
 beforeEach(() => {
   vi.clearAllMocks();
   bd.getDocs.mockResolvedValue({ size: 0, forEach: () => {} });
+  // jsdom no arma vistas previas de archivos: se simulan.
+  URL.createObjectURL = vi.fn(() => "blob:vista-previa");
+  URL.revokeObjectURL = vi.fn();
 });
 
 describe("ClienteFormDialog — persona o empresa", () => {
@@ -112,8 +146,8 @@ describe("ClienteFormDialog — guardar", () => {
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(bd.setDoc).toHaveBeenCalledTimes(1);
-    const [ruta, datos] = bd.setDoc.mock.calls[0];
-    expect(ruta).toBe("clientes/nuevo");
+    const [ref, datos] = bd.setDoc.mock.calls[0];
+    expect(ref.path).toBe("clientes/nuevo");
     expect(datos.nombres).toBe("Aida");
     expect(datos.apellido).toBe("Pérez");
     // Un cliente recién creado todavía no alquiló nada.
@@ -150,8 +184,8 @@ describe("ClienteFormDialog — guardar", () => {
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(bd.setDoc).not.toHaveBeenCalled();
-    const [ruta, datos] = bd.updateDoc.mock.calls[0];
-    expect(ruta).toBe("clientes/cli1");
+    const [ref, datos] = bd.updateDoc.mock.calls[0];
+    expect(ref.path).toBe("clientes/cli1");
     expect(datos.apellido).toBe("Gómez");
   });
 });
@@ -206,8 +240,210 @@ describe("ClienteFormDialog — eliminar", () => {
     // Las dos facturas y el cliente: tres borrados en una sola operación, para
     // que no pueda quedar un cliente a medio borrar.
     expect(bd.borrarEnLote).toHaveBeenCalledTimes(3);
-    expect(bd.borrarEnLote).toHaveBeenLastCalledWith("clientes/cli1");
+    expect(bd.borrarEnLote).toHaveBeenLastCalledWith(
+      expect.objectContaining({ path: "clientes/cli1" }),
+    );
     expect(bd.confirmarLote).toHaveBeenCalledTimes(1);
     expect(alEliminar).toHaveBeenCalled();
+    // Sin fotos no hay nada que borrar en Storage.
+    expect(almacen.borrar).not.toHaveBeenCalled();
+  });
+
+  it("al eliminar al cliente se borran también las fotos de su documento", async () => {
+    const { usuario } = abrir({
+      cliente: {
+        id: "cli1",
+        tipo: "persona",
+        nombres: "Aida",
+        documento: { frente: "https://viejo/frente", atras: "https://viejo/atras" },
+      },
+    });
+
+    await usuario.click(screen.getByRole("button", { name: "Eliminar" }));
+    await usuario.click(
+      await screen.findByRole("button", { name: "Sí, eliminar definitivamente" }),
+    );
+
+    await vi.waitFor(() => expect(almacen.borrar).toHaveBeenCalledTimes(2));
+    expect(almacen.borrar).toHaveBeenCalledWith({ ruta: "https://viejo/frente" });
+    expect(almacen.borrar).toHaveBeenCalledWith({ ruta: "https://viejo/atras" });
+  });
+});
+
+describe("ClienteFormDialog — fotos del documento", () => {
+  const MENSAJE_FALLA =
+    "No se pudo subir la foto del documento. Revisá la señal e intentá de nuevo.";
+
+  it("trae los dos recuadros, frente y atrás, para elegir de la galería", () => {
+    abrir();
+
+    expect(
+      screen.getByRole("button", { name: "Elegir de la galería el frente" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Elegir de la galería el atrás" }),
+    ).toBeInTheDocument();
+  });
+
+  it("las empresas también los tienen", async () => {
+    const { usuario } = abrir();
+
+    await usuario.click(screen.getByRole("radio", { name: "Empresa" }));
+
+    expect(
+      screen.getByRole("button", { name: "Elegir de la galería el frente" }),
+    ).toBeInTheDocument();
+  });
+
+  it("al elegir una foto se ve antes de guardar, y se puede quitar", async () => {
+    const { usuario } = abrir();
+
+    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+
+    expect(screen.getByRole("img", { name: "Documento, frente" })).toHaveAttribute(
+      "src",
+      "blob:vista-previa",
+    );
+    // Elegir no sube nada: eso pasa al guardar.
+    expect(almacen.subir).not.toHaveBeenCalled();
+
+    await usuario.click(screen.getByRole("button", { name: "Quitar el frente" }));
+
+    expect(screen.queryByRole("img", { name: "Documento, frente" })).not.toBeInTheDocument();
+  });
+
+  it("sin fotos se guarda como siempre: no sube nada ni agrega el campo", async () => {
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Nombres"), "Aida");
+    await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(almacen.subir).not.toHaveBeenCalled();
+    const [, datos] = bd.setDoc.mock.calls[0];
+    expect(datos).not.toHaveProperty("documento");
+  });
+
+  it("cliente nuevo con foto: la sube a SU carpeta y guarda el enlace en el cliente", async () => {
+    const alCerrar = vi.fn();
+    const { usuario } = abrir({ onClose: alCerrar });
+
+    await usuario.type(screen.getByLabelText("Nombres"), "Aida");
+    await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
+    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    // La carpeta lleva el id que se le pidió al cliente nuevo ANTES de
+    // guardarlo, y el cliente se escribe con ese mismo id.
+    const [destino] = almacen.subir.mock.calls[0];
+    expect(destino.ruta).toMatch(/^documentos\/nuevo\/frente-\d+\.jpg$/);
+    const [ref, datos] = bd.setDoc.mock.calls[0];
+    expect(ref.id).toBe("nuevo");
+    expect(datos.documento).toEqual({
+      frente: `https://fotos/${destino.ruta}`,
+      atras: "",
+    });
+    expect(alCerrar).toHaveBeenCalled();
+  });
+
+  it("si la foto no sube, el cliente NO se guarda, avisa y el formulario sigue abierto", async () => {
+    almacen.subir.mockRejectedValueOnce(new Error("sin señal"));
+    const alCerrar = vi.fn();
+    const { usuario } = abrir({ onClose: alCerrar });
+
+    await usuario.type(screen.getByLabelText("Nombres"), "Aida");
+    await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
+    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText(MENSAJE_FALLA)).toBeInTheDocument();
+    expect(bd.setDoc).not.toHaveBeenCalled();
+    expect(alCerrar).not.toHaveBeenCalled();
+    // Lo escrito y la foto siguen ahí para volver a intentar.
+    expect(screen.getByLabelText("Nombres")).toHaveValue("Aida");
+    expect(screen.getByRole("img", { name: "Documento, frente" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeEnabled();
+  });
+
+  it("si la foto subió pero el cliente no se pudo guardar, la foto se borra", async () => {
+    bd.setDoc.mockRejectedValueOnce(new Error("sin permiso"));
+    const { usuario } = abrir();
+
+    await usuario.type(screen.getByLabelText("Nombres"), "Aida");
+    await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
+    await usuario.upload(inputGaleria("atras"), fotoDePrueba());
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    const [destino] = almacen.subir.mock.calls[0];
+    await vi.waitFor(() =>
+      expect(almacen.borrar).toHaveBeenCalledWith({ ruta: `https://fotos/${destino.ruta}` }),
+    );
+  });
+
+  it("editando, cambiar una foto guarda la nueva y DESPUÉS borra la vieja", async () => {
+    const { usuario } = abrir({
+      cliente: {
+        id: "cli1",
+        tipo: "persona",
+        nombres: "Aida",
+        apellido: "Pérez",
+        documento: { frente: "https://viejo/frente", atras: "https://viejo/atras" },
+      },
+    });
+
+    // Al abrir en edición se ven las que ya tiene.
+    expect(screen.getByRole("img", { name: "Documento, frente" })).toHaveAttribute(
+      "src",
+      "https://viejo/frente",
+    );
+
+    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    const [destino] = almacen.subir.mock.calls[0];
+    expect(destino.ruta).toMatch(/^documentos\/cli1\/frente-\d+\.jpg$/);
+    const [, datos] = bd.updateDoc.mock.calls[0];
+    expect(datos.documento).toEqual({
+      frente: `https://fotos/${destino.ruta}`,
+      atras: "https://viejo/atras",
+    });
+    // Solo la que se cambió; la de atrás sigue en uso.
+    expect(almacen.borrar).toHaveBeenCalledTimes(1);
+    expect(almacen.borrar).toHaveBeenCalledWith({ ruta: "https://viejo/frente" });
+    expect(bd.updateDoc.mock.invocationCallOrder[0]).toBeLessThan(
+      almacen.borrar.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("editando, quitar una foto deja ese lado vacío y borra la guardada", async () => {
+    const { usuario } = abrir({
+      cliente: {
+        id: "cli1",
+        tipo: "persona",
+        nombres: "Aida",
+        apellido: "Pérez",
+        documento: { frente: "", atras: "https://viejo/atras" },
+      },
+    });
+
+    await usuario.click(screen.getByRole("button", { name: "Quitar el atrás" }));
+    // Quitar no borra nada todavía: recién al guardar.
+    expect(almacen.borrar).not.toHaveBeenCalled();
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    const [, datos] = bd.updateDoc.mock.calls[0];
+    expect(datos.documento).toEqual({ frente: "", atras: "" });
+    expect(almacen.borrar).toHaveBeenCalledWith({ ruta: "https://viejo/atras" });
+  });
+
+  it("editando un cliente que nunca tuvo fotos, no le agrega el campo", async () => {
+    const { usuario } = abrir({
+      cliente: { id: "cli1", tipo: "persona", nombres: "Aida", apellido: "Pérez" },
+    });
+
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    const [, datos] = bd.updateDoc.mock.calls[0];
+    expect(datos).not.toHaveProperty("documento");
   });
 });

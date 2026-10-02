@@ -1,7 +1,7 @@
 // La tarjeta del cliente que encabeza su detalle: quién es (avatar con el
 // conteo de facturas, nombre y estado), cuánto debe (la pizarra oscura con su
 // cuenta) y qué se puede hacer con él (la fila de botones), más el contacto —
-// teléfono, NIT, dirección y obra— que en celular se pliega.
+// teléfono, NIT, dirección, obra y las fotos de su documento— que se pliega.
 //
 // Queda fija arriba, fuera del scroll: lo único que se desplaza es la lista de
 // facturas que va debajo.
@@ -29,6 +29,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
 import PlaceIcon from "@mui/icons-material/Place";
 import BotonesCliente from "./BotonesCliente";
+import DocumentoClienteVista from "./DocumentoClienteVista";
+import { tieneDocumento } from "../ListaClientes/documentoCliente";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import { calcularCuentaCliente, ESTADO_CLIENTE_INFO } from "./facturaUtils";
 import {
@@ -494,6 +496,14 @@ export default function ClienteEncabezado({
               )}
             </Stack>
           </Stack>
+
+          {/* El documento de identidad, debajo de las dos columnas y a todo
+              el ancho. Si el cliente no tiene fotos no ocupa lugar. */}
+          {tieneDocumento(cliente) && (
+            <Box sx={{ mt: 1.5 }}>
+              <DocumentoClienteVista documento={cliente.documento} esMovil={esMovil} />
+            </Box>
+          )}
         </>
       )}
     </Box>
