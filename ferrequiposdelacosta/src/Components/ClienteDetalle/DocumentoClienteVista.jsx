@@ -1,5 +1,6 @@
 // El documento de identidad del cliente en su ficha: dos miniaturas, frente y
-// atrás, que al tocarlas se ven en grande.
+// atrás, que al tocarlas se ven en grande. Va primero en el renglón del
+// contacto, antes del teléfono y la dirección.
 //
 // Vive dentro del contacto plegable del encabezado (ver ClienteEncabezado): la
 // ficha abre plegada, así que las fotos se bajan solo cuando alguien pide ver
@@ -19,13 +20,11 @@ import {
   Stack,
   ToggleButton,
   ToggleButtonGroup,
-  Typography,
   useTheme,
 } from "@mui/material";
-import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import { LADOS_DOCUMENTO } from "../ListaClientes/documentoCliente";
 
-export default function DocumentoClienteVista({ documento, esMovil }) {
+export default function DocumentoClienteVista({ documento }) {
   const theme = useTheme();
   const [ladoAbierto, setLadoAbierto] = useState(null);
 
@@ -36,9 +35,14 @@ export default function DocumentoClienteVista({ documento, esMovil }) {
 
   return (
     <>
-      <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-        <BadgeOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-        {!esMovil && <Typography variant="body2">Documento:</Typography>}
+      {/* Solo las fotos, sin rótulo: la imagen ya dice qué es. */}
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        justifyContent="center"
+        sx={{ flexShrink: 0 }}
+      >
         {lados.map(({ clave, etiqueta }) => (
           <ButtonBase
             key={clave}
@@ -118,5 +122,4 @@ export default function DocumentoClienteVista({ documento, esMovil }) {
 DocumentoClienteVista.propTypes = {
   // { frente, atras }: el enlace de cada foto, o vacío.
   documento: PropTypes.object,
-  esMovil: PropTypes.bool,
 };

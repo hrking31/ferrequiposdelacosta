@@ -384,13 +384,14 @@ export default function ClienteEncabezado({
               queda centrado al 95% del ancho. */}
           <Divider sx={{ my: 2, width: "95%", mx: "auto" }} />
 
-          {/* Dos columnas en computador (>915px): a la izquierda el contacto
-              (teléfono y NIT/cédula), a la derecha la ubicación (dirección y
-              obra). Hasta 915px se apilan en una sola columna. */}
+          {/* En computador (>915px), en un renglón: primero las fotos del
+              documento (si las tiene), después el contacto (teléfono y
+              NIT/cédula) y a la derecha la ubicación (dirección y obra).
+              Hasta 915px se apilan en una sola columna, en el mismo orden. */}
           <Stack
             direction={esMovil ? "column" : "row"}
             spacing={esMovil ? 1 : 4}
-            // Línea divisoria vertical entre las dos columnas, solo en
+            // Línea divisoria vertical entre las columnas, solo en
             // computador. `flexItem` la estira a la altura del contenido y el
             // margen vertical evita que llegue a los bordes.
             divider={
@@ -400,6 +401,10 @@ export default function ClienteEncabezado({
             }
             sx={{ minWidth: 0 }}
           >
+            {tieneDocumento(cliente) && (
+              <DocumentoClienteVista documento={cliente.documento} />
+            )}
+
             {/* En computador, teléfono arriba y NIT/cédula debajo (columna).
                 En móvil van uno al lado del otro (fila): son cortos y entran
                 bien, así ahorran una línea. */}
@@ -496,14 +501,6 @@ export default function ClienteEncabezado({
               )}
             </Stack>
           </Stack>
-
-          {/* El documento de identidad, debajo de las dos columnas y a todo
-              el ancho. Si el cliente no tiene fotos no ocupa lugar. */}
-          {tieneDocumento(cliente) && (
-            <Box sx={{ mt: 1.5 }}>
-              <DocumentoClienteVista documento={cliente.documento} esMovil={esMovil} />
-            </Box>
-          )}
         </>
       )}
     </Box>
