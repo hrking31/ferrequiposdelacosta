@@ -109,6 +109,9 @@ export default function ClienteEncabezado({
   // En celular el teléfono y la cédula van lado a lado, salvo que las fotos
   // del documento les quiten la mitad del ancho.
   const telYNitEnFila = esMovil && !conDocumento;
+  // Los datos del contacto van centrados en computador y alineados a la
+  // izquierda en celular (pedido del dueño, 2026-10-02).
+  const alineacionDatos = esMovil ? "flex-start" : "center";
   // La cuenta del cliente: la suma de sus facturas ABIERTAS, o sea lo que
   // tiene abierto hoy, no lo que compró en toda su vida. A diferencia de una
   // factura suelta, acá el saldo es neto (lo que sobró en una descuenta lo que
@@ -426,8 +429,8 @@ export default function ClienteEncabezado({
               <Stack
                 direction={telYNitEnFila ? "row" : "column"}
                 spacing={telYNitEnFila ? 2 : 1}
-                alignItems="center"
-                justifyContent="center"
+                alignItems={alineacionDatos}
+                justifyContent={alineacionDatos}
                 // En fila, teléfono y NIT/cédula llevan una línea divisoria
                 // vertical entre ellos (como las columnas en PC), y cada uno
                 // centrado en su mitad. Apilados van sin divisor.
@@ -443,7 +446,7 @@ export default function ClienteEncabezado({
                     direction="row"
                     spacing={0.5}
                     alignItems="center"
-                    justifyContent="center"
+                    justifyContent={alineacionDatos}
                     sx={{ flex: telYNitEnFila ? 1 : "none" }}
                   >
                     <PhoneIcon sx={{ fontSize: 18, color: "text.secondary" }} />
@@ -463,7 +466,7 @@ export default function ClienteEncabezado({
                     direction="row"
                     spacing={0.5}
                     alignItems="center"
-                    justifyContent="center"
+                    justifyContent={alineacionDatos}
                     sx={{ flex: telYNitEnFila ? 1 : "none" }}
                   >
                     <BadgeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
@@ -478,8 +481,8 @@ export default function ClienteEncabezado({
 
               <Stack
                 spacing={1}
-                alignItems="center"
-                justifyContent="center"
+                alignItems={alineacionDatos}
+                justifyContent={alineacionDatos}
                 sx={{ flex: 1, minWidth: 0 }}
               >
                 {cliente.direccion && (
@@ -487,7 +490,7 @@ export default function ClienteEncabezado({
                     direction="row"
                     spacing={0.5}
                     alignItems="center"
-                    justifyContent="center"
+                    justifyContent={alineacionDatos}
                   >
                     <PlaceIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2">
@@ -502,7 +505,7 @@ export default function ClienteEncabezado({
                     direction="row"
                     spacing={0.5}
                     alignItems="center"
-                    justifyContent="center"
+                    justifyContent={alineacionDatos}
                   >
                     <ConstructionIcon
                       sx={{ fontSize: 18, color: "text.secondary" }}
