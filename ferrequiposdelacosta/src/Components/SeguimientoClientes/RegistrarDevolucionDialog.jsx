@@ -642,7 +642,17 @@ export default function RegistrarDevolucionDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="xs">
+      {/* Pegado ARRIBA, no centrado: al subir la cantidad con las flechas
+          aparecen casillas debajo, y centrado el diálogo se corría hacia
+          arriba en cada clic —la flecha se iba de debajo del puntero—.
+          Así solo crece hacia abajo y el campo no se mueve. */}
+      <Dialog
+        open={open}
+        onClose={handleCerrar}
+        fullWidth
+        maxWidth="xs"
+        sx={{ "& .MuiDialog-container": { alignItems: "flex-start" } }}
+      >
         <DialogTitle sx={{ color: acento }}>Registrar devolución</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>

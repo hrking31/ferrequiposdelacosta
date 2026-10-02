@@ -218,7 +218,16 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
 
   return (
     <>
-      <Dialog open={open} onClose={handleCerrar} fullWidth maxWidth="xs">
+      {/* Pegado ARRIBA, no centrado: mismo motivo que en
+          RegistrarDevolucionDialog (las casillas que aparecen al subir los
+          días corrían la flecha de debajo del puntero). */}
+      <Dialog
+        open={open}
+        onClose={handleCerrar}
+        fullWidth
+        maxWidth="xs"
+        sx={{ "& .MuiDialog-container": { alignItems: "flex-start" } }}
+      >
         <DialogTitle sx={{ color: acento }}>Ampliar vencimiento</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
