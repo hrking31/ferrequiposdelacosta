@@ -1,69 +1,20 @@
 // Los dos recuadros del documento de identidad en el formulario del cliente:
-// frente y atrás. Cada uno muestra la foto (la guardada o la recién elegida)
-// y debajo sus botones: tomar foto, elegir de la galería y quitar.
+// frente y atrás. Cada uno se ve como la tarjeta misma —la foto guardada, la
+// recién elegida o el dibujo de una cédula— y ES el botón: se toca la tarjeta
+// para elegir la foto. Sin botones debajo (pedido del dueño, 2026-10-02).
+//
+// Un solo selector sirve para cámara y galería: sin `capture`, el celular
+// pregunta de dónde sacarla ("Tomar foto" o la galería), y en el computador
+// abre los archivos.
 //
 // Acá no se sube nada: se elige. La subida pasa al tocar Guardar, en
 // ClienteFormDialog, para que cancelar el formulario no deje fotos en Storage.
 import PropTypes from "prop-types";
-import {
-  Box,
-  IconButton,
-  Stack,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-} from "@mui/material";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Box, ButtonBase, IconButton, Stack, Typography } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import PersonIcon from "@mui/icons-material/Person";
-import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import { LADOS_DOCUMENTO } from "./documentoCliente";
-
-// El botón que abre el selector de archivos: un IconButton que por dentro es
-// la etiqueta de un input de archivo escondido. `capture` hace que el celular
-// abra directo la cámara trasera en vez de preguntar.
-function BotonElegirFoto({ titulo, nombre, capture, deshabilitado, onElegir, children }) {
-  const alElegir = (e) => {
-    const archivo = e.target.files?.[0];
-    // Se vacía para que elegir otra vez la MISMA foto también avise.
-    e.target.value = "";
-    if (archivo) onElegir(archivo);
-  };
-
-  return (
-    <Tooltip title={titulo}>
-      <span>
-        <IconButton
-          component="label"
-          size="small"
-          aria-label={titulo}
-          disabled={deshabilitado}
-        >
-          {children}
-          <input
-            hidden
-            type="file"
-            accept="image/*"
-            name={nombre}
-            capture={capture}
-            onChange={alElegir}
-            disabled={deshabilitado}
-          />
-        </IconButton>
-      </span>
-    </Tooltip>
-  );
-}
-
-BotonElegirFoto.propTypes = {
-  titulo: PropTypes.string.isRequired,
-  nombre: PropTypes.string.isRequired,
-  capture: PropTypes.string,
-  deshabilitado: PropTypes.bool,
-  onElegir: PropTypes.func.isRequired,
-  children: PropTypes.node.isRequired,
-};
 
 // El dibujo de una cédula, mientras no hay foto: dice qué va en el recuadro
 // sin tener que leer el rótulo. El frente lleva el recuadro de la foto y los
@@ -150,9 +101,12 @@ TarjetaVacia.propTypes = {
 };
 
 export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, deshabilitado }) {
-  // La cámara solo se ofrece en pantallas táctiles. En el computador ese
-  // botón abriría el mismo explorador de archivos que el de la galería.
-  const conCamara = useMediaQuery("(pointer: coarse)");
+  const alElegir = (clave) => (e) => {
+    const archivo = e.target.files?.[0];
+    // Se vacía para que elegir otra vez la MISMA foto también avise.
+    e.target.value = "";
+    if (archivo) onElegir(clave, archivo);
+  };
 
   return (
     <Box>
@@ -168,19 +122,28 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
           return (
             // Sin rótulo de "Frente" o "Atrás" encima: el dibujo de la tarjeta
             // ya dice cuál es (pedido del dueño, 2026-10-02).
-            <Box key={clave} sx={{ flex: 1, minWidth: 0 }}>
+            <Box key={clave} sx={{ flex: 1, minWidth: 0, position: "relative" }}>
               {/* Se ve como la tarjeta misma, puesta sobre la mesa: blanca,
                   con esquinas redondeadas y sombra, y con la forma de una
                   cédula (85,6 × 54 mm). Blanca fija también en modo oscuro,
                   como los logos de los medios de pago: es un papel, no un
-                  recuadro de la pantalla. La foto va entera, sin recortar. */}
-              <Box
+                  recuadro de la pantalla. La foto va entera, sin recortar.
+
+                  Por dentro es la etiqueta del selector de archivos
+                  escondido: tocarla es tocar el selector. */}
+              <ButtonBase
+                component="label"
+                aria-label={`Elegir foto del ${lado}`}
+                disabled={deshabilitado}
                 sx={{
+                  display: "block",
+                  width: "100%",
                   aspectRatio: "1.586",
                   borderRadius: 1.5,
                   overflow: "hidden",
                   bgcolor: "common.white",
                   boxShadow: 3,
+                  cursor: "pointer",
                 }}
               >
                 {vista ? (
@@ -193,44 +156,37 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
                 ) : (
                   <TarjetaVacia clave={clave} />
                 )}
-              </Box>
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  name={`documento-${clave}`}
+                  onChange={alElegir(clave)}
+                  disabled={deshabilitado}
+                />
+              </ButtonBase>
 
-              <Stack direction="row" justifyContent="center" spacing={0.5} sx={{ mt: 0.5 }}>
-                {conCamara && (
-                  <BotonElegirFoto
-                    titulo={`Tomar foto del ${lado}`}
-                    nombre={`documento-${clave}-camara`}
-                    capture="environment"
-                    deshabilitado={deshabilitado}
-                    onElegir={(archivo) => onElegir(clave, archivo)}
-                  >
-                    <PhotoCameraIcon fontSize="small" />
-                  </BotonElegirFoto>
-                )}
-                <BotonElegirFoto
-                  titulo={`Elegir de la galería el ${lado}`}
-                  nombre={`documento-${clave}-galeria`}
-                  deshabilitado={deshabilitado}
-                  onElegir={(archivo) => onElegir(clave, archivo)}
+              {/* Quitar: una × chica en la esquina, solo si hay foto. Va
+                  FUERA de la tarjeta para que tocarla no abra el selector. */}
+              {vista && (
+                <IconButton
+                  size="small"
+                  aria-label={`Quitar el ${lado}`}
+                  onClick={() => onQuitar(clave)}
+                  disabled={deshabilitado}
+                  sx={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    p: 0.25,
+                    bgcolor: "error.main",
+                    color: "common.white",
+                    "&:hover": { bgcolor: "error.dark" },
+                  }}
                 >
-                  <PhotoLibraryIcon fontSize="small" />
-                </BotonElegirFoto>
-                {vista && (
-                  <Tooltip title={`Quitar el ${lado}`}>
-                    <span>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label={`Quitar el ${lado}`}
-                        onClick={() => onQuitar(clave)}
-                        disabled={deshabilitado}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                )}
-              </Stack>
+                  <CloseIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
             </Box>
           );
         })}

@@ -60,10 +60,10 @@ const abrir = (props = {}) =>
 const fotoDePrueba = (nombre = "cedula.jpg") =>
   new File(["foto"], nombre, { type: "image/jpeg" });
 
-// El selector de archivos de cada lado. El input va escondido dentro del
-// botón de la galería, así que se lo busca por su nombre.
-const inputGaleria = (lado) =>
-  document.querySelector(`input[name="documento-${lado}-galeria"]`);
+// El selector de archivos de cada lado. El input va escondido dentro de la
+// tarjeta, así que se lo busca por su nombre.
+const inputDeLaTarjeta = (lado) =>
+  document.querySelector(`input[name="documento-${lado}"]`);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -274,14 +274,14 @@ describe("ClienteFormDialog — fotos del documento", () => {
   const MENSAJE_FALLA =
     "No se pudo subir la foto del documento. Intentá de nuevo.";
 
-  it("trae los dos recuadros, frente y atrás, para elegir de la galería", () => {
+  it("trae las dos tarjetas, frente y atrás, y se tocan para elegir la foto", () => {
     abrir();
 
     expect(
-      screen.getByRole("button", { name: "Elegir de la galería el frente" }),
+      screen.getByRole("button", { name: "Elegir foto del frente" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Elegir de la galería el atrás" }),
+      screen.getByRole("button", { name: "Elegir foto del atrás" }),
     ).toBeInTheDocument();
   });
 
@@ -291,14 +291,14 @@ describe("ClienteFormDialog — fotos del documento", () => {
     await usuario.click(screen.getByRole("radio", { name: "Empresa" }));
 
     expect(
-      screen.getByRole("button", { name: "Elegir de la galería el frente" }),
+      screen.getByRole("button", { name: "Elegir foto del frente" }),
     ).toBeInTheDocument();
   });
 
   it("al elegir una foto se ve antes de guardar, y se puede quitar", async () => {
     const { usuario } = abrir();
 
-    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.upload(inputDeLaTarjeta("frente"), fotoDePrueba());
 
     expect(screen.getByRole("img", { name: "Documento, frente" })).toHaveAttribute(
       "src",
@@ -330,7 +330,7 @@ describe("ClienteFormDialog — fotos del documento", () => {
 
     await usuario.type(screen.getByLabelText("Nombres"), "Aida");
     await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
-    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.upload(inputDeLaTarjeta("frente"), fotoDePrueba());
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     // La carpeta lleva el id que se le pidió al cliente nuevo ANTES de
@@ -353,7 +353,7 @@ describe("ClienteFormDialog — fotos del documento", () => {
 
     await usuario.type(screen.getByLabelText("Nombres"), "Aida");
     await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
-    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.upload(inputDeLaTarjeta("frente"), fotoDePrueba());
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(await screen.findByText(MENSAJE_FALLA)).toBeInTheDocument();
@@ -371,7 +371,7 @@ describe("ClienteFormDialog — fotos del documento", () => {
 
     await usuario.type(screen.getByLabelText("Nombres"), "Aida");
     await usuario.type(screen.getByLabelText("Apellido"), "Pérez");
-    await usuario.upload(inputGaleria("atras"), fotoDePrueba());
+    await usuario.upload(inputDeLaTarjeta("atras"), fotoDePrueba());
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     const [destino] = almacen.subir.mock.calls[0];
@@ -397,7 +397,7 @@ describe("ClienteFormDialog — fotos del documento", () => {
       "https://viejo/frente",
     );
 
-    await usuario.upload(inputGaleria("frente"), fotoDePrueba());
+    await usuario.upload(inputDeLaTarjeta("frente"), fotoDePrueba());
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     const [destino] = almacen.subir.mock.calls[0];
