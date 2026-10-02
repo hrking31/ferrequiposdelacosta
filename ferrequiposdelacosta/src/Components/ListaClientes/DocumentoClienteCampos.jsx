@@ -166,10 +166,9 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
           const lado = etiqueta.toLowerCase();
 
           return (
+            // Sin rótulo de "Frente" o "Atrás" encima: el dibujo de la tarjeta
+            // ya dice cuál es (pedido del dueño, 2026-10-02).
             <Box key={clave} sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary">
-                {etiqueta}
-              </Typography>
               {/* Se ve como la tarjeta misma, puesta sobre la mesa: blanca,
                   con esquinas redondeadas y sombra, y con la forma de una
                   cédula (85,6 × 54 mm). Blanca fija también en modo oscuro,
