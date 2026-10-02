@@ -272,7 +272,7 @@ describe("ClienteFormDialog — eliminar", () => {
 
 describe("ClienteFormDialog — fotos del documento", () => {
   const MENSAJE_FALLA =
-    "No se pudo subir la foto del documento. Revisá la señal e intentá de nuevo.";
+    "No se pudo subir la foto del documento. Intentá de nuevo.";
 
   it("trae los dos recuadros, frente y atrás, para elegir de la galería", () => {
     abrir();

@@ -66,7 +66,7 @@ const fotosIniciales = (documento) => ({
 });
 
 const MENSAJE_FOTO_FALLIDA =
-  "No se pudo subir la foto del documento. Revisá la señal e intentá de nuevo.";
+  "No se pudo subir la foto del documento. Intentá de nuevo.";
 
 export default function ClienteFormDialog({ open, onClose, onGuardado, onEliminado, cliente }) {
   const theme = useTheme();
