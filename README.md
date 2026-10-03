@@ -1122,7 +1122,7 @@ Ahora hay **un solo número por dispositivo**: **12px en el celular y 16 en el c
 |---|---|---|
 | **Firestore** | Clientes, facturas, equipos, cotizaciones, cuentas de cobro, usuarios | Documentos duraderos, con consultas y filtros |
 | **Realtime Database** | El "timbre" de las solicitudes nuevas y quién está conectado | Cobra por bytes, no por lectura: ideal para un dato diminuto que se escucha todo el día |
-| **Storage** | Las fotos de los equipos y los avatares | Archivos |
+| **Storage** | Las fotos de los equipos, los avatares y el documento de identidad de cada cliente | Archivos |
 
 La presencia se queda en la base en tiempo real por una razón puntual: es la única que avisa cuando alguien **cierra la pestaña de golpe**. Sin eso, un usuario que se va sin desconectarse quedaría marcado como conectado para siempre.
 
@@ -1422,6 +1422,18 @@ Ese doble soporte escondía un bug: al agregar un equipo pagado a una factura vi
 > [!WARNING]
 > El dueño confirmó que ya no queda ninguna factura del formato viejo en producción. En vez de parchar la cuenta una vez más, se sacó todo el código que existía solo para sostenerlo. Con el formato viejo fuera, ese bug deja de poder existir: no porque se corrigió una cuenta, sino porque la causa ya no tiene dónde vivir.
 
+### El documento del cliente: la foto en Storage, la llave en el cliente
+
+Desde el 02/10/2026 cada cliente —persona o empresa— puede llevar la foto de su documento, **frente y atrás**. En el formulario se ven como la tarjeta misma, blanca y con sombra, y se tocan para elegir la foto: el celular ofrece la cámara o la galería. Antes de subirla se achica en el propio teléfono, de unos 4 MB a unos 250 KB, y se sigue leyendo.
+
+La foto va a Storage, en `documentos/{id del cliente}/`, y en el cliente queda solo su enlace. **El orden del guardado es el que evita los cabos sueltos:**
+
+- Primero suben las fotos y después se escribe el cliente. Si una foto no sube —se cayó la señal en la obra—, **el cliente no se guarda**: sale el aviso y el formulario queda abierto, con todo lo escrito. Nadie queda sin documento sin que se note.
+- El cliente nuevo todavía no tiene número y su carpeta lo necesita: se le pide antes, en el navegador, sin escribir nada.
+- La foto que se cambia o se quita se borra **después** de guardar, cuando el cliente ya no apunta a ella. Y al eliminar al cliente se van también sus fotos: no queda la cédula de alguien que ya no existe en la app.
+
+En la ficha, las dos miniaturas van primero en el renglón de los datos de contacto, y se abren en grande al tocarlas. Solo se descargan cuando alguien despliega esos datos, no cada vez que se abre la ficha.
+
 ### Seguridad
 
 - **Reglas de Firestore** que limitan qué puede leer y escribir cada quien.
@@ -1438,6 +1450,10 @@ Cerrarlas tuvo su detalle: abrir una cuenta ya pagada la pasa a *En proceso* y *
 **Borrar una factura** era la tercera, y se cerró el 14/09/2026. No se deshace: se lleva los abonos, los despachos y la historia de cada equipo, y descuadra los números del mes y cualquier cuenta de cobro que la mencione. Ahora el tacho se le muestra solo al administrador y, del lado del servidor, crear y editar siguen abiertos a quien gestiona clientes pero **borrar pide administrador**.
 
 Y cambió cuándo se puede: además de las facturas sin nada encima, también se borra la **finalizada** —ahí ya no hay nada abierto, los equipos volvieron y la plata está saldada—. La que todavía está viva se arregla, no se borra. Al confirmar, el aviso dice qué se lleva por delante: *"Se van con ella: 2 abonos, 1 despacho agregado…"*.
+
+**Las cédulas casi quedan públicas.** La regla de Storage abre a cualquiera, sin iniciar sesión, todo lo que no sea un avatar: así se ven las fotos del catálogo en la tienda y el kiosco. Las reglas de Storage **se suman** —si una deja pasar, pasa—, así que agregar una regla cerrada para `documentos/` no alcanzaba: la abierta la seguía dejando ver. Hubo que sacar `documentos` también de la regla de las fotos de los equipos, y desplegar esa regla **antes** que la app.
+
+Storage, además, no conoce los roles. Lo que de verdad cierra el paso es el enlace: vive dentro del cliente, y al cliente solo lo leen los roles que gestionan clientes. Quien no puede abrir la ficha no tiene el enlace.
 
 Un usuario cualquiera solo puede tocar dos campos de su propia ficha: **su foto** y **la lista de aparatos donde quiere recibir avisos**. Nada más — sin ese límite, cualquiera podría escribirse el rol de administrador desde la consola del navegador.
 
