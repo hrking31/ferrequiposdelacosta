@@ -215,68 +215,83 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               en el celular, y esos píxeles son de los botones de abajo, que
               tienen que entrar sin scroll.
 
-              El rol sube al lado de la vista —es una etiqueta corta, no un
-              renglón— y el nombre baja de tamaño. Si no entran juntos, el chip
-              pasa abajo solo (flexWrap). */}
+              El rol va al lado del NOMBRE —es una etiqueta corta, no un
+              renglón, y dice quién es esa persona, no en qué pantalla está—.
+              Si el nombre es largo, el que se recorta es el nombre: el chip
+              no cede. Abajo queda solo la vista. */}
           <Box sx={{ minWidth: 0, zIndex: 1 }}>
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{ color: "inherit", lineHeight: 1.15, fontWeight: 700 }}
-            >
-              {name || ""}
-            </Typography>
+            {/* 12px entre el nombre y el chip: con 6 se leían pegados. */}
+            <Stack direction="row" alignItems="center" columnGap={1.5}>
+              <Typography
+                variant="h6"
+                noWrap
+                sx={{
+                  color: "inherit",
+                  lineHeight: 1.15,
+                  fontWeight: 700,
+                  minWidth: 0,
+                  // En el teléfono parado (menos de 600px) el nombre se va y
+                  // queda solo el chip: quién es ya lo dice la foto de al lado.
+                  [theme.breakpoints.down("sm")]: { display: "none" },
+                }}
+              >
+                {name || ""}
+              </Typography>
 
-            <Stack
-              direction="row"
-              alignItems="center"
-              flexWrap="wrap"
-              columnGap={0.75}
-              rowGap={0.25}
-              sx={{ mt: 0.25 }}
-            >
-              {vista && (
-                <Typography
-                  variant="caption"
-                  noWrap
-                  sx={{ color: "inherit", opacity: 0.92, lineHeight: 1.3 }}
-                >
-                  {vista}
-                </Typography>
-              )}
-
-              {cotId && (
-                <Typography
-                  variant="caption"
-                  noWrap
-                  sx={{ color: "inherit", opacity: 0.85 }}
-                >
-                  {cotId}
-                </Typography>
-              )}
-
-            <Chip
-              icon={<VerifiedUserIcon />}
-              label={formatearNombreRol(role)}
-              size="small"
-              sx={{
-                // Bajo y con la letra chica: comparte renglón con la vista.
-                height: 20,
-                fontSize: "0.65rem",
-                bgcolor: (t) => alpha(t.palette.common.white, 0.9),
-                // El fondo del chip es blanco en los DOS modos, así que la
-                // letra no puede seguir al modo: con "text.primary" salía
-                // blanca sobre blanca de noche. Se saca del propio blanco.
-                color: (t) => t.palette.getContrastText(t.palette.common.white),
-                fontWeight: 600,
-                "& .MuiChip-icon": {
-                  fontSize: 14,
-                  color: (t) =>
-                    t.palette.getContrastText(t.palette.common.white),
-                },
-              }}
-            />
+              <Chip
+                icon={<VerifiedUserIcon />}
+                label={formatearNombreRol(role)}
+                size="small"
+                sx={{
+                  // Bajo y con la letra chica: comparte renglón con el nombre.
+                  height: 20,
+                  fontSize: "0.65rem",
+                  flexShrink: 0,
+                  bgcolor: (t) => alpha(t.palette.common.white, 0.9),
+                  // El fondo del chip es blanco en los DOS modos, así que la
+                  // letra no puede seguir al modo: con "text.primary" salía
+                  // blanca sobre blanca de noche. Se saca del propio blanco.
+                  color: (t) => t.palette.getContrastText(t.palette.common.white),
+                  fontWeight: 600,
+                  "& .MuiChip-icon": {
+                    fontSize: 14,
+                    color: (t) =>
+                      t.palette.getContrastText(t.palette.common.white),
+                  },
+                }}
+              />
             </Stack>
+
+            {(vista || cotId) && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                flexWrap="wrap"
+                columnGap={0.75}
+                rowGap={0.25}
+                sx={{ mt: 0.25 }}
+              >
+                {vista && (
+                  <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{ color: "inherit", opacity: 0.92, lineHeight: 1.3 }}
+                  >
+                    {vista}
+                  </Typography>
+                )}
+
+                {cotId && (
+                  <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{ color: "inherit", opacity: 0.85 }}
+                  >
+                    {cotId}
+                  </Typography>
+                )}
+              </Stack>
+            )}
           </Box>
 
           {/* Al extremo, separado de todo por el hueco que deja `ml: auto`.
