@@ -1,0 +1,314 @@
+// CORREGIR UNA FACTURA YA CARGADA. Es del administrador y es otra cosa que
+// anotar: acá no pasa nada nuevo, se arregla un dato que alguien digitó mal.
+//
+// Tres pasos, y ninguno toca la pantalla:
+//
+//   borradorDe          la factura, puesta como la muestran las casillas
+//   erroresDelBorrador  lo que no deja guardar
+//   facturaCorregida    el documento que se escribe
+//
+// La regla que sostiene todo: el equipo que NO se tocó vuelve tal cual estaba,
+// letra por letra. Solo el que cambió se vuelve a armar desde sus hechos (ver
+// rearmarEquipo), que es lo que rehace sus días vencidos.
+import {
+  calcularDepositoTotal,
+  calcularRetenido,
+  facturaCerrada,
+  hechosDeEquipo,
+  obtenerFechaHoyBogota,
+  rearmarEquipo,
+} from "./facturaCuentas";
+import {
+  GRUPO_INICIAL,
+  abonosDe,
+  adicionalesDe,
+  datosFactura,
+  entregasDe,
+  equiposAfuera,
+  equiposDe,
+  gestionesDe,
+  gruposDe,
+  pagosDe,
+  tipoPagoDe,
+} from "./facturaModelo";
+import { formatearFechaLegible } from "../../Utils/formato";
+
+const numero = (valor) => Number(valor) || 0;
+const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// SI ALGO CAMBIÓ se decide comparando el borrador con el que saldría, recién
+// hecho, de lo guardado. Lo escrito en una casilla llega como texto y lo
+// guardado puede ser un número: "6" y 6 son el mismo dato, y la huella los
+// iguala. Sin eso, una factura que nadie tocó figuraría corregida.
+const huella = (valor) =>
+  JSON.stringify(valor, (clave, dato) =>
+    clave === "original" ? undefined : typeof dato === "number" ? String(dato) : dato,
+  );
+const cambio = (a, b) => huella(a) !== huella(b);
+
+// Un equipo como lo muestran las casillas. `original` es el que está guardado
+// —vacío en el que se agrega acá—: contra él se sabe si se tocó.
+const equipoABorrador = (equipo, clave) => ({
+  clave,
+  original: equipo,
+  nombre: equipo?.nombre ?? "",
+  cantidad: equipo?.cantidadEquipos ?? "",
+  dias: equipo?.diasAlquilados ?? "",
+  valor: equipo?.valorDia ?? "",
+  fechaDespacho: equipo?.fechaDespacho ?? "",
+  aplicaIva: Boolean(equipo?.aplicaIva),
+  hechos: hechosDeEquipo(equipo),
+});
+
+// Un equipo nuevo dentro de un despacho que ya existe: el que faltó cargar.
+export const equipoNuevoEnBorrador = (clave, fechaDespacho, aplicaIva) => ({
+  clave,
+  original: null,
+  nombre: "",
+  cantidad: "",
+  dias: "",
+  valor: "",
+  fechaDespacho: fechaDespacho ?? "",
+  aplicaIva: Boolean(aplicaIva),
+  hechos: [],
+});
+
+const grupoABorrador = (grupo) => {
+  const adicionales = adicionalesDe(grupo);
+  return {
+    grupo: grupo.grupo,
+    fechaSolicitud: grupo.fechaSolicitud ?? "",
+    tipoPago: tipoPagoDe(grupo),
+    pagos: pagosDe(grupo).map(({ medio, monto }) => ({ medio, monto })),
+    transporte: adicionales.transporte ?? "",
+    valorTransporte: adicionales.valorTransporte || "",
+    valorDeposito: adicionales.valorDeposito || "",
+    equipos: (grupo.equipos ?? []).map((equipo, indice) =>
+      equipoABorrador(equipo, `${grupo.grupo}#${indice}`),
+    ),
+  };
+};
+
+export const borradorDe = (factura) => {
+  const datos = datosFactura(factura);
+  return {
+    numeroFactura: datos.numeroFactura ?? "",
+    fechaCreacion: datos.fechaCreacion ?? "",
+    grupos: gruposDe(factura).map(grupoABorrador),
+  };
+};
+
+// Cómo se llama un despacho en pantalla y en los avisos.
+export const nombreDelGrupo = (grupo) =>
+  grupo === GRUPO_INICIAL
+    ? "Despacho inicial"
+    : `Despacho agregado ${String(grupo ?? "").split("-").pop()}`;
+
+// Lo que el equipo ES, en el vocabulario del documento.
+const baseDelEquipo = (item) => ({
+  nombre: String(item.nombre ?? "").trim(),
+  cantidadEquipos: numero(item.cantidad),
+  valorDia: numero(item.valor),
+  diasAlquilados: numero(item.dias),
+  fechaDespacho: item.fechaDespacho,
+  aplicaIva: Boolean(item.aplicaIva),
+});
+
+const equipoTocado = (item) =>
+  !item.original || cambio(item, equipoABorrador(item.original, item.clave));
+
+const equipoCorregido = (item, hoyIso) =>
+  equipoTocado(item)
+    ? rearmarEquipo(
+        { ampliaciones: [], vencidos: [], ...(item.original ?? {}), ...baseDelEquipo(item) },
+        item.hechos,
+        hoyIso,
+      )
+    : item.original;
+
+// Los medios que de verdad son un pago: con medio y con monto. "Sin pago" no
+// guarda ninguno, aunque hayan quedado escritos.
+const mediosValidos = (grupo) =>
+  grupo.tipoPago === "sinPago"
+    ? []
+    : grupo.pagos
+        .filter((pago) => pago.medio && numero(pago.monto) > 0)
+        .map(({ medio, monto }) => ({ medio, monto: numero(monto) }));
+
+const pagoDe = ({ tipoPago, pagos }) => ({ tipoPago, pagos });
+const adicionalesDelBorrador = ({ transporte, valorTransporte, valorDeposito }) => ({
+  transporte,
+  valorTransporte,
+  valorDeposito,
+});
+
+// Cada parte del despacho que no cambió se queda con lo que estaba guardado,
+// sin reescribirlo: la factura real que nadie tocó sale idéntica, y el
+// registro de cambios muestra solo lo que de verdad se corrigió.
+const grupoCorregido = (original, grupo, hoyIso) => {
+  const inicial = grupoABorrador(original);
+  const corregido = {
+    ...original,
+    equipos: grupo.equipos.map((item) => equipoCorregido(item, hoyIso)),
+  };
+
+  if (grupo.fechaSolicitud !== inicial.fechaSolicitud) {
+    corregido.fechaSolicitud = grupo.fechaSolicitud;
+  }
+  if (cambio(pagoDe(grupo), pagoDe(inicial))) {
+    corregido.pagos = { tipoPago: grupo.tipoPago, medios: mediosValidos(grupo) };
+  }
+  if (cambio(adicionalesDelBorrador(grupo), adicionalesDelBorrador(inicial))) {
+    const sinTransporte = !grupo.transporte || grupo.transporte === "Sin transporte";
+    corregido.adicionales = {
+      transporte: grupo.transporte || "",
+      valorTransporte: sinTransporte ? 0 : numero(grupo.valorTransporte),
+      deposito: numero(grupo.valorDeposito) > 0,
+      valorDeposito: numero(grupo.valorDeposito),
+    };
+  }
+  return corregido;
+};
+
+// QUÉ PASA CON EL DEPÓSITO después de corregir. Se resuelve cuando vuelve el
+// último equipo, así que depende de las devoluciones: quitar una lo vuelve a
+// dejar pendiente, y cambiar lo retenido cambia lo que se resolvió.
+const depositoResueltoDe = (documento, anterior, hoyIso) => {
+  if (calcularDepositoTotal(documento) <= 0) return false;
+  if (equiposAfuera(documento).length > 0) return false;
+
+  // La factura que pasó por el formulario de editar lo tiene como un "sí" a
+  // secas, sin detalle. Sigue resuelto y no hay detalle que actualizar.
+  if (anterior && typeof anterior !== "object") return anterior;
+
+  const retenciones = equiposDe(documento)
+    .map(({ equipo }) => equipo)
+    .filter((equipo) => numero(equipo?.devolucion?.valorRetenido) > 0);
+  const resuelto = {
+    retenido: Math.min(calcularDepositoTotal(documento), calcularRetenido(documento)),
+    motivo: retenciones
+      .map((equipo) => `${equipo.nombre}: ${equipo.devolucion.motivo || ""}`)
+      .join(" · "),
+    fecha: anterior?.fecha ?? hoyIso,
+  };
+  return igual(resuelto, anterior) ? anterior : resuelto;
+};
+
+// El documento entero, como se va a escribir. Los abonos, las entregas y la
+// bitácora viajan como están: no se corrigen desde acá.
+export const facturaCorregida = (
+  factura,
+  borrador,
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const originales = gruposDe(factura);
+  const documento = {
+    factura: {
+      ...datosFactura(factura),
+      numeroFactura: String(borrador.numeroFactura ?? "").trim(),
+      fechaCreacion: borrador.fechaCreacion,
+    },
+    grupos: borrador.grupos.map((grupo) =>
+      grupoCorregido(
+        originales.find((original) => original.grupo === grupo.grupo),
+        grupo,
+        hoyIso,
+      ),
+    ),
+    abonos: abonosDe(factura),
+    entregas: entregasDe(factura),
+    gestiones: gestionesDe(factura),
+  };
+
+  documento.factura.depositoResuelto = depositoResueltoDe(
+    documento,
+    datosFactura(factura).depositoResuelto,
+    hoyIso,
+  );
+  documento.factura.cerrada = facturaCerrada(documento, hoyIso);
+  return documento;
+};
+
+// Si el borrador cambia algo de lo guardado. Sin cambios no hay nada que
+// escribir, y el botón de guardar no se enciende.
+export const hayCorrecciones = (factura, borrador) =>
+  cambio(borrador, borradorDe(factura));
+
+const NOMBRE_DE_HECHO = {
+  sello: "el cierre de mora",
+  indefinida: "la entrega indefinida",
+  ampliacion: "la ampliación",
+  entregaPactada: "la entrega pactada",
+  entregaAnulada: "la anulación de la entrega pactada",
+  devolucion: "la devolución",
+};
+
+// Lo que no deja guardar, dicho con el nombre del equipo: en una factura de
+// ocho líneas, "falta la cantidad" a secas no dice dónde.
+export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) => {
+  const errores = [];
+
+  if (!String(borrador.numeroFactura ?? "").trim()) {
+    errores.push("Falta el número de la factura.");
+  }
+  if (!borrador.fechaCreacion) errores.push("Falta la fecha de creación.");
+
+  borrador.grupos.forEach((grupo) => {
+    const despacho = nombreDelGrupo(grupo.grupo);
+    if (grupo.equipos.length === 0) {
+      errores.push(`${despacho}: no puede quedar sin equipos.`);
+    }
+
+    grupo.equipos.forEach((item) => {
+      const nombre = String(item.nombre ?? "").trim();
+      const quien = nombre || `un equipo del ${despacho.toLowerCase()}`;
+
+      if (!nombre) errores.push(`${despacho}: hay un equipo sin nombre.`);
+      if (numero(item.cantidad) <= 0) errores.push(`${quien}: la cantidad no es válida.`);
+      if (numero(item.dias) <= 0) errores.push(`${quien}: los días no son válidos.`);
+      if (numero(item.valor) <= 0) errores.push(`${quien}: el precio por día no es válido.`);
+      if (!item.fechaDespacho) errores.push(`${quien}: falta la fecha de despacho.`);
+
+      item.hechos.forEach((hecho) => {
+        const que = NOMBRE_DE_HECHO[hecho.tipo] ?? "un registro";
+        if (!hecho.fecha) {
+          errores.push(`${quien}: falta la fecha de ${que}.`);
+        } else if (item.fechaDespacho && hecho.fecha < item.fechaDespacho) {
+          errores.push(`${quien}: ${que} no puede ser anterior al despacho.`);
+        } else if (hecho.fecha > hoyIso) {
+          errores.push(`${quien}: ${que} no puede tener una fecha futura.`);
+        }
+      });
+
+      // La devolución es lo último que le pasa a un equipo: nada de lo demás
+      // puede venir después.
+      const devolucion = item.hechos.find(({ tipo }) => tipo === "devolucion");
+      if (devolucion?.fecha) {
+        const posterior = item.hechos.find(
+          (hecho) => hecho !== devolucion && hecho.fecha > devolucion.fecha,
+        );
+        if (posterior) {
+          errores.push(
+            `${quien}: la devolución no puede ser anterior a ${
+              NOMBRE_DE_HECHO[posterior.tipo]
+            } del ${formatearFechaLegible(posterior.fecha)}.`,
+          );
+        }
+
+        const retenido = numero(devolucion.devolucion?.valorRetenido);
+        if (devolucion.devolucion?.buenEstado === false) {
+          if (!String(devolucion.devolucion?.motivo ?? "").trim()) {
+            errores.push(`${quien}: falta decir qué le pasó.`);
+          }
+          if (retenido > numero(grupo.valorDeposito)) {
+            errores.push(
+              `${quien}: no se puede retener más que el depósito de su despacho.`,
+            );
+          }
+        }
+      }
+    });
+  });
+
+  return errores;
+};
