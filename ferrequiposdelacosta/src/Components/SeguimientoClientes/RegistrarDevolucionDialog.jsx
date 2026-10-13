@@ -10,6 +10,8 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
+  Radio,
+  RadioGroup,
   Grid,
   Typography,
   Divider,
@@ -23,13 +25,20 @@ import PlazoEquipo from "./PlazoEquipo";
 import DescuentosAmpliacion, { DescuentoVencidos } from "./DescuentosAmpliacion";
 import {
   ampliarEquipo,
+  anularEntregaPactada,
   cerrarIndefinida,
   cerrarTramoVencido,
+  cubiertoHasta,
   dejarSinFechaDeEntrega,
   descontarVencidosDeHoy,
   descuentoExcedido,
+  diaAnterior,
+  entregaPactadaDe,
+  estaPorRecoger,
+  pactarEntrega,
   partirLinea,
   proyectarAmpliacion,
+  seCobraElDiaAlDevolver,
   equipoAlDia,
   equipoVencido,
   calcularEstadoCliente,
@@ -71,6 +80,9 @@ const ESTADO_INICIAL_CAMBIO = {
   buenEstado: true,
   motivoEstado: "",
   retenidoEstado: "",
+  // Solo para el equipo que ya tenía la entrega pactada: el cliente no
+  // entregó y la cuenta vuelve a correr.
+  anular: false,
 };
 
 // El nodo `devolucion` que se le pone a la línea que volvió. Su sola
@@ -133,6 +145,14 @@ export default function RegistrarDevolucionDialog({
   // por qué es un dato. Desde Seguimiento el equipo ya venció y el motivo es
   // el vencimiento.
   const [motivoDevolucion, setMotivoDevolucion] = useState("");
+  // QUÉ SE ESTÁ ANOTANDO: que el equipo llegó a la bodega, o que el cliente
+  // avisó y llega después (la entrega pactada). Lo segundo detiene la cuenta
+  // sin dar el equipo por devuelto.
+  const [modoPactada, setModoPactada] = useState(false);
+  // Si el equipo vencido que vuelve paga el día de hoy. Arranca según la
+  // hora —antes de las 3 p.m. no— y se puede cambiar: el reloj mira cuándo
+  // se anota, no cuándo entregó el cliente.
+  const [cobrarHoy, setCobrarHoy] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
@@ -140,7 +160,12 @@ export default function RegistrarDevolucionDialog({
     if (!open) return;
     setCambios({});
     setMotivoDevolucion("");
+    setModoPactada(false);
+    setCobrarHoy(seCobraElDiaAlDevolver());
   }, [open]);
+
+  const hoyIso = obtenerFechaHoyBogota();
+  const ayerIso = diaAnterior(hoyIso);
 
   // Cada línea se identifica por su despacho y su posición dentro de él: los
   // equipos viven repartidos en grupos, así que un número suelto no alcanza
@@ -148,7 +173,7 @@ export default function RegistrarDevolucionDialog({
   const claveDe = (grupo, indice) => `${grupo?.grupo}#${indice}`;
 
   const todosLosEquipos = equiposDe(factura);
-  const equiposPendientes = todosLosEquipos
+  const lineasDelDialogo = todosLosEquipos
     .map(({ equipo, grupo, indice }) => ({
       equipo,
       grupo,
@@ -159,11 +184,33 @@ export default function RegistrarDevolucionDialog({
     // plazo; Seguimiento, lo vencido. Un equipo en fecha no se devuelve desde
     // cartera —esa devolución no es cobranza— y así ninguna de las dos
     // pantallas muestra equipos que no le corresponden.
-    .filter(({ equipo }) =>
-      desdeLaFicha
-        ? equipoAlDia(equipo)
-        : sigueAfuera(equipo) && equipoVencido(equipo),
+    //
+    // El que está por recoger se ofrece en las dos: ya no corre ni vence, y
+    // lo único que le falta es que alguien anote que llegó.
+    .filter(
+      ({ equipo }) =>
+        estaPorRecoger(equipo) ||
+        (desdeLaFicha
+          ? equipoAlDia(equipo)
+          : sigueAfuera(equipo) && equipoVencido(equipo)),
     );
+  // Hay a quién pactarle la entrega: algún equipo que todavía corre.
+  const hayParaPactar = lineasDelDialogo.some(
+    ({ equipo }) => !estaPorRecoger(equipo),
+  );
+  // Al pactar no se muestran los que ya tienen la entrega pactada: no hay
+  // nada nuevo que acordarles.
+  const equiposPendientes = lineasDelDialogo.filter(
+    ({ equipo }) => !(modoPactada && estaPorRecoger(equipo)),
+  );
+
+  // Hasta qué día se le cobra la mora a lo que se anota ahora. La entrega
+  // pactada corta siempre ayer: el día del aviso no se cobra. La devolución
+  // de un vencido, según la casilla "Cobrar el día de hoy".
+  // Desde la ficha solo vuelve lo que está en plazo, que no tiene mora: ahí
+  // la casilla ni se muestra.
+  const corteDeLaMora =
+    modoPactada || (!cobrarHoy && !desdeLaFicha) ? ayerIso : hoyIso;
 
   // Cuántas unidades tiene todavía afuera una línea. Una línea devuelta volvió
   // ENTERA —al devolver una parte se parte en dos—, así que no hay cantidades
@@ -176,7 +223,8 @@ export default function RegistrarDevolucionDialog({
   // factura sin nada afuera.
   const cantidadQueDevuelve = (equipo, clave) => {
     const cambio = cambios[clave];
-    if (!cambio) return 0;
+    // El que se anula no vuelve: sigue afuera y se le vuelve a cobrar.
+    if (!cambio || cambio.anular) return 0;
     return Math.max(0, Math.min(pendienteDe(equipo), Number(cambio.cantidad) || 0));
   };
 
@@ -189,10 +237,15 @@ export default function RegistrarDevolucionDialog({
   // equipo vencido, el SALTARIN. Devolverlo desde cartera daba la factura por
   // terminada —y liquidaba las tres garantías, $240.000— con 20 andamios y 2
   // tablones todavía afuera y en plazo.
-  const quedanEquiposAfuera = todosLosEquipos.some(
-    ({ equipo, grupo, indice }) =>
-      pendienteDe(equipo) - cantidadQueDevuelve(equipo, claveDe(grupo, indice)) > 0,
-  );
+  //
+  // Con la entrega pactada no vuelve nada: los equipos siguen afuera hasta
+  // que lleguen, así que el depósito tampoco se toca.
+  const quedanEquiposAfuera =
+    modoPactada ||
+    todosLosEquipos.some(
+      ({ equipo, grupo, indice }) =>
+        pendienteDe(equipo) - cantidadQueDevuelve(equipo, claveDe(grupo, indice)) > 0,
+    );
   const hayDevolucion = equiposPendientes.some(
     ({ equipo, clave }) => cantidadQueDevuelve(equipo, clave) > 0,
   );
@@ -242,7 +295,9 @@ export default function RegistrarDevolucionDialog({
 
   // Y lo que se está anotando en ESTA tanda.
   const retenidoAhoraDe = (equipo, grupo, clave) =>
-    cantidadQueDevuelve(equipo, clave) > 0 && cambios[clave]?.buenEstado === false
+    !modoPactada &&
+    cantidadQueDevuelve(equipo, clave) > 0 &&
+    cambios[clave]?.buenEstado === false
       ? devolucionDe(cambios[clave], "", depositoDelGrupo(grupo)).valorRetenido
       : 0;
   const retencionesAhora = equiposPendientes
@@ -360,11 +415,42 @@ export default function RegistrarDevolucionDialog({
   // Lo que vuelve de una línea, con la cantidad que vuelve: sus días vencidos
   // son los que se cierran hoy al devolver, y de ahí sale el tope de su
   // descuento. Mismo cálculo que la ampliación, sin días nuevos.
-  const proyeccionDeLoQueVuelve = (equipo, clave) =>
+  //
+  // Se cierran en el día que se le cobra, que no siempre es hoy: antes de las
+  // 3 p.m., o al pactar la entrega, el último día cobrado es ayer.
+  const proyeccionDeLoQueVuelve = (equipo, clave, hasta = corteDeLaMora) =>
     proyectarAmpliacion(
       { ...equipo, cantidadEquipos: cantidadQueDevuelve(equipo, clave) },
       0,
+      hasta,
     );
+
+  // Lo que se deja de cobrar por no contar el día de hoy, sumando lo que
+  // vuelve de cada línea. Es lo que se le dice a quien anota: "hoy no se
+  // cobra · −$9.000".
+  const ahorroDeHoy = equiposPendientes.reduce(
+    (total, { equipo, clave }) =>
+      estaPorRecoger(equipo) || cantidadQueDevuelve(equipo, clave) <= 0
+        ? total
+        : total +
+          proyeccionDeLoQueVuelve(equipo, clave, hoyIso).valorVencidos -
+          proyeccionDeLoQueVuelve(equipo, clave, ayerIso).valorVencidos,
+    0,
+  );
+
+  // Cambiar entre "llegó" y "entrega pactada" arranca de cero: lo escrito en
+  // un modo no significa lo mismo en el otro.
+  const handleCambiarModo = (pactada) => {
+    setModoPactada(pactada);
+    setCambios({});
+  };
+
+  const handleCambiarAnular = (index, marcada) => {
+    setCambios((prev) => ({
+      ...prev,
+      [index]: { ...ESTADO_INICIAL_CAMBIO, anular: marcada },
+    }));
+  };
 
   // El nombre de la casilla de lo que vuelve: "Descuento de…". La de lo que
   // se queda sigue diciendo "Descuento en…" y va más abajo, dentro de lo que
@@ -377,10 +463,15 @@ export default function RegistrarDevolucionDialog({
   const handleGuardar = async () => {
     const huboCambios = equiposPendientes.some(({ clave }) => {
       const cambio = cambios[clave];
-      return cambio && Number(cambio.cantidad) > 0;
+      return cambio && (cambio.anular || Number(cambio.cantidad) > 0);
     });
     if (!huboCambios) {
-      showSnackbar("Ingresá la cantidad que devuelve al menos un equipo.", "warning");
+      showSnackbar(
+        modoPactada
+          ? "Ingresá la cantidad con entrega pactada de al menos un equipo."
+          : "Ingresá la cantidad que devuelve al menos un equipo.",
+        "warning",
+      );
       return;
     }
 
@@ -437,6 +528,7 @@ export default function RegistrarDevolucionDialog({
     const descuentoDevueltosDeMas = equiposPendientes.some(
       ({ equipo, clave }) =>
         !desdeLaFicha &&
+        !estaPorRecoger(equipo) &&
         cantidadQueDevuelve(equipo, clave) > 0 &&
         Number(cambios[clave]?.descuentoDevueltos) >
           proyeccionDeLoQueVuelve(equipo, clave).valorVencidos,
@@ -450,9 +542,38 @@ export default function RegistrarDevolucionDialog({
     try {
       const hoy = obtenerFechaHoyBogota();
       let huboCierre = false;
+      let huboAnulacion = false;
       // Cuántas unidades volvieron en esta tanda, para dejarlo escrito en la
       // línea de tiempo ("Devolución parcial: 3 equipos").
       let unidadesDevueltas = 0;
+
+      // Lo que se queda afuera de una línea que se parte: más días, entrega
+      // indefinida, o su misma fecha si no se le pactó nada.
+      const conPlazoNuevo = (parteQueQueda, cambio) => {
+        let restante = { ...parteQueQueda };
+        // Lo que sigue afuera todavía no volvió.
+        delete restante.devolucion;
+
+        if (cambio.indefinida) return dejarSinFechaDeEntrega(restante, hoy);
+
+        const extra = Number(cambio.dias) || 0;
+        if (extra > 0) {
+          // Mismo camino que el diálogo de ampliar: se cierra el tramo
+          // vencido que venía corriendo y los días nuevos arrancan al
+          // día siguiente (ver ampliarEquipo).
+          restante = ampliarEquipo(
+            restante,
+            {
+              dias: extra,
+              descuento: Math.max(0, Number(cambio.descuento) || 0),
+              descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
+            },
+            hoy,
+          );
+        }
+        return restante;
+      };
+
       const gruposActualizados = gruposDe(factura).map((grupo) => {
         const equiposActualizados = [];
 
@@ -460,6 +581,16 @@ export default function RegistrarDevolucionDialog({
           const clave = claveDe(grupo, indice);
           const pendiente = pendienteDe(equipo);
           const cambio = cambios[clave];
+          const yaPactada = estaPorRecoger(equipo);
+
+          // EL CLIENTE NO ENTREGÓ lo que había pactado: la cuenta vuelve a
+          // correr desde el día en que se detuvo.
+          if (yaPactada && cambio?.anular) {
+            huboAnulacion = true;
+            equiposActualizados.push(anularEntregaPactada(equipo, hoy));
+            return;
+          }
+
           const cantidadDevuelta =
             pendiente > 0 && cambio
               ? Math.max(0, Math.min(pendiente, Number(cambio.cantidad) || 0))
@@ -473,6 +604,28 @@ export default function RegistrarDevolucionDialog({
           huboCierre = true;
           unidadesDevueltas += cantidadDevuelta;
 
+          // LA ENTREGA PACTADA: el equipo no vuelve hoy, pero deja de correr.
+          // Sin nodo `devolucion` —sigue afuera— y sin calificar cómo volvió:
+          // eso se anota el día que llegue a la bodega.
+          if (modoPactada) {
+            const pactar = (linea) =>
+              descontarVencidosDeHoy(
+                pactarEntrega(linea, hoy),
+                desdeLaFicha ? 0 : cambio.descuentoDevueltos,
+                corteDeLaMora,
+              );
+
+            if (cantidadDevuelta >= pendiente) {
+              equiposActualizados.push(pactar(equipo));
+              return;
+            }
+
+            const [parteQuePacta, parteQueQueda] = partirLinea(equipo, cantidadDevuelta);
+            equiposActualizados.push(pactar(parteQuePacta));
+            equiposActualizados.push(conPlazoNuevo(parteQueQueda, cambio));
+            return;
+          }
+
           const devolucion = devolucionDe(
             cambio,
             hoy,
@@ -480,17 +633,41 @@ export default function RegistrarDevolucionDialog({
             desdeLaFicha ? motivoDevolucion : "",
           );
 
-          // Lo que vuelve cierra su mora hoy, con el descuento que se le haya
+          // LLEGÓ LO QUE YA TENÍA LA ENTREGA PACTADA. Su cuenta está detenida
+          // desde el aviso, así que no hay mora que cerrar ni descuento que
+          // hacer: solo se anota que volvió y cómo. Si llegó una parte, la
+          // otra sigue por recoger, igual que estaba.
+          if (yaPactada) {
+            if (cantidadDevuelta >= pendiente) {
+              equiposActualizados.push({ ...equipo, devolucion });
+              return;
+            }
+            const [parteQueLlego, parteQueFalta] = partirLinea(equipo, cantidadDevuelta);
+            equiposActualizados.push({ ...parteQueLlego, devolucion });
+            equiposActualizados.push(parteQueFalta);
+            return;
+          }
+
+          // El vencido que vuelve antes de las 3 p.m. no paga el día de hoy.
+          // Queda escrito en la devolución, para que la historia del equipo
+          // pueda decir por qué su mora termina un día antes de la fecha en
+          // que volvió.
+          if (corteDeLaMora !== hoy && cubiertoHasta(equipo) < hoy) {
+            devolucion.diaCobrado = false;
+          }
+
+          // Lo que vuelve cierra su mora en el último día que se le cobra
+          // —hoy, o ayer si no paga el día—, con el descuento que se le haya
           // hecho a esos días —el mismo lugar donde lo deja la ampliación—.
           // Desde la ficha no se ofrece: ahí solo vuelve lo que está en plazo.
           const cerrarLoQueVuelve = (linea) =>
             descontarVencidosDeHoy(
               cerrarIndefinida(
-                cerrarTramoVencido(linea, devolucion.fechaDevolucion),
+                cerrarTramoVencido(linea, corteDeLaMora),
                 devolucion.fechaDevolucion,
               ),
               desdeLaFicha ? 0 : cambio.descuentoDevueltos,
-              devolucion.fechaDevolucion,
+              corteDeLaMora,
             );
 
           if (cantidadDevuelta >= pendiente) {
@@ -522,31 +699,7 @@ export default function RegistrarDevolucionDialog({
             devolucion,
           });
 
-          let restante = { ...parteQueQueda };
-          // Lo que sigue afuera todavía no volvió.
-          delete restante.devolucion;
-
-          if (cambio.indefinida) {
-            restante = dejarSinFechaDeEntrega(restante, hoy);
-          } else {
-            const extra = Number(cambio.dias) || 0;
-            if (extra > 0) {
-              // Mismo camino que el diálogo de ampliar: se cierra el tramo
-              // vencido que venía corriendo y los días nuevos arrancan al
-              // día siguiente (ver ampliarEquipo).
-              restante = ampliarEquipo(
-                restante,
-                {
-                  dias: extra,
-                  descuento: Math.max(0, Number(cambio.descuento) || 0),
-                  descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
-                },
-                hoy,
-              );
-            }
-          }
-
-          equiposActualizados.push(restante);
+          equiposActualizados.push(conPlazoNuevo(parteQueQueda, cambio));
         });
 
         return { ...grupo, equipos: equiposActualizados };
@@ -573,16 +726,27 @@ export default function RegistrarDevolucionDialog({
       // ofrecen equipos al día: la factura puede estar vencida por otro
       // equipo, pero lo que volvió no venció, así que nadie hizo cobranza
       // para conseguirlo.
-      const gestiones =
-        huboCierre && !desdeLaFicha && facturaEnSeguimiento(factura)
+      //
+      // La entrega pactada se anota SIEMPRE, venga de donde venga: es ella la
+      // que deja la factura en Seguimiento —hay un equipo que ir a buscar— y
+      // sin su registro aparecería ahí como "sin gestionar". Y si se anula,
+      // también: es lo que explica que el equipo vuelva a figurar vencido.
+      const enCobranza = !desdeLaFicha && facturaEnSeguimiento(factura);
+      const gestiones = [
+        ...obtenerGestiones(factura),
+        ...(huboAnulacion ? [crearRegistroGestion("entregaAnulada")] : []),
+        ...(huboCierre && modoPactada
+          ? [crearRegistroGestion("entregaPactada", { unidades: unidadesDevueltas })]
+          : []),
+        ...(huboCierre && !modoPactada && enCobranza
           ? [
-              ...obtenerGestiones(factura),
               crearRegistroGestion(
                 quedanEquipos ? "devolucionParcial" : "devolucionTotal",
                 { unidades: unidadesDevueltas },
               ),
             ]
-          : obtenerGestiones(factura);
+          : []),
+      ];
 
       // El estado del cliente resume TODAS sus facturas: hay que releerlas
       // de la base, no alcanza con la que tenemos en memoria.
@@ -630,7 +794,14 @@ export default function RegistrarDevolucionDialog({
       });
       await batch.commit();
 
-      showSnackbar("Devolución registrada correctamente.", "success");
+      showSnackbar(
+        modoPactada
+          ? "Entrega pactada registrada."
+          : huboAnulacion && !huboCierre
+            ? "Entrega pactada anulada."
+            : "Devolución registrada correctamente.",
+        "success",
+      );
       onActualizado?.();
       onClose();
     } catch (error) {
@@ -656,6 +827,73 @@ export default function RegistrarDevolucionDialog({
         <DialogTitle sx={{ color: acento }}>Registrar devolución</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            {/* QUÉ SE ANOTA: que el equipo ya está en la bodega, o que el
+                cliente avisó y llega después. Va arriba de todo porque cambia
+                lo que significa cada casilla de abajo. Sin equipos corriendo
+                —solo quedan por recoger— no hay nada que pactar y no se
+                pregunta. */}
+            {hayParaPactar && (
+              <Grid item xs={12}>
+                <RadioGroup
+                  row
+                  name="modoDevolucion"
+                  value={modoPactada ? "pactada" : "llego"}
+                  onChange={(e) => handleCambiarModo(e.target.value === "pactada")}
+                >
+                  <FormControlLabel
+                    value="llego"
+                    control={<Radio size="small" />}
+                    label="Llegó a la bodega"
+                  />
+                  <FormControlLabel
+                    value="pactada"
+                    control={<Radio size="small" />}
+                    label="Entrega pactada"
+                  />
+                </RadioGroup>
+
+                {modoPactada && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block" }}
+                  >
+                    El cliente avisó y el equipo llega después. La cuenta se
+                    detiene: se cobra hasta el {formatearFechaLegible(ayerIso)} y
+                    el día de hoy no.
+                  </Typography>
+                )}
+
+                {/* EL DÍA DE HOY, solo para lo vencido que vuelve: antes de
+                    las 3 p.m. no se cobra. Viene marcada según la hora y se
+                    puede cambiar —el cliente pudo entregar a las 10 y que lo
+                    anoten a las 4—. */}
+                {!modoPactada && !desdeLaFicha && (
+                  <>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          name="cobrarHoy"
+                          checked={cobrarHoy}
+                          onChange={(e) => setCobrarHoy(e.target.checked)}
+                        />
+                      }
+                      label="Cobrar el día de hoy"
+                    />
+                    {!cobrarHoy && (
+                      <Typography
+                        variant="caption"
+                        sx={{ display: "block", color: "success.main" }}
+                      >
+                        Entrega antes de las 3 p.m.: hoy no se cobra
+                        {ahorroDeHoy > 0 ? ` · −${formatearMoneda(ahorroDeHoy)}` : ""}
+                      </Typography>
+                    )}
+                  </>
+                )}
+              </Grid>
+            )}
             {/* POR QUÉ DEVUELVE. Va arriba de todo y una sola vez: es del
                 cliente que trae los equipos, no de cada equipo. Solo en la
                 ficha, donde lo que vuelve está en plazo. */}
@@ -683,7 +921,9 @@ export default function RegistrarDevolucionDialog({
               const pendiente = pendienteDe(equipo);
               const deposito = depositoDelGrupo(grupo);
               const cambio = cambios[clave] || ESTADO_INICIAL_CAMBIO;
-              const cantidadDevuelta = cambio.cantidad === "" ? 0 : Number(cambio.cantidad) || 0;
+              const yaPactada = estaPorRecoger(equipo);
+              const cantidadDevuelta =
+                cambio.anular || cambio.cantidad === "" ? 0 : Number(cambio.cantidad) || 0;
               const restante = pendiente - cantidadDevuelta;
               const diasNumero = Number(cambio.dias);
               const proyeccion = proyeccionDelResto(equipo, clave);
@@ -698,7 +938,20 @@ export default function RegistrarDevolucionDialog({
                   {/* La fecha del último acuerdo y, si ya pasó, los días que
                       lleva vencido. Misma línea y misma regla que en el
                       diálogo de ampliar (ver PlazoEquipo). */}
-                  <PlazoEquipo equipo={equipo} />
+                  {yaPactada ? (
+                    // El que está por recoger ya no tiene plazo que mostrar:
+                    // lo que importa es desde cuándo se le dejó de cobrar.
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", color: "custom.estadoEquipo.porRecoger" }}
+                    >
+                      Entrega pactada el{" "}
+                      {formatearFechaLegible(entregaPactadaDe(equipo).fecha)} · cuenta
+                      detenida
+                    </Typography>
+                  ) : (
+                    <PlazoEquipo equipo={equipo} />
+                  )}
 
                   {/* El depósito de la entrega en que salió ESTE equipo. El
                       cliente dejó $100.000 por el Benetín y $50.000 por la
@@ -723,11 +976,16 @@ export default function RegistrarDevolucionDialog({
                   <Box sx={{ mb: 1 }} />
 
                   <TextField
-                    label="Cantidad que devuelve hoy"
+                    label={
+                      modoPactada
+                        ? "Cantidad con entrega pactada"
+                        : "Cantidad que devuelve hoy"
+                    }
                     type="number"
                     inputProps={{ min: 0, max: pendiente }}
                     value={cambio.cantidad}
                     onChange={(e) => handleCambiarCantidad(clave, e.target.value, pendiente)}
+                    disabled={cambio.anular}
                     fullWidth
                     size="small"
                   />
@@ -737,8 +995,38 @@ export default function RegistrarDevolucionDialog({
                       variant="caption"
                       sx={{ display: "block", mt: 0.5, color: "success.main" }}
                     >
-                      Se devuelve todo: esta línea queda cerrada.
+                      {modoPactada
+                        ? "Se pacta la entrega de todo: la cuenta de esta línea se detiene."
+                        : "Se devuelve todo: esta línea queda cerrada."}
                     </Typography>
+                  )}
+
+                  {/* EL CLIENTE NO ENTREGÓ lo pactado. Es lo contrario de
+                      anotar que llegó, así que una cosa apaga la otra. */}
+                  {yaPactada && (
+                    <>
+                      <FormControlLabel
+                        sx={{ mt: 0.5 }}
+                        control={
+                          <Checkbox
+                            size="small"
+                            name={`anular-${clave}`}
+                            checked={cambio.anular}
+                            onChange={(e) => handleCambiarAnular(clave, e.target.checked)}
+                          />
+                        }
+                        label="Anular la entrega pactada (el cliente no entregó)"
+                      />
+                      {cambio.anular && (
+                        <Typography
+                          variant="caption"
+                          sx={{ display: "block", color: "error.main" }}
+                        >
+                          La cuenta vuelve a correr desde el{" "}
+                          {formatearFechaLegible(entregaPactadaDe(equipo).fecha)}.
+                        </Typography>
+                      )}
+                    </>
                   )}
 
                   {/* LO QUE SE PASÓ DE LO QUE VUELVE. El cliente que devuelve
@@ -746,7 +1034,7 @@ export default function RegistrarDevolucionDialog({
                       más días: misma casilla, misma regla, y el tope es lo que
                       valen esos días para las unidades que vuelven. Solo desde
                       Seguimiento: la ficha devuelve lo que está en plazo. */}
-                  {cantidadDevuelta > 0 && !desdeLaFicha && (
+                  {cantidadDevuelta > 0 && !desdeLaFicha && !yaPactada && (
                     <DescuentoVencidos
                       proyeccion={proyeccionDeLoQueVuelve(equipo, clave)}
                       descuento={cambio.descuentoDevueltos}
@@ -762,8 +1050,9 @@ export default function RegistrarDevolucionDialog({
                   {/* CÓMO VOLVIÓ ESTE EQUIPO. Aparece apenas se escribe una
                       cantidad, sin esperar al último equipo de la factura:
                       hoy es el día en que alguien lo tiene delante y puede
-                      decirlo. */}
-                  {cantidadDevuelta > 0 && (
+                      decirlo. Al pactar la entrega no se pregunta: el equipo
+                      todavía no llegó y nadie lo vio. */}
+                  {cantidadDevuelta > 0 && !modoPactada && (
                     <Box sx={{ mt: 1 }}>
                       <FormControlLabel
                         control={
@@ -837,7 +1126,7 @@ export default function RegistrarDevolucionDialog({
                       cliente que ya está vencido— y allá queda anotada; desde
                       la ficha lo único que se hace es registrar lo que
                       volvió, y lo que sigue afuera conserva su fecha. */}
-                  {cantidadDevuelta > 0 && restante > 0 && !desdeLaFicha && (
+                  {cantidadDevuelta > 0 && restante > 0 && !desdeLaFicha && !yaPactada && (
                     <Box sx={{ mt: 1.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
                       <Typography
                         variant="caption"

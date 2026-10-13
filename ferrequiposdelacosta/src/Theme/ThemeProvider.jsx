@@ -513,6 +513,7 @@ export const CustomThemeProvider = ({ children }) => {
             sinRespuesta: "#6B7280", // gris — se llamó y no contestó
             prorroga: "#2563EB", // azul — se autorizó más tiempo
             parcial: "#7C3AED", // violeta — devolvió una parte
+            entregaPactada: "#0EA5E9", // celeste — avisó que entrega, falta recogerlo
             cobro: "#EA580C", // naranja — devolvió todo, debe plata
           },
 
@@ -529,6 +530,10 @@ export const CustomThemeProvider = ({ children }) => {
             activo: "#16A34A", // el verde de la factura activa: alquiler vigente
             ampliacion: "#2563EB", // el azul de la gestión prórroga: se le dio más tiempo
             vencido: "#DC2626", // el rojo de la factura vencida: se pasó la fecha
+            // El único que sí es nuevo: por recoger no es ninguna de las otras
+            // ideas —ni corre, ni venció, ni volvió—. Celeste, el mismo de la
+            // gestión "entrega pactada" que lo deja así.
+            porRecoger: "#0EA5E9",
             devuelto: "#64748B", // el gris azulado de seccionDevuelto: ya volvió
           },
 

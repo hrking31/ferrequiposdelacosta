@@ -321,6 +321,35 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
     expect(screen.queryByText("Saldo factura")).not.toBeInTheDocument();
   });
 
+  // LA ENTREGA PACTADA: el cliente avisó y el equipo llega después. Ya no se
+  // le cobra, pero sigue en la obra, así que la factura se queda en cartera y
+  // el equipo se ve —por recoger—, que es justo para lo que está acá.
+  it("el equipo con entrega pactada se ve por recoger, con la cuenta detenida", async () => {
+    const porRecoger = facturaCon({
+      equipos: [
+        andamio({
+          vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: "2026-08-06" })],
+          entregaPactada: { fecha: "2026-08-07" },
+        }),
+      ],
+      gestiones: [{ tipo: "entregaPactada", unidades: 5, fecha: "2026-08-07" }],
+    });
+    const { usuario } = mostrar([porRecoger]);
+
+    // No está acá por la plata ni por un vencimiento.
+    expect(screen.queryByText("Saldo factura")).not.toBeInTheDocument();
+    expect(screen.queryByText("Vencida")).not.toBeInTheDocument();
+
+    await desplegarFactura(usuario);
+
+    expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Por recoger/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Cuenta detenida")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Entrega pactada: 5 equipos — cuenta detenida/),
+    ).toBeInTheDocument();
+  });
+
   it("no muestra lo que el cliente había devuelto en plazo", async () => {
     const { usuario } = mostrar([facturaConDevueltoEnPlazo]);
     await desplegarFactura(usuario);

@@ -301,6 +301,33 @@ Cómo se resuelve eso cambió de raíz, y vale la pena contarlo porque es el eje
 
 En pantalla queda un chip que dice *"Devolvió 2 días antes"*, sin cifra: es un hecho, y poner un número haría pensar que hay una plata a favor que ya no existe.
 
+### El vencido que vuelve antes de las 3 p.m. no paga ese día
+
+La app cuenta por fecha, no por hora: a la medianoche el equipo vencido ya trae cobrado el día que empieza. La factura 0729 lo mostró el 2026-10-13 —seis cerchas vencidas desde el 10/10, a $9.000 el día entre todas—: el cliente las entregaba a las 10 de la mañana y la cuenta ya decía 4 días, $36.000.
+
+La regla que fijó el dueño es la misma hora de corte del despacho, mirada desde el otro lado: **el que entrega antes de las 3 p.m. no alcanzó a usar el día, y no se le cobra**. Con las cerchas, 3 días y $27.000.
+
+- **Vale solo para los días vencidos.** El que devuelve en plazo paga el día en que vuelve, como siempre: ese día ya lo tenía pactado.
+- **Es una casilla, no un candado.** *"Cobrar el día de hoy"* viene marcada según la hora y se puede cambiar: el reloj mira cuándo se anota, y el cliente pudo entregar a las 10 y que lo registren a las 4.
+- **La fecha de devolución no se toca.** El equipo volvió el 13 y eso es lo que queda escrito; lo que se corre es el cierre de su mora, que termina el 12. La devolución guarda que ese día no se cobró, y la historia del equipo lo dice.
+
+### La entrega pactada: la cuenta se detiene antes de que el equipo llegue
+
+El cliente llama: ya terminó, pero el equipo no puede llegar a la bodega hasta el jueves. Cobrarle esos días es cobrarle una demora que muchas veces ni es suya.
+
+En el diálogo de devolver se elige **"Entrega pactada"** en vez de "Llegó a la bodega", y pasan tres cosas:
+
+1. **La cuenta se detiene el día del aviso**, y ese día no se cobra —sea de mañana o de tarde: acá la regla de las 3 p.m. no aplica—. Con las cerchas, avisando el 13: 10, 11 y 12, $27.000, lleguen cuando lleguen.
+2. **El equipo NO queda devuelto.** Pasa a un estado nuevo, **"Por recoger"**: sigue afuera, con su depósito guardado, y nadie califica todavía cómo volvió, porque nadie lo vio.
+3. **La factura se queda en Seguimiento** aunque ya no tenga nada vencido ni deba plata. Si saliera de cartera, ese equipo quedaba en la obra sin que nadie lo tuviera a la vista.
+
+Cuando el equipo llega, se registra la devolución de siempre —cómo volvió, lo retenido, el depósito— y **no suma ni un día**. Y si no llega, la entrega se **anula**: la cuenta vuelve a correr desde el día en que se había detenido, como si nunca hubiera parado. Perdonar alguno de esos días se negocia aparte, con el descuento de vencidos.
+
+Por dentro es un solo dato —el día del aviso, anotado en el equipo— y una sola pregunta, `ultimoDiaCobrado`, que contestan todas las cuentas: hoy, el día en que volvió, o el anterior al aviso. La madrugada no le abre mora a un equipo por recoger y un pago posterior no le cobra los días detenidos: sin esas dos guardas, cualquiera de las dos cosas le devolvía en silencio la plata que se había pactado no cobrar.
+
+> [!NOTE]
+> **El día en que salió se cobra siempre.** Pactar la entrega el mismo día del despacho dejaba un alquiler de cero días; ese es el único piso.
+
 ### 4. Las gestiones: la bitácora del cobro
 
 El estado dice en qué punto está la factura. **La gestión dice qué se hizo para destrabarla.** Solo se ve en Seguimiento, y solo entran ahí las facturas *Vencidas* y en *Cobro*.

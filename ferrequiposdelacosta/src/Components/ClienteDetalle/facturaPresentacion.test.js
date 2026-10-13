@@ -509,3 +509,105 @@ describe("describirSalidaEquipo", () => {
     expect(describirSalidaEquipo(unEquipo({ fechaDespacho: null }))).toBeNull();
   });
 });
+
+// LA ENTREGA PACTADA en la historia: el día del aviso es un hito, y desde ahí
+// el equipo no tiene más vencimientos por delante.
+describe("la entrega pactada en la historia del equipo", () => {
+  // Las cerchas de la 0729: salieron el 30/09 por 10 días, se vencieron el
+  // 10/10 y el 13 el cliente avisó que las entregaba.
+  const cerchas = (extra = {}) =>
+    unEquipo({
+      nombre: "CERCHAS METALICAS",
+      cantidad: 6,
+      valorDia: 1500,
+      dias: 10,
+      fechaDespacho: "2026-09-30",
+      vencidos: [unTramoVencido({ desde: "2026-10-10", hasta: "2026-10-12" })],
+      entregaPactada: { fecha: "2026-10-13" },
+      ...extra,
+    });
+  const claves = (equipo, hoy) => historialEquipo(equipo, hoy).map((hito) => hito.clave);
+
+  it("cuenta el aviso con su día y deja al equipo por recoger", () => {
+    const hitos = historialEquipo(cerchas(), "2026-10-20");
+
+    expect(hitos.map((hito) => hito.clave)).toEqual([
+      "salida",
+      "vencimiento-0",
+      "vencidos-0",
+      "entrega-pactada",
+    ]);
+    expect(hitos.at(-1)).toMatchObject({
+      fecha: "2026-10-13",
+      titulo: "Entrega pactada",
+      chip: "porRecoger",
+    });
+    // Los tres días vencidos de antes del aviso, y ni uno más.
+    expect(hitos[2]).toMatchObject({ detalle: "3 días", valor: 27000 });
+  });
+
+  it("es lo último que pasó y lo último que se acordó", () => {
+    expect(eventoAnterior(cerchas(), "2026-10-20")).toMatchObject({
+      clave: "entrega-pactada",
+    });
+    expect(ultimoAcuerdoEquipo(cerchas())).toEqual({
+      fecha: "2026-10-13",
+      texto: "Se pactó la entrega",
+    });
+  });
+
+  it("pactada en plazo, no anuncia un próximo vencimiento", () => {
+    const enPlazo = cerchas({ vencidos: [], entregaPactada: { fecha: "2026-10-07" } });
+
+    expect(claves(enPlazo, "2026-10-07")).toEqual(["salida", "entrega-pactada"]);
+  });
+
+  it("anulada, lo dice con su día y la mora vuelve a la historia", () => {
+    const anulada = cerchas({
+      vencidos: [
+        unTramoVencido({ desde: "2026-10-10", hasta: "2026-10-12" }),
+        unTramoVencido({ desde: "2026-10-13", hasta: null }),
+      ],
+      entregaPactada: { fecha: "2026-10-13", anuladaEl: "2026-10-16" },
+    });
+    const hitos = historialEquipo(anulada, "2026-10-16");
+
+    expect(hitos.map((hito) => hito.clave)).toEqual([
+      "salida",
+      "vencimiento-0",
+      "vencidos-0",
+      "entrega-pactada",
+      "entrega-anulada",
+      "vencidos-hoy",
+    ]);
+    // Ya no está por recoger: el hito del aviso pierde su rótulo.
+    expect(hitos[3].chip).toBeNull();
+    expect(hitos.at(-1)).toMatchObject({ detalle: "4 días", valor: 36000 });
+  });
+
+  it("al llegar a la bodega, la devolución cierra la historia", () => {
+    const enBodega = cerchas({
+      devolucion: { fechaDevolucion: "2026-10-15", buenEstado: true, valorRetenido: 0 },
+    });
+
+    expect(claves(enBodega, "2026-10-20").at(-1)).toBe("devolucion");
+    expect(historialEquipo(enBodega, "2026-10-20")[3].chip).toBeNull();
+  });
+});
+
+describe("la devolución de un vencido antes de las 3 p.m.", () => {
+  it("dice que ese día no se cobró", () => {
+    const equipo = unEquipoDevuelto({
+      fechaDespacho: "2026-09-30",
+      dias: 10,
+      vencidos: [unTramoVencido({ desde: "2026-10-10", hasta: "2026-10-12" })],
+      fechaDevolucion: "2026-10-13",
+    });
+    equipo.devolucion.diaCobrado = false;
+
+    expect(historialEquipo(equipo, "2026-10-20").at(-1)).toMatchObject({
+      clave: "devolucion",
+      detalle: "El equipo volvió a bodega. Ese día no se cobró.",
+    });
+  });
+});

@@ -56,6 +56,10 @@ import {
   calcularFechaDevolucion,
   cubiertoHasta,
   calcularVencimiento,
+  seCobraElDiaAlDevolver,
+  ultimoDiaCobrado,
+  pactarEntrega,
+  anularEntregaPactada,
 } from "./facturaCuentas";
 import { GRUPO_INICIAL } from "./facturaModelo";
 
@@ -151,6 +155,16 @@ describe("la regla de las 3 p.m.", () => {
   it("a las 3 en punto ya sale mañana", () => {
     alasHoraBogota("2026-09-08T20:00:00Z"); // 15:00 en Bogotá
     expect(obtenerFechaDespachoSugerida()).toBe("2026-09-09");
+  });
+
+  // La misma hora, mirada desde la devolución: el vencido que vuelve antes de
+  // las 3 no paga ese día.
+  it("el vencido que vuelve antes de las 3 no paga el día; desde las 3, sí", () => {
+    alasHoraBogota("2026-09-08T19:59:00Z"); // 14:59 en Bogotá
+    expect(seCobraElDiaAlDevolver()).toBe(false);
+
+    alasHoraBogota("2026-09-08T20:00:00Z"); // 15:00 en Bogotá
+    expect(seCobraElDiaAlDevolver()).toBe(true);
   });
 
   it("y de noche también, contando el día de Bogotá y no el de UTC", () => {
@@ -1893,7 +1907,7 @@ describe("qué tiene la factura encima", () => {
     expect(describirMovimientosFactura(conTodo)).toEqual([
       "1 abono",
       "1 despacho agregado",
-      "1 equipo y sus registros de ampliación o devolución",
+      "1 equipo y sus registros de ampliación, entrega pactada o devolución",
       "el depósito ya resuelto",
     ]);
   });
@@ -2042,5 +2056,218 @@ describe("tramosDeEquipo", () => {
       ["inicial", 4],
       ["ampliados", 3],
     ]);
+  });
+});
+
+// ── LA ENTREGA PACTADA ─────────────────────────────────────────────────
+//
+// El cliente avisa que ya terminó y el equipo llega a la bodega después. La
+// cuenta se detiene el día del aviso —que no se cobra— y el equipo sigue
+// afuera, por recoger, hasta que alguien lo recibe. Regla del dueño,
+// 2026-10-13.
+describe("la entrega pactada", () => {
+  // Las cerchas de la 0729: 6 a $1.500, salieron el 30/09 por 10 días
+  // —cubiertas hasta el 09/10— y llevan vencidas desde el 10. El cliente
+  // avisa el 13.
+  const AVISO = "2026-10-13";
+  const cerchas = (extra = {}) =>
+    equipo({
+      nombre: "CERCHAS METALICAS",
+      cantidadEquipos: 6,
+      valorDia: 1500,
+      fechaDespacho: "2026-09-30",
+      diasAlquilados: 10,
+      vencidos: [tramo("2026-10-10")],
+      ...extra,
+    });
+  const pactadas = () => pactarEntrega(cerchas(), AVISO);
+
+  it("sin entrega pactada se cobra hasta hoy, o hasta el día en que volvió", () => {
+    expect(ultimoDiaCobrado(cerchas(), AVISO)).toBe(AVISO);
+    expect(
+      ultimoDiaCobrado(
+        cerchas({ devolucion: { fechaDevolucion: "2026-10-11" } }),
+        AVISO,
+      ),
+    ).toBe("2026-10-11");
+  });
+
+  it("detiene la cuenta el día anterior al aviso: el día de la llamada no se cobra", () => {
+    const equipoPactado = pactadas();
+
+    expect(equipoPactado.entregaPactada).toEqual({ fecha: AVISO });
+    // La mora quedó cerrada el 12: 10, 11 y 12.
+    expect(equipoPactado.vencidos).toEqual([tramo("2026-10-10", "2026-10-12")]);
+    expect(ultimoDiaCobrado(equipoPactado, AVISO)).toBe("2026-10-12");
+
+    const cuenta = calcularEquipo(equipoPactado, AVISO);
+    expect(cuenta.diasPactados).toBe(10);
+    expect(cuenta.diasVencidos).toBe(3);
+    // 10 días pactados + 3 vencidos, a $9.000 el día.
+    expect(cuenta.neto).toBe(90000 + 27000);
+  });
+
+  it("y ahí se queda, pasen los días que pasen", () => {
+    const unaSemanaDespues = calcularEquipo(pactadas(), "2026-10-20");
+
+    expect(unaSemanaDespues.diasVencidos).toBe(3);
+    expect(unaSemanaDespues.neto).toBe(117000);
+    expect(vencidoQueCorre(pactadas(), "2026-10-20")).toEqual({ dias: 0, valor: 0 });
+  });
+
+  it("el equipo NO queda devuelto: sigue afuera, por recoger", () => {
+    const equipoPactado = pactadas();
+
+    expect(equipoPactado.devolucion).toBeUndefined();
+    expect(calcularEstadoEquipo(equipoPactado, "2026-10-20")).toBe("porRecoger");
+    expect(equipoVencido(equipoPactado, "2026-10-20")).toBe(false);
+    expect(equipoAlDia(equipoPactado, "2026-10-20")).toBe(false);
+  });
+
+  it("la madrugada no le abre mora a un equipo que solo espera que lo recojan", () => {
+    const equipoPactado = pactadas();
+
+    expect(abrirTramoVencido(equipoPactado, "2026-10-20")).toBe(equipoPactado);
+    expect(abrirTramosFactura(facturaCon([equipoPactado]), "2026-10-20")).toBeNull();
+  });
+
+  it("un pago posterior no le cobra los días que estuvo detenida", () => {
+    // Sin la guarda, sellar la factura le anotaba un tramo del 13 al 20.
+    expect(sellarFacturaPagada(facturaCon([pactadas()]), "2026-10-20")).toBeNull();
+  });
+
+  it("al llegar a la bodega no suma ni un día, llegue cuando llegue", () => {
+    const yaEnBodega = {
+      ...pactadas(),
+      devolucion: { fechaDevolucion: "2026-10-15", buenEstado: true, valorRetenido: 0 },
+    };
+
+    expect(calcularEstadoEquipo(yaEnBodega, "2026-10-30")).toBe("devuelto");
+    expect(ultimoDiaCobrado(yaEnBodega, "2026-10-30")).toBe("2026-10-12");
+    expect(calcularEquipo(yaEnBodega, "2026-10-30")).toMatchObject({
+      dias: 13,
+      neto: 117000,
+    });
+  });
+
+  it("la suma de los tramos sigue dando el neto", () => {
+    const tramos = tramosDeEquipo(pactadas(), "2026-10-20");
+
+    expect(tramos.reduce((total, t) => total + t.valor, 0)).toBe(117000);
+  });
+
+  it("en plazo: no se cobran ni el día del aviso ni los que quedaban sin usar", () => {
+    // Mismas cerchas, pero el cliente avisa el 07/10, dos días antes de vencer.
+    const enPlazo = pactarEntrega(cerchas({ vencidos: [] }), "2026-10-07");
+
+    // Del 30/09 al 06/10: 7 días.
+    expect(calcularEquipo(enPlazo, "2026-10-20")).toMatchObject({
+      dias: 7,
+      diasVencidos: 0,
+      neto: 63000,
+    });
+    // No se le inventa un vencimiento: nunca llegó a pasarse.
+    expect(enPlazo.vencidos).toEqual([]);
+  });
+
+  it("si vencía ayer, deja constancia de que llegó a vencerse sin cobrarle nada", () => {
+    // Cubierto hasta el 12/10 y avisa el 13: todavía no le corrió ni un día.
+    const alFilo = pactarEntrega(
+      cerchas({ diasAlquilados: 13, vencidos: [] }),
+      AVISO,
+    );
+
+    expect(alFilo.vencidos).toEqual([tramo("2026-10-13", "2026-10-12")]);
+    expect(calcularEquipo(alFilo, "2026-10-20")).toMatchObject({
+      dias: 13,
+      diasVencidos: 0,
+    });
+  });
+
+  it("el día en que salió se cobra siempre, aunque se pacte ese mismo día", () => {
+    const delMismoDia = pactarEntrega(
+      cerchas({ fechaDespacho: AVISO, vencidos: [] }),
+      AVISO,
+    );
+
+    expect(calcularEquipo(delMismoDia, "2026-10-20").dias).toBe(1);
+  });
+
+  it("apaga la entrega indefinida: ya se sabe que vuelve", () => {
+    const sinFecha = cerchas({
+      vencidos: [tramo("2026-10-10", null, true)],
+      indefinida: { activa: true, desde: "2026-10-09", hasta: null },
+    });
+
+    expect(pactarEntrega(sinFecha, AVISO).indefinida).toEqual({
+      activa: false,
+      desde: "2026-10-09",
+      hasta: AVISO,
+    });
+  });
+
+  it("deja la factura en cartera aunque ya no haya nada vencido", () => {
+    // Pagada entera: sin el equipo por recoger, estaría activa y fuera de
+    // Seguimiento, con las cerchas en la obra y nadie mirándolas.
+    const doc = facturaCon([pactarEntrega(cerchas({ vencidos: [] }), "2026-10-07")], {
+      pagos: [{ medio: "Efectivo", monto: 63000 }],
+    });
+
+    expect(calcularCuentaFactura(doc, "2026-10-20").saldoPendiente).toBe(0);
+    expect(calcularEstadoFactura(doc, "2026-10-20")).toBe("vencida");
+    // Pero no hay nada que reclamarle por vencido.
+    expect(contarUnidadesVencidas(doc, "2026-10-20")).toBe(0);
+    expect(plazoVencidoFactura(doc, "2026-10-20")).toBeNull();
+    expect(equiposQueVencieronHoy(doc, "2026-10-20", "2026-10-19")).toEqual([]);
+  });
+
+  it("la gestión vigente es la entrega pactada, hasta que se anula", () => {
+    const pactada = { tipo: "entregaPactada", fecha: AVISO, hora: "10:00" };
+    const doc = facturaCon([pactadas()], { gestiones: [pactada] });
+    expect(calcularGestionFactura(doc, "vencida")).toBe("entregaPactada");
+
+    const anulada = facturaCon([anularEntregaPactada(pactadas(), "2026-10-16")], {
+      gestiones: [pactada, { tipo: "entregaAnulada", fecha: "2026-10-16", hora: "9:00" }],
+    });
+    expect(calcularGestionFactura(anulada, "vencida")).toBe("sinGestionar");
+  });
+
+  describe("anularla, porque el equipo no llegó", () => {
+    const anuladas = () => anularEntregaPactada(pactadas(), "2026-10-16");
+
+    it("la cuenta vuelve a correr desde el día en que se había detenido", () => {
+      const equipoAnulado = anuladas();
+
+      expect(equipoAnulado.entregaPactada).toEqual({
+        fecha: AVISO,
+        anuladaEl: "2026-10-16",
+      });
+      // El tramo viejo quedó como estaba y se abre otro desde el día del aviso.
+      expect(equipoAnulado.vencidos).toEqual([
+        tramo("2026-10-10", "2026-10-12"),
+        tramo("2026-10-13"),
+      ]);
+      // 3 de antes + 13, 14, 15 y 16: como si nunca hubiera parado.
+      expect(calcularEquipo(equipoAnulado, "2026-10-16").diasVencidos).toBe(7);
+      expect(calcularEstadoEquipo(equipoAnulado, "2026-10-16")).toBe("vencido");
+    });
+
+    it("en plazo, vuelve a deber lo que tenía pactado", () => {
+      const enPlazo = anularEntregaPactada(
+        pactarEntrega(cerchas({ vencidos: [] }), "2026-10-07"),
+        "2026-10-08",
+      );
+
+      expect(calcularEquipo(enPlazo, "2026-10-08")).toMatchObject({
+        dias: 10,
+        diasVencidos: 0,
+      });
+      expect(calcularEstadoEquipo(enPlazo, "2026-10-08")).toBe("activo");
+    });
+
+    it("al que no tiene entrega pactada no le hace nada", () => {
+      const sinPacto = cerchas();
+      expect(anularEntregaPactada(sinPacto, "2026-10-16")).toBe(sinPacto);
+    });
   });
 });

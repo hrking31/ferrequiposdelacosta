@@ -24,6 +24,7 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import PhoneMissedIcon from "@mui/icons-material/PhoneMissed";
 import EventRepeatIcon from "@mui/icons-material/EventRepeat";
 import AssignmentReturnIcon from "@mui/icons-material/AssignmentReturn";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import {
   calcularFechaDevolucion,
   calcularEstadoEquipo,
@@ -32,10 +33,13 @@ import {
   cubiertoHasta,
   diasDeEquipo,
   obtenerFechaHoyBogota,
+  ultimoDiaCobrado,
 } from "./facturaCuentas";
 import {
   ampliacionesDe,
+  entregaPactadaDe,
   estaDevuelto,
+  estaPorRecoger,
   indefinidaDe,
   vencidosDe,
 } from "./facturaModelo";
@@ -65,6 +69,9 @@ export const ESTADO_EQUIPO_INFO = {
   activo: { label: "Activo" },
   ampliacion: { label: "Ampliación" },
   vencido: { label: "Vencido" },
+  // Se pactó la entrega y el equipo todavía no llegó a la bodega: ya no se
+  // le cobra, pero sigue afuera.
+  porRecoger: { label: "Por recoger" },
   devuelto: { label: "Devuelto" },
 };
 
@@ -103,6 +110,8 @@ export const GESTION_INFO = {
   // que todos los demás— para una etiqueta que se entiende igual.
   devolucionParcial: { label: "Parcial", Icono: AssignmentReturnIcon },
   devolucionTotal: { label: "Devolución total", Icono: AssignmentReturnIcon },
+  // El camión: el equipo todavía tiene que hacer el viaje de vuelta.
+  entregaPactada: { label: "Entrega pactada", Icono: LocalShippingIcon },
   cobro: { label: "Cobro", Icono: PaidIcon },
 };
 
@@ -143,7 +152,9 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const indefinida = indefinidaDe(equipo);
   const tramos = vencidosDe(equipo);
   const cubierto = cubiertoHasta(equipo);
-  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  // Hasta qué día se le cobra: hoy, el día en que volvió, o el anterior al
+  // aviso si se pactó la entrega (ver ultimoDiaCobrado).
+  const corte = ultimoDiaCobrado(equipo, hoyIso);
 
   const hitos = [];
 
@@ -283,6 +294,31 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     });
   }
 
+  // 5b. LA ENTREGA PACTADA: el día en que el cliente avisó y la cuenta se
+  // detuvo. Si después se anuló —el equipo no llegó— eso también es un hito,
+  // con su día: de ahí en adelante se le volvió a cobrar.
+  const pactada = entregaPactadaDe(equipo);
+  if (pactada?.fecha) {
+    hitos.push({
+      clave: "entrega-pactada",
+      fecha: pactada.fecha,
+      tono: "porRecoger",
+      titulo: "Entrega pactada",
+      detalle: "Cuenta detenida: el equipo llega después a la bodega.",
+      chip: estaPorRecoger(equipo) ? "porRecoger" : null,
+    });
+
+    if (pactada.anuladaEl) {
+      hitos.push({
+        clave: "entrega-anulada",
+        fecha: pactada.anuladaEl,
+        tono: "vencido",
+        titulo: "Entrega pactada anulada",
+        detalle: "El equipo no llegó: la cuenta volvió a correr.",
+      });
+    }
+  }
+
   // 6. EL TRAMO QUE ESTÁ CORRIENDO. A diferencia de los de arriba, este no
   // está cerrado: crece un día por cada día que pasa, y por eso va en rojo —
   // es lo único de toda la historia que todavía se le reclama.
@@ -303,6 +339,10 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   // 7. LA VUELTA A BODEGA, con lo que se haya retenido por daños.
   if (devuelto && equipo?.devolucion?.fechaDevolucion) {
     const retenido = Number(equipo.devolucion.valorRetenido) || 0;
+    // Volvió vencido antes de las 3 p.m.: ese día no entró en la cuenta, y
+    // sin decirlo el último tramo parece tener un día de menos.
+    const sinCobrarElDia =
+      equipo.devolucion.diaCobrado === false ? " Ese día no se cobró." : "";
     hitos.push({
       clave: "devolucion",
       fecha: equipo.devolucion.fechaDevolucion,
@@ -313,9 +353,7 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
       // equipo volvió antes de tiempo.
       detalle: equipo.devolucion.motivoDevolucion
         ? `Cliente: ${equipo.devolucion.motivoDevolucion}`
-        : retenido > 0
-          ? "Volvió con daños."
-          : "El equipo volvió a bodega.",
+        : `${retenido > 0 ? "Volvió con daños." : "El equipo volvió a bodega."}${sinCobrarElDia}`,
       valor: retenido > 0 ? retenido : null,
       valorTono: "vencido",
       chip: retenido > 0 ? null : "devuelto",
@@ -330,7 +368,15 @@ export const historialEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   // vencimiento cualquiera. La que ya pasó la cuenta arriba el plazo cumplido,
   // y sin esta condición el mismo día saldría dos veces —una como "venció" y
   // otra como "próximo"— en cuanto un equipo amanece pasado de fecha.
-  if (!devuelto && cubierto && !indefinida?.activa && cubierto >= hoyIso) {
+  //
+  // El que está por recoger tampoco: ya no tiene un vencimiento por delante.
+  if (
+    !devuelto &&
+    estado !== "porRecoger" &&
+    cubierto &&
+    !indefinida?.activa &&
+    cubierto >= hoyIso
+  ) {
     hitos.push({
       clave: "proximo-vencimiento",
       fecha: cubierto,
@@ -386,6 +432,12 @@ export const eventoAnterior = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
 // El devuelto no lleva nada: ya no hay nada que acordarle.
 export const ultimoAcuerdoEquipo = (equipo) => {
   if (estaDevuelto(equipo)) return null;
+
+  // La entrega pactada es lo último que se habló y lo único vigente: el
+  // cliente ya avisó, solo falta ir por el equipo.
+  if (estaPorRecoger(equipo)) {
+    return { fecha: entregaPactadaDe(equipo).fecha, texto: "Se pactó la entrega" };
+  }
 
   // Sin fecha de entrega manda sobre la última ampliación: es el acuerdo que
   // está vigente, y el que explica por qué este equipo no tiene fecha.

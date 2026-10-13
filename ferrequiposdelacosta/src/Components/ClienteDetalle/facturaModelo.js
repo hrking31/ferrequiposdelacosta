@@ -25,7 +25,8 @@
 //                                      diasAlquilados, fechaDespacho,
 //                                      aplicaIva,
 //                                      ampliaciones[], vencidos[],
-//                                      indefinida{}?, devolucion{}? }
+//                                      indefinida{}?, entregaPactada{}?,
+//                                      devolucion{}? }
 //
 //                     ampliaciones[]  lo que el cliente PIDIÓ, y nada más:
 //                                     { fecha, dias, desde, hasta, descuento }
@@ -38,6 +39,14 @@
 //                     indefinida{}    { activa, desde, hasta } — desde cuándo
 //                                     quedó sin fecha de entrega y hasta
 //                                     cuándo lo estuvo.
+//                     entregaPactada{} { fecha, anuladaEl? } — el cliente
+//                                     avisó que ya terminó y el equipo llega
+//                                     a la bodega después. `fecha` es el día
+//                                     del aviso: desde ese día, incluido, no
+//                                     se le cobra más (ver ultimoDiaCobrado).
+//                                     `anuladaEl` la deja sin efecto: el
+//                                     equipo no llegó y la cuenta volvió a
+//                                     correr.
 //
 // ── HASTA CUÁNDO ESTÁ CUBIERTO UN EQUIPO, que NO se guarda ────────────
 //
@@ -60,6 +69,9 @@
 //                   devolucion{}    fechaDevolucion, buenEstado,
 //                                   motivo          qué le PASÓ (si volvió mal)
 //                                   valorRetenido
+//                                   diaCobrado?     false si volvió vencido
+//                                                   antes de las 3 p.m. y ese
+//                                                   día no se le cobró
 //                                   motivoDevolucion?  por qué lo DEVUELVE,
 //                                                      solo si lo anotaron
 //
@@ -181,6 +193,21 @@ export const sinFechaDeEntrega = (equipo) =>
 // dos. Por eso alcanza con mirar si tiene el nodo, sin restar cantidades.
 export const estaDevuelto = (equipo) => Boolean(equipo?.devolucion);
 export const sigueAfuera = (equipo) => !equipo?.devolucion;
+
+// LA ENTREGA PACTADA: el cliente avisó que ya terminó, pero el equipo llega a
+// la bodega después. Desde ese aviso no se le cobra más, y el equipo sigue
+// afuera hasta que alguien lo recibe y registra la devolución.
+//
+// Anulada no cuenta: el equipo no llegó y la cuenta volvió a correr. El nodo
+// se queda igual, con su fecha, porque es parte de la historia del equipo.
+export const entregaPactadaDe = (equipo) => equipo?.entregaPactada ?? null;
+
+export const tieneEntregaPactada = (equipo) =>
+  Boolean(equipo?.entregaPactada?.fecha) && !equipo.entregaPactada.anuladaEl;
+
+// Por recoger: se pactó la entrega y todavía no llegó a la bodega.
+export const estaPorRecoger = (equipo) =>
+  sigueAfuera(equipo) && tieneEntregaPactada(equipo);
 
 // Los que todavía están en la obra.
 export const equiposAfuera = (doc) =>

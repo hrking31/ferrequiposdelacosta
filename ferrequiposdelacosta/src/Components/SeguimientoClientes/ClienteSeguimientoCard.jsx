@@ -57,6 +57,9 @@ import {
   cubiertoHasta,
   sinFechaDeEntrega,
   indefinidaDe,
+  entregaPactadaDe,
+  estaPorRecoger,
+  diferenciaEnDias,
   tramoVencidoAbierto,
   calcularVencimiento,
   describirSalidaEquipo,
@@ -105,9 +108,14 @@ const GRUPOS_VENCIMIENTO = [
   { clave: "vencido", titulo: "Vencido" },
   { clave: "vence", titulo: "Vence" },
   { clave: "indefinido", titulo: "Entrega indefinida" },
+  // Al final: es lo menos urgente de la tarjeta. Ya no corre ni un día, solo
+  // falta que el equipo llegue a la bodega.
+  { clave: "porRecoger", titulo: "Por recoger" },
 ];
 
 const clasificarVencimiento = (equipo, hoy) => {
+  // La entrega pactada manda sobre la fecha: ese equipo ya no vence.
+  if (estaPorRecoger(equipo)) return "porRecoger";
   // Hasta cuándo está cubierto no se guarda: se encadena (ver
   // cubiertoHasta en las cuentas).
   const cubierto = cubiertoHasta(equipo);
@@ -214,6 +222,16 @@ const describirGestion = (registro, { compacto = false } = {}) => {
     const cuantos = unidades > 0 ? `: ${unidades} equipo${unidades === 1 ? "" : "s"}` : "";
     const cuanto = registro.tipo === "devolucionTotal" ? "total" : "parcial";
     return `Devolución ${cuanto}${cuantos}`;
+  }
+
+  if (registro.tipo === "entregaPactada") {
+    const unidades = Number(registro.unidades) || 0;
+    const cuantos = unidades > 0 ? `: ${unidades} equipo${unidades === 1 ? "" : "s"}` : "";
+    return `Entrega pactada${cuantos} — cuenta detenida`;
+  }
+
+  if (registro.tipo === "entregaAnulada") {
+    return "Entrega pactada anulada — la cuenta vuelve a correr";
   }
 
   return registro.tipo;
@@ -494,6 +512,9 @@ export default function ClienteSeguimientoCard({
   // usan para el suyo: si estuviera acá suelto, el chip y el rótulo del grupo
   // podrían quedar de colores distintos.
   const colorIndefinido = COLOR_ENTREGA_INDEFINIDA;
+  // El del estado "Por recoger" del equipo: se pactó la entrega y falta que
+  // llegue a la bodega.
+  const colorPorRecoger = theme.palette.custom.estadoEquipo.porRecoger;
 
   // El recuadro teñido de los bloques de factura: borde del color, un
   // resplandor hacia adentro y un degradado en diagonal. Copiado tal cual de
@@ -531,7 +552,9 @@ export default function ClienteSeguimientoCard({
         ? theme.palette.warning.main
         : situacion === "indefinido"
           ? colorIndefinido
-          : theme.palette.text.secondary;
+          : situacion === "porRecoger"
+            ? colorPorRecoger
+            : theme.palette.text.secondary;
 
   // LA MISMA CUADRÍCULA QUE LA FICHA DEL CLIENTE: dos equipos por fila en
   // pantalla grande, uno solo en el celular. Un equipo por renglón dejaba
@@ -574,7 +597,9 @@ export default function ClienteSeguimientoCard({
       ? EventBusyIcon
       : situacion === "indefinido"
         ? HourglassTopIcon
-        : EventIcon;
+        : situacion === "porRecoger"
+          ? LocalShippingIcon
+          : EventIcon;
 
   // LAS CONDICIONES DEL EQUIPO, en la misma pizarra que la cuenta de la
   // factura: cuatro casillas del mismo ancho separadas por una línea. Eran
@@ -607,7 +632,9 @@ export default function ClienteSeguimientoCard({
     // decide su grupo y su color, así que la casilla no puede decir otra cosa
     // que el rótulo de arriba.
     const tramoDelEstado =
-      situacion === "indefinido"
+      situacion === "porRecoger"
+        ? entregaPactadaDe(equipo).fecha
+        : situacion === "indefinido"
         ? indefinidaDe(equipo).desde
         : situacion === "vencido"
           ? tramoVencidoAbierto(equipo)?.desde ||
@@ -706,7 +733,13 @@ export default function ClienteSeguimientoCard({
       //
       // Al que se le acaba el plazo HOY le dice "0 días vencidos": ese día
       // todavía está pagado y no debe nada de más, la mora le empieza mañana.
-      rotulo: `${formatearDias(diasVencidos)} vencidos`,
+      //
+      // Al que está por recoger no le corre nada: la casilla dice eso, en vez
+      // de un "0 días vencidos" que se leería como que acaba de vencer.
+      rotulo:
+        situacion === "porRecoger"
+          ? "Cuenta detenida"
+          : `${formatearDias(diasVencidos)} vencidos`,
       // La cifra va SIN IVA, que es como se cotiza: el impuesto se suma al
       // final, sobre el total de la factura.
       //
@@ -732,16 +765,24 @@ export default function ClienteSeguimientoCard({
       Icono: iconoDeSituacion(situacion),
       rotulo: null,
       valor:
-        situacion === "indefinido"
-          ? "Entrega indefinida"
-          : situacion === "vencido"
-            ? "Vencido"
-            : "Vence hoy",
+        situacion === "porRecoger"
+          ? "Por recoger"
+          : situacion === "indefinido"
+            ? "Entrega indefinida"
+            : situacion === "vencido"
+              ? "Vencido"
+              : "Vence hoy",
+      // El que está por recoger lleva el día en que se pactó y cuánto hace:
+      // es lo que dice si ya es hora de volver a llamar.
       extra: !tramoDelEstado
         ? null
-        : situacion === "indefinido"
-          ? formatearFecha(tramoDelEstado)
-          : `${formatearFecha(tramoDelEstado)} - ${formatearFecha(hoy)}`,
+        : situacion === "porRecoger"
+          ? `${formatearFecha(tramoDelEstado)} · ${formatearDias(
+              Math.max(0, diferenciaEnDias(tramoDelEstado, hoy)),
+            )}`
+          : situacion === "indefinido"
+            ? formatearFecha(tramoDelEstado)
+            : `${formatearFecha(tramoDelEstado)} - ${formatearFecha(hoy)}`,
       // "Entrega indefinida" no entra en un cuarto del hueco: baja de línea
       // en vez de cortarse a la mitad.
       envolver: true,
@@ -938,10 +979,20 @@ export default function ClienteSeguimientoCard({
   // que decir lo mismo, en el mismo orden.
   const gruposEnCartera = agruparPorVencimiento(
     equiposDe(factura)
-      .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo, hoy))
+      // Y los que están por recoger: ya no se les cobra, pero siguen en la
+      // obra y alguien tiene que ir por ellos.
+      .filter(
+        ({ equipo }) =>
+          sigueAfuera(equipo) &&
+          (equipoVencido(equipo, hoy) || estaPorRecoger(equipo)),
+      )
       .map(({ equipo }) => equipo),
     hoy,
   );
+  // Sin ningún equipo vencido pero con alguno por recoger: la factura no está
+  // acá por la plata sino por ese equipo, y el rótulo lo dice.
+  const soloPorRecoger =
+    !plazo && equiposDe(factura).some(({ equipo }) => estaPorRecoger(equipo));
 
   // CUÁNTAS UNIDADES hay afuera, no cuántas líneas: el cliente tiene "3
   // andamios y 1 mezcladora", no "dos equipos".
@@ -1393,7 +1444,13 @@ export default function ClienteSeguimientoCard({
                       ninguno. */}
                   <IconoMotivo fontSize="small" sx={{ color: colorMotivo }} />
                   <Typography variant="body2" sx={{ color: colorMotivo }}>
-                    {!plazo ? "Saldo factura" : plazo.indefinida ? "Indefinida" : "Vencida"}
+                    {soloPorRecoger
+                      ? "Por recoger"
+                      : !plazo
+                        ? "Saldo factura"
+                        : plazo.indefinida
+                          ? "Indefinida"
+                          : "Vencida"}
                   </Typography>
                   {plazo && !esMovil && (
                     <Typography variant="body2" fontWeight="bold">
@@ -1923,13 +1980,23 @@ export default function ClienteSeguimientoCard({
                         ? theme.palette.warning.main
                         : grupo.clave === "indefinido"
                           ? colorIndefinido
-                          : theme.palette.text.secondary;
+                          : grupo.clave === "porRecoger"
+                            ? colorPorRecoger
+                            : theme.palette.text.secondary;
+                  // El camión para lo que está por recoger: no tiene fecha
+                  // que vencer, tiene un viaje pendiente.
+                  const IconoGrupo =
+                    grupo.clave === "vencido"
+                      ? EventBusyIcon
+                      : grupo.clave === "porRecoger"
+                        ? LocalShippingIcon
+                        : EventIcon;
 
                   return renderBloqueMovil(
                     `equipos-${factura.id}-${grupo.clave}`,
                     {
                       rotulo: `${grupo.titulo} ${grupo.items.length}`,
-                      Icono: grupo.clave === "vencido" ? EventBusyIcon : EventIcon,
+                      Icono: IconoGrupo,
                       color: colorGrupo,
                     },
                   <Box key={grupo.clave} sx={anchoDelBloque(grupo.items.length)}>
@@ -1959,14 +2026,12 @@ export default function ClienteSeguimientoCard({
                               ? "warning.main"
                               : grupo.clave === "indefinido"
                                 ? colorIndefinido
-                                : "text.secondary",
+                                : grupo.clave === "porRecoger"
+                                  ? colorPorRecoger
+                                  : "text.secondary",
                       }}
                     >
-                      {grupo.clave === "vencido" ? (
-                        <EventBusyIcon fontSize="small" />
-                      ) : (
-                        <EventIcon fontSize="small" />
-                      )}
+                      <IconoGrupo fontSize="small" />
                       {grupo.titulo} {grupo.items.length}
                     </Typography>
                     )}

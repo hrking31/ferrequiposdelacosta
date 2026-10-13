@@ -55,6 +55,7 @@ import {
   sigueAfuera,
   indefinidaDe,
   sinFechaDeEntrega,
+  tieneEntregaPactada,
   tramoVencidoAbierto,
   vencidosDe,
 // Con la extensión .js, y es obligatorio: este archivo viaja como copia al
@@ -130,6 +131,22 @@ export const obtenerFechaDespachoSugerida = () => {
   return aIso(fecha);
 };
 
+// EL EQUIPO VENCIDO QUE VUELVE AHORA, ¿paga el día de hoy?
+//
+// La misma hora de corte del despacho, mirada desde el otro lado: el que
+// entrega antes de las 3 p.m. no alcanzó a usar el día, y no se le cobra; de
+// las 3 p.m. en adelante sí. Regla del dueño, 2026-10-13, con la 0729: las
+// cerchas volvían a las 10 a.m. y la cuenta ya traía ese día cobrado desde la
+// medianoche.
+//
+// Vale SOLO para los días vencidos. El que devuelve en plazo paga el día en
+// que vuelve, como siempre: ese día ya lo tenía pactado.
+//
+// Es lo que se SUGIERE al abrir el diálogo, no una orden: el reloj mira la
+// hora en que se anota, y el cliente pudo haber entregado a las 10 y que lo
+// registren a las 4.
+export const seCobraElDiaAlDevolver = () => obtenerHoraBogota() >= 15;
+
 const aIso = (fecha) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${fecha.getUTCFullYear()}-${pad(fecha.getUTCMonth() + 1)}-${pad(fecha.getUTCDate())}`;
@@ -168,6 +185,36 @@ export const calcularVencimiento = (fechaIso, dias) => {
   return aIso(fecha);
 };
 
+export const diaAnterior = (fechaIso) => calcularVencimiento(fechaIso, -1);
+
+// ── HASTA QUÉ DÍA SE LE COBRA A UN EQUIPO ──────────────────────────────
+//
+// Casi siempre es hoy, o el día en que volvió: ahí se corta la cuenta.
+//
+// La excepción es la ENTREGA PACTADA. El cliente llama, dice que ya terminó,
+// y el equipo llega a la bodega después —el camión no puede ir hasta el
+// jueves—. Desde esa llamada no se le cobra más: el día del aviso queda por
+// fuera, sea de mañana o de tarde, y da igual cuándo llegue el equipo.
+// Regla del dueño, 2026-10-13.
+//
+// Con la 0729: las cerchas llevaban vencidas desde el 10/10 y el cliente avisó
+// el 13. Se cobran el 10, el 11 y el 12 —$27.000— y ahí queda, aunque lleguen
+// el 15.
+//
+// El día en que salió se cobra siempre: sin ese piso, pactar la entrega el
+// mismo día del despacho dejaba un alquiler de cero días.
+export const ultimoDiaCobrado = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  const tope = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  if (!tieneEntregaPactada(equipo)) return tope;
+
+  const antesDelAviso = diaAnterior(equipo.entregaPactada.fecha);
+  const corte =
+    equipo?.fechaDespacho && antesDelAviso < equipo.fechaDespacho
+      ? equipo.fechaDespacho
+      : antesDelAviso;
+  return corte < tope ? corte : tope;
+};
+
 // ── HASTA CUÁNDO ESTÁ CUBIERTO UN EQUIPO ───────────────────────────────
 //
 // No se guarda: se encadena. Arranca con el plazo del alta y se estira con
@@ -200,9 +247,9 @@ export const cubiertoHasta = (equipo) => {
 //
 // Los tramos ya cerrados traen sus dos fechas y no vuelven a moverse nunca.
 // El que sigue abierto se cuenta contra hoy —o contra el día en que volvió,
-// si volvió: ahí la cuenta se corta.
+// si volvió: ahí la cuenta se corta (ver ultimoDiaCobrado).
 export const diasVencidosDe = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
-  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  const corte = ultimoDiaCobrado(equipo, hoyIso);
 
   return vencidosDe(equipo).reduce(
     (total, tramo) => total + diasDelTramo(tramo, corte),
@@ -222,7 +269,7 @@ export const diasVencidosDe = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
 // El equipo que pagó sus días o pidió más no tiene tramo corriendo: el
 // contador vuelve a cero, que es la regla del 09/09.
 export const vencidoQueCorre = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
-  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  const corte = ultimoDiaCobrado(equipo, hoyIso);
   const tramo = tramoVencidoAbierto(equipo);
   const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
   return {
@@ -263,10 +310,15 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   // El que devolvió ANTES de su fecha no usó todo lo pactado, y lo que no usó
   // no se le cobra. El que sigue afuera paga lo pactado completo aunque no lo
   // haya consumido todavía: esos días ya son suyos.
+  //
+  // Con la entrega pactada pasa lo mismo que con el que ya volvió, aunque el
+  // equipo siga afuera: la cuenta quedó detenida el día del aviso.
   const devuelto = !sigueAfuera(equipo);
-  const usados = devuelto
-    ? diasDeAlquiler(equipo?.fechaDespacho, equipo.devolucion.fechaDevolucion)
-    : prometidos;
+  const corte = ultimoDiaCobrado(equipo, hoyIso);
+  const usados =
+    devuelto || tieneEntregaPactada(equipo)
+      ? diasDeAlquiler(equipo?.fechaDespacho, corte)
+      : prometidos;
   const diasPactados = Math.min(prometidos, Math.max(0, usados));
 
   const dias = diasPactados + diasVencidos;
@@ -280,7 +332,6 @@ export const calcularEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
     sumar(ampliaciones, "descuento"),
     diasPactados * porDia,
   );
-  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
   const netoPactado = diasPactados * porDia - descuentoPactado;
   const netoVencido = vencidosDe(equipo).reduce(
     (total, tramo) => total + valorDelTramo(tramo, corte, porDia),
@@ -346,7 +397,7 @@ export const diasDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
 export const tramosDeEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   const porDia = numero(equipo?.cantidadEquipos) * numero(equipo?.valorDia);
   const dias = diasDeEquipo(equipo, hoyIso);
-  const corte = equipo?.devolucion?.fechaDevolucion ?? hoyIso;
+  const corte = ultimoDiaCobrado(equipo, hoyIso);
 
   const tramos = [];
 
@@ -435,11 +486,16 @@ export const ESTADOS_EQUIPO_EN_ORDEN = [
   "activo",
   "ampliacion",
   "vencido",
+  "porRecoger",
   "devuelto",
 ];
 
 export const calcularEstadoEquipo = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   if (!sigueAfuera(equipo)) return "devuelto";
+  // Se pactó la entrega: ya no corre ni vence, solo falta que llegue. Manda
+  // sobre todo lo demás —un equipo por recoger no está vencido aunque su
+  // fecha haya pasado, porque ya no se le cobra—.
+  if (tieneEntregaPactada(equipo)) return "porRecoger";
   // Todavía no salió de la bodega.
   if (equipo?.fechaDespacho && equipo.fechaDespacho > hoyIso) return "pendiente";
   // El que quedó sin fecha de entrega cuenta como vencido: tenía que avisar
@@ -482,6 +538,9 @@ const siguienteDia = (fechaIso) => calcularVencimiento(fechaIso, 1);
 // desaparecía—; ahora hacer algo es justamente lo que lo deja escrito.
 export const abrirTramoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
   if (!sigueAfuera(equipo)) return equipo;
+  // Con la entrega pactada la cuenta está detenida: la madrugada no le abre
+  // mora a un equipo que solo está esperando que lo recojan.
+  if (tieneEntregaPactada(equipo)) return equipo;
   if (tramoVencidoAbierto(equipo)) return equipo;
 
   const hasta = cubiertoHasta(equipo);
@@ -540,6 +599,11 @@ export const cerrarTramoVencido = (equipo, hastaIso) => {
 // Por eso se le anota un tramo que no suma ni un día —su `hasta` cae antes que
 // su `desde`— pero que deja escrito que llegó a vencerse.
 const cerrarMora = (equipo, hoyIso) => {
+  // Al de la entrega pactada ya se le cerró todo el día del aviso. Sin esto,
+  // un pago posterior le anotaba un tramo desde ese día hasta hoy y le
+  // cobraba justo los días que se habían detenido.
+  if (tieneEntregaPactada(equipo)) return equipo;
+
   const cerrado = cerrarTramoVencido(equipo, hoyIso);
   if (cerrado !== equipo) return cerrado;
 
@@ -750,6 +814,39 @@ export const dejarSinFechaDeEntrega = (
   ...cerrarMora(equipo, hoyIso),
   indefinida: { activa: true, desde: hoyIso, hasta: null },
 });
+
+// ── LA ENTREGA PACTADA ─────────────────────────────────────────────────
+//
+// El cliente avisa que ya terminó y el equipo llega a la bodega después. Se
+// anota el día del aviso y la cuenta queda detenida ahí: su mora se cierra
+// AYER —el día del aviso no se cobra— y, si estaba sin fecha de entrega, eso
+// también se apaga, porque ya se sabe que vuelve.
+//
+// El equipo NO queda devuelto: sigue afuera, "por recoger", con su depósito
+// guardado, hasta que alguien lo recibe y registra la devolución. Ahí se
+// revisa cómo volvió; acá todavía no lo vio nadie.
+export const pactarEntrega = (equipo, hoyIso = obtenerFechaHoyBogota()) => ({
+  ...cerrarIndefinida(cerrarMora(equipo, diaAnterior(hoyIso)), hoyIso),
+  entregaPactada: { fecha: hoyIso },
+});
+
+// El equipo no llegó: se anula lo pactado y la cuenta vuelve a correr desde
+// el día en que se había detenido, como si nunca hubiera parado. Perdonar
+// alguno de esos días se negocia aparte, con el descuento de vencidos.
+//
+// La mora se le abre acá mismo y no se espera a la madrugada: hasta entonces
+// esos días no figurarían en ninguna cuenta.
+export const anularEntregaPactada = (equipo, hoyIso = obtenerFechaHoyBogota()) => {
+  if (!tieneEntregaPactada(equipo)) return equipo;
+
+  return abrirTramoVencido(
+    {
+      ...equipo,
+      entregaPactada: { ...equipo.entregaPactada, anuladaEl: hoyIso },
+    },
+    hoyIso,
+  );
+};
 
 // Los mismos grupos de la factura, con el tramo vencido de cada equipo que
 // sigue afuera ya cerrado. Devuelve `null` cuando no había ninguno abierto,
@@ -1189,6 +1286,11 @@ export const calcularEstadoFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   // Todavía no salió ninguno.
   if (estados.every((estado) => estado === "pendiente")) return "pendiente";
   if (estados.includes("vencido")) return "vencida";
+  // El equipo por recoger también la deja en cartera, aunque ya no corra ni
+  // un día: mientras nadie lo reciba hay algo que gestionar, y si la factura
+  // saliera de Seguimiento ese equipo quedaba en la obra sin que nadie lo
+  // tuviera a la vista.
+  if (estados.includes("porRecoger")) return "vencida";
 
   // Regla de la prórroga: darle más días no alcanza para volver a "activa"
   // mientras quede algo por cobrar de lo ya vivido.
@@ -1477,6 +1579,7 @@ export const TIPOS_GESTION = [
   "prorroga",
   "devolucionParcial",
   "devolucionTotal",
+  "entregaPactada",
   "cobro",
 ];
 
@@ -1555,6 +1658,9 @@ export const calcularGestionFactura = (doc, estado) => {
       if (!registro.contesto) return "sinRespuesta";
       continue;
     }
+    // Se anuló la entrega pactada: el cliente no cumplió y hay que volver a
+    // llamarlo. Lo anotado antes ya no dice cómo está la factura.
+    if (registro.tipo === "entregaAnulada") return "sinGestionar";
     if (TIPOS_GESTION.includes(registro.tipo)) return registro.tipo;
   }
   return "sinGestionar";
@@ -1579,7 +1685,14 @@ export const movimientosFactura = (doc) => {
   const cantidadAbonos = abonosDe(doc).length;
   const cantidadAgregados = grupos.filter((grupo) => grupo?.grupo !== "grupo-inicial").length;
   const equiposConHistoria = equiposDe(doc)
-    .filter(({ equipo }) => ampliacionesDe(equipo).length > 0 || !sigueAfuera(equipo))
+    // La entrega pactada también: rearmar la factura la borraría, y el equipo
+    // volvería a correr sin que nadie lo hubiera decidido.
+    .filter(
+      ({ equipo }) =>
+        ampliacionesDe(equipo).length > 0 ||
+        !sigueAfuera(equipo) ||
+        tieneEntregaPactada(equipo),
+    )
     .map(({ equipo }) => equipo);
   const depositoResuelto = Boolean(datosFactura(doc).depositoResuelto);
 
@@ -1612,7 +1725,7 @@ export const describirMovimientosFactura = (doc) => {
     // "y sus registros de": lo que se borra no es el equipo a secas, son las
     // ampliaciones y devoluciones que se le anotaron encima.
     partes.push(
-      `${equiposConHistoria.length} equipo${equiposConHistoria.length === 1 ? "" : "s"} y sus registros de ampliación o devolución`,
+      `${equiposConHistoria.length} equipo${equiposConHistoria.length === 1 ? "" : "s"} y sus registros de ampliación, entrega pactada o devolución`,
     );
   }
   if (depositoResuelto) partes.push("el depósito ya resuelto");

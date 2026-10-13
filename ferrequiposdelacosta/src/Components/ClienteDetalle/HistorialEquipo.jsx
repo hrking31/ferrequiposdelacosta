@@ -60,6 +60,7 @@ const ICONOS = {
   acordado: ChatBubbleIcon,
   indefinida: ChatBubbleIcon,
   devuelto: AssignmentReturnIcon,
+  porRecoger: LocalShippingIcon,
   activo: EventAvailableIcon,
   ampliacion: EventAvailableIcon,
 };
