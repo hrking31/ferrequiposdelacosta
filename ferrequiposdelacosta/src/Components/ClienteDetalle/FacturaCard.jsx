@@ -390,18 +390,22 @@ export default function FacturaCard({
           </IconButton>
         </span>
       </Tooltip>
-      <Tooltip title={finalizada ? "Esta factura ya está finalizada" : "Editar factura"}>
-        <span>
+      {/* CORREGIR lo que ya está cargado es solo del administrador: los demás
+          anotan —despachan, cobran, reciben—, pero cambiar un dato escrito
+          mueve plata que ya se contó. También en la finalizada: es justo ahí
+          donde suele aparecer el error de carga. Acá el candado es de
+          pantalla; lo que pasa con cada factura queda anotado en el servidor. */}
+      {esAdministrador && (
+        <Tooltip title="Corregir factura">
           <IconButton
             size="small"
-            disabled={finalizada}
             onClick={() => onEditar(factura)}
             sx={{ ...iconBtnSx, color: acento }}
           >
             <EditIcon fontSize="small" />
           </IconButton>
-        </span>
-      </Tooltip>
+        </Tooltip>
+      )}
       {esAdministrador && (
         <Tooltip
           title={

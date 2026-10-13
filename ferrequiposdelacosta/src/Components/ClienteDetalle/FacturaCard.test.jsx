@@ -253,13 +253,26 @@ describe("FacturaCard — qué se puede hacer con una factura abierta", () => {
 });
 
 describe("FacturaCard — lo que ya no se puede tocar", () => {
-  it("una factura finalizada se sigue viendo, pero sin acciones", () => {
+  it("una factura finalizada se sigue viendo, pero ya no se le anota nada", () => {
     mostrar(facturaFinalizada);
 
     expect(screen.getByText("Factura 1573")).toBeInTheDocument();
     expect(boton("AddIcon")).toBeDisabled();
     expect(boton("AssignmentReturnIcon")).toBeDisabled();
-    expect(boton("EditIcon")).toBeDisabled();
+  });
+
+  // Corregir no es anotar: el error de carga suele aparecer justo cuando la
+  // factura ya cerró, y el administrador tiene que poder arreglarlo.
+  it("pero el administrador sí puede corregirla", () => {
+    mostrar(facturaFinalizada);
+
+    expect(boton("EditIcon")).toBeEnabled();
+  });
+
+  it("al que no es administrador no le muestra el botón de corregir", () => {
+    mostrar(facturaAbierta, { rol: "gestorFacturacion" });
+
+    expect(screen.queryByTestId("EditIcon")).not.toBeInTheDocument();
   });
 
   // El tacho es solo del administrador: no se deshace y se lleva los abonos,
@@ -270,7 +283,7 @@ describe("FacturaCard — lo que ya no se puede tocar", () => {
 
     expect(screen.queryByTestId("DeleteIcon")).not.toBeInTheDocument();
     // Lo demas lo sigue teniendo: es su trabajo.
-    expect(boton("EditIcon")).toBeEnabled();
+    expect(boton("AddIcon")).toBeEnabled();
   });
 
   // La finalizada SI se puede borrar aunque tenga movimientos: ya no hay nada

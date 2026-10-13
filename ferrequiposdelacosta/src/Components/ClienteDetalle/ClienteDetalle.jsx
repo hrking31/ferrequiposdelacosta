@@ -30,6 +30,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import ClienteFormDialog from "../ListaClientes/ClienteFormDialog";
 import { invalidarCopiaClientes } from "../ListaClientes/clientesCache";
 import FacturaFormDialog from "./FacturaFormDialog";
+import CorregirFacturaDialog from "./CorregirFacturaDialog";
 import EntregarSaldoDialog from "./EntregarSaldoDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
@@ -498,7 +499,10 @@ export default function ClienteDetalle() {
         onConfirmar={handleCuentaCobro}
       />
 
-      <FacturaFormDialog
+      {/* Corregir una factura ya cargada: solo el administrador llega hasta
+          acá (ver FacturaCard). El formulario de arriba quedó solo para
+          crearlas. */}
+      <CorregirFacturaDialog
         open={Boolean(facturaEditando)}
         onClose={() => setFacturaEditando(null)}
         cliente={cliente}
