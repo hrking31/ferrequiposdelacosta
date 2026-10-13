@@ -338,6 +338,40 @@ Con la entrega pactada el diálogo pasó a anotar tres cosas distintas, y las tr
 
 Cambiar de decisión borra lo escrito: una cantidad anotada como "llegó" no significa lo mismo como "pactada". Y las cuentas no cambiaron —el paso 3 suma la misma proyección que ya usaban las casillas de descuento—: es solo el orden en que se pregunta.
 
+### Corregir una factura ya cargada
+
+Todo lo que hay en una factura lo digitó una persona, y una persona se equivoca. El caso que lo destapó: una factura cargada un mes después de terminada. El equipo había vuelto a tiempo, pero la devolución quedó con la fecha del día en que se digitó —la app siempre anotaba *hoy*— y la factura amaneció con **33 días de mora que nunca existieron, $297.000**. Y ya finalizada, no se podía tocar.
+
+**Anotar y corregir son dos cosas distintas.** Anotar es registrar lo que pasa el día en que pasa —un abono, una devolución—, y lo hace cualquiera con permiso de clientes. Corregir es cambiar un dato ya escrito, mueve plata que ya se contó, y es **solo del administrador**: el lápiz de la factura deja de aparecerles a los demás y abre una pantalla completa con la factura entera, también si está finalizada.
+
+#### Los días vencidos no se corrigen: se rehacen
+
+La mora no es un dato suelto, sale de todo lo demás. Con la devolución el 10/10 el equipo tiene 33 días vencidos; el 07/09, ninguno. Cambiar la fecha y dejar el tramo como estaba le seguiría cobrando el mes entero.
+
+Por eso la corrección no toca los tramos. Saca del equipo **lo que le pasó** —sus hechos, cada uno con su fecha: pidió días, pactó la entrega, volvió—, deja corregir el hecho, y vuelve a pasar la historia entera por **las mismas funciones que la escribieron la primera vez**. Los tramos salen solos y no existe una segunda forma de calcularlos.
+
+La prueba de que eso no inventa ni pierde nada: doce historias armadas con las funciones de verdad —venció y sigue afuera, amplió con descuento, quedó sin fecha, pactó y anuló, volvió antes de las 3 p.m.— que, rearmadas sin tocarles un dato, **devuelven exactamente el mismo equipo**.
+
+#### Tres cuidados, porque son facturas reales
+
+1. **Lo que nadie tocó vuelve idéntico.** Solo se rearma el equipo que cambió; el de al lado y los demás despachos salen letra por letra como estaban. Escribir de nuevo el mismo número en una casilla no cuenta como cambio.
+2. **Antes de guardar se ve la cuenta de antes y la de después**: *Cobro → Finalizada*, *Saldo $297.000 → $0*.
+3. **Si la factura cambió mientras estaba abierta, no se guarda nada.** Se escribe dentro de una transacción que primero compara: pisar la factura borraría el abono que otra persona acababa de anotar.
+
+#### El candado es de pantalla; el registro, no
+
+Para la base de datos, anotar un abono y cambiar la fecha de una devolución son la misma operación: actualizar la factura. No puede permitir una y prohibir la otra, así que quien tenga permiso de clientes y sepa usar las herramientas del navegador puede saltarse el lápiz.
+
+Lo que sí se puede garantizar es que **no lo haga sin quedar anotado**. Una función del servidor registra cada cambio de cada factura —quién, cuándo, y la factura entera de antes y de después— en una colección que el navegador **no puede escribir ni borrar** y que solo lee el administrador. El autor lo pone Firestore a partir del inicio de sesión, no sale de nada que mande el navegador.
+
+Ese registro se lee al final de la pantalla de corregir, ya puesto en palabras: *"CERCHAS METALICAS: devolución 10/10/2026 → 07/09/2026 · Saldo pendiente: $297.000 → $0"*.
+
+> [!IMPORTANT]
+> **Orden del despliegue: las reglas, las funciones y recién después la app.** Con la app primero, el administrador podría corregir una factura antes de que exista quien lo anote.
+
+> [!NOTE]
+> **Lo que todavía no se corrige desde esa pantalla:** las ampliaciones, la entrega pactada, los abonos y las entregas de saldo. Se ven, pero no se editan.
+
 ### 4. Las gestiones: la bitácora del cobro
 
 El estado dice en qué punto está la factura. **La gestión dice qué se hizo para destrabarla.** Solo se ve en Seguimiento, y solo entran ahí las facturas *Vencidas* y en *Cobro*.
