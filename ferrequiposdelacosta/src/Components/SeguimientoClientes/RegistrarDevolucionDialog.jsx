@@ -29,6 +29,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import DescuentosAmpliacion, { DescuentoVencidos } from "./DescuentosAmpliacion";
 import {
+  abrirTramoVencido,
   ampliarEquipo,
   anularEntregaPactada,
   cerrarIndefinida,
@@ -783,7 +784,13 @@ export default function RegistrarDevolucionDialog({
         // Lo que sigue afuera todavía no volvió.
         delete restante.devolucion;
 
-        if (cambio.indefinida) return dejarSinFechaDeEntrega(restante, dia);
+        // Lo que se queda sigue corriendo HOY, se haya anotado con la fecha
+        // que sea: si después de su plazo nuevo ya está pasado, la mora le
+        // queda abierta acá mismo y no se espera a la madrugada. Con la fecha
+        // de hoy no cambia nada.
+        const alDiaDeHoy = (linea) => abrirTramoVencido(linea, hoy);
+
+        if (cambio.indefinida) return alDiaDeHoy(dejarSinFechaDeEntrega(restante, dia));
 
         const extra = Number(cambio.dias) || 0;
         if (extra > 0) {
@@ -800,7 +807,7 @@ export default function RegistrarDevolucionDialog({
             dia,
           );
         }
-        return restante;
+        return alDiaDeHoy(restante);
       };
 
       const gruposActualizados = gruposDe(factura).map((grupo) => {

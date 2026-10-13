@@ -1446,6 +1446,26 @@ describe("RegistrarDevolucionDialog — la fecha de lo que se anota", () => {
     ]);
   });
 
+  // Devolvió una parte hace un mes, a tiempo. Lo que volvió no paga mora;
+  // lo que se quedó la sigue pagando, corriendo desde donde venía.
+  it("al devolver una parte, lo que se queda conserva su mora corriendo", async () => {
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó", hace(34));
+    await devolver(usuario, "2");
+    await guardar(usuario);
+    expect(await exito()).toBeInTheDocument();
+
+    const [devuelto, afuera] = equiposGuardados();
+    expect(devuelto.cantidadEquipos).toBe(2);
+    expect(devuelto.vencidos).toEqual([]);
+    expect(afuera.cantidadEquipos).toBe(3);
+    expect(afuera.vencidos).toEqual([
+      { desde: hace(33), hasta: null, indefinida: false },
+    ]);
+  });
+
   it("la entrega pactada también: la cuenta se detiene el día del aviso", async () => {
     const { usuario } = abrir({ factura: vieja() });
 

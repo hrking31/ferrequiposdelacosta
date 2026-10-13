@@ -397,3 +397,117 @@ describe("AmpliarVencimientoDialog — el plazo de cada equipo", () => {
     expect(screen.queryByText(/Vence: 03\/08\/2026/)).not.toBeInTheDocument();
   });
 });
+
+// LA FECHA DEL ACUERDO. Viene con hoy y se puede atrasar: el cliente pidió los
+// días el viernes y se anota el lunes. Los días nuevos arrancan después de esa
+// fecha, no después del día en que se anotó. Pedido del dueño, 2026-10-13.
+describe("AmpliarVencimientoDialog — la fecha del acuerdo", () => {
+  const hace = (dias) => calcularVencimiento(HOY, -dias);
+
+  // 5 andamios que salieron hace 20 días por 7: cubiertos hasta hace 14, con
+  // la mora corriendo desde hace 13.
+  const vencidaHaceDias = () =>
+    facturaCon({
+      equipos: [
+        andamio({
+          fechaDespacho: hace(20),
+          dias: 7,
+          vencidos: [unTramoVencido({ desde: hace(13), hasta: null })],
+        }),
+      ],
+    });
+
+  const ponerFecha = async (usuario, fecha) => {
+    await usuario.clear(screen.getByLabelText("Fecha del acuerdo"));
+    await usuario.type(screen.getByLabelText("Fecha del acuerdo"), fecha);
+  };
+
+  it("viene con la fecha de hoy", () => {
+    abrir({ factura: vencidaHaceDias() });
+
+    expect(screen.getByLabelText("Fecha del acuerdo")).toHaveValue(HOY);
+  });
+
+  it("los días nuevos arrancan después del día en que se pactó", async () => {
+    const { usuario } = abrir({ factura: vencidaHaceDias() });
+
+    // Se pactaron 30 días hace 10: llevaba 4 vencidos (de hace 13 a hace 10).
+    await ponerFecha(usuario, hace(10));
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "30");
+    await guardar(usuario);
+
+    expect(await screen.findByText("Vencimiento actualizado correctamente.")).toBeInTheDocument();
+    const equipo = primerEquipo();
+    expect(equipo.vencidos).toEqual([
+      { desde: hace(13), hasta: hace(10), indefinida: false },
+    ]);
+    expect(equipo.ampliaciones.at(-1)).toMatchObject({
+      fecha: hace(10),
+      dias: 30,
+      desde: hace(9),
+      hasta: calcularVencimiento(hace(9), 29),
+    });
+  });
+
+  // Los días que se pactaron ya se acabaron: el equipo sigue afuera y la mora
+  // tiene que quedar corriendo desde ya, sin esperar a la madrugada.
+  it("si el plazo pactado ya se venció, la mora nueva queda abierta", async () => {
+    const { usuario } = abrir({ factura: vencidaHaceDias() });
+
+    await ponerFecha(usuario, hace(10));
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "3");
+    await guardar(usuario);
+
+    await screen.findByText("Vencimiento actualizado correctamente.");
+    // 3 días desde hace 9: cubierto hasta hace 7, vencido desde hace 6.
+    expect(cubiertoHasta({ ...primerEquipo(), vencidos: [] })).toBe(hace(7));
+    expect(primerEquipo().vencidos).toEqual([
+      { desde: hace(13), hasta: hace(10), indefinida: false },
+      { desde: hace(6), hasta: null, indefinida: false },
+    ]);
+  });
+
+  // Se pactó cuando todavía estaba en plazo: la mora que la madrugada le fue
+  // abriendo después nunca corrió.
+  it("si ese día estaba en plazo, no se le cobra mora de antes del acuerdo", async () => {
+    const { usuario } = abrir({ factura: vencidaHaceDias() });
+
+    await ponerFecha(usuario, hace(15));
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "30");
+    await guardar(usuario);
+
+    await screen.findByText("Vencimiento actualizado correctamente.");
+    const equipo = primerEquipo();
+    expect(equipo.vencidos).toEqual([]);
+    // Los 30 días siguen a los del alta, que terminaban hace 14.
+    expect(equipo.ampliaciones.at(-1)).toMatchObject({ fecha: hace(15), desde: hace(13) });
+  });
+
+  it("no acepta una fecha futura", async () => {
+    const { usuario } = abrir({ factura: vencidaHaceDias() });
+
+    await ponerFecha(usuario, calcularVencimiento(HOY, 1));
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "3");
+    await guardar(usuario);
+
+    expect(await screen.findByText("La fecha no puede ser futura.")).toBeInTheDocument();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+
+  it("ni una anterior al despacho del equipo", async () => {
+    const { usuario } = abrir({ factura: vencidaHaceDias() });
+
+    await ponerFecha(usuario, hace(25));
+    await usuario.type(screen.getByLabelText("Días a ampliar"), "3");
+    await guardar(usuario);
+
+    expect(
+      await screen.findByText(
+        `El ANDAMIO ya tiene algo anotado el ${formatearFechaLegible(
+          hace(20),
+        )}: la fecha no puede ser anterior.`,
+      ),
+    ).toBeInTheDocument();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+});

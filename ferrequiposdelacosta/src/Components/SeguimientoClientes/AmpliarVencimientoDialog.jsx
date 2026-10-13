@@ -22,7 +22,10 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PlazoEquipo from "./PlazoEquipo";
 import DescuentosAmpliacion from "./DescuentosAmpliacion";
 import {
+  abrirTramoVencido,
   ampliarEquipo,
+  comoEstabaEl,
+  ultimoHechoDe,
   dejarSinFechaDeEntrega,
   descuentoExcedido,
   proyectarAmpliacion,
@@ -52,13 +55,27 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
   const acento =
     theme.palette.custom.accent;
   const [cambios, setCambios] = useState({});
+  // CUÁNDO SE PACTÓ. Viene con hoy y se puede atrasar: el cliente pidió los
+  // días el viernes y se anota el lunes. Los días nuevos arrancan después de
+  // ESA fecha, y la mora se cierra ahí (misma regla que la devolución, ver
+  // comoEstabaEl).
+  const [fecha, setFecha] = useState("");
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
     if (!open) return;
     setCambios({});
+    setFecha(obtenerFechaHoyBogota());
   }, [open]);
+
+  const hoyIso = obtenerFechaHoyBogota();
+  // Con la casilla vacía se sigue calculando con hoy, y guardar avisa.
+  const diaIso = fecha || hoyIso;
+  // Lo que valen los días nuevos y los vencidos que se cierran, sobre el
+  // equipo como estaba el día en que se pactó.
+  const proyeccionDe = (equipo, dias) =>
+    proyectarAmpliacion(comoEstabaEl(equipo, diaIso), dias, diaIso);
 
   // Cada línea se identifica por su despacho y su posición dentro de él: los
   // equipos viven repartidos en grupos, así que un número suelto no alcanza
@@ -123,11 +140,39 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
         cambio &&
         !cambio.indefinida &&
         Number(cambio.dias) > 0 &&
-        descuentoExcedido(proyectarAmpliacion(equipo, cambio.dias), cambio)
+        descuentoExcedido(proyeccionDe(equipo, cambio.dias), cambio)
       );
     });
     if (hayExcedido) {
       showSnackbar("Un descuento pasa de lo que valen sus días.", "warning");
+      return;
+    }
+
+    // La fecha no puede ser futura ni anterior a lo último que el equipo ya
+    // tiene anotado: meter algo en el medio es corregir la factura.
+    if (!fecha) {
+      showSnackbar("Falta la fecha.", "warning");
+      return;
+    }
+    if (fecha > hoyIso) {
+      showSnackbar("La fecha no puede ser futura.", "warning");
+      return;
+    }
+    const anotadoDespues = equiposAmpliables.find(({ equipo, clave }) => {
+      const cambio = cambios[clave];
+      return (
+        cambio &&
+        (cambio.indefinida || Number(cambio.dias) > 0) &&
+        ultimoHechoDe(equipo) > fecha
+      );
+    });
+    if (anotadoDespues) {
+      showSnackbar(
+        `El ${anotadoDespues.equipo.nombre} ya tiene algo anotado el ${formatearFechaLegible(
+          ultimoHechoDe(anotadoDespues.equipo),
+        )}: la fecha no puede ser anterior.`,
+        "warning",
+      );
       return;
     }
 
@@ -140,6 +185,13 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
       let quedoIndefinida = false;
 
       const hoy = obtenerFechaHoyBogota();
+      // El día en que se pactó, que no siempre es hoy.
+      const dia = diaIso;
+      // El equipo sigue afuera HOY: si con su plazo nuevo ya está pasado
+      // —se pactó hace días y esos días ya se acabaron—, la mora le queda
+      // abierta acá mismo y no se espera a la madrugada. Con la fecha de hoy
+      // no cambia nada.
+      const alDiaDeHoy = (linea) => abrirTramoVencido(linea, hoy);
 
       const gruposActualizados = gruposDe(factura).map((grupo) => ({
         ...grupo,
@@ -147,12 +199,16 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
           const cambio = cambios[claveDe(grupo, indice)];
           if (!cambio) return equipo;
 
+          // Como estaba el día en que se pactó: sin la mora que se le abrió
+          // después, si ese día todavía estaba en plazo.
+          const eseDia = comoEstabaEl(equipo, dia);
+
           if (cambio.indefinida) {
             quedoIndefinida = true;
-            // Su tramo vencido se cierra hoy —esos días ya están cobrados— y
-            // desde mañana corre uno nuevo, marcado como que corre con
-            // permiso (ver dejarSinFechaDeEntrega).
-            return dejarSinFechaDeEntrega(equipo, hoy);
+            // Su tramo vencido se cierra ese día —esos días ya están
+            // cobrados— y desde el siguiente corre uno nuevo, marcado como
+            // que corre con permiso (ver dejarSinFechaDeEntrega).
+            return alDiaDeHoy(dejarSinFechaDeEntrega(eseDia, dia));
           }
 
           const extra = Number(cambio.dias) || 0;
@@ -164,14 +220,16 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
           // con lo que el cliente PIDIÓ, ni un día más: los días que ya se le
           // habían vencido quedan en su propio renglón, con sus fechas, en vez
           // de disfrazarse de días ampliados (ver ampliarEquipo).
-          return ampliarEquipo(
-            equipo,
-            {
-              dias: extra,
-              descuento: Math.max(0, Number(cambio.descuento) || 0),
-              descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
-            },
-            hoy,
+          return alDiaDeHoy(
+            ampliarEquipo(
+              eseDia,
+              {
+                dias: extra,
+                descuento: Math.max(0, Number(cambio.descuento) || 0),
+                descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
+              },
+              dia,
+            ),
           );
         }),
       }));
@@ -238,13 +296,30 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
                 </Typography>
               </Grid>
             )}
+            {/* CUÁNDO SE PACTÓ. Una sola fecha para toda la tanda: es la
+                llamada en que el cliente pidió los días. */}
+            {equiposAmpliables.length > 0 && (
+              <Grid item xs={12}>
+                <TextField
+                  label="Fecha del acuerdo"
+                  name="fechaAcuerdo"
+                  type="date"
+                  inputProps={{ max: hoyIso }}
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  fullWidth
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+            )}
             {equiposAmpliables.map(({ equipo, clave }, posicion) => {
               const cambio = cambios[clave] || ESTADO_INICIAL_CAMBIO;
               const diasNumero = Number(cambio.dias);
               // La fecha en que queda el equipo y lo que valen los días nuevos
-              // y los vencidos que se cierran hoy, que es la base de cada
+              // y los vencidos que se cierran ese día, que es la base de cada
               // descuento (ver proyectarAmpliacion).
-              const proyeccion = proyectarAmpliacion(equipo, diasNumero);
+              const proyeccion = proyeccionDe(equipo, diasNumero);
               const nuevaFecha =
                 !cambio.indefinida && diasNumero > 0 ? proyeccion.hasta : null;
               const yaIndefinido = sinFechaDeEntrega(equipo);
