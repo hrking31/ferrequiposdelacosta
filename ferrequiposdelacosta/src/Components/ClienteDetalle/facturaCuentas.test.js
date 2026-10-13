@@ -60,6 +60,9 @@ import {
   ultimoDiaCobrado,
   pactarEntrega,
   anularEntregaPactada,
+  dejarSinFechaDeEntrega,
+  hechosDeEquipo,
+  rearmarEquipo,
 } from "./facturaCuentas";
 import { GRUPO_INICIAL } from "./facturaModelo";
 
@@ -2268,6 +2271,212 @@ describe("la entrega pactada", () => {
     it("al que no tiene entrega pactada no le hace nada", () => {
       const sinPacto = cerchas();
       expect(anularEntregaPactada(sinPacto, "2026-10-16")).toBe(sinPacto);
+    });
+  });
+});
+
+// CORREGIR UN EQUIPO. El administrador cambia un dato que se cargó mal, y los
+// tramos vencidos —que salen de todo lo demás— tienen que rehacerse solos.
+// Se sacan los hechos del equipo, se corrige el hecho y la historia se vuelve
+// a pasar por las mismas funciones que la escribieron.
+describe("corregir un equipo: sus hechos y cómo se vuelve a armar", () => {
+  // 6 cerchas a $1.500 —$9.000 el día entre todas— que salieron el 01/09 por
+  // 7 días: cubiertas hasta el 07/09.
+  const HOY_C = "2026-10-10";
+  const cerchas = (extra = {}) =>
+    equipo({
+      nombre: "CERCHAS METALICAS",
+      cantidadEquipos: 6,
+      valorDia: 1500,
+      fechaDespacho: "2026-09-01",
+      diasAlquilados: 7,
+      ...extra,
+    });
+  const volvio = (fechaDevolucion, extra = {}) => ({
+    fechaDevolucion,
+    buenEstado: true,
+    motivo: "",
+    valorRetenido: 0,
+    ...extra,
+  });
+  // Lo que deja la madrugada: la mora abierta, si ya se pasó.
+  const alDia = (unEquipo, hoy = HOY_C) => abrirTramoVencido(unEquipo, hoy);
+
+  const ampliadas = () =>
+    ampliarEquipo(
+      alDia(cerchas(), "2026-09-10"),
+      { dias: 3, descuento: 1000, descuentoVencidos: 2000 },
+      "2026-09-10",
+    );
+  const sinFecha = () =>
+    dejarSinFechaDeEntrega(alDia(cerchas(), "2026-09-10"), "2026-09-10");
+  const pactadas = () => pactarEntrega(alDia(cerchas(), "2026-09-12"), "2026-09-12");
+  const devueltasElDiez = () => ({
+    ...cerrarTramoVencido(alDia(cerchas()), "2026-10-10"),
+    devolucion: volvio("2026-10-10"),
+  });
+
+  // LA PRUEBA DE QUE REARMAR NO INVENTA NI PIERDE NADA: con los hechos tal
+  // como salen del equipo, vuelve el mismo equipo. Cada caso está armado con
+  // las funciones de verdad, como lo habría dejado la app.
+  const HISTORIAS = {
+    "vencido y todavía afuera": () => alDia(cerchas()),
+    "amplió estando vencido, con los dos descuentos": () => alDia(ampliadas()),
+    "amplió el mismo día en que vencía": () =>
+      alDia(ampliarEquipo(cerchas(), { dias: 2 }, "2026-09-07")),
+    "un pago le selló la mora y siguió afuera": () =>
+      alDia(cerrarTramoVencido(alDia(cerchas(), "2026-09-12"), "2026-09-12")),
+    "quedó sin fecha de entrega": () => alDia(sinFecha()),
+    "sin fecha de entrega y después pidió días": () =>
+      alDia(ampliarEquipo(alDia(sinFecha(), "2026-09-20"), { dias: 4 }, "2026-09-20")),
+    "con la entrega pactada": () => alDia(pactadas()),
+    "con la entrega pactada y anulada": () =>
+      alDia(anularEntregaPactada(pactadas(), "2026-09-15")),
+    "por recoger que ya llegó": () => ({
+      ...pactadas(),
+      devolucion: volvio("2026-09-16"),
+    }),
+    "volvió vencido, con descuento": () => ({
+      ...descontarVencidosDeHoy(
+        cerrarTramoVencido(alDia(cerchas()), "2026-10-10"),
+        5000,
+        "2026-10-10",
+      ),
+      devolucion: volvio("2026-10-10", { buenEstado: false, motivo: "Doblada", valorRetenido: 20000 }),
+    }),
+    "volvió vencido antes de las 3 p.m.": () => ({
+      ...cerrarTramoVencido(alDia(cerchas()), "2026-10-09"),
+      devolucion: volvio("2026-10-10", { diaCobrado: false }),
+    }),
+    "volvió en plazo": () => ({ ...cerchas(), devolucion: volvio("2026-09-05") }),
+  };
+
+  it.each(Object.keys(HISTORIAS))("rearmado sin tocar nada queda igual: %s", (caso) => {
+    const original = HISTORIAS[caso]();
+
+    expect(rearmarEquipo(original, hechosDeEquipo(original), HOY_C)).toEqual(original);
+  });
+
+  // El caso que lo pidió: una factura vieja, digitada un mes después. El
+  // equipo había vuelto a tiempo, pero la devolución se anotó el día en que
+  // se cargó.
+  describe("la devolución anotada un mes tarde", () => {
+    const corregirDevolucion = (cambio) =>
+      rearmarEquipo(
+        devueltasElDiez(),
+        hechosDeEquipo(devueltasElDiez()).map((hecho) =>
+          hecho.tipo === "devolucion" ? { ...hecho, ...cambio } : hecho,
+        ),
+        HOY_C,
+      );
+
+    it("como quedó cargada, cobra 33 días de mora que no existieron", () => {
+      const cuenta = calcularEquipo(devueltasElDiez(), HOY_C);
+
+      expect(cuenta.diasVencidos).toBe(33);
+      expect(cuenta.netoVencido).toBe(297000);
+    });
+
+    it("con la fecha real, la mora desaparece sola", () => {
+      const corregido = corregirDevolucion({ fecha: "2026-09-07" });
+
+      expect(corregido.devolucion).toEqual(volvio("2026-09-07"));
+      expect(corregido.vencidos).toEqual([]);
+      // Los 7 días del alta, y nada más.
+      expect(calcularEquipo(corregido, HOY_C)).toMatchObject({
+        dias: 7,
+        diasVencidos: 0,
+        neto: 63000,
+      });
+    });
+
+    it("si volvió unos días tarde, la mora llega hasta ese día", () => {
+      const corregido = corregirDevolucion({ fecha: "2026-09-20" });
+
+      expect(corregido.vencidos).toEqual([tramo("2026-09-08", "2026-09-20")]);
+      expect(calcularEquipo(corregido, HOY_C).diasVencidos).toBe(13);
+    });
+
+    it("y si ese día se entregó antes de las 3 p.m., no se cobra", () => {
+      const corregido = corregirDevolucion({ fecha: "2026-09-20", cobraElDia: false });
+
+      expect(corregido.vencidos).toEqual([tramo("2026-09-08", "2026-09-19")]);
+      expect(corregido.devolucion.diaCobrado).toBe(false);
+    });
+
+    it("pero al que vuelve en plazo no se le anota un día sin cobrar", () => {
+      const corregido = corregirDevolucion({ fecha: "2026-09-05", cobraElDia: false });
+
+      expect(corregido.devolucion).not.toHaveProperty("diaCobrado");
+      // Devolvió antes: 5 días, no los 7 pactados.
+      expect(calcularEquipo(corregido, HOY_C).dias).toBe(5);
+    });
+
+    it("se corrige también cómo volvió, sin tocar la fecha", () => {
+      const corregido = corregirDevolucion({
+        devolucion: volvio("2026-10-10", {
+          buenEstado: false,
+          motivo: "Una doblada",
+          valorRetenido: 15000,
+        }),
+      });
+
+      expect(corregido.devolucion).toMatchObject({
+        fechaDevolucion: "2026-10-10",
+        buenEstado: false,
+        motivo: "Una doblada",
+        valorRetenido: 15000,
+      });
+      expect(corregido.vencidos).toEqual(devueltasElDiez().vencidos);
+    });
+
+    it("quitar la devolución lo deja afuera, con la mora corriendo", () => {
+      const sinDevolver = rearmarEquipo(
+        devueltasElDiez(),
+        hechosDeEquipo(devueltasElDiez()).filter(({ tipo }) => tipo !== "devolucion"),
+        HOY_C,
+      );
+
+      expect(sinDevolver.devolucion).toBeUndefined();
+      expect(sinDevolver.vencidos).toEqual([tramo("2026-09-08")]);
+      expect(calcularEstadoEquipo(sinDevolver, HOY_C)).toBe("vencido");
+    });
+  });
+
+  describe("corregir lo que el equipo ES mueve todo lo que vino después", () => {
+    it("más días en el alta: los vencidos de antes de ampliar ya no existen", () => {
+      // Con 7 días, al ampliar el 10/09 llevaba 3 vencidos (08, 09 y 10).
+      expect(calcularEquipo(alDia(ampliadas()), HOY_C).diasVencidos).toBe(30);
+
+      // Eran 10: estaba cubierto hasta el mismo 10/09 y no se pasó ni un día.
+      const original = alDia(ampliadas());
+      const corregido = rearmarEquipo(
+        { ...original, diasAlquilados: 10 },
+        hechosDeEquipo(original),
+        HOY_C,
+      );
+
+      // La ampliación arranca al día siguiente de lo cubierto, igual que
+      // antes: del 11 al 13.
+      expect(corregido.ampliaciones).toEqual([
+        { fecha: "2026-09-10", dias: 3, desde: "2026-09-11", hasta: "2026-09-13", descuento: 1000 },
+      ]);
+      // Y solo quedan los que corrieron desde el 14/09.
+      expect(calcularEquipo(corregido, HOY_C).diasVencidos).toBe(27);
+      // El descuento de aquellos 3 días vencidos se fue con ellos.
+      expect(corregido.vencidos.some((cada) => cada.descuento)).toBe(false);
+    });
+
+    it("una fecha de despacho más tarde corre el plazo entero", () => {
+      const original = alDia(cerchas());
+      const corregido = rearmarEquipo(
+        { ...original, fechaDespacho: "2026-09-04" },
+        hechosDeEquipo(original),
+        HOY_C,
+      );
+
+      // Salió el 04 por 7 días: cubierto hasta el 10, vencido desde el 11.
+      expect(corregido.vencidos).toEqual([tramo("2026-09-11")]);
     });
   });
 });

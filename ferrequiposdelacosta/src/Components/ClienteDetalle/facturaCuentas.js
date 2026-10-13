@@ -38,6 +38,7 @@ import {
   adicionalesDe,
   ampliacionesDe,
   datosFactura,
+  entregaPactadaDe,
   entregasDe,
   equiposDe,
   gestionesDe,
@@ -879,6 +880,206 @@ export const abrirTramosFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   }));
 
   return hubo ? grupos : null;
+};
+
+// ── CORREGIR UN EQUIPO: sus hechos, y cómo se vuelve a armar ───────────
+//
+// Todo lo anterior ANOTA lo que pasa el día en que pasa. Corregir es otra
+// cosa: alguien se equivocó al cargar —registró la devolución el 10/10 y el
+// equipo había vuelto el 07/09— y hay que cambiar un dato ya escrito.
+//
+// El problema son los tramos vencidos: no son un dato suelto, salen de todo
+// lo demás. Con la devolución el 10/10 el equipo tiene 33 días de mora; el
+// 07/09, ninguno. Cambiar la fecha a mano y dejar el tramo como estaba le
+// seguiría cobrando un mes que no existió.
+//
+// Por eso la corrección no toca los tramos: saca del equipo LO QUE PASÓ —sus
+// hechos, con fecha—, deja que se corrija el hecho, y vuelve a pasar la
+// historia entera por las mismas funciones que la escribieron la primera
+// vez. Los tramos salen solos, y no hay una segunda forma de calcularlos.
+//
+// Los hechos:
+//   sello            alguien cerró la mora sin pedir días (un pago que la salda)
+//   indefinida       quedó sin fecha de entrega
+//   ampliacion       el cliente pidió días
+//   entregaPactada   avisó que ya terminó
+//   entregaAnulada   no entregó lo pactado
+//   devolucion       llegó a la bodega
+//
+// El descuento de un tramo vencido viaja con el hecho que lo cerró, que es
+// quien lo negoció.
+
+// El último día que se le cobra la mora al que vuelve: el de la devolución,
+// o el anterior si volvió antes de las 3 p.m.
+const corteDeLaDevolucion = (devolucion) =>
+  devolucion?.diaCobrado === false
+    ? diaAnterior(devolucion.fechaDevolucion)
+    : devolucion?.fechaDevolucion;
+
+// En qué orden pasan dos hechos del mismo día.
+const ORDEN_DE_HECHOS = [
+  "sello",
+  "indefinida",
+  "ampliacion",
+  "entregaPactada",
+  "entregaAnulada",
+  "devolucion",
+];
+
+const ordenarHechos = (hechos) =>
+  [...hechos].sort(
+    (a, b) =>
+      (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0) ||
+      ORDEN_DE_HECHOS.indexOf(a.tipo) - ORDEN_DE_HECHOS.indexOf(b.tipo),
+  );
+
+export const hechosDeEquipo = (equipo) => {
+  const ampliaciones = ampliacionesDe(equipo);
+  const pactada = entregaPactadaDe(equipo);
+  const devolucion = equipo?.devolucion ?? null;
+  const indefinidaDesde = equipo?.indefinida?.desde ?? null;
+  const corteDevolucion = corteDeLaDevolucion(devolucion);
+
+  // Cada tramo cerrado lo cerró alguien: de ahí sale a qué hecho le
+  // corresponde su descuento. El que no lo explica ningún otro hecho es un
+  // sello.
+  const descuentos = { ampliaciones: {}, pactada: 0, devolucion: 0 };
+  const sellos = [];
+  const cerrados = vencidosDe(equipo).filter((tramo) => tramo?.hasta);
+
+  cerrados.forEach((tramo, posicion) => {
+    const descuento = numero(tramo.descuento);
+    const esElUltimo = posicion === cerrados.length - 1;
+
+    if (devolucion && esElUltimo && tramo.hasta === corteDevolucion) {
+      descuentos.devolucion += descuento;
+    } else if (ampliaciones.some(({ fecha }) => fecha === tramo.hasta)) {
+      descuentos.ampliaciones[tramo.hasta] =
+        numero(descuentos.ampliaciones[tramo.hasta]) + descuento;
+    } else if (indefinidaDesde === tramo.hasta) {
+      // Lo cerró el quedar sin fecha de entrega, que no trae descuento.
+    } else if (pactada?.fecha && diaAnterior(pactada.fecha) === tramo.hasta) {
+      descuentos.pactada += descuento;
+    } else {
+      sellos.push({ tipo: "sello", fecha: tramo.hasta, descuentoVencidos: descuento });
+    }
+  });
+
+  // Dos ampliaciones el mismo día cierran un solo tramo: su descuento va con
+  // la primera.
+  const yaRepartido = new Set();
+  const hechosDeAmpliaciones = ampliaciones.map((ampliacion) => {
+    const primera = !yaRepartido.has(ampliacion.fecha);
+    yaRepartido.add(ampliacion.fecha);
+    return {
+      tipo: "ampliacion",
+      fecha: ampliacion.fecha,
+      dias: numero(ampliacion.dias),
+      descuento: numero(ampliacion.descuento),
+      descuentoVencidos: primera
+        ? numero(descuentos.ampliaciones[ampliacion.fecha])
+        : 0,
+    };
+  });
+
+  return ordenarHechos([
+    ...sellos,
+    ...(indefinidaDesde ? [{ tipo: "indefinida", fecha: indefinidaDesde }] : []),
+    ...hechosDeAmpliaciones,
+    ...(pactada?.fecha
+      ? [
+          {
+            tipo: "entregaPactada",
+            fecha: pactada.fecha,
+            descuentoVencidos: descuentos.pactada,
+          },
+        ]
+      : []),
+    ...(pactada?.anuladaEl
+      ? [{ tipo: "entregaAnulada", fecha: pactada.anuladaEl }]
+      : []),
+    ...(devolucion
+      ? [
+          {
+            tipo: "devolucion",
+            fecha: devolucion.fechaDevolucion,
+            cobraElDia: devolucion.diaCobrado !== false,
+            descuentoVencidos: descuentos.devolucion,
+            // Cómo volvió, lo retenido, por qué: lo que no es fecha viaja
+            // entero.
+            devolucion,
+          },
+        ]
+      : []),
+  ]);
+};
+
+// Cada hecho, aplicado con la MISMA función que lo anotó el día en que pasó.
+const APLICAR_HECHO = {
+  sello: (equipo, { fecha, descuentoVencidos }) =>
+    descontarVencidosDeHoy(cerrarMora(equipo, fecha), descuentoVencidos, fecha),
+
+  indefinida: (equipo, { fecha }) => dejarSinFechaDeEntrega(equipo, fecha),
+
+  ampliacion: (equipo, { fecha, dias, descuento, descuentoVencidos }) =>
+    ampliarEquipo(equipo, { dias, descuento, descuentoVencidos }, fecha),
+
+  entregaPactada: (equipo, { fecha, descuentoVencidos }) =>
+    descontarVencidosDeHoy(
+      pactarEntrega(equipo, fecha),
+      descuentoVencidos,
+      diaAnterior(fecha),
+    ),
+
+  entregaAnulada: (equipo, { fecha }) => anularEntregaPactada(equipo, fecha),
+
+  devolucion: (equipo, { fecha, cobraElDia, descuentoVencidos, devolucion }) => {
+    // El día solo se deja de cobrar si de verdad había mora corriendo: el que
+    // vuelve en plazo, o el que estaba por recoger, no tiene día que perdonar.
+    const sinCobrarElDia =
+      cobraElDia === false &&
+      !tieneEntregaPactada(equipo) &&
+      cubiertoHasta(equipo) < fecha;
+    const corte = sinCobrarElDia ? diaAnterior(fecha) : fecha;
+
+    const nodo = { ...devolucion, fechaDevolucion: fecha };
+    delete nodo.diaCobrado;
+    if (sinCobrarElDia) nodo.diaCobrado = false;
+
+    return {
+      ...descontarVencidosDeHoy(
+        cerrarIndefinida(cerrarTramoVencido(equipo, corte), fecha),
+        descuentoVencidos,
+        corte,
+      ),
+      devolucion: nodo,
+    };
+  },
+};
+
+// El equipo con su historia vuelta a armar desde los hechos. Lo que el equipo
+// ES —nombre, cantidad, precio, días, despacho, IVA— se toma del que llega;
+// lo que le PASÓ, de la lista.
+//
+// Con los hechos tal como salen de `hechosDeEquipo` devuelve el mismo equipo:
+// es la prueba de que rearmar no inventa ni pierde nada.
+export const rearmarEquipo = (
+  equipo,
+  hechos = hechosDeEquipo(equipo),
+  hoyIso = obtenerFechaHoyBogota(),
+) => {
+  const base = { ...equipo, ampliaciones: [], vencidos: [] };
+  delete base.indefinida;
+  delete base.entregaPactada;
+  delete base.devolucion;
+
+  const armado = ordenarHechos(hechos).reduce(
+    (parcial, hecho) => APLICAR_HECHO[hecho.tipo]?.(parcial, hecho) ?? parcial,
+    base,
+  );
+  // Y lo que haría la madrugada: si sigue afuera y ya se pasó, su mora queda
+  // abierta desde ahora.
+  return abrirTramoVencido(armado, hoyIso);
 };
 
 // ── La cuenta de la factura ────────────────────────────────────────────
