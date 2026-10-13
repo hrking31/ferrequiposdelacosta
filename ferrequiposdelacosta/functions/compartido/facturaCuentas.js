@@ -1910,20 +1910,20 @@ export const estadoEnSeguimiento = (estado) => ["vencida", "cobro"].includes(est
 export const facturaEnSeguimiento = (doc, hoyIso = obtenerFechaHoyBogota()) =>
   estadoEnSeguimiento(calcularEstadoFactura(doc, hoyIso));
 
-// ── Qué edición es segura ──────────────────────────────────────────────
+// ── Qué tiene una factura encima ───────────────────────────────────────
 //
-// El formulario de editar no CORRIGE un dato: vuelve a armar la factura entera
-// desde cero. Mientras solo tiene lo del alta eso es seguro. El problema es lo
-// que pasó DESPUÉS —un abono, un despacho agregado, una ampliación, una
-// devolución, un depósito ya resuelto—: cada una queda apoyada en un dato
-// puntual, y el formulario no sabe que ya no está sola.
+// Mientras solo tiene lo del alta, borrarla y volver a cargarla no pierde
+// nada. Lo que pesa es lo que pasó DESPUÉS —un abono, un despacho agregado,
+// una ampliación, una devolución, un depósito ya resuelto—: es historia que
+// se iría con ella. De acá sale si se puede borrar de un clic y qué se le
+// avisa al administrador antes de hacerlo.
 export const movimientosFactura = (doc) => {
   const grupos = gruposDe(doc);
   const cantidadAbonos = abonosDe(doc).length;
   const cantidadAgregados = grupos.filter((grupo) => grupo?.grupo !== "grupo-inicial").length;
   const equiposConHistoria = equiposDe(doc)
-    // La entrega pactada también: rearmar la factura la borraría, y el equipo
-    // volvería a correr sin que nadie lo hubiera decidido.
+    // La entrega pactada también es historia: alguien acordó algo con el
+    // cliente.
     .filter(
       ({ equipo }) =>
         ampliacionesDe(equipo).length > 0 ||
@@ -1946,8 +1946,8 @@ export const movimientosFactura = (doc) => {
   };
 };
 
-// El texto del aviso que va arriba del formulario de editar. Vacío si no hay
-// nada que avisar.
+// Lo mismo, en palabras, para el aviso de antes de borrar una factura. Vacío
+// si no hay nada que avisar.
 export const describirMovimientosFactura = (doc) => {
   const { cantidadAbonos, cantidadAgregados, equiposConHistoria, depositoResuelto } =
     movimientosFactura(doc);

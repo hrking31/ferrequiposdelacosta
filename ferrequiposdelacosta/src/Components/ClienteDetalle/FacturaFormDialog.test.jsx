@@ -1,20 +1,18 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import FacturaFormDialog from "./FacturaFormDialog";
-import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
-// El formulario de alta y edición de una factura: el más grande de la app y el
-// que decide qué queda escrito en la base sobre la plata de un alquiler.
+// El formulario con el que se crea una factura: el que decide qué queda
+// escrito en la base sobre la plata de un alquiler. (Corregir una ya cargada
+// es de CorregirFacturaDialog, que tiene sus propias pruebas.)
 //
 // Lo que se fija acá no son las cuentas —eso ya está probado en
 // facturaCuentas.test.js— sino las decisiones de este formulario:
 //
 //   · qué NO deja guardar,
-//   · qué escribe exactamente al crear y al editar,
-//   · que lo entregado de más se guarde como abono y no como pago,
-//   · y que un equipo con historia encima no se pueda sacar de la lista.
+//   · qué escribe exactamente al crear,
+//   · y que lo entregado de más se guarde como abono y no como pago.
 const bd = vi.hoisted(() => ({
-  updateDoc: vi.fn(() => Promise.resolve()),
   getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
   set: vi.fn(),
   update: vi.fn(),
@@ -27,7 +25,6 @@ vi.mock("firebase/firestore", () => ({
   collection: (_db, ...partes) => partes.join("/"),
   doc: (primero, ...partes) => (partes.length ? partes.join("/") : `${primero}/nueva`),
   getDocs: bd.getDocs,
-  updateDoc: bd.updateDoc,
   writeBatch: () => ({ set: bd.set, update: bd.update, commit: bd.commit }),
 }));
 
@@ -45,11 +42,7 @@ const abrir = (props = {}) =>
     { estadoInicial },
   );
 
-// El botón final cambia de nombre según el modo: "Crear Factura" al dar de alta
-// y "Guardar Cambios" al editar. Se busca por los dos para que las pruebas no
-// tengan que saber en cuál están.
-const botonGuardar = () =>
-  screen.getByRole("button", { name: /Crear Factura|Guardar Cambios/ });
+const botonGuardar = () => screen.getByRole("button", { name: "Crear Factura" });
 
 // Carga un equipo completo en el formulario, que es el paso previo a casi todo.
 const cargarEquipo = async (usuario, { dias = "3", despacho = "2026-08-10" } = {}) => {
@@ -170,138 +163,32 @@ describe("FacturaFormDialog — crear", () => {
   });
 });
 
-describe("FacturaFormDialog — editar", () => {
-  const andamio = (extra = {}) =>
-    unEquipo({
-      nombre: "ANDAMIO",
-      cantidad: 4,
-      dias: 3,
-      valorDia: 20000,
-      fechaDespacho: "2026-08-01",
-      ...extra,
-    });
-
-  const existente = ({ equipos = [andamio()], ...resto } = {}) => ({
-    id: "f1",
-    ...unaFactura({
-      numeroFactura: "1573",
-      fechaCreacion: "2026-08-01",
-      subtotal: 240000,
-      total: 240000,
-      equipos,
-      ...resto,
-    }),
-  });
-
-  const facturaExistente = existente();
-
-  it("abre con los datos cargados y actualiza la factura que ya existe", async () => {
-    const { usuario } = abrir({ factura: facturaExistente });
-
-    expect(screen.getByLabelText("N° de factura")).toHaveValue("1573");
-
-    await usuario.clear(screen.getByLabelText("N° de factura"));
-    await usuario.type(screen.getByLabelText("N° de factura"), "1574");
-    await usuario.click(botonGuardar());
-
-    // Editar actualiza; no crea otra factura ni toca el estado del cliente
-    // (de eso se encarga el servidor cuando la factura cambia).
-    expect(bd.set).not.toHaveBeenCalled();
-    const [ruta, documento] = bd.updateDoc.mock.calls[0];
-    expect(ruta).toBe("clientes/cli1/facturas/f1");
-    expect(documento.factura.numeroFactura).toBe("1574");
-  });
-
+describe("FacturaFormDialog — los medios de pago", () => {
   it("lo que el cliente entregó de más se guarda como abono, no como pago", async () => {
-    // Total 240.000 y el cliente entregó 300.000: sobran 60.000.
-    const { usuario } = abrir({
-      factura: existente({
-        tipoPago: "conAbono",
-        pagos: [{ medio: "Efectivo", monto: 300000 }],
-      }),
-    });
+    const { usuario } = abrir();
 
+    await usuario.type(screen.getByLabelText("N° de factura"), "1602");
+    await cargarEquipo(usuario);
+    // 4 x 3 x 20.000 + IVA = 285.600, y el cliente entrega 300.000: sobran
+    // 14.400.
+    await usuario.click(screen.getByRole("combobox", { name: "Tipo de pago" }));
+    await usuario.click(screen.getByRole("option", { name: "Parcial" }));
+    await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+    await usuario.click(screen.getByRole("option", { name: "Efectivo" }));
+    await usuario.type(screen.getByLabelText("Monto"), "300000");
     await usuario.click(botonGuardar());
 
-    const [, documento] = bd.updateDoc.mock.calls[0];
+    const [, documento] = bd.set.mock.calls[0];
     // El pago queda recortado justo hasta cubrir el total…
     const { medios } = documento.grupos[0].pagos;
-    expect(medios.reduce((suma, p) => suma + Number(p.monto), 0)).toBe(240000);
+    expect(medios.reduce((suma, pago) => suma + Number(pago.monto), 0)).toBe(285600);
     // …y el sobrante pasa a ser un abono con la fecha de la factura. Lo dedujo
     // la app del pago, así que el tipo es "sistema".
     expect(documento.abonos).toEqual([
-      { fecha: "2026-08-01", medio: "Efectivo", monto: 60000, tipo: "sistema" },
+      { fecha: documento.factura.fechaCreacion, medio: "Efectivo", monto: 14400, tipo: "sistema" },
     ]);
   });
 
-  // El botón de quitar un equipo es el del bote de basura, sin texto: se lo
-  // ubica por su ícono. El primero de la pantalla es el del equipo, que se
-  // dibuja antes que los medios de pago.
-  const botonQuitarEquipo = () => screen.getAllByTestId("DeleteIcon")[0].closest("button");
-
-  it("un equipo sin historia sí se puede sacar", () => {
-    abrir({ factura: facturaExistente });
-
-    expect(botonQuitarEquipo()).toBeEnabled();
-  });
-
-  it("pero uno con una devolución registrada queda bloqueado", () => {
-    // Quitarlo perdería esa historia sin dejar rastro: es la única forma que
-    // tiene este formulario de "editar" un equipo.
-    abrir({
-      factura: existente({
-        equipos: [
-          unEquipoDevuelto({
-            nombre: "ANDAMIO",
-            cantidad: 4,
-            dias: 3,
-            valorDia: 20000,
-            fechaDespacho: "2026-08-01",
-            fechaDevolucion: "2026-08-03",
-          }),
-        ],
-      }),
-    });
-
-    expect(botonQuitarEquipo()).toBeDisabled();
-  });
-
-  // Editar rearma la factura entera: lo que el formulario no se lleva,
-  // desaparece. La entrega pactada se quedaba afuera, y el equipo por recoger
-  // volvía a correr sin que nadie lo hubiera decidido.
-  describe("con un equipo por recoger", () => {
-    const porRecoger = () =>
-      existente({
-        equipos: [
-          andamio({
-            vencidos: [{ desde: "2026-08-04", hasta: "2026-08-05", indefinida: false }],
-            entregaPactada: { fecha: "2026-08-06" },
-          }),
-        ],
-      });
-
-    it("guardar no le borra la entrega pactada ni le vuelve a abrir la mora", async () => {
-      const { usuario } = abrir({ factura: porRecoger() });
-
-      await usuario.click(botonGuardar());
-
-      const [, documento] = bd.updateDoc.mock.calls[0];
-      const [equipo] = documento.grupos[0].equipos;
-      expect(equipo.entregaPactada).toEqual({ fecha: "2026-08-06" });
-      expect(equipo.vencidos).toEqual([
-        { desde: "2026-08-04", hasta: "2026-08-05", indefinida: false },
-      ]);
-    });
-
-    it("y no se puede sacar de la lista", () => {
-      abrir({ factura: porRecoger() });
-
-      expect(botonQuitarEquipo()).toBeDisabled();
-    });
-  });
-});
-
-describe("FacturaFormDialog — los medios de pago", () => {
   // Con pago TOTAL los medios tienen que sumar una cifra conocida, así que al
   // escribir uno el otro absorbe la diferencia. Con PARCIAL no: el cliente
   // entrega lo que puede, y completarle el segundo medio le inventaba plata
