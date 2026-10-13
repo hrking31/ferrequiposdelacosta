@@ -265,6 +265,40 @@ describe("FacturaFormDialog — editar", () => {
 
     expect(botonQuitarEquipo()).toBeDisabled();
   });
+
+  // Editar rearma la factura entera: lo que el formulario no se lleva,
+  // desaparece. La entrega pactada se quedaba afuera, y el equipo por recoger
+  // volvía a correr sin que nadie lo hubiera decidido.
+  describe("con un equipo por recoger", () => {
+    const porRecoger = () =>
+      existente({
+        equipos: [
+          andamio({
+            vencidos: [{ desde: "2026-08-04", hasta: "2026-08-05", indefinida: false }],
+            entregaPactada: { fecha: "2026-08-06" },
+          }),
+        ],
+      });
+
+    it("guardar no le borra la entrega pactada ni le vuelve a abrir la mora", async () => {
+      const { usuario } = abrir({ factura: porRecoger() });
+
+      await usuario.click(botonGuardar());
+
+      const [, documento] = bd.updateDoc.mock.calls[0];
+      const [equipo] = documento.grupos[0].equipos;
+      expect(equipo.entregaPactada).toEqual({ fecha: "2026-08-06" });
+      expect(equipo.vencidos).toEqual([
+        { desde: "2026-08-04", hasta: "2026-08-05", indefinida: false },
+      ]);
+    });
+
+    it("y no se puede sacar de la lista", () => {
+      abrir({ factura: porRecoger() });
+
+      expect(botonQuitarEquipo()).toBeDisabled();
+    });
+  });
 });
 
 describe("FacturaFormDialog — los medios de pago", () => {

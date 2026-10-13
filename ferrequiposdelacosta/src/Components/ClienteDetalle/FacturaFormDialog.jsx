@@ -58,6 +58,7 @@ import {
   pagosDe,
   adicionalesDe,
   ampliacionesDe,
+  entregaPactadaDe,
   entregasDe,
   gestionesDe,
   estaDevuelto,
@@ -99,9 +100,9 @@ const obtenerNombreCliente = (cliente) => {
 // lugar donde los dos vocabularios se tocan.
 //
 // La de ida se lleva también lo que este formulario NO edita —las
-// ampliaciones, la devolución— para no perderlo al guardar: editar vuelve a
-// armar la factura entera desde cero, así que lo que no entre al estado
-// desaparece.
+// ampliaciones, la entrega pactada, la devolución— para no perderlo al
+// guardar: editar vuelve a armar la factura entera desde cero, así que lo que
+// no entre al estado desaparece.
 const aFormulario = (equipo) => ({
   nombre: equipo?.nombre ?? "",
   cantidad: equipo?.cantidadEquipos ?? "",
@@ -112,6 +113,7 @@ const aFormulario = (equipo) => ({
   ampliaciones: equipo?.ampliaciones,
   vencidos: equipo?.vencidos,
   indefinida: equipo?.indefinida,
+  entregaPactada: equipo?.entregaPactada,
   devolucion: equipo?.devolucion,
 });
 
@@ -136,6 +138,7 @@ const alDocumento = (item, fechaFactura, aplicaIvaFactura) => {
     aplicaIva: item.aplicaIva ?? Boolean(aplicaIvaFactura),
   };
   if (item.indefinida) equipo.indefinida = item.indefinida;
+  if (item.entregaPactada) equipo.entregaPactada = item.entregaPactada;
   if (item.devolucion) equipo.devolucion = item.devolucion;
   return equipo;
 };
@@ -494,11 +497,14 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
     setEquipos((prev) => prev.filter((_, index) => index !== indexAQuitar));
   };
 
-  // Con ampliaciones o una devolución ya registradas, esta línea no se puede
-  // sacar: es la única forma que tiene este formulario de "editar" un equipo,
-  // y sacarlo perdería esa historia sin dejar rastro.
+  // Con ampliaciones, una entrega pactada o una devolución ya registradas,
+  // esta línea no se puede sacar: es la única forma que tiene este formulario
+  // de "editar" un equipo, y sacarlo perdería esa historia sin dejar rastro.
+  // La entrega pactada cuenta aunque esté anulada: también es historia.
   const equipoTieneHistoria = (equipo) =>
-    ampliacionesDe(equipo).length > 0 || estaDevuelto(equipo);
+    ampliacionesDe(equipo).length > 0 ||
+    Boolean(entregaPactadaDe(equipo)) ||
+    estaDevuelto(equipo);
 
   const validar = () => {
     const errores = {};
@@ -877,7 +883,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, factura, onG
                     <Tooltip
                       title={
                         conHistoria
-                          ? "Este equipo ya tiene una ampliación o una devolución registrada: no se puede quitar"
+                          ? "Este equipo ya tiene una ampliación, una entrega pactada o una devolución registrada: no se puede quitar"
                           : "Quitar"
                       }
                     >
