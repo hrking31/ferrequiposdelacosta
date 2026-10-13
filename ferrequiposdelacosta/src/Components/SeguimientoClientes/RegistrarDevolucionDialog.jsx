@@ -1060,18 +1060,6 @@ export default function RegistrarDevolucionDialog({
               <Grid item xs={12}>
                 {rotuloPaso(2, DECISIONES[decision].pregunta, 0)}
 
-                {modoPactada && (
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block", mt: 1 }}
-                  >
-                    El cliente avisó y el equipo llega después. La cuenta se
-                    detiene: se cobra hasta el {formatearFechaLegible(ayerIso)} y
-                    el día de hoy no.
-                  </Typography>
-                )}
-
                 {modoAnular && (
                   <Typography
                     variant="caption"
