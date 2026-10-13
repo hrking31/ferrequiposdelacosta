@@ -12,13 +12,28 @@ import { unEquipoDevuelto, unTramoVencido, unaFactura } from "../../test/factura
 const bd = vi.hoisted(() => ({
   get: vi.fn(),
   update: vi.fn(),
+  // Las dos lecturas del historial: los cambios anotados y los usuarios.
+  getDocs: vi.fn(),
 }));
 
 vi.mock("../Firebase/Firebase", () => ({ db: {} }));
 vi.mock("firebase/firestore", () => ({
   doc: (_db, ...partes) => partes.join("/"),
+  collection: (_db, ...partes) => partes.join("/"),
+  query: (coleccion) => coleccion,
+  where: () => null,
+  getDocs: (coleccion) => bd.getDocs(coleccion),
   runTransaction: (_db, operacion) => operacion({ get: bd.get, update: bd.update }),
 }));
+
+// Lo que devuelve cada colección, como lo entrega Firestore.
+const enLaBase = (colecciones) => (coleccion) =>
+  Promise.resolve({
+    docs: (colecciones[coleccion] ?? []).map(({ id, ...datos }) => ({
+      id,
+      data: () => datos,
+    })),
+  });
 
 const HOY = obtenerFechaHoyBogota();
 const hace = (dias) => calcularVencimiento(HOY, -dias);
@@ -77,6 +92,81 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Por defecto, en la base está la misma factura que se abrió.
   bd.get.mockResolvedValue({ data: () => documento() });
+  bd.getDocs.mockImplementation(enLaBase({}));
+});
+
+// Todo lo que le pasó a la factura, anotado por el servidor: quién, cuándo y
+// qué cambió. Va al final de la pantalla y solo lo lee el administrador.
+describe("CorregirFacturaDialog — el historial de cambios", () => {
+  it("muestra cada cambio con su autor y lo que cambió, del más nuevo al más viejo", async () => {
+    const conAbono = {
+      ...documento(),
+      abonos: [{ fecha: SE_ANOTO, medio: "Nequi", monto: 50000, tipo: "cliente" }],
+    };
+    bd.getDocs.mockImplementation(
+      enLaBase({
+        registroFacturas: [
+          {
+            id: "c1",
+            clase: "creada",
+            cuando: Date.UTC(2026, 8, 1, 15, 0),
+            quien: "uid-aida",
+            tipoDeAutor: "app_user",
+            antes: null,
+            despues: documento(),
+          },
+          {
+            id: "c2",
+            clase: "modificada",
+            cuando: Date.UTC(2026, 9, 10, 15, 0),
+            quien: "uid-hernando",
+            tipoDeAutor: "app_user",
+            antes: documento(),
+            despues: conAbono,
+          },
+        ],
+        users: [
+          { id: "uid-aida", name: "Aida Pérez" },
+          { id: "uid-hernando", name: "Hernando Rey" },
+        ],
+      }),
+    );
+    abrir();
+
+    const historial = within(await screen.findByLabelText("Historial de cambios"));
+    expect(await historial.findByText(/Hernando Rey/)).toBeInTheDocument();
+    expect(historial.getByText(/Abono de .*50\.000.* por Nequi/)).toBeInTheDocument();
+    expect(historial.getByText("· Se creó la factura.")).toBeInTheDocument();
+
+    // El abono, que es lo último que pasó, va primero.
+    const autores = historial.getAllByText(/ · (Aida Pérez|Hernando Rey)$/);
+    expect(autores.map((nodo) => nodo.textContent.split(" · ")[1])).toEqual([
+      "Hernando Rey",
+      "Aida Pérez",
+    ]);
+  });
+
+  it("sin nada anotado todavía, lo dice", async () => {
+    abrir();
+
+    expect(
+      await screen.findByText("Todavía no hay cambios anotados para esta factura."),
+    ).toBeInTheDocument();
+  });
+
+  // Si el historial no se puede leer, la corrección sigue funcionando: son
+  // dos cosas distintas y una no puede trabar a la otra.
+  it("si no se puede leer, avisa y deja corregir igual", async () => {
+    bd.getDocs.mockRejectedValue(new Error("permission-denied"));
+    const { usuario } = abrir();
+
+    expect(
+      await screen.findByText("No se pudo leer el historial de esta factura."),
+    ).toBeInTheDocument();
+
+    await escribirFecha(usuario, "Fecha de devolución", VOLVIO_DE_VERDAD);
+    expect(botonGuardar()).toBeEnabled();
+  });
 });
 
 describe("CorregirFacturaDialog — al abrir", () => {

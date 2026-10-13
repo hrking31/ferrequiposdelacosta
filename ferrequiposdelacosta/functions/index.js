@@ -1,6 +1,9 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
-import {onDocumentWritten} from "firebase-functions/v2/firestore";
+import {
+  onDocumentWritten,
+  onDocumentWrittenWithAuthContext,
+} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {initializeApp} from "firebase-admin/app";
@@ -619,6 +622,77 @@ export const ajustarTotalesPanel = onDocumentWritten(
       // téngalo presente antes de correr un script que reescriba facturas en
       // masa: cada escritura despierta esto y se paga la lectura.
       await corregirEstadoCliente(event.params.clienteId, hoy);
+    },
+);
+
+// EL REGISTRO DE CAMBIOS: quién tocó cada factura, cuándo, y cómo estaba
+// antes y cómo quedó después.
+//
+// Existe porque la base no puede distinguir una corrección de un registro
+// normal: anotar un abono y cambiar la fecha de una devolución son, para
+// Firestore, la misma operación —actualizar la factura—. Así que no se puede
+// impedir que alguien con permiso de clientes cambie un dato a mano, pero sí
+// se puede garantizar que no lo haga sin quedar anotado.
+//
+// Lo que lo vuelve confiable:
+//   - Lo escribe el servidor. Las reglas le prohíben al navegador escribir o
+//     borrar acá (ver registroFacturas en firestore.rules), y solo el
+//     administrador puede leerlo.
+//   - El autor lo pone Firestore a partir del inicio de sesión de quien hizo
+//     el cambio. No sale de nada que mande el navegador, así que no se puede
+//     falsificar.
+//   - Guarda la factura entera de antes y de después: un cambio indebido se
+//     puede ver renglón por renglón, y deshacer a mano.
+//
+// Es una función aparte de la de arriba, y no un agregado suyo, a propósito:
+// necesita otra clase de aviso —el que trae al autor—, y cambiarle la clase
+// de aviso a una función ya desplegada obliga a borrarla y volverla a crear.
+// Esa es la que mantiene los números del menú; no se toca.
+//
+// Cuesta una escritura por cambio y ninguna lectura.
+const sinMarcaDeCerrada = (factura) =>
+  factura ?
+    {...factura, factura: {...(factura.factura ?? {}), cerrada: null}} :
+    null;
+
+export const anotarCambioDeFactura = onDocumentWrittenWithAuthContext(
+    {
+      document: "clientes/{clienteId}/facturas/{facturaId}",
+      // Si la anotación falla —la base no respondió— se vuelve a intentar.
+      // Un registro con huecos no sirve de registro.
+      retry: true,
+    },
+    async (event) => {
+      const antes = event.data?.before?.data() ?? null;
+      const despues = event.data?.after?.data() ?? null;
+
+      // La marca de "cerrada" la escribe el servidor después de cada cambio
+      // (ver arriba). Es una conclusión, no un dato: si es lo único que se
+      // movió, no hay nada que anotar.
+      if (
+        JSON.stringify(sinMarcaDeCerrada(antes)) ===
+        JSON.stringify(sinMarcaDeCerrada(despues))
+      ) {
+        return;
+      }
+
+      // Con el identificador del aviso como nombre del documento: si la
+      // función se reintenta, vuelve a escribir el mismo renglón en vez de
+      // anotar el cambio dos veces.
+      await getFirestore().collection("registroFacturas").doc(event.id).set({
+        clienteId: event.params.clienteId,
+        facturaId: event.params.facturaId,
+        numeroFactura: datosFactura(despues ?? antes).numeroFactura ?? "",
+        cuando: Date.now(),
+        clase: !antes ? "creada" : !despues ? "borrada" : "modificada",
+        // El usuario de la app que hizo el cambio. Vacío cuando no fue una
+        // persona con sesión: el repaso de la madrugada, o alguien desde la
+        // consola de Firebase. `tipoDeAutor` dice cuál.
+        quien: event.authId ?? null,
+        tipoDeAutor: event.authType ?? "unknown",
+        antes,
+        despues,
+      });
     },
 );
 

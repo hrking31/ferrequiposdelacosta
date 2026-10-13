@@ -204,6 +204,22 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------
+    // El registro de cambios de las facturas
+    // ---------------------------------------------------------------
+    // Quién tocó cada factura, cuándo, y cómo estaba antes y después. Lo
+    // escribe la función anotarCambioDeFactura con el SDK de administrador,
+    // que no pasa por estas reglas.
+    //
+    // Desde el navegador NADIE escribe ni borra: un registro que se puede
+    // editar no prueba nada. Y solo lo lee el administrador, que es quien
+    // corrige las facturas (ver CorregirFacturaDialog.jsx): adentro va la
+    // factura entera, con los datos del cliente.
+    match /registroFacturas/{cambioId} {
+      allow read: if esAdministrador();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------
     // Todo lo demás queda cerrado
     // ---------------------------------------------------------------
     match /{document=**} {

@@ -27,7 +27,14 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { doc, runTransaction } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  runTransaction,
+  where,
+} from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -40,6 +47,7 @@ import {
   hayCorrecciones,
   nombreDelGrupo,
 } from "./correccionFactura";
+import { autorLegible, cuandoLegible, describirCambio } from "./registroFactura";
 import {
   ESTADO_FACTURA_INFO,
   calcularCuentaFactura,
@@ -70,6 +78,18 @@ const mismoContenido = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const loCorregible = (documento) => {
   const { numeroFactura, fechaCreacion, depositoResuelto } = datosFactura(documento);
   return [numeroFactura, fechaCreacion, depositoResuelto || false];
+};
+
+const HISTORIAL_VACIO = { estado: "cargando", cambios: [], usuarios: [] };
+
+// Los renglones de un cambio. Un registro viejo o raro no puede tumbar la
+// pantalla con la que se corrige la factura: si no se sabe describir, se dice.
+const renglonesDe = (cambio) => {
+  try {
+    return describirCambio(cambio);
+  } catch {
+    return ["Cambió la factura, sin detalle que mostrar."];
+  }
 };
 
 // Lo que le pasó a un equipo y todavía no se corrige desde acá: se muestra
@@ -124,6 +144,42 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
     setCargado(open && factura ? borradorDe(factura) : null);
     setNuevos(0);
   }, [open, factura]);
+
+  // EL HISTORIAL: todo lo que le pasó a esta factura, anotado por el servidor
+  // (ver anotarCambioDeFactura). Solo el administrador puede leerlo, y es el
+  // único que llega a esta pantalla. Los usuarios se traen para poner el
+  // nombre de quien hizo cada cambio.
+  const [historial, setHistorial] = useState(HISTORIAL_VACIO);
+  const facturaId = factura?.id;
+
+  useEffect(() => {
+    if (!open || !facturaId) return undefined;
+    let vigente = true;
+    setHistorial(HISTORIAL_VACIO);
+
+    Promise.all([
+      getDocs(query(collection(db, "registroFacturas"), where("facturaId", "==", facturaId))),
+      getDocs(collection(db, "users")),
+    ])
+      .then(([cambiosSnap, usuariosSnap]) => {
+        if (!vigente) return;
+        const datos = (snap) => snap.docs.map((cada) => ({ id: cada.id, ...cada.data() }));
+        setHistorial({
+          estado: "listo",
+          // Del más nuevo al más viejo: lo último que pasó es lo que se
+          // viene a mirar.
+          cambios: datos(cambiosSnap).sort((a, b) => b.cuando - a.cuando),
+          usuarios: datos(usuariosSnap),
+        });
+      })
+      .catch(() => {
+        if (vigente) setHistorial({ ...HISTORIAL_VACIO, estado: "error" });
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [open, facturaId]);
 
   const hoy = obtenerFechaHoyBogota();
   const hayCambios = Boolean(factura && cargado) && hayCorrecciones(factura, borrador);
@@ -775,6 +831,44 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                   cambio ya no valen: hay que emitirlos de nuevo.
                 </Alert>
               )}
+
+              {/* ── El historial ── Al final: es para consultar, no para
+                  llenar. Trae TODO lo que le pasó a la factura, no solo lo
+                  corregido desde acá: un abono, una devolución, la mora que
+                  abrió la madrugada. */}
+              <Box component="section" aria-label="Historial de cambios">
+                {titulo("Historial de cambios")}
+                {historial.estado === "cargando" && (
+                  <Typography variant="body2" color="text.secondary">
+                    Buscando el historial...
+                  </Typography>
+                )}
+                {historial.estado === "error" && (
+                  <Typography variant="body2" color="text.secondary">
+                    No se pudo leer el historial de esta factura.
+                  </Typography>
+                )}
+                {historial.estado === "listo" && historial.cambios.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Todavía no hay cambios anotados para esta factura.
+                  </Typography>
+                )}
+                <Stack spacing={1.5}>
+                  {historial.cambios.map((cambio) => (
+                    <Box key={cambio.id}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {cuandoLegible(cambio.cuando)} ·{" "}
+                        {autorLegible(cambio, historial.usuarios)}
+                      </Typography>
+                      {renglonesDe(cambio).map((renglon) => (
+                        <Typography key={renglon} variant="body2" color="text.secondary">
+                          · {renglon}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
             </Stack>
           </Container>
         </DialogContent>
