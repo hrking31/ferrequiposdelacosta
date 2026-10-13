@@ -328,6 +328,16 @@ Por dentro es un solo dato —el día del aviso, anotado en el equipo— y una s
 > [!NOTE]
 > **El día en que salió se cobra siempre.** Pactar la entrega el mismo día del despacho dejaba un alquiler de cero días; ese es el único piso.
 
+### El diálogo de devolver, por pasos
+
+Con la entrega pactada el diálogo pasó a anotar tres cosas distintas, y las tres compartían las mismas casillas: una "cantidad" que a veces era lo que volvió y a veces lo que se pactaba. Ahora se arma igual que el de abono, **primero la decisión y después lo que esa decisión pide**:
+
+1. **¿Qué pasó con el equipo?** Una barra partida: *Llegó a la bodega*, *Entrega pactada* o *No entregó*. Hasta que no se elige no se muestra nada más y Guardar está apagado. Cada opción aparece solo si hay a quién aplicarla: sin equipos corriendo no hay nada que pactar, y sin ninguno por recoger no hay entrega que anular.
+2. **Lo que pide esa decisión.** Si llegó: cuántos, cómo volvieron, el descuento de los vencidos y la casilla del día de hoy. Si se pacta: solo cuántos y el descuento —nadie vio el equipo todavía—. Si no entregó: los equipos por recoger ya vienen marcados.
+3. **Así queda.** La pizarra de totales, que este diálogo no tenía: hasta qué día se cobra y cuánto valen los días vencidos que se cierran. Con las cerchas: *Se cobra hasta 12/10 · 3 días vencidos · $27.000*.
+
+Cambiar de decisión borra lo escrito: una cantidad anotada como "llegó" no significa lo mismo como "pactada". Y las cuentas no cambiaron —el paso 3 suma la misma proyección que ya usaban las casillas de descuento—: es solo el orden en que se pregunta.
+
 ### 4. Las gestiones: la bitácora del cobro
 
 El estado dice en qué punto está la factura. **La gestión dice qué se hizo para destrabarla.** Solo se ve en Seguimiento, y solo entran ahí las facturas *Vencidas* y en *Cobro*.
