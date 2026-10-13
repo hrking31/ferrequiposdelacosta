@@ -1060,18 +1060,6 @@ export default function RegistrarDevolucionDialog({
               <Grid item xs={12}>
                 {rotuloPaso(2, DECISIONES[decision].pregunta, 0)}
 
-                {modoAnular && (
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block", mt: 1 }}
-                  >
-                    El cliente no entregó lo que había pactado. La cuenta vuelve
-                    a correr desde el día en que se detuvo, como si nunca
-                    hubiera parado.
-                  </Typography>
-                )}
-
                 {/* EL DÍA DE HOY, solo para lo vencido que vuelve: antes de
                     las 3 p.m. no se cobra. Viene marcada según la hora y se
                     puede cambiar —el cliente pudo entregar a las 10 y que lo
