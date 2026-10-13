@@ -33,6 +33,8 @@ import {
   anularEntregaPactada,
   cerrarIndefinida,
   cerrarTramoVencido,
+  comoEstabaEl,
+  ultimoHechoDe,
   cubiertoHasta,
   dejarSinFechaDeEntrega,
   descontarVencidosDeHoy,
@@ -174,6 +176,11 @@ export default function RegistrarDevolucionDialog({
   // hora —antes de las 3 p.m. no— y se puede cambiar: el reloj mira cuándo
   // se anota, no cuándo entregó el cliente.
   const [cobrarHoy, setCobrarHoy] = useState(true);
+  // CUÁNDO PASÓ lo que se anota. Casi siempre es hoy, pero no siempre: la
+  // factura que se digita días después de terminada, el equipo que volvió el
+  // viernes y se anota el lunes. Con la fecha de hoy a la fuerza, esa
+  // devolución le cobraba al cliente todos los días de demora en ANOTARLA.
+  const [fecha, setFecha] = useState("");
   const [guardando, setGuardando] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
@@ -183,10 +190,23 @@ export default function RegistrarDevolucionDialog({
     setMotivoDevolucion("");
     setDecision(null);
     setCobrarHoy(seCobraElDiaAlDevolver());
+    setFecha(obtenerFechaHoyBogota());
   }, [open]);
 
   const hoyIso = obtenerFechaHoyBogota();
-  const ayerIso = diaAnterior(hoyIso);
+  // El día de lo que se anota: la devolución o el aviso de la entrega
+  // pactada. Con la casilla vacía se sigue calculando con hoy, y guardar
+  // avisa que falta.
+  const diaIso = fecha || hoyIso;
+  const esDeHoy = diaIso === hoyIso;
+  const ayerIso = diaAnterior(diaIso);
+
+  // El reloj de las 3 p.m. solo sabe de hoy. De otro día no hay hora que
+  // mirar: se cobra, y quien anota desmarca si esa vez entregó temprano.
+  const handleCambiarFecha = (nueva) => {
+    setFecha(nueva);
+    setCobrarHoy(nueva === hoyIso ? seCobraElDiaAlDevolver() : true);
+  };
 
   // Cada línea se identifica por su despacho y su posición dentro de él: los
   // equipos viven repartidos en grupos, así que un número suelto no alcanza
@@ -250,7 +270,7 @@ export default function RegistrarDevolucionDialog({
   // Desde la ficha solo vuelve lo que está en plazo, que no tiene mora: ahí
   // la casilla ni se muestra.
   const corteDeLaMora =
-    modoPactada || (!cobrarHoy && !desdeLaFicha) ? ayerIso : hoyIso;
+    modoPactada || (!cobrarHoy && !desdeLaFicha) ? ayerIso : diaIso;
 
   // Cuántas unidades tiene todavía afuera una línea. Una línea devuelta volvió
   // ENTERA —al devolver una parte se parte en dos—, así que no hay cantidades
@@ -444,11 +464,16 @@ export default function RegistrarDevolucionDialog({
 
   // Lo que queda afuera de una línea, con la cantidad que se queda: es sobre
   // eso que se da el plazo nuevo y se hacen los descuentos.
+  //
+  // Todo se proyecta sobre el equipo como estaba el día que se anota (ver
+  // comoEstabaEl): si ese día todavía no había vencido, no hay mora que
+  // cerrar ni que descontar.
   const proyeccionDelResto = (equipo, clave) => {
     const restante = pendienteDe(equipo) - cantidadQueDevuelve(equipo, clave);
     return proyectarAmpliacion(
-      { ...equipo, cantidadEquipos: restante },
+      { ...comoEstabaEl(equipo, diaIso), cantidadEquipos: restante },
       Number(cambios[clave]?.dias) || 0,
+      diaIso,
     );
   };
 
@@ -460,7 +485,10 @@ export default function RegistrarDevolucionDialog({
   // 3 p.m., o al pactar la entrega, el último día cobrado es ayer.
   const proyeccionDeLoQueVuelve = (equipo, clave, hasta = corteDeLaMora) =>
     proyectarAmpliacion(
-      { ...equipo, cantidadEquipos: cantidadQueDevuelve(equipo, clave) },
+      {
+        ...comoEstabaEl(equipo, diaIso),
+        cantidadEquipos: cantidadQueDevuelve(equipo, clave),
+      },
       0,
       hasta,
     );
@@ -473,7 +501,7 @@ export default function RegistrarDevolucionDialog({
       estaPorRecoger(equipo) || cantidadQueDevuelve(equipo, clave) <= 0
         ? total
         : total +
-          proyeccionDeLoQueVuelve(equipo, clave, hoyIso).valorVencidos -
+          proyeccionDeLoQueVuelve(equipo, clave, diaIso).valorVencidos -
           proyeccionDeLoQueVuelve(equipo, clave, ayerIso).valorVencidos,
     0,
   );
@@ -544,12 +572,13 @@ export default function RegistrarDevolucionDialog({
       }
 
       const { diasVencidos, valorVencidos } = proyeccionDeLoQueVuelve(equipo, clave);
+      const eseDia = comoEstabaEl(equipo, diaIso);
       return {
         corte: modoPactada
-          ? ultimoDiaCobrado(pactarEntrega(equipo, hoyIso), hoyIso)
-          : cubiertoHasta(equipo) < hoyIso
+          ? ultimoDiaCobrado(pactarEntrega(eseDia, diaIso), hoyIso)
+          : cubiertoHasta(eseDia) < diaIso
             ? corteDeLaMora
-            : hoyIso,
+            : diaIso,
         dias: diasVencidos,
         valor: valorVencidos,
         descuento: desdeLaFicha
@@ -707,9 +736,40 @@ export default function RegistrarDevolucionDialog({
       return;
     }
 
+    // LA FECHA de lo que se anota. No puede ser futura, ni anterior a lo
+    // último que ya tiene anotado el equipo: lo que vino después se apoya en
+    // lo de antes, y meter algo en el medio ya es corregir la factura, que es
+    // del administrador.
+    if (!modoAnular) {
+      if (!fecha) {
+        showSnackbar("Falta la fecha.", "warning");
+        return;
+      }
+      if (fecha > hoyIso) {
+        showSnackbar("La fecha no puede ser futura.", "warning");
+        return;
+      }
+      const anotadoDespues = equiposPendientes.find(
+        ({ equipo, clave }) =>
+          cantidadQueDevuelve(equipo, clave) > 0 && ultimoHechoDe(equipo) > fecha,
+      );
+      if (anotadoDespues) {
+        showSnackbar(
+          `El ${anotadoDespues.equipo.nombre} ya tiene algo anotado el ${formatearFechaLegible(
+            ultimoHechoDe(anotadoDespues.equipo),
+          )}: la fecha no puede ser anterior.`,
+          "warning",
+        );
+        return;
+      }
+    }
+
     setGuardando(true);
     try {
       const hoy = obtenerFechaHoyBogota();
+      // El día de lo que se anota. `hoy` queda solo para anular una entrega
+      // pactada, que no lleva fecha: pasa cuando se anota.
+      const dia = diaIso;
       let huboCierre = false;
       let huboAnulacion = false;
       // Cuántas unidades volvieron en esta tanda, para dejarlo escrito en la
@@ -723,7 +783,7 @@ export default function RegistrarDevolucionDialog({
         // Lo que sigue afuera todavía no volvió.
         delete restante.devolucion;
 
-        if (cambio.indefinida) return dejarSinFechaDeEntrega(restante, hoy);
+        if (cambio.indefinida) return dejarSinFechaDeEntrega(restante, dia);
 
         const extra = Number(cambio.dias) || 0;
         if (extra > 0) {
@@ -737,7 +797,7 @@ export default function RegistrarDevolucionDialog({
               descuento: Math.max(0, Number(cambio.descuento) || 0),
               descuentoVencidos: Math.max(0, Number(cambio.descuentoVencidos) || 0),
             },
-            hoy,
+            dia,
           );
         }
         return restante;
@@ -773,23 +833,28 @@ export default function RegistrarDevolucionDialog({
           huboCierre = true;
           unidadesDevueltas += cantidadDevuelta;
 
+          // El equipo como estaba el día que se anota: sin la mora que se le
+          // abrió después, si ese día todavía estaba en plazo. Con la fecha
+          // de hoy es el mismo equipo.
+          const eseDia = comoEstabaEl(equipo, dia);
+
           // LA ENTREGA PACTADA: el equipo no vuelve hoy, pero deja de correr.
           // Sin nodo `devolucion` —sigue afuera— y sin calificar cómo volvió:
           // eso se anota el día que llegue a la bodega.
           if (modoPactada) {
             const pactar = (linea) =>
               descontarVencidosDeHoy(
-                pactarEntrega(linea, hoy),
+                pactarEntrega(linea, dia),
                 desdeLaFicha ? 0 : cambio.descuentoDevueltos,
                 corteDeLaMora,
               );
 
             if (cantidadDevuelta >= pendiente) {
-              equiposActualizados.push(pactar(equipo));
+              equiposActualizados.push(pactar(eseDia));
               return;
             }
 
-            const [parteQuePacta, parteQueQueda] = partirLinea(equipo, cantidadDevuelta);
+            const [parteQuePacta, parteQueQueda] = partirLinea(eseDia, cantidadDevuelta);
             equiposActualizados.push(pactar(parteQuePacta));
             equiposActualizados.push(conPlazoNuevo(parteQueQueda, cambio));
             return;
@@ -797,7 +862,7 @@ export default function RegistrarDevolucionDialog({
 
           const devolucion = devolucionDe(
             cambio,
-            hoy,
+            dia,
             depositoDelGrupo(grupo),
             desdeLaFicha ? motivoDevolucion : "",
           );
@@ -821,7 +886,7 @@ export default function RegistrarDevolucionDialog({
           // Queda escrito en la devolución, para que la historia del equipo
           // pueda decir por qué su mora termina un día antes de la fecha en
           // que volvió.
-          if (corteDeLaMora !== hoy && cubiertoHasta(equipo) < hoy) {
+          if (corteDeLaMora !== dia && cubiertoHasta(eseDia) < dia) {
             devolucion.diaCobrado = false;
           }
 
@@ -846,7 +911,7 @@ export default function RegistrarDevolucionDialog({
             // la fecha de devolución (ver calcularEquipo), así que
             // pisarlos borraría con cuántos días había salido.
             equiposActualizados.push({
-              ...cerrarLoQueVuelve(equipo),
+              ...cerrarLoQueVuelve(eseDia),
               devolucion,
             });
             return;
@@ -862,7 +927,7 @@ export default function RegistrarDevolucionDialog({
           // duplicaba el pago y la factura inventaba un saldo a favor. Los
           // descuentos de la línea sí viajan, pero repartidos según la
           // cantidad (ver partirLinea).
-          const [parteQueVuelve, parteQueQueda] = partirLinea(equipo, cantidadDevuelta);
+          const [parteQueVuelve, parteQueQueda] = partirLinea(eseDia, cantidadDevuelta);
           equiposActualizados.push({
             ...cerrarLoQueVuelve(parteQueVuelve),
             devolucion,
@@ -939,7 +1004,7 @@ export default function RegistrarDevolucionDialog({
           motivo: retenciones
             .map(({ nombre, motivo }) => `${nombre}: ${motivo}`)
             .join(" · "),
-          fecha: hoy,
+          fecha: dia,
         };
         // Ruta completa, no el nodo entero: acá solo se resuelve el depósito
         // y escribir `factura: {...}` borraría el número, el total y el resto.
@@ -1060,6 +1125,25 @@ export default function RegistrarDevolucionDialog({
               <Grid item xs={12}>
                 {rotuloPaso(2, DECISIONES[decision].pregunta, 0)}
 
+                {/* CUÁNDO PASÓ. Viene con hoy, que es lo de casi siempre, y
+                    se puede atrasar: la cuenta se corta en ESA fecha, no en
+                    el día en que alguien se sentó a anotarlo. Anular una
+                    entrega pactada no la lleva: pasa cuando se anota. */}
+                {!modoAnular && (
+                  <TextField
+                    label={modoPactada ? "Fecha del aviso" : "Fecha en que llegó"}
+                    name="fechaDevolucion"
+                    type="date"
+                    inputProps={{ max: hoyIso }}
+                    value={fecha}
+                    onChange={(e) => handleCambiarFecha(e.target.value)}
+                    fullWidth
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mt: 1.5 }}
+                  />
+                )}
+
                 {/* EL DÍA DE HOY, solo para lo vencido que vuelve: antes de
                     las 3 p.m. no se cobra. Viene marcada según la hora y se
                     puede cambiar —el cliente pudo entregar a las 10 y que lo
@@ -1076,14 +1160,17 @@ export default function RegistrarDevolucionDialog({
                           onChange={(e) => setCobrarHoy(e.target.checked)}
                         />
                       }
-                      label="Cobrar el día de hoy"
+                      label={
+                        esDeHoy ? "Cobrar el día de hoy" : "Cobrar el día de la devolución"
+                      }
                     />
                     {!cobrarHoy && (
                       <Typography
                         variant="caption"
                         sx={{ display: "block", color: "success.main" }}
                       >
-                        Entrega antes de las 3 p.m.: hoy no se cobra
+                        Entrega antes de las 3 p.m.: {esDeHoy ? "hoy" : "ese día"} no se
+                        cobra
                         {ahorroDeHoy > 0 ? ` · −${formatearMoneda(ahorroDeHoy)}` : ""}
                       </Typography>
                     )}
