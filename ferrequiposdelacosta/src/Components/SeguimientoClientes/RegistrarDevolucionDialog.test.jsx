@@ -153,6 +153,19 @@ const abrir = (props = {}) =>
     />,
   );
 
+// El paso 1 del diálogo: qué pasó con el equipo. Hasta que no se elige no se
+// muestra nada más, así que casi todas las pruebas arrancan por acá.
+const elegir = (usuario, decision) =>
+  usuario.click(screen.getByRole("button", { name: decision }));
+const llego = (usuario) => elegir(usuario, "Llegó a la bodega");
+
+// Lo más común: el equipo llegó y se anota cuántos. Elegir de nuevo la misma
+// decisión no borra lo escrito, así que se puede llamar más de una vez.
+const devolver = async (usuario, cantidad) => {
+  await llego(usuario);
+  await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), cantidad);
+};
+
 const guardar = (usuario) =>
   usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
@@ -164,6 +177,12 @@ const equiposGuardados = () =>
 
 const exito = () => screen.findByText("Devolución registrada correctamente.");
 
+// Los renglones del paso 3, "Así queda", tal como se leen: rótulo y valor.
+const asiQueda = () =>
+  [...document.querySelectorAll(".MuiPaper-root .fila")].map((fila) =>
+    [...fila.children].map((celda) => celda.textContent.replace(/\s/g, " ")).join(" "),
+  );
+
 beforeEach(() => {
   vi.clearAllMocks();
   bd.getDocs.mockResolvedValue({ docs: [] });
@@ -171,10 +190,47 @@ beforeEach(() => {
   bd.cobraHoy.mockReturnValue(true);
 });
 
+// EL DIÁLOGO POR PASOS, como el de abono: primero la decisión, después lo que
+// esa decisión pide y al final cómo queda. Pedido del dueño, 2026-10-13.
+describe("RegistrarDevolucionDialog — primero la decisión", () => {
+  it("hasta que no se elige no muestra los equipos ni deja guardar", async () => {
+    const { usuario } = abrir();
+
+    expect(screen.getByText("¿Qué pasó con los equipos?")).toBeInTheDocument();
+    expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Cantidad que devuelve hoy")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+
+    await llego(usuario);
+
+    expect(screen.getByText("¿Qué llegó?")).toBeInTheDocument();
+    expect(screen.getByText(/ANDAMIO/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeEnabled();
+  });
+
+  it("solo ofrece lo que se puede hacer: sin nada por recoger no hay entrega que anular", () => {
+    abrir();
+
+    expect(screen.getByRole("button", { name: "Llegó a la bodega" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entrega pactada" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "No entregó" })).not.toBeInTheDocument();
+  });
+
+  it("cambiar de decisión borra lo que se había escrito", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "5");
+    await elegir(usuario, "Entrega pactada");
+
+    expect(screen.getByLabelText("Cantidad con entrega pactada")).toHaveValue(null);
+  });
+});
+
 describe("RegistrarDevolucionDialog — antes de guardar", () => {
   it("sin cantidad no registra nada", async () => {
     const { usuario } = abrir();
 
+    await llego(usuario);
     await guardar(usuario);
 
     expect(
@@ -188,7 +244,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
   it("cierra la línea con la fecha de hoy y la anota como devolución total", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     // "Volvió todo completo y en buen estado" ya viene marcado: es el caso
     // normal, y tocarlo sería decir que hay algo que retener.
     await guardar(usuario);
@@ -211,7 +267,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
   it("con el último equipo de vuelta se resuelve el depósito", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -228,7 +284,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
   it("si un equipo volvió mal, exige decir qué le pasó", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     // Se destilda "volvieron en buen estado": recién ahí aparece qué pasó.
     await usuario.click(screen.getByLabelText(/en buen estado/));
     await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
@@ -243,7 +299,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
   it("guarda el estado en la línea del equipo y liquida el depósito con eso", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await usuario.click(screen.getByLabelText(/en buen estado/));
     await usuario.type(screen.getByLabelText("Qué le pasó"), "Andamio rayado");
     await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
@@ -270,7 +326,7 @@ describe("RegistrarDevolucionDialog — devuelve todo", () => {
   it("cuando vuelve bien, deja anotado que volvió sin novedad", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -304,7 +360,7 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
   it("si todo vuelve bien, se le devuelve completo", async () => {
     const { usuario } = abrir({ factura: facturaConDepositoPagado });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
 
     expect(
       screen.getByText(`Depósito: ${enPantalla(100000)} · Se le devuelve completo al cliente`),
@@ -315,7 +371,7 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
   it("con daños, dice cuánto se retiene y cuánto se le devuelve", async () => {
     const { usuario } = abrir({ factura: facturaConDepositoPagado });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await usuario.click(screen.getByLabelText(/en buen estado/));
     await usuario.type(screen.getByLabelText("Qué le pasó"), "Andamio rayado");
     await usuario.type(screen.getByLabelText("Se retiene del depósito"), "30000");
@@ -336,7 +392,7 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
   it("si el depósito no se pagó, no promete devolverlo", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
 
     expect(
       screen.getByText(`Depósito: ${enPantalla(100000)} · No queda nada por devolverle`),
@@ -345,8 +401,9 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
 });
 
 describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
-  it("cada equipo muestra el depósito de su propio despacho", () => {
-    abrir({ factura: facturaConDosDepositos });
+  it("cada equipo muestra el depósito de su propio despacho", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+    await llego(usuario);
 
     // Con regex y no con el texto exacto: el formateador de moneda separa el
     // signo con un espacio duro, que no se ve pero no es el espacio común.
@@ -359,6 +416,7 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
 
     // La rana es el segundo equipo: dejó $50.000 y se intentan retener 80.000,
     // que sí caben en los $150.000 de la factura entera.
+    await llego(usuario);
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[1], "1");
     await usuario.click(screen.getAllByLabelText(/en buen estado/)[0]);
@@ -376,6 +434,7 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
   it("hasta el depósito de su despacho sí lo guarda", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
+    await llego(usuario);
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[1], "1");
     await usuario.click(screen.getAllByLabelText(/en buen estado/)[0]);
@@ -395,6 +454,7 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
   it("al volver todo, el desglose dice qué equipos cubre cada garantía", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
+    await llego(usuario);
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[0], "5");
     await usuario.type(cantidades[1], "1");
@@ -406,6 +466,7 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
   it("y con el último de vuelta liquida las dos juntas", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
+    await llego(usuario);
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[0], "5");
     await usuario.type(cantidades[1], "1");
@@ -430,7 +491,7 @@ describe("RegistrarDevolucionDialog — la garantía espera al último equipo", 
 
     // Cartera solo ofrece el ANDAMIO, que es el vencido; la MEZCLADORA sigue
     // afuera con días por delante.
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
 
     expect(screen.queryByText(/Volvió todo completo/)).not.toBeInTheDocument();
 
@@ -448,7 +509,7 @@ describe("RegistrarDevolucionDialog — la garantía espera al último equipo", 
 
     // Acá se ofrece la MEZCLADORA, la que está en plazo. El ANDAMIO vencido no
     // se ve en esta pantalla, pero sigue en la calle.
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "1");
+    await devolver(usuario, "1");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -458,7 +519,7 @@ describe("RegistrarDevolucionDialog — la garantía espera al último equipo", 
   it("y la devolución del equipo sí queda escrita igual", async () => {
     const { usuario } = abrir({ factura: facturaVencidaConEquipoEnPlazo });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -472,8 +533,8 @@ describe("RegistrarDevolucionDialog — la garantía espera al último equipo", 
 // Al recibir un equipo atrasado hay que saber de qué tamaño es el atraso, y
 // restar a mano contra el día de hoy no es forma.
 describe("RegistrarDevolucionDialog — los días vencidos en la fila", () => {
-  it("muestra la fecha del último acuerdo y cuántos días se pasó", () => {
-    abrir({
+  it("muestra la fecha del último acuerdo y cuántos días se pasó", async () => {
+    const { usuario } = abrir({
       factura: {
         ...factura,
         ...unaFactura({
@@ -486,6 +547,7 @@ describe("RegistrarDevolucionDialog — los días vencidos en la fila", () => {
         }),
       },
     });
+    await llego(usuario);
 
     // El andamio vencía el 03/08 y sigue afuera: la fila lo dice al lado de
     // la fecha, sin obligar a contar.
@@ -501,7 +563,7 @@ describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
   it("pregunta por el estado aunque queden equipos afuera", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await devolver(usuario, "2");
 
     // Quedan 3 andamios afuera y la casilla del estado igual está.
     expect(screen.getByLabelText(/en buen estado/)).toBeInTheDocument();
@@ -512,7 +574,7 @@ describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
   it("el estado queda en la parte que volvió, no en la que sigue afuera", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await devolver(usuario, "2");
     await usuario.click(screen.getByLabelText(/en buen estado/));
     await usuario.type(screen.getByLabelText("Qué le pasó"), "Uno llegó torcido");
     await guardar(usuario);
@@ -534,7 +596,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("parte la línea en dos: lo que volvió y lo que sigue afuera", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -591,7 +653,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
 
     const { usuario } = abrir({ factura: facturaConLote });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "4");
+    await devolver(usuario, "4");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -617,7 +679,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("queda anotada como devolución parcial, con cuántas unidades volvieron", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -632,7 +694,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("la de una factura vencida cuenta como gestión de cobranza", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -646,7 +708,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("la de una factura al día no se anota como gestión", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -657,15 +719,17 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   // en plazo, así que devolver es una decisión del cliente y el motivo es un
   // dato. Desde Seguimiento el equipo ya venció y el motivo es el vencimiento.
   it("desde la ficha se pregunta por qué devuelve", async () => {
-    abrir({ factura: facturaAlDia, desdeLaFicha: true });
+    const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
+    await llego(usuario);
 
     expect(
       screen.getByLabelText("Motivo de la devolución (opcional)"),
     ).toBeInTheDocument();
   });
 
-  it("desde Seguimiento no se pregunta", () => {
-    abrir({ factura });
+  it("desde Seguimiento no se pregunta", async () => {
+    const { usuario } = abrir({ factura });
+    await llego(usuario);
 
     expect(
       screen.queryByLabelText("Motivo de la devolución (opcional)"),
@@ -675,11 +739,12 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("el motivo queda escrito en cada equipo que volvió", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
+    await llego(usuario);
     await usuario.type(
       screen.getByLabelText("Motivo de la devolución (opcional)"),
       "terminó la obra",
     );
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -695,7 +760,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("sin motivo escrito, el campo no se guarda", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -714,7 +779,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       desdeLaFicha: true,
     });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "1");
+    await devolver(usuario, "1");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -727,7 +792,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("desde la ficha no pregunta qué hacer con lo que queda afuera", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
 
     expect(screen.queryByLabelText("Días a ampliar")).not.toBeInTheDocument();
     expect(
@@ -738,16 +803,17 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("desde Seguimiento sí lo pregunta", async () => {
     const { usuario } = abrir();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
 
     expect(screen.getByLabelText("Días a ampliar")).toBeInTheDocument();
   });
 
   it("desde la ficha no ofrece los equipos que ya vencieron", async () => {
-    abrir({
+    const { usuario } = abrir({
       factura: facturaVencidaConEquipoEnPlazo,
       desdeLaFicha: true,
     });
+    await llego(usuario);
 
     expect(await screen.findByText(/MEZCLADORA/)).toBeInTheDocument();
     expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
@@ -759,7 +825,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("la de una factura al día sí queda registrada en el equipo", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -794,7 +860,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       },
     });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
     await guardar(usuario);
 
@@ -844,7 +910,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       },
     });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await devolver(usuario, "2");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -871,7 +937,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       },
     });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await usuario.type(screen.getByLabelText("Días a ampliar"), "2");
 
     // La base es lo que se queda afuera: 2 andamios, no los 5.
@@ -897,7 +963,7 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     const { usuario } = abrir();
 
     // Se cargan 9 sobre 5 pendientes: se toman 5, no se inventan devoluciones.
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "9");
+    await devolver(usuario, "9");
     await guardar(usuario);
 
     expect(await exito()).toBeInTheDocument();
@@ -933,7 +999,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
   it("devolviendo todo, el descuento queda en el día vencido que se cierra", async () => {
     const { usuario } = abrir({ factura: facturaVencidaAyer });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     expect(
       screen.getByText(`Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`),
     ).toBeInTheDocument();
@@ -955,7 +1021,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
   it("el tope es lo que vale el día de lo que VUELVE, no de toda la línea", async () => {
     const { usuario } = abrir({ factura: facturaVencidaAyer });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "2");
+    await devolver(usuario, "2");
     await usuario.type(
       screen.getByLabelText("Descuento del día vencido"),
       "40001",
@@ -973,7 +1039,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
   it("al devolver una parte y ampliar el resto, cada parte lleva el suyo", async () => {
     const { usuario } = abrir({ factura: facturaVencidaAyer });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "3");
+    await devolver(usuario, "3");
     await usuario.type(
       screen.getByLabelText("Descuento del día vencido"),
       "10000",
@@ -991,7 +1057,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
   it("desde la ficha no aparece: ahí solo vuelve lo que está en plazo", async () => {
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
 
     expect(screen.queryByLabelText(/^Descuento en/)).not.toBeInTheDocument();
   });
@@ -1023,11 +1089,17 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     bd.cobraHoy.mockReturnValue(false);
     const { usuario } = abrir({ factura: vencida });
 
+    await llego(usuario);
     expect(screen.getByLabelText("Cobrar el día de hoy")).not.toBeChecked();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     // Lo que se deja de cobrar: 5 andamios × $20.000.
     expect(screen.getByText(/hoy no se cobra/)).toHaveTextContent(enPantalla(100000));
+    // Y el paso 3 lo dice entero: se cobra hasta ayer, un solo día vencido.
+    expect(asiQueda()).toEqual([
+      `Se cobra hasta ${formatearFechaLegible(AYER)}`,
+      `1 día vencido ${enPantalla(100000)}`,
+    ]);
 
     await guardar(usuario);
     expect(await exito()).toBeInTheDocument();
@@ -1045,9 +1117,14 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
   it("desde las 3 viene marcada y hoy se cobra, como siempre", async () => {
     const { usuario } = abrir({ factura: vencida });
 
+    await llego(usuario);
     expect(screen.getByLabelText("Cobrar el día de hoy")).toBeChecked();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
+    expect(asiQueda()).toEqual([
+      `Se cobra hasta ${formatearFechaLegible(HOY)}`,
+      `2 días vencidos ${enPantalla(200000)}`,
+    ]);
     await guardar(usuario);
     expect(await exito()).toBeInTheDocument();
 
@@ -1062,19 +1139,37 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
   it("se puede cambiar a mano: entregó temprano y lo anotan en la tarde", async () => {
     const { usuario } = abrir({ factura: vencida });
 
+    await llego(usuario);
     await usuario.click(screen.getByLabelText("Cobrar el día de hoy"));
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
     await guardar(usuario);
     expect(await exito()).toBeInTheDocument();
 
     expect(calcularEquipo(equiposGuardados()[0], HOY).diasVencidos).toBe(1);
   });
 
+  it("con descuento, el paso 3 muestra los vencidos, lo que se perdona y lo que queda", async () => {
+    const { usuario } = abrir({ factura: vencida });
+
+    await devolver(usuario, "5");
+    await usuario.type(
+      screen.getByLabelText("Descuento de los 2 días vencidos"),
+      "50000",
+    );
+
+    expect(asiQueda()).toEqual([
+      `Se cobra hasta ${formatearFechaLegible(HOY)}`,
+      `2 días vencidos ${enPantalla(200000)}`,
+      `Descuento −${enPantalla(50000)}`,
+      `Vencidos por cobrar ${enPantalla(150000)}`,
+    ]);
+  });
+
   it("el tope del descuento son los días que de verdad se cobran", async () => {
     bd.cobraHoy.mockReturnValue(false);
     const { usuario } = abrir({ factura: vencida });
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
 
     // Un solo día vencido —el de ayer—, no dos.
     expect(screen.getByLabelText("Descuento del día vencido")).toBeInTheDocument();
@@ -1084,9 +1179,12 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     bd.cobraHoy.mockReturnValue(false);
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
+    await llego(usuario);
     expect(screen.queryByLabelText("Cobrar el día de hoy")).not.toBeInTheDocument();
 
-    await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+    await devolver(usuario, "5");
+    // En plazo no hay días vencidos que mostrar: solo hasta cuándo se cobra.
+    expect(asiQueda()).toEqual([`Se cobra hasta ${formatearFechaLegible(HOY)}`]);
     await guardar(usuario);
     expect(await exito()).toBeInTheDocument();
 
@@ -1104,7 +1202,7 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
   const AYER = calcularVencimiento(HOY, -1);
 
   const pactar = async (usuario, cantidad) => {
-    await usuario.click(screen.getByLabelText("Entrega pactada"));
+    await elegir(usuario, "Entrega pactada");
     await usuario.type(
       screen.getByLabelText("Cantidad con entrega pactada"),
       String(cantidad),
@@ -1145,6 +1243,7 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
     const { usuario } = abrir();
 
     await pactar(usuario, 5);
+    expect(asiQueda()[0]).toBe(`Se cobra hasta ${formatearFechaLegible(AYER)}`);
     await guardar(usuario);
     await screen.findByText("Entrega pactada registrada.");
 
@@ -1198,10 +1297,18 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
       }),
     };
 
-    it("no ofrece pactar de nuevo y dice desde cuándo está detenida", () => {
-      abrir({ factura: porRecoger });
+    it("no ofrece pactar de nuevo y dice desde cuándo está detenida", async () => {
+      const { usuario } = abrir({ factura: porRecoger });
 
-      expect(screen.queryByLabelText("Entrega pactada")).not.toBeInTheDocument();
+      // Lo que sí se puede decidir de un equipo por recoger: llegó o no.
+      expect(
+        screen.queryByRole("button", { name: "Entrega pactada" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "No entregó" })).toBeInTheDocument();
+
+      await llego(usuario);
+      // Su cuenta ya estaba detenida: la casilla del día de hoy no aplica.
+      expect(screen.queryByLabelText("Cobrar el día de hoy")).not.toBeInTheDocument();
       expect(
         screen.getByText(
           `Entrega pactada el ${formatearFechaLegible(ANTEAYER)} · cuenta detenida`,
@@ -1212,7 +1319,7 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
     it("al llegar a la bodega se devuelve sin sumar ni un día", async () => {
       const { usuario } = abrir({ factura: porRecoger });
 
-      await usuario.type(screen.getByLabelText("Cantidad que devuelve hoy"), "5");
+      await devolver(usuario, "5");
       await guardar(usuario);
       expect(await exito()).toBeInTheDocument();
 
@@ -1231,9 +1338,15 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
     it("anularla vuelve a abrirle la mora desde el día del aviso", async () => {
       const { usuario } = abrir({ factura: porRecoger });
 
-      await usuario.click(
-        screen.getByLabelText("Anular la entrega pactada (el cliente no entregó)"),
-      );
+      // Elegir "No entregó" ya trae marcado el equipo: es lo que se dijo.
+      await elegir(usuario, "No entregó");
+      expect(screen.getByLabelText("Anular la entrega pactada")).toBeChecked();
+      // Vuelve a correr desde el aviso: anteayer, ayer y hoy, 5 × $20.000.
+      expect(asiQueda()).toEqual([
+        `Vuelve a correr desde ${formatearFechaLegible(ANTEAYER)}`,
+        `3 días vencidos ${enPantalla(300000)}`,
+      ]);
+
       await guardar(usuario);
       expect(await screen.findByText("Entrega pactada anulada.")).toBeInTheDocument();
 

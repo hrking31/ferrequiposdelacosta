@@ -10,13 +10,18 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Radio,
-  RadioGroup,
   Grid,
+  Paper,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   Divider,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -39,6 +44,7 @@ import {
   partirLinea,
   proyectarAmpliacion,
   seCobraElDiaAlDevolver,
+  ultimoDiaCobrado,
   equipoAlDia,
   equipoVencido,
   calcularEstadoCliente,
@@ -84,6 +90,17 @@ const ESTADO_INICIAL_CAMBIO = {
   // entregó y la cuenta vuelve a correr.
   anular: false,
 };
+
+// Las decisiones del paso 1, en una barra partida como la del abono. Cada una
+// se ofrece solo si hay a quién aplicarla (ver `opciones`).
+const DECISIONES = {
+  llego: { Icono: WarehouseIcon, titulo: "Llegó a la bodega", pregunta: "¿Qué llegó?" },
+  pactada: { Icono: LocalShippingIcon, titulo: "Entrega pactada", pregunta: "¿Qué se pacta?" },
+  noEntrego: { Icono: EventBusyIcon, titulo: "No entregó", pregunta: "¿Qué no entregó?" },
+};
+
+const rotuloDiasVencidos = (dias) =>
+  dias === 1 ? "1 día vencido" : `${dias} días vencidos`;
 
 // El nodo `devolucion` que se le pone a la línea que volvió. Su sola
 // presencia es lo que dice que ese equipo ya no está afuera —no hay que
@@ -145,10 +162,14 @@ export default function RegistrarDevolucionDialog({
   // por qué es un dato. Desde Seguimiento el equipo ya venció y el motivo es
   // el vencimiento.
   const [motivoDevolucion, setMotivoDevolucion] = useState("");
-  // QUÉ SE ESTÁ ANOTANDO: que el equipo llegó a la bodega, o que el cliente
-  // avisó y llega después (la entrega pactada). Lo segundo detiene la cuenta
-  // sin dar el equipo por devuelto.
-  const [modoPactada, setModoPactada] = useState(false);
+  // Paso 1, QUÉ SE ESTÁ ANOTANDO: que el equipo llegó a la bodega ("llego"),
+  // que el cliente avisó y llega después ("pactada") o que no entregó lo que
+  // había pactado ("noEntrego"). Null hasta que se elige: de eso depende todo
+  // lo que se pregunta después.
+  const [decision, setDecision] = useState(null);
+  // La entrega pactada detiene la cuenta sin dar el equipo por devuelto.
+  const modoPactada = decision === "pactada";
+  const modoAnular = decision === "noEntrego";
   // Si el equipo vencido que vuelve paga el día de hoy. Arranca según la
   // hora —antes de las 3 p.m. no— y se puede cambiar: el reloj mira cuándo
   // se anota, no cuándo entregó el cliente.
@@ -160,7 +181,7 @@ export default function RegistrarDevolucionDialog({
     if (!open) return;
     setCambios({});
     setMotivoDevolucion("");
-    setModoPactada(false);
+    setDecision(null);
     setCobrarHoy(seCobraElDiaAlDevolver());
   }, [open]);
 
@@ -198,10 +219,29 @@ export default function RegistrarDevolucionDialog({
   const hayParaPactar = lineasDelDialogo.some(
     ({ equipo }) => !estaPorRecoger(equipo),
   );
-  // Al pactar no se muestran los que ya tienen la entrega pactada: no hay
-  // nada nuevo que acordarles.
+  // Y hay a quién anulársela: alguno que ya está por recoger.
+  const hayPorRecoger = lineasDelDialogo.some(({ equipo }) =>
+    estaPorRecoger(equipo),
+  );
+  const opciones = [
+    "llego",
+    ...(hayParaPactar ? ["pactada"] : []),
+    ...(hayPorRecoger ? ["noEntrego"] : []),
+  ];
+  // Para el rótulo del paso 1: "el equipo" o "los equipos".
+  const unidadesDelDialogo = lineasDelDialogo.reduce(
+    (total, { equipo }) => total + (Number(equipo.cantidadEquipos) || 0),
+    0,
+  );
+  // Cada decisión muestra sus equipos y nada más; antes de elegir, ninguno.
+  // A la bodega puede llegar cualquiera. Al pactar no van los que ya tienen
+  // la entrega pactada —no hay nada nuevo que acordarles— y "no entregó" es
+  // solo de ellos.
   const equiposPendientes = lineasDelDialogo.filter(
-    ({ equipo }) => !(modoPactada && estaPorRecoger(equipo)),
+    ({ equipo }) =>
+      decision === "llego" ||
+      (modoPactada && !estaPorRecoger(equipo)) ||
+      (modoAnular && estaPorRecoger(equipo)),
   );
 
   // Hasta qué día se le cobra la mora a lo que se anota ahora. La entrega
@@ -438,11 +478,20 @@ export default function RegistrarDevolucionDialog({
     0,
   );
 
-  // Cambiar entre "llegó" y "entrega pactada" arranca de cero: lo escrito en
-  // un modo no significa lo mismo en el otro.
-  const handleCambiarModo = (pactada) => {
-    setModoPactada(pactada);
-    setCambios({});
+  // Cambiar de decisión arranca de cero: lo escrito para una no significa lo
+  // mismo en la otra. "No entregó" trae marcados los que estaban por recoger
+  // —es lo que se acaba de decir—, y se puede desmarcar el que sí va a llegar.
+  const handleCambiarDecision = (nueva) => {
+    setDecision(nueva);
+    setCambios(
+      nueva === "noEntrego"
+        ? Object.fromEntries(
+            lineasDelDialogo
+              .filter(({ equipo }) => estaPorRecoger(equipo))
+              .map(({ clave }) => [clave, { ...ESTADO_INICIAL_CAMBIO, anular: true }]),
+          )
+        : {},
+    );
   };
 
   const handleCambiarAnular = (index, marcada) => {
@@ -460,6 +509,124 @@ export default function RegistrarDevolucionDialog({
       ? "Descuento del día vencido"
       : `Descuento de los ${dias} días vencidos`;
 
+  // ── 3. Así queda ──────────────────────────────────────────────────────
+  //
+  // Lo que resulta de lo escrito arriba: hasta qué día se cobra y cuánto
+  // valen los días vencidos que se cierran. No es una cuenta nueva —es la
+  // misma proyección que usan las casillas de descuento—: acá solo se suma lo
+  // que cada equipo ya decía por separado.
+  const loQueSeAnota = equiposPendientes
+    .map(({ equipo, clave }) => {
+      const cambio = cambios[clave];
+
+      if (modoAnular) {
+        if (!cambio?.anular) return null;
+        // La mora que se le vuelve a abrir: del día del aviso hasta hoy.
+        const { diasVencidos, valorVencidos } = proyectarAmpliacion(
+          anularEntregaPactada(equipo, hoyIso),
+          0,
+          hoyIso,
+        );
+        return {
+          corte: entregaPactadaDe(equipo).fecha,
+          dias: diasVencidos,
+          valor: valorVencidos,
+          descuento: 0,
+        };
+      }
+
+      if (cantidadQueDevuelve(equipo, clave) <= 0) return null;
+
+      // El que estaba por recoger llega sin sumar nada: se le cobra hasta
+      // donde se había detenido.
+      if (estaPorRecoger(equipo)) {
+        return { corte: ultimoDiaCobrado(equipo, hoyIso), dias: 0, valor: 0, descuento: 0 };
+      }
+
+      const { diasVencidos, valorVencidos } = proyeccionDeLoQueVuelve(equipo, clave);
+      return {
+        corte: modoPactada
+          ? ultimoDiaCobrado(pactarEntrega(equipo, hoyIso), hoyIso)
+          : cubiertoHasta(equipo) < hoyIso
+            ? corteDeLaMora
+            : hoyIso,
+        dias: diasVencidos,
+        valor: valorVencidos,
+        descuento: desdeLaFicha
+          ? 0
+          : Math.min(valorVencidos, Math.max(0, Number(cambio?.descuentoDevueltos) || 0)),
+      };
+    })
+    .filter(Boolean);
+
+  const sinRepetir = (valores) => [...new Set(valores)];
+  const cortes = sinRepetir(loQueSeAnota.map(({ corte }) => corte));
+  const diasEnMora = sinRepetir(
+    loQueSeAnota.filter(({ dias }) => dias > 0).map(({ dias }) => dias),
+  );
+  const valorVencidos = loQueSeAnota.reduce((total, { valor }) => total + valor, 0);
+  const descuentoVencidos = loQueSeAnota.reduce(
+    (total, { descuento }) => total + descuento,
+    0,
+  );
+  // Con equipos de distinto atraso no hay un solo número de días que decir.
+  const rotuloVencidos =
+    diasEnMora.length === 1 ? rotuloDiasVencidos(diasEnMora[0]) : "Días vencidos";
+
+  const filasResumen = [
+    // La fecha solo si es una para toda la tanda: con dos distintas, cada
+    // equipo ya muestra la suya arriba.
+    ...(cortes.length === 1
+      ? [
+          {
+            rotulo: modoAnular ? "Vuelve a correr desde" : "Se cobra hasta",
+            valor: formatearFechaLegible(cortes[0]),
+          },
+        ]
+      : []),
+    ...(valorVencidos > 0 && descuentoVencidos > 0
+      ? [
+          { rotulo: rotuloVencidos, valor: formatearMoneda(valorVencidos) },
+          { rotulo: "Descuento", valor: `−${formatearMoneda(descuentoVencidos)}` },
+        ]
+      : []),
+    ...(valorVencidos > 0
+      ? [
+          {
+            rotulo: descuentoVencidos > 0 ? "Vencidos por cobrar" : rotuloVencidos,
+            valor: formatearMoneda(valorVencidos - descuentoVencidos),
+            clase: valorVencidos - descuentoVencidos > 0 ? "alerta" : "ok",
+          },
+        ]
+      : []),
+  ];
+
+  const rotuloPaso = (numero, texto, mb = 1) => (
+    <Typography
+      variant="overline"
+      color="text.secondary"
+      sx={{ display: "flex", alignItems: "center", gap: 1, lineHeight: 1.6, mb }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          display: "grid",
+          placeItems: "center",
+          bgcolor: acento,
+          color: theme.palette.getContrastText(acento),
+          fontSize: "0.7rem",
+          fontWeight: "bold",
+        }}
+      >
+        {numero}
+      </Box>
+      {texto}
+    </Typography>
+  );
+
   const handleGuardar = async () => {
     const huboCambios = equiposPendientes.some(({ clave }) => {
       const cambio = cambios[clave];
@@ -467,9 +634,11 @@ export default function RegistrarDevolucionDialog({
     });
     if (!huboCambios) {
       showSnackbar(
-        modoPactada
-          ? "Ingresá la cantidad con entrega pactada de al menos un equipo."
-          : "Ingresá la cantidad que devuelve al menos un equipo.",
+        modoAnular
+          ? "Marcá al menos un equipo que no entregó."
+          : modoPactada
+            ? "Ingresá la cantidad con entrega pactada de al menos un equipo."
+            : "Ingresá la cantidad que devuelve al menos un equipo.",
         "warning",
       );
       return;
@@ -827,36 +996,75 @@ export default function RegistrarDevolucionDialog({
         <DialogTitle sx={{ color: acento }}>Registrar devolución</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            {/* QUÉ SE ANOTA: que el equipo ya está en la bodega, o que el
-                cliente avisó y llega después. Va arriba de todo porque cambia
-                lo que significa cada casilla de abajo. Sin equipos corriendo
-                —solo quedan por recoger— no hay nada que pactar y no se
-                pregunta. */}
-            {hayParaPactar && (
+            {/* ── 1. ¿Qué pasó? ── La decisión va sola arriba, igual que en
+                el abono: cambia lo que significa cada casilla de abajo, así
+                que no se muestra nada más hasta que se elige. Cada opción
+                aparece solo si hay a quién aplicarla: sin equipos corriendo
+                no hay nada que pactar, y sin ninguno por recoger no hay
+                entrega que anular. */}
+            {lineasDelDialogo.length > 0 && (
               <Grid item xs={12}>
-                <RadioGroup
-                  row
-                  name="modoDevolucion"
-                  value={modoPactada ? "pactada" : "llego"}
-                  onChange={(e) => handleCambiarModo(e.target.value === "pactada")}
+                {rotuloPaso(
+                  1,
+                  unidadesDelDialogo === 1
+                    ? "¿Qué pasó con el equipo?"
+                    : "¿Qué pasó con los equipos?",
+                )}
+                <ToggleButtonGroup
+                  exclusive
+                  fullWidth
+                  size="small"
+                  value={decision}
+                  onChange={(_, valor) => {
+                    // Tocar la que ya está elegida no la deja sin elegir.
+                    if (valor === null) return;
+                    handleCambiarDecision(valor);
+                  }}
                 >
-                  <FormControlLabel
-                    value="llego"
-                    control={<Radio size="small" />}
-                    label="Llegó a la bodega"
-                  />
-                  <FormControlLabel
-                    value="pactada"
-                    control={<Radio size="small" />}
-                    label="Entrega pactada"
-                  />
-                </RadioGroup>
+                  {opciones.map((valor) => {
+                    const { Icono, titulo } = DECISIONES[valor];
+                    return (
+                      <ToggleButton
+                        key={valor}
+                        value={valor}
+                        sx={{
+                          gap: 0.75,
+                          textTransform: "none",
+                          fontWeight: "bold",
+                          lineHeight: 1.3,
+                          // Con tres no caben de corrido en un celular: el
+                          // ícono sube y el texto queda debajo.
+                          ...(opciones.length > 2 && {
+                            flexDirection: "column",
+                            gap: 0.25,
+                            px: 0.5,
+                          }),
+                          "&.Mui-selected, &.Mui-selected:hover": {
+                            color: acento,
+                            bgcolor: alpha(acento, 0.1),
+                          },
+                        }}
+                      >
+                        <Icono fontSize="small" sx={{ color: acento }} />
+                        {titulo}
+                      </ToggleButton>
+                    );
+                  })}
+                </ToggleButtonGroup>
+              </Grid>
+            )}
+
+            {/* ── 2. Lo que pide esa decisión ── Primero lo que vale para
+                toda la tanda; debajo, equipo por equipo. */}
+            {decision && (
+              <Grid item xs={12}>
+                {rotuloPaso(2, DECISIONES[decision].pregunta, 0)}
 
                 {modoPactada && (
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ display: "block" }}
+                    sx={{ display: "block", mt: 1 }}
                   >
                     El cliente avisó y el equipo llega después. La cuenta se
                     detiene: se cobra hasta el {formatearFechaLegible(ayerIso)} y
@@ -864,11 +1072,24 @@ export default function RegistrarDevolucionDialog({
                   </Typography>
                 )}
 
+                {modoAnular && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mt: 1 }}
+                  >
+                    El cliente no entregó lo que había pactado. La cuenta vuelve
+                    a correr desde el día en que se detuvo, como si nunca
+                    hubiera parado.
+                  </Typography>
+                )}
+
                 {/* EL DÍA DE HOY, solo para lo vencido que vuelve: antes de
                     las 3 p.m. no se cobra. Viene marcada según la hora y se
                     puede cambiar —el cliente pudo entregar a las 10 y que lo
-                    anoten a las 4—. */}
-                {!modoPactada && !desdeLaFicha && (
+                    anoten a las 4—. Si lo único que llega estaba por recoger
+                    no se pregunta: su cuenta ya estaba detenida. */}
+                {decision === "llego" && !desdeLaFicha && hayParaPactar && (
                   <>
                     <FormControlLabel
                       control={
@@ -892,25 +1113,25 @@ export default function RegistrarDevolucionDialog({
                     )}
                   </>
                 )}
+
+                {/* POR QUÉ DEVUELVE. Va antes de los equipos y una sola vez:
+                    es del cliente que los trae, no de cada uno. Solo en la
+                    ficha, donde lo que vuelve está en plazo. */}
+                {decision === "llego" && desdeLaFicha && (
+                  <TextField
+                    label="Motivo de la devolución (opcional)"
+                    name="motivoDevolucion"
+                    value={motivoDevolucion}
+                    onChange={(e) => setMotivoDevolucion(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="Ej: terminó la obra, ya no los necesita"
+                    sx={{ mt: 1.5 }}
+                  />
+                )}
               </Grid>
             )}
-            {/* POR QUÉ DEVUELVE. Va arriba de todo y una sola vez: es del
-                cliente que trae los equipos, no de cada equipo. Solo en la
-                ficha, donde lo que vuelve está en plazo. */}
-            {desdeLaFicha && equiposPendientes.length > 0 && (
-              <Grid item xs={12}>
-                <TextField
-                  label="Motivo de la devolución (opcional)"
-                  name="motivoDevolucion"
-                  value={motivoDevolucion}
-                  onChange={(e) => setMotivoDevolucion(e.target.value)}
-                  fullWidth
-                  size="small"
-                  placeholder="Ej: terminó la obra, ya no los necesita"
-                />
-              </Grid>
-            )}
-            {equiposPendientes.length === 0 && (
+            {lineasDelDialogo.length === 0 && (
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">
                   Esta factura no tiene equipos pendientes por devolver.
@@ -975,20 +1196,23 @@ export default function RegistrarDevolucionDialog({
 
                   <Box sx={{ mb: 1 }} />
 
-                  <TextField
-                    label={
-                      modoPactada
-                        ? "Cantidad con entrega pactada"
-                        : "Cantidad que devuelve hoy"
-                    }
-                    type="number"
-                    inputProps={{ min: 0, max: pendiente }}
-                    value={cambio.cantidad}
-                    onChange={(e) => handleCambiarCantidad(clave, e.target.value, pendiente)}
-                    disabled={cambio.anular}
-                    fullWidth
-                    size="small"
-                  />
+                  {/* La entrega se anula entera, así que ahí no se pregunta
+                      cuántos: alcanza con la casilla de abajo. */}
+                  {!modoAnular && (
+                    <TextField
+                      label={
+                        modoPactada
+                          ? "Cantidad con entrega pactada"
+                          : "Cantidad que devuelve hoy"
+                      }
+                      type="number"
+                      inputProps={{ min: 0, max: pendiente }}
+                      value={cambio.cantidad}
+                      onChange={(e) => handleCambiarCantidad(clave, e.target.value, pendiente)}
+                      fullWidth
+                      size="small"
+                    />
+                  )}
 
                   {cantidadDevuelta > 0 && restante === 0 && (
                     <Typography
@@ -1001,12 +1225,12 @@ export default function RegistrarDevolucionDialog({
                     </Typography>
                   )}
 
-                  {/* EL CLIENTE NO ENTREGÓ lo pactado. Es lo contrario de
-                      anotar que llegó, así que una cosa apaga la otra. */}
-                  {yaPactada && (
+                  {/* EL CLIENTE NO ENTREGÓ lo pactado. Viene marcada —es lo
+                      que se eligió arriba— y se desmarca el equipo que sí va
+                      a llegar. */}
+                  {modoAnular && (
                     <>
                       <FormControlLabel
-                        sx={{ mt: 0.5 }}
                         control={
                           <Checkbox
                             size="small"
@@ -1015,7 +1239,7 @@ export default function RegistrarDevolucionDialog({
                             onChange={(e) => handleCambiarAnular(clave, e.target.checked)}
                           />
                         }
-                        label="Anular la entrega pactada (el cliente no entregó)"
+                        label="Anular la entrega pactada"
                       />
                       {cambio.anular && (
                         <Typography
@@ -1194,6 +1418,32 @@ export default function RegistrarDevolucionDialog({
               );
             })}
 
+            {/* ── 3. Así queda ── Recién con algo escrito arriba: sin una
+                cantidad no hay cuenta que mostrar. */}
+            {(filasResumen.length > 0 || resolverDeposito) && (
+              <Grid item xs={12}>
+                {rotuloPaso(3, "Así queda", filasResumen.length > 0 ? 1 : 0)}
+                {filasResumen.length > 0 && (
+                  <Paper variant="totales">
+                    {filasResumen.map(({ rotulo, valor, clase }, posicion) => (
+                      <Box
+                        key={rotulo}
+                        className={clase ? `fila ${clase}` : "fila"}
+                        sx={posicion === filasResumen.length - 1 ? { mb: 0 } : undefined}
+                      >
+                        <Typography variant="body2" fontWeight={clase ? "bold" : undefined}>
+                          {rotulo}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={clase ? "bold" : undefined}>
+                          {valor}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Paper>
+                )}
+              </Grid>
+            )}
+
             {/* Vuelve el último equipo: se liquida el depósito. Acá ya no se
                 pregunta nada —eso se respondió equipo por equipo, arriba y el
                 día que cada uno volvió—: este bloque solo muestra la cuenta
@@ -1206,7 +1456,6 @@ export default function RegistrarDevolucionDialog({
                 plata (pedido del dueño, 2026-10-01). */}
             {resolverDeposito && (
               <Grid item xs={12}>
-                <Divider sx={{ mb: 2 }} />
                 <Typography variant="subtitle2" sx={{ color: acento }}>
                   Depósito: {formatearMoneda(depositoTotal)} · {queSeLeDevuelve}
                 </Typography>
@@ -1264,7 +1513,14 @@ export default function RegistrarDevolucionDialog({
           <Button variant="contained" color="error" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </Button>
-          <Button variant="contained" color="success" onClick={handleGuardar} disabled={guardando}>
+          {/* Apagado hasta que se elige qué pasó: sin eso no hay nada que
+              guardar. */}
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleGuardar}
+            disabled={guardando || !decision}
+          >
             {guardando ? "Guardando..." : "Guardar"}
           </Button>
         </DialogActions>
