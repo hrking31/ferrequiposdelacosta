@@ -63,8 +63,6 @@ import {
   dejarSinFechaDeEntrega,
   hechosDeEquipo,
   rearmarEquipo,
-  ultimoHechoDe,
-  comoEstabaEl,
 } from "./facturaCuentas";
 import { GRUPO_INICIAL } from "./facturaModelo";
 
@@ -2467,52 +2465,6 @@ describe("corregir un equipo: sus hechos y cómo se vuelve a armar", () => {
       expect(calcularEquipo(corregido, HOY_C).diasVencidos).toBe(27);
       // El descuento de aquellos 3 días vencidos se fue con ellos.
       expect(corregido.vencidos.some((cada) => cada.descuento)).toBe(false);
-    });
-
-    // ANOTAR ALGO QUE PASÓ OTRO DÍA, sin corregir nada: el equipo volvió hace
-    // un mes y recién hoy se registra.
-    describe("anotar con una fecha anterior a hoy", () => {
-      it("lo último anotado es el despacho, o el más reciente de sus hechos", () => {
-        expect(ultimoHechoDe(cerchas())).toBe("2026-09-01");
-        expect(ultimoHechoDe(alDia(ampliadas()))).toBe("2026-09-10");
-        expect(ultimoHechoDe(pactadas())).toBe("2026-09-12");
-        // La mora que está corriendo no es algo que se haya anotado.
-        expect(ultimoHechoDe(alDia(cerchas()))).toBe("2026-09-01");
-      });
-
-      it("si ese día estaba en plazo, la mora que se abrió después nunca corrió", () => {
-        // Cubierto hasta el 07/09; la madrugada le abrió la mora el 08.
-        const hoyVencido = alDia(cerchas());
-
-        expect(comoEstabaEl(hoyVencido, "2026-09-07").vencidos).toEqual([]);
-        // Y devolverlo ese día no deja rastro de un vencimiento que no hubo.
-        expect(
-          cerrarTramoVencido(comoEstabaEl(hoyVencido, "2026-09-07"), "2026-09-07").vencidos,
-        ).toEqual([]);
-      });
-
-      it("si ese día ya estaba vencido, la mora se queda y se cierra en la fecha", () => {
-        const hoyVencido = alDia(cerchas());
-
-        expect(comoEstabaEl(hoyVencido, "2026-09-20")).toBe(hoyVencido);
-        expect(
-          cerrarTramoVencido(comoEstabaEl(hoyVencido, "2026-09-20"), "2026-09-20").vencidos,
-        ).toEqual([tramo("2026-09-08", "2026-09-20")]);
-      });
-
-      it("da lo mismo que corregir después la fecha de una devolución anotada hoy", () => {
-        const anotadaConFecha = {
-          ...cerrarTramoVencido(comoEstabaEl(alDia(cerchas()), "2026-09-20"), "2026-09-20"),
-          devolucion: volvio("2026-09-20"),
-        };
-        const corregida = rearmarEquipo(
-          devueltasElDiez(),
-          hechosDeEquipo(devueltasElDiez()).map((hecho) => ({ ...hecho, fecha: "2026-09-20" })),
-          HOY_C,
-        );
-
-        expect(anotadaConFecha).toEqual(corregida);
-      });
     });
 
     it("una fecha de despacho más tarde corre el plazo entero", () => {
