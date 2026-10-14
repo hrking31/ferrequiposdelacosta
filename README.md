@@ -369,8 +369,14 @@ Ese registro se lee al final de la pantalla de corregir, ya puesto en palabras: 
 > [!IMPORTANT]
 > **Orden del despliegue: las reglas, las funciones y recién después la app.** Con la app primero, el administrador podría corregir una factura antes de que exista quien lo anote.
 
+#### Las ampliaciones, la entrega pactada y los descuentos
+
+Desde el 14/10 la misma pantalla también los corrige. Cada **ampliación** muestra su fecha, los días pedidos y sus dos descuentos —en los días nuevos y en los vencidos que se cerraron ese día—, y se puede quitar si se anotó por error. La **entrega pactada** deja corregir la fecha del aviso y su descuento, y la **anulación** ("No entregó"), su fecha; quitar la entrega se lleva también su anulación. La devolución y el cierre de mora que hizo un pago suman la casilla de su descuento en los vencidos. Se corrige lo que existe: lo que no se anotó, se anota desde Seguimiento.
+
+Mover una fecha puede dejar a un descuento **sin días de donde salir**. Un andamio pidió 3 días el 07/09 con $4.000 de descuento sobre sus 2 días vencidos; si la fecha se corrige al 05/09, ese día todavía estaba cubierto y no se cerró ninguna mora. Las funciones que escriben el tramo no se quejan —lo que no tiene dónde ir se pierde, y lo que pasa de lo que valen los días se recorta en la cuenta—, así que la pantalla rearma el equipo antes de guardar y **no deja seguir** mientras un descuento no tenga sus días o los supere. Tampoco deja que, con la entrega pactada vigente, quede después una ampliación: el equipo solo esperaba que lo recogieran.
+
 > [!NOTE]
-> **Lo que todavía no se corrige desde esa pantalla:** las ampliaciones, la entrega pactada, los abonos y las entregas de saldo. Se ven, pero no se editan.
+> **Lo que todavía no se corrige desde esa pantalla:** los abonos, las entregas de saldo, los cruces entre facturas y el depósito resuelto. Se ven, pero no se editan.
 
 ### 4. Las gestiones: la bitácora del cobro
 
