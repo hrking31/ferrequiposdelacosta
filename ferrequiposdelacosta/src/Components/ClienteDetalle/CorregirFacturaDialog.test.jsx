@@ -626,6 +626,28 @@ describe("CorregirFacturaDialog — los cruces", () => {
     expect(bd.update).not.toHaveBeenCalled();
   });
 
+  // Sin internet, por ejemplo: no se queda "buscando" para siempre, y lo
+  // demás de la factura se corrige igual.
+  it("si no se pueden leer las demás facturas, lo dice y deja corregir lo demás", async () => {
+    const propia = { id: "f1", ...documento(), entregas: [CRUCE] };
+    const base = enLaBase({});
+    bd.get.mockResolvedValue({ data: () => propia });
+    bd.getDocs.mockImplementation((ruta) =>
+      ruta === "clientes/cli1/facturas" ? Promise.reject(new Error("unavailable")) : base(ruta),
+    );
+    const { usuario } = renderConProviders(
+      <CorregirFacturaDialog open onClose={() => {}} cliente={cliente} factura={propia} />,
+    );
+
+    expect(
+      await screen.findByText(/No se pudieron leer las demás facturas del cliente, así que este cruce no se corrige por ahora\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/buscando las facturas/)).not.toBeInTheDocument();
+
+    await escribirFecha(usuario, "Fecha de devolución", VOLVIO_DE_VERDAD);
+    expect(botonGuardar()).toBeEnabled();
+  });
+
   it("desde la factura que lo recibió solo se muestra", () => {
     const recibio = la0500();
     bd.get.mockResolvedValue({ data: () => recibio });

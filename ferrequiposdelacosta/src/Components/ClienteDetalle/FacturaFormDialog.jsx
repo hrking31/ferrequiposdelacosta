@@ -185,13 +185,12 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
 
   const depositoTotal = Number(form.deposito) || 0;
   const transporteTotal = Number(form.valorTransporte) || 0;
-  const subtotalTotal = subtotalCalculado;
 
   // Lo que el cliente paga al emitirla: Subtotal + IVA + Valor transporte +
   // Depósito. El depósito no es parte de la factura —ver calcularDeposito—,
   // pero se entrega junto, así que el pago tiene que cubrirlo. Se calcula
   // solo, no se digita a mano.
-  const valorTotalCalculado = subtotalTotal + ivaTotal + transporteTotal + depositoTotal;
+  const valorTotalCalculado = subtotalCalculado + ivaTotal + transporteTotal + depositoTotal;
 
   // Solo cuenta como pago el renglón que tenga medio Y monto: son los mismos
   // que se guardan, así lo que muestra el diálogo no puede diferir de lo que
@@ -210,9 +209,6 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
   // registra como un abono, con la fecha de creación de la factura.
   const excedenteCalculado = Math.max(0, montoPagadoCalculado - valorTotalCalculado);
 
-  // Lo que tienen que cubrir los medios de pago: el total de la factura.
-  const totalACubrir = valorTotalCalculado;
-
   // Con "Pago total" el monto se completa solo: es todo lo que hay que cobrar.
   // Si el pago se reparte en varios medios, el primero toma lo que falte para
   // llegar al total y los demás quedan como se escribieron.
@@ -223,13 +219,13 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
       const otrosMedios = prev.pagos
         .slice(1)
         .reduce((total, pago) => total + (Number(pago.monto) || 0), 0);
-      const restante = Math.max(0, Math.round(totalACubrir - otrosMedios));
+      const restante = Math.max(0, Math.round(valorTotalCalculado - otrosMedios));
       const primero = prev.pagos[0] || { medio: "", monto: "" };
       // Sin esta guarda el estado se volvería a escribir en cada render.
       if (Number(primero.monto) === restante) return prev;
       return { ...prev, pagos: [{ ...primero, monto: restante }, ...prev.pagos.slice(1)] };
     });
-  }, [form.tipoPago, form.pagos, totalACubrir]);
+  }, [form.tipoPago, form.pagos, valorTotalCalculado]);
 
   const handleChange = (campo) => (e) => {
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -275,7 +271,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
 
       // Se sumó otro medio de pago: arranca con lo que falte para el total.
       if (nuevosPagos.length > anteriores.length) {
-        const faltante = Math.max(0, Math.round(totalACubrir - sumar(anteriores)));
+        const faltante = Math.max(0, Math.round(valorTotalCalculado - sumar(anteriores)));
         return {
           ...prev,
           pagos: nuevosPagos.map((pago, i) =>
@@ -299,7 +295,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
         );
         const restante = Math.max(
           0,
-          Math.round(totalACubrir - (Number(nuevosPagos[indiceEditado].monto) || 0) - otros),
+          Math.round(valorTotalCalculado - (Number(nuevosPagos[indiceEditado].monto) || 0) - otros),
         );
         return {
           ...prev,
@@ -804,7 +800,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
               <Paper variant="totales">
                 <Box className="fila">
                   <Typography variant="body2">Subtotal</Typography>
-                  <Typography variant="body2">{formatearMoneda(subtotalTotal)}</Typography>
+                  <Typography variant="body2">{formatearMoneda(subtotalCalculado)}</Typography>
                 </Box>
 
                 {form.aplicaIva && (

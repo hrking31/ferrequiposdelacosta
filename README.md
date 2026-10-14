@@ -385,6 +385,8 @@ También desde el 14/10. Cada **abono** deja corregir su fecha, su medio y su mo
 
 **El número de la factura** también se corrige donde las otras la nombran —"Viene del saldo a favor de la factura 0412", "Cruzado a factura 0412"—, porque con el número viejo el cruce ya no se encontraría. Y no puede quedar repetido dentro del mismo cliente.
 
+Si las demás facturas del cliente no se pueden leer —por ejemplo, sin internet—, el cruce lo dice ("no se pudieron leer las demás facturas del cliente, así que este cruce no se corrige por ahora") en vez de quedarse buscando para siempre, y lo demás de la factura se corrige igual.
+
 Dos cosas quedaron afuera a propósito. El **cierre de mora que hizo un pago** no se mueve ni se quita al corregir el abono: no cambia la plata, solo pone en cero el contador de días. Y el **depósito resuelto** no tiene casilla: se rehace solo cuando se corrige una devolución.
 
 ### 4. Las gestiones: la bitácora del cobro

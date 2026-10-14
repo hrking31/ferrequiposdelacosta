@@ -417,42 +417,6 @@ export const eventoAnterior = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
     .filter((hito) => !HITOS_DE_HOY.includes(hito.clave))
     .at(-1) ?? null;
 
-// ── LO ÚLTIMO QUE SE PACTÓ POR ESTE EQUIPO ─────────────────────────────
-//
-// Cartera no pregunta por la historia del equipo, pregunta a quién llamar
-// hoy. Y antes de marcar el número hace falta saber si ya se habló: quien no
-// lo sabe le reclama al cliente un equipo que él mismo le autorizó la semana
-// pasada.
-//
-// Solo lo que es DEL EQUIPO —los días que se le dieron, que quedó sin fecha—.
-// La llamada y el WhatsApp son del CLIENTE: se pregunta por todo lo que tiene
-// afuera, no por un equipo, y por eso se leen una sola vez arriba, en la
-// gestión de la factura.
-//
-// El devuelto no lleva nada: ya no hay nada que acordarle.
-export const ultimoAcuerdoEquipo = (equipo) => {
-  if (estaDevuelto(equipo)) return null;
-
-  // La entrega pactada es lo último que se habló y lo único vigente: el
-  // cliente ya avisó, solo falta ir por el equipo.
-  if (estaPorRecoger(equipo)) {
-    return { fecha: entregaPactadaDe(equipo).fecha, texto: "Se pactó la entrega" };
-  }
-
-  // Sin fecha de entrega manda sobre la última ampliación: es el acuerdo que
-  // está vigente, y el que explica por qué este equipo no tiene fecha.
-  const indefinida = indefinidaDe(equipo);
-  if (indefinida?.activa && indefinida.desde) {
-    return { fecha: indefinida.desde, texto: "Quedó sin fecha de entrega" };
-  }
-
-  const ampliaciones = ampliacionesDe(equipo);
-  const ultima = ampliaciones[ampliaciones.length - 1];
-  if (!ultima?.fecha) return null;
-
-  return { fecha: ultima.fecha, texto: `Se le dieron ${enDias(ultima.dias)}` };
-};
-
 // ── DESDE CUÁNDO ESTÁ AFUERA ESTE EQUIPO ──────────────────────
 //
 // No es lo mismo negociar por un equipo que lleva catorce días en la obra que

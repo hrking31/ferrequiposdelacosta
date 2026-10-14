@@ -733,7 +733,16 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
     const destinos = (item.original.haciaFacturas ?? []).join(", ");
 
     if (item.partes === null) {
-      return nota(nombre, `Cruce del ${fecha}: buscando las facturas a las que fue...`);
+      // Sin poder leer las otras facturas no hay con qué emparejar las puntas:
+      // el cruce queda como está y lo demás se guarda igual.
+      return nota(
+        nombre,
+        otras.estado === "error"
+          ? `Cruce del ${fecha} a la factura ${destinos}: ${formatearMoneda(
+              Number(item.original.monto) || 0,
+            )}. No se pudieron leer las demás facturas del cliente, así que este cruce no se corrige por ahora.`
+          : `Cruce del ${fecha}: buscando las facturas a las que fue...`,
+      );
     }
     if (item.partes === false) {
       return nota(
