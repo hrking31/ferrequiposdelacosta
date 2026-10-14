@@ -1,16 +1,21 @@
 // CORREGIR UNA FACTURA YA CARGADA. Es del administrador y es otra cosa que
 // anotar: acá no pasa nada nuevo, se arregla un dato que alguien digitó mal.
 //
-// Tres pasos, y ninguno toca la pantalla:
+// Los pasos, y ninguno toca la pantalla:
 //
 //   borradorDe          la factura, puesta como la muestran las casillas
 //   erroresDelBorrador  lo que no deja guardar
 //   facturaCorregida    el documento que se escribe
+//   erroresDeLaPlata    lo que no deja guardar, mirando ese documento
+//   otrasCorregidas     lo que cambia en las otras facturas del cliente
 //
 // La regla que sostiene todo: el equipo que NO se tocó vuelve tal cual estaba,
 // letra por letra. Solo el que cambió se vuelve a armar desde sus hechos (ver
 // rearmarEquipo), que es lo que rehace sus días vencidos.
 import {
+  MEDIO_CRUCE,
+  calcularCuentaFactura,
+  calcularDeposito,
   calcularDepositoTotal,
   calcularRetenido,
   diaAnterior,
@@ -19,6 +24,8 @@ import {
   hechosDeEquipo,
   obtenerFechaHoyBogota,
   rearmarEquipo,
+  sumarAbonosConDeposito,
+  sumarEntregas,
 } from "./facturaCuentas";
 import {
   GRUPO_INICIAL,
@@ -92,14 +99,112 @@ const grupoABorrador = (grupo) => {
   };
 };
 
-export const borradorDe = (factura) => {
+// ── LA PLATA QUE ENTRÓ Y SALIÓ DESPUÉS: abonos y lo devuelto ───────────
+//
+// Cada abono y cada entrega se corrige en su factura: si un pago se repartió
+// entre tres, cada parte es un abono distinto en cada una.
+//
+// EL CRUCE es la excepción, porque tiene dos puntas: de esta factura sale una
+// entrega "Cruce" con los números de las facturas a las que fue, y en cada una
+// de ellas entra un abono "cruce" con el número de esta. Se corrige solo desde
+// la factura de donde SALIÓ la plata —regla del dueño, 2026-10-14—, y las dos
+// puntas se guardan juntas o no se guarda ninguna. El abono que llegó por un
+// cruce, visto desde la factura que lo recibió, no se toca.
+//
+// Las puntas no comparten un identificador: se encuentran por el número de la
+// factura de origen, la fecha y el tipo. Si eso no alcanza para encontrar
+// exactamente una por destino, el cruce se muestra pero no se corrige.
+
+const numeroDe = (factura) => String(datosFactura(factura).numeroFactura ?? "s/n").trim();
+
+export const esAbonoDeCruce = (abono) => abono?.tipo === "cruce";
+export const esEntregaDeCruce = (entrega) => entrega?.medio === MEDIO_CRUCE;
+
+const abonoABorrador = (abono, indice) => ({
+  clave: `abono#${indice}`,
+  original: abono,
+  fecha: abono.fecha ?? "",
+  medio: abono.medio ?? "",
+  monto: abono.monto ?? "",
+});
+
+// Los abonos que trajo a otra factura cada cruce de esta. `null` si todavía no
+// se leyeron las demás facturas; `false` si no se pudo encontrar la otra
+// punta sin dudas.
+const partesDelCruce = (entrega, numeroPropio, otras) => {
+  if (!otras) return null;
+
+  const partes = (Array.isArray(entrega.haciaFacturas) ? entrega.haciaFacturas : []).map(
+    (destino) => {
+      const candidatas = otras.filter((otra) => numeroDe(otra) === String(destino).trim());
+      if (candidatas.length !== 1) return null;
+      const [otra] = candidatas;
+      const abonos = abonosDe(otra)
+        .map((abono, indice) => ({ abono, indice }))
+        .filter(
+          ({ abono }) =>
+            esAbonoDeCruce(abono) &&
+            String(abono.desdeFactura ?? "").trim() === numeroPropio &&
+            abono.fecha === entrega.fecha,
+        );
+      if (abonos.length !== 1) return null;
+      return {
+        facturaId: otra.id,
+        numero: numeroDe(otra),
+        indiceAbono: abonos[0].indice,
+        monto: abonos[0].abono.monto ?? "",
+      };
+    },
+  );
+
+  if (partes.length === 0 || partes.some((parte) => !parte)) return false;
+  const suma = partes.reduce((total, parte) => total + numero(parte.monto), 0);
+  return suma === numero(entrega.monto) ? partes : false;
+};
+
+const entregaABorrador = (entrega, indice, numeroPropio, otras) => ({
+  clave: `entrega#${indice}`,
+  original: entrega,
+  fecha: entrega.fecha ?? "",
+  medio: entrega.medio ?? "",
+  monto: entrega.monto ?? "",
+  ...(esEntregaDeCruce(entrega)
+    ? { partes: partesDelCruce(entrega, numeroPropio, otras) }
+    : {}),
+});
+
+// `otras` son las DEMÁS facturas del cliente, abiertas y cerradas. Hacen falta
+// para los cruces y para el número; sin ellas los cruces quedan sin enlazar.
+export const borradorDe = (factura, otras = null) => {
   const datos = datosFactura(factura);
   return {
     numeroFactura: datos.numeroFactura ?? "",
     fechaCreacion: datos.fechaCreacion ?? "",
     grupos: gruposDe(factura).map(grupoABorrador),
+    abonos: abonosDe(factura).map(abonoABorrador),
+    entregas: entregasDe(factura).map((entrega, indice) =>
+      entregaABorrador(entrega, indice, numeroDe(factura), otras),
+    ),
   };
 };
+
+// Cuando llegan las demás facturas, a los cruces que todavía no tenían su otra
+// punta se les busca. Lo demás del borrador queda como lo dejó el usuario.
+export const enlazarCruces = (borrador, factura, otras) => {
+  const base = borradorDe(factura, otras);
+  return {
+    ...borrador,
+    entregas: borrador.entregas.map((item) =>
+      item.partes === null
+        ? { ...item, partes: base.entregas.find(({ clave }) => clave === item.clave)?.partes }
+        : item,
+    ),
+  };
+};
+
+// Si la factura tiene cruces que salieron de ella: para corregirlos hay que
+// leer las demás.
+export const tieneCrucesPropios = (factura) => entregasDe(factura).some(esEntregaDeCruce);
 
 // Cómo se llama un despacho en pantalla y en los avisos.
 export const nombreDelGrupo = (grupo) =>
@@ -198,8 +303,36 @@ const depositoResueltoDe = (documento, anterior, hoyIso) => {
   return igual(resuelto, anterior) ? anterior : resuelto;
 };
 
-// El documento entero, como se va a escribir. Los abonos, las entregas y la
-// bitácora viajan como están: no se corrigen desde acá.
+// Un abono o una entrega que no se tocó vuelve como estaba, con todo lo que
+// trae aparte de las casillas —el tipo, de qué factura vino—.
+const abonoTocado = (item) =>
+  item.fecha !== (item.original.fecha ?? "") ||
+  item.medio !== (item.original.medio ?? "") ||
+  numero(item.monto) !== numero(item.original.monto);
+
+const abonoCorregido = (item) =>
+  abonoTocado(item)
+    ? { ...item.original, fecha: item.fecha, medio: item.medio, monto: numero(item.monto) }
+    : item.original;
+
+// El monto de un cruce es lo que fue a cada factura, sumado.
+const montoDeLaEntrega = (item) =>
+  Array.isArray(item.partes)
+    ? item.partes.reduce((total, parte) => total + numero(parte.monto), 0)
+    : numero(item.monto);
+
+const entregaCorregida = (item) => {
+  const tocada =
+    item.fecha !== (item.original.fecha ?? "") ||
+    item.medio !== (item.original.medio ?? "") ||
+    montoDeLaEntrega(item) !== numero(item.original.monto);
+  return tocada
+    ? { ...item.original, fecha: item.fecha, medio: item.medio, monto: montoDeLaEntrega(item) }
+    : item.original;
+};
+
+// El documento entero, como se va a escribir. La bitácora viaja como está: no
+// se corrige desde acá.
 export const facturaCorregida = (
   factura,
   borrador,
@@ -219,8 +352,8 @@ export const facturaCorregida = (
         hoyIso,
       ),
     ),
-    abonos: abonosDe(factura),
-    entregas: entregasDe(factura),
+    abonos: borrador.abonos ? borrador.abonos.map(abonoCorregido) : abonosDe(factura),
+    entregas: borrador.entregas ? borrador.entregas.map(entregaCorregida) : entregasDe(factura),
     gestiones: gestionesDe(factura),
   };
 
@@ -246,8 +379,168 @@ export const quitarHecho = (hechos, posicion) => {
 
 // Si el borrador cambia algo de lo guardado. Sin cambios no hay nada que
 // escribir, y el botón de guardar no se enciende.
-export const hayCorrecciones = (factura, borrador) =>
-  cambio(borrador, borradorDe(factura));
+export const hayCorrecciones = (factura, borrador, otras = null) =>
+  cambio(borrador, borradorDe(factura, otras));
+
+// ── LO QUE CAMBIA EN LAS OTRAS FACTURAS del cliente ─────────────────────
+//
+// Dos cosas de esta corrección tocan a otras facturas:
+//
+//   · un cruce que salió de acá: su abono en la factura que lo recibió se
+//     corrige o se quita con él;
+//   · el número de esta factura: las otras la nombran —"Viene del saldo a
+//     favor de la factura 0412", "Cruzado a factura 0412"— y con el número
+//     viejo el cruce ya no se encontraría.
+//
+// Devuelve, por cada factura que cambia, lo que se le escribe y la factura
+// como estaba, para comprobar al guardar que nadie la tocó en el medio.
+export const otrasCorregidas = (factura, borrador, otras) => {
+  if (!otras) return [];
+
+  const base = borradorDe(factura, otras);
+  const cambios = new Map();
+  const tomar = (id) => {
+    if (!cambios.has(id)) {
+      const otra = otras.find((cada) => cada.id === id);
+      cambios.set(id, { otra, abonos: [...abonosDe(otra)], entregas: [...entregasDe(otra)] });
+    }
+    return cambios.get(id);
+  };
+
+  base.entregas
+    .filter(({ partes }) => Array.isArray(partes))
+    .forEach((antes) => {
+      const ahora = borrador.entregas.find(({ clave }) => clave === antes.clave);
+      antes.partes.forEach((parte, posicion) => {
+        const destino = tomar(parte.facturaId);
+        const abono = destino.abonos[parte.indiceAbono];
+        const monto = ahora ? numero(ahora.partes[posicion].monto) : 0;
+        if (!ahora) {
+          destino.abonos[parte.indiceAbono] = null;
+        } else if (monto !== numero(abono.monto) || ahora.fecha !== abono.fecha) {
+          destino.abonos[parte.indiceAbono] = { ...abono, fecha: ahora.fecha, monto };
+        }
+      });
+    });
+
+  const viejo = numeroDe(factura);
+  const nuevo = String(borrador.numeroFactura ?? "").trim();
+  if (nuevo && nuevo !== viejo) {
+    otras.forEach((otra) => {
+      const nombraAEsta =
+        abonosDe(otra).some((abono) => String(abono.desdeFactura ?? "").trim() === viejo) ||
+        entregasDe(otra).some((entrega) =>
+          (entrega.haciaFacturas ?? []).some((destino) => String(destino).trim() === viejo),
+        );
+      if (!nombraAEsta) return;
+
+      const destino = tomar(otra.id);
+      destino.abonos = destino.abonos.map((abono) =>
+        abono && String(abono.desdeFactura ?? "").trim() === viejo
+          ? { ...abono, desdeFactura: nuevo }
+          : abono,
+      );
+      destino.entregas = destino.entregas.map((entrega) =>
+        Array.isArray(entrega.haciaFacturas)
+          ? {
+              ...entrega,
+              haciaFacturas: entrega.haciaFacturas.map((cada) =>
+                String(cada).trim() === viejo ? nuevo : cada,
+              ),
+            }
+          : entrega,
+      );
+    });
+  }
+
+  return [...cambios.values()]
+    .map(({ otra, abonos, entregas }) => {
+      const escritura = {};
+      const abonosNuevos = abonos.filter(Boolean);
+      if (!igual(abonosNuevos, abonosDe(otra))) escritura.abonos = abonosNuevos;
+      if (!igual(entregas, entregasDe(otra))) escritura.entregas = entregas;
+      return { id: otra.id, original: otra, escritura };
+    })
+    .filter(({ escritura }) => Object.keys(escritura).length > 0);
+};
+
+// ── LO QUE NO DEJA GUARDAR, mirando la plata ya corregida ──────────────
+//
+// Estas reglas necesitan el documento armado, así que se miran después de las
+// del borrador. Cada una se aplica solo si la corrección AGRANDA lo que vigila:
+// bajar un monto que ya estaba de más no puede quedar trabado por estarlo.
+export const erroresDeLaPlata = (
+  factura,
+  borrador,
+  documento,
+  otras,
+  hoyIso = obtenerFechaHoyBogota(),
+  { noSePudieronLeer = false } = {},
+) => {
+  const errores = [];
+  const nuevo = String(borrador.numeroFactura ?? "").trim();
+
+  // El número: las otras facturas la nombran por él, así que hay que poder
+  // leerlas para cambiarlo, y no puede quedar repetido.
+  if (nuevo !== numeroDe(factura)) {
+    if (!otras) {
+      errores.push(
+        noSePudieronLeer
+          ? "No se pudieron leer las demás facturas del cliente: el número no se puede cambiar ahora."
+          : "Buscando las demás facturas del cliente para cambiar el número...",
+      );
+    } else if (otras.some((otra) => numeroDe(otra) === nuevo)) {
+      errores.push(`Ya hay otra factura de este cliente con el número ${nuevo}.`);
+    }
+  }
+
+  // Lo pagado con el depósito sale del depósito que había libre.
+  const aplicado = sumarAbonosConDeposito(documento);
+  if (aplicado > sumarAbonosConDeposito(factura)) {
+    const deposito = calcularDeposito(documento);
+    const libre = Math.max(0, deposito.recibido - deposito.retenido);
+    if (aplicado > libre) {
+      errores.push(
+        `Lo pagado con el depósito (${formatearMoneda(aplicado)}) pasa del depósito que había libre (${formatearMoneda(libre)}).`,
+      );
+    }
+  }
+
+  // Lo devuelto no puede pasar de lo que el cliente tenía a favor.
+  const devuelto = sumarEntregas(documento);
+  if (devuelto > sumarEntregas(factura)) {
+    const aFavor = calcularCuentaFactura({ ...documento, entregas: [] }, hoyIso).aDevolver;
+    if (devuelto > aFavor) {
+      errores.push(
+        `Lo devuelto al cliente (${formatearMoneda(devuelto)}) pasa de lo que tenía a favor (${formatearMoneda(aFavor)}).`,
+      );
+    }
+  }
+
+  // Y lo que un cruce lleva a otra factura, de lo que esa factura debía.
+  const base = borradorDe(factura, otras);
+  borrador.entregas
+    .filter(({ partes }) => Array.isArray(partes))
+    .forEach((item) => {
+      const antes = base.entregas.find(({ clave }) => clave === item.clave);
+      item.partes.forEach((parte, posicion) => {
+        if (numero(parte.monto) <= numero(antes?.partes?.[posicion]?.monto)) return;
+        const destino = otras.find(({ id }) => id === parte.facturaId);
+        const sinEsteAbono = {
+          ...destino,
+          abonos: abonosDe(destino).filter((_, indice) => indice !== parte.indiceAbono),
+        };
+        const debia = calcularCuentaFactura(sinEsteAbono, hoyIso).saldoPendiente;
+        if (numero(parte.monto) > debia) {
+          errores.push(
+            `El cruce a la factura ${parte.numero} (${formatearMoneda(numero(parte.monto))}) pasa de lo que esa factura debía (${formatearMoneda(debia)}).`,
+          );
+        }
+      });
+    });
+
+  return errores;
+};
 
 const NOMBRE_DE_HECHO = {
   sello: "el cierre de mora",
@@ -422,5 +715,43 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
     });
   });
 
+  // Los abonos y lo devuelto: cada uno con su fecha, su medio y su monto.
+  // Los que llegaron por un cruce no se corrigen acá, así que no se miran.
+  const SIN_FECHA = {
+    Abono: "Un abono",
+    "Devolución al cliente": "Una devolución al cliente",
+    Cruce: "Un cruce",
+  };
+  const revisarPlata = (item, que, conMonto = true) => {
+    const cual = item.fecha ? `${que} del ${formatearFechaLegible(item.fecha)}` : SIN_FECHA[que];
+    if (!item.fecha) errores.push(`${cual}: falta la fecha.`);
+    else if (item.fecha > hoyIso) errores.push(`${cual}: no puede tener una fecha futura.`);
+    if (!item.medio) errores.push(`${cual}: falta el medio.`);
+    if (conMonto && numero(item.monto) <= 0) errores.push(`${cual}: el monto no es válido.`);
+  };
+
+  (borrador.abonos ?? [])
+    .filter((item) => !esAbonoDeCruce(item.original))
+    .forEach((item) => revisarPlata(item, "Abono"));
+
+  (borrador.entregas ?? []).forEach((item) => {
+    if (!Array.isArray(item.partes)) {
+      if (!esEntregaDeCruce(item.original)) revisarPlata(item, "Devolución al cliente");
+      return;
+    }
+    revisarPlata(item, "Cruce", false);
+    item.partes.forEach((parte) => {
+      if (numero(parte.monto) <= 0) {
+        errores.push(`Cruce a la factura ${parte.numero}: el monto no es válido.`);
+      }
+    });
+  });
+
   return errores;
 };
+
+// Los medios que se le pueden poner a un abono o a una devolución. El que ya
+// tenía se ofrece aunque ya no esté en la lista —una factura vieja—: sin él,
+// la casilla quedaría vacía y parecería que falta.
+export const mediosParaCorregir = (lista, actual) =>
+  actual && !lista.includes(actual) ? [...lista, actual] : lista;

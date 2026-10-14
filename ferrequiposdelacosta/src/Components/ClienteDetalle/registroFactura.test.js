@@ -97,7 +97,28 @@ describe("el registro de cambios — qué pasó", () => {
     ]);
   });
 
-  it("un abono que cambia o desaparece se nota en la suma", () => {
+  it("un abono corregido dice qué se le corrigió", () => {
+    const conAbono = (extra = {}) =>
+      factura({
+        abonos: [
+          { fecha: "2026-10-13", medio: "Nequi", monto: 100000, tipo: "cliente", ...extra },
+        ],
+      });
+
+    expect(cambio(conAbono(), conAbono({ medio: "Efectivo" }))).toEqual([
+      "Abono del 13/10/2026: medio Nequi → Efectivo",
+    ]);
+    expect(cambio(conAbono(), conAbono({ fecha: "2026-10-12", monto: 120000 }))).toEqual([
+      `Abono del 13/10/2026: fecha 13/10/2026 → 12/10/2026, ${plata(100000)} → ${plata(120000)}`,
+      `Saldo pendiente: ${plata(197000)} → ${plata(177000)}`,
+    ]);
+    // El número nuevo de la factura de donde vino.
+    expect(cambio(conAbono({ desdeFactura: "0412" }), conAbono({ desdeFactura: "0413" }))).toEqual([
+      "Abono del 13/10/2026: cambió la factura que nombra",
+    ]);
+  });
+
+  it("un abono que desaparece se nota en la suma", () => {
     const conAbono = factura({
       abonos: [{ fecha: "2026-10-13", medio: "Nequi", monto: 100000, tipo: "cliente" }],
     });

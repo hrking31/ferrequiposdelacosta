@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import CorregirFacturaDialog from "./CorregirFacturaDialog";
 import { calcularVencimiento, obtenerFechaHoyBogota } from "./facturaUtils";
@@ -482,5 +482,172 @@ describe("CorregirFacturaDialog — la entrega pactada", () => {
     expect(equipo.vencidos).toEqual([
       { desde: hace(33), hasta: null, indefinida: false },
     ]);
+  });
+});
+
+// ── La plata de después: abonos, lo devuelto y los cruces ───────────────
+
+// Abre la 0412 con lo que se le pase, y deja en la base a ella y a las demás
+// facturas del cliente.
+const abrirConPlata = ({ abonos = [], entregas = [] } = {}, otras = []) => {
+  const propia = () => ({ ...documento(), abonos, entregas });
+  bd.get.mockImplementation((ruta) =>
+    Promise.resolve({
+      data: () =>
+        ruta === "clientes/cli1/facturas/f1"
+          ? propia()
+          : otras.find(({ id }) => ruta === `clientes/cli1/facturas/${id}`),
+    }),
+  );
+  bd.getDocs.mockImplementation(
+    enLaBase({ "clientes/cli1/facturas": [{ id: "f1", ...propia() }, ...otras] }),
+  );
+  return renderConProviders(
+    <CorregirFacturaDialog
+      open
+      onClose={() => {}}
+      cliente={cliente}
+      factura={{ id: "f1", ...propia() }}
+    />,
+  );
+};
+
+const escritoEn = (ruta) =>
+  bd.update.mock.calls.find(([destino]) => destino === ruta)?.[1];
+
+const escribirPlata = async (usuario, campo, valor) => {
+  await usuario.clear(campo);
+  await usuario.type(campo, valor);
+};
+
+describe("CorregirFacturaDialog — los abonos", () => {
+  const ABONO = { fecha: SE_ANOTO, medio: "Nequi", monto: 20000, tipo: "cliente" };
+
+  it("corrige el monto de un abono y lo guarda con la factura", async () => {
+    const { usuario } = abrirConPlata({ abonos: [ABONO] });
+    const abono = within(screen.getByRole("group", { name: "Abono" }));
+
+    expect(abono.getByLabelText("Monto")).toHaveValue("20.000");
+    await escribirPlata(usuario, abono.getByLabelText("Monto"), "200000");
+    expect(renglon("Saldo pendiente")).toHaveTextContent(
+      `${enPantalla(259000)} → ${enPantalla(79000)}`,
+    );
+    await usuario.click(botonGuardar());
+
+    await screen.findByText("Factura corregida.");
+    const escrito = escritoEn("clientes/cli1/facturas/f1");
+    expect(escrito.abonos).toEqual([{ ...ABONO, monto: 200000 }]);
+    // Sin cruces ni número nuevo no hay que leer las demás facturas.
+    expect(bd.getDocs).not.toHaveBeenCalledWith("clientes/cli1/facturas");
+  });
+
+  it("quitar el abono que se anotó por error", async () => {
+    const { usuario } = abrirConPlata({ abonos: [ABONO] });
+
+    await usuario.click(screen.getByRole("button", { name: "Quitar el abono" }));
+    await usuario.click(botonGuardar());
+
+    await screen.findByText("Factura corregida.");
+    expect(escritoEn("clientes/cli1/facturas/f1").abonos).toEqual([]);
+  });
+});
+
+describe("CorregirFacturaDialog — los cruces", () => {
+  // De la 0412 salieron $50.000 a la 0500.
+  const CRUCE = { fecha: SE_ANOTO, medio: "Cruce", monto: 50000, haciaFacturas: ["0500"] };
+  const ABONO_DEL_CRUCE = {
+    fecha: SE_ANOTO,
+    medio: "Cruce",
+    monto: 50000,
+    tipo: "cruce",
+    desdeFactura: "0412",
+  };
+  const la0500 = () => ({
+    id: "f2",
+    ...unaFactura({
+      numeroFactura: "0500",
+      fechaCreacion: DESPACHO,
+      equipos: [unEquipo({ nombre: "RANA", valorDia: 10000, dias: 60, fechaDespacho: DESPACHO })],
+      abonos: [ABONO_DEL_CRUCE],
+    }),
+  });
+
+  it("corrige lo que llevó y guarda las dos puntas juntas", async () => {
+    const { usuario } = abrirConPlata({ entregas: [CRUCE] }, [la0500()]);
+
+    const campo = await screen.findByLabelText("A la factura 0500");
+    expect(campo).toHaveValue("50.000");
+    await escribirPlata(usuario, campo, "30000");
+    await usuario.click(botonGuardar());
+
+    await screen.findByText("Factura corregida.");
+    expect(escritoEn("clientes/cli1/facturas/f1").entregas).toEqual([
+      { ...CRUCE, monto: 30000 },
+    ]);
+    expect(escritoEn("clientes/cli1/facturas/f2")).toEqual({
+      abonos: [{ ...ABONO_DEL_CRUCE, monto: 30000 }],
+    });
+  });
+
+  it("si la otra factura cambió mientras tanto, no escribe ninguna", async () => {
+    const otra = la0500();
+    const { usuario } = abrirConPlata({ entregas: [CRUCE] }, [otra]);
+    // Alguien le anotó un abono a la 0500 con la pantalla abierta.
+    otra.abonos = [...otra.abonos, { fecha: HOY, medio: "Nequi", monto: 1000, tipo: "cliente" }];
+
+    await escribirPlata(usuario, await screen.findByLabelText("A la factura 0500"), "30000");
+    await usuario.click(botonGuardar());
+
+    expect(await screen.findByText(/alguna de las que toca cambió/)).toBeInTheDocument();
+    expect(bd.update).not.toHaveBeenCalled();
+  });
+
+  it("desde la factura que lo recibió solo se muestra", () => {
+    const recibio = la0500();
+    bd.get.mockResolvedValue({ data: () => recibio });
+    renderConProviders(
+      <CorregirFacturaDialog open onClose={() => {}} cliente={cliente} factura={recibio} />,
+    );
+
+    expect(screen.getByText(/Cruce del .* desde la factura 0412: .* Se corrige desde esa factura\./)).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Abono" })).not.toBeInTheDocument();
+  });
+});
+
+describe("CorregirFacturaDialog — el número de la factura", () => {
+  it("lo corrige también en la factura que la nombra", async () => {
+    const la0500 = {
+      id: "f2",
+      ...unaFactura({
+        numeroFactura: "0500",
+        abonos: [
+          { fecha: SE_ANOTO, medio: "Nequi", monto: 10000, tipo: "agregado", desdeFactura: "0412" },
+        ],
+      }),
+    };
+    const { usuario } = abrirConPlata({}, [la0500]);
+
+    await usuario.clear(screen.getByLabelText("N° de factura"));
+    await usuario.type(screen.getByLabelText("N° de factura"), "0413");
+    await waitFor(() => expect(botonGuardar()).toBeEnabled());
+    await usuario.click(botonGuardar());
+
+    await screen.findByText("Factura corregida.");
+    expect(escritoEn("clientes/cli1/facturas/f1").factura.numeroFactura).toBe("0413");
+    expect(escritoEn("clientes/cli1/facturas/f2")).toEqual({
+      abonos: [{ ...la0500.abonos[0], desdeFactura: "0413" }],
+    });
+  });
+
+  it("no deja repetir el número de otra factura del cliente", async () => {
+    const { usuario } = abrirConPlata({}, [{ id: "f2", ...unaFactura({ numeroFactura: "0500" }) }]);
+
+    await usuario.clear(screen.getByLabelText("N° de factura"));
+    await usuario.type(screen.getByLabelText("N° de factura"), "0500");
+
+    expect(
+      await screen.findByText("· Ya hay otra factura de este cliente con el número 0500."),
+    ).toBeInTheDocument();
+    expect(botonGuardar()).toBeDisabled();
   });
 });

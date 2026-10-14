@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Alert,
@@ -41,19 +41,29 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import PagosMediosField from "./PagosMediosField";
 import {
   borradorDe,
+  enlazarCruces,
   equipoNuevoEnBorrador,
+  erroresDeLaPlata,
   erroresDelBorrador,
+  esAbonoDeCruce,
   facturaCorregida,
   hayCorrecciones,
+  mediosParaCorregir,
   nombreDelGrupo,
+  otrasCorregidas,
   quitarHecho,
+  tieneCrucesPropios,
 } from "./correccionFactura";
 import { autorLegible, cuandoLegible, describirCambio } from "./registroFactura";
 import {
   ESTADO_FACTURA_INFO,
+  MEDIO_DEPOSITO,
+  MODOS_PAGO,
+  abonosDe,
   calcularCuentaFactura,
   calcularEstadoFactura,
   datosFactura,
+  entregasDe,
   formatearFechaLegible,
   formatearMonedaInput,
   gruposDe,
@@ -62,7 +72,17 @@ import {
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 
-const BORRADOR_VACIO = { numeroFactura: "", fechaCreacion: "", grupos: [] };
+const BORRADOR_VACIO = {
+  numeroFactura: "",
+  fechaCreacion: "",
+  grupos: [],
+  abonos: [],
+  entregas: [],
+};
+
+// Las demás facturas del cliente —abiertas y cerradas—. Se leen solo si hacen
+// falta: para un cruce que salió de esta factura, o al cambiarle el número.
+const OTRAS_SIN_LEER = { estado: "sinLeer", facturas: [] };
 
 const TIPOS_DE_PAGO = [
   { valor: "total", label: "Pago total" },
@@ -175,15 +195,68 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
     };
   }, [open, facturaId]);
 
+  // LAS DEMÁS FACTURAS DEL CLIENTE, abiertas y cerradas. Se leen una sola vez
+  // y solo si hacen falta: al abrir, si de esta factura salió un cruce —para
+  // encontrar su otra punta—, o cuando se le cambia el número —para corregirlo
+  // donde la nombran—. Cada factura es una lectura, y la mayoría de las
+  // correcciones no necesita ninguna.
+  const [otras, setOtras] = useState(OTRAS_SIN_LEER);
+  const otrasPedidas = useRef(null);
+  const numeroCambiado =
+    Boolean(cargado) &&
+    String(borrador.numeroFactura ?? "").trim() !==
+      String(datosFactura(factura).numeroFactura ?? "s/n").trim();
+  const hacenFaltaOtras =
+    Boolean(open && factura) && (tieneCrucesPropios(factura) || numeroCambiado);
+  const clienteId = cliente?.id;
+
+  useEffect(() => {
+    otrasPedidas.current = null;
+    setOtras(OTRAS_SIN_LEER);
+  }, [open, facturaId]);
+
+  useEffect(() => {
+    if (!hacenFaltaOtras || !clienteId || otrasPedidas.current === facturaId) return;
+    otrasPedidas.current = facturaId;
+    const pedida = facturaId;
+    setOtras({ estado: "cargando", facturas: [] });
+
+    getDocs(collection(db, "clientes", clienteId, "facturas"))
+      .then((snap) => {
+        // Si mientras tanto se cerró o se abrió otra factura, no sirve.
+        if (otrasPedidas.current !== pedida) return;
+        const facturas = snap.docs
+          .map((cada) => ({ id: cada.id, ...cada.data() }))
+          .filter(({ id }) => id !== pedida);
+        setOtras({ estado: "listo", facturas });
+        setCargado((prev) => (prev && factura ? enlazarCruces(prev, factura, facturas) : prev));
+      })
+      .catch(() => {
+        if (otrasPedidas.current === pedida) setOtras({ estado: "error", facturas: [] });
+      });
+  }, [hacenFaltaOtras, clienteId, facturaId, factura]);
+
   const hoy = obtenerFechaHoyBogota();
-  const hayCambios = Boolean(factura && cargado) && hayCorrecciones(factura, borrador);
-  const errores = hayCambios ? erroresDelBorrador(borrador, hoy) : [];
+  const otrasListas = otras.estado === "listo" ? otras.facturas : null;
+  const hayCambios =
+    Boolean(factura && cargado) && hayCorrecciones(factura, borrador, otrasListas);
+  const erroresDeCasillas = hayCambios ? erroresDelBorrador(borrador, hoy) : [];
   // Con errores no se arma el documento: una fecha vacía no tiene cuenta.
-  const corregida =
-    hayCambios && errores.length === 0 ? facturaCorregida(factura, borrador, hoy) : null;
+  const documento =
+    hayCambios && erroresDeCasillas.length === 0
+      ? facturaCorregida(factura, borrador, hoy)
+      : null;
+  // Lo que se mira con el documento ya armado. La cuenta de "Así queda" se
+  // muestra igual, para que se vea por qué no deja guardar.
+  const errores = documento
+    ? erroresDeLaPlata(factura, borrador, documento, otrasListas, hoy, {
+        noSePudieronLeer: otras.estado === "error",
+      })
+    : erroresDeCasillas;
+  const corregida = documento && errores.length === 0 ? documento : null;
 
   const cuentaAntes = factura ? calcularCuentaFactura(factura, hoy) : null;
-  const cuentaDespues = corregida ? calcularCuentaFactura(corregida, hoy) : null;
+  const cuentaDespues = documento ? calcularCuentaFactura(documento, hoy) : null;
   const estadoDe = (documento) =>
     ESTADO_FACTURA_INFO[calcularEstadoFactura(documento, hoy)]?.label ?? "";
 
@@ -251,6 +324,36 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       hechos: quitarHecho(item.hechos, posicion),
     }));
 
+  // Los abonos y lo devuelto, por su lugar en la lista.
+  const cambiarEnLista = (lista, posicion, campos) =>
+    setBorrador((prev) => ({
+      ...prev,
+      [lista]: prev[lista].map((item, indice) =>
+        indice === posicion ? { ...item, ...campos } : item,
+      ),
+    }));
+
+  const quitarDeLista = (lista, posicion) =>
+    setBorrador((prev) => ({
+      ...prev,
+      [lista]: prev[lista].filter((_, indice) => indice !== posicion),
+    }));
+
+  const cambiarParteDelCruce = (posicion, indiceParte, monto) =>
+    setBorrador((prev) => ({
+      ...prev,
+      entregas: prev.entregas.map((item, indice) =>
+        indice === posicion
+          ? {
+              ...item,
+              partes: item.partes.map((parte, cual) =>
+                cual === indiceParte ? { ...parte, monto } : parte,
+              ),
+            }
+          : item,
+      ),
+    }));
+
   const handleCerrar = () => {
     if (guardando) return;
     onClose();
@@ -259,33 +362,61 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
   const handleGuardar = async () => {
     if (!corregida) return;
 
+    // Lo que cambia en las otras facturas: la otra punta de un cruce, o el
+    // número nuevo donde la nombran.
+    const otrasACambiar = otrasCorregidas(factura, borrador, otrasListas);
+
     setGuardando(true);
     try {
-      const referencia = doc(db, "clientes", cliente.id, "facturas", factura.id);
+      const facturaRef = (id) => doc(db, "clientes", cliente.id, "facturas", id);
+      const referencia = facturaRef(factura.id);
       const guardada = await runTransaction(db, async (transaccion) => {
+        // Primero todas las lecturas: la transacción no deja leer después de
+        // escribir.
         const actual = (await transaccion.get(referencia)).data();
-        // Lo que se corrige es `factura` y `grupos`. Si cualquiera de los dos
-        // ya no es el que se abrió, alguien anotó algo en el medio. La marca
-        // de "cerrada" no cuenta: la pone el servidor un momento después de
-        // cada cambio, y es una conclusión, no un dato.
+        const actuales = await Promise.all(
+          otrasACambiar.map(({ id }) => transaccion.get(facturaRef(id))),
+        );
+
+        // Si cualquier parte de lo que se abrió ya no es la misma, alguien
+        // anotó algo en el medio. La marca de "cerrada" no cuenta: la pone el
+        // servidor un momento después de cada cambio, y es una conclusión,
+        // no un dato.
+        const mismaPlata = (a, b) =>
+          mismoContenido(abonosDe(a), abonosDe(b)) &&
+          mismoContenido(entregasDe(a), entregasDe(b));
         if (
           !mismoContenido(gruposDe(actual), gruposDe(factura)) ||
-          !mismoContenido(loCorregible(actual), loCorregible(factura))
+          !mismoContenido(loCorregible(actual), loCorregible(factura)) ||
+          !mismaPlata(actual, factura) ||
+          otrasACambiar.some(({ original }, indice) => !mismaPlata(actuales[indice].data(), original))
         ) {
           return false;
         }
-        // Los abonos, las entregas y la bitácora no viajan: no se corrigen
-        // desde acá, así que tampoco se reescriben.
+
+        // Los abonos y las entregas viajan solo si cambiaron, y la bitácora
+        // nunca: no se corrige desde acá.
         transaccion.update(referencia, {
           factura: corregida.factura,
           grupos: corregida.grupos,
+          ...(mismoContenido(corregida.abonos, abonosDe(factura))
+            ? {}
+            : { abonos: corregida.abonos }),
+          ...(mismoContenido(corregida.entregas, entregasDe(factura))
+            ? {}
+            : { entregas: corregida.entregas }),
         });
+        otrasACambiar.forEach(({ id, escritura }) =>
+          transaccion.update(facturaRef(id), escritura),
+        );
         return true;
       });
 
       if (!guardada) {
         showSnackbar(
-          "Esta factura cambió mientras la corregías y no se guardó nada. Recargá la página y corregila de nuevo.",
+          otrasACambiar.length > 0
+            ? "Esta factura o alguna de las que toca cambió mientras la corregías, y no se guardó nada. Recargá la página y corregila de nuevo."
+            : "Esta factura cambió mientras la corregías y no se guardó nada. Recargá la página y corregila de nuevo.",
           "error",
         );
         return;
@@ -490,6 +621,178 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       default:
         return null;
     }
+  };
+
+  // El medio de un abono o de una devolución, con la etiqueta enganchada al
+  // input oculto del Select (si no, la etiqueta no lo nombra).
+  const campoMedio = (name, valor, onCambio) => (
+    <FormControl fullWidth size="small">
+      <InputLabel id={`${name}-label`} htmlFor={`${name}-input`}>
+        Medio
+      </InputLabel>
+      <Select
+        labelId={`${name}-label`}
+        inputProps={{ id: `${name}-input`, name }}
+        label="Medio"
+        value={valor}
+        onChange={(e) => onCambio(e.target.value)}
+      >
+        {mediosParaCorregir(MODOS_PAGO, valor).map((medio) => (
+          <MenuItem key={medio} value={medio}>
+            {medio}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+
+  const nota = (key, texto) => (
+    <Typography key={key} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+      · {texto}
+    </Typography>
+  );
+
+  // UN ABONO. El que llegó por un cruce se corrige desde la factura de donde
+  // salió, así que acá solo se cuenta. El que se pagó con el depósito no
+  // cambia de medio: pasarlo a "Nequi" sería inventar plata que no entró.
+  const filaAbono = (item, posicion) => {
+    const nombre = `corregir-abono${posicion}`;
+    const fecha = formatearFechaLegible(item.original.fecha);
+
+    if (esAbonoDeCruce(item.original)) {
+      return nota(
+        nombre,
+        `Cruce del ${fecha} desde la factura ${item.original.desdeFactura ?? "s/n"}: ${formatearMoneda(
+          Number(item.original.monto) || 0,
+        )}. Se corrige desde esa factura.`,
+      );
+    }
+
+    const conDeposito = item.original.medio === MEDIO_DEPOSITO;
+    return (
+      <Box key={nombre} role="group" aria-label="Abono" sx={RECUADRO_HECHO}>
+        {rotuloDeHecho(conDeposito ? "Abono con el depósito" : "Abono")}
+        <Grid container spacing={1.5} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            {campoFecha("Fecha", `${nombre}-fecha`, item.fecha, (valor) =>
+              cambiarEnLista("abonos", posicion, { fecha: valor }),
+            )}
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            {conDeposito ? (
+              <TextField
+                label="Medio"
+                name={`${nombre}-medio`}
+                value={MEDIO_DEPOSITO}
+                disabled
+                fullWidth
+                size="small"
+              />
+            ) : (
+              campoMedio(`${nombre}-medio`, item.medio, (valor) =>
+                cambiarEnLista("abonos", posicion, { medio: valor }),
+              )
+            )}
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            {campoPlata("Monto", `${nombre}-monto`, item.monto, (valor) =>
+              cambiarEnLista("abonos", posicion, { monto: valor }),
+            )}
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Button size="small" color="error" onClick={() => quitarDeLista("abonos", posicion)}>
+              Quitar el abono
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
+
+  // LO DEVUELTO AL CLIENTE. El cruce va aparte: no salió plata, fue a otras
+  // facturas, y se corrige cuánto llevó a cada una —las dos puntas juntas—.
+  const filaEntrega = (item, posicion) => {
+    const nombre = `corregir-entrega${posicion}`;
+    const fecha = formatearFechaLegible(item.original.fecha);
+    const destinos = (item.original.haciaFacturas ?? []).join(", ");
+
+    if (item.partes === null) {
+      return nota(nombre, `Cruce del ${fecha}: buscando las facturas a las que fue...`);
+    }
+    if (item.partes === false) {
+      return nota(
+        nombre,
+        `Cruce del ${fecha} a la factura ${destinos}: ${formatearMoneda(
+          Number(item.original.monto) || 0,
+        )}. No se encontró su abono en la otra factura, así que no se corrige desde acá.`,
+      );
+    }
+
+    if (Array.isArray(item.partes)) {
+      return (
+        <Box key={nombre} role="group" aria-label="Cruce" sx={RECUADRO_HECHO}>
+          {rotuloDeHecho("Cruce a otras facturas")}
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={12} sm={3}>
+              {campoFecha("Fecha", `${nombre}-fecha`, item.fecha, (valor) =>
+                cambiarEnLista("entregas", posicion, { fecha: valor }),
+              )}
+            </Grid>
+            {item.partes.map((parte, indiceParte) => (
+              <Grid item xs={12} sm={3} key={parte.facturaId}>
+                {campoPlata(
+                  `A la factura ${parte.numero}`,
+                  `${nombre}-parte${indiceParte}`,
+                  parte.monto,
+                  (valor) => cambiarParteDelCruce(posicion, indiceParte, valor),
+                )}
+              </Grid>
+            ))}
+            <Grid item xs={12} sm={3}>
+              <Button
+                size="small"
+                color="error"
+                onClick={() => quitarDeLista("entregas", posicion)}
+              >
+                Quitar el cruce
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      );
+    }
+
+    return (
+      <Box key={nombre} role="group" aria-label="Devolución al cliente" sx={RECUADRO_HECHO}>
+        {rotuloDeHecho("Devolución al cliente")}
+        <Grid container spacing={1.5} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            {campoFecha("Fecha", `${nombre}-fecha`, item.fecha, (valor) =>
+              cambiarEnLista("entregas", posicion, { fecha: valor }),
+            )}
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            {campoMedio(`${nombre}-medio`, item.medio, (valor) =>
+              cambiarEnLista("entregas", posicion, { medio: valor }),
+            )}
+          </Grid>
+          <Grid item xs={6} sm={3}>
+            {campoPlata("Monto", `${nombre}-monto`, item.monto, (valor) =>
+              cambiarEnLista("entregas", posicion, { monto: valor }),
+            )}
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Button
+              size="small"
+              color="error"
+              onClick={() => quitarDeLista("entregas", posicion)}
+            >
+              Quitar la devolución al cliente
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    );
   };
 
   return (
@@ -953,6 +1256,23 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                 );
               })}
 
+              {/* ── La plata de después ── Lo que el cliente abonó y lo que
+                  se le devolvió o se cruzó a otras facturas. */}
+              {(borrador.abonos.length > 0 || borrador.entregas.length > 0) && (
+                <Paper
+                  variant="outlined"
+                  component="section"
+                  aria-label="Abonos y devoluciones"
+                  sx={{ p: 2, borderColor: "custom.itemBorder" }}
+                >
+                  {titulo("Abonos y devoluciones")}
+                  <Stack spacing={1}>
+                    {borrador.abonos.map(filaAbono)}
+                    {borrador.entregas.map(filaEntrega)}
+                  </Stack>
+                </Paper>
+              )}
+
               {/* ── Así queda ── La cuenta de antes y la de después, antes
                   de escribir nada. */}
               {cuentaAntes && (
@@ -962,7 +1282,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                     {renglonDeCuenta(
                       "Estado",
                       estadoDe(factura),
-                      corregida ? estadoDe(corregida) : estadoDe(factura),
+                      documento ? estadoDe(documento) : estadoDe(factura),
                     )}
                     {renglonDeCuenta(
                       "Días vencidos",

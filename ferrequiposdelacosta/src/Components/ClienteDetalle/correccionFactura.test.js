@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   borradorDe,
+  enlazarCruces,
   equipoNuevoEnBorrador,
+  erroresDeLaPlata,
   erroresDelBorrador,
   facturaCorregida,
   hayCorrecciones,
+  otrasCorregidas,
   quitarHecho,
 } from "./correccionFactura";
 import {
@@ -740,5 +743,286 @@ describe("corregir una factura — el cierre de mora que hizo un pago", () => {
       { desde: "2026-09-08", hasta: "2026-09-09", indefinida: false, descuento: 9000 },
       { desde: "2026-09-10", hasta: null, indefinida: false },
     ]);
+  });
+});
+
+// ── La tercera entrega: la plata que entró y salió después ──────────────
+const ABONO_NEQUI = { fecha: "2026-10-11", medio: "Nequi", monto: 20000, tipo: "cliente" };
+
+const conLista = (borrador, lista, posicion, cambio) => ({
+  ...borrador,
+  [lista]: borrador[lista]
+    .map((item, indice) => (indice === posicion ? (cambio ? { ...item, ...cambio } : null) : item))
+    .filter(Boolean),
+});
+
+// Todo junto: las casillas, el documento y lo que mira la plata.
+const todosLosErrores = (factura, borrador, otras = null) => {
+  const deCasillas = erroresDelBorrador(borrador, HOY);
+  if (deCasillas.length > 0) return deCasillas;
+  return erroresDeLaPlata(factura, borrador, facturaCorregida(factura, borrador, HOY), otras, HOY);
+};
+
+describe("corregir una factura — los abonos", () => {
+  const factura = () => facturaVieja({ abonos: [ABONO_NEQUI] });
+
+  it("el abono que nadie tocó vuelve igual", () => {
+    const documento = factura();
+    expect(hayCorrecciones(documento, borradorDe(documento))).toBe(false);
+    const corregida = facturaCorregida(documento, borradorDe(documento), HOY);
+    expect(corregida.abonos[0]).toBe(documento.abonos[0]);
+  });
+
+  it("corrige el monto y el medio, y la cuenta lo sigue", () => {
+    // Pagó $200.000 en efectivo; se anotaron $20.000 por Nequi.
+    const borrador = conLista(borradorDe(factura()), "abonos", 0, {
+      medio: "Efectivo",
+      monto: 200000,
+    });
+    expect(todosLosErrores(factura(), borrador)).toEqual([]);
+
+    const corregida = facturaCorregida(factura(), borrador, HOY);
+    expect(corregida.abonos).toEqual([
+      { fecha: "2026-10-11", medio: "Efectivo", monto: 200000, tipo: "cliente" },
+    ]);
+    expect(calcularCuentaFactura(factura(), HOY).saldoPendiente).toBe(277000);
+    expect(calcularCuentaFactura(corregida, HOY).saldoPendiente).toBe(97000);
+  });
+
+  it("quitar el que se anotó por error", () => {
+    const corregida = facturaCorregida(
+      factura(),
+      conLista(borradorDe(factura()), "abonos", 0, null),
+      HOY,
+    );
+
+    expect(corregida.abonos).toEqual([]);
+    expect(calcularCuentaFactura(corregida, HOY).saldoPendiente).toBe(297000);
+  });
+
+  it("pide la fecha, el medio y un monto", () => {
+    expect(
+      erroresDelBorrador(
+        conLista(borradorDe(factura()), "abonos", 0, { medio: "", monto: 0 }),
+        HOY,
+      ),
+    ).toEqual([
+      "Abono del 11/10/2026: falta el medio.",
+      "Abono del 11/10/2026: el monto no es válido.",
+    ]);
+    expect(
+      erroresDelBorrador(conLista(borradorDe(factura()), "abonos", 0, { fecha: "" }), HOY),
+    ).toEqual(["Un abono: falta la fecha."]);
+  });
+
+  it("lo pagado con el depósito no pasa del depósito que había", () => {
+    // Dejó $50.000 de depósito y pidió usar $30.000 para pagar.
+    const conDeposito = facturaVieja({
+      abonos: [{ fecha: "2026-10-11", medio: "Depósito", monto: 30000, tipo: "cliente" }],
+    });
+    const borrador = conLista(borradorDe(conDeposito), "abonos", 0, { monto: 60000 });
+
+    const errores = todosLosErrores(conDeposito, borrador);
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toMatch(/^Lo pagado con el depósito .* pasa del depósito que había libre/);
+    // Bajarlo sí se puede.
+    expect(
+      todosLosErrores(conDeposito, conLista(borradorDe(conDeposito), "abonos", 0, { monto: 10000 })),
+    ).toEqual([]);
+  });
+});
+
+describe("corregir una factura — lo devuelto al cliente", () => {
+  // Volvieron a tiempo: el alquiler son $63.000 y los $50.000 del depósito
+  // se le devolvieron en efectivo.
+  const factura = () =>
+    facturaVieja({
+      equipos: [
+        unEquipoDevuelto({
+          nombre: "CERCHAS METALICAS",
+          cantidad: 6,
+          valorDia: 1500,
+          dias: 7,
+          fechaDespacho: "2026-09-01",
+          aplicaIva: false,
+          fechaDevolucion: "2026-09-07",
+        }),
+      ],
+      entregas: [{ fecha: "2026-09-07", medio: "Efectivo", monto: 50000 }],
+    });
+
+  it("corrige el monto y el medio", () => {
+    const borrador = conLista(borradorDe(factura()), "entregas", 0, {
+      medio: "Nequi",
+      monto: 40000,
+    });
+    expect(todosLosErrores(factura(), borrador)).toEqual([]);
+
+    expect(facturaCorregida(factura(), borrador, HOY).entregas).toEqual([
+      { fecha: "2026-09-07", medio: "Nequi", monto: 40000 },
+    ]);
+  });
+
+  it("no puede pasar de lo que el cliente tenía a favor", () => {
+    const errores = todosLosErrores(
+      factura(),
+      conLista(borradorDe(factura()), "entregas", 0, { monto: 60000 }),
+    );
+
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toMatch(/^Lo devuelto al cliente .* pasa de lo que tenía a favor/);
+  });
+
+  it("quitarla deja los $50.000 otra vez por devolver", () => {
+    const corregida = facturaCorregida(
+      factura(),
+      conLista(borradorDe(factura()), "entregas", 0, null),
+      HOY,
+    );
+
+    expect(corregida.entregas).toEqual([]);
+    expect(calcularCuentaFactura(corregida, HOY).aDevolver).toBe(50000);
+  });
+});
+
+describe("corregir una factura — los cruces", () => {
+  // De la 0412 salieron $50.000 a la 0500, que debía $300.000.
+  const CRUCE = {
+    fecha: "2026-10-01",
+    medio: "Cruce",
+    monto: 50000,
+    haciaFacturas: ["0500"],
+  };
+  const ABONO_DEL_CRUCE = {
+    fecha: "2026-10-01",
+    medio: "Cruce",
+    monto: 50000,
+    tipo: "cruce",
+    desdeFactura: "0412",
+    desdeDeposito: true,
+  };
+  const origen = () => facturaVieja({ entregas: [CRUCE] });
+  const destino = (abonos = [ABONO_DEL_CRUCE]) => ({
+    id: "f2",
+    ...unaFactura({
+      numeroFactura: "0500",
+      fechaCreacion: "2026-09-25",
+      equipos: [
+        unEquipo({ nombre: "RANA", valorDia: 10000, dias: 30, fechaDespacho: "2026-09-25" }),
+      ],
+      abonos,
+    }),
+  });
+
+  it("encuentra la otra punta cuando están las demás facturas", () => {
+    expect(borradorDe(origen()).entregas[0].partes).toBeNull();
+    expect(borradorDe(origen(), [destino()]).entregas[0].partes).toEqual([
+      { facturaId: "f2", numero: "0500", indiceAbono: 0, monto: 50000 },
+    ]);
+    // Y al llegar las facturas, se enlaza sin pisar lo demás del borrador.
+    const enlazado = enlazarCruces(
+      { ...borradorDe(origen()), numeroFactura: "0412-B" },
+      origen(),
+      [destino()],
+    );
+    expect(enlazado.numeroFactura).toBe("0412-B");
+    expect(enlazado.entregas[0].partes).toHaveLength(1);
+  });
+
+  it("si no la encuentra sin dudas, el cruce no se corrige", () => {
+    const otraFecha = destino([{ ...ABONO_DEL_CRUCE, fecha: "2026-10-02" }]);
+    expect(borradorDe(origen(), [otraFecha]).entregas[0].partes).toBe(false);
+  });
+
+  it("corregir lo que llevó corrige las dos puntas", () => {
+    const otras = [destino()];
+    const base = borradorDe(origen(), otras);
+    const borrador = {
+      ...base,
+      entregas: [{ ...base.entregas[0], partes: [{ ...base.entregas[0].partes[0], monto: 30000 }] }],
+    };
+
+    expect(hayCorrecciones(origen(), borrador, otras)).toBe(true);
+    expect(todosLosErrores(origen(), borrador, otras)).toEqual([]);
+    expect(facturaCorregida(origen(), borrador, HOY).entregas).toEqual([
+      { ...CRUCE, monto: 30000 },
+    ]);
+    expect(otrasCorregidas(origen(), borrador, otras)).toEqual([
+      {
+        id: "f2",
+        original: otras[0],
+        escritura: { abonos: [{ ...ABONO_DEL_CRUCE, monto: 30000 }] },
+      },
+    ]);
+  });
+
+  it("quitarlo lo saca de las dos facturas", () => {
+    const otras = [destino([ABONO_NEQUI, ABONO_DEL_CRUCE])];
+    const borrador = conLista(borradorDe(origen(), otras), "entregas", 0, null);
+
+    expect(facturaCorregida(origen(), borrador, HOY).entregas).toEqual([]);
+    expect(otrasCorregidas(origen(), borrador, otras)).toEqual([
+      { id: "f2", original: otras[0], escritura: { abonos: [ABONO_NEQUI] } },
+    ]);
+  });
+
+  it("no puede llevar más de lo que la otra factura debía", () => {
+    const otras = [destino()];
+    const base = borradorDe(origen(), otras);
+    const borrador = {
+      ...base,
+      entregas: [
+        { ...base.entregas[0], partes: [{ ...base.entregas[0].partes[0], monto: 400000 }] },
+      ],
+    };
+
+    expect(todosLosErrores(origen(), borrador, otras)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^El cruce a la factura 0500 .* pasa de lo que esa factura debía/),
+      ]),
+    );
+  });
+
+  it("el abono que llegó por un cruce no se revisa ni se corrige desde la que lo recibió", () => {
+    const recibio = destino();
+    expect(erroresDelBorrador(borradorDe(recibio), HOY)).toEqual([]);
+    expect(hayCorrecciones(recibio, borradorDe(recibio))).toBe(false);
+  });
+});
+
+describe("corregir una factura — el número", () => {
+  const nombraALa0412 = () => ({
+    id: "f2",
+    ...unaFactura({
+      numeroFactura: "0500",
+      abonos: [
+        { fecha: "2026-10-01", medio: "Nequi", monto: 10000, tipo: "agregado", desdeFactura: "0412" },
+      ],
+      entregas: [{ fecha: "2026-10-02", medio: "Cruce", monto: 5000, haciaFacturas: ["0412"] }],
+    }),
+  });
+  const sinNombrarla = () => ({ id: "f3", ...unaFactura({ numeroFactura: "0600" }) });
+  const conNumero = (numeroFactura) => ({ ...borradorDe(facturaVieja()), numeroFactura });
+
+  it("se corrige también donde las otras facturas la nombran", () => {
+    const otras = [nombraALa0412(), sinNombrarla()];
+    const [cambio] = otrasCorregidas(facturaVieja(), conNumero("0413"), otras);
+
+    expect(otrasCorregidas(facturaVieja(), conNumero("0413"), otras)).toHaveLength(1);
+    expect(cambio.id).toBe("f2");
+    expect(cambio.escritura.abonos[0].desdeFactura).toBe("0413");
+    expect(cambio.escritura.entregas[0].haciaFacturas).toEqual(["0413"]);
+  });
+
+  it("no puede quedar repetido, ni cambiarse sin leer las demás", () => {
+    const factura = facturaVieja();
+
+    expect(todosLosErrores(factura, conNumero("0600"), [sinNombrarla()])).toEqual([
+      "Ya hay otra factura de este cliente con el número 0600.",
+    ]);
+    expect(todosLosErrores(factura, conNumero("0413"), null)).toEqual([
+      "Buscando las demás facturas del cliente para cambiar el número...",
+    ]);
+    expect(todosLosErrores(factura, conNumero("0413"), [sinNombrarla()])).toEqual([]);
   });
 });

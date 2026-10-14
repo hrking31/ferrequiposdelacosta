@@ -221,6 +221,26 @@ const cambiosDePlata = (rotulo, antes, despues) => {
     const nuevo = despues.at(-1);
     return [`${rotulo} de ${plata(nuevo.monto)} por ${nuevo.medio || "—"} (${fecha(nuevo.fecha)})`];
   }
+  // Los mismos, uno corregido: se dice qué cambió en cada uno. Con la suma
+  // sola, corregir el medio se leía "Abonos: $20.000 → $20.000".
+  if (despues.length === antes.length) {
+    return despues.flatMap((nuevo, indice) => {
+      const viejo = antes[indice];
+      if (igual(viejo, nuevo)) return [];
+      const partes = [];
+      if (viejo.fecha !== nuevo.fecha) {
+        partes.push(`fecha ${fecha(viejo.fecha)} → ${fecha(nuevo.fecha)}`);
+      }
+      if (viejo.medio !== nuevo.medio) {
+        partes.push(`medio ${viejo.medio || "—"} → ${nuevo.medio || "—"}`);
+      }
+      if (Number(viejo.monto) !== Number(nuevo.monto)) {
+        partes.push(`${plata(viejo.monto)} → ${plata(nuevo.monto)}`);
+      }
+      if (partes.length === 0) partes.push("cambió la factura que nombra");
+      return [`${rotulo} del ${fecha(viejo.fecha)}: ${partes.join(", ")}`];
+    });
+  }
   return [`${rotulo}s: ${plata(sumar(antes))} → ${plata(sumar(despues))}`];
 };
 
