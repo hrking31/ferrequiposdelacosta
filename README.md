@@ -356,7 +356,9 @@ La prueba de que eso no inventa ni pierde nada: doce historias armadas con las f
 
 1. **Lo que nadie tocó vuelve idéntico.** Solo se rearma el equipo que cambió; el de al lado y los demás despachos salen letra por letra como estaban. Escribir de nuevo el mismo número en una casilla no cuenta como cambio.
 2. **Antes de guardar se ve la cuenta de antes y la de después**: *Cobro → Finalizada*, *Saldo $297.000 → $0*.
-3. **Si la factura cambió mientras estaba abierta, no se guarda nada.** Se escribe dentro de una transacción que primero compara: pisar la factura borraría el abono que otra persona acababa de anotar.
+3. **Si la factura cambió mientras estaba abierta, no se guarda nada.** Se escribe dentro de una transacción que primero compara: pisar la factura borraría el abono que otra persona acababa de anotar. Se comparan los valores y no el orden de los campos: la factura que se abrió y la que se relee al guardar llegan por dos lecturas distintas, y Firestore puede entregar los mismos datos en otro orden. Comparando el texto tal cual, el 14/10 una factura real que nadie había tocado figuraba "cambiada" y no dejaba guardar ninguna corrección.
+
+El aviso de ese rechazo tampoco se veía: los avisos de la app estaban a la misma altura que los diálogos, y la pantalla completa de corregir lo tapaba entero. Ahora van por encima de cualquier diálogo, en todas las pantallas.
 
 #### El candado es de pantalla; el registro, no
 

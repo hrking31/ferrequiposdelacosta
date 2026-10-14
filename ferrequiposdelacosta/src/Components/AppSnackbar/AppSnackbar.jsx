@@ -14,7 +14,11 @@ export default function AppSnackbar({ snackbar, onClose }) {
           top: "50% !important",
           left: "50% !important",
           transform: "translate(-50%, -50%)",
-          zIndex: 1300,
+          // 1400 es la altura que MUI reserva para los avisos, por encima de
+          // los diálogos (1300). A la misma altura el diálogo abierto tapaba
+          // el aviso, y en la pantalla completa de corregir factura un error
+          // no se veía en absoluto.
+          zIndex: 1400,
           width: { xs: "90%", sm: "auto" },
           maxWidth: { xs: "none", sm: "md" },
         },

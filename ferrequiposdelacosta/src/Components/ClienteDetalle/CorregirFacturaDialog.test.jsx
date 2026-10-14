@@ -259,6 +259,30 @@ describe("CorregirFacturaDialog — corregir la fecha de la devolución", () => 
     expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
   });
 
+  // La factura que se abrió y la que se relee al guardar llegan por dos
+  // lecturas distintas, y Firestore puede entregar los campos en otro orden.
+  // Pasó con una factura real el 14/10: nadie la tocó y no dejaba guardar.
+  it("la misma factura con los campos en otro orden no cuenta como cambiada", async () => {
+    const alReves = (valor) =>
+      Array.isArray(valor)
+        ? valor.map(alReves)
+        : valor && typeof valor === "object"
+          ? Object.fromEntries(
+              Object.entries(valor)
+                .reverse()
+                .map(([clave, dato]) => [clave, alReves(dato)]),
+            )
+          : valor;
+    bd.get.mockResolvedValue({ data: () => alReves(documento()) });
+    const { usuario } = abrir();
+
+    await escribirFecha(usuario, "Fecha de devolución", VOLVIO_DE_VERDAD);
+    await usuario.click(botonGuardar());
+
+    expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
+    expect(bd.update).toHaveBeenCalledTimes(1);
+  });
+
   it("quitar la devolución deja el equipo afuera y vencido", async () => {
     const { usuario } = abrir();
 
