@@ -375,8 +375,15 @@ Desde el 14/10 la misma pantalla también los corrige. Cada **ampliación** mues
 
 Mover una fecha puede dejar a un descuento **sin días de donde salir**. Un andamio pidió 3 días el 07/09 con $4.000 de descuento sobre sus 2 días vencidos; si la fecha se corrige al 05/09, ese día todavía estaba cubierto y no se cerró ninguna mora. Las funciones que escriben el tramo no se quejan —lo que no tiene dónde ir se pierde, y lo que pasa de lo que valen los días se recorta en la cuenta—, así que la pantalla rearma el equipo antes de guardar y **no deja seguir** mientras un descuento no tenga sus días o los supere. Tampoco deja que, con la entrega pactada vigente, quede después una ampliación: el equipo solo esperaba que lo recogieran.
 
-> [!NOTE]
-> **Lo que todavía no se corrige desde esa pantalla:** los abonos, las entregas de saldo, los cruces entre facturas y el depósito resuelto. Se ven, pero no se editan.
+#### La plata de después: abonos, lo devuelto y los cruces
+
+También desde el 14/10. Cada **abono** deja corregir su fecha, su medio y su monto, o quitarlo: Aida pagó $200.000 en efectivo y quedó anotado $20.000 por Nequi. Lo mismo **lo devuelto al cliente**. El abono pagado con el depósito no cambia de medio —pasarlo a Nequi inventaría plata que no entró— y no puede pasar del depósito que había libre; lo devuelto no puede pasar de lo que el cliente tenía a favor. Las dos reglas frenan solo si la corrección **agranda** el monto: bajar uno que ya estaba de más no puede quedar trabado por estarlo.
+
+**El cruce tiene dos puntas** —la entrega "Cruce" de la factura de donde salió y el abono en la que lo recibió— y no comparten un identificador: se encuentran por el número de la factura de origen, la fecha y el tipo. Se corrige **solo desde la factura de donde salió**, cuánto llevó a cada una, y las dos se guardan en la misma transacción o ninguna; si cualquiera cambió mientras la pantalla estaba abierta, no se escribe nada. Si la otra punta no se encuentra sin dudas, el cruce se muestra y no se corrige. Para eso la pantalla lee las demás facturas del cliente, abiertas y cerradas, pero solo cuando hace falta.
+
+**El número de la factura** también se corrige donde las otras la nombran —"Viene del saldo a favor de la factura 0412", "Cruzado a factura 0412"—, porque con el número viejo el cruce ya no se encontraría. Y no puede quedar repetido dentro del mismo cliente.
+
+Dos cosas quedaron afuera a propósito. El **cierre de mora que hizo un pago** no se mueve ni se quita al corregir el abono: no cambia la plata, solo pone en cero el contador de días. Y el **depósito resuelto** no tiene casilla: se rehace solo cuando se corrige una devolución.
 
 ### 4. Las gestiones: la bitácora del cobro
 
