@@ -372,19 +372,6 @@ Ese registro se lee al final de la pantalla de corregir, ya puesto en palabras: 
 > [!NOTE]
 > **Lo que todavía no se corrige desde esa pantalla:** las ampliaciones, la entrega pactada, los abonos y las entregas de saldo. Se ven, pero no se editan.
 
-#### Y para no tener que corregir: la fecha de lo que se anota
-
-El error de la factura vieja no era de quien digitó: la app no le dejaba decir **cuándo** había vuelto el equipo. La devolución, la entrega pactada y la ampliación traen ahora un campo de fecha —para cualquier usuario—, que viene con hoy y se puede atrasar. La cuenta se corta en esa fecha, no en el día en que alguien se sentó a anotarlo.
-
-Dos reglas lo sostienen:
-
-- **No se anota nada con fecha anterior a lo último que el equipo ya tiene anotado.** Lo que vino después se apoya en lo de antes; meter una devolución antes de una ampliación ya escrita es corregir, y eso es del administrador.
-- **Si ese día el equipo todavía estaba en plazo, la mora que la madrugada le abrió después nunca corrió**, y se saca. Si ya estaba vencido, se cierra en la fecha.
-
-Con eso las funciones de siempre reciben el 07/09 en vez de hoy y dan lo mismo que si se hubiera anotado ese día. Hay una prueba que lo fija: anotar con fecha atrasada da **exactamente** el mismo equipo que anotar hoy y corregir después.
-
-Y lo que sigue afuera queda al día: si se pactaron 3 días hace diez y ya se acabaron, la mora nueva queda abierta ahí mismo, sin esperar a la madrugada.
-
 ### 4. Las gestiones: la bitácora del cobro
 
 El estado dice en qué punto está la factura. **La gestión dice qué se hizo para destrabarla.** Solo se ve en Seguimiento, y solo entran ahí las facturas *Vencidas* y en *Cobro*.
