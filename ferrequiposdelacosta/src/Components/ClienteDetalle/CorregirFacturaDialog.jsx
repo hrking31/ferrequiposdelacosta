@@ -46,6 +46,7 @@ import {
   facturaCorregida,
   hayCorrecciones,
   nombreDelGrupo,
+  quitarHecho,
 } from "./correccionFactura";
 import { autorLegible, cuandoLegible, describirCambio } from "./registroFactura";
 import {
@@ -92,25 +93,18 @@ const renglonesDe = (cambio) => {
   }
 };
 
-// Lo que le pasó a un equipo y todavía no se corrige desde acá: se muestra
-// para que quien corrige vea la historia entera antes de mover una fecha.
-const describirHecho = (hecho) => {
-  const fecha = formatearFechaLegible(hecho.fecha);
-  switch (hecho.tipo) {
-    case "ampliacion":
-      return `Ampliación del ${fecha} · ${hecho.dias} ${hecho.dias === 1 ? "día" : "días"}`;
-    case "entregaPactada":
-      return `Entrega pactada el ${fecha}`;
-    case "entregaAnulada":
-      return `Entrega pactada anulada el ${fecha}`;
-    case "indefinida":
-      return `Sin fecha de entrega desde el ${fecha}`;
-    case "sello":
-      return `Días vencidos cerrados el ${fecha}`;
-    default:
-      return "";
-  }
+// Cada hecho que se corrige va en su recuadro, con la raya a la izquierda que
+// lo cuelga del equipo.
+const RECUADRO_HECHO = {
+  mt: 1.5,
+  pl: 1.5,
+  borderLeft: "2px solid",
+  borderColor: "custom.itemBorder",
 };
+
+// Lo que se escribe en una casilla de plata. Vacía es cero: borrar el
+// descuento y no volver a escribir nada no es un cambio.
+const plataDe = (texto) => Number(limpiarMonedaInput(texto)) || 0;
 
 // CORREGIR UNA FACTURA YA CARGADA. Solo para el administrador: acá no se anota
 // nada nuevo, se arregla lo que alguien digitó mal —la devolución con la fecha
@@ -243,6 +237,20 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       devolucion: { ...hecho.devolucion, ...campos },
     }));
 
+  // Los demás hechos se señalan por su lugar en la lista: dos ampliaciones
+  // del mismo día no tienen otra cosa que las distinga.
+  const cambiarHecho = (indiceGrupo, clave, posicion, campos) =>
+    cambiarEquipo(indiceGrupo, clave, (item) => ({
+      hechos: item.hechos.map((hecho, indice) =>
+        indice === posicion ? { ...hecho, ...campos } : hecho,
+      ),
+    }));
+
+  const borrarHecho = (indiceGrupo, clave, posicion) =>
+    cambiarEquipo(indiceGrupo, clave, (item) => ({
+      hechos: quitarHecho(item.hechos, posicion),
+    }));
+
   const handleCerrar = () => {
     if (guardando) return;
     onClose();
@@ -312,6 +320,177 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       </Typography>
     </Box>
   );
+
+  // Las casillas que se repiten en cada hecho.
+  const campoFecha = (label, name, valor, onCambio) => (
+    <TextField
+      label={label}
+      name={name}
+      type="date"
+      inputProps={{ max: hoy }}
+      value={valor ?? ""}
+      onChange={(e) => onCambio(e.target.value)}
+      fullWidth
+      size="small"
+      InputLabelProps={{ shrink: true }}
+    />
+  );
+
+  const campoPlata = (label, name, valor, onCambio) => (
+    <TextField
+      label={label}
+      name={name}
+      value={formatearMonedaInput(valor || "")}
+      onChange={(e) => onCambio(plataDe(e.target.value))}
+      fullWidth
+      size="small"
+    />
+  );
+
+  const rotuloDeHecho = (texto) => (
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      fontWeight="bold"
+      sx={{ display: "block", mb: 1 }}
+    >
+      {texto}
+    </Typography>
+  );
+
+  // LO QUE LE PASÓ AL EQUIPO, fuera de la devolución, para corregir. Las
+  // fechas, los días y los descuentos se escriben; los días vencidos no: salen
+  // solos de la historia corregida.
+  //
+  // El cierre de mora que hizo un pago no se mueve de fecha —esa fecha es la
+  // del abono— ni se quita: solo su descuento. Y el "sin fecha de entrega" se
+  // muestra tal cual.
+  const hechoCorregible = (indiceGrupo, item, idEquipo, hecho, posicion) => {
+    const nombre = `${idEquipo}-hecho${posicion}`;
+    const cambiar = (campos) => cambiarHecho(indiceGrupo, item.clave, posicion, campos);
+    const fecha = formatearFechaLegible(hecho.fecha);
+    const quitar = (texto) => (
+      <Button
+        size="small"
+        color="error"
+        onClick={() => borrarHecho(indiceGrupo, item.clave, posicion)}
+      >
+        {texto}
+      </Button>
+    );
+    const descuentoVencidos = campoPlata(
+      "Descuento en los días vencidos",
+      `${nombre}-descuentoVencidos`,
+      hecho.descuentoVencidos,
+      (valor) => cambiar({ descuentoVencidos: valor }),
+    );
+
+    switch (hecho.tipo) {
+      case "ampliacion":
+        return (
+          <Box key={nombre} role="group" aria-label="Ampliación" sx={RECUADRO_HECHO}>
+            {rotuloDeHecho("Ampliación")}
+            <Grid container spacing={1.5} alignItems="center">
+              <Grid item xs={7} sm={4}>
+                {campoFecha("Fecha de la ampliación", `${nombre}-fecha`, hecho.fecha, (valor) =>
+                  cambiar({ fecha: valor }),
+                )}
+              </Grid>
+              <Grid item xs={5} sm={3}>
+                <TextField
+                  label="Días pedidos"
+                  name={`${nombre}-dias`}
+                  type="number"
+                  inputProps={{ min: 1 }}
+                  value={hecho.dias}
+                  onChange={(e) => cambiar({ dias: e.target.value })}
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={5}>
+                {quitar("Quitar la ampliación")}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                {campoPlata(
+                  "Descuento en los días nuevos",
+                  `${nombre}-descuento`,
+                  hecho.descuento,
+                  (valor) => cambiar({ descuento: valor }),
+                )}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                {descuentoVencidos}
+              </Grid>
+            </Grid>
+          </Box>
+        );
+
+      case "entregaPactada":
+        return (
+          <Box key={nombre} role="group" aria-label="Entrega pactada" sx={RECUADRO_HECHO}>
+            {rotuloDeHecho("Entrega pactada")}
+            <Grid container spacing={1.5} alignItems="center">
+              <Grid item xs={12} sm={4}>
+                {campoFecha("Fecha del aviso", `${nombre}-fecha`, hecho.fecha, (valor) =>
+                  cambiar({ fecha: valor }),
+                )}
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                {descuentoVencidos}
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                {quitar("Quitar la entrega pactada")}
+              </Grid>
+            </Grid>
+          </Box>
+        );
+
+      case "entregaAnulada":
+        return (
+          <Box key={nombre} role="group" aria-label="No entregó" sx={RECUADRO_HECHO}>
+            {rotuloDeHecho("No entregó lo pactado")}
+            <Grid container spacing={1.5} alignItems="center">
+              <Grid item xs={12} sm={4}>
+                {campoFecha("Fecha en que se anuló", `${nombre}-fecha`, hecho.fecha, (valor) =>
+                  cambiar({ fecha: valor }),
+                )}
+              </Grid>
+              <Grid item xs={12} sm={8}>
+                {quitar("Quitar la anulación")}
+              </Grid>
+            </Grid>
+          </Box>
+        );
+
+      case "sello":
+        return (
+          <Box key={nombre} role="group" aria-label="Cierre de mora" sx={RECUADRO_HECHO}>
+            {rotuloDeHecho(`Días vencidos cerrados el ${fecha}`)}
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} sm={4}>
+                {descuentoVencidos}
+              </Grid>
+            </Grid>
+          </Box>
+        );
+
+      case "indefinida":
+        return (
+          <Typography
+            key={nombre}
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 1 }}
+          >
+            · Sin fecha de entrega desde el {fecha}
+          </Typography>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -503,9 +682,6 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                       {grupo.equipos.map((item) => {
                         const idEquipo = `${idGrupo}-${item.clave}`;
                         const devolucion = item.hechos.find(({ tipo }) => tipo === "devolucion");
-                        const otrosHechos = item.hechos.filter(
-                          ({ tipo }) => tipo !== "devolucion",
-                        );
                         const volvioMal = devolucion?.devolucion?.buenEstado === false;
                         return (
                           <Box
@@ -632,28 +808,17 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                               </Grid>
                             </Grid>
 
-                            {/* Lo que le pasó, en orden. Por ahora solo la
-                                devolución se corrige; el resto se muestra. */}
-                            {otrosHechos.map((hecho, posicion) => (
-                              <Typography
-                                key={`${hecho.tipo}-${posicion}`}
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ display: "block", mt: posicion === 0 ? 1 : 0 }}
-                              >
-                                · {describirHecho(hecho)}
-                              </Typography>
-                            ))}
+                            {/* Lo que le pasó, en orden, y al final la
+                                devolución, que es lo último que le pasa. */}
+                            {item.hechos.map((hecho, posicion) =>
+                              hecho.tipo === "devolucion"
+                                ? null
+                                : hechoCorregible(indiceGrupo, item, idEquipo, hecho, posicion),
+                            )}
 
                             {devolucion && (
-                              <Box
-                                sx={{
-                                  mt: 1.5,
-                                  pl: 1.5,
-                                  borderLeft: "2px solid",
-                                  borderColor: "custom.itemBorder",
-                                }}
-                              >
+                              <Box role="group" aria-label="Devolución" sx={RECUADRO_HECHO}>
+                                {rotuloDeHecho("Devolución")}
                                 <Grid container spacing={1.5} alignItems="center">
                                   <Grid item xs={12} sm={4}>
                                     <TextField
@@ -672,7 +837,18 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                                       InputLabelProps={{ shrink: true }}
                                     />
                                   </Grid>
-                                  <Grid item xs={12} sm={8}>
+                                  <Grid item xs={12} sm={4}>
+                                    {campoPlata(
+                                      "Descuento en los días vencidos",
+                                      `${idEquipo}-descuentoVencidosDevolucion`,
+                                      devolucion.descuentoVencidos,
+                                      (valor) =>
+                                        cambiarDevolucion(indiceGrupo, item.clave, () => ({
+                                          descuentoVencidos: valor,
+                                        })),
+                                    )}
+                                  </Grid>
+                                  <Grid item xs={12} sm={4}>
                                     <FormControlLabel
                                       label="Cobrar el día de la devolución"
                                       control={

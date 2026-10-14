@@ -13,6 +13,8 @@
 import {
   calcularDepositoTotal,
   calcularRetenido,
+  diaAnterior,
+  diasDeAlquiler,
   facturaCerrada,
   hechosDeEquipo,
   obtenerFechaHoyBogota,
@@ -30,8 +32,9 @@ import {
   gruposDe,
   pagosDe,
   tipoPagoDe,
+  vencidosDe,
 } from "./facturaModelo";
-import { formatearFechaLegible } from "../../Utils/formato";
+import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
 
 const numero = (valor) => Number(valor) || 0;
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -117,14 +120,15 @@ const baseDelEquipo = (item) => ({
 const equipoTocado = (item) =>
   !item.original || cambio(item, equipoABorrador(item.original, item.clave));
 
+const equipoRearmado = (item, hoyIso) =>
+  rearmarEquipo(
+    { ampliaciones: [], vencidos: [], ...(item.original ?? {}), ...baseDelEquipo(item) },
+    item.hechos,
+    hoyIso,
+  );
+
 const equipoCorregido = (item, hoyIso) =>
-  equipoTocado(item)
-    ? rearmarEquipo(
-        { ampliaciones: [], vencidos: [], ...(item.original ?? {}), ...baseDelEquipo(item) },
-        item.hechos,
-        hoyIso,
-      )
-    : item.original;
+  equipoTocado(item) ? equipoRearmado(item, hoyIso) : item.original;
 
 // Los medios que de verdad son un pago: con medio y con monto. "Sin pago" no
 // guarda ninguno, aunque hayan quedado escritos.
@@ -229,6 +233,17 @@ export const facturaCorregida = (
   return documento;
 };
 
+// Los hechos de un equipo sin el de esa posición. La anulación es de una
+// entrega pactada: si se quita la entrega, se va con ella.
+export const quitarHecho = (hechos, posicion) => {
+  const quitado = hechos[posicion];
+  return hechos.filter(
+    (hecho, indice) =>
+      indice !== posicion &&
+      !(quitado?.tipo === "entregaPactada" && hecho.tipo === "entregaAnulada"),
+  );
+};
+
 // Si el borrador cambia algo de lo guardado. Sin cambios no hay nada que
 // escribir, y el botón de guardar no se enciende.
 export const hayCorrecciones = (factura, borrador) =>
@@ -241,6 +256,80 @@ const NOMBRE_DE_HECHO = {
   entregaPactada: "la entrega pactada",
   entregaAnulada: "la anulación de la entrega pactada",
   devolucion: "la devolución",
+};
+
+const delDia = (hecho) =>
+  `${NOMBRE_DE_HECHO[hecho.tipo] ?? "un registro"} del ${formatearFechaLegible(hecho.fecha)}`;
+
+// Lo que pasa mientras la entrega pactada está vigente: el equipo solo espera
+// que lo recojan, así que lo único que le puede pasar es llegar —o no llegar—.
+// Una ampliación después del aviso es una historia que no pudo pasar.
+const erroresDeLaEntregaPactada = (item, quien) => {
+  const pactada = item.hechos.find(({ tipo }) => tipo === "entregaPactada");
+  const anulada = item.hechos.find(({ tipo }) => tipo === "entregaAnulada");
+  if (!pactada?.fecha) return [];
+
+  if (anulada?.fecha && anulada.fecha < pactada.fecha) {
+    return [`${quien}: la anulación no puede ser anterior a la entrega pactada.`];
+  }
+  const durante = item.hechos.find(
+    (hecho) =>
+      !["entregaPactada", "entregaAnulada", "devolucion"].includes(hecho.tipo) &&
+      hecho.fecha > pactada.fecha &&
+      (!anulada?.fecha || hecho.fecha <= anulada.fecha),
+  );
+  return durante
+    ? [
+        `${quien}: ${delDia(durante)} no puede ser posterior a la entrega pactada del ${formatearFechaLegible(pactada.fecha)}.`,
+      ]
+    : [];
+};
+
+// EL DESCUENTO DE LOS VENCIDOS sale del tramo que ese hecho cerró. Al mover
+// una fecha, ese tramo puede quedar más corto —o no existir—, y las funciones
+// que lo escriben no se quejan: lo que no tiene de dónde salir se pierde, y lo
+// que pasa de lo que valen los días se recorta en la cuenta. Acá se rearma el
+// equipo y se mira, para que ninguna de las dos cosas pase callada.
+const erroresDeDescuentosVencidos = (item, quien, hoyIso) => {
+  const conDescuento = item.hechos.filter((hecho) => numero(hecho.descuentoVencidos) > 0);
+  if (conDescuento.length === 0) return [];
+
+  const armado = equipoRearmado(item, hoyIso);
+  const porDia = numero(item.cantidad) * numero(item.valor);
+  // El último día de mora que cierra cada hecho.
+  const corteDe = (hecho) => {
+    if (hecho.tipo === "entregaPactada") return diaAnterior(hecho.fecha);
+    if (hecho.tipo === "devolucion" && armado.devolucion?.diaCobrado === false) {
+      return diaAnterior(hecho.fecha);
+    }
+    return hecho.fecha;
+  };
+
+  const errores = [];
+  const revisados = new Set();
+  conDescuento.forEach((hecho) => {
+    const corte = corteDe(hecho);
+    // Dos hechos del mismo día descuentan del mismo tramo: se mira una vez.
+    if (revisados.has(corte)) return;
+    revisados.add(corte);
+
+    const tramo = vencidosDe(armado).find(
+      (cada) => cada?.hasta === corte && cada.desde && cada.desde <= corte,
+    );
+    if (!tramo) {
+      errores.push(
+        `${quien}: ${delDia(hecho)} trae descuento en los días vencidos, pero ese día no se cerró ningún día vencido.`,
+      );
+      return;
+    }
+    const valor = diasDeAlquiler(tramo.desde, tramo.hasta) * porDia;
+    if (numero(tramo.descuento) > valor) {
+      errores.push(
+        `${quien}: el descuento en los días vencidos de ${delDia(hecho)} pasa de lo que valen esos días (${formatearMoneda(valor)}).`,
+      );
+    }
+  });
+  return errores;
 };
 
 // Lo que no deja guardar, dicho con el nombre del equipo: en una factura de
@@ -262,6 +351,7 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
     grupo.equipos.forEach((item) => {
       const nombre = String(item.nombre ?? "").trim();
       const quien = nombre || `un equipo del ${despacho.toLowerCase()}`;
+      const antesDelEquipo = errores.length;
 
       if (!nombre) errores.push(`${despacho}: hay un equipo sin nombre.`);
       if (numero(item.cantidad) <= 0) errores.push(`${quien}: la cantidad no es válida.`);
@@ -278,7 +368,22 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
         } else if (hecho.fecha > hoyIso) {
           errores.push(`${quien}: ${que} no puede tener una fecha futura.`);
         }
+
+        if (hecho.tipo === "ampliacion" && hecho.fecha) {
+          if (numero(hecho.dias) <= 0) {
+            errores.push(`${quien}: ${delDia(hecho)} necesita los días que se pidieron.`);
+          } else if (
+            numero(hecho.descuento) >
+            numero(hecho.dias) * numero(item.cantidad) * numero(item.valor)
+          ) {
+            errores.push(
+              `${quien}: el descuento en los días nuevos de ${delDia(hecho)} pasa de lo que valen esos días.`,
+            );
+          }
+        }
       });
+
+      errores.push(...erroresDeLaEntregaPactada(item, quien));
 
       // La devolución es lo último que le pasa a un equipo: nada de lo demás
       // puede venir después.
@@ -306,6 +411,13 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
             );
           }
         }
+      }
+
+      // Los descuentos se miran sobre el equipo ya rearmado, y por eso solo
+      // si todo lo demás está bien: con una fecha vacía no hay historia que
+      // armar. El que nadie tocó vuelve como estaba, así que no se revisa.
+      if (errores.length === antesDelEquipo && equipoTocado(item)) {
+        errores.push(...erroresDeDescuentosVencidos(item, quien, hoyIso));
       }
     });
   });

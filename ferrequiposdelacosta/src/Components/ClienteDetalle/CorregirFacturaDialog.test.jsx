@@ -2,8 +2,14 @@ import { screen, within } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import CorregirFacturaDialog from "./CorregirFacturaDialog";
 import { calcularVencimiento, obtenerFechaHoyBogota } from "./facturaUtils";
+import { rearmarEquipo } from "./facturaCuentas";
 import { formatearMoneda } from "../../Utils/formato";
-import { unEquipoDevuelto, unTramoVencido, unaFactura } from "../../test/facturas";
+import {
+  unEquipo,
+  unEquipoDevuelto,
+  unTramoVencido,
+  unaFactura,
+} from "../../test/facturas";
 
 // La pantalla con la que el administrador corrige una factura ya cargada. Las
 // cuentas están probadas en correccionFactura.test.js; acá se fija lo que
@@ -307,5 +313,174 @@ describe("CorregirFacturaDialog — los datos del equipo", () => {
     await usuario.type(screen.getByLabelText("Cantidad"), "6");
 
     expect(botonGuardar()).toBeDisabled();
+  });
+});
+
+// Una factura con otro equipo, armado desde sus hechos como lo habría escrito
+// la app. En la base está la misma que se abre.
+const abrirCon = (equipo) => {
+  const documentoCon = () =>
+    unaFactura({
+      numeroFactura: "0413",
+      fechaCreacion: DESPACHO,
+      tipoPago: "total",
+      pagos: [{ medio: "Efectivo", monto: 50000 }],
+      equipos: [equipo],
+    });
+  bd.get.mockResolvedValue({ data: () => documentoCon() });
+  return renderConProviders(
+    <CorregirFacturaDialog
+      open
+      onClose={() => {}}
+      cliente={cliente}
+      factura={{ id: "f1", ...documentoCon() }}
+    />,
+  );
+};
+
+const equipoGuardado = async () => {
+  await screen.findByText("Factura corregida.");
+  return bd.update.mock.calls[0][1].grupos[0].equipos[0];
+};
+
+// Un andamio a $10.000 que salió hace 40 días por 5. Se pasó dos días, y hace
+// 34 pidió 3 más —$4.000 de descuento en los vencidos—. Volvió hace 31, en
+// plazo.
+const andamioAmpliado = () =>
+  rearmarEquipo(
+    unEquipo({
+      nombre: "ANDAMIO",
+      cantidad: 1,
+      valorDia: 10000,
+      dias: 5,
+      fechaDespacho: DESPACHO,
+      aplicaIva: false,
+    }),
+    [
+      { tipo: "ampliacion", fecha: hace(34), dias: 3, descuento: 0, descuentoVencidos: 4000 },
+      {
+        tipo: "devolucion",
+        fecha: hace(31),
+        cobraElDia: true,
+        descuentoVencidos: 0,
+        devolucion: {
+          fechaDevolucion: hace(31),
+          buenEstado: true,
+          motivo: "",
+          valorRetenido: 0,
+        },
+      },
+    ],
+    HOY,
+  );
+
+describe("CorregirFacturaDialog — las ampliaciones", () => {
+  it("muestra la ampliación con su fecha, sus días y sus descuentos", () => {
+    abrirCon(andamioAmpliado());
+
+    const ampliacion = within(screen.getByRole("group", { name: "Ampliación" }));
+    expect(ampliacion.getByLabelText("Fecha de la ampliación")).toHaveValue(hace(34));
+    expect(ampliacion.getByLabelText("Días pedidos")).toHaveValue(3);
+    expect(ampliacion.getByLabelText("Descuento en los días vencidos")).toHaveValue("4.000");
+    expect(botonGuardar()).toBeDisabled();
+  });
+
+  it("corrige los días pedidos", async () => {
+    const { usuario } = abrirCon(andamioAmpliado());
+
+    await usuario.clear(screen.getByLabelText("Días pedidos"));
+    await usuario.type(screen.getByLabelText("Días pedidos"), "1");
+    await usuario.click(botonGuardar());
+
+    const equipo = await equipoGuardado();
+    expect(equipo.ampliaciones).toHaveLength(1);
+    expect(equipo.ampliaciones[0]).toMatchObject({ fecha: hace(34), dias: 1 });
+  });
+
+  it("quitarla deja esos días como mora, y se guarda sin ella", async () => {
+    const { usuario } = abrirCon(andamioAmpliado());
+
+    await usuario.click(screen.getByRole("button", { name: "Quitar la ampliación" }));
+    expect(screen.queryByLabelText("Fecha de la ampliación")).not.toBeInTheDocument();
+    await usuario.click(botonGuardar());
+
+    const equipo = await equipoGuardado();
+    expect(equipo.ampliaciones).toEqual([]);
+    expect(equipo.vencidos).toEqual([
+      { desde: hace(35), hasta: hace(31), indefinida: false },
+    ]);
+  });
+
+  // Hace 36 todavía estaba cubierto: ese día no se cerró ningún día vencido,
+  // y los $4.000 no tendrían de dónde salir.
+  it("si el descuento de vencidos se queda sin días, lo dice y no deja guardar", async () => {
+    const { usuario } = abrirCon(andamioAmpliado());
+
+    await escribirFecha(usuario, "Fecha de la ampliación", hace(36));
+
+    expect(
+      screen.getByText(/ANDAMIO: la ampliación del .* trae descuento en los días vencidos/),
+    ).toBeInTheDocument();
+    expect(botonGuardar()).toBeDisabled();
+  });
+
+  it("y si pasa de lo que valen esos días, tampoco", async () => {
+    const { usuario } = abrirCon(andamioAmpliado());
+    const ampliacion = within(screen.getByRole("group", { name: "Ampliación" }));
+
+    await usuario.clear(ampliacion.getByLabelText("Descuento en los días vencidos"));
+    await usuario.type(ampliacion.getByLabelText("Descuento en los días vencidos"), "25000");
+
+    expect(screen.getByText(/pasa de lo que valen esos días/)).toBeInTheDocument();
+    expect(botonGuardar()).toBeDisabled();
+  });
+});
+
+describe("CorregirFacturaDialog — la entrega pactada", () => {
+  // 6 cerchas que salieron hace 40 días por 7. Se pasaron tres días y el
+  // cliente avisó hace 30 que ya había terminado: siguen por recoger.
+  const cerchasPactadas = () =>
+    rearmarEquipo(
+      unEquipo({
+        nombre: "CERCHAS METALICAS",
+        cantidad: 6,
+        valorDia: 1500,
+        dias: 7,
+        fechaDespacho: DESPACHO,
+        aplicaIva: false,
+      }),
+      [{ tipo: "entregaPactada", fecha: hace(30), descuentoVencidos: 0 }],
+      HOY,
+    );
+
+  it("corrige la fecha del aviso", async () => {
+    const { usuario } = abrirCon(cerchasPactadas());
+
+    expect(screen.getByLabelText("Fecha del aviso")).toHaveValue(hace(30));
+    await escribirFecha(usuario, "Fecha del aviso", hace(32));
+    await usuario.click(botonGuardar());
+
+    const equipo = await equipoGuardado();
+    expect(equipo.entregaPactada).toEqual({ fecha: hace(32) });
+    expect(equipo.vencidos).toEqual([
+      { desde: hace(33), hasta: hace(33), indefinida: false },
+    ]);
+  });
+
+  it("quitarla vuelve a correr la cuenta", async () => {
+    const { usuario } = abrirCon(cerchasPactadas());
+
+    await usuario.click(screen.getByRole("button", { name: "Quitar la entrega pactada" }));
+    // Tres días cobrados hasta el aviso; sin él, corren hasta hoy.
+    expect(renglon("Días vencidos")).toHaveTextContent(
+      `${enPantalla(27000)} → ${enPantalla(306000)}`,
+    );
+    await usuario.click(botonGuardar());
+
+    const equipo = await equipoGuardado();
+    expect(equipo.entregaPactada).toBeUndefined();
+    expect(equipo.vencidos).toEqual([
+      { desde: hace(33), hasta: null, indefinida: false },
+    ]);
   });
 });

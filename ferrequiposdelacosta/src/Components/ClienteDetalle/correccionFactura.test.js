@@ -5,8 +5,13 @@ import {
   erroresDelBorrador,
   facturaCorregida,
   hayCorrecciones,
+  quitarHecho,
 } from "./correccionFactura";
-import { calcularCuentaFactura, calcularEstadoFactura } from "./facturaCuentas";
+import {
+  calcularCuentaFactura,
+  calcularEstadoFactura,
+  rearmarEquipo,
+} from "./facturaCuentas";
 import { grupoAgregados } from "./facturaModelo";
 import {
   unEquipo,
@@ -442,5 +447,298 @@ describe("corregir una factura — lo que no deja guardar", () => {
     };
 
     expect(errores(sinEquipos)).toEqual(["Despacho inicial: no puede quedar sin equipos."]);
+  });
+});
+
+// ── La segunda entrega: ampliaciones, entrega pactada y descuentos ──────
+//
+// Los equipos de estas pruebas se arman con la misma función que los rearma,
+// desde sus hechos: así son exactamente lo que la app habría escrito.
+const VOLVIO = {
+  fechaDevolucion: "2026-09-10",
+  buenEstado: true,
+  motivo: "",
+  valorRetenido: 0,
+};
+
+// Un andamio a $10.000 que salió el 01/09 por 5 días —cubierto hasta el 05—.
+// Se pasó el 06 y el 07, y el 07 pidió 3 días más con $5.000 de descuento en
+// los nuevos y $4.000 en los dos vencidos. Volvió el 10, en plazo.
+const andamioAmpliado = (ampliacion = {}) =>
+  rearmarEquipo(
+    unEquipo({
+      nombre: "ANDAMIO",
+      cantidad: 1,
+      valorDia: 10000,
+      dias: 5,
+      fechaDespacho: "2026-09-01",
+      aplicaIva: false,
+    }),
+    [
+      {
+        tipo: "ampliacion",
+        fecha: "2026-09-07",
+        dias: 3,
+        descuento: 5000,
+        descuentoVencidos: 4000,
+        ...ampliacion,
+      },
+      {
+        tipo: "devolucion",
+        fecha: "2026-09-10",
+        cobraElDia: true,
+        descuentoVencidos: 0,
+        devolucion: VOLVIO,
+      },
+    ],
+    HOY,
+  );
+
+// 6 cerchas a $1.500 —$9.000 el día— que salieron el 01/09 por 7 días. Se
+// pasaron desde el 08 y el cliente avisó el 10 que ya había terminado: se
+// cobran el 08 y el 09, y siguen por recoger.
+const cerchasPactadas = (hechos = []) =>
+  rearmarEquipo(
+    unEquipo({
+      nombre: "CERCHAS METALICAS",
+      cantidad: 6,
+      valorDia: 1500,
+      dias: 7,
+      fechaDespacho: "2026-09-01",
+      aplicaIva: false,
+    }),
+    [{ tipo: "entregaPactada", fecha: "2026-09-10", descuentoVencidos: 0 }, ...hechos],
+    HOY,
+  );
+
+const conHechoEn = (borrador, posicion, cambio) =>
+  conEquipo(borrador, {
+    hechos: borrador.grupos[0].equipos[0].hechos.map((hecho, indice) =>
+      indice === posicion ? { ...hecho, ...cambio } : hecho,
+    ),
+  });
+
+const sinHechoEn = (borrador, posicion) =>
+  conEquipo(borrador, {
+    hechos: quitarHecho(borrador.grupos[0].equipos[0].hechos, posicion),
+  });
+
+describe("corregir una factura — las ampliaciones", () => {
+  const factura = () => facturaVieja({ equipos: [andamioAmpliado()] });
+  const corregir = (borrador) => facturaCorregida(factura(), borrador, HOY).grupos[0].equipos[0];
+
+  it("como quedó cargado: $75.000 de lo pactado y $16.000 de los vencidos", () => {
+    const [equipo] = factura().grupos[0].equipos;
+
+    expect(hayCorrecciones(factura(), borradorDe(factura()))).toBe(false);
+    expect(equipo.vencidos).toEqual([
+      { desde: "2026-09-06", hasta: "2026-09-07", indefinida: false, descuento: 4000 },
+    ]);
+    expect(calcularCuentaFactura(factura(), HOY).netoVencido).toBe(16000);
+  });
+
+  it("corregir los días corre el fin del plazo, y lo que quedó afuera es mora", () => {
+    // Eran 3 días y se pidió 1: cubierto hasta el 08, y el 09 y el 10 se
+    // pasó.
+    const borrador = conHechoEn(borradorDe(factura()), 0, { dias: "1" });
+    expect(erroresDelBorrador(borrador, HOY)).toEqual([]);
+
+    const equipo = corregir(borrador);
+    expect(equipo.ampliaciones).toEqual([
+      {
+        fecha: "2026-09-07",
+        dias: 1,
+        desde: "2026-09-08",
+        hasta: "2026-09-08",
+        descuento: 5000,
+      },
+    ]);
+    expect(equipo.vencidos).toEqual([
+      { desde: "2026-09-06", hasta: "2026-09-07", indefinida: false, descuento: 4000 },
+      { desde: "2026-09-09", hasta: "2026-09-10", indefinida: false },
+    ]);
+  });
+
+  it("corregir los descuentos los deja donde salen", () => {
+    const equipo = corregir(
+      conHechoEn(borradorDe(factura()), 0, { descuento: 0, descuentoVencidos: 20000 }),
+    );
+
+    expect(equipo.ampliaciones[0].descuento).toBe(0);
+    expect(equipo.vencidos[0].descuento).toBe(20000);
+  });
+
+  it("quitarla: los días que cubría pasan a ser mora, sin el descuento", () => {
+    const borrador = sinHechoEn(borradorDe(factura()), 0);
+    expect(erroresDelBorrador(borrador, HOY)).toEqual([]);
+
+    const equipo = corregir(borrador);
+    expect(equipo.ampliaciones).toEqual([]);
+    expect(equipo.vencidos).toEqual([
+      { desde: "2026-09-06", hasta: "2026-09-10", indefinida: false },
+    ]);
+  });
+
+  it("y el descuento en los vencidos de la devolución se puede corregir", () => {
+    const sinAmpliacion = sinHechoEn(borradorDe(factura()), 0);
+    const corregida = facturaCorregida(
+      factura(),
+      conHechoEn(sinAmpliacion, 0, { descuentoVencidos: 10000 }),
+      HOY,
+    );
+
+    expect(corregida.grupos[0].equipos[0].vencidos[0].descuento).toBe(10000);
+    // 5 días a $10.000, menos los $10.000.
+    expect(calcularCuentaFactura(corregida, HOY).netoVencido).toBe(40000);
+  });
+
+  it("si se mueve a un día sin vencidos, su descuento de vencidos no tiene de dónde salir", () => {
+    // El 05 todavía estaba cubierto: ese día no se cerró ningún día vencido.
+    const borrador = conHechoEn(borradorDe(factura()), 0, { fecha: "2026-09-05" });
+
+    expect(erroresDelBorrador(borrador, HOY)).toEqual([
+      "ANDAMIO: la ampliación del 05/09/2026 trae descuento en los días vencidos, pero ese día no se cerró ningún día vencido.",
+    ]);
+    // Sin ese descuento, sí.
+    expect(
+      erroresDelBorrador(conHechoEn(borrador, 0, { descuentoVencidos: 0 }), HOY),
+    ).toEqual([]);
+  });
+
+  it("ningún descuento puede pasar de lo que valen sus días", () => {
+    const vencidos = erroresDelBorrador(
+      conHechoEn(borradorDe(factura()), 0, { descuentoVencidos: 25000 }),
+      HOY,
+    );
+    expect(vencidos).toHaveLength(1);
+    expect(vencidos[0]).toMatch(
+      /^ANDAMIO: el descuento en los días vencidos de la ampliación del 07\/09\/2026 pasa de lo que valen esos días/,
+    );
+
+    expect(
+      erroresDelBorrador(conHechoEn(borradorDe(factura()), 0, { descuento: 40000 }), HOY),
+    ).toEqual([
+      "ANDAMIO: el descuento en los días nuevos de la ampliación del 07/09/2026 pasa de lo que valen esos días.",
+    ]);
+  });
+
+  it("una ampliación sin días no se guarda", () => {
+    expect(
+      erroresDelBorrador(conHechoEn(borradorDe(factura()), 0, { dias: "" }), HOY),
+    ).toEqual(["ANDAMIO: la ampliación del 07/09/2026 necesita los días que se pidieron."]);
+  });
+});
+
+describe("corregir una factura — la entrega pactada", () => {
+  const factura = (hechos) => facturaVieja({ equipos: [cerchasPactadas(hechos)] });
+  const corregir = (documento, borrador) =>
+    facturaCorregida(documento, borrador, HOY).grupos[0].equipos[0];
+
+  it("corregir la fecha del aviso mueve hasta dónde se cobra", () => {
+    const documento = factura();
+    // Avisó el 12, no el 10: se cobran del 08 al 11.
+    const equipo = corregir(documento, conHechoEn(borradorDe(documento), 0, { fecha: "2026-09-12" }));
+
+    expect(equipo.entregaPactada).toEqual({ fecha: "2026-09-12" });
+    expect(equipo.vencidos).toEqual([
+      { desde: "2026-09-08", hasta: "2026-09-11", indefinida: false },
+    ]);
+  });
+
+  it("quitarla: la cuenta vuelve a correr como si nunca hubiera parado", () => {
+    const documento = factura();
+    const corregida = facturaCorregida(documento, sinHechoEn(borradorDe(documento), 0), HOY);
+    const [equipo] = corregida.grupos[0].equipos;
+
+    expect(equipo.entregaPactada).toBeUndefined();
+    expect(equipo.vencidos).toEqual([
+      { desde: "2026-09-08", hasta: null, indefinida: false },
+    ]);
+    expect(calcularEstadoFactura(corregida, HOY)).toBe("vencida");
+  });
+
+  it("quitar la entrega se lleva también su anulación", () => {
+    const documento = factura([{ tipo: "entregaAnulada", fecha: "2026-09-20" }]);
+    const { hechos } = borradorDe(documento).grupos[0].equipos[0];
+
+    expect(hechos.map(({ tipo }) => tipo)).toEqual(["entregaPactada", "entregaAnulada"]);
+    expect(quitarHecho(hechos, 0)).toEqual([]);
+    // Quitar solo la anulación deja la entrega vigente.
+    expect(quitarHecho(hechos, 1).map(({ tipo }) => tipo)).toEqual(["entregaPactada"]);
+  });
+
+  it("la anulación no puede ser anterior a la entrega", () => {
+    const documento = factura([{ tipo: "entregaAnulada", fecha: "2026-09-20" }]);
+
+    expect(
+      erroresDelBorrador(conHechoEn(borradorDe(documento), 1, { fecha: "2026-09-09" }), HOY),
+    ).toEqual(["CERCHAS METALICAS: la anulación no puede ser anterior a la entrega pactada."]);
+  });
+
+  it("mientras está vigente no puede pasar nada más que la devolución", () => {
+    // Pidió 3 días el 08 y avisó el 15. Si el aviso se corre al 05, la
+    // ampliación del 08 queda después de un equipo que solo esperaba que lo
+    // recogieran.
+    const documento = facturaVieja({
+      equipos: [
+        rearmarEquipo(
+          unEquipo({
+            nombre: "CERCHAS METALICAS",
+            cantidad: 6,
+            valorDia: 1500,
+            dias: 7,
+            fechaDespacho: "2026-09-01",
+            aplicaIva: false,
+          }),
+          [
+            { tipo: "ampliacion", fecha: "2026-09-08", dias: 3, descuento: 0, descuentoVencidos: 0 },
+            { tipo: "entregaPactada", fecha: "2026-09-15", descuentoVencidos: 0 },
+          ],
+          HOY,
+        ),
+      ],
+    });
+
+    expect(
+      erroresDelBorrador(conHechoEn(borradorDe(documento), 1, { fecha: "2026-09-05" }), HOY),
+    ).toEqual([
+      "CERCHAS METALICAS: la ampliación del 08/09/2026 no puede ser posterior a la entrega pactada del 05/09/2026.",
+    ]);
+  });
+});
+
+describe("corregir una factura — el cierre de mora que hizo un pago", () => {
+  it("se le corrige el descuento, y el tramo lo lleva", () => {
+    // Las cerchas se pasaron el 08 y el 09, y un pago del 09 saldó la mora.
+    // Siguen afuera: desde el 10 corre otra.
+    const conSello = rearmarEquipo(
+      unEquipo({
+        nombre: "CERCHAS METALICAS",
+        cantidad: 6,
+        valorDia: 1500,
+        dias: 7,
+        fechaDespacho: "2026-09-01",
+        aplicaIva: false,
+      }),
+      [{ tipo: "sello", fecha: "2026-09-09", descuentoVencidos: 0 }],
+      HOY,
+    );
+    const documento = facturaVieja({ equipos: [conSello] });
+    const borrador = borradorDe(documento);
+    const posicion = borrador.grupos[0].equipos[0].hechos.findIndex(
+      ({ tipo }) => tipo === "sello",
+    );
+
+    const corregida = facturaCorregida(
+      documento,
+      conHechoEn(borrador, posicion, { descuentoVencidos: 9000 }),
+      HOY,
+    );
+
+    expect(posicion).toBe(0);
+    expect(corregida.grupos[0].equipos[0].vencidos).toEqual([
+      { desde: "2026-09-08", hasta: "2026-09-09", indefinida: false, descuento: 9000 },
+      { desde: "2026-09-10", hasta: null, indefinida: false },
+    ]);
   });
 });
