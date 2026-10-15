@@ -832,6 +832,83 @@ describe("corregir una factura — los abonos", () => {
   });
 });
 
+// Lo pagado con el depósito sale de un depósito que tiene que existir. Con
+// $50.000 de depósito y $30.000 pagados con él, corregir el depósito a $0
+// dejaría esos $30.000 saliendo de la nada: la cuenta los contaría como
+// pagados y se los regalaría al cliente.
+describe("corregir una factura — achicar el depósito que ya pagó algo", () => {
+  const PAGO_CON_DEPOSITO = { fecha: "2026-10-11", medio: "Depósito", monto: 30000, tipo: "cliente" };
+  const factura = (monto = 30000) =>
+    facturaVieja({ abonos: [{ ...PAGO_CON_DEPOSITO, monto }] });
+  const conDespacho = (borrador, cambio) => ({
+    ...borrador,
+    grupos: borrador.grupos.map((grupo, posicion) =>
+      posicion === 0 ? { ...grupo, ...cambio } : grupo,
+    ),
+  });
+  const pasaDelDeposito =
+    /^Lo pagado con el depósito .* pasa del depósito que había libre .*\. Corregí o quitá el abono pagado con el depósito\.$/;
+
+  it("no deja bajar el depósito por debajo de lo que se pagó con él", () => {
+    const errores = todosLosErrores(
+      factura(),
+      conDespacho(borradorDe(factura()), { valorDeposito: 0 }),
+    );
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toMatch(pasaDelDeposito);
+
+    // Mientras alcance para lo que se pagó con él, sí.
+    expect(
+      todosLosErrores(factura(), conDespacho(borradorDe(factura()), { valorDeposito: 30000 })),
+    ).toEqual([]);
+  });
+
+  it("corregido junto con el abono, se guarda", () => {
+    const borrador = conLista(
+      conDespacho(borradorDe(factura()), { valorDeposito: 0 }),
+      "abonos",
+      0,
+      null,
+    );
+
+    expect(todosLosErrores(factura(), borrador)).toEqual([]);
+  });
+
+  it("tampoco deja retener más de lo que queda libre", () => {
+    const [{ devolucion }] = factura().grupos[0].equipos;
+    const borrador = conHecho(borradorDe(factura()), "devolucion", {
+      devolucion: { ...devolucion, buenEstado: false, motivo: "Una doblada", valorRetenido: 30000 },
+    });
+
+    expect(todosLosErrores(factura(), borrador)).toEqual([
+      expect.stringMatching(pasaDelDeposito),
+    ]);
+  });
+
+  it("ni bajar el pago que cubría el depósito", () => {
+    const borrador = conDespacho(borradorDe(factura()), {
+      pagos: [{ medio: "Efectivo", monto: 20000 }],
+    });
+
+    expect(todosLosErrores(factura(), borrador)).toEqual([
+      expect.stringMatching(pasaDelDeposito),
+    ]);
+  });
+
+  // Decisión del dueño: bajar algo que ya estaba de más no queda trabado.
+  it("si ya se pasaba, se puede bajar pero no agrandar", () => {
+    // $60.000 pagados con un depósito de $50.000: ya se pasaba por $10.000.
+    const yaSePasaba = factura(60000);
+
+    expect(
+      todosLosErrores(yaSePasaba, conLista(borradorDe(yaSePasaba), "abonos", 0, { monto: 55000 })),
+    ).toEqual([]);
+    expect(
+      todosLosErrores(yaSePasaba, conDespacho(borradorDe(yaSePasaba), { valorDeposito: 40000 })),
+    ).toEqual([expect.stringMatching(pasaDelDeposito)]);
+  });
+});
+
 describe("corregir una factura — lo devuelto al cliente", () => {
   // Volvieron a tiempo: el alquiler son $63.000 y los $50.000 del depósito
   // se le devolvieron en efectivo.

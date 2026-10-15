@@ -24,7 +24,6 @@ import {
   hechosDeEquipo,
   obtenerFechaHoyBogota,
   rearmarEquipo,
-  sumarAbonosConDeposito,
   sumarEntregas,
 } from "./facturaCuentas";
 import {
@@ -469,6 +468,12 @@ export const otrasCorregidas = (factura, borrador, otras) => {
 // Estas reglas necesitan el documento armado, así que se miran después de las
 // del borrador. Cada una se aplica solo si la corrección AGRANDA lo que vigila:
 // bajar un monto que ya estaba de más no puede quedar trabado por estarlo.
+const depositoLibre = (doc) => {
+  const { recibido, retenido, aplicado } = calcularDeposito(doc);
+  const libre = Math.max(0, recibido - retenido);
+  return { aplicado, libre, exceso: Math.max(0, aplicado - libre) };
+};
+
 export const erroresDeLaPlata = (
   factura,
   borrador,
@@ -494,16 +499,16 @@ export const erroresDeLaPlata = (
     }
   }
 
-  // Lo pagado con el depósito sale del depósito que había libre.
-  const aplicado = sumarAbonosConDeposito(documento);
-  if (aplicado > sumarAbonosConDeposito(factura)) {
-    const deposito = calcularDeposito(documento);
-    const libre = Math.max(0, deposito.recibido - deposito.retenido);
-    if (aplicado > libre) {
-      errores.push(
-        `Lo pagado con el depósito (${formatearMoneda(aplicado)}) pasa del depósito que había libre (${formatearMoneda(libre)}).`,
-      );
-    }
+  // Lo pagado con el depósito sale del depósito que había libre. Se pasa por
+  // subir ese abono, pero también por achicar el depósito: con $100.000 de
+  // depósito y $50.000 pagados con él, corregir el depósito a $0 deja esos
+  // $50.000 saliendo de la nada, y la cuenta se los devolvería al cliente.
+  // Lo que se mira es CUÁNTO se pasa: si ya se pasaba, bajarlo se puede.
+  const despues = depositoLibre(documento);
+  if (despues.exceso > depositoLibre(factura).exceso) {
+    errores.push(
+      `Lo pagado con el depósito (${formatearMoneda(despues.aplicado)}) pasa del depósito que había libre (${formatearMoneda(despues.libre)}). Corregí o quitá el abono pagado con el depósito.`,
+    );
   }
 
   // Lo devuelto no puede pasar de lo que el cliente tenía a favor.
