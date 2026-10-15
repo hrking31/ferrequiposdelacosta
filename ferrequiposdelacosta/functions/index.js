@@ -655,6 +655,21 @@ const sinMarcaDeCerrada = (factura) =>
     {...factura, factura: {...(factura.factura ?? {}), cerrada: null}} :
     null;
 
+// Los mismos datos sin importar el orden de sus campos: Firestore no guarda
+// ese orden, y comparando el texto tal cual se anotaba un cambio donde no lo
+// hubo. Es la misma comparación de la app (src/Utils/mismoContenido.js).
+const ordenado = (valor) => {
+  if (Array.isArray(valor)) return valor.map(ordenado);
+  if (!valor || typeof valor !== "object") return valor;
+  return Object.fromEntries(
+      Object.keys(valor)
+          .sort()
+          .map((clave) => [clave, ordenado(valor[clave])]),
+  );
+};
+const mismoContenido = (a, b) =>
+  JSON.stringify(ordenado(a)) === JSON.stringify(ordenado(b));
+
 export const anotarCambioDeFactura = onDocumentWrittenWithAuthContext(
     {
       document: "clientes/{clienteId}/facturas/{facturaId}",
@@ -670,8 +685,7 @@ export const anotarCambioDeFactura = onDocumentWrittenWithAuthContext(
       // (ver arriba). Es una conclusión, no un dato: si es lo único que se
       // movió, no hay nada que anotar.
       if (
-        JSON.stringify(sinMarcaDeCerrada(antes)) ===
-        JSON.stringify(sinMarcaDeCerrada(despues))
+        mismoContenido(sinMarcaDeCerrada(antes), sinMarcaDeCerrada(despues))
       ) {
         return;
       }
