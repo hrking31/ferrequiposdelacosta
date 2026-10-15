@@ -85,6 +85,34 @@ describe("el registro de cambios — qué pasó", () => {
     ]);
   });
 
+  // Lo que pasó el 14/10 con una factura real: se movió solo la fecha de una
+  // entrega, y como el registro llegó con los campos en otro orden, decía
+  // también "pago $180.000 → $180.000", que cambió el abono y los días
+  // vencidos.
+  it("los mismos datos con los campos en otro orden no cuentan como cambio", () => {
+    const alReves = (valor) =>
+      Array.isArray(valor)
+        ? valor.map(alReves)
+        : valor && typeof valor === "object"
+          ? Object.fromEntries(
+              Object.keys(valor)
+                .reverse()
+                .map((clave) => [clave, alReves(valor[clave])]),
+            )
+          : valor;
+    const conPlata = (fechaEntrega) =>
+      factura({
+        abonos: [
+          { fecha: "2026-10-13", medio: "Cruce", monto: 20000, tipo: "cruce", desdeFactura: "0400" },
+        ],
+        entregas: [{ fecha: fechaEntrega, medio: "Efectivo", monto: 10000 }],
+      });
+
+    expect(cambio(conPlata("2026-10-13"), alReves(conPlata("2026-10-14")))).toEqual([
+      "Entrega del 13/10/2026: fecha 13/10/2026 → 14/10/2026",
+    ]);
+  });
+
   it("un abono nuevo sale con su monto, su medio y su fecha", () => {
     const antes = factura();
     const despues = factura({

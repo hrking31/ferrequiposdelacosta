@@ -368,6 +368,8 @@ Lo que sí se puede garantizar es que **no lo haga sin quedar anotado**. Una fun
 
 Ese registro se lee al final de la pantalla de corregir, ya puesto en palabras: *"CERCHAS METALICAS: devolución 10/10/2026 → 07/09/2026 · Saldo pendiente: $297.000 → $0"*.
 
+La primera corrección real, el 14/10, destapó una trampa: al mover solo la fecha de una entrega, el historial anotó además *"pago $180.000 → $180.000"*, que cambió un abono y que cambiaron los días vencidos, y al recargar la página la lista de cambios era otra. Los datos estaban bien. El historial comparaba los textos tal cual, y Firestore entrega los campos de un mapa en el orden que le parece. Ahora toda comparación de la corrección y del historial se hace con los campos ordenados, con el mismo ayudante que ya se usaba al guardar.
+
 > [!IMPORTANT]
 > **Orden del despliegue: las reglas, las funciones y recién después la app.** Con la app primero, el administrador podría corregir una factura antes de que exista quien lo anote.
 

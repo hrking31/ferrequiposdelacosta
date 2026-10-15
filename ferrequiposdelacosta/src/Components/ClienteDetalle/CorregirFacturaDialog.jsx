@@ -71,6 +71,7 @@ import {
   obtenerFechaHoyBogota,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
+import { mismoContenido } from "../../Utils/mismoContenido";
 
 const BORRADOR_VACIO = {
   numeroFactura: "",
@@ -92,24 +93,6 @@ const TIPOS_DE_PAGO = [
 ];
 
 const TRANSPORTES = ["Sin transporte", "Solo ida", "Solo vuelta", "Ida y vuelta"];
-
-// Los mismos datos, sin importar en qué orden vengan sus campos. La factura que
-// se abrió llegó con la lectura de la ficha y la de la base se relee al
-// guardar: Firestore puede entregar los campos de un mapa en otro orden, y
-// comparando el texto tal cual, una factura que nadie tocó figuraba cambiada
-// y no se podía guardar ninguna corrección.
-const ordenado = (valor) =>
-  Array.isArray(valor)
-    ? valor.map(ordenado)
-    : valor && typeof valor === "object"
-      ? Object.fromEntries(
-          Object.keys(valor)
-            .sort()
-            .map((clave) => [clave, ordenado(valor[clave])]),
-        )
-      : valor;
-const mismoContenido = (a, b) =>
-  JSON.stringify(ordenado(a)) === JSON.stringify(ordenado(b));
 
 // Del nodo `factura`, lo que una persona puede haber cambiado.
 const loCorregible = (documento) => {

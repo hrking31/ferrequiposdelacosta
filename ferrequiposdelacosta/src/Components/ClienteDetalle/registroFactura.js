@@ -23,9 +23,12 @@ import {
 } from "./facturaModelo";
 import { nombreDelGrupo } from "./correccionFactura";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
+import { mismoContenido } from "../../Utils/mismoContenido";
 
 const numero = (valor) => Number(valor) || 0;
-const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// Sin mirar el orden de los campos: el mismo registro, leído dos veces, puede
+// traerlos en otro orden, y lo que no cambió se describía como cambiado.
+const igual = mismoContenido;
 const plata = (valor) => formatearMoneda(numero(valor));
 const fecha = (iso) => (iso ? formatearFechaLegible(iso) : "sin fecha");
 const sumar = (lista) => lista.reduce((total, { monto }) => total + numero(monto), 0);

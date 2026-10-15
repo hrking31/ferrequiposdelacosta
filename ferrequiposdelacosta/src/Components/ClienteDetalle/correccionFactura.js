@@ -41,9 +41,11 @@ import {
   vencidosDe,
 } from "./facturaModelo";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
+import { mismoContenido } from "../../Utils/mismoContenido";
 
 const numero = (valor) => Number(valor) || 0;
-const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// Lo guardado puede llegar con sus campos en otro orden: no cuenta.
+const igual = mismoContenido;
 
 // SI ALGO CAMBIÓ se decide comparando el borrador con el que saldría, recién
 // hecho, de lo guardado. Lo escrito en una casilla llega como texto y lo
