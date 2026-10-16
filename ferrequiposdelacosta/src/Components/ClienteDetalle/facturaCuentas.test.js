@@ -2480,3 +2480,86 @@ describe("corregir un equipo: sus hechos y cómo se vuelve a armar", () => {
     });
   });
 });
+
+// EL DESCUENTO AL COBRAR (2026-10-16): una rebaja sobre lo que el cliente
+// debe, con el IVA adentro. Baja la deuda sin contar como plata recibida.
+describe("el descuento al cobrar", () => {
+  // Un equipo devuelto: 3 días a $10.000 con IVA = $35.700, sin pagar nada.
+  const debe = (extra = {}) =>
+    facturaCon(
+      [
+        equipo({
+          cantidadEquipos: 1,
+          valorDia: 10000,
+          diasAlquilados: 3,
+          aplicaIva: true,
+          devolucion: { fechaDevolucion: "2026-09-06", buenEstado: true, valorRetenido: 0 },
+        }),
+      ],
+      extra,
+    );
+  const conDescuento = (doc, ...montos) => ({
+    ...doc,
+    descuentos: montos.map((monto) => ({ fecha: "2026-09-07", monto, tipo: "sistema" })),
+  });
+
+  it("baja el saldo, pero no lo cobrado ni el total", () => {
+    const cuenta = calcularCuentaFactura(conDescuento(debe(), 5700), HOY);
+    expect(cuenta.total).toBe(35700);
+    expect(cuenta.descuentoAlCobrar).toBe(5700);
+    expect(cuenta.recibido).toBe(0);
+    expect(cuenta.abonos).toBe(0);
+    expect(cuenta.saldoPendiente).toBe(30000);
+  });
+
+  it("descuento y abono juntos saldan la factura: Total = Abonos + Descuento", () => {
+    const doc = conDescuento(
+      debe({ abonos: [{ fecha: "2026-09-07", medio: "Nequi", monto: 30000, tipo: "sistema" }] }),
+      5700,
+    );
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.saldoPendiente).toBe(0);
+    expect(cuenta.saldoAFavor).toBe(0);
+    expect(cuenta.abonosFactura + cuenta.descuentoAlCobrar).toBe(cuenta.total);
+    expect(calcularEstadoFactura(doc, HOY)).toBe("finalizada");
+  });
+
+  it("nunca se vuelve plata a favor del cliente", () => {
+    // Una corrección de después dejó la deuda en menos de lo rebajado.
+    const cuenta = calcularCuentaFactura(conDescuento(debe(), 50000), HOY);
+    expect(cuenta.descuentoAlCobrar).toBe(35700);
+    expect(cuenta.saldoPendiente).toBe(0);
+    expect(cuenta.saldoAFavor).toBe(0);
+    expect(cuenta.aDevolver).toBe(0);
+  });
+
+  it("no completa el depósito: no es plata que entró", () => {
+    const doc = conDescuento(
+      debe({
+        adicionales: { transporte: "", valorTransporte: 0, deposito: true, valorDeposito: 100000 },
+      }),
+      10000,
+    );
+    const cuenta = calcularCuentaFactura(doc, HOY);
+    expect(cuenta.deposito.recibido).toBe(0);
+  });
+
+  it("baja lo exigible", () => {
+    expect(calcularExigible(conDescuento(debe(), 5700), HOY)).toBe(30000);
+  });
+
+  it("la cuenta del cliente suma los descuentos de todas sus facturas", () => {
+    const cuenta = calcularCuentaCliente(
+      [conDescuento(debe(), 5700), conDescuento(debe(), 700)],
+      HOY,
+    );
+    expect(cuenta.descuentoAlCobrar).toBe(6400);
+    expect(cuenta.saldoPendiente).toBe(71400 - 6400);
+  });
+
+  it("es historia de la factura: se avisa antes de borrarla", () => {
+    const doc = conDescuento(debe(), 5700);
+    expect(movimientosFactura(doc).hayAlgo).toBe(true);
+    expect(describirMovimientosFactura(doc)).toContain("1 descuento");
+  });
+});

@@ -716,3 +716,39 @@ describe("CorregirFacturaDialog — el número de la factura", () => {
     expect(botonGuardar()).toBeDisabled();
   });
 });
+
+// EL DESCUENTO AL COBRAR (2026-10-16): el administrador lo ve con su fecha y
+// su monto, y puede quitarlo. Solo viaja si se tocó.
+describe("CorregirFacturaDialog — el descuento al cobrar", () => {
+  const conDescuento = () => ({
+    ...documento(),
+    descuentos: [{ fecha: SE_ANOTO, monto: 20000, tipo: "sistema" }],
+  });
+
+  it("lo muestra y, al quitarlo, guarda la lista sin él", async () => {
+    bd.get.mockResolvedValue({ data: () => conDescuento() });
+    const { usuario } = abrir({ factura: { id: "f1", ...conDescuento() } });
+
+    const fila = screen.getByRole("group", { name: "Descuento" });
+    expect(within(fila).getByText("Descuento al cobrar")).toBeInTheDocument();
+
+    await usuario.click(within(fila).getByRole("button", { name: "Quitar el descuento" }));
+    await usuario.click(botonGuardar());
+
+    expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
+    const [, escrito] = bd.update.mock.calls[0];
+    expect(escrito.descuentos).toEqual([]);
+  });
+
+  it("si no se tocó, no viaja", async () => {
+    bd.get.mockResolvedValue({ data: () => conDescuento() });
+    const { usuario } = abrir({ factura: { id: "f1", ...conDescuento() } });
+
+    await escribirFecha(usuario, "Fecha de devolución", VOLVIO_DE_VERDAD);
+    await usuario.click(botonGuardar());
+
+    expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
+    const [, escrito] = bd.update.mock.calls[0];
+    expect(escrito).not.toHaveProperty("descuentos");
+  });
+});

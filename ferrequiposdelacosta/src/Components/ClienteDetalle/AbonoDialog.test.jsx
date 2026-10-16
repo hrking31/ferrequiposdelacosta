@@ -676,3 +676,109 @@ describe("AbonoDialog — lo que ya tenía", () => {
   });
 });
 });
+
+// EL DESCUENTO AL COBRAR (2026-10-16): el cliente pide una rebaja sobre lo que
+// debe. Se ve como en ampliar y devolver —la casilla dice hasta cuánto, y el
+// resumen lo resta—, se reparte de la más antigua a la más nueva, y se guarda
+// aparte de los abonos: no es plata que entró.
+describe("AbonoDialog — el descuento", () => {
+  const escribirDescuento = (usuario, monto) =>
+    usuario.type(screen.getByLabelText("Descuento"), monto);
+
+  const elegirMedio = async (usuario, medio = "Nequi") => {
+    await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+    await usuario.click(await screen.findByRole("option", { name: medio }));
+  };
+
+  it("dice hasta cuánto se puede rebajar y cómo queda, y lo resta en «Así queda»", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    expect(screen.getByText(`Hasta ${enPantalla(800000)}`)).toBeInTheDocument();
+
+    await escribirDescuento(usuario, "100000");
+    expect(
+      screen.getByText(`Hasta ${enPantalla(800000)} · Con descuento ${enPantalla(700000)}`),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Descuento", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByText(`−${enPantalla(100000)}`)).toBeInTheDocument();
+  });
+
+  it("al elegir el medio, el valor ya viene con el descuento restado", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    await escribirDescuento(usuario, "100000");
+    await elegirMedio(usuario);
+
+    expect(screen.getByLabelText("Valor del abono")).toHaveValue("700.000");
+    expect(screen.getByText("Queda al día")).toBeInTheDocument();
+  });
+
+  it("se reparte de la más antigua a la más nueva y se guarda aparte de los abonos", async () => {
+    const { usuario } = abrir();
+
+    // 600.000 de descuento: 500.000 saldan la más antigua y 100.000 van a la
+    // otra, que queda debiendo 200.000 y los paga por Nequi.
+    await pagarTodo(usuario);
+    await escribirDescuento(usuario, "600000");
+    await elegirMedio(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    const escrituras = Object.fromEntries(updateSimulado.mock.calls);
+    expect(escrituras["clientes/cli1/facturas/grande"].descuentos).toEqual([
+      { fecha: expect.any(String), monto: 500000, tipo: "sistema" },
+    ]);
+    // La grande no recibió plata: sus abonos siguen vacíos.
+    expect(escrituras["clientes/cli1/facturas/grande"].abonos).toEqual([]);
+    expect(escrituras["clientes/cli1/facturas/chica"].descuentos).toEqual([
+      { fecha: expect.any(String), monto: 100000, tipo: "sistema" },
+    ]);
+    expect(escrituras["clientes/cli1/facturas/chica"].abonos).toEqual([
+      { fecha: expect.any(String), medio: "Nequi", monto: 200000, tipo: "sistema" },
+    ]);
+  });
+
+  it("se puede anotar solo, sin plata ese día", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    await escribirDescuento(usuario, "50000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    expect(commitSimulado).toHaveBeenCalledTimes(1);
+    const [ruta, cambios] = updateSimulado.mock.calls[0];
+    expect(ruta).toBe("clientes/cli1/facturas/grande");
+    expect(cambios.descuentos).toEqual([
+      { fecha: expect.any(String), monto: 50000, tipo: "sistema" },
+    ]);
+    expect(await screen.findByText("Descuento registrado.")).toBeInTheDocument();
+  });
+
+  it("no deja rebajar más de lo que debe", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    await escribirDescuento(usuario, "900000");
+    expect(screen.getByText(`No puede pasar de ${enPantalla(800000)}`)).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+    expect(commitSimulado).not.toHaveBeenCalled();
+  });
+
+  it("con descuento, la plata no puede pasar de lo que falta", async () => {
+    const { usuario } = abrir();
+
+    await pagarTodo(usuario);
+    await escribirDescuento(usuario, "100000");
+    await elegirMedio(usuario);
+    await usuario.clear(screen.getByLabelText("Valor del abono"));
+    await usuario.type(screen.getByLabelText("Valor del abono"), "750000");
+    await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+    expect(
+      screen.getByText(`Con el descuento, no puede pasar de ${enPantalla(700000)}.`),
+    ).toBeInTheDocument();
+    expect(commitSimulado).not.toHaveBeenCalled();
+  });
+});

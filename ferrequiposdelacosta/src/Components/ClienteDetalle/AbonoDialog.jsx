@@ -43,6 +43,7 @@ import {
   ordenarFacturasConSaldo,
   repartirEntreFacturas,
   abonosDe,
+  descuentosDe,
   datosFactura,
   calcularExigible,
   sellarFacturaPagada,
@@ -85,6 +86,16 @@ const ESTADO_INICIAL = { fecha: "", medio: "", monto: "" };
 // que tiene libre y hasta lo que debe—. Lo que traiga en plata cubre el resto,
 // repartido como siempre. Se guardan los dos abonos juntos: el del depósito
 // con medio "Depósito", para que la lista de abonos diga cómo se pagó.
+//
+// ── EL DESCUENTO (2026-10-16) ─────────────────────────────────────────
+//
+// El cliente pide una rebaja al cobrar. Es sobre lo que debe, con el IVA
+// adentro, y se reparte como el abono: de la más antigua a la más nueva, cada
+// una hasta lo que debe —sin contar el depósito que le falta dejar, que es una
+// garantía y no se rebaja—. No es plata: va a `descuentos` y no a `abonos`.
+// Puede anotarse solo, sin que ese día pague nada. Con descuento, lo que traiga
+// en plata no puede pasar de lo que falta: rebajarle a quien paga de más no
+// tiene sentido, y ese sobrante se comería el descuento.
 export default function AbonoDialog({
   open,
   onClose,
@@ -102,6 +113,8 @@ export default function AbonoDialog({
   // Las facturas que el cliente nombró, cuando eligió "facturas".
   const [elegidas, setElegidas] = useState([]);
   const [usarDeposito, setUsarDeposito] = useState(false);
+  // Lo escrito en la casilla del descuento: solo los dígitos.
+  const [descuento, setDescuento] = useState("");
   // El valor lo puso la app al elegir el medio, y nadie lo ha tocado.
   const [montoAutomatico, setMontoAutomatico] = useState(false);
   const [verReparto, setVerReparto] = useState(false);
@@ -118,6 +131,7 @@ export default function AbonoDialog({
     setQue(null);
     setElegidas([]);
     setUsarDeposito(false);
+    setDescuento("");
     setMontoAutomatico(false);
     setVerReparto(false);
     setErrors({});
@@ -145,25 +159,50 @@ export default function AbonoDialog({
   const conDeposito = usarDeposito && depositoDisponible > 0;
 
   const debeLoElegido = destinos.reduce((total, { cuenta }) => total + cuenta.saldoPendiente, 0);
-  const faltaPorPagar = Math.max(0, debeLoElegido - (conDeposito ? depositoDisponible : 0));
-  // Mientras el valor sea el que puso la app, sigue a lo que falta: marcar el
-  // depósito o cambiar de facturas lo ajusta solo. Lo escrito a mano no se toca.
-  const montoNuevo = montoAutomatico ? faltaPorPagar : Number(form.monto) || 0;
 
-  // EL REPARTO: primero el depósito de cada una, después la plata, como
-  // cualquier abono —de la más antigua a la más nueva, la última se lleva el
-  // sobrante—, sobre lo que cada una siga debiendo.
+  // EL REPARTO: primero el depósito de cada una, después el descuento y al
+  // final la plata, como cualquier abono —de la más antigua a la más nueva, la
+  // última se lleva el sobrante—, sobre lo que cada una siga debiendo.
   const filas = destinos.map((item) => ({
     ...item,
     deposito: conDeposito ? topeDeposito(item) : 0,
+    descuento: 0,
     plata: 0,
   }));
+
+  // Hasta cuánto se le puede rebajar a cada una: lo que debe de la factura,
+  // sin la garantía que le falta dejar y sin lo que ya cubre su depósito.
+  const descontable = (fila) =>
+    Math.max(0, fila.cuenta.saldoPendiente - fila.cuenta.deposito.porCobrar - fila.deposito);
+  const topeDescuento = filas.reduce((total, fila) => total + descontable(fila), 0);
+  const descuentoPedido = Number(descuento) || 0;
+  const descuentoDeMas = descuentoPedido > topeDescuento;
+  let porDescontar = Math.min(descuentoPedido, topeDescuento);
+  filas.forEach((fila) => {
+    fila.descuento = Math.min(porDescontar, descontable(fila));
+    porDescontar -= fila.descuento;
+  });
+  const descontado = filas.reduce((total, fila) => total + fila.descuento, 0);
+
+  const faltaPorPagar = Math.max(
+    0,
+    debeLoElegido - (conDeposito ? depositoDisponible : 0) - descontado,
+  );
+  // Mientras el valor sea el que puso la app, sigue a lo que falta: marcar el
+  // depósito, escribir el descuento o cambiar de facturas lo ajusta solo. Lo
+  // escrito a mano no se toca.
+  const montoNuevo = montoAutomatico ? faltaPorPagar : Number(form.monto) || 0;
+  const plataDeMas = descontado > 0 && montoNuevo > faltaPorPagar;
+
   const conSaldoTrasDeposito = filas
-    .filter((fila) => fila.cuenta.saldoPendiente - fila.deposito > 0)
+    .filter((fila) => fila.cuenta.saldoPendiente - fila.deposito - fila.descuento > 0)
     .map((fila) => ({
       fila,
       factura: fila.factura,
-      cuenta: { ...fila.cuenta, saldoPendiente: fila.cuenta.saldoPendiente - fila.deposito },
+      cuenta: {
+        ...fila.cuenta,
+        saldoPendiente: fila.cuenta.saldoPendiente - fila.deposito - fila.descuento,
+      },
     }));
   // Si el depósito ya las saldó todas y el cliente trae plata igual, esa plata
   // queda a favor en la última elegida.
@@ -176,8 +215,8 @@ export default function AbonoDialog({
   });
 
   const pagadoConDeposito = filas.reduce((total, fila) => total + fila.deposito, 0);
-  const quedaDespues = debeLoElegido - pagadoConDeposito - montoNuevo;
-  const hayAlgoQueRegistrar = pagadoConDeposito > 0 || montoNuevo > 0;
+  const quedaDespues = debeLoElegido - pagadoConDeposito - descontado - montoNuevo;
+  const hayAlgoQueRegistrar = pagadoConDeposito > 0 || descontado > 0 || montoNuevo > 0;
   const hayReparto = hayAlgoQueRegistrar && filas.length > 1;
 
   // ── EL RECORDATORIO DE LOS EQUIPOS ────────────────────────────────
@@ -192,7 +231,7 @@ export default function AbonoDialog({
   const facturasConEquiposVencidos = !avisarEquiposVencidos
     ? []
     : filas
-        .filter((fila) => fila.deposito + fila.plata > 0)
+        .filter((fila) => fila.deposito + fila.descuento + fila.plata > 0)
         .map(({ factura }) => ({
           numero: datosFactura(factura).numeroFactura ?? "s/n",
           cuantos: equiposDe(factura).filter(
@@ -236,14 +275,20 @@ export default function AbonoDialog({
     if (!form.fecha) errores.fecha = "Este campo es obligatorio.";
     if (montoNuevo > 0 && !form.medio) errores.medio = "Elegí el medio de pago.";
     if (!hayAlgoQueRegistrar) errores.monto = "El valor debe ser mayor a 0.";
+    if (plataDeMas) {
+      errores.monto = `Con el descuento, no puede pasar de ${formatearMoneda(faltaPorPagar)}.`;
+    }
     setErrors(errores);
-    return Object.keys(errores).length === 0;
+    // El descuento que se pasa ya está en rojo en su casilla.
+    return Object.keys(errores).length === 0 && !descuentoDeMas;
   };
 
   const handleGuardar = async () => {
     if (!validar()) return;
 
-    const aplicaciones = filas.filter((fila) => fila.deposito + fila.plata > 0);
+    const aplicaciones = filas.filter(
+      (fila) => fila.deposito + fila.descuento + fila.plata > 0,
+    );
     if (aplicaciones.length === 0) return;
 
     setGuardando(true);
@@ -253,7 +298,11 @@ export default function AbonoDialog({
       const hoyAlGuardar = obtenerFechaHoyBogota();
       const tipo = loEligioElCliente ? "cliente" : "sistema";
       const batch = writeBatch(db);
-      aplicaciones.forEach(({ factura, deposito, plata }) => {
+      aplicaciones.forEach(({ factura, deposito, descuento: rebaja, plata }) => {
+        const descuentos =
+          rebaja > 0
+            ? [...descuentosDe(factura), { fecha: form.fecha, monto: rebaja, tipo }]
+            : descuentosDe(factura);
         const abonos = [
           ...abonosDe(factura),
           // El del depósito primero: es lo que se usó primero.
@@ -267,7 +316,7 @@ export default function AbonoDialog({
         // que el contador arranque de cero (ver sellarDiasVencidos). Se mira lo
         // EXIGIBLE y no el saldo: los días ya pactados por delante se cobran al
         // devolver.
-        const conAbono = { ...factura, abonos };
+        const conAbono = { ...factura, abonos, descuentos };
         const grupos =
           calcularExigible(conAbono, hoyAlGuardar) === 0
             ? sellarFacturaPagada(conAbono, hoyAlGuardar)
@@ -275,15 +324,18 @@ export default function AbonoDialog({
 
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,
+          ...(rebaja > 0 ? { descuentos } : {}),
           ...(grupos ? { grupos } : {}),
         });
       });
       await batch.commit();
 
+      // Solo descuento, sin plata ni depósito: no se registró ningún abono.
+      const queSeRegistro = pagadoConDeposito + montoNuevo > 0 ? "Abono" : "Descuento";
       showSnackbar(
         aplicaciones.length > 1
-          ? `Abono registrado en ${aplicaciones.length} facturas.`
-          : "Abono registrado.",
+          ? `${queSeRegistro} registrado en ${aplicaciones.length} facturas.`
+          : `${queSeRegistro} registrado.`,
         "success",
       );
       onAbonado?.();
@@ -505,6 +557,37 @@ export default function AbonoDialog({
                     />
                   )}
 
+                  {/* EL DESCUENTO, como en ampliar y devolver: abajo dice
+                      cuánto se puede rebajar y cómo queda, y en rojo si se
+                      pasa. Va antes de la plata porque cambia lo que falta. */}
+                  <TextField
+                    label="Descuento"
+                    name="abono-descuento"
+                    // Con puntos de miles mientras se escribe, como los demás
+                    // campos de plata; se guardan solo los dígitos.
+                    inputProps={{ inputMode: "numeric" }}
+                    value={formatearMonedaInput(descuento)}
+                    onChange={(e) => {
+                      setDescuento(limpiarMonedaInput(e.target.value));
+                      setErrors({});
+                    }}
+                    error={descuentoDeMas}
+                    helperText={
+                      descuentoDeMas
+                        ? `No puede pasar de ${formatearMoneda(topeDescuento)}`
+                        : // "Hasta" y no "Deuda": el depósito que falta dejar
+                          // está en la deuda pero no se rebaja.
+                          `Hasta ${formatearMoneda(topeDescuento)}${
+                            descontado > 0
+                              ? ` · Con descuento ${formatearMoneda(faltaPorPagar)}`
+                              : ""
+                          }`
+                    }
+                    fullWidth
+                    size="small"
+                    sx={{ mb: 1.5 }}
+                  />
+
                   <Grid container spacing={1.5}>
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth error={!!errors.medio}>
@@ -604,6 +687,8 @@ export default function AbonoDialog({
                         : "Deuda actual",
                       formatearMoneda(debeLoElegido),
                     )}
+                    {descontado > 0 &&
+                      renglon("fila", "Descuento", `−${formatearMoneda(descontado)}`)}
                     {pagadoConDeposito > 0 &&
                       renglon("fila deposito", "Con el depósito", `−${formatearMoneda(pagadoConDeposito)}`)}
                     {montoNuevo > 0 &&
@@ -637,8 +722,9 @@ export default function AbonoDialog({
                     )}
                     {hayReparto &&
                       verReparto &&
-                      filas.map(({ factura, cuenta, deposito, plata }) => {
-                        const queda = cuenta.saldoPendiente - deposito - plata;
+                      filas.map(({ factura, cuenta, deposito, descuento: rebaja, plata }) => {
+                        const recibe = deposito + rebaja + plata;
+                        const queda = cuenta.saldoPendiente - recibe;
                         return (
                           <Box key={factura.id} sx={{ mt: 1, pt: 1, borderTop: "1px solid", borderColor: "divider" }}>
                             <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
@@ -647,13 +733,14 @@ export default function AbonoDialog({
                             </Typography>
                             {deposito > 0 &&
                               renglon("fila deposito", "+ Se abona depósito", formatearMoneda(deposito))}
+                            {rebaja > 0 && renglon("fila", "+ Se descuenta", formatearMoneda(rebaja))}
                             {plata > 0 && renglon("fila abono", "+ Se abona", formatearMoneda(plata))}
-                            {deposito + plata === 0 && (
+                            {recibe === 0 && (
                               <Typography variant="caption" sx={{ opacity: 0.7 }}>
                                 No recibe nada
                               </Typography>
                             )}
-                            {deposito + plata > 0 && (
+                            {recibe > 0 && (
                               <Box className={queda > 0 ? "fila alerta" : "fila ok"} sx={{ mb: 0 }}>
                                 <Typography variant="body2" fontWeight="bold">
                                   {queda < 0 ? "Saldo a favor" : queda > 0 ? "Queda debiendo" : "Queda saldada"}

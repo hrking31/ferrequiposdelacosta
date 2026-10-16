@@ -400,6 +400,10 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const depositoEnCuenta = Math.max(0, deposito.recibido - deposito.retenido);
   if (depositoEnCuenta > 0) filasTotales.push(["Depósito", moneda(depositoEnCuenta)]);
   if (totalAbonos > 0) filasTotales.push(["Abonos", moneda(totalAbonos)]);
+  // Lo rebajado al cobrar: no es un pago, pero baja el saldo.
+  if (cuenta.descuentoAlCobrar > 0) {
+    filasTotales.push(["Descuento", moneda(cuenta.descuentoAlCobrar)]);
+  }
   filasTotales.push([
     saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
     moneda(saldoAFavor > 0 ? saldoAFavor : saldoPendiente),

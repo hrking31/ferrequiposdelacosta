@@ -377,3 +377,21 @@ describe("marca de origen", () => {
     expect(cuenta.empresa).toBe("Ana Pérez");
   });
 });
+
+// EL DESCUENTO AL COBRAR (2026-10-16): sale en el mismo renglón "Descuento"
+// que los de las renovaciones, y el desglose sigue cuadrando con el total.
+describe("el descuento al cobrar", () => {
+  it("se suma al renglón del descuento y baja lo que se cobra", () => {
+    const sin = construir([facturaBase]);
+    const con = construir([
+      { ...facturaBase, descuentos: [{ fecha: "2026-08-10", monto: 50000, tipo: "sistema" }] },
+    ]);
+
+    expect(con.descuento).toBe(sin.descuento + 50000);
+    expect(con.total).toBe(sin.total - 50000);
+    expect(con.saldo).toBe(sin.saldo - 50000);
+    const desglose =
+      con.subtotalNumero - con.descuento + con.ivaNumero + con.valorTransporte;
+    expect(desglose).toBeCloseTo(con.total, 2);
+  });
+});

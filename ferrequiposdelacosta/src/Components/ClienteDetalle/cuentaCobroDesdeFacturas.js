@@ -116,14 +116,17 @@ export default function construirCuentaCobroDesdeFacturas({
       return {
         iva: acumulado.iva + cuenta.iva,
         // Lo que se descontó en las renovaciones, para restarlo una sola vez
-        // al final: los ítems van a precio de lista.
-        descuento: acumulado.descuento + cuenta.descuento,
+        // al final: los ítems van a precio de lista. Y lo rebajado al cobrar,
+        // en el mismo renglón: para el cliente los dos son "Descuento".
+        descuento: acumulado.descuento + cuenta.descuento + cuenta.descuentoAlCobrar,
         // El depósito NO es parte de la factura: entra solo lo que el
         // cliente todavía no dejó, y va aparte del total (ver
         // `depositoPorCobrar` en el documento).
         depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
         transporte: acumulado.transporte + calcularTransporteTotal(factura),
-        total: acumulado.total + cuenta.total,
+        // Sin lo rebajado al cobrar, que ya restó el renglón del descuento:
+        // así Subtotal − Descuento + IVA + Transporte sigue dando el total.
+        total: acumulado.total + cuenta.total - cuenta.descuentoAlCobrar,
         // Lo que de los pagos le llegó a la FACTURA: sin la parte que quedó de
         // garantía. Con el depósito adentro, "Pagado" restaría plata que no
         // pagó el alquiler.

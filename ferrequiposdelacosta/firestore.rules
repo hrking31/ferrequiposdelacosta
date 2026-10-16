@@ -186,8 +186,9 @@ service cloud.firestore {
     //
     // Lo que esta regla le cierra a todos los demás:
     //   - el número y la fecha de la factura no se tocan;
-    //   - los abonos, lo devuelto al cliente y las gestiones solo crecen: se
-    //     agregan al final, y los que ya estaban quedan idénticos.
+    //   - los abonos, lo devuelto al cliente, los descuentos al cobrar y las
+    //     gestiones solo crecen: se agregan al final, y los que ya estaban
+    //     quedan idénticos.
     //
     // De paso frena la ventana vieja que guarda una copia sin el abono que
     // otro acaba de anotar: los de antes ya no serían los mismos.
@@ -204,6 +205,7 @@ service cloud.firestore {
         && despues.get("fechaCreacion", null) == antes.get("fechaCreacion", null)
         && soloCrece("abonos")
         && soloCrece("entregas")
+        && soloCrece("descuentos")
         && soloCrece("gestiones");
     }
 

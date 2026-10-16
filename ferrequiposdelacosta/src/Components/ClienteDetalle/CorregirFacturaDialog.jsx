@@ -63,6 +63,7 @@ import {
   calcularCuentaFactura,
   calcularEstadoFactura,
   datosFactura,
+  descuentosDe,
   entregasDe,
   formatearFechaLegible,
   formatearMonedaInput,
@@ -79,6 +80,7 @@ const BORRADOR_VACIO = {
   grupos: [],
   abonos: [],
   entregas: [],
+  descuentos: [],
 };
 
 // Las demás facturas del cliente —abiertas y cerradas—. Se leen solo si hacen
@@ -396,7 +398,8 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         // no un dato.
         const mismaPlata = (a, b) =>
           mismoContenido(abonosDe(a), abonosDe(b)) &&
-          mismoContenido(entregasDe(a), entregasDe(b));
+          mismoContenido(entregasDe(a), entregasDe(b)) &&
+          mismoContenido(descuentosDe(a), descuentosDe(b));
         if (
           !mismoContenido(gruposDe(actual), gruposDe(factura)) ||
           !mismoContenido(loCorregible(actual), loCorregible(factura)) ||
@@ -417,6 +420,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
           ...(mismoContenido(corregida.entregas, entregasDe(factura))
             ? {}
             : { entregas: corregida.entregas }),
+          ...(mismoContenido(descuentosDe(corregida), descuentosDe(factura))
+            ? {}
+            : { descuentos: descuentosDe(corregida) }),
         });
         otrasACambiar.forEach(({ id, escritura }) =>
           transaccion.update(facturaRef(id), escritura),
@@ -714,6 +720,34 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
           <Grid item xs={12} sm={3}>
             <Button size="small" color="error" onClick={() => quitarDeLista("abonos", posicion)}>
               Quitar el abono
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
+
+  // UN DESCUENTO AL COBRAR: la fecha y el monto. No tiene medio, porque no
+  // entró plata. Se corrige o se quita; uno nuevo se anota al cobrar.
+  const filaDescuento = (item, posicion) => {
+    const nombre = `corregir-descuento${posicion}`;
+    return (
+      <Box key={nombre} role="group" aria-label="Descuento" sx={RECUADRO_HECHO}>
+        {rotuloDeHecho("Descuento al cobrar")}
+        <Grid container spacing={1.5} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            {campoFecha("Fecha", `${nombre}-fecha`, item.fecha, (valor) =>
+              cambiarEnLista("descuentos", posicion, { fecha: valor }),
+            )}
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            {campoPlata("Monto", `${nombre}-monto`, item.monto, (valor) =>
+              cambiarEnLista("descuentos", posicion, { monto: valor }),
+            )}
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Button size="small" color="error" onClick={() => quitarDeLista("descuentos", posicion)}>
+              Quitar el descuento
             </Button>
           </Grid>
         </Grid>
@@ -1274,7 +1308,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
 
               {/* ── La plata de después ── Lo que el cliente abonó y lo que
                   se le devolvió o se cruzó a otras facturas. */}
-              {(borrador.abonos.length > 0 || borrador.entregas.length > 0) && (
+              {(borrador.abonos.length > 0 ||
+                borrador.entregas.length > 0 ||
+                borrador.descuentos.length > 0) && (
                 <Paper
                   variant="outlined"
                   component="section"
@@ -1284,6 +1320,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                   {titulo("Abonos y devoluciones")}
                   <Stack spacing={1}>
                     {borrador.abonos.map(filaAbono)}
+                    {borrador.descuentos.map(filaDescuento)}
                     {borrador.entregas.map(filaEntrega)}
                   </Stack>
                 </Paper>

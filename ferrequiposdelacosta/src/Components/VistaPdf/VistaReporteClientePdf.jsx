@@ -217,6 +217,10 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (cuentaFactura.abonos > 0) {
       filas.push(["Abonos", formatearMoneda(cuentaFactura.abonos)]);
     }
+    // El de arriba es el de los días; este, lo rebajado al cobrar.
+    if (cuentaFactura.descuentoAlCobrar > 0) {
+      filas.push(["Descuento al cobrar", formatearMoneda(cuentaFactura.descuentoAlCobrar)]);
+    }
     filas.push([
       cuentaFactura.saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
       formatearMoneda(
@@ -274,6 +278,9 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
       ["Pagado", formatearMoneda(cuentaGeneral.pagado)],
       ...(depositoGeneral > 0 ? [["Depósito", formatearMoneda(depositoGeneral)]] : []),
       ["Abonos", formatearMoneda(cuentaGeneral.abonos)],
+      ...(cuentaGeneral.descuentoAlCobrar > 0
+        ? [["Descuento al cobrar", formatearMoneda(cuentaGeneral.descuentoAlCobrar)]]
+        : []),
       [
         cuentaGeneral.saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
         formatearMoneda(

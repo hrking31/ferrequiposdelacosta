@@ -31,6 +31,7 @@ import {
   abonosDe,
   adicionalesDe,
   datosFactura,
+  descuentosDe,
   entregasDe,
   equiposAfuera,
   equiposDe,
@@ -129,6 +130,14 @@ const abonoABorrador = (abono, indice) => ({
   monto: abono.monto ?? "",
 });
 
+// El descuento al cobrar: solo fecha y monto, no tiene medio.
+const descuentoABorrador = (descuento, indice) => ({
+  clave: `descuento#${indice}`,
+  original: descuento,
+  fecha: descuento.fecha ?? "",
+  monto: descuento.monto ?? "",
+});
+
 // Los abonos que trajo a otra factura cada cruce de esta. `null` si todavía no
 // se leyeron las demás facturas; `false` si no se pudo encontrar la otra
 // punta sin dudas.
@@ -186,6 +195,7 @@ export const borradorDe = (factura, otras = null) => {
     entregas: entregasDe(factura).map((entrega, indice) =>
       entregaABorrador(entrega, indice, numeroDe(factura), otras),
     ),
+    descuentos: descuentosDe(factura).map(descuentoABorrador),
   };
 };
 
@@ -316,6 +326,11 @@ const abonoCorregido = (item) =>
     ? { ...item.original, fecha: item.fecha, medio: item.medio, monto: numero(item.monto) }
     : item.original;
 
+const descuentoCorregido = (item) =>
+  item.fecha !== (item.original.fecha ?? "") || numero(item.monto) !== numero(item.original.monto)
+    ? { ...item.original, fecha: item.fecha, monto: numero(item.monto) }
+    : item.original;
+
 // El monto de un cruce es lo que fue a cada factura, sumado.
 const montoDeLaEntrega = (item) =>
   Array.isArray(item.partes)
@@ -355,6 +370,14 @@ export const facturaCorregida = (
     ),
     abonos: borrador.abonos ? borrador.abonos.map(abonoCorregido) : abonosDe(factura),
     entregas: borrador.entregas ? borrador.entregas.map(entregaCorregida) : entregasDe(factura),
+    // Solo si los tenía: desde acá se corrigen o se quitan, no se agregan.
+    ...(descuentosDe(factura).length > 0
+      ? {
+          descuentos: borrador.descuentos
+            ? borrador.descuentos.map(descuentoCorregido)
+            : descuentosDe(factura),
+        }
+      : {}),
     gestiones: gestionesDe(factura),
   };
 
@@ -740,6 +763,16 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
   (borrador.abonos ?? [])
     .filter((item) => !esAbonoDeCruce(item.original))
     .forEach((item) => revisarPlata(item, "Abono"));
+
+  // El descuento no tiene medio: solo la fecha y el monto.
+  (borrador.descuentos ?? []).forEach((item) => {
+    const cual = item.fecha
+      ? `Descuento del ${formatearFechaLegible(item.fecha)}`
+      : "Un descuento";
+    if (!item.fecha) errores.push(`${cual}: falta la fecha.`);
+    else if (item.fecha > hoyIso) errores.push(`${cual}: no puede tener una fecha futura.`);
+    if (numero(item.monto) <= 0) errores.push(`${cual}: el monto no es válido.`);
+  });
 
   (borrador.entregas ?? []).forEach((item) => {
     if (!Array.isArray(item.partes)) {

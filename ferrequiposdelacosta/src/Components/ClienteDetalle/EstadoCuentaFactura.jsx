@@ -28,6 +28,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import PercentIcon from "@mui/icons-material/Percent";
 import HandymanIcon from "@mui/icons-material/Handyman";
+import DiscountIcon from "@mui/icons-material/Discount";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { alpha } from "@mui/material/styles";
 import {
@@ -104,7 +105,9 @@ export default function EstadoCuentaFactura({
     saldoPendienteNumero === 0 &&
     saldoAFavorNumero === 0 &&
     totalAbonos === 0 &&
-    depositoTotalFactura === 0;
+    depositoTotalFactura === 0 &&
+    // Con descuento el pago no es el total: el renglón explica la diferencia.
+    !(cuenta.descuentoAlCobrar > 0);
 
   // Se separan en dos grupos (izquierda: subtotal/iva, derecha:
   // transporte/daños) para poder acomodarlos en 2 columnas
@@ -371,6 +374,15 @@ export default function EstadoCuentaFactura({
             <Typography variant="body2" fontWeight="bold">
               {formatearMoneda(cuenta.recibido)}
             </Typography>
+          </Box>
+        )}
+
+        {/* Lo rebajado al cobrar: no es plata pagada, así que va después de
+            "Total pagado", y explica por qué el saldo es menor. */}
+        {cuenta.descuentoAlCobrar > 0 && (
+          <Box className="fila" sx={{ color: "success.light" }}>
+            <Typography variant="body2">{conIcono(DiscountIcon, "Descuento")}</Typography>
+            <Typography variant="body2">{formatearMoneda(cuenta.descuentoAlCobrar)}</Typography>
           </Box>
         )}
 

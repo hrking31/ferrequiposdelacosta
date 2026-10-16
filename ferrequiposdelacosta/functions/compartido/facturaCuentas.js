@@ -47,6 +47,7 @@ import {
   adicionalesDe,
   ampliacionesDe,
   datosFactura,
+  descuentosDe,
   entregaPactadaDe,
   entregasDe,
   equiposDe,
@@ -1200,6 +1201,11 @@ export const sumarAbonosConDeposito = (doc) =>
 // sobrepago que se le reintegra. Es lo contrario de un abono y por eso resta.
 export const sumarEntregas = (doc) => sumar(entregasDe(doc), "monto");
 
+// LO QUE SE LE REBAJÓ AL COBRAR: el cliente pidió descuento sobre lo que
+// debía. No entró plata, así que no es un abono —no completa el depósito ni
+// infla lo cobrado—: baja la deuda y nada más.
+export const sumarDescuentos = (doc) => sumar(descuentosDe(doc), "monto");
+
 // LA CUENTA DEL DEPÓSITO, aparte de la de la factura.
 //
 // Con la 8154: el depósito pactado es $500.000 y el pago del despacho fue
@@ -1340,7 +1346,12 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     deposito.retenido -
     (entregas - deposito.devuelto);
 
-  const neto = total - recibido;
+  // El descuento al cobrar se resta de lo que se debe, con el IVA adentro. Y
+  // nunca pasa de la deuda: una rebaja no puede volverse plata a favor del
+  // cliente, aunque una corrección de después baje lo que debía.
+  const descuentoAlCobrar = Math.min(sumarDescuentos(doc), Math.max(0, total - recibido));
+
+  const neto = total - recibido - descuentoAlCobrar;
   const saldoAFavor = Math.max(0, -neto);
   // Si la misma factura todavía debe, el depósito libre primero la paga: no
   // se le devuelve plata a quien la debe ahí mismo. La 2455: $500.000 de
@@ -1370,6 +1381,8 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     pagadoFactura: pagado - deposito.conLosDespachos,
     abonosFactura: abonos - deposito.conAbonos,
     retenidoFactura: deposito.retenido,
+    // Con él, Total = Pagado + Abonos + Retenido + Descuento + Saldo.
+    descuentoAlCobrar,
     entregas,
     recibido,
     // Lo que el cliente debe: lo de la factura y, con equipos afuera, la
@@ -1423,10 +1436,16 @@ export const calcularExigible = (doc, hoyIso = obtenerFechaHoyBogota()) => {
   const cuenta = calcularCuentaFactura(doc, hoyIso);
 
   // La garantía que falta dejar también se reclama: sin ella el equipo no
-  // debería estar afuera.
+  // debería estar afuera. Lo rebajado al cobrar ya no se reclama.
   return Math.max(
     0,
-    consumido + iva + transporte + cuenta.danos - cuenta.recibido + cuenta.deposito.porCobrar,
+    consumido +
+      iva +
+      transporte +
+      cuenta.danos -
+      cuenta.recibido -
+      cuenta.descuentoAlCobrar +
+      cuenta.deposito.porCobrar,
   );
 };
 
@@ -1618,6 +1637,7 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
         pagadoFactura: acumulado.pagadoFactura + cuenta.pagadoFactura,
         abonosFactura: acumulado.abonosFactura + cuenta.abonosFactura,
         retenidoFactura: acumulado.retenidoFactura + cuenta.retenidoFactura,
+        descuentoAlCobrar: acumulado.descuentoAlCobrar + cuenta.descuentoAlCobrar,
         recibido: acumulado.recibido + cuenta.recibido,
         depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
         depositoGuardado: acumulado.depositoGuardado + cuenta.deposito.guardado,
@@ -1630,13 +1650,14 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
       pagadoFactura: 0,
       abonosFactura: 0,
       retenidoFactura: 0,
+      descuentoAlCobrar: 0,
       recibido: 0,
       depositoPorCobrar: 0,
       depositoGuardado: 0,
     },
   );
 
-  const neto = resumen.total - resumen.recibido;
+  const neto = resumen.total - resumen.recibido - resumen.descuentoAlCobrar;
   return {
     ...resumen,
     saldoPendiente: Math.max(0, neto) + resumen.depositoPorCobrar,
@@ -1884,6 +1905,9 @@ export const facturaEnSeguimiento = (doc, hoyIso = obtenerFechaHoyBogota()) =>
 export const movimientosFactura = (doc) => {
   const grupos = gruposDe(doc);
   const cantidadAbonos = abonosDe(doc).length;
+  // El descuento al cobrar también es historia: alguien lo pactó con el
+  // cliente.
+  const cantidadDescuentos = descuentosDe(doc).length;
   const cantidadAgregados = grupos.filter((grupo) => grupo?.grupo !== "grupo-inicial").length;
   const equiposConHistoria = equiposDe(doc)
     // La entrega pactada también es historia: alguien acordó algo con el
@@ -1899,11 +1923,13 @@ export const movimientosFactura = (doc) => {
 
   return {
     cantidadAbonos,
+    cantidadDescuentos,
     cantidadAgregados,
     equiposConHistoria,
     depositoResuelto,
     hayAlgo:
       cantidadAbonos > 0 ||
+      cantidadDescuentos > 0 ||
       cantidadAgregados > 0 ||
       equiposConHistoria.length > 0 ||
       depositoResuelto,
@@ -1913,14 +1939,20 @@ export const movimientosFactura = (doc) => {
 // Lo mismo, en palabras, para el aviso de antes de borrar una factura. Vacío
 // si no hay nada que avisar.
 export const describirMovimientosFactura = (doc) => {
-  const { cantidadAbonos, cantidadAgregados, equiposConHistoria, depositoResuelto } =
-    movimientosFactura(doc);
+  const {
+    cantidadAbonos,
+    cantidadDescuentos,
+    cantidadAgregados,
+    equiposConHistoria,
+    depositoResuelto,
+  } = movimientosFactura(doc);
 
   const partes = [];
   const plural = (n, singular, prefijo = "") =>
     `${n} ${prefijo}${singular}${n === 1 ? "" : "s"}`;
 
   if (cantidadAbonos > 0) partes.push(plural(cantidadAbonos, "abono"));
+  if (cantidadDescuentos > 0) partes.push(plural(cantidadDescuentos, "descuento"));
   if (cantidadAgregados > 0) partes.push(plural(cantidadAgregados, "despacho agregado"));
   if (equiposConHistoria.length > 0) {
     // "y sus registros de": lo que se borra no es el equipo a secas, son las

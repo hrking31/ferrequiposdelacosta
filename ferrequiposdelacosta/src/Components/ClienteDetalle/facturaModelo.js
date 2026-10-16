@@ -88,6 +88,12 @@
 //                   medio "Cruce": no salió plata, pagó otras facturas del
 //                   cliente, y haciaFacturas dice cuáles (ver repartirEntregas)
 //
+//   descuentos[]  la rebaja que se le hace al cliente AL COBRAR, sobre lo que
+//                 debe —con IVA incluido—: { fecha, monto, tipo }
+//                   tipo: "sistema" | "cliente", igual que el abono con el
+//                   que se anotó. No es plata que entra: baja la deuda sin
+//                   contar como cobrada (ver calcularCuentaFactura).
+//
 //   gestiones[]   la bitácora de la cobranza.
 //
 // ── Las tres decisiones que sostienen esta forma ──────────────────────
@@ -162,6 +168,7 @@ export const equiposDe = (doc) =>
 
 export const abonosDe = (doc) => lista(doc?.abonos);
 export const entregasDe = (doc) => lista(doc?.entregas);
+export const descuentosDe = (doc) => lista(doc?.descuentos);
 export const gestionesDe = (doc) => lista(doc?.gestiones);
 
 // Los medios con los que se pagó un despacho. Sigue devolviendo una lista, así

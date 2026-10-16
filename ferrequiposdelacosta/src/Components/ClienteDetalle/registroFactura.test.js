@@ -368,3 +368,42 @@ describe("el registro de cambios — quién fue", () => {
     );
   });
 });
+
+// EL DESCUENTO AL COBRAR (2026-10-16): anotarlo es como anotar un abono, y
+// cambiarlo o quitarlo es corregir. La pantalla de corregir lo conserva.
+describe("el descuento al cobrar en el registro y al corregir", () => {
+  const rebaja = (monto) => ({ fecha: "2026-10-13", monto, tipo: "cliente" });
+  const conDescuento = (...montos) => ({ ...factura(), descuentos: montos.map(rebaja) });
+  const esUna = (antes, despues) =>
+    esCorreccion({ clase: "modificada", antes, despues, cuando: CUANDO });
+
+  it("un descuento nuevo sale con su monto y su fecha, sin medio", () => {
+    expect(cambio(factura(), conDescuento(97000))).toEqual([
+      `Descuento de ${plata(97000)} (13/10/2026)`,
+      `Saldo pendiente: ${plata(297000)} → ${plata(200000)}`,
+    ]);
+  });
+
+  it("anotarlo no es corregir; cambiarlo o quitarlo, sí", () => {
+    expect(esUna(factura(), conDescuento(97000))).toBe(false);
+    expect(esUna(conDescuento(97000), conDescuento(50000))).toBe(true);
+    expect(esUna(conDescuento(97000), { ...factura(), descuentos: [] })).toBe(true);
+  });
+
+  it("corregir otra cosa de la factura no se lleva los descuentos", () => {
+    const original = conDescuento(97000);
+    const borrador = { ...borradorDe(original), numeroFactura: "0413" };
+    expect(facturaCorregida(original, borrador, HOY).descuentos).toEqual([rebaja(97000)]);
+  });
+
+  it("desde la corrección se cambia el monto o se quita", () => {
+    const original = conDescuento(97000);
+    const base = borradorDe(original);
+
+    const cambiado = { ...base, descuentos: [{ ...base.descuentos[0], monto: "50000" }] };
+    expect(facturaCorregida(original, cambiado, HOY).descuentos).toEqual([rebaja(50000)]);
+
+    const quitado = { ...base, descuentos: [] };
+    expect(facturaCorregida(original, quitado, HOY).descuentos).toEqual([]);
+  });
+});

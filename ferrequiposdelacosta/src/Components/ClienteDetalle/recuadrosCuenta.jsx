@@ -23,6 +23,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SavingsIcon from "@mui/icons-material/Savings";
 import HandymanIcon from "@mui/icons-material/Handyman";
+import DiscountIcon from "@mui/icons-material/Discount";
 import IconoDeposito from "./IconoDeposito";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
@@ -355,6 +356,16 @@ export const renderFilasDeCuenta = (cuenta) => (
       </Box>
     )}
 
+    {/* Lo rebajado al cobrar: no es plata que entró, pero baja el saldo. */}
+    {cuenta.descuentoAlCobrar > 0 && (
+      <Box className="fila">
+        <Typography variant="body2">Descuento</Typography>
+        <Typography variant="body2">
+          −{formatearMonedaOVacio(cuenta.descuentoAlCobrar)}
+        </Typography>
+      </Box>
+    )}
+
     {cuenta.saldoAFavor > 0 ? (
       <Box className="fila ok" sx={{ mt: 1, mb: 0 }}>
         <Typography variant="body2" fontWeight="bold">
@@ -605,6 +616,23 @@ export const casillasDeCuenta = (
         ]
       : [];
 
+  // LO REBAJADO AL COBRAR, solo si hubo: no entró plata, así que no va en
+  // Pagado ni en Abonos. En verde, el color de la plata a favor del cliente,
+  // como el descuento en la historia de un equipo.
+  const rebajado = cuenta.descuentoAlCobrar ?? 0;
+  const casillaDescuento =
+    rebajado > 0
+      ? [
+          {
+            clave: "descuento",
+            Icono: DiscountIcon,
+            rotulo: "Descuento",
+            valor: formatearMonedaOVacio(rebajado),
+            color: tono("success.light", "success.main"),
+          },
+        ]
+      : [];
+
   return [
     casillaTotal,
     {
@@ -612,8 +640,8 @@ export const casillasDeCuenta = (
       Icono: PaymentsIcon,
       rotulo: "Pagado",
       // Lo que le llegó a la factura, sin la parte que fue al depósito —esa
-      // tiene su casilla—. Con la de Retenido, Total = Pagado + Abonos +
-      // Retenido + Saldo, siempre.
+      // tiene su casilla—. Con la de Retenido y la de Descuento, Total =
+      // Pagado + Abonos + Retenido + Descuento + Saldo, siempre.
       valor: formatearMonedaOVacio(cuenta.pagadoFactura ?? cuenta.pagado),
       color: tono("success.light", "success.main"),
     },
@@ -625,6 +653,7 @@ export const casillasDeCuenta = (
       color: tono("info.light", "info.main"),
     },
     ...casillaRetenido,
+    ...casillaDescuento,
     casillaSaldo,
     ...casillaDeposito,
   ];

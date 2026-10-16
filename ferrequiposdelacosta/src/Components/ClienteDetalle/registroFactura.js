@@ -23,6 +23,7 @@ import {
   abonosDe,
   adicionalesDe,
   datosFactura,
+  descuentosDe,
   entregasDe,
   estaDevuelto,
   gestionesDe,
@@ -284,7 +285,7 @@ const cambiosDeGrupo = (antes, despues) => {
   return renglones;
 };
 
-const cambiosDePlata = (rotulo, antes, despues) => {
+const cambiosDePlata = (rotulo, antes, despues, { sinMedio = false } = {}) => {
   if (igual(antes, despues)) return [];
   // Los de antes siguen tal cual y llegaron otros: un abono con depósito y
   // plata trae dos de una vez.
@@ -292,7 +293,12 @@ const cambiosDePlata = (rotulo, antes, despues) => {
     return despues
       .slice(antes.length)
       .map((nuevo) =>
-        anota(`${rotulo} de ${plata(nuevo.monto)} por ${nuevo.medio || "—"} (${fecha(nuevo.fecha)})`),
+        anota(
+          // El descuento no tiene medio: no entró plata por ningún lado.
+          `${rotulo} de ${plata(nuevo.monto)}${
+            sinMedio ? "" : ` por ${nuevo.medio || "—"}`
+          } (${fecha(nuevo.fecha)})`,
+        ),
       );
   }
   // Los mismos, uno corregido: se dice qué cambió en cada uno. Con la suma
@@ -360,6 +366,9 @@ const renglonesDelCambio = ({ clase, antes, despues, cuando }) => {
 
   renglones.push(...cambiosDePlata("Abono", abonosDe(antes), abonosDe(despues)));
   renglones.push(...cambiosDePlata("Entrega", entregasDe(antes), entregasDe(despues)));
+  renglones.push(
+    ...cambiosDePlata("Descuento", descuentosDe(antes), descuentosDe(despues), { sinMedio: true }),
+  );
 
   if (gestionesDe(despues).length > gestionesDe(antes).length) {
     renglones.push(anota("Se anotó una gestión de cobranza."));
