@@ -17,14 +17,14 @@ import {
 } from "firebase/auth";
 import { auth } from "../Components/Firebase/Firebase";
 
-// EL INTERRUPTOR. Mientras Firebase no tenga encendida la aplicación de
-// códigos, nadie podría activarla y la pantalla de activar dejaría a todos
-// afuera, también en el PC de desarrollo. Se pasa a true el día de publicar,
-// DESPUÉS de encenderla en Firebase y junto con las reglas que la exigen.
+// EL INTERRUPTOR. Estuvo apagado hasta el día de publicar (2026-10-16): sin
+// la aplicación de códigos encendida en Firebase nadie podía activarla, y la
+// pantalla de activar dejaba a todos afuera. Encendido junto con las reglas
+// que la exigen.
 //
-// Apagado no abre nada que hoy esté cerrado: el segundo paso al iniciar
-// sesión lo pide Firebase solo, a quien ya lo tenga activado.
-export const EXIGIR_DOS_PASOS = false;
+// Apagarlo no abre nada que esté cerrado —las reglas siguen pidiendo los dos
+// pasos—: solo quita la pantalla que explica cómo activarlos.
+export const EXIGIR_DOS_PASOS = true;
 
 // Cómo aparece la cuenta en la aplicación de códigos del celular.
 const NOMBRE_EN_LA_APLICACION = "Ferrequipos de la Costa";
