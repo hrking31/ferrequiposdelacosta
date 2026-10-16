@@ -5,11 +5,10 @@
 //
 //   clientes/{id}.documento = { frente: "https://…", atras: "https://…" }
 //
-// QUIÉN LAS VE. Storage no sabe de roles (ver storage.rules): la carpeta se
-// abre a cualquiera con sesión iniciada, pero nunca al público. El que cierra
-// el paso de verdad es el enlace: está dentro del cliente, y al cliente solo
-// lo leen los roles de la vista clientes (firestore.rules). Es el mismo
-// candado que tienen sus facturas.
+// QUIÉN LAS VE. Solo los roles que manejan clientes, los mismos que pueden
+// abrir la ficha: storage.rules lee el rol del carné de la sesión (desde el
+// 2026-10-16; antes Storage no sabía de roles y la carpeta quedaba abierta a
+// cualquiera con sesión). Nunca al público.
 //
 // Cada foto lleva la hora en el nombre: al cambiarla cambia el enlace, y el
 // celular no se queda mostrando la vieja desde lo que ya había bajado.

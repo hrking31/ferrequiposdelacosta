@@ -59,21 +59,28 @@ The app mixes Firestore, Realtime Database, and Storage deliberately — know wh
 ### Auth & presence (`src/Context/AuthContext.jsx`)
 
 `AuthProvider` exposes `login`, `logout`, `user`, `loading` via `useAuth()`. On `onAuthStateChanged`
-it loads the Firestore `users/{uid}` profile, merges it into a `fullUserData` object, pushes it to the
-Redux `user` slice, and calls `registrarConexion(uid)` which writes presence to RTDB with an
+it **listens** (`onSnapshot`) to the Firestore `users/{uid}` profile, makes sure the session's `role`
+custom claim matches it (calling `sincronizarMiRol` + `getIdToken(true)` if not), merges it into a
+`fullUserData` object, pushes it to the Redux `user` slice, and calls `registrarConexion(uid)` which
+writes presence to RTDB with an
 `onDisconnect` handler (so a dropped tab auto-marks the user offline). `logout` explicitly writes
 `online: false` before `signOut`.
 
-### Authorization is client-side only
+### Authorization: the screens hide, the rules enforce
 
 Role → permission mapping lives in `src/Components/RolesPermisos/RolesPermisos.jsx` (roles like
 `administrador`, `gestorFacturacion`, `gestorEditor`, `gestorIntegral`; permissions like `cotizacion`,
-`cuentaCombro`, `crearEquipos`, `crearUsuarios`, `solicitudesCotizaciones`). Two enforcement points:
+`cuentaCombro`, `crearEquipos`, `crearUsuarios`, `solicitudesCotizaciones`). In the UI:
 
 - `ProtectedRoutes` wraps routes in `App.jsx` and checks `allowedRoles` against the current user's role's permission list.
 - `AdminForms` conditionally renders each action button by checking `permisos.includes(...)`.
 
-There is no server-side rule enforcement in this repo, so treat permission gating as UX, not security.
+That is UX only. The real enforcement is the security rules (`firestore.rules`, `storage.rules`,
+`database.rules.json`), which read the role from the session's **custom claim** `role` — not from the
+`users` doc. Only the server writes that claim (`createUser`, `actualizarUsuario`, `sincronizarMiRol`),
+so roles can't be changed from the browser, not even by an admin. The role lists in the rules must be
+kept in sync with `RolesPermisos.jsx` by hand; the server gets the map as a generated copy
+(`functions/compartido/rolesPermisos.js`, via `npm run sincronizar-calculos`).
 (Note: permission spelling is `cuentaCombro` — a typo baked into the data model, kept consistent across code.)
 
 ### Two front-ends in one app: Admin vs. Kiosk
@@ -92,7 +99,8 @@ The same SPA serves the internal admin tool and a public "Kiosk" catalog:
 
 ### Cloud Functions (`functions/index.js`, callable/`onCall`)
 
-- `createUser` / `deleteUser` — create/remove a Firebase Auth user **and** the matching Firestore `users/{uid}` document (used by the user-management views; client-side signup can't create Auth users with admin privileges).
+- `createUser` / `deleteUser` — create/remove a Firebase Auth user **and** the matching Firestore `users/{uid}` document (used by the user-management views; client-side signup can't create Auth users with admin privileges). `createUser` also sets the `role` claim and computes `permisos` from the role.
+- `actualizarUsuario` — admin edits name/genero/role; rewrites the doc and the `role` claim. `sincronizarMiRol` — copies the caller's own doc role into their claim.
 - `crearCotizacion` — validates and writes a quote into RTDB `cotizaciones`.
 
 ### Redux store (`src/Store/Store.js`)
