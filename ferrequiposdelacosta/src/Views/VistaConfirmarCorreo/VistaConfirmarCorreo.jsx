@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Box, Button, Container, Paper, Typography } from "@mui/material";
+import { Box, Button, Paper, Stack, Typography, useTheme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
@@ -11,7 +13,14 @@ import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 //
 // El correo no sale solo al entrar: lo pide la persona con el botón. Así no
 // se manda uno cada vez que abre la app sin haber confirmado todavía.
+const PASOS = [
+  "Toque «Enviarme el correo».",
+  "Abra el correo y toque el enlace.",
+  "Vuelva acá y toque «Ya confirmé».",
+];
+
 export default function VistaConfirmarCorreo() {
+  const theme = useTheme();
   const { user, logout, enviarVerificacion, confirmarCorreo } = useAuth();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
   const [ocupado, setOcupado] = useState(false);
@@ -53,43 +62,123 @@ export default function VistaConfirmarCorreo() {
     }
   };
 
+  const acento = theme.palette.custom.accent;
+
   return (
-    <Container maxWidth="sm" sx={{ py: { xs: 4, sm: 8 } }}>
-      <Paper sx={{ p: { xs: 3, sm: 4 } }}>
+    <Box
+      sx={{
+        minHeight: "calc(100dvh - 120px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        px: 2,
+        py: 4,
+      }}
+    >
+      <Paper
+        sx={{
+          width: "100%",
+          maxWidth: 440,
+          p: { xs: 3, sm: 4 },
+          textAlign: "center",
+          borderTop: `4px solid ${acento}`,
+        }}
+      >
+        <Box
+          sx={{
+            width: 72,
+            height: 72,
+            mx: "auto",
+            mb: 2,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: alpha(acento, 0.12),
+          }}
+        >
+          <MarkEmailUnreadOutlinedIcon sx={{ fontSize: 38, color: acento }} />
+        </Box>
+
         <Typography variant="h5" gutterBottom>
           Confirme su correo
         </Typography>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Para entrar al panel, confirme que <strong>{user?.email}</strong> es
-          suyo. Se hace una sola vez.
+        <Typography variant="body2" color="text.secondary">
+          Para entrar al panel, confirme que este correo es suyo. Se hace una
+          sola vez.
         </Typography>
 
-        <Box component="ol" sx={{ pl: 3, mb: 3, "& li": { mb: 1 } }}>
-          <li>Toque «Enviarme el correo».</li>
-          <li>Abra el correo y toque el enlace.</li>
-          <li>Vuelva acá y toque «Ya confirmé».</li>
-        </Box>
-
-        <Box
+        <Typography
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: 1.5,
+            my: 2.5,
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            bgcolor: "action.hover",
+            fontWeight: 600,
+            wordBreak: "break-all",
           }}
         >
-          <Button variant="contained" onClick={enviar} disabled={ocupado}>
+          {user?.email}
+        </Typography>
+
+        <Box
+          component="ol"
+          sx={{ listStyle: "none", p: 0, m: 0, mb: 3, textAlign: "left" }}
+        >
+          {PASOS.map((paso, i) => (
+            <Box
+              component="li"
+              key={paso}
+              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.25 }}
+            >
+              <Box
+                sx={{
+                  flexShrink: 0,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: acento,
+                  border: `1.5px solid ${acento}`,
+                }}
+              >
+                {i + 1}
+              </Box>
+              <Typography variant="body2">{paso}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Stack spacing={1.25}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={enviar}
+            disabled={ocupado}
+          >
             Enviarme el correo
           </Button>
-          <Button variant="success" onClick={yaConfirme} disabled={ocupado}>
+          <Button
+            variant="contained"
+            color="success"
+            fullWidth
+            onClick={yaConfirme}
+            disabled={ocupado}
+          >
             Ya confirmé
           </Button>
-          <Button variant="text" onClick={logout} disabled={ocupado}>
+          <Button variant="text" fullWidth onClick={logout} disabled={ocupado}>
             Cerrar sesión
           </Button>
-        </Box>
+        </Stack>
       </Paper>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
-    </Container>
+    </Box>
   );
 }
