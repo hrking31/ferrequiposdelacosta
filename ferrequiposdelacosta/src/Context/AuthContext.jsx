@@ -10,6 +10,8 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
+  sendEmailVerification,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { setUserData, clearUserData } from "../Store/Slices/userSlice";
 import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
@@ -22,13 +24,20 @@ import { authContext } from "./useAuth";
 // cambiar el rol— el servidor lo reimprime y se pide el nuevo, ANTES de dejar
 // pasar a la app: con el carné viejo las reglas lo frenarían.
 //
+// El carné también dice si el correo está confirmado, y las reglas lo exigen.
+// Uno guardado de antes de confirmar puede seguir diciendo que no: se renueva.
+//
 // Si el servidor no responde, se sigue igual: mejor una app que arranca y
 // quizá no puede leer algo, que una que deja a la persona afuera.
 const ponerAlDiaElCarne = async (currentUser, role) => {
   try {
     const { claims } = await currentUser.getIdTokenResult();
-    if (claims.role === role) return;
-    await httpsCallable(functions, "sincronizarMiRol")();
+    const rolAlDia = claims.role === role;
+    const correoAlDia =
+      !currentUser.emailVerified || claims.email_verified === true;
+    if (rolAlDia && correoAlDia) return;
+
+    if (!rolAlDia) await httpsCallable(functions, "sincronizarMiRol")();
     await currentUser.getIdToken(true);
   } catch (error) {
     console.error("No se pudo poner al día el carné de la sesión:", error);
@@ -39,6 +48,9 @@ export function AuthProvider({ children }) {
   const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Las reglas no dejan leer ni guardar nada sin el correo confirmado: hasta
+  // entonces, las pantallas protegidas muestran la de confirmarlo.
+  const [correoVerificado, setCorreoVerificado] = useState(false);
   const detenerPresenciaRef = useRef(null);
   const presenciaDeRef = useRef(null);
   const detenerPerfilRef = useRef(null);
@@ -62,6 +74,29 @@ export function AuthProvider({ children }) {
 
   const login = (email, password) =>
     signInWithEmailAndPassword(auth, email, password);
+
+  // Los correos de Firebase (confirmar y recuperar la clave) en español.
+  const recuperarClave = (email) => {
+    auth.languageCode = "es";
+    return sendPasswordResetEmail(auth, email);
+  };
+
+  const enviarVerificacion = () => {
+    auth.languageCode = "es";
+    return sendEmailVerification(auth.currentUser);
+  };
+
+  // Después de tocar el enlace del correo, la sesión abierta no se entera
+  // sola: hay que releer la cuenta y pedir un carné que ya lo diga.
+  const confirmarCorreo = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return false;
+    await currentUser.reload();
+    if (!currentUser.emailVerified) return false;
+    await currentUser.getIdToken(true);
+    setCorreoVerificado(true);
+    return true;
+  };
 
   const logout = async () => {
     setLoading(true);
@@ -95,12 +130,14 @@ export function AuthProvider({ children }) {
       if (!currentUser) {
         detenerPresencia();
         setUser(null);
+        setCorreoVerificado(false);
         dispatch(clearUserData());
         setLoading(false);
         return;
       }
 
       setLoading(true);
+      setCorreoVerificado(currentUser.emailVerified === true);
 
       // La ficha se ESCUCHA, no se lee una sola vez: si el administrador le
       // cambia el rol a quien tiene la app abierta, el carné y los botones se
@@ -189,6 +226,10 @@ export function AuthProvider({ children }) {
         logout,
         user,
         loading,
+        correoVerificado,
+        confirmarCorreo,
+        enviarVerificacion,
+        recuperarClave,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 // Copia el modelo y las cuentas de las facturas a la carpeta de las Cloud
-// Functions. Y, desde el 2026-10-16, el mapa de roles y permisos: con él el
+// Functions. Y, desde el 2026-10-16, el mapa de roles y permisos —con él el
 // servidor calcula los permisos de un usuario al crearlo o editarlo, en vez de
-// creerle a la pantalla.
+// creerle a la pantalla— y los requisitos de la contraseña.
 //
 // POR QUÉ HACE FALTA COPIAR EN VEZ DE IMPORTAR
 //
@@ -36,6 +36,7 @@ const ORIGENES = {
   "facturaModelo.js": "src/Components/ClienteDetalle/facturaModelo.js",
   "facturaCuentas.js": "src/Components/ClienteDetalle/facturaCuentas.js",
   "rolesPermisos.js": "src/Components/RolesPermisos/RolesPermisos.jsx",
+  "requisitosClave.js": "src/Utils/requisitosClave.js",
 };
 
 const origen = (archivo) => resolve(raiz, ORIGENES[archivo]);

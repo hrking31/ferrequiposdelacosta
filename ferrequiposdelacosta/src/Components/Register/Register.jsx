@@ -20,6 +20,21 @@ import { functions } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import {
+  faltanEnLaClave,
+  LARGO_MINIMO_CLAVE,
+} from "../../Utils/requisitosClave";
+
+// Debajo del campo, mientras se escribe: qué se pide, o qué le falta todavía.
+const ayudaClave = (clave) => {
+  if (!clave) {
+    return `Mínimo ${LARGO_MINIMO_CLAVE} caracteres, con mayúscula, minúscula, número y signo.`;
+  }
+  const faltan = faltanEnLaClave(clave);
+  return faltan.length > 0
+    ? `Le falta: ${faltan.join(", ")}.`
+    : "Cumple todos los requisitos.";
+};
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -58,8 +73,9 @@ export default function Register() {
       return;
     }
 
-    if (user.password.length < 6) {
-      showSnackbar("La contraseña debe tener al menos 6 caracteres");
+    const faltan = faltanEnLaClave(user.password);
+    if (faltan.length > 0) {
+      showSnackbar(`A la contraseña le falta: ${faltan.join(", ")}`);
       return;
     }
 
@@ -167,6 +183,7 @@ export default function Register() {
         value={user.password}
         onChange={handleChange}
         fullWidth
+        helperText={ayudaClave(user.password)}
         InputProps={{
           style: { color: theme.palette.text.primary },
           endAdornment: (

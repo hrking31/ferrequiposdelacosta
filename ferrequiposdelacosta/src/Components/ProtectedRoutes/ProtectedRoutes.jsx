@@ -3,10 +3,11 @@ import { useAuth } from "../../Context/useAuth";
 import { Navigate } from "react-router-dom";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import VistaNoAutorizada from "../../Views/VistaNoAutorizada/VistaNoAutorizada";
+import VistaConfirmarCorreo from "../../Views/VistaConfirmarCorreo/VistaConfirmarCorreo";
 import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 
 export function ProtectedRoutes({ children, allowedRoles }) {
-  const { user, loading } = useAuth();
+  const { user, loading, correoVerificado } = useAuth();
 
   if (loading) {
     return <LoadingLogo />;
@@ -14,6 +15,12 @@ export function ProtectedRoutes({ children, allowedRoles }) {
 
   if (!user) {
     return <Navigate to="/home" />;
+  }
+
+  // Sin el correo confirmado las reglas no dejan leer nada: en vez de una
+  // pantalla llena de errores, la de confirmarlo.
+  if (!correoVerificado) {
+    return <VistaConfirmarCorreo />;
   }
 
   const permisosDelUsuario = RolesPermisos[user?.role] || [];

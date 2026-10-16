@@ -13,7 +13,7 @@ const crearUsuario = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 vi.mock("../Firebase/Firebase", () => ({ functions: {} }));
 vi.mock("firebase/functions", () => ({ httpsCallable: () => crearUsuario }));
 
-const llenar = async (usuario, { nombre = "Aida", correo = "aida@ferrequipos.com", clave = "secreta123" } = {}) => {
+const llenar = async (usuario, { nombre = "Aida", correo = "aida@ferrequipos.com", clave = "Ferrequipos#2026" } = {}) => {
   if (nombre) await usuario.type(screen.getByLabelText(/Nombre/), nombre);
   if (correo) await usuario.type(screen.getByLabelText(/Correo/), correo);
   if (clave) await usuario.type(screen.getByLabelText(/Contraseña/), clave);
@@ -59,16 +59,31 @@ describe("Register — lo que no deja pasar", () => {
     expect(crearUsuario).not.toHaveBeenCalled();
   });
 
-  it("una contraseña de menos de 6 caracteres no pasa", async () => {
+  it("una contraseña débil no pasa, y dice qué le falta", async () => {
     const { usuario } = renderConProviders(<Register />);
 
-    await llenar(usuario, { clave: "12345" });
+    await llenar(usuario, { clave: "secreta123" });
+    await elegirRol(usuario, "Gestor Editor");
     await registrar(usuario);
 
     expect(
-      await screen.findByText("La contraseña debe tener al menos 6 caracteres"),
+      await screen.findByText(
+        "A la contraseña le falta: 12 caracteres o más, una mayúscula, un signo, como ! @ # % & * ?",
+      ),
     ).toBeInTheDocument();
     expect(crearUsuario).not.toHaveBeenCalled();
+  });
+
+  it("mientras se escribe, avisa qué falta y cuándo ya cumple", async () => {
+    const { usuario } = renderConProviders(<Register />);
+
+    expect(screen.getByText(/Mínimo 12 caracteres/)).toBeInTheDocument();
+
+    await usuario.type(screen.getByLabelText(/Contraseña/), "Ferrequipos2026");
+    expect(screen.getByText("Le falta: un signo, como ! @ # % & * ?.")).toBeInTheDocument();
+
+    await usuario.type(screen.getByLabelText(/Contraseña/), "#");
+    expect(screen.getByText("Cumple todos los requisitos.")).toBeInTheDocument();
   });
 
   it("sin rol no se crea la cuenta: sería un usuario sin permisos", async () => {
@@ -93,7 +108,7 @@ describe("Register — cuando está todo", () => {
     expect(crearUsuario).toHaveBeenCalledTimes(1);
     expect(crearUsuario).toHaveBeenCalledWith({
       email: "aida@ferrequipos.com",
-      password: "secreta123",
+      password: "Ferrequipos#2026",
       name: "Aida",
       genero: "",
       role: "gestorEditor",

@@ -27,8 +27,11 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Sin el correo confirmado no hay rol que valga (2026-10-16), igual que en
+    // firestore.rules.
     function tieneRol(roles) {
       return request.auth != null
+        && request.auth.token.email_verified == true
         && "role" in request.auth.token
         && request.auth.token.role in roles;
     }

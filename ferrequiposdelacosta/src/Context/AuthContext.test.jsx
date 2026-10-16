@@ -32,6 +32,8 @@ vi.mock("firebase/auth", () => ({
   },
   signInWithEmailAndPassword: vi.fn(),
   signOut: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  sendPasswordResetEmail: vi.fn(),
 }));
 
 vi.mock("firebase/firestore", () => ({
@@ -132,6 +134,21 @@ describe("AuthContext — el carné de la sesión", () => {
     expect(nube.sincronizarMiRol).toHaveBeenCalledTimes(1);
     expect(nube.renovar).toHaveBeenCalledWith(true);
     expect(store.getState().user.role).toBe("gestorIntegral");
+  });
+
+  it("si confirmó el correo pero su carné guardado no lo dice, lo renueva", async () => {
+    // Las reglas exigen el correo confirmado y lo leen del carné: uno guardado
+    // de antes de confirmar las haría fallar aunque la cuenta ya esté bien.
+    nube.carne = { role: "gestorEditor", email_verified: false };
+    usuarioDeSesion.emailVerified = true;
+    montar();
+    await entrar({ name: "Aida", role: "gestorEditor" });
+
+    await screen.findByText("rol: gestorEditor");
+    expect(nube.renovar).toHaveBeenCalledWith(true);
+    // El rol ya estaba bien: no hace falta molestar al servidor.
+    expect(nube.sincronizarMiRol).not.toHaveBeenCalled();
+    delete usuarioDeSesion.emailVerified;
   });
 
   it("si el servidor no responde, la app arranca igual", async () => {

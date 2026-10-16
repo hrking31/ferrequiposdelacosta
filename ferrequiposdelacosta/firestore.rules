@@ -27,10 +27,19 @@ service cloud.firestore {
     // hora). A quien se le baja el rol o se lo elimina le puede quedar ese
     // rato con el rol viejo.
     //
-    // Devuelve "" si no hay sesión o el carné no trae rol (ante la duda, se
-    // niega el acceso).
+    // Y SIN EL CORREO CONFIRMADO NO HAY ROL (2026-10-16): quien no confirmó
+    // que su correo es suyo no lee ni guarda nada que pida un rol. La app le
+    // muestra la pantalla de confirmarlo (VistaConfirmarCorreo.jsx).
+    //
+    // Devuelve "" si no hay sesión, si el correo no está confirmado o si el
+    // carné no trae rol (ante la duda, se niega el acceso).
     function rolUsuario() {
-      return request.auth != null ? request.auth.token.get("role", "") : "";
+      return correoConfirmado() ? request.auth.token.get("role", "") : "";
+    }
+
+    function correoConfirmado() {
+      return request.auth != null
+        && request.auth.token.get("email_verified", false) == true;
     }
 
     function tieneRol(roles) {
@@ -255,7 +264,7 @@ service cloud.firestore {
     // de administrador y no pasan por estas reglas. Así el número no lo puede
     // tocar nadie a mano, ni por error ni a propósito.
     match /resumen/{documento} {
-      allow read: if request.auth != null;
+      allow read: if correoConfirmado();
       allow write: if false;
     }
 

@@ -11,9 +11,9 @@ import Login from "./Login";
 //
 // El login se reemplaza por un doble: cada prueba decide si acepta o con qué
 // error rechaza.
-const entrar = ({ login = vi.fn(), onClose } = {}) =>
+const entrar = ({ login = vi.fn(), recuperarClave = vi.fn(), onClose } = {}) =>
   renderConProviders(
-    <authContext.Provider value={{ login }}>
+    <authContext.Provider value={{ login, recuperarClave }}>
       <Routes>
         <Route path="/" element={<Login onClose={onClose} />} />
         <Route path="/adminforms" element={<p>Panel de administración</p>} />
@@ -57,6 +57,10 @@ describe("Login — cuando falla, lo dice en castellano", () => {
   // Cada código que devuelve Firebase tiene su frase. Sin esta traducción, al
   // usuario le llegaría "auth/wrong-password".
   const casos = [
+    [
+      "auth/password-does-not-meet-requirements",
+      "Su contraseña ya no cumple los requisitos. Toque «¿Olvidó su contraseña?» para poner una nueva.",
+    ],
     ["auth/wrong-password", "Contraseña incorrecta"],
     ["auth/user-not-found", "Usuario no registrado"],
     ["auth/invalid-credential", "Correo o contraseña incorrectos"],
@@ -83,6 +87,54 @@ describe("Login — cuando falla, lo dice en castellano", () => {
 
     expect(await screen.findByText("Contraseña incorrecta")).toBeInTheDocument();
     expect(screen.queryByText("Panel de administración")).not.toBeInTheDocument();
+  });
+});
+
+describe("Login — ¿Olvidó su contraseña?", () => {
+  const ENVIADO =
+    "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.";
+  const olvido = (usuario) =>
+    usuario.click(screen.getByRole("button", { name: "¿Olvidó su contraseña?" }));
+
+  it("sin correo escrito, pide que lo escriba primero", async () => {
+    const recuperarClave = vi.fn();
+    const { usuario } = entrar({ recuperarClave });
+
+    await olvido(usuario);
+
+    expect(
+      await screen.findByText("Escriba su correo arriba y vuelva a tocar «¿Olvidó su contraseña?»"),
+    ).toBeInTheDocument();
+    expect(recuperarClave).not.toHaveBeenCalled();
+  });
+
+  it("manda el enlace al correo escrito", async () => {
+    const recuperarClave = vi.fn(() => Promise.resolve());
+    const { usuario } = entrar({ recuperarClave });
+
+    await usuario.type(
+      screen.getByLabelText(/Dirección de correo electrónico/),
+      "aida@ferrequipos.com",
+    );
+    await olvido(usuario);
+
+    expect(recuperarClave).toHaveBeenCalledWith("aida@ferrequipos.com");
+    expect(await screen.findByText(ENVIADO)).toBeInTheDocument();
+  });
+
+  it("si el correo no existe, dice lo mismo: no delata qué cuentas hay", async () => {
+    const recuperarClave = vi.fn(() =>
+      Promise.reject(Object.assign(new Error("x"), { code: "auth/user-not-found" })),
+    );
+    const { usuario } = entrar({ recuperarClave });
+
+    await usuario.type(
+      screen.getByLabelText(/Dirección de correo electrónico/),
+      "nadie@ferrequipos.com",
+    );
+    await olvido(usuario);
+
+    expect(await screen.findByText(ENVIADO)).toBeInTheDocument();
   });
 });
 

@@ -21,7 +21,7 @@ export default function Login({ onClose }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, recuperarClave } = useAuth();
   const [user, setUser] = useState({ email: "", password: "" });
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
   const [, setIsSubmitting] = useState(false);
@@ -45,7 +45,13 @@ export default function Login({ onClose }) {
 
       navigate("/adminforms");
     } catch (error) {
-      if (error.code === "auth/wrong-password") {
+      if (error.code === "auth/password-does-not-meet-requirements") {
+        // Desde el 2026-10-16 la contraseña tiene requisitos, y las de antes
+        // que no los cumplen ya no abren: hay que poner una nueva.
+        showSnackbar(
+          "Su contraseña ya no cumple los requisitos. Toque «¿Olvidó su contraseña?» para poner una nueva.",
+        );
+      } else if (error.code === "auth/wrong-password") {
         showSnackbar("Contraseña incorrecta");
       } else if (error.code === "auth/user-not-found") {
         showSnackbar("Usuario no registrado");
@@ -59,6 +65,36 @@ export default function Login({ onClose }) {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Firebase manda un correo con su propia página para poner la clave nueva.
+  // La respuesta es la misma exista o no la cuenta: así nadie puede usar esto
+  // para averiguar qué correos están registrados.
+  const handleOlvido = async () => {
+    closeSnackbar();
+    const email = user.email.trim();
+    if (!email) {
+      showSnackbar("Escriba su correo arriba y vuelva a tocar «¿Olvidó su contraseña?»");
+      return;
+    }
+    try {
+      await recuperarClave(email);
+      showSnackbar(
+        "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.",
+        "success",
+      );
+    } catch (error) {
+      if (error.code === "auth/user-not-found") {
+        showSnackbar(
+          "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.",
+          "success",
+        );
+      } else if (error.code === "auth/invalid-email") {
+        showSnackbar("Ese correo no tiene un formato válido");
+      } else {
+        showSnackbar("No se pudo enviar el correo. Inténtalo de nuevo.");
+      }
     }
   };
 
@@ -113,6 +149,11 @@ export default function Login({ onClose }) {
                 ),
               }}
             />
+            <Box sx={{ textAlign: "right", mt: 0.5 }}>
+              <Button variant="text" size="small" onClick={handleOlvido}>
+                ¿Olvidó su contraseña?
+              </Button>
+            </Box>
           </Grid>
         </Grid>
 

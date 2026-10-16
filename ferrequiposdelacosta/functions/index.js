@@ -33,6 +33,8 @@ import {datosFactura} from "./compartido/facturaModelo.js";
 // Qué permisos trae cada rol: también una copia generada, del mismo mapa que
 // usa la app (src/Components/RolesPermisos/RolesPermisos.jsx).
 import RolesPermisos from "./compartido/rolesPermisos.js";
+// Lo que se le exige a una contraseña, la misma copia que usa el formulario.
+import {faltanEnLaClave} from "./compartido/requisitosClave.js";
 
 initializeApp();
 
@@ -59,6 +61,14 @@ async function verificarPermisoUsuarios(request) {
     throw new HttpsError(
         "unauthenticated",
         "Tenés que iniciar sesión para hacer esto.",
+    );
+  }
+
+  // Igual que las reglas: sin correo confirmado no se toca nada.
+  if (request.auth.token.email_verified !== true) {
+    throw new HttpsError(
+        "permission-denied",
+        "Primero tenés que confirmar tu correo.",
     );
   }
 
@@ -111,6 +121,16 @@ async function ponerRolEnCarne(uid, role) {
 export const createUser = onCall(async (request) => {
   await verificarPermisoUsuarios(request);
   validarRol(request.data?.role);
+
+  // La misma exigencia del formulario, por si alguien se lo salta. No se sabe
+  // si Firebase aplica su política a las cuentas creadas desde el servidor.
+  const faltan = faltanEnLaClave(request.data?.password);
+  if (faltan.length > 0) {
+    throw new HttpsError(
+        "invalid-argument",
+        `A la contraseña le falta: ${faltan.join(", ")}`,
+    );
+  }
 
   try {
     const {email, password, name, genero, role} = request.data;
