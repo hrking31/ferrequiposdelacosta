@@ -2,10 +2,10 @@
   /*
     Reglas de la Realtime Database — Ferrequipos de la Costa
 
-    OJO: las reglas de esta base NO pueden consultar Firestore, y el rol de cada
-    usuario vive en Firestore (users/{uid}). Por eso aquí no se puede filtrar por
-    rol como en firestore.rules; lo máximo que se puede exigir es que haya una
-    sesión iniciada.
+    OJO: las reglas de esta base NO pueden consultar Firestore, donde vive la
+    ficha de cada usuario. Desde el 2026-10-16 el rol viaja también en el carné
+    de la sesión (auth.token.role, lo imprime el servidor: ver
+    functions/index.js), y desde acá sí se puede leer.
   */
   "rules": {
     ".read": false,
@@ -21,10 +21,12 @@
 
       Por eso la escritura queda cerrada del todo. Nadie —ni la app ni una
       consola de navegador— puede tocar este nodo; solo se puede leer, por si
-      alguna vez hay que consultar el archivo.
+      alguna vez hay que consultar el archivo, y solo quien atiende
+      cotizaciones (los mismos roles que en firestore.rules): adentro hay
+      nombres y teléfonos de clientes.
     */
     "cotizaciones": {
-      ".read": "auth != null",
+      ".read": "auth != null && (auth.token.role === 'gestorFacturacion' || auth.token.role === 'gestorIntegral' || auth.token.role === 'administrador')",
       ".write": false
     },
 

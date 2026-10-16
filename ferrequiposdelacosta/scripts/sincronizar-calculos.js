@@ -1,5 +1,7 @@
 // Copia el modelo y las cuentas de las facturas a la carpeta de las Cloud
-// Functions.
+// Functions. Y, desde el 2026-10-16, el mapa de roles y permisos: con él el
+// servidor calcula los permisos de un usuario al crearlo o editarlo, en vez de
+// creerle a la pantalla.
 //
 // POR QUÉ HACE FALTA COPIAR EN VEZ DE IMPORTAR
 //
@@ -11,9 +13,9 @@
 // despliegue (ver el "predeploy" de functions en firebase.json) y no se edita
 // nunca a mano. El original sigue siendo uno solo.
 //
-// Son DOS archivos porque las cuentas leen el documento a través del modelo:
-// facturaCuentas.js importa de facturaModelo.js, así que si viajara solo uno
-// el servidor no arrancaría.
+// Las facturas son DOS archivos porque las cuentas leen el documento a través
+// del modelo: facturaCuentas.js importa de facturaModelo.js, así que si viajara
+// solo uno el servidor no arrancaría.
 //
 // Y para que no puedan quedar viejas sin que nadie se entere, hay una prueba
 // —facturaCuentas.sincronizado.test.js— que compara original y copia de cada
@@ -28,21 +30,27 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, "..");
 
-const origen = (archivo) =>
-  resolve(raiz, "src/Components/ClienteDetalle", archivo);
+// Los archivos que viajan, en orden de dependencia, con el original de cada
+// uno. El mapa de roles viaja con otro nombre porque allá no es un componente.
+const ORIGENES = {
+  "facturaModelo.js": "src/Components/ClienteDetalle/facturaModelo.js",
+  "facturaCuentas.js": "src/Components/ClienteDetalle/facturaCuentas.js",
+  "rolesPermisos.js": "src/Components/RolesPermisos/RolesPermisos.jsx",
+};
+
+const origen = (archivo) => resolve(raiz, ORIGENES[archivo]);
 const destino = (archivo) => resolve(raiz, "functions/compartido", archivo);
 
-// Los archivos que viajan, en orden de dependencia.
-export const ARCHIVOS = ["facturaModelo.js", "facturaCuentas.js"];
+export const ARCHIVOS = Object.keys(ORIGENES);
 
 const aviso = (archivo) => `// ⚠️  ARCHIVO GENERADO — NO EDITAR A MANO.
 //
-// Es una copia de src/Components/ClienteDetalle/${archivo}, hecha por
+// Es una copia de ${ORIGENES[archivo]}, hecha por
 // scripts/sincronizar-calculos.js en cada despliegue. Cualquier cambio que se
 // escriba acá se pierde en el próximo deploy.
 //
-// Para cambiar una cuenta, tocá el original. Es el mismo archivo que usa la
-// app, así que la corrección vale para las dos partes a la vez.
+// Para cambiar algo, tocá el original. Es el mismo archivo que usa la app, así
+// que la corrección vale para las dos partes a la vez.
 
 `;
 

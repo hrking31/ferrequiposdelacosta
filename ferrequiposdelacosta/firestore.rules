@@ -15,15 +15,22 @@ service cloud.firestore {
     // Ayudantes
     // ---------------------------------------------------------------
 
-    // Rol del usuario que hace la petición, leído de users/{uid}.
-    // Devuelve "" si no hay sesión, si el documento no existe o si no tiene
-    // el campo "role", para que ninguna regla se caiga por leer un campo
-    // inexistente (ante la duda, se niega el acceso).
+    // Rol del usuario que hace la petición, leído del CARNÉ de su sesión
+    // (custom claims), no de users/{uid}. Desde el 2026-10-16: el mismo carné
+    // lo leen Storage y la base en tiempo real, que no pueden consultar esta
+    // base, y no cuesta una lectura por cada petición.
+    //
+    // Lo imprime solo el servidor (createUser, actualizarUsuario y
+    // sincronizarMiRol en functions/index.js), copiando el rol de la ficha.
+    //
+    // A sabiendas del dueño: un carné entregado vale hasta que vence (una
+    // hora). A quien se le baja el rol o se lo elimina le puede quedar ese
+    // rato con el rol viejo.
+    //
+    // Devuelve "" si no hay sesión o el carné no trae rol (ante la duda, se
+    // niega el acceso).
     function rolUsuario() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("role", "")
-        : "";
+      return request.auth != null ? request.auth.token.get("role", "") : "";
     }
 
     function tieneRol(roles) {
@@ -72,7 +79,9 @@ service cloud.firestore {
     // Usuarios internos
     // ---------------------------------------------------------------
     match /users/{userId} {
-      // Cada quien lee su propio perfil (AuthContext.jsx). La lista completa
+      // Cada quien lee su propio perfil (AuthContext.jsx). Tiene que poder
+      // hacerlo aunque su carné todavía no traiga el rol: es justamente lo
+      // que la app lee para pedir que se lo pongan al día. La lista completa
       // (ListaUsuarios.jsx) es solo para el administrador.
       allow get: if request.auth != null
         && (request.auth.uid == userId || esAdministrador());
@@ -83,13 +92,16 @@ service cloud.firestore {
       // (Utils/avisos.js). Sin este límite, cualquier empleado podría
       // escribir role: "administrador" en su propio documento desde la
       // consola del navegador y quedar con todos los permisos.
-      // El administrador sí puede editar nombre, género, rol y permisos
-      // de cualquiera (ListaUsuarios.jsx).
-      allow update: if (request.auth != null
+      //
+      // Nombre, género, rol y permisos los cambia SOLO el servidor
+      // (actualizarUsuario), ni siquiera el administrador desde el
+      // navegador: el rol tiene que quedar también en el carné, y el carné
+      // solo lo imprime el servidor. Si la ficha cambiara por otro lado, los
+      // dos dirían cosas distintas.
+      allow update: if request.auth != null
           && request.auth.uid == userId
           && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(["photoURL", "avisosTokens"]))
-        || esAdministrador();
+              .hasOnly(["photoURL", "avisosTokens"]);
 
       // Crear y borrar usuarios pasa por las Cloud Functions createUser y
       // deleteUser, que usan el SDK de administrador y no pasan por estas

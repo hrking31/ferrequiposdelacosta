@@ -1,15 +1,13 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
-import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import Register from "./Register";
 
 // El alta de una cuenta del personal. Crear el usuario lo hace una función del
 // servidor —desde el navegador no se pueden crear cuentas con privilegios—, así
-// que acá se prueba lo de este lado: que no se mande nada incompleto y que al
-// usuario nuevo se le adjunten los permisos que le tocan por su rol.
+// que acá se prueba lo de este lado: que no se mande nada incompleto.
 //
-// Ese último punto es el que importa: los permisos NO se eligen a mano, salen
-// del rol. Si alguien los desacopla, esta prueba lo caza.
+// Los permisos NO viajan desde acá: el servidor los calcula a partir del rol
+// (desde el 2026-10-16), para no creerle a la pantalla.
 const crearUsuario = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 
 vi.mock("../Firebase/Firebase", () => ({ functions: {} }));
@@ -85,7 +83,7 @@ describe("Register — lo que no deja pasar", () => {
 });
 
 describe("Register — cuando está todo", () => {
-  it("crea la cuenta con los permisos que le corresponden al rol", async () => {
+  it("crea la cuenta con el rol elegido, sin mandar permisos", async () => {
     const { usuario } = renderConProviders(<Register />);
 
     await llenar(usuario);
@@ -99,8 +97,6 @@ describe("Register — cuando está todo", () => {
       name: "Aida",
       genero: "",
       role: "gestorEditor",
-      // Los permisos salen del mapa de roles, no de una lista escrita a mano.
-      permisos: RolesPermisos.gestorEditor,
     });
 
     expect(await screen.findByText("Usuario registrado con éxito")).toBeInTheDocument();

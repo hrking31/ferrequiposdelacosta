@@ -3,15 +3,16 @@ import { renderConProviders } from "../../test/utils";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import ListaUsuarios from "./ListaUsuarios";
 
-// Las cuentas del personal. Acá se cambia el rol de alguien, y con el rol
-// cambian sus permisos: esa correspondencia es lo más importante de fijar,
-// porque un permiso mal puesto abre pantallas que no le tocan.
+// Las cuentas del personal. Acá se cambia el rol de alguien.
 //
-// Eliminar no se hace desde el navegador: lo hace una función del servidor, que
-// borra la cuenta de acceso, la ficha, la foto y la presencia de una sola vez.
+// Ni editar ni eliminar se hacen desde el navegador: los hacen funciones del
+// servidor. Editar, porque el rol tiene que quedar también en el carné de la
+// sesión, y los permisos los calcula el servidor a partir del rol. Eliminar,
+// porque borra la cuenta de acceso, la ficha, la foto y la presencia de una
+// sola vez.
 const nube = vi.hoisted(() => ({
   getDocs: vi.fn(),
-  updateDoc: vi.fn(() => Promise.resolve()),
+  actualizarUsuario: vi.fn(() => Promise.resolve()),
   eliminarUsuario: vi.fn(() => Promise.resolve()),
 }));
 
@@ -23,12 +24,13 @@ vi.mock("../Firebase/Firebase", () => ({
 
 vi.mock("firebase/firestore", () => ({
   collection: (_db, nombre) => nombre,
-  doc: (_db, ...partes) => partes.join("/"),
   getDocs: nube.getDocs,
-  updateDoc: nube.updateDoc,
 }));
 
-vi.mock("firebase/functions", () => ({ httpsCallable: () => nube.eliminarUsuario }));
+vi.mock("firebase/functions", () => ({
+  httpsCallable: (_functions, nombre) =>
+    nombre === "deleteUser" ? nube.eliminarUsuario : nube.actualizarUsuario,
+}));
 
 vi.mock("../../Context/useAuth", async (importarOriginal) => ({
   ...(await importarOriginal()),
@@ -74,7 +76,7 @@ describe("ListaUsuarios", () => {
     expect(screen.getByText(/Gestor Editor/i)).toBeInTheDocument();
   });
 
-  it("al cambiar el rol, cambia también el juego de permisos", async () => {
+  it("al cambiar el rol, se lo pide al servidor con el rol nuevo", async () => {
     const { usuario } = mostrar();
 
     // La edición se abre con el lápiz de esa fila.
@@ -88,11 +90,13 @@ describe("ListaUsuarios", () => {
 
     expect(await screen.findByText("Usuario actualizado con éxito")).toBeInTheDocument();
 
-    const [ruta, datos] = nube.updateDoc.mock.calls[0];
-    expect(ruta).toBe("users/u1");
-    expect(datos.role).toBe("gestorIntegral");
-    // Los permisos NO se eligen a mano: salen del mapa de roles.
-    expect(datos.permisos).toEqual(RolesPermisos.gestorIntegral);
+    // Los permisos no viajan: el servidor los saca del mapa de roles.
+    expect(nube.actualizarUsuario).toHaveBeenCalledWith({
+      uid: "u1",
+      name: "Aida Pérez",
+      genero: "femenino",
+      role: "gestorIntegral",
+    });
   });
 
   it("no guarda un usuario sin nombre", async () => {
@@ -105,6 +109,6 @@ describe("ListaUsuarios", () => {
     await usuario.click(screen.getByRole("button", { name: /Guardar/i }));
 
     expect(await screen.findByText("El nombre no puede estar vacío")).toBeInTheDocument();
-    expect(nube.updateDoc).not.toHaveBeenCalled();
+    expect(nube.actualizarUsuario).not.toHaveBeenCalled();
   });
 });

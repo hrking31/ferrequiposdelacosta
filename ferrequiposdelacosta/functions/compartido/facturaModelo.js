@@ -4,8 +4,8 @@
 // scripts/sincronizar-calculos.js en cada despliegue. Cualquier cambio que se
 // escriba acá se pierde en el próximo deploy.
 //
-// Para cambiar una cuenta, tocá el original. Es el mismo archivo que usa la
-// app, así que la corrección vale para las dos partes a la vez.
+// Para cambiar algo, tocá el original. Es el mismo archivo que usa la app, así
+// que la corrección vale para las dos partes a la vez.
 
 // EL MODELO DE LA FACTURA: cómo está armado el documento.
 //

@@ -18,7 +18,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../Components/Firebase/Firebase";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
-import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
@@ -49,8 +48,6 @@ export default function Register() {
     event.preventDefault();
     closeSnackbar();
 
-    const permisos = RolesPermisos[roleSeleccionado];
-
     if (!user.name.trim()) {
       showSnackbar("Por favor, ingrese un nombre válido.");
       return;
@@ -78,8 +75,8 @@ export default function Register() {
         password: user.password,
         name: user.name,
         genero: generoSeleccionado,
+        // Los permisos no viajan: el servidor los calcula a partir del rol.
         role: roleSeleccionado,
-        permisos,
       });
 
       showSnackbar("Usuario registrado con éxito", "success");

@@ -2,7 +2,7 @@ rules_version = '2';
 
 // Reglas de seguridad de Cloud Storage — Ferrequipos de la Costa
 //
-// En el bucket conviven dos tipos de archivo:
+// En el bucket conviven tres tipos de archivo:
 //   avatars/{uid}                    -> foto de perfil de cada usuario interno
 //   documentos/{clienteId}/{archivo} -> fotos del documento de identidad del cliente
 //   {equipoId}/{archivo}             -> imágenes de los equipos del catálogo
@@ -12,17 +12,36 @@ rules_version = '2';
 // raíz del bucket. Por eso la regla de abajo se escribe "todo lo que no sea avatars
 // ni documentos".
 //
-// A PROPÓSITO no se consulta acá el rol del usuario (que vive en Firestore). Hacerlo
-// exige habilitar las "llamadas entre servicios" en Google Cloud: un permiso que no
-// queda registrado en este repositorio, invisible para quien lea estas reglas, y que
-// el 2026-08-07 dejó rotas todas las subidas de imágenes hasta que se descubrió.
-// El filtro por rol se sigue aplicando donde de verdad importa: para que un equipo
-// aparezca en el catálogo hay que escribir su documento en la colección "equipos",
-// y firestore.rules sí exige el rol ahí. Una imagen suelta en el bucket no publica
-// nada.
+// EL ROL SALE DEL CARNÉ DE LA SESIÓN (2026-10-16). Hasta esa fecha acá no se
+// miraba el rol: vive en Firestore, y consultarlo exige habilitar las
+// "llamadas entre servicios" en Google Cloud, un permiso que no queda en este
+// repositorio y que el 2026-08-07 dejó rotas todas las subidas de imágenes.
+// Sin rol, cualquier usuario con sesión veía y borraba las cédulas de los
+// clientes y subía fotos de equipos. Ahora el rol viaja dentro de la sesión
+// (custom claims, los imprime el servidor: ver functions/index.js) y estas
+// reglas lo leen de ahí, sin llamar a nadie.
+//
+// Las listas de roles son las mismas de firestore.rules y RolesPermisos.jsx:
+// si cambian allá, cambiarlas también acá.
 
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function tieneRol(roles) {
+      return request.auth != null
+        && "role" in request.auth.token
+        && request.auth.token.role in roles;
+    }
+
+    // Permisos "clientes" y "gestionCartera".
+    function puedeGestionarClientes() {
+      return tieneRol(["gestorFacturacion", "gestorIntegral", "administrador"]);
+    }
+
+    // Permisos "crearEquipos" y "eliminarEditarEquipos".
+    function puedeGestionarEquipos() {
+      return tieneRol(["gestorEditor", "gestorIntegral", "administrador"]);
+    }
 
     // Fotos de perfil: las ve cualquiera con sesión iniciada (salen en la lista de
     // usuarios) y solo su dueño puede subirla o reemplazarla (HeaderUsuario.jsx).
@@ -32,24 +51,21 @@ service firebase.storage {
     }
 
     // Fotos del documento de identidad de cada cliente (frente y atrás, ver
-    // documentoCliente.js). NUNCA públicas: solo con sesión iniciada.
-    //
-    // Como en el resto de este archivo, acá no se mira el rol. El candado de
-    // verdad es el enlace de la foto: vive dentro del cliente en Firestore, y
-    // al cliente solo lo leen los roles de la vista clientes. Quien no puede
-    // abrir la ficha no tiene el enlace.
+    // documentoCliente.js). NUNCA públicas, y solo para quien maneja clientes:
+    // los mismos roles que pueden abrir la ficha en firestore.rules. Borrar
+    // también, porque la app borra la foto vieja al cambiarla por otra.
     //
     // Al subir, solo imágenes y de hasta 5 MB: la app las achica a unos
     // 300 KB antes de mandarlas, así que algo más grande no viene de ella.
     match /documentos/{clienteId}/{archivo} {
-      allow read, delete: if request.auth != null;
-      allow create, update: if request.auth != null
+      allow read, delete: if puedeGestionarClientes();
+      allow create, update: if puedeGestionarClientes()
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches("image/.*");
     }
 
     // Imágenes de equipos: lectura pública, porque el catálogo y el kiosco se ven
-    // sin iniciar sesión. Escritura para cualquier usuario con sesión.
+    // sin iniciar sesión. Escribir, solo quien maneja el catálogo.
     //
     // OJO: "documentos" tiene que quedar fuera de esta regla. Las reglas de
     // Storage se suman —si una deja pasar, pasa—, así que con solo agregar la
@@ -57,7 +73,7 @@ service firebase.storage {
     match /{carpeta}/{archivo=**} {
       allow read: if carpeta != "avatars" && carpeta != "documentos";
       allow write: if carpeta != "avatars" && carpeta != "documentos"
-        && request.auth != null;
+        && puedeGestionarEquipos();
     }
   }
 }

@@ -30,6 +30,9 @@ import {
   obtenerFechaHoyBogota,
 } from "./compartido/facturaCuentas.js";
 import {datosFactura} from "./compartido/facturaModelo.js";
+// Qué permisos trae cada rol: también una copia generada, del mismo mapa que
+// usa la app (src/Components/RolesPermisos/RolesPermisos.jsx).
+import RolesPermisos from "./compartido/rolesPermisos.js";
 
 initializeApp();
 
@@ -73,11 +76,45 @@ async function verificarPermisoUsuarios(request) {
   }
 }
 
+/**
+ * Frena un rol que no existe en el mapa de roles. Los permisos se calculan
+ * acá a partir del rol: la pantalla ya no los manda, y si mandara un rol
+ * inventado el usuario quedaría sin ninguno.
+ * @param {string} role Rol pedido.
+ */
+function validarRol(role) {
+  if (!role || !Object.hasOwn(RolesPermisos, role)) {
+    throw new HttpsError("invalid-argument", "El rol no es válido.");
+  }
+}
+
+/**
+ * EL CARNÉ (2026-10-16). El rol viaja también dentro de la sesión de cada
+ * usuario (custom claims), y las reglas de Firestore, Storage y la base en
+ * tiempo real lo leen de ahí, sin preguntarle a la ficha users/{uid}.
+ *
+ * Solo el servidor puede escribirlo, y la ficha sigue siendo el original: el
+ * carné es su copia. Por eso se reimprime cada vez que el rol cambia.
+ *
+ * Ojo, a sabiendas del dueño: un carné ya entregado vale hasta que vence
+ * (una hora). A quien se le baja el rol o se lo elimina le puede quedar ese
+ * rato con el rol viejo si no deja que la app lo renueve.
+ * @param {string} uid Usuario.
+ * @param {string} role Rol que tiene que decir el carné.
+ * @return {Promise} Cuando el carné quedó impreso.
+ */
+async function ponerRolEnCarne(uid, role) {
+  const {customClaims} = await getAuth().getUser(uid);
+  return getAuth().setCustomUserClaims(uid, {...customClaims, role});
+}
+
 export const createUser = onCall(async (request) => {
   await verificarPermisoUsuarios(request);
+  validarRol(request.data?.role);
 
   try {
-    const {email, password, name, genero, role, permisos} = request.data;
+    const {email, password, name, genero, role} = request.data;
+    const permisos = RolesPermisos[role];
 
     if (!email || !password) {
       throw new HttpsError(
@@ -99,6 +136,8 @@ export const createUser = onCall(async (request) => {
       permisos,
       createdAt: FieldValue.serverTimestamp(),
     });
+
+    await ponerRolEnCarne(userRecord.uid, role);
 
     return {
       success: true,
@@ -200,6 +239,62 @@ export const deleteUser = onCall(async (request) => {
         errorMessage || "Error interno al eliminar el usuario.",
     );
   }
+});
+
+// Editar nombre, género y rol de un usuario (ListaUsuarios.jsx). Pasa por acá
+// y no por el navegador porque el rol tiene que quedar en el carné, que solo
+// lo imprime el servidor; las reglas ya no dejan cambiar el rol desde afuera,
+// ni siquiera al administrador.
+export const actualizarUsuario = onCall(async (request) => {
+  await verificarPermisoUsuarios(request);
+
+  const {uid, name, genero, role} = request.data || {};
+  validarRol(role);
+  if (!uid || typeof uid !== "string") {
+    throw new HttpsError("invalid-argument", "Falta el usuario.");
+  }
+  if (!name || !String(name).trim()) {
+    throw new HttpsError("invalid-argument", "El nombre no puede estar vacío.");
+  }
+
+  const ficha = getFirestore().collection("users").doc(uid);
+  if (!(await ficha.get()).exists) {
+    throw new HttpsError("not-found", "El usuario no existe en el sistema.");
+  }
+
+  await ficha.update({
+    name: String(name).trim(),
+    genero: genero || "",
+    role,
+    permisos: RolesPermisos[role],
+  });
+  await ponerRolEnCarne(uid, role);
+
+  return {success: true};
+});
+
+// Pone al día el carné de QUIEN LLAMA con el rol de su ficha. Lo pide la app
+// al abrir la sesión cuando el carné no coincide: así los usuarios que ya
+// existían el 2026-10-16 reciben el suyo sin tener que volver a entrar, y el
+// que tenía la app abierta cuando le cambiaron el rol, también.
+//
+// No recibe nada: copia lo que dice la ficha, que el usuario no puede tocar.
+export const sincronizarMiRol = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+        "unauthenticated",
+        "Tenés que iniciar sesión para hacer esto.",
+    );
+  }
+
+  const uid = request.auth.uid;
+  const ficha = await getFirestore().collection("users").doc(uid).get();
+  const role = ficha.exists ? ficha.data().role || "" : "";
+
+  if (request.auth.token.role === role) return {cambio: false};
+
+  await ponerRolEnCarne(uid, role);
+  return {cambio: true};
 });
 
 // Los roles que atienden solicitudes: los mismos que ven el buzón en

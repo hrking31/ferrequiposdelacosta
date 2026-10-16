@@ -26,10 +26,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useAuth } from "../../Context/useAuth";
-import RolesPermisos from "../RolesPermisos/RolesPermisos";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions, auth } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -53,6 +52,7 @@ export default function UsersList() {
     (state) => state.presence.usuariosConectados || {},
   );
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
+  const actualizarUsuarioCloud = httpsCallable(functions, "actualizarUsuario");
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -96,10 +96,10 @@ export default function UsersList() {
     setSelectedUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Guardar Edición en Firestore
+  // Guardar la edición. La hace el servidor: el rol tiene que quedar también
+  // en el carné de la sesión, que solo él imprime, y los permisos los calcula
+  // él a partir del rol (ver actualizarUsuario en functions/index.js).
   const handleSaveChanges = async () => {
-    const permisos = RolesPermisos[selectedUser.role];
-
     if (!selectedUser.name.trim()) {
       showSnackbar("El nombre no puede estar vacío", "error");
       return;
@@ -112,15 +112,12 @@ export default function UsersList() {
 
     setLoadingGuardar(true);
     try {
-      const userRef = doc(db, "users", selectedUser.id);
-      const updatedData = {
+      await actualizarUsuarioCloud({
+        uid: selectedUser.id,
         name: selectedUser.name,
         genero: selectedUser.genero,
         role: selectedUser.role,
-        permisos,
-      };
-
-      await updateDoc(userRef, updatedData);
+      });
 
       showSnackbar("Usuario actualizado con éxito", "success");
       handleCloseModal();
