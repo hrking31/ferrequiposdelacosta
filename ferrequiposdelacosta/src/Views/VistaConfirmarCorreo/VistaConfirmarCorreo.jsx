@@ -13,12 +13,6 @@ import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 //
 // El correo no sale solo al entrar: lo pide la persona con el botón. Así no
 // se manda uno cada vez que abre la app sin haber confirmado todavía.
-const PASOS = [
-  "Toque «Enviarme el correo».",
-  "Abra el correo y toque el enlace.",
-  "Vuelva acá y toque «Ya confirmé».",
-];
-
 export default function VistaConfirmarCorreo() {
   const theme = useTheme();
   const { user, logout, enviarVerificacion, confirmarCorreo } = useAuth();
@@ -104,8 +98,7 @@ export default function VistaConfirmarCorreo() {
           Confirme su correo
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Para entrar al panel, confirme que este correo es suyo. Se hace una
-          sola vez.
+          Para entrar al panel, confirme que este correo es suyo.
         </Typography>
 
         <Typography
@@ -121,38 +114,6 @@ export default function VistaConfirmarCorreo() {
         >
           {user?.email}
         </Typography>
-
-        <Box
-          component="ol"
-          sx={{ listStyle: "none", p: 0, m: 0, mb: 3, textAlign: "left" }}
-        >
-          {PASOS.map((paso, i) => (
-            <Box
-              component="li"
-              key={paso}
-              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.25 }}
-            >
-              <Box
-                sx={{
-                  flexShrink: 0,
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: acento,
-                  border: `1.5px solid ${acento}`,
-                }}
-              >
-                {i + 1}
-              </Box>
-              <Typography variant="body2">{paso}</Typography>
-            </Box>
-          ))}
-        </Box>
 
         <Stack spacing={1.25}>
           <Button
