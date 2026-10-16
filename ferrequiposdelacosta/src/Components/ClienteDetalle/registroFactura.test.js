@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { autorLegible, describirCambio } from "./registroFactura";
+import { autorLegible, describirCambio, esCorreccion } from "./registroFactura";
 import { borradorDe, facturaCorregida } from "./correccionFactura";
-import { abrirTramosFactura, partirLinea } from "./facturaCuentas";
+import {
+  abrirTramosFactura,
+  ampliarEquipo,
+  pactarEntrega,
+  partirLinea,
+  sellarFacturaPagada,
+} from "./facturaCuentas";
 import { formatearMoneda } from "../../Utils/formato";
 import { unEquipo, unEquipoDevuelto, unTramoVencido, unaFactura } from "../../test/facturas";
 
@@ -215,6 +221,116 @@ describe("el registro de cambios — qué pasó", () => {
     expect(cambio(antes, { ...antes, otroDato: true })).toEqual([
       "Cambió la factura, sin detalle que mostrar.",
     ]);
+  });
+});
+
+// La pantalla muestra solo las correcciones: lo que cambió o quitó algo ya
+// escrito. El trabajo de todos los días no sale. Pedido del dueño el
+// 2026-10-15, cuando el historial le mostró como "cambios" la entrega pactada
+// y el abono que anotó Aida.
+describe("el registro de cambios — qué es una corrección", () => {
+  const esUna = (antes, despues) =>
+    esCorreccion({ clase: "modificada", antes, despues, cuando: CUANDO });
+
+  // Despachado el 01/10 por 3 días: vencido desde el 04/10 y sigue afuera.
+  const afuera = () =>
+    unEquipo({
+      nombre: "ANDAMIO",
+      dias: 3,
+      fechaDespacho: "2026-10-01",
+      aplicaIva: false,
+      vencidos: [unTramoVencido({ desde: "2026-10-04", hasta: null })],
+    });
+  const conAfuera = (extra = {}) => factura({ equipos: [afuera()], ...extra });
+  const abono = (medio, monto) => ({ fecha: HOY, medio, monto, tipo: "cliente" });
+
+  it("crear la factura no; borrarla sí", () => {
+    expect(esCorreccion({ clase: "creada", antes: null, despues: factura() })).toBe(false);
+    expect(esCorreccion({ clase: "borrada", antes: factura(), despues: null })).toBe(true);
+  });
+
+  it("anotar un abono no es corregir; cambiarlo o quitarlo, sí", () => {
+    const sinAbono = factura();
+    const conAbono = factura({ abonos: [abono("Nequi", 100000)] });
+
+    expect(esUna(sinAbono, conAbono)).toBe(false);
+    expect(esUna(conAbono, factura({ abonos: [abono("Efectivo", 100000)] }))).toBe(true);
+    expect(esUna(conAbono, sinAbono)).toBe(true);
+  });
+
+  // El abono que usa el depósito y además trae plata anota dos de una vez.
+  it("dos abonos que llegan juntos se anotan uno por uno", () => {
+    const antes = factura();
+    const despues = factura({ abonos: [abono("Depósito", 50000), abono("Nequi", 20000)] });
+
+    expect(esUna(antes, despues)).toBe(false);
+    expect(cambio(antes, despues).slice(0, 2)).toEqual([
+      `Abono de ${plata(50000)} por Depósito (13/10/2026)`,
+      `Abono de ${plata(20000)} por Nequi (13/10/2026)`,
+    ]);
+  });
+
+  it("el pago que salda la factura y le cierra la mora no es corregir", () => {
+    const antes = conAfuera();
+    const conPago = { ...antes, abonos: [abono("Efectivo", 500000)] };
+    const despues = { ...conPago, grupos: sellarFacturaPagada(conPago, HOY) };
+
+    expect(esUna(antes, despues)).toBe(false);
+    expect(cambio(antes, despues)).toContain("ANDAMIO: se cerró la mora el 13/10/2026");
+  });
+
+  it("pactar la entrega, ampliar o anotar una llamada no es corregir", () => {
+    const antes = conAfuera();
+    const con = (equipo) => conAfuera({ equipos: [equipo] });
+
+    expect(esUna(antes, con(pactarEntrega(afuera(), HOY)))).toBe(false);
+    expect(
+      esUna(antes, con(ampliarEquipo(afuera(), { dias: 3, descuentoVencidos: 10000 }, HOY))),
+    ).toBe(false);
+    expect(
+      esUna(antes, conAfuera({ gestiones: [{ tipo: "llamada", fecha: HOY }] })),
+    ).toBe(false);
+  });
+
+  it("la mora de la madrugada y la devolución de una parte no son corregir", () => {
+    const enPlazo = factura({
+      equipos: [unEquipo({ nombre: "ANDAMIO", dias: 3, fechaDespacho: "2026-10-01" })],
+    });
+    expect(esUna(enPlazo, { ...enPlazo, grupos: abrirTramosFactura(enPlazo, HOY) })).toBe(false);
+
+    const cinco = unEquipo({ nombre: "ANDAMIO", cantidad: 5, dias: 30, fechaDespacho: "2026-10-01" });
+    const [vuelve, queda] = partirLinea(cinco, 2);
+    const devolucion = { fechaDevolucion: HOY, buenEstado: true, motivo: "", valorRetenido: 0 };
+    expect(
+      esUna(factura({ equipos: [cinco] }), factura({ equipos: [{ ...vuelve, devolucion }, queda] })),
+    ).toBe(false);
+  });
+
+  it("cambiar una fecha, un precio o el descuento de los días vencidos sí", () => {
+    const antes = factura();
+    const borrador = borradorDe(antes);
+    borrador.grupos[0].equipos[0].hechos = borrador.grupos[0].equipos[0].hechos.map(
+      (hecho) => ({ ...hecho, fecha: "2026-09-07" }),
+    );
+    expect(esUna(antes, facturaCorregida(antes, borrador, HOY))).toBe(true);
+    expect(esUna(antes, factura({ equipos: [{ ...cerchas(), valorDia: 2000 }] }))).toBe(true);
+
+    const sellado = (descuento) =>
+      factura({
+        equipos: [
+          {
+            ...afuera(),
+            vencidos: [{ ...unTramoVencido({ desde: "2026-10-04", hasta: HOY }), descuento }],
+          },
+        ],
+      });
+    expect(esUna(sellado(0), sellado(20000))).toBe(true);
+    expect(cambio(sellado(0), sellado(20000))[0]).toBe("ANDAMIO: cambiaron sus días vencidos");
+  });
+
+  it("lo que no se sabe nombrar se muestra", () => {
+    const antes = factura();
+    expect(esUna(antes, { ...antes, otroDato: true })).toBe(true);
   });
 });
 

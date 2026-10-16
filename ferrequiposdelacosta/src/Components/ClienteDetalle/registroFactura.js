@@ -3,11 +3,21 @@
 // El servidor anota cada cambio con la factura entera de antes y de después
 // (ver anotarCambioDeFactura en functions/index.js). Eso sirve de prueba, pero
 // no se puede leer: acá se comparan las dos y se dice QUÉ cambió, en
-// renglones.
+// renglones. Lo que no sabe describir lo dice igual, sin detalle, antes que
+// callarlo.
 //
-// No intenta adivinar la intención —"fue una corrección", "fue un abono"—:
-// dice los hechos que se movieron y, al final, cómo quedó el saldo. Lo que no
-// sabe describir lo dice igual, sin detalle, antes que callarlo.
+// Y separa las dos clases de cambio. El servidor anota TODO —la base no
+// distingue una corrección de un abono—, pero la pantalla muestra solo las
+// CORRECCIONES: el dueño pidió el 2026-10-15 saber quién corrigió qué y
+// cuándo, no ver el trabajo de todos los días.
+//
+//   corrige   cambia o quita algo que ya estaba escrito: una fecha, un monto,
+//             un abono que desaparece.
+//   anota     agrega algo nuevo: un abono, una devolución, una ampliación,
+//             la entrega pactada, una llamada, la mora de la madrugada.
+//
+// Se reconoce por lo que cambió y no por la pantalla que lo hizo: así
+// también aparece lo que se cambió por fuera de la pantalla de corregir.
 import { calcularCuentaFactura, hechosDeEquipo } from "./facturaCuentas";
 import {
   abonosDe,
@@ -20,6 +30,7 @@ import {
   pagosDe,
   tipoPagoDe,
   tramoVencidoAbierto,
+  vencidosDe,
 } from "./facturaModelo";
 import { nombreDelGrupo } from "./correccionFactura";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
@@ -32,6 +43,10 @@ const igual = mismoContenido;
 const plata = (valor) => formatearMoneda(numero(valor));
 const fecha = (iso) => (iso ? formatearFechaLegible(iso) : "sin fecha");
 const sumar = (lista) => lista.reduce((total, { monto }) => total + numero(monto), 0);
+
+// Cada renglón con su clase (ver arriba).
+const anota = (texto) => ({ texto, corrige: false });
+const corrige = (texto) => ({ texto, corrige: true });
 
 // El día del cambio en Colombia: la cuenta de una factura depende de la
 // fecha, y la de antes y la de después se miden el mismo día.
@@ -69,16 +84,16 @@ const DATOS_DEL_EQUIPO = [
 ];
 
 const cambiosDeEquipo = (antes, despues) => {
-  const lineas = [];
+  const renglones = [];
   const quien = despues.nombre || antes.nombre;
-  const decir = (texto) => lineas.push(`${quien}: ${texto}`);
+  const decir = (clase, texto) => renglones.push(clase(`${quien}: ${texto}`));
 
   if (antes.nombre !== despues.nombre) {
-    lineas.push(`Equipo: ${antes.nombre} → ${despues.nombre}`);
+    renglones.push(corrige(`Equipo: ${antes.nombre} → ${despues.nombre}`));
   }
   DATOS_DEL_EQUIPO.forEach(([campo, rotulo, mostrar]) => {
     if (antes[campo] !== despues[campo]) {
-      decir(`${rotulo} ${mostrar(antes[campo])} → ${mostrar(despues[campo])}`);
+      decir(corrige, `${rotulo} ${mostrar(antes[campo])} → ${mostrar(despues[campo])}`);
     }
   });
 
@@ -88,15 +103,16 @@ const cambiosDeEquipo = (antes, despues) => {
   const [volvioAntes] = hechosDe(antes, "devolucion");
   const [volvioDespues] = hechosDe(despues, "devolucion");
   if (!volvioAntes && volvioDespues) {
-    decir(`se registró la devolución del ${fecha(volvioDespues.fecha)}`);
+    decir(anota, `se registró la devolución del ${fecha(volvioDespues.fecha)}`);
   } else if (volvioAntes && !volvioDespues) {
-    decir(`se quitó la devolución del ${fecha(volvioAntes.fecha)}`);
+    decir(corrige, `se quitó la devolución del ${fecha(volvioAntes.fecha)}`);
   } else if (volvioAntes && volvioDespues) {
     if (volvioAntes.fecha !== volvioDespues.fecha) {
-      decir(`devolución ${fecha(volvioAntes.fecha)} → ${fecha(volvioDespues.fecha)}`);
+      decir(corrige, `devolución ${fecha(volvioAntes.fecha)} → ${fecha(volvioDespues.fecha)}`);
     }
     if (volvioAntes.cobraElDia !== volvioDespues.cobraElDia) {
       decir(
+        corrige,
         volvioDespues.cobraElDia
           ? "ahora se cobra el día de la devolución"
           : "ya no se cobra el día de la devolución",
@@ -105,6 +121,7 @@ const cambiosDeEquipo = (antes, despues) => {
     const estado = ({ devolucion }) => [devolucion?.buenEstado !== false, devolucion?.motivo || ""];
     if (!igual(estado(volvioAntes), estado(volvioDespues))) {
       decir(
+        corrige,
         volvioDespues.devolucion?.buenEstado === false
           ? `volvió con novedad: ${volvioDespues.devolucion.motivo || "sin detalle"}`
           : "volvió en buen estado",
@@ -112,69 +129,111 @@ const cambiosDeEquipo = (antes, despues) => {
     }
     const retenido = ({ devolucion }) => numero(devolucion?.valorRetenido);
     if (retenido(volvioAntes) !== retenido(volvioDespues)) {
-      decir(`retenido ${plata(retenido(volvioAntes))} → ${plata(retenido(volvioDespues))}`);
+      decir(corrige, `retenido ${plata(retenido(volvioAntes))} → ${plata(retenido(volvioDespues))}`);
     }
   }
 
+  // La pantalla de corregir no agrega ampliaciones: una de más es siempre la
+  // que pidió el cliente.
   const ampliacionesAntes = hechosDe(antes, "ampliacion");
   const ampliacionesDespues = hechosDe(despues, "ampliacion");
   if (ampliacionesDespues.length === ampliacionesAntes.length + 1) {
     const nueva = ampliacionesDespues.at(-1);
-    decir(`se amplió ${nueva.dias} ${nueva.dias === 1 ? "día" : "días"} el ${fecha(nueva.fecha)}`);
+    decir(anota, `se amplió ${nueva.dias} ${nueva.dias === 1 ? "día" : "días"} el ${fecha(nueva.fecha)}`);
   } else if (!igual(ampliacionesAntes, ampliacionesDespues)) {
-    decir("cambiaron sus ampliaciones");
+    decir(corrige, "cambiaron sus ampliaciones");
   }
 
   const [pactadaAntes] = hechosDe(antes, "entregaPactada");
   const [pactadaDespues] = hechosDe(despues, "entregaPactada");
   if (!pactadaAntes && pactadaDespues) {
-    decir(`se pactó la entrega el ${fecha(pactadaDespues.fecha)}`);
+    decir(anota, `se pactó la entrega el ${fecha(pactadaDespues.fecha)}`);
   } else if (pactadaAntes && !pactadaDespues) {
-    decir("se quitó la entrega pactada");
+    decir(corrige, "se quitó la entrega pactada");
   } else if (pactadaAntes?.fecha !== pactadaDespues?.fecha) {
-    decir(`entrega pactada ${fecha(pactadaAntes.fecha)} → ${fecha(pactadaDespues.fecha)}`);
+    decir(corrige, `entrega pactada ${fecha(pactadaAntes.fecha)} → ${fecha(pactadaDespues.fecha)}`);
   }
-  if (
-    hechosDe(antes, "entregaAnulada").length === 0 &&
-    hechosDe(despues, "entregaAnulada").length > 0
-  ) {
-    decir("se anuló la entrega pactada");
+
+  // Quitar la entrega pactada se lleva su anulación: eso ya lo dijo el
+  // renglón de arriba.
+  const [anuladaAntes] = hechosDe(antes, "entregaAnulada");
+  const [anuladaDespues] = hechosDe(despues, "entregaAnulada");
+  if (!anuladaAntes && anuladaDespues) {
+    decir(anota, "se anuló la entrega pactada");
+  } else if (anuladaAntes && !anuladaDespues && pactadaDespues) {
+    decir(corrige, "se quitó la anulación de la entrega pactada");
+  } else if (anuladaAntes && anuladaDespues && anuladaAntes.fecha !== anuladaDespues.fecha) {
+    decir(
+      corrige,
+      `anulación de la entrega ${fecha(anuladaAntes.fecha)} → ${fecha(anuladaDespues.fecha)}`,
+    );
   }
 
   if (
     hechosDe(antes, "indefinida").length === 0 &&
     hechosDe(despues, "indefinida").length > 0
   ) {
-    decir("quedó sin fecha de entrega");
+    decir(anota, "quedó sin fecha de entrega");
   }
 
   // Lo único que cambia solo, sin que nadie haga nada: la madrugada le abre
   // la mora al que amaneció pasado de plazo.
   const abierto = tramoVencidoAbierto(despues);
   if (!tramoVencidoAbierto(antes) && abierto && sigueIgualSalvoLaMora(antes, despues)) {
-    decir(`empezó a correr la mora desde el ${fecha(abierto.desde)}`);
+    decir(anota, `empezó a correr la mora desde el ${fecha(abierto.desde)}`);
   }
 
-  // Cambió y nada de lo anterior lo explica: se dice igual.
-  if (lineas.length === 0 && !igual(antes, despues)) {
-    decir("cambiaron sus días vencidos");
+  // Cambió y nada de lo anterior lo explica. Si fue un pago que saldó la
+  // factura, que le cierra la mora al equipo, es trabajo de todos los días;
+  // si no, se tocaron los días vencidos o su descuento.
+  if (renglones.length === 0 && !igual(antes, despues)) {
+    if (soloSeCerroLaMora(antes, despues)) {
+      decir(anota, `se cerró la mora el ${fecha(vencidosDe(despues).at(-1).hasta)}`);
+    } else {
+      decir(corrige, "cambiaron sus días vencidos");
+    }
   }
-  return lineas;
+  return renglones;
 };
 
 const sigueIgualSalvoLaMora = (antes, despues) =>
   igual({ ...antes, vencidos: null }, { ...despues, vencidos: null });
 
+// Lo que hace un pago que salda la factura (ver sellarFacturaPagada): cierra
+// el tramo que venía corriendo, o anota uno ya cerrado. Nada más se mueve: ni
+// los tramos viejos ni ningún descuento.
+const soloSeCerroLaMora = (antes, despues) => {
+  if (!sigueIgualSalvoLaMora(antes, despues)) return false;
+  const tramosAntes = vencidosDe(antes);
+  const tramosDespues = vencidosDe(despues);
+  if (tramosDespues.length < tramosAntes.length) return false;
+
+  const losDeAntesSiguen = tramosAntes.every((tramo, indice) => {
+    const ahora = tramosDespues[indice];
+    if (igual(tramo, ahora)) return true;
+    return (
+      !tramo?.hasta &&
+      Boolean(ahora?.hasta) &&
+      igual({ ...tramo, hasta: null }, { ...ahora, hasta: null })
+    );
+  });
+  const losNuevosCerrados = tramosDespues
+    .slice(tramosAntes.length)
+    .every((tramo) => Boolean(tramo?.hasta) && numero(tramo?.descuento) === 0);
+
+  return losDeAntesSiguen && losNuevosCerrados;
+};
+
 const unidades = (equipos) =>
   equipos.reduce((total, equipo) => total + numero(equipo?.cantidadEquipos), 0);
 
 const cambiosDeGrupo = (antes, despues) => {
-  const lineas = [];
+  const renglones = [];
   const despacho = nombreDelGrupo(despues.grupo);
-  const decir = (texto) => lineas.push(`${despacho}: ${texto}`);
+  const decir = (clase, texto) => renglones.push(clase(`${despacho}: ${texto}`));
 
   if (antes.fechaSolicitud !== despues.fechaSolicitud) {
-    decir(`fecha ${fecha(antes.fechaSolicitud)} → ${fecha(despues.fechaSolicitud)}`);
+    decir(corrige, `fecha ${fecha(antes.fechaSolicitud)} → ${fecha(despues.fechaSolicitud)}`);
   }
 
   const adicionalesAntes = adicionalesDe(antes);
@@ -185,10 +244,11 @@ const cambiosDeGrupo = (antes, despues) => {
   ) {
     const transporte = ({ transporte: tipo, valorTransporte }) =>
       `${tipo || "Sin transporte"} ${plata(valorTransporte)}`;
-    decir(`transporte ${transporte(adicionalesAntes)} → ${transporte(adicionalesDespues)}`);
+    decir(corrige, `transporte ${transporte(adicionalesAntes)} → ${transporte(adicionalesDespues)}`);
   }
   if (numero(adicionalesAntes.valorDeposito) !== numero(adicionalesDespues.valorDeposito)) {
     decir(
+      corrige,
       `depósito ${plata(adicionalesAntes.valorDeposito)} → ${plata(adicionalesDespues.valorDeposito)}`,
     );
   }
@@ -197,32 +257,43 @@ const cambiosDeGrupo = (antes, despues) => {
     tipoPagoDe(antes) !== tipoPagoDe(despues) ||
     !igual(pagosDe(antes), pagosDe(despues))
   ) {
-    decir(`pago ${plata(sumar(pagosDe(antes)))} → ${plata(sumar(pagosDe(despues)))}`);
+    decir(corrige, `pago ${plata(sumar(pagosDe(antes)))} → ${plata(sumar(pagosDe(despues)))}`);
   }
 
   const equiposAntes = antes.equipos ?? [];
   const equiposDespues = despues.equipos ?? [];
   if (equiposAntes.length === equiposDespues.length) {
     equiposAntes.forEach((equipo, indice) => {
-      lineas.push(...cambiosDeEquipo(equipo, equiposDespues[indice]));
+      renglones.push(...cambiosDeEquipo(equipo, equiposDespues[indice]));
     });
   } else {
-    // Una línea se partió —devolvió una parte— o se cargó o quitó un equipo:
-    // las de antes ya no se corresponden una a una con las de después.
+    // Una línea se partió —devolvió o pactó una parte— o se cargó o quitó un
+    // equipo: las de antes ya no se corresponden una a una con las de
+    // después. Partirla no cambia cuántas unidades salieron; cargar o quitar
+    // un equipo, sí.
     const devueltas = (equipos) => unidades(equipos.filter(estaDevuelto));
+    const sePartio =
+      unidades(equiposAntes) === unidades(equiposDespues) &&
+      devueltas(equiposDespues) >= devueltas(equiposAntes);
     decir(
+      sePartio ? anota : corrige,
       `${unidades(equiposAntes)} → ${unidades(equiposDespues)} unidades, ` +
         `${devueltas(equiposAntes)} → ${devueltas(equiposDespues)} devueltas`,
     );
   }
-  return lineas;
+  return renglones;
 };
 
 const cambiosDePlata = (rotulo, antes, despues) => {
   if (igual(antes, despues)) return [];
-  if (despues.length === antes.length + 1 && igual(despues.slice(0, -1), antes)) {
-    const nuevo = despues.at(-1);
-    return [`${rotulo} de ${plata(nuevo.monto)} por ${nuevo.medio || "—"} (${fecha(nuevo.fecha)})`];
+  // Los de antes siguen tal cual y llegaron otros: un abono con depósito y
+  // plata trae dos de una vez.
+  if (despues.length > antes.length && igual(despues.slice(0, antes.length), antes)) {
+    return despues
+      .slice(antes.length)
+      .map((nuevo) =>
+        anota(`${rotulo} de ${plata(nuevo.monto)} por ${nuevo.medio || "—"} (${fecha(nuevo.fecha)})`),
+      );
   }
   // Los mismos, uno corregido: se dice qué cambió en cada uno. Con la suma
   // sola, corregir el medio se leía "Abonos: $20.000 → $20.000".
@@ -241,27 +312,30 @@ const cambiosDePlata = (rotulo, antes, despues) => {
         partes.push(`${plata(viejo.monto)} → ${plata(nuevo.monto)}`);
       }
       if (partes.length === 0) partes.push("cambió la factura que nombra");
-      return [`${rotulo} del ${fecha(viejo.fecha)}: ${partes.join(", ")}`];
+      return [corrige(`${rotulo} del ${fecha(viejo.fecha)}: ${partes.join(", ")}`)];
     });
   }
-  return [`${rotulo}s: ${plata(sumar(antes))} → ${plata(sumar(despues))}`];
+  return [corrige(`${rotulo}s: ${plata(sumar(antes))} → ${plata(sumar(despues))}`)];
 };
 
-// Los renglones de UN cambio, tal como lo anotó el servidor.
-export const describirCambio = ({ clase, antes, despues, cuando }) => {
-  if (clase === "creada") return ["Se creó la factura."];
-  if (clase === "borrada") return ["Se borró la factura."];
+// Los renglones de UN cambio, tal como lo anotó el servidor, cada uno con su
+// clase.
+const renglonesDelCambio = ({ clase, antes, despues, cuando }) => {
+  if (clase === "creada") return [anota("Se creó la factura.")];
+  if (clase === "borrada") return [corrige("Se borró la factura.")];
 
-  const lineas = [];
+  const renglones = [];
   const datosAntes = datosFactura(antes);
   const datosDespues = datosFactura(despues);
 
   if (datosAntes.numeroFactura !== datosDespues.numeroFactura) {
-    lineas.push(`Número: ${datosAntes.numeroFactura} → ${datosDespues.numeroFactura}`);
+    renglones.push(corrige(`Número: ${datosAntes.numeroFactura} → ${datosDespues.numeroFactura}`));
   }
   if (datosAntes.fechaCreacion !== datosDespues.fechaCreacion) {
-    lineas.push(
-      `Fecha de creación: ${fecha(datosAntes.fechaCreacion)} → ${fecha(datosDespues.fechaCreacion)}`,
+    renglones.push(
+      corrige(
+        `Fecha de creación: ${fecha(datosAntes.fechaCreacion)} → ${fecha(datosDespues.fechaCreacion)}`,
+      ),
     );
   }
 
@@ -269,40 +343,57 @@ export const describirCambio = ({ clase, antes, despues, cuando }) => {
   gruposDe(despues).forEach((grupo) => {
     const previo = gruposAntes.find((cada) => cada.grupo === grupo.grupo);
     if (previo) {
-      lineas.push(...cambiosDeGrupo(previo, grupo));
+      renglones.push(...cambiosDeGrupo(previo, grupo));
     } else {
-      lineas.push(
-        `Se agregó el ${nombreDelGrupo(grupo.grupo).toLowerCase()}: ${unidades(grupo.equipos ?? [])} unidades.`,
+      renglones.push(
+        anota(
+          `Se agregó el ${nombreDelGrupo(grupo.grupo).toLowerCase()}: ${unidades(grupo.equipos ?? [])} unidades.`,
+        ),
       );
     }
   });
   gruposAntes
     .filter((grupo) => !gruposDe(despues).some((cada) => cada.grupo === grupo.grupo))
     .forEach((grupo) =>
-      lineas.push(`Se quitó el ${nombreDelGrupo(grupo.grupo).toLowerCase()}.`),
+      renglones.push(corrige(`Se quitó el ${nombreDelGrupo(grupo.grupo).toLowerCase()}.`)),
     );
 
-  lineas.push(...cambiosDePlata("Abono", abonosDe(antes), abonosDe(despues)));
-  lineas.push(...cambiosDePlata("Entrega", entregasDe(antes), entregasDe(despues)));
+  renglones.push(...cambiosDePlata("Abono", abonosDe(antes), abonosDe(despues)));
+  renglones.push(...cambiosDePlata("Entrega", entregasDe(antes), entregasDe(despues)));
 
   if (gestionesDe(despues).length > gestionesDe(antes).length) {
-    lineas.push("Se anotó una gestión de cobranza.");
+    renglones.push(anota("Se anotó una gestión de cobranza."));
   }
+  // Lo resuelve la devolución, o sale solo de una corrección que ya tiene
+  // su propio renglón.
   if (Boolean(datosAntes.depositoResuelto) !== Boolean(datosDespues.depositoResuelto)) {
-    lineas.push(
-      datosDespues.depositoResuelto
-        ? "El depósito quedó resuelto."
-        : "El depósito volvió a quedar pendiente.",
+    renglones.push(
+      anota(
+        datosDespues.depositoResuelto
+          ? "El depósito quedó resuelto."
+          : "El depósito volvió a quedar pendiente.",
+      ),
     );
   }
 
   // Y lo que le importa al dueño: si el cambio movió la plata que se debe.
+  // Es una consecuencia, no un cambio en sí: acompaña al que lo provocó.
   const dia = diaDelCambio(cuando);
   const saldoAntes = calcularCuentaFactura(antes, dia).saldoPendiente;
   const saldoDespues = calcularCuentaFactura(despues, dia).saldoPendiente;
   if (saldoAntes !== saldoDespues) {
-    lineas.push(`Saldo pendiente: ${plata(saldoAntes)} → ${plata(saldoDespues)}`);
+    renglones.push(anota(`Saldo pendiente: ${plata(saldoAntes)} → ${plata(saldoDespues)}`));
   }
 
-  return lineas.length > 0 ? lineas : ["Cambió la factura, sin detalle que mostrar."];
+  // Lo que no se sabe nombrar se muestra: puede ser justo lo que se busca.
+  return renglones.length > 0
+    ? renglones
+    : [corrige("Cambió la factura, sin detalle que mostrar.")];
 };
+
+export const describirCambio = (cambio) =>
+  renglonesDelCambio(cambio).map(({ texto }) => texto);
+
+// Si el cambio corrigió algo: cambió o quitó lo que ya estaba escrito.
+export const esCorreccion = (cambio) =>
+  renglonesDelCambio(cambio).some((renglon) => renglon.corrige);

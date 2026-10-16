@@ -101,14 +101,14 @@ beforeEach(() => {
   bd.getDocs.mockImplementation(enLaBase({}));
 });
 
-// Todo lo que le pasó a la factura, anotado por el servidor: quién, cuándo y
+// Lo que se CORRIGIÓ en la factura, anotado por el servidor: quién, cuándo y
 // qué cambió. Va al final de la pantalla y solo lo lee el administrador.
-describe("CorregirFacturaDialog — el historial de cambios", () => {
-  it("muestra cada cambio con su autor y lo que cambió, del más nuevo al más viejo", async () => {
-    const conAbono = {
+describe("CorregirFacturaDialog — el historial de correcciones", () => {
+  it("muestra solo las correcciones, con su autor, de la más nueva a la más vieja", async () => {
+    const conAbono = (medio) => ({
       ...documento(),
-      abonos: [{ fecha: SE_ANOTO, medio: "Nequi", monto: 50000, tipo: "cliente" }],
-    };
+      abonos: [{ fecha: SE_ANOTO, medio, monto: 50000, tipo: "cliente" }],
+    });
     bd.getDocs.mockImplementation(
       enLaBase({
         registroFacturas: [
@@ -121,14 +121,33 @@ describe("CorregirFacturaDialog — el historial de cambios", () => {
             antes: null,
             despues: documento(),
           },
+          // El trabajo de todos los días: anotar un abono. No sale.
           {
             id: "c2",
             clase: "modificada",
-            cuando: Date.UTC(2026, 9, 10, 15, 0),
-            quien: "uid-hernando",
+            cuando: Date.UTC(2026, 9, 9, 15, 0),
+            quien: "uid-aida",
             tipoDeAutor: "app_user",
             antes: documento(),
-            despues: conAbono,
+            despues: conAbono("Nequi"),
+          },
+          {
+            id: "c3",
+            clase: "modificada",
+            cuando: Date.UTC(2026, 9, 10, 15, 0),
+            quien: "uid-aida",
+            tipoDeAutor: "app_user",
+            antes: conAbono("Nequi"),
+            despues: conAbono("Efectivo"),
+          },
+          {
+            id: "c4",
+            clase: "modificada",
+            cuando: Date.UTC(2026, 9, 11, 15, 0),
+            quien: "uid-hernando",
+            tipoDeAutor: "app_user",
+            antes: conAbono("Efectivo"),
+            despues: documento(),
           },
         ],
         users: [
@@ -139,12 +158,14 @@ describe("CorregirFacturaDialog — el historial de cambios", () => {
     );
     abrir();
 
-    const historial = within(await screen.findByLabelText("Historial de cambios"));
+    const historial = within(await screen.findByLabelText("Historial de correcciones"));
     expect(await historial.findByText(/Hernando Rey/)).toBeInTheDocument();
-    expect(historial.getByText(/Abono de .*50\.000.* por Nequi/)).toBeInTheDocument();
-    expect(historial.getByText("· Se creó la factura.")).toBeInTheDocument();
+    expect(historial.getByText(/Abono del .*: medio Nequi → Efectivo/)).toBeInTheDocument();
+    expect(historial.getByText(/Abonos: .*50\.000.* → .*0/)).toBeInTheDocument();
+    expect(historial.queryByText("· Se creó la factura.")).not.toBeInTheDocument();
+    expect(historial.queryByText(/Abono de .*50\.000.* por Nequi/)).not.toBeInTheDocument();
 
-    // El abono, que es lo último que pasó, va primero.
+    // La que quitó el abono, que es lo último que pasó, va primero.
     const autores = historial.getAllByText(/ · (Aida Pérez|Hernando Rey)$/);
     expect(autores.map((nodo) => nodo.textContent.split(" · ")[1])).toEqual([
       "Hernando Rey",
@@ -152,12 +173,10 @@ describe("CorregirFacturaDialog — el historial de cambios", () => {
     ]);
   });
 
-  it("sin nada anotado todavía, lo dice", async () => {
+  it("sin correcciones, lo dice", async () => {
     abrir();
 
-    expect(
-      await screen.findByText("Todavía no hay cambios anotados para esta factura."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Esta factura no tiene correcciones.")).toBeInTheDocument();
   });
 
   // Si el historial no se puede leer, la corrección sigue funcionando: son

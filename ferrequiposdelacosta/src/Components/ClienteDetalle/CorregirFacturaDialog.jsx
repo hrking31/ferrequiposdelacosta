@@ -54,7 +54,7 @@ import {
   quitarHecho,
   tieneCrucesPropios,
 } from "./correccionFactura";
-import { autorLegible, cuandoLegible, describirCambio } from "./registroFactura";
+import { autorLegible, cuandoLegible, describirCambio, esCorreccion } from "./registroFactura";
 import {
   ESTADO_FACTURA_INFO,
   MEDIO_DEPOSITO,
@@ -109,6 +109,17 @@ const renglonesDe = (cambio) => {
     return describirCambio(cambio);
   } catch {
     return ["Cambió la factura, sin detalle que mostrar."];
+  }
+};
+
+// El historial muestra solo lo que se corrigió, no el trabajo de todos los
+// días (ver registroFactura.js). El que no se sabe leer se muestra: puede ser
+// justo lo que se busca.
+const corrigioAlgo = (cambio) => {
+  try {
+    return esCorreccion(cambio);
+  } catch {
+    return true;
   }
 };
 
@@ -179,9 +190,11 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         const datos = (snap) => snap.docs.map((cada) => ({ id: cada.id, ...cada.data() }));
         setHistorial({
           estado: "listo",
-          // Del más nuevo al más viejo: lo último que pasó es lo que se
-          // viene a mirar.
-          cambios: datos(cambiosSnap).sort((a, b) => b.cuando - a.cuando),
+          // Solo las correcciones, del más nuevo al más viejo: lo último que
+          // pasó es lo que se viene a mirar.
+          cambios: datos(cambiosSnap)
+            .filter(corrigioAlgo)
+            .sort((a, b) => b.cuando - a.cuando),
           usuarios: datos(usuariosSnap),
         });
       })
@@ -808,12 +821,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       <Dialog open={open} onClose={handleCerrar} fullScreen>
         <DialogTitle sx={{ color: acento }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
-            <Box>
-              Corregir factura {datosFactura(factura).numeroFactura ?? ""}
-              <Typography variant="body2" color="text.secondary">
-                Solo se guarda lo que cambies. Los días vencidos se recalculan solos.
-              </Typography>
-            </Box>
+            <Box>Corregir factura {datosFactura(factura).numeroFactura ?? ""}</Box>
             <Tooltip title="Cerrar sin guardar">
               <span>
                 <IconButton aria-label="Cerrar" onClick={handleCerrar} disabled={guardando}>
@@ -1337,11 +1345,12 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
               )}
 
               {/* ── El historial ── Al final: es para consultar, no para
-                  llenar. Trae TODO lo que le pasó a la factura, no solo lo
-                  corregido desde acá: un abono, una devolución, la mora que
-                  abrió la madrugada. */}
-              <Box component="section" aria-label="Historial de cambios">
-                {titulo("Historial de cambios")}
+                  llenar. Trae solo las correcciones —lo que cambió o quitó
+                  algo ya escrito—, también las hechas por fuera de esta
+                  pantalla. Un abono, una devolución o la mora de la
+                  madrugada no salen. */}
+              <Box component="section" aria-label="Historial de correcciones">
+                {titulo("Historial de correcciones")}
                 {historial.estado === "cargando" && (
                   <Typography variant="body2" color="text.secondary">
                     Buscando el historial...
@@ -1354,7 +1363,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                 )}
                 {historial.estado === "listo" && historial.cambios.length === 0 && (
                   <Typography variant="body2" color="text.secondary">
-                    Todavía no hay cambios anotados para esta factura.
+                    Esta factura no tiene correcciones.
                   </Typography>
                 )}
                 <Stack spacing={1.5}>
