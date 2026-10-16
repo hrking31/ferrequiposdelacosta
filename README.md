@@ -474,6 +474,14 @@ La segunda línea dice que el aviso se puede omitir, y eso no es cortesía: un r
 
 Si el equipo se resolvió antes —se le ampliaron los días o se registró su devolución— el abono **ni avisa**: ese equipo ya no está vencido.
 
+### El descuento al cobrar (2026-10-16)
+
+Un cliente llamado a cobrar pidió descuento y no había dónde anotarlo: los descuentos existían solo sobre días —al renovar, devolver o pactar la entrega—, nunca sobre la plata que se debe. Ahora el abono trae la casilla **Descuento**, igual a las de renovar y devolver: dice hasta cuánto se puede rebajar y en cuánto queda —*"Hasta $800.000 · Con descuento $700.000"*—, se pone en rojo si se pasa, y *"Así queda"* lo resta en su propio renglón. Como el abono, se reparte de la factura **más antigua** a la más nueva, y al elegir el medio de pago el valor ya viene con el descuento restado. Se puede anotar solo, aunque ese día no pague nada.
+
+**No es plata que entró.** Se guarda aparte de los abonos, así que no infla lo cobrado ni completa el depósito que falta dejar —ese no se rebaja: es una garantía—. Baja la deuda con el IVA adentro, y la cuenta lo dice en una casilla propia: Total = Pagado + Abonos + Retenido + **Descuento** + Saldo. **Nunca se vuelve saldo a favor**: si una corrección de después deja la deuda por debajo de lo rebajado, el descuento se recorta a lo que se debía. Por la misma razón, con descuento la plata no puede pasar de lo que falta: rebajarle a quien paga de más no tiene sentido. En la cuenta de cobro va en el mismo renglón *"Descuento"* que los de las renovaciones.
+
+Lo anota cualquiera con permiso de clientes; cambiarlo o quitarlo es corregir, y es del administrador: la regla de la base lo deja **solo crecer**, como los abonos, y el historial lo cuenta como corrección.
+
 ### Los cinco recordatorios de WhatsApp
 
 **Ninguno se envía solo.** El mensaje sale cuando alguien toca el botón; lo automático es **cuál** de los cinco sale, y eso lo decide la gestión vigente de esa factura.
