@@ -101,7 +101,13 @@ service cloud.firestore {
     // Clientes y sus facturas
     // ---------------------------------------------------------------
     match /clientes/{clienteId} {
-      allow read, write: if puedeGestionarClientes();
+      allow read, create, update: if puedeGestionarClientes();
+
+      // BORRAR LA FICHA es solo del administrador (2026-10-16). La app no
+      // tiene ese botón, pero la regla dejaba hacerlo desde la consola del
+      // navegador: las facturas del cliente quedaban huérfanas —fuera de la
+      // lista, con su deuda— y el registro de cambios no lo anotaba.
+      allow delete: if esAdministrador();
 
       // BORRAR UNA FACTURA queda solo en manos del administrador, igual que
       // eliminar una cotizacion o una cuenta de cobro: no se deshace y se
