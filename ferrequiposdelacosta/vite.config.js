@@ -19,6 +19,11 @@ export default defineConfig({
         // versión vieja aunque se despliegue una nueva, y los avisos dejarían
         // de llegar sin que nada avise.
         globIgnores: ["**/firebase-messaging-sw.js"],
+        // Las páginas de Firebase (/__/auth/action, donde se pone la clave
+        // nueva o se confirma el correo) NO son de la app. Sin esto, el
+        // service worker contestaba esas direcciones con la app y la página
+        // salía vacía (2026-10-16, el primer cambio de clave).
+        navigateFallbackDenylist: [/^\/__\//],
       },
       manifest: {
         id: "/",
