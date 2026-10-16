@@ -15,6 +15,7 @@ const nube = vi.hoisted(() => ({
   actualizarUsuario: vi.fn(() => Promise.resolve()),
   eliminarUsuario: vi.fn(() => Promise.resolve()),
   cerrarSesiones: vi.fn(() => Promise.resolve()),
+  quitarDosPasos: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("../Firebase/Firebase", () => ({
@@ -34,6 +35,7 @@ vi.mock("firebase/functions", () => ({
       deleteUser: nube.eliminarUsuario,
       actualizarUsuario: nube.actualizarUsuario,
       cerrarSesiones: nube.cerrarSesiones,
+      quitarDosPasos: nube.quitarDosPasos,
     })[nombre],
 }));
 
@@ -157,6 +159,25 @@ describe("ListaUsuarios", () => {
     expect(nube.cerrarSesiones).toHaveBeenCalledWith({ uid: "u1" });
     expect(
       await screen.findByText("Listo: se cerraron las sesiones de Aida Pérez."),
+    ).toBeInTheDocument();
+  });
+
+  it("quitar los dos pasos (celular perdido) pide confirmación y se lo encarga al servidor", async () => {
+    const { usuario } = mostrar();
+
+    await screen.findByText("Aida Pérez");
+    await usuario.click(screen.getByRole("button", { name: "Quitar dos pasos" }));
+
+    expect(await screen.findByText(/Úselo si Aida Pérez perdió o cambió el celular/)).toBeInTheDocument();
+    expect(nube.quitarDosPasos).not.toHaveBeenCalled();
+
+    // En el diálogo hay otro botón con el mismo texto: el de confirmar.
+    const botones = screen.getAllByRole("button", { name: "Quitar dos pasos" });
+    await usuario.click(botones[botones.length - 1]);
+
+    expect(nube.quitarDosPasos).toHaveBeenCalledWith({ uid: "u1" });
+    expect(
+      await screen.findByText("Listo: Aida Pérez tendrá que activar los dos pasos de nuevo."),
     ).toBeInTheDocument();
   });
 

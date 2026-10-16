@@ -20,21 +20,47 @@ import { describirUltimoUso } from "../../Utils/aparatos";
 const ICONOS = { pc: ComputerIcon, celular: SmartphoneIcon, tablet: TabletIcon };
 
 // La parte de abajo de la tarjeta de cada usuario: en qué aparatos tiene la
-// sesión abierta y el botón para cerrárselas todas (ver Utils/aparatos.js y
-// cerrarSesiones en functions/index.js).
-export default function AparatosUsuario({ nombre, aparatos, onCerrarSesiones }) {
-  const [confirmando, setConfirmando] = useState(false);
-  const [cerrando, setCerrando] = useState(false);
+// sesión abierta, el botón para cerrárselas todas (ver Utils/aparatos.js) y el
+// de quitarle los dos pasos a quien perdió o cambió el celular (ver
+// cerrarSesiones y quitarDosPasos en functions/index.js).
+//
+// Las dos acciones lo sacan de todos sus aparatos, así que las dos preguntan
+// antes.
+const ACCIONES = {
+  cerrar: {
+    titulo: "¿Cerrar todas las sesiones?",
+    texto: (nombre) =>
+      `A ${nombre} se le cerrará la app en todos sus aparatos y tendrá que volver a entrar con su correo y contraseña.`,
+    boton: "Cerrar sesiones",
+  },
+  quitar: {
+    titulo: "¿Quitar los dos pasos?",
+    texto: (nombre) =>
+      `Úselo si ${nombre} perdió o cambió el celular. Se le cerrará la app en todos sus aparatos y, al volver a entrar, tendrá que activar los dos pasos con el celular nuevo.`,
+    boton: "Quitar dos pasos",
+  },
+};
 
-  const cerrar = async () => {
-    setCerrando(true);
+export default function AparatosUsuario({
+  nombre,
+  aparatos,
+  onCerrarSesiones,
+  onQuitarDosPasos,
+}) {
+  const [accion, setAccion] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  const confirmar = async () => {
+    setOcupado(true);
     try {
-      await onCerrarSesiones();
-      setConfirmando(false);
+      await (accion === "quitar" ? onQuitarDosPasos() : onCerrarSesiones());
+      setAccion(null);
     } finally {
-      setCerrando(false);
+      setOcupado(false);
     }
   };
+
+  const enCurso = accion ? ACCIONES[accion] : null;
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -71,45 +97,59 @@ export default function AparatosUsuario({ nombre, aparatos, onCerrarSesiones }) 
         </Box>
       )}
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+          gap: 1,
+          mt: 1,
+        }}
+      >
+        <Button size="small" variant="text" onClick={() => setAccion("quitar")}>
+          Quitar dos pasos
+        </Button>
         <Button
           size="small"
           color="error"
           variant="outlined"
           disabled={aparatos.length === 0}
-          onClick={() => setConfirmando(true)}
+          onClick={() => setAccion("cerrar")}
         >
           Cerrar todas las sesiones
         </Button>
       </Box>
 
       <Dialog
-        open={confirmando}
-        onClose={() => !cerrando && setConfirmando(false)}
+        open={Boolean(enCurso)}
+        onClose={() => !ocupado && setAccion(null)}
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle>¿Cerrar todas las sesiones?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            A {nombre} se le cerrará la app en todos sus aparatos y tendrá que
-            volver a entrar con su correo y contraseña.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmando(false)} disabled={cerrando}>
-            Cancelar
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={cerrar}
-            disabled={cerrando}
-            startIcon={cerrando ? <CircularProgress size={16} color="inherit" /> : null}
-          >
-            Cerrar sesiones
-          </Button>
-        </DialogActions>
+        {enCurso && (
+          <>
+            <DialogTitle>{enCurso.titulo}</DialogTitle>
+            <DialogContent>
+              <DialogContentText>{enCurso.texto(nombre)}</DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setAccion(null)} disabled={ocupado}>
+                Cancelar
+              </Button>
+              <Button
+                color="error"
+                variant="contained"
+                onClick={confirmar}
+                disabled={ocupado}
+                startIcon={
+                  ocupado ? <CircularProgress size={16} color="inherit" /> : null
+                }
+              >
+                {enCurso.boton}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );
@@ -126,4 +166,5 @@ AparatosUsuario.propTypes = {
     }),
   ).isRequired,
   onCerrarSesiones: PropTypes.func.isRequired,
+  onQuitarDosPasos: PropTypes.func.isRequired,
 };

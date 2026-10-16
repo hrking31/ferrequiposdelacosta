@@ -26,7 +26,7 @@
       nombres y teléfonos de clientes.
     */
     "cotizaciones": {
-      ".read": "auth != null && auth.token.email_verified === true && (auth.token.role === 'gestorFacturacion' || auth.token.role === 'gestorIntegral' || auth.token.role === 'administrador')",
+      ".read": "auth != null && auth.token.email_verified === true && auth.token.firebase.sign_in_second_factor != null && (auth.token.role === 'gestorFacturacion' || auth.token.role === 'gestorIntegral' || auth.token.role === 'administrador')",
       ".write": false
     },
 

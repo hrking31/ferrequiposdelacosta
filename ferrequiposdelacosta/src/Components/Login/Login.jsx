@@ -21,8 +21,14 @@ export default function Login({ onClose }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { login, recuperarClave } = useAuth();
+  const { login, recuperarClave, prepararSegundoPaso, entrarConCodigo } = useAuth();
   const [user, setUser] = useState({ email: "", password: "" });
+  // El segundo paso (2026-10-16): con la contraseña bien, Firebase pide el
+  // código de la aplicación del celular. Acá se guarda lo necesario para
+  // pedirlo, mientras tanto se muestra el campo del código en vez del de la
+  // contraseña.
+  const [segundoPaso, setSegundoPaso] = useState(null);
+  const [codigo, setCodigo] = useState("");
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
   const [, setIsSubmitting] = useState(false);
   const passwordVisible = useSelector((state) => state.password);
@@ -31,6 +37,43 @@ export default function Login({ onClose }) {
   const handleChange = ({ target: { name, value } }) =>
     setUser((prev) => ({ ...prev, [name]: value }));
 
+  const alEntrar = () => {
+    if (typeof onClose === "function") {
+      onClose();
+    }
+    navigate("/adminforms");
+  };
+
+  const handleCodigo = async (event) => {
+    event.preventDefault();
+    closeSnackbar();
+    if (!/^\d{6}$/.test(codigo)) {
+      showSnackbar("Escriba los 6 números que muestra la aplicación.");
+      return;
+    }
+    try {
+      await entrarConCodigo(segundoPaso, codigo);
+      alEntrar();
+    } catch (error) {
+      if (error.code === "auth/invalid-verification-code") {
+        showSnackbar("Código incorrecto. Escriba el que muestra ahora la aplicación.");
+      } else if (
+        [
+          "auth/totp-challenge-timeout",
+          "auth/code-expired",
+          "auth/missing-multi-factor-session",
+          "auth/invalid-multi-factor-session",
+        ].includes(error.code)
+      ) {
+        // El permiso para el segundo paso dura unos minutos.
+        setSegundoPaso(null);
+        showSnackbar("Pasó mucho tiempo. Vuelva a escribir su contraseña.");
+      } else {
+        showSnackbar("Error al iniciar sesión. Inténtalo de nuevo.");
+      }
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     closeSnackbar();
@@ -38,14 +81,12 @@ export default function Login({ onClose }) {
 
     try {
       await login(user.email, user.password);
-
-      if (typeof onClose === "function") {
-        onClose();
-      }
-
-      navigate("/adminforms");
+      alEntrar();
     } catch (error) {
-      if (error.code === "auth/password-does-not-meet-requirements") {
+      if (error.code === "auth/multi-factor-auth-required") {
+        setCodigo("");
+        setSegundoPaso(prepararSegundoPaso(error));
+      } else if (error.code === "auth/password-does-not-meet-requirements") {
         // Desde el 2026-10-16 la contraseña tiene requisitos, y las de antes
         // que no los cumplen ya no abren: hay que poner una nueva.
         showSnackbar(
@@ -104,6 +145,44 @@ export default function Login({ onClose }) {
     // un tono distinto al del diálogo: sobraban ~22px a cada lado y se veían
     // como dos franjas de otro color.
     <Box p={2} display="flex" flexDirection="column" gap={2}>
+      {segundoPaso ? (
+        <form onSubmit={handleCodigo}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h5" sx={{ mt: 2 }}>
+                Código de su celular
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Abra la aplicación de códigos y escriba los 6 números de
+                Ferrequipos de la Costa.
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="codigo"
+                label="Código de 6 números"
+                value={codigo}
+                onChange={(e) =>
+                  setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputProps={{ inputMode: "numeric", autoComplete: "one-time-code" }}
+                autoFocus
+                fullWidth
+                required
+              />
+            </Grid>
+          </Grid>
+
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 3 }}>
+            <Button variant="text" onClick={() => setSegundoPaso(null)}>
+              Volver
+            </Button>
+            <Button type="submit" variant="contained" color="success">
+              ENTRAR
+            </Button>
+          </Box>
+        </form>
+      ) : (
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -163,6 +242,7 @@ export default function Login({ onClose }) {
           </Button>
         </Box>
       </form>
+      )}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </Box>

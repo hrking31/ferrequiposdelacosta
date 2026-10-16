@@ -33,13 +33,27 @@ service cloud.firestore {
     //
     // Devuelve "" si no hay sesión, si el correo no está confirmado o si el
     // carné no trae rol (ante la duda, se niega el acceso).
+    //
+    // Y SIN LOS DOS PASOS TAMPOCO (2026-10-16): la sesión tiene que haber
+    // entrado con contraseña Y código de la aplicación del celular. La app se
+    // lo pide a quien no los activó (VistaActivarDosPasos.jsx).
     function rolUsuario() {
-      return correoConfirmado() ? request.auth.token.get("role", "") : "";
+      return sesionCompleta() ? request.auth.token.get("role", "") : "";
     }
 
     function correoConfirmado() {
       return request.auth != null
         && request.auth.token.get("email_verified", false) == true;
+    }
+
+    function entroConDosPasos() {
+      return request.auth != null
+        && request.auth.token.get("firebase", {})
+            .get("sign_in_second_factor", null) != null;
+    }
+
+    function sesionCompleta() {
+      return correoConfirmado() && entroConDosPasos();
     }
 
     function tieneRol(roles) {
@@ -282,7 +296,7 @@ service cloud.firestore {
     // de administrador y no pasan por estas reglas. Así el número no lo puede
     // tocar nadie a mano, ni por error ni a propósito.
     match /resumen/{documento} {
-      allow read: if correoConfirmado();
+      allow read: if sesionCompleta();
       allow write: if false;
     }
 

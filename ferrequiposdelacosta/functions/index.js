@@ -72,6 +72,14 @@ async function verificarPermisoUsuarios(request) {
     );
   }
 
+  // Ni sin haber entrado con los dos pasos (contraseña y código).
+  if (!request.auth.token.firebase?.sign_in_second_factor) {
+    throw new HttpsError(
+        "permission-denied",
+        "Tenés que entrar con los dos pasos (contraseña y código).",
+    );
+  }
+
   const perfilSnap = await getFirestore()
       .collection("users")
       .doc(request.auth.uid)
@@ -306,7 +314,14 @@ export const actualizarUsuario = onCall(async (request) => {
 //      (ver AuthContext.jsx). Quien la manipule para no enterarse queda
 //      afuera igual cuando se le vence el carné, en menos de una hora.
 //   3. Vacía su lista de aparatos: ya no hay ninguno con sesión abierta.
-export const cerrarSesiones = onCall(async (request) => {
+/**
+ * Lo que hacen "Cerrar todas las sesiones" y "Quitar los dos pasos": revisar
+ * que el usuario exista y sacarlo de todos sus aparatos.
+ * @param {Object} request Request recibido por la Cloud Function onCall.
+ * @param {Function} antes Lo que se hace antes de sacarlo, con su uid.
+ * @return {Promise<Object>} {success: true}.
+ */
+async function sacarDeTodosLosAparatos(request, antes = async () => {}) {
   await verificarPermisoUsuarios(request);
 
   const {uid} = request.data || {};
@@ -319,12 +334,27 @@ export const cerrarSesiones = onCall(async (request) => {
     throw new HttpsError("not-found", "El usuario no existe en el sistema.");
   }
 
+  await antes(uid);
   await getAuth().revokeRefreshTokens(uid);
   await ficha.update({sesionesCerradasEn: FieldValue.serverTimestamp()});
   await getFirestore().recursiveDelete(ficha.collection("aparatos"));
 
   return {success: true};
-});
+}
+
+export const cerrarSesiones = onCall((request) =>
+  sacarDeTodosLosAparatos(request),
+);
+
+// QUITAR LOS DOS PASOS (2026-10-16), para quien perdió o cambió el celular.
+// Se le borra la aplicación de códigos de la cuenta y se lo saca de todos sus
+// aparatos: al volver a entrar, solo con la contraseña, la app le pide que
+// active los dos pasos de nuevo con el celular nuevo.
+export const quitarDosPasos = onCall((request) =>
+  sacarDeTodosLosAparatos(request, (uid) =>
+    getAuth().updateUser(uid, {multiFactor: {enrolledFactors: null}}),
+  ),
+);
 
 // Pone al día el carné de QUIEN LLAMA con el rol de su ficha. Lo pide la app
 // al abrir la sesión cuando el carné no coincide: así los usuarios que ya

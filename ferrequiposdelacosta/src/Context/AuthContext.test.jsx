@@ -62,6 +62,15 @@ vi.mock("../Components/presenciaUsuarios/presenciaUsuarios", () => ({
   registrarConexion: () => () => {},
 }));
 
+// Los dos pasos tienen su propia prueba (Utils/dosPasos.test.js).
+vi.mock("../Utils/dosPasos", () => ({
+  estadoDosPasos: () => Promise.resolve("falta"),
+  empezarActivacion: vi.fn(),
+  terminarActivacion: vi.fn(),
+  prepararSegundoPaso: vi.fn(),
+  entrarConCodigo: vi.fn(),
+}));
+
 vi.mock("../Utils/aparatos", () => ({
   anotarAparato: nube.anotarAparato,
   olvidarAparato: vi.fn(() => Promise.resolve()),

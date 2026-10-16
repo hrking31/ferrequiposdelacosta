@@ -11,9 +11,17 @@ import Login from "./Login";
 //
 // El login se reemplaza por un doble: cada prueba decide si acepta o con qué
 // error rechaza.
-const entrar = ({ login = vi.fn(), recuperarClave = vi.fn(), onClose } = {}) =>
+const entrar = ({
+  login = vi.fn(),
+  recuperarClave = vi.fn(),
+  prepararSegundoPaso = vi.fn(() => "RESOLVER"),
+  entrarConCodigo = vi.fn(() => Promise.resolve()),
+  onClose,
+} = {}) =>
   renderConProviders(
-    <authContext.Provider value={{ login, recuperarClave }}>
+    <authContext.Provider
+      value={{ login, recuperarClave, prepararSegundoPaso, entrarConCodigo }}
+    >
       <Routes>
         <Route path="/" element={<Login onClose={onClose} />} />
         <Route path="/adminforms" element={<p>Panel de administración</p>} />
@@ -87,6 +95,68 @@ describe("Login — cuando falla, lo dice en castellano", () => {
 
     expect(await screen.findByText("Contraseña incorrecta")).toBeInTheDocument();
     expect(screen.queryByText("Panel de administración")).not.toBeInTheDocument();
+  });
+});
+
+describe("Login — el segundo paso (código del celular)", () => {
+  const pideCodigo = () =>
+    vi.fn(() =>
+      Promise.reject(
+        Object.assign(new Error("x"), { code: "auth/multi-factor-auth-required" }),
+      ),
+    );
+
+  it("con la contraseña bien, pide el código en vez de entrar", async () => {
+    const { usuario } = entrar({ login: pideCodigo() });
+
+    await llenarYEntrar(usuario);
+
+    expect(await screen.findByText("Código de su celular")).toBeInTheDocument();
+    expect(screen.queryByText("Panel de administración")).not.toBeInTheDocument();
+  });
+
+  it("con el código, entra al panel", async () => {
+    const entrarConCodigo = vi.fn(() => Promise.resolve());
+    const { usuario } = entrar({ login: pideCodigo(), entrarConCodigo });
+
+    await llenarYEntrar(usuario);
+    await usuario.type(await screen.findByLabelText(/Código de 6 números/), "123456");
+    await usuario.click(screen.getByRole("button", { name: "ENTRAR" }));
+
+    expect(entrarConCodigo).toHaveBeenCalledWith("RESOLVER", "123456");
+    expect(await screen.findByText("Panel de administración")).toBeInTheDocument();
+  });
+
+  it("con un código equivocado, lo dice y deja intentar de nuevo", async () => {
+    const entrarConCodigo = vi.fn(() =>
+      Promise.reject(Object.assign(new Error("x"), { code: "auth/invalid-verification-code" })),
+    );
+    const { usuario } = entrar({ login: pideCodigo(), entrarConCodigo });
+
+    await llenarYEntrar(usuario);
+    await usuario.type(await screen.findByLabelText(/Código de 6 números/), "999999");
+    await usuario.click(screen.getByRole("button", { name: "ENTRAR" }));
+
+    expect(
+      await screen.findByText("Código incorrecto. Escriba el que muestra ahora la aplicación."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Código de 6 números/)).toBeInTheDocument();
+  });
+
+  it("si se demoró mucho, vuelve a pedir la contraseña", async () => {
+    const entrarConCodigo = vi.fn(() =>
+      Promise.reject(Object.assign(new Error("x"), { code: "auth/totp-challenge-timeout" })),
+    );
+    const { usuario } = entrar({ login: pideCodigo(), entrarConCodigo });
+
+    await llenarYEntrar(usuario);
+    await usuario.type(await screen.findByLabelText(/Código de 6 números/), "123456");
+    await usuario.click(screen.getByRole("button", { name: "ENTRAR" }));
+
+    expect(
+      await screen.findByText("Pasó mucho tiempo. Vuelva a escribir su contraseña."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ACCESO" })).toBeInTheDocument();
   });
 });
 

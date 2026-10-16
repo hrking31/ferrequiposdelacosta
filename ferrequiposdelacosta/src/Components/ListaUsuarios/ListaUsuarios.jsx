@@ -55,6 +55,7 @@ export default function UsersList() {
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
   const actualizarUsuarioCloud = httpsCallable(functions, "actualizarUsuario");
   const cerrarSesionesCloud = httpsCallable(functions, "cerrarSesiones");
+  const quitarDosPasosCloud = httpsCallable(functions, "quitarDosPasos");
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -206,6 +207,22 @@ export default function UsersList() {
     } catch (error) {
       console.error(error);
       showSnackbar("No se pudieron cerrar las sesiones. Inténtelo de nuevo.", "error");
+    }
+  };
+
+  // También el servidor (quitarDosPasos): le borra la aplicación de códigos a
+  // quien perdió el celular y lo saca de todos sus aparatos.
+  const handleQuitarDosPasos = async (usuario) => {
+    try {
+      await quitarDosPasosCloud({ uid: usuario.id });
+      showSnackbar(
+        `Listo: ${usuario.name || usuario.email} tendrá que activar los dos pasos de nuevo.`,
+        "success",
+      );
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      showSnackbar("No se pudieron quitar los dos pasos. Inténtelo de nuevo.", "error");
     }
   };
 
@@ -382,6 +399,7 @@ export default function UsersList() {
                     nombre={user.name || user.email || "este usuario"}
                     aparatos={user.aparatos || []}
                     onCerrarSesiones={() => handleCerrarSesiones(user)}
+                    onQuitarDosPasos={() => handleQuitarDosPasos(user)}
                   />
                 </Paper>
               </Grid>

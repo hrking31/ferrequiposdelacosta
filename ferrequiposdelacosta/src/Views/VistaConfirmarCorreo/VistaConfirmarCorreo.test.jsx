@@ -6,6 +6,14 @@ import { ProtectedRoutes } from "../../Components/ProtectedRoutes/ProtectedRoute
 // CONFIRMAR EL CORREO. Las reglas no dejan leer nada sin el correo confirmado,
 // así que las pantallas protegidas muestran esta en vez de su contenido. Se
 // prueba a través de la puerta (ProtectedRoutes), que es como la ve la gente.
+//
+// Los dos pasos van después del correo y tienen su propia prueba: acá quedan
+// apagados.
+vi.mock("../../Utils/dosPasos", () => ({ EXIGIR_DOS_PASOS: false }));
+vi.mock("../VistaActivarDosPasos/VistaActivarDosPasos", () => ({
+  default: () => <p>Active los dos pasos</p>,
+}));
+
 const sesion = (cambios = {}) => ({
   user: { uid: "u1", email: "aida@ferrequipos.com", role: "administrador" },
   loading: false,

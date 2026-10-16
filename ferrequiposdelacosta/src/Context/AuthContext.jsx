@@ -18,6 +18,13 @@ import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
 import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
 import { authContext } from "./useAuth";
 import { anotarAparato, olvidarAparato } from "../Utils/aparatos";
+import {
+  empezarActivacion,
+  entrarConCodigo,
+  estadoDosPasos,
+  prepararSegundoPaso,
+  terminarActivacion,
+} from "../Utils/dosPasos";
 
 // CERRAR TODAS LAS SESIONES (2026-10-16). Cuando el administrador lo hace, el
 // servidor deja en la ficha la hora (sesionesCerradasEn). Una sesión que se
@@ -62,6 +69,8 @@ export function AuthProvider({ children }) {
   // Las reglas no dejan leer ni guardar nada sin el correo confirmado: hasta
   // entonces, las pantallas protegidas muestran la de confirmarlo.
   const [correoVerificado, setCorreoVerificado] = useState(false);
+  // Si esta sesión entró con contraseña y código (ver Utils/dosPasos.js).
+  const [dosPasos, setDosPasos] = useState("falta");
   const detenerPresenciaRef = useRef(null);
   const presenciaDeRef = useRef(null);
   const detenerPerfilRef = useRef(null);
@@ -109,6 +118,21 @@ export function AuthProvider({ children }) {
     return true;
   };
 
+  // Activar los dos pasos desde VistaActivarDosPasos. Al terminar se pide un
+  // carné nuevo y se mira si ya dice que entró con el segundo paso; si no, la
+  // persona tiene que salir y volver a entrar (estado "reentrar").
+  const activarDosPasos = {
+    empezar: () => empezarActivacion(auth.currentUser),
+    terminar: async (secreto, codigo) => {
+      const currentUser = auth.currentUser;
+      await terminarActivacion(currentUser, secreto, codigo);
+      await currentUser.getIdToken(true);
+      const estado = await estadoDosPasos(currentUser);
+      setDosPasos(estado);
+      return estado;
+    },
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -148,6 +172,7 @@ export function AuthProvider({ children }) {
         detenerPresencia();
         setUser(null);
         setCorreoVerificado(false);
+        setDosPasos("falta");
         dispatch(clearUserData());
         setLoading(false);
         return;
@@ -199,6 +224,13 @@ export function AuthProvider({ children }) {
               }
 
               await ponerAlDiaElCarne(currentUser, role);
+
+              try {
+                setDosPasos(await estadoDosPasos(currentUser));
+              } catch (error) {
+                console.error("No se pudo revisar los dos pasos:", error);
+                setDosPasos("falta");
+              }
 
               const fullUserData = {
                 uid: currentUser.uid,
@@ -298,6 +330,10 @@ export function AuthProvider({ children }) {
         confirmarCorreo,
         enviarVerificacion,
         recuperarClave,
+        dosPasos,
+        activarDosPasos,
+        prepararSegundoPaso,
+        entrarConCodigo,
       }}
     >
       {children}
