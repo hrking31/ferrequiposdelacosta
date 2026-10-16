@@ -15,7 +15,11 @@ const nube = vi.hoisted(() => ({
   alCambiarFicha: null,
   sincronizarMiRol: vi.fn(() => Promise.resolve({ data: { cambio: true } })),
   renovar: vi.fn(() => Promise.resolve("carné-nuevo")),
+  anotarAparato: vi.fn(() => Promise.resolve()),
+  salir: vi.fn(() => Promise.resolve()),
   carne: {},
+  // Cuándo inició sesión este aparato.
+  entroEn: "2026-10-16T08:00:00Z",
 }));
 
 vi.mock("../Components/Firebase/Firebase", () => ({
@@ -31,7 +35,7 @@ vi.mock("firebase/auth", () => ({
     return () => {};
   },
   signInWithEmailAndPassword: vi.fn(),
-  signOut: vi.fn(),
+  signOut: nube.salir,
   sendEmailVerification: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
 }));
@@ -58,20 +62,33 @@ vi.mock("../Components/presenciaUsuarios/presenciaUsuarios", () => ({
   registrarConexion: () => () => {},
 }));
 
+vi.mock("../Utils/aparatos", () => ({
+  anotarAparato: nube.anotarAparato,
+  olvidarAparato: vi.fn(() => Promise.resolve()),
+}));
+
 const usuarioDeSesion = {
   uid: "u1",
   email: "aida@ferrequipos.com",
   photoURL: null,
-  getIdTokenResult: () => Promise.resolve({ claims: nube.carne }),
+  getIdTokenResult: () =>
+    Promise.resolve({ claims: nube.carne, authTime: nube.entroEn }),
   getIdToken: nube.renovar,
+  // Por defecto, al preguntarle a Firebase no cambia nada.
+  reload: vi.fn(() => Promise.resolve()),
 };
 
 const ficha = (datos) => ({ exists: () => true, data: () => datos });
 
 function QuienSoy() {
-  const { user, loading } = useAuth();
+  const { user, loading, correoVerificado } = useAuth();
   if (loading) return <p>cargando</p>;
-  return <p>{user ? `rol: ${user.role}` : "sin sesión"}</p>;
+  return (
+    <>
+      <p>{user ? `rol: ${user.role}` : "sin sesión"}</p>
+      <p>{correoVerificado ? "correo confirmado" : "correo sin confirmar"}</p>
+    </>
+  );
 }
 
 const montar = () => {
@@ -151,6 +168,79 @@ describe("AuthContext — el carné de la sesión", () => {
     delete usuarioDeSesion.emailVerified;
   });
 
+  it("al entrar, anota este aparato en la lista de sesiones abiertas", async () => {
+    nube.carne = { role: "gestorEditor" };
+    montar();
+    await entrar({ name: "Aida", role: "gestorEditor" });
+
+    await screen.findByText("rol: gestorEditor");
+    expect(nube.anotarAparato).toHaveBeenCalledWith("u1", { forzar: true });
+  });
+});
+
+describe("AuthContext — el correo confirmado al recargar", () => {
+  it("si confirmó en otra pestaña, al recargar se entera solo", async () => {
+    // Lo guardado en el navegador dice "sin confirmar", pero Firebase ya lo
+    // tiene confirmado: así le pasó al dueño el 2026-10-16 con F5.
+    nube.carne = { role: "administrador" };
+    usuarioDeSesion.emailVerified = false;
+    usuarioDeSesion.reload.mockImplementationOnce(() => {
+      usuarioDeSesion.emailVerified = true;
+      return Promise.resolve();
+    });
+    montar();
+    await entrar({ name: "Hernando", role: "administrador" });
+
+    expect(await screen.findByText("correo confirmado")).toBeInTheDocument();
+    expect(nube.renovar).toHaveBeenCalledWith(true);
+    delete usuarioDeSesion.emailVerified;
+  });
+
+  it("si de verdad no confirmó, sigue pidiéndolo", async () => {
+    nube.carne = { role: "administrador" };
+    usuarioDeSesion.emailVerified = false;
+    montar();
+    await entrar({ name: "Hernando", role: "administrador" });
+
+    await screen.findByText("rol: administrador");
+    expect(screen.getByText("correo sin confirmar")).toBeInTheDocument();
+    delete usuarioDeSesion.emailVerified;
+  });
+});
+
+describe("AuthContext — cerrar todas las sesiones", () => {
+  const horaDelCierre = (iso) => ({ toMillis: () => new Date(iso).getTime() });
+
+  it("si el administrador las cerró después de que entró, sale en el momento", async () => {
+    nube.carne = { role: "gestorEditor" };
+    montar();
+    await entrar({
+      name: "Aida",
+      role: "gestorEditor",
+      sesionesCerradasEn: horaDelCierre("2026-10-16T10:00:00Z"),
+    });
+
+    await waitFor(() => expect(nube.salir).toHaveBeenCalled());
+    expect(screen.queryByText("rol: gestorEditor")).not.toBeInTheDocument();
+  });
+
+  it("si volvió a entrar después del cierre, sigue normal", async () => {
+    nube.carne = { role: "gestorEditor" };
+    nube.entroEn = "2026-10-16T11:00:00Z";
+    montar();
+    await entrar({
+      name: "Aida",
+      role: "gestorEditor",
+      sesionesCerradasEn: horaDelCierre("2026-10-16T10:00:00Z"),
+    });
+
+    expect(await screen.findByText("rol: gestorEditor")).toBeInTheDocument();
+    expect(nube.salir).not.toHaveBeenCalled();
+    nube.entroEn = "2026-10-16T08:00:00Z";
+  });
+});
+
+describe("AuthContext — cuando algo falla", () => {
   it("si el servidor no responde, la app arranca igual", async () => {
     nube.sincronizarMiRol.mockRejectedValueOnce(new Error("sin conexión"));
     const consola = vi.spyOn(console, "error").mockImplementation(() => {});

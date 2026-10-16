@@ -116,6 +116,24 @@ service cloud.firestore {
       // deleteUser, que usan el SDK de administrador y no pasan por estas
       // reglas. Desde el navegador queda prohibido.
       allow create, delete: if false;
+
+      // Los aparatos donde la persona tiene la sesión abierta (2026-10-16,
+      // ver Utils/aparatos.js). Cada quien anota y borra solo los suyos, sin
+      // inventar la hora: la pone el servidor. Verlos, solo él mismo y el
+      // administrador, que desde la tarjeta del usuario puede cerrarle todas
+      // las sesiones (cerrarSesiones, que no pasa por estas reglas).
+      match /aparatos/{aparatoId} {
+        allow read: if (request.auth != null && request.auth.uid == userId)
+          || esAdministrador();
+        allow create, update: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(["tipo", "descripcion", "ultimoUso"])
+          && request.resource.data.descripcion is string
+          && request.resource.data.descripcion.size() <= 80
+          && request.resource.data.tipo in ["pc", "celular", "tablet"]
+          && request.resource.data.ultimoUso == request.time;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // ---------------------------------------------------------------

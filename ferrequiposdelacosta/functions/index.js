@@ -208,7 +208,12 @@ export const deleteUser = onCall(async (request) => {
     const userRecord = await getAuth().getUserByEmail(email);
     const uid = userRecord.uid;
 
-    await getFirestore().collection("users").doc(uid).delete();
+    // recursiveDelete y no delete: la ficha tiene adentro la lista de
+    // aparatos con sesión abierta (users/{uid}/aparatos), que un delete
+    // común dejaría huérfana.
+    await getFirestore().recursiveDelete(
+        getFirestore().collection("users").doc(uid),
+    );
 
     // Lo que el usuario deja regado en los otros dos servicios. Se borra
     // desde acá porque esta función corre con permisos de administrador: las
@@ -289,6 +294,34 @@ export const actualizarUsuario = onCall(async (request) => {
     permisos: RolesPermisos[role],
   });
   await ponerRolEnCarne(uid, role);
+
+  return {success: true};
+});
+
+// CERRAR TODAS LAS SESIONES de un usuario (2026-10-16), desde su tarjeta en
+// ListaUsuarios.jsx. Tres cosas:
+//   1. Le corta la renovación del carné en todos sus aparatos.
+//   2. Deja en su ficha la hora del cierre. La app de cada aparato está
+//      atenta a esa ficha y, si su sesión es de antes, sale en el momento
+//      (ver AuthContext.jsx). Quien la manipule para no enterarse queda
+//      afuera igual cuando se le vence el carné, en menos de una hora.
+//   3. Vacía su lista de aparatos: ya no hay ninguno con sesión abierta.
+export const cerrarSesiones = onCall(async (request) => {
+  await verificarPermisoUsuarios(request);
+
+  const {uid} = request.data || {};
+  if (!uid || typeof uid !== "string") {
+    throw new HttpsError("invalid-argument", "Falta el usuario.");
+  }
+
+  const ficha = getFirestore().collection("users").doc(uid);
+  if (!(await ficha.get()).exists) {
+    throw new HttpsError("not-found", "El usuario no existe en el sistema.");
+  }
+
+  await getAuth().revokeRefreshTokens(uid);
+  await ficha.update({sesionesCerradasEn: FieldValue.serverTimestamp()});
+  await getFirestore().recursiveDelete(ficha.collection("aparatos"));
 
   return {success: true};
 });

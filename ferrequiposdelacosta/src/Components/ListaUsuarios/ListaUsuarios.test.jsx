@@ -14,6 +14,7 @@ const nube = vi.hoisted(() => ({
   getDocs: vi.fn(),
   actualizarUsuario: vi.fn(() => Promise.resolve()),
   eliminarUsuario: vi.fn(() => Promise.resolve()),
+  cerrarSesiones: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("../Firebase/Firebase", () => ({
@@ -23,13 +24,17 @@ vi.mock("../Firebase/Firebase", () => ({
 }));
 
 vi.mock("firebase/firestore", () => ({
-  collection: (_db, nombre) => nombre,
+  collection: (_db, ...partes) => partes.join("/"),
   getDocs: nube.getDocs,
 }));
 
 vi.mock("firebase/functions", () => ({
   httpsCallable: (_functions, nombre) =>
-    nombre === "deleteUser" ? nube.eliminarUsuario : nube.actualizarUsuario,
+    ({
+      deleteUser: nube.eliminarUsuario,
+      actualizarUsuario: nube.actualizarUsuario,
+      cerrarSesiones: nube.cerrarSesiones,
+    })[nombre],
 }));
 
 vi.mock("../../Context/useAuth", async (importarOriginal) => ({
@@ -48,9 +53,21 @@ const usuarios = [
   },
 ];
 
-const conUsuarios = (lista = usuarios) => {
-  nube.getDocs.mockResolvedValue({
-    docs: lista.map((u) => ({ id: u.id, data: () => u })),
+const comoDocs = (lista) => ({
+  docs: lista.map(({ id, ...resto }) => ({ id, data: () => resto })),
+});
+
+const hace = (minutos) => ({
+  toMillis: () => Date.now() - minutos * 60000,
+  toDate: () => new Date(Date.now() - minutos * 60000),
+});
+
+// Cada usuario trae, aparte, la lista de aparatos con sesión abierta.
+const conUsuarios = (lista = usuarios, aparatos = {}) => {
+  nube.getDocs.mockImplementation((ruta) => {
+    if (ruta === "users") return Promise.resolve(comoDocs(lista));
+    const uid = ruta.split("/")[1];
+    return Promise.resolve(comoDocs(aparatos[uid] || []));
   });
 };
 
@@ -97,6 +114,50 @@ describe("ListaUsuarios", () => {
       genero: "femenino",
       role: "gestorIntegral",
     });
+  });
+
+  it("muestra en la tarjeta los aparatos con sesión abierta, el más reciente arriba", async () => {
+    conUsuarios(usuarios, {
+      u1: [
+        { id: "a", tipo: "celular", descripcion: "Celular Android · Chrome", ultimoUso: hace(600) },
+        { id: "b", tipo: "pc", descripcion: "PC Windows · Chrome", ultimoUso: hace(5) },
+      ],
+    });
+    mostrar();
+
+    const pc = await screen.findByText("PC Windows · Chrome");
+    const celular = screen.getByText("Celular Android · Chrome");
+    // El de hace 5 minutos va primero.
+    expect(pc.compareDocumentPosition(celular) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("sin aparatos lo dice, y el botón de cerrar queda apagado", async () => {
+    mostrar();
+
+    await screen.findByText("Aida Pérez");
+    expect(screen.getByText("Ninguna.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cerrar todas las sesiones" })).toBeDisabled();
+  });
+
+  it("cerrar las sesiones pide confirmación y se lo encarga al servidor", async () => {
+    conUsuarios(usuarios, {
+      u1: [{ id: "b", tipo: "pc", descripcion: "PC Windows · Chrome", ultimoUso: hace(5) }],
+    });
+    const { usuario } = mostrar();
+
+    await screen.findByText("PC Windows · Chrome");
+    await usuario.click(screen.getByRole("button", { name: "Cerrar todas las sesiones" }));
+
+    // Todavía no: primero pregunta.
+    expect(await screen.findByText(/A Aida Pérez se le cerrará la app/)).toBeInTheDocument();
+    expect(nube.cerrarSesiones).not.toHaveBeenCalled();
+
+    await usuario.click(screen.getByRole("button", { name: "Cerrar sesiones" }));
+
+    expect(nube.cerrarSesiones).toHaveBeenCalledWith({ uid: "u1" });
+    expect(
+      await screen.findByText("Listo: se cerraron las sesiones de Aida Pérez."),
+    ).toBeInTheDocument();
   });
 
   it("no guarda un usuario sin nombre", async () => {

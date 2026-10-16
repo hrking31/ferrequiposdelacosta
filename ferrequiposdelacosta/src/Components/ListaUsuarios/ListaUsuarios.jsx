@@ -34,6 +34,7 @@ import { db, functions, auth } from "../Firebase/Firebase";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
+import AparatosUsuario from "./AparatosUsuario";
 
 export default function UsersList() {
   const theme = useTheme();
@@ -53,6 +54,7 @@ export default function UsersList() {
   );
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
   const actualizarUsuarioCloud = httpsCallable(functions, "actualizarUsuario");
+  const cerrarSesionesCloud = httpsCallable(functions, "cerrarSesiones");
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -62,7 +64,32 @@ export default function UsersList() {
         id: doc.id,
         ...doc.data(),
       }));
-      setUsers(usersList);
+
+      // Los aparatos con sesión abierta de cada uno, el más reciente arriba.
+      // Si no se pueden leer, la lista de usuarios se muestra igual.
+      const conAparatos = await Promise.all(
+        usersList.map(async (usuario) => {
+          try {
+            const aparatos = await getDocs(
+              collection(db, "users", usuario.id, "aparatos"),
+            );
+            return {
+              ...usuario,
+              aparatos: aparatos.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort(
+                  (a, b) =>
+                    (b.ultimoUso?.toMillis?.() ?? 0) -
+                    (a.ultimoUso?.toMillis?.() ?? 0),
+                ),
+            };
+          } catch (error) {
+            console.error("No se pudieron leer los aparatos:", error);
+            return { ...usuario, aparatos: [] };
+          }
+        }),
+      );
+      setUsers(conAparatos);
     } catch (error) {
       console.error("Error al obtener los usuarios:", error);
       showSnackbar("Error al cargar la lista de usuarios", "error");
@@ -166,6 +193,22 @@ export default function UsersList() {
     }
   };
 
+  // Lo hace el servidor (cerrarSesiones): corta la sesión en todos los
+  // aparatos de esa persona y vacía su lista.
+  const handleCerrarSesiones = async (usuario) => {
+    try {
+      await cerrarSesionesCloud({ uid: usuario.id });
+      showSnackbar(
+        `Listo: se cerraron las sesiones de ${usuario.name || usuario.email}.`,
+        "success",
+      );
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      showSnackbar("No se pudieron cerrar las sesiones. Inténtelo de nuevo.", "error");
+    }
+  };
+
   const formatearNombreRol = (rolKey) => {
     if (!rolKey) return "Usuario";
     const conEspacios = rolKey.replace(/([A-Z])/g, " $1");
@@ -204,13 +247,20 @@ export default function UsersList() {
                   sx={{
                     p: 2,
                     display: "flex",
+                    flexDirection: "column",
+                    gap: 1.5,
+                    borderRadius: 2,
+                    borderLeft: "5px solid",
+                    borderColor: "custom.accent",
+                  }}
+                >
+                <Box
+                  sx={{
+                    display: "flex",
                     flexDirection: isMobile ? "column" : "row",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: isMobile ? 1.5 : 2,
-                    borderRadius: 2,
-                    borderLeft: "5px solid",
-                    borderColor: "custom.accent",
                   }}
                 >
                   {/* Avatar, Nombre y Correo */}
@@ -326,6 +376,13 @@ export default function UsersList() {
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
+                </Box>
+
+                  <AparatosUsuario
+                    nombre={user.name || user.email || "este usuario"}
+                    aparatos={user.aparatos || []}
+                    onCerrarSesiones={() => handleCerrarSesiones(user)}
+                  />
                 </Paper>
               </Grid>
             ))}

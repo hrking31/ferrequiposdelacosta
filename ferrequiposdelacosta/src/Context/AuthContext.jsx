@@ -17,6 +17,17 @@ import { setUserData, clearUserData } from "../Store/Slices/userSlice";
 import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
 import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
 import { authContext } from "./useAuth";
+import { anotarAparato, olvidarAparato } from "../Utils/aparatos";
+
+// CERRAR TODAS LAS SESIONES (2026-10-16). Cuando el administrador lo hace, el
+// servidor deja en la ficha la hora (sesionesCerradasEn). Una sesión que se
+// abrió ANTES de esa hora tiene que salir: la app la cierra en el momento.
+const sesionCerradaDesdeAfuera = async (currentUser, profile) => {
+  const cerradasEn = profile.sesionesCerradasEn?.toMillis?.();
+  if (!cerradasEn) return false;
+  const { authTime } = await currentUser.getIdTokenResult();
+  return new Date(authTime).getTime() < cerradasEn;
+};
 
 // EL CARNÉ (2026-10-16). Las reglas leen el rol de la sesión (custom claims),
 // no de la ficha users/{uid}. Si el carné no dice lo mismo que la ficha —un
@@ -106,7 +117,13 @@ export function AuthProvider({ children }) {
         detenerPerfil();
         detenerPresencia();
 
-        const userRef = ref(database, `usuariosConectados/${user.uid}`);
+        try {
+          await olvidarAparato(currentUser.uid);
+        } catch (error) {
+          console.error("No se pudo quitar el aparato de la lista:", error);
+        }
+
+        const userRef = ref(database, `usuariosConectados/${currentUser.uid}`);
 
         await set(userRef, {
           online: false,
@@ -139,6 +156,22 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setCorreoVerificado(currentUser.emailVerified === true);
 
+      // Lo guardado en el navegador puede ser de ANTES de tocar el enlace del
+      // correo: al abrir la app (o recargar) se le pregunta a Firebase. Sin
+      // esto, recargar no alcanzaba y había que tocar «Ya confirmé».
+      if (!currentUser.emailVerified) {
+        currentUser
+          .reload()
+          .then(async () => {
+            if (!currentUser.emailVerified) return;
+            await currentUser.getIdToken(true);
+            setCorreoVerificado(true);
+          })
+          .catch((error) =>
+            console.error("No se pudo revisar si confirmó el correo:", error),
+          );
+      }
+
       // La ficha se ESCUCHA, no se lee una sola vez: si el administrador le
       // cambia el rol a quien tiene la app abierta, el carné y los botones se
       // ponen al día en el momento, sin recargar.
@@ -149,6 +182,21 @@ export function AuthProvider({ children }) {
             if (userDoc.exists()) {
               const profile = userDoc.data();
               const role = profile.role || "";
+
+              if (await sesionCerradaDesdeAfuera(currentUser, profile)) {
+                detenerPerfil();
+                detenerPresencia();
+                try {
+                  await set(ref(database, `usuariosConectados/${currentUser.uid}`), {
+                    online: false,
+                    timestamp: Date.now(),
+                  });
+                } catch {
+                  // Puede que ya no tenga permiso: no importa, igual sale.
+                }
+                await signOut(auth);
+                return;
+              }
 
               await ponerAlDiaElCarne(currentUser, role);
 
@@ -162,10 +210,15 @@ export function AuthProvider({ children }) {
                 photoURL: profile.photoURL || currentUser.photoURL || null,
               };
 
+              // Lo que se hace una vez por entrada: la presencia y anotar este
+              // aparato en la lista de sesiones abiertas.
               if (presenciaDeRef.current !== currentUser.uid) {
                 detenerPresencia();
                 detenerPresenciaRef.current = registrarConexion(currentUser.uid);
                 presenciaDeRef.current = currentUser.uid;
+                anotarAparato(currentUser.uid, { forzar: true }).catch((error) =>
+                  console.error("No se pudo anotar el aparato:", error),
+                );
               }
 
               // La ficha también cambia por cosas que la app no muestra (los
@@ -218,6 +271,21 @@ export function AuthProvider({ children }) {
 
     return () => unsubscribe();
   }, [dispatch, user]);
+
+  // Mientras se usa, el "último uso" del aparato se renueva al volver a la
+  // pestaña (como mucho cada media hora, ver anotarAparato).
+  const uid = user?.uid;
+  useEffect(() => {
+    if (!uid) return;
+    const alVolver = () => {
+      if (document.visibilityState !== "visible") return;
+      anotarAparato(uid).catch((error) =>
+        console.error("No se pudo renovar el aparato:", error),
+      );
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [uid]);
 
   return (
     <authContext.Provider
