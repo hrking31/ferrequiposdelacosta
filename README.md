@@ -364,6 +364,10 @@ El aviso de ese rechazo tampoco se veía: los avisos de la app estaban a la mism
 
 Para la base de datos, anotar un abono y cambiar la fecha de una devolución son la misma operación: actualizar la factura. No puede permitir una y prohibir la otra, así que quien tenga permiso de clientes y sepa usar las herramientas del navegador puede saltarse el lápiz.
 
+**Desde el 15/10 la base cierra una parte.** A quien no es administrador, la regla le rechaza cambiar el número o la fecha de la factura, y le exige que los abonos, lo devuelto al cliente y las llamadas **solo crezcan**: lo nuevo se agrega al final y lo que ya estaba tiene que llegar idéntico. Quitar un abono o bajarle el monto deja de ser posible para un gestor, aunque use las herramientas del navegador. De paso frena la ventana vieja que guarda una copia de la factura sin el abono que otro acaba de anotar.
+
+Lo que la regla **no alcanza** son las fechas, los días, los precios y los descuentos de cada equipo. Viven dentro de los despachos, que los gestores reescriben de forma legítima al devolver o ampliar, y una regla de Firestore no puede recorrer esas listas para separar "agregó la devolución" de "le cambió la fecha". Cerrar eso exige que toda escritura de facturas pase por funciones del servidor.
+
 Lo que sí se puede garantizar es que **no lo haga sin quedar anotado**. Una función del servidor registra cada cambio de cada factura —quién, cuándo, y la factura entera de antes y de después— en una colección que el navegador **no puede escribir ni borrar** y que solo lee el administrador. El autor lo pone Firestore a partir del inicio de sesión, no sale de nada que mande el navegador.
 
 Ese registro se lee al final de la pantalla de corregir, ya puesto en palabras: *"CERCHAS METALICAS: devolución 10/10/2026 → 07/09/2026 · Saldo pendiente: $297.000 → $0"*.

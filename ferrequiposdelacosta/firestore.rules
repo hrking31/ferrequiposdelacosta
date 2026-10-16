@@ -113,9 +113,47 @@ service cloud.firestore {
       // desde la consola del navegador. Es lo mismo que paso con las cuentas
       // de cobro hasta el 2026-08-19.
       match /facturas/{facturaId} {
-        allow read, create, update: if puedeGestionarClientes();
+        allow read, create: if puedeGestionarClientes();
+        allow update: if esAdministrador()
+          || (puedeGestionarClientes() && soloAnota());
         allow delete: if esAdministrador();
       }
+    }
+
+    // ANOTAR NO ES CORREGIR (2026-10-15). Los gestores actualizan la factura
+    // todos los días —un abono, una devolución, una llamada—, y hasta acá la
+    // base no podía distinguir eso de cambiarle un dato ya escrito. Corregir
+    // es solo del administrador (ver CorregirFacturaDialog.jsx).
+    //
+    // Lo que esta regla le cierra a todos los demás:
+    //   - el número y la fecha de la factura no se tocan;
+    //   - los abonos, lo devuelto al cliente y las gestiones solo crecen: se
+    //     agregan al final, y los que ya estaban quedan idénticos.
+    //
+    // De paso frena la ventana vieja que guarda una copia sin el abono que
+    // otro acaba de anotar: los de antes ya no serían los mismos.
+    //
+    // Lo que NO alcanza: las fechas, los días, los precios y los descuentos
+    // de cada equipo. Viven dentro de los despachos, que los gestores
+    // reescriben al devolver o ampliar, y una regla no puede recorrer esas
+    // listas para separar "agregó la devolución" de "le cambió la fecha". Eso
+    // queda a la vista en el historial de correcciones.
+    function soloAnota() {
+      let antes = resource.data.get("factura", {});
+      let despues = request.resource.data.get("factura", {});
+      return despues.get("numeroFactura", null) == antes.get("numeroFactura", null)
+        && despues.get("fechaCreacion", null) == antes.get("fechaCreacion", null)
+        && soloCrece("abonos")
+        && soloCrece("entregas")
+        && soloCrece("gestiones");
+    }
+
+    // La lista de después empieza con la de antes, tal cual.
+    function soloCrece(campo) {
+      let antes = resource.data.get(campo, []);
+      let despues = request.resource.data.get(campo, []);
+      return despues.size() >= antes.size()
+        && despues[0:antes.size()] == antes;
     }
 
     // ---------------------------------------------------------------
