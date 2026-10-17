@@ -210,11 +210,20 @@ service cloud.firestore {
     }
 
     // La lista de después empieza con la de antes, tal cual.
+    //
+    // OJO CON EL RECORTE (2026-10-17): Firebase da "Index out of bounds" al
+    // pedir despues[0:0] sobre una lista vacía, y un error en la regla es un
+    // "no". Como casi toda factura tiene alguna de las cuatro listas vacía,
+    // a los gestores no les dejaba guardar nada. Por eso el recorte solo se
+    // hace cuando la lista de antes tiene algo y la de después es más larga;
+    // si quedó idéntica o estaba vacía, no hay nada que se pudiera borrar.
     function soloCrece(campo) {
       let antes = resource.data.get(campo, []);
       let despues = request.resource.data.get(campo, []);
-      return despues.size() >= antes.size()
-        && despues[0:antes.size()] == antes;
+      return despues == antes
+        || antes.size() == 0
+        || (despues.size() > antes.size()
+            && despues[0:antes.size()] == antes);
     }
 
     // ---------------------------------------------------------------
