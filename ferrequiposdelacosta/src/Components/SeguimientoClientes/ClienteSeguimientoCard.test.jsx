@@ -2,8 +2,10 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import ClienteSeguimientoCard from "./ClienteSeguimientoCard";
 import {
+  grupoAgregados,
   unEquipo,
   unEquipoDevuelto,
+  unGrupo,
   unaFactura,
   unTramoVencido,
 } from "../../test/facturas";
@@ -362,32 +364,114 @@ describe("ClienteSeguimientoCard — lo que muestra", () => {
 
   // La pregunta que le da nombre a esta pantalla: que hay afuera. Antes habia
   // que abrir cada tarjeta para contestarla.
-  // Se cuentan, no se nombran: con la tarjeta cerrada se busca cuánto hay, y
-  // los nombres se leen al abrirla.
-  it("sin abrir la tarjeta ya dice cuántos equipos hay afuera", () => {
+  it("sin abrir la tarjeta ya dice qué equipo hay afuera y cuánto", () => {
     mostrar([facturaVencida]);
 
-    expect(screen.getByText("5 equipos")).toBeInTheDocument();
-    expect(screen.queryByText(/ANDAMIO/)).not.toBeInTheDocument();
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
   });
 
-  // Las unidades de todos los equipos, sumadas: 5 + 2 + 1 + 1.
-  it("con varios equipos suma todas las unidades", () => {
+  // Un recuadro por equipo (2026-10-19), no uno con el total: 5 + 2 + 1 + 1
+  // ya no se suman en "9 equipos".
+  it("con varios equipos muestra un recuadro por cada uno", () => {
     mostrar([facturaConCuatroEquipos]);
 
-    expect(screen.getByText("9 equipos")).toBeInTheDocument();
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("2 GATO")).toBeInTheDocument();
+    expect(screen.getByText("1 MEZCLADORA")).toBeInTheDocument();
+    expect(screen.getByText("1 SALTARIN")).toBeInTheDocument();
+    expect(screen.queryByText("9 equipos")).not.toBeInTheDocument();
   });
 
-  // Abierta, el recuadro que cuenta se va y cada equipo aparece en su ficha
-  // de cuatro columnas, con su nombre en la primera casilla.
+  // Una devolución parcial parte la línea en dos, pero siguen siendo los mismos
+  // andamios del mismo despacho: un recuadro. Un agregado es otro despacho, y
+  // va aparte aunque sea el mismo equipo.
+  it("suma el mismo equipo dentro de un despacho, y el agregado va aparte", () => {
+    const vencido = (cantidad) =>
+      andamio({
+        cantidad,
+        vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+      });
+    const factura = {
+      id: "f1",
+      ...unaFactura({
+        numeroFactura: "1573",
+        fechaCreacion: "2026-08-01",
+        grupos: [
+          unGrupo({ fechaSolicitud: "2026-08-01", equipos: [vencido(12), vencido(8)] }),
+          unGrupo({
+            grupo: grupoAgregados(1),
+            fechaSolicitud: "2026-08-02",
+            equipos: [vencido(4)],
+          }),
+        ],
+      }),
+    };
+    mostrar([factura]);
+
+    expect(screen.getByText("20 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("4 ANDAMIO")).toBeInTheDocument();
+  });
+
+  // El caso del dueño: 20 andamios, devuelve 8. La devolución parte la línea
+  // —8 que volvieron y 12 que siguen afuera— y el recuadro dice lo que queda.
+  it("si de 20 andamios devuelve 8, muestra los 12 que quedan", () => {
+    const factura = facturaCon({
+      equipos: [
+        unEquipoDevuelto({
+          nombre: "ANDAMIO",
+          cantidad: 8,
+          dias: 3,
+          valorDia: 20000,
+          fechaDespacho: "2026-08-01",
+          vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: "2026-08-10" })],
+          fechaDevolucion: "2026-08-10",
+        }),
+        andamio({
+          cantidad: 12,
+          vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+        }),
+      ],
+    });
+    mostrar([factura]);
+
+    expect(screen.getByText("12 ANDAMIO")).toBeInTheDocument();
+    expect(screen.queryByText("20 ANDAMIO")).not.toBeInTheDocument();
+    expect(screen.queryByText("8 ANDAMIO")).not.toBeInTheDocument();
+  });
+
+  // De 20 andamios vencidos, el cliente pacta entregar 8: ninguno volvió, pero
+  // no están igual. Cada parte va en su recuadro (opción B del dueño).
+  it("separa por situación: 12 vencidos y 8 por recoger, cada uno en su recuadro", () => {
+    const factura = facturaCon({
+      equipos: [
+        andamio({
+          cantidad: 12,
+          vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: null })],
+        }),
+        andamio({
+          cantidad: 8,
+          vencidos: [unTramoVencido({ desde: "2026-08-04", hasta: "2026-08-15" })],
+          entregaPactada: { fecha: "2026-08-15" },
+        }),
+      ],
+    });
+    mostrar([factura]);
+
+    expect(screen.getByText("12 ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByText("8 ANDAMIO")).toBeInTheDocument();
+    expect(screen.queryByText("20 ANDAMIO")).not.toBeInTheDocument();
+  });
+
+  // Abierta, los recuadros se van y cada equipo aparece en su ficha de cuatro
+  // columnas, con su nombre en la primera casilla.
   it("al abrir la tarjeta el equipo pasa a su ficha", async () => {
     const { usuario } = mostrar([facturaVencida]);
-    expect(screen.getByText("5 equipos")).toBeInTheDocument();
+    expect(screen.getByText("5 ANDAMIO")).toBeInTheDocument();
     expect(screen.queryByText("Vencido")).not.toBeInTheDocument();
 
     await desplegarFactura(usuario);
 
-    expect(screen.queryByText("5 equipos")).not.toBeInTheDocument();
+    expect(screen.queryByText("5 ANDAMIO")).not.toBeInTheDocument();
 
     // En su ficha ya no es un texto solo: la cantidad vuelve a su recuadro, al
     // lado del nombre, y las otras casillas hablan de él.

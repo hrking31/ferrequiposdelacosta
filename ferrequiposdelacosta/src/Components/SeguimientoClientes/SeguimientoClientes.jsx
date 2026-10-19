@@ -4,7 +4,9 @@ import {
   Box,
   Chip,
   IconButton,
+  MenuItem,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -31,6 +33,21 @@ import {
   equiposDe,
   datosFactura,
 } from "../ClienteDetalle/facturaUtils";
+import {
+  FILTROS_GESTION,
+  cumpleDias,
+  cumpleGestion,
+  datosParaFiltrar,
+  opcionesDias,
+} from "./filtrosSeguimiento";
+
+const FILTROS_TIPO = [
+  { valor: "todos", label: "Todos" },
+  { valor: "persona", label: "Personas", icono: PersonIcon },
+  { valor: "empresa", label: "Empresas", icono: BusinessIcon },
+];
+
+const tipoDe = (cliente) => (cliente.tipo === "empresa" ? "empresa" : "persona");
 
 const obtenerNombreCompleto = (cliente) => {
   if (!cliente) return "";
@@ -51,9 +68,17 @@ export default function SeguimientoClientes() {
   // una franja donde no cabía ni una. Con la pantalla así de baja se desplaza
   // todo junto, encabezado incluido.
   const altoCorto = usePantallaBaja();
+  // LOS FILTROS EN UNA COLUMNA A LA IZQUIERDA, como en la lista de clientes y
+  // desde el mismo ancho. Más angosto no entran al lado de las tarjetas y van
+  // en el renglón del buscador.
+  const columnaFiltros = useMediaQuery("(min-width:1151px)") && !esCelular;
   const acento =
     theme.palette.custom.accent;
+  // Los mismos colores del chip de gestión de cada tarjeta.
+  const colorPorGestion = theme.palette.custom.gestionFactura;
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroGestion, setFiltroGestion] = useState("todos");
+  const [filtroDias, setFiltroDias] = useState("todos");
   const [clientesConSeguimiento, setClientesConSeguimiento] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -142,20 +167,104 @@ export default function SeguimientoClientes() {
     fetchSeguimiento();
   }, [fetchSeguimiento]);
 
+  const hoy = obtenerFechaHoyBogota();
   const busquedaLower = busqueda.trim().toLowerCase();
 
-  const visibles = useMemo(
+  // Lo que los filtros miran de cada factura (su gestión y sus días), una sola
+  // vez por carga y no en cada tecla del buscador.
+  const conDatos = useMemo(
     () =>
-      clientesConSeguimiento.filter(({ cliente }) => {
-        const esEmpresa = cliente.tipo === "empresa";
-        if (filtroTipo === "persona" && esEmpresa) return false;
-        if (filtroTipo === "empresa" && !esEmpresa) return false;
+      clientesConSeguimiento.map((item) => ({
+        ...item,
+        facturasConDatos: item.facturas.map((factura) => ({
+          factura,
+          datos: datosParaFiltrar(factura, hoy),
+        })),
+      })),
+    [clientesConSeguimiento, hoy],
+  );
+
+  const conBusqueda = useMemo(
+    () =>
+      conDatos.filter(({ cliente }) => {
         if (!busquedaLower) return true;
         const nombre = obtenerNombreCompleto(cliente).toLowerCase();
         const telefono = (cliente.telefono || "").toLowerCase();
         return nombre.includes(busquedaLower) || telefono.includes(busquedaLower);
       }),
-    [clientesConSeguimiento, filtroTipo, busquedaLower],
+    [conDatos, busquedaLower],
+  );
+
+  const porTipoYBusqueda = useMemo(
+    () =>
+      conBusqueda.filter(
+        ({ cliente }) => filtroTipo === "todos" || tipoDe(cliente) === filtroTipo,
+      ),
+    [conBusqueda, filtroTipo],
+  );
+
+  const datosDeFacturas = useMemo(
+    () =>
+      porTipoYBusqueda.flatMap(({ facturasConDatos }) =>
+        facturasConDatos.map(({ datos }) => datos),
+      ),
+    [porTipoYBusqueda],
+  );
+
+  // El selector de días ofrece solo los que hay entre las facturas de la
+  // gestión elegida. Si el que estaba puesto ya no está (se cambió la gestión,
+  // se registró una devolución), vuelve a "Todos".
+  const conGestion = useMemo(
+    () => datosDeFacturas.filter((datos) => cumpleGestion(datos, filtroGestion)),
+    [datosDeFacturas, filtroGestion],
+  );
+  const opcionesDeDias = useMemo(() => opcionesDias(conGestion), [conGestion]);
+  const diasElegidos = opcionesDeDias.some((opcion) => opcion.valor === filtroDias)
+    ? filtroDias
+    : "todos";
+
+  // Cuántas FACTURAS hay de cada gestión con los días elegidos.
+  const conteosPorGestion = useMemo(() => {
+    const conDias = datosDeFacturas.filter((datos) => cumpleDias(datos, diasElegidos));
+    const conteo = { todos: conDias.length };
+    conDias.forEach(({ gestion }) => {
+      conteo[gestion] = (conteo[gestion] || 0) + 1;
+    });
+    return conteo;
+  }, [datosDeFacturas, diasElegidos]);
+
+  // Cuántos CLIENTES hay de cada tipo con la gestión y los días elegidos. El
+  // tipo es del cliente y no de la factura, así que acá se cuentan clientes
+  // —como el "2 de 5" del buscador— y en las gestiones, facturas.
+  const conteosPorTipo = useMemo(() => {
+    const conteo = { todos: 0, persona: 0, empresa: 0 };
+    conBusqueda.forEach(({ cliente, facturasConDatos }) => {
+      const tieneAlguna = facturasConDatos.some(
+        ({ datos }) => cumpleGestion(datos, filtroGestion) && cumpleDias(datos, diasElegidos),
+      );
+      if (!tieneAlguna) return;
+      conteo.todos += 1;
+      conteo[tipoDe(cliente)] += 1;
+    });
+    return conteo;
+  }, [conBusqueda, filtroGestion, diasElegidos]);
+
+  // Cada tarjeta lleva solo las facturas que cumplen; el cliente que se queda
+  // sin ninguna no aparece.
+  const visibles = useMemo(
+    () =>
+      porTipoYBusqueda
+        .map(({ facturasConDatos, ...item }) => ({
+          ...item,
+          facturas: facturasConDatos
+            .filter(
+              ({ datos }) =>
+                cumpleGestion(datos, filtroGestion) && cumpleDias(datos, diasElegidos),
+            )
+            .map(({ factura }) => factura),
+        }))
+        .filter(({ facturas }) => facturas.length > 0),
+    [porTipoYBusqueda, filtroGestion, diasElegidos],
   );
 
   const buscador = (
@@ -180,76 +289,188 @@ export default function SeguimientoClientes() {
     </Typography>
   );
 
-  // Los tres filtros de tipo de cliente.
-  const chipsTipo = (
-    // En celular los tres se reparten el ancho de la pantalla: sueltos a la
-    // izquierda dejaban un hueco vacío a la derecha y cada uno medía según el
-    // largo de su palabra.
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{
-        flexShrink: 0,
-        ...(esCelular && { "& > *": { flex: 1, minWidth: 0 } }),
-      }}
+  // El aplicado conserva su color: sin esto MUI le superpone un tinte al
+  // pasar el mouse y otro mientras tiene el foco.
+  const chipElegido = (color) => ({
+    bgcolor: color,
+    color: theme.palette.getContrastText(color),
+    "& .MuiChip-icon": { color: "inherit" },
+    "&:hover": { bgcolor: color },
+    "&.Mui-focusVisible": { bgcolor: color },
+  });
+
+  const enColumna = (columna) =>
+    columna
+      ? { width: "100%", justifyContent: "flex-start", "& .MuiChip-label": { width: "100%" } }
+      : {};
+
+  // El rótulo de un botón de filtro con su número. En la columna el número va
+  // en su pastilla, a la derecha, como en la lista de clientes; en el renglón,
+  // pegado al nombre.
+  const rotuloConConteo = (label, conteo, seleccionado, color, columna) =>
+    columna ? (
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ width: "100%" }}
+      >
+        <Box component="span">{label}</Box>
+        <Box
+          component="span"
+          sx={{
+            minWidth: 20,
+            height: 20,
+            px: 0.75,
+            borderRadius: (t) => t.shape.pill,
+            fontSize: 11,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: seleccionado ? "custom.contadorSobreChip" : "action.selected",
+            color: seleccionado ? theme.palette.getContrastText(color) : "text.secondary",
+          }}
+        >
+          {conteo}
+        </Box>
+      </Stack>
+    ) : (
+      `${label} ${conteo}`
+    );
+
+  // Los botones de gestión, con el color de cada una y cuántas facturas hay.
+  const chipsGestion = (columna) =>
+    FILTROS_GESTION.map((filtro) => {
+      const seleccionado = filtroGestion === filtro.valor;
+      const colorFiltro = colorPorGestion[filtro.valor];
+      const color = colorFiltro || acento;
+      const conteo = conteosPorGestion[filtro.valor] || 0;
+      return (
+        <Chip
+          key={filtro.valor}
+          clickable
+          onClick={() => setFiltroGestion(filtro.valor)}
+          variant={seleccionado ? "filled" : "outlined"}
+          label={rotuloConConteo(filtro.label, conteo, seleccionado, color, columna)}
+          icon={
+            colorFiltro && !seleccionado ? (
+              <Box
+                component="span"
+                sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: colorFiltro, ml: "10px" }}
+              />
+            ) : undefined
+          }
+          sx={{
+            flexShrink: 0,
+            fontWeight: 600,
+            ...enColumna(columna),
+            ...(seleccionado && chipElegido(color)),
+          }}
+        />
+      );
+    });
+
+  // Los de tipo, con cuántos CLIENTES hay de cada uno (ver conteosPorTipo).
+  const chipsTipo = (columna) =>
+    FILTROS_TIPO.map((filtro) => {
+      const seleccionado = filtroTipo === filtro.valor;
+      const Icono = filtro.icono;
+      return (
+        <Chip
+          key={filtro.valor}
+          clickable
+          onClick={() => setFiltroTipo(filtro.valor)}
+          label={rotuloConConteo(
+            filtro.label,
+            conteosPorTipo[filtro.valor],
+            seleccionado,
+            acento,
+            columna,
+          )}
+          icon={Icono ? <Icono /> : undefined}
+          variant={seleccionado ? "filled" : "outlined"}
+          sx={{
+            flexShrink: 0,
+            ...enColumna(columna),
+            ...(seleccionado && chipElegido(acento)),
+          }}
+        />
+      );
+    });
+
+  // El id en inputProps y el htmlFor del rótulo son obligatorios en todo
+  // select de la app: sin ellos el rótulo apunta a un elemento que no es el
+  // campo y el lector de pantalla no lo asocia.
+  const selector = ({ id, label, value, onChange, opciones, sx }) => (
+    <TextField
+      select
+      size="small"
+      label={label}
+      value={value}
+      onChange={(evento) => onChange(evento.target.value)}
+      inputProps={{ id }}
+      InputLabelProps={{ htmlFor: id }}
+      sx={sx}
     >
-      <Chip
-        label="Todos"
-        clickable
-        onClick={() => setFiltroTipo("todos")}
-        variant={filtroTipo === "todos" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "todos"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
-      />
-      <Chip
-        icon={<PersonIcon />}
-        label="Personas"
-        clickable
-        onClick={() => setFiltroTipo("persona")}
-        variant={filtroTipo === "persona" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "persona"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "& .MuiChip-icon": { color: "inherit" },
-                // Conserva su color: sin esto MUI le superpone un tinte
-                // al pasar el mouse y otro mientras tiene el foco.
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
-      />
-      <Chip
-        icon={<BusinessIcon />}
-        label="Empresas"
-        clickable
-        onClick={() => setFiltroTipo("empresa")}
-        variant={filtroTipo === "empresa" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "empresa"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "& .MuiChip-icon": { color: "inherit" },
-                // Conserva su color: sin esto MUI le superpone un tinte
-                // al pasar el mouse y otro mientras tiene el foco.
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
-      />
+      {opciones.map((opcion) => (
+        <MenuItem key={opcion.valor} value={opcion.valor}>
+          {opcion.label}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+
+  const selectorDias = (sx) =>
+    selector({
+      id: "filtro-dias-seguimiento",
+      label: "Días vencidos",
+      value: diasElegidos,
+      onChange: setFiltroDias,
+      opciones: [
+        { valor: "todos", label: `Todos ${conGestion.length}` },
+        ...opcionesDeDias.map((opcion) => ({
+          valor: opcion.valor,
+          label: `${opcion.label} ${opcion.cantidad}`,
+        })),
+      ],
+      sx,
+    });
+
+  // EN CELULAR, TRES DESPLEGABLES en un renglón, como los de la lista de
+  // clientes: gestión, días y tipo, cada uno con su rótulo.
+  const desplegables = (
+    <Stack direction="row" spacing={1}>
+      {selector({
+        id: "filtro-gestion-seguimiento",
+        label: "Gestión",
+        value: filtroGestion,
+        onChange: setFiltroGestion,
+        opciones: FILTROS_GESTION.map((filtro) => ({
+          valor: filtro.valor,
+          label: `${filtro.label} ${conteosPorGestion[filtro.valor] || 0}`,
+        })),
+        sx: { flex: 1, minWidth: 0 },
+      })}
+      {selectorDias({ flex: 1, minWidth: 0 })}
+      {selector({
+        id: "filtro-tipo-seguimiento",
+        label: "Tipo",
+        value: filtroTipo,
+        onChange: setFiltroTipo,
+        opciones: FILTROS_TIPO.map((filtro) => ({
+          valor: filtro.valor,
+          label: `${filtro.label} ${conteosPorTipo[filtro.valor]}`,
+        })),
+        sx: { flex: 1, minWidth: 0 },
+      })}
     </Stack>
+  );
+
+  const etiquetaFiltro = (texto) => (
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, pl: 0.5 }}>
+      {texto}
+    </Typography>
   );
 
   // EL PANEL DE LA DERECHA, solo en computador: los números del menú y la
@@ -310,7 +531,7 @@ export default function SeguimientoClientes() {
               </Tooltip>
             </Stack>
 
-            {chipsTipo}
+            {desplegables}
 
             <Stack
               direction="row"
@@ -324,7 +545,9 @@ export default function SeguimientoClientes() {
               {contador}
             </Stack>
           </Stack>
-        ) : (
+        ) : columnaFiltros ? (
+          // Los filtros están en la columna de la izquierda: acá quedan el
+          // buscador y el conteo.
           <Stack
             direction="row"
             spacing={1.5}
@@ -333,7 +556,24 @@ export default function SeguimientoClientes() {
           >
             {buscador}
             {contador}
-            {chipsTipo}
+          </Stack>
+        ) : (
+          // Sin lugar para la columna: los filtros siguen al conteo, en el
+          // mismo renglón, y bajan si no caben.
+          <Stack
+            direction="row"
+            alignItems="center"
+            sx={{ mb: 2, flexShrink: 0, flexWrap: "wrap", gap: 1.5 }}
+          >
+            {buscador}
+            {contador}
+            <Stack direction="row" spacing={1}>
+              {chipsGestion(false)}
+            </Stack>
+            {selectorDias({ minWidth: 150 })}
+            <Stack direction="row" spacing={1}>
+              {chipsTipo(false)}
+            </Stack>
           </Stack>
         ));
 
@@ -363,7 +603,7 @@ export default function SeguimientoClientes() {
                 cliente={cliente}
                 facturas={facturas}
                 facturasConSaldo={facturasAbiertas}
-                hoy={obtenerFechaHoyBogota()}
+                hoy={hoy}
                 onEquiposActualizados={() => fetchSeguimiento(true)}
                 {...(conPanel && {
                   equipoElegido: elegido ? seleccion.clave : undefined,
@@ -374,6 +614,51 @@ export default function SeguimientoClientes() {
           </Stack>
         )}
       </Box>
+  );
+
+  const lista = conPanel ? (
+    // La lista y el panel, lado a lado debajo del buscador. Cada uno se
+    // desplaza por su cuenta: el panel no se va al bajar por la lista.
+    <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {cuerpo}
+      </Box>
+      <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+        <PanelSeguimiento elegido={elegido} hoy={hoy} />
+      </Box>
+    </Box>
+  ) : (
+    cuerpo
+  );
+
+  // LA COLUMNA DE FILTROS va debajo del buscador, no al lado: así arranca a la
+  // altura de la primera tarjeta, como la pidió el dueño. Se desplaza por su
+  // cuenta, igual que la lista.
+  const columna = (
+    <Box
+      sx={{
+        width: "clamp(160px, 14vw, 220px)",
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+        overflowY: "auto",
+      }}
+    >
+      {etiquetaFiltro("Gestión")}
+      <Stack spacing={1}>{chipsGestion(true)}</Stack>
+      <Box sx={{ mt: 1.5 }}>{selectorDias({ width: "100%" })}</Box>
+      <Box sx={{ mt: 1 }}>{etiquetaFiltro("Tipo")}</Box>
+      <Stack spacing={1}>{chipsTipo(true)}</Stack>
+    </Box>
   );
 
   return (
@@ -389,10 +674,9 @@ export default function SeguimientoClientes() {
     >
       {encabezado}
 
-      {conPanel ? (
-        // La lista y el panel, lado a lado debajo del buscador. Cada uno se
-        // desplaza por su cuenta: el panel no se va al bajar por la lista.
+      {columnaFiltros && clientesConSeguimiento.length > 0 ? (
         <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+          {columna}
           <Box
             sx={{
               flex: 1,
@@ -402,14 +686,11 @@ export default function SeguimientoClientes() {
               flexDirection: "column",
             }}
           >
-            {cuerpo}
-          </Box>
-          <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
-            <PanelSeguimiento elegido={elegido} hoy={obtenerFechaHoyBogota()} />
+            {lista}
           </Box>
         </Box>
       ) : (
-        cuerpo
+        lista
       )}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />

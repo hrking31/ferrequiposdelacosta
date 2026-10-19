@@ -409,7 +409,12 @@ El estado dice en qué punto está la factura. **La gestión dice qué se hizo p
 | 📵 **Sin respuesta** | Se llamó al cliente y no contestó |
 | 🔄 **Renovación** | Se le autorizaron más días |
 | 📦 **Parcial** | Devolvió una parte de los equipos |
+| 🚚 **Entrega pactada** | Avisó que lo devuelve: ya no corre la cuenta y falta que el equipo llegue a la bodega |
 | 💰 **Cobro** | Devolvió todo, pero quedó debiendo |
+
+> **La bitácora también anota "Devolución total", pero nunca llega al chip.** Al volver el último equipo la factura pasa a *Cobro* —y ahí manda esa gestión— o se finaliza y sale de Seguimiento.
+
+**Los filtros de Seguimiento (2026-10-19).** La lista se filtra por **gestión** y por **días vencidos**, además de personas y empresas. Filtran facturas, no clientes: la tarjeta muestra solo las que cumplen. Las seis gestiones salen siempre, aunque estén en cero; los días, en cambio, solo los que hay —*Hoy*, *1 día*, *3 días*, sin el 2 si nadie lleva dos—, cada uno con cuántas facturas tiene. Los días son los mismos que la tarjeta dice al lado de la fecha. En computador van en una columna a la izquierda, a la altura de la primera tarjeta; en celular, en tres desplegables.
 
 Se guarda **el historial completo**, no solo lo último: así se puede reconstruir cuántas veces se llamó y cuándo (*"sin respuesta ×3"* antes de lograr contacto).
 
@@ -674,7 +679,7 @@ Antes los tres mostraban el mismo dato —hasta cuándo estaba cubierto el equip
 
 Cuando hay varios equipos vencidos manda **el que más días lleva**, con su fecha y sus días: es el que define la urgencia y el primero que se le reclama al cliente. Antes la fecha salía del más antiguo y los días del que más llevaba, que podían ser equipos distintos — la fila mostraba la fecha de uno con los días de otro.
 
-**En el celular, con la factura cerrada, los equipos se cuentan en vez de nombrarse**: un recuadro del color de su urgencia con el ícono de equipos y cuántas unidades hay afuera — *"🔧 3 equipos"*. Los nombres no entran ahí —"TABLÓN DE MADERA PARA ANDAMIO" ocupa la pantalla entera— y con la tarjeta cerrada lo que se busca es cuánto hay y qué tan urgente es; el detalle está a un toque. Va a todo el ancho, como el recuadro de la cuenta que tiene debajo. En el computador siguen los chips con el nombre de cada uno.
+**Con la factura cerrada, cada equipo va en su recuadro**, del color de su urgencia, con cuántas unidades son y el nombre cortado con puntos si no entra — *"🔧 3 ANDAMIO"*. Ver *Qué hay afuera, sin abrir la tarjeta*, más abajo.
 
 Es la misma idea llevada a toda la pantalla. **Una factura entra a cartera con los equipos que quedaron vencidos, no con todo lo que tiene adentro.** Así que ahí no aparecen:
 
@@ -704,9 +709,19 @@ Las facturas arrancan plegadas, para ver de un vistazo a quiénes hay que cobrar
 
 > **Fact. 0123**
 > Vencía **07/09/2026** | 7 días vencidos
-> 🛠 **7 equipos** (en rojo)
+> 🛠 **20 ANDAMIO** (en rojo) 🛠 **4 TABLÓN DE MADE…** (en ámbar)
 
-Un recuadro a todo el ancho con **cuántas unidades hay afuera**, en **el color del equipo más urgente** —el mismo que tendrá su recuadro al abrir la factura—. Hasta el 2026-09-30 en computador iban chips con el nombre de los tres primeros (*"5 Gatos hidráulicos · 1 Compresor 185 · y 2 más"*), pero *"TABLÓN DE MADERA PARA ANDAMIO"* no se reconoce de un vistazo: se lee. Ahora el computador muestra lo mismo que el celular, y los nombres se ven al abrir la factura.
+**Un recuadro por equipo, despacho y situación** (desde el 2026-10-19), con cuántas unidades son y el nombre, en el color de su urgencia —el mismo que tendrá su recuadro al abrir la factura—:
+
+- **Lo devuelto no cuenta.** De 20 andamios, el cliente devuelve 8: el recuadro dice *"12 ANDAMIO"*.
+- **Un agregado es otro despacho** y va en su propio recuadro, como está guardado en la factura, aunque sea el mismo equipo.
+- **Dentro de un despacho se separa por situación.** De 20 andamios vencidos, el cliente pacta entregar 8: *"12 ANDAMIO"* en rojo y *"8 ANDAMIO"* en el celeste de *por recoger*. Ninguno volvió, pero unos se cobran y los otros solo hay que ir a buscarlos.
+
+En computador van de a cuatro por fila, del mismo ancho; en el celular, de a dos, y si quedan impares el último ocupa el renglón entero. El nombre largo se corta con puntos y se lee entero al pasar el mouse, así todos miden lo mismo de alto.
+
+Con la factura abierta, en el celular los equipos de un mismo grupo van dentro de un solo recuadro, sin marco propio; una **línea punteada del color del grupo** marca dónde termina uno y empieza el siguiente.
+
+> Hasta el 2026-09-30 en computador iban chips con el nombre de los tres primeros, y de ahí al 19/10 fue un solo recuadro con el total —*"🛠 24 equipos"*— en el computador y en el celular. El total decía cuánto había, pero no qué: para saber si eran andamios o tablones había que abrir la factura.
 
 Al abrir la factura ese renglón desaparece: abajo cada equipo tiene su propio recuadro, y repetir la lista arriba sería decir dos veces lo mismo.
 

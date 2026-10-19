@@ -974,9 +974,9 @@ export default function ClienteSeguimientoCard({
   const equiposVencidos = contarUnidadesVencidas(factura, hoy);
 
   // Los equipos que trajeron esta factura a cartera: vencidos y todavía
-  // afuera. Se reparten por urgencia una sola vez porque los miran dos
-  // lugares —el renglón de la tarjeta plegada y la lista de abajo— y tienen
-  // que decir lo mismo, en el mismo orden.
+  // afuera, repartidos por urgencia para la lista de la factura abierta. Los
+  // recuadros de la factura cerrada salen de los mismos (ver
+  // recuadrosEnCartera).
   const gruposEnCartera = agruparPorVencimiento(
     equiposDe(factura)
       // Y los que están por recoger: ya no se les cobra, pero siguen en la
@@ -994,22 +994,34 @@ export default function ClienteSeguimientoCard({
   const soloPorRecoger =
     !plazo && equiposDe(factura).some(({ equipo }) => estaPorRecoger(equipo));
 
-  // CUÁNTAS UNIDADES hay afuera, no cuántas líneas: el cliente tiene "3
-  // andamios y 1 mezcladora", no "dos equipos".
-  const unidadesEnCartera = gruposEnCartera.reduce(
-    (total, grupo) =>
-      total +
-      grupo.items.reduce(
-        (suma, { equipo }) => suma + (Number(equipo.cantidadEquipos) || 0),
-        0,
-      ),
-    0,
-  );
-
-  // Los mismos, en fila, para poder nombrarlos sin abrir la tarjeta.
-  const equiposEnCartera = gruposEnCartera.flatMap((grupo) =>
-    grupo.items.map(({ equipo }) => ({ equipo, situacion: grupo.clave })),
-  );
+  // LO QUE HAY AFUERA, UN RECUADRO POR EQUIPO DE CADA DESPACHO Y SITUACIÓN
+  // (2026-10-19): "20 ANDAMIO" y "4 TABLÓN", no "24 equipos".
+  //   - Lo devuelto no cuenta: de 20 andamios, devueltos 8, dice "12".
+  //   - Un agregado es otro despacho y va en su recuadro, como está guardado
+  //     en la factura.
+  //   - Dentro de un despacho, el mismo equipo se separa por situación: de 20
+  //     andamios vencidos con 8 pactados para entregar, "12 ANDAMIO" en rojo y
+  //     "8 ANDAMIO" en el celeste de por recoger. Lo que es igual en todo —una
+  //     línea partida que sigue igual de vencida— se suma.
+  const recuadrosEnCartera = (() => {
+    const porClave = new Map();
+    equiposDe(factura)
+      .filter(
+        ({ equipo }) =>
+          sigueAfuera(equipo) &&
+          (equipoVencido(equipo, hoy) || estaPorRecoger(equipo)),
+      )
+      .forEach(({ equipo, grupo }) => {
+        const nombre = String(equipo.nombre || "").trim();
+        const situacion = clasificarVencimiento(equipo, hoy);
+        const clave = `${grupo?.grupo ?? ""}|${nombre.toUpperCase()}|${situacion}`;
+        const unidades = Number(equipo.cantidadEquipos) || 0;
+        const previo = porClave.get(clave);
+        if (previo) previo.unidades += unidades;
+        else porClave.set(clave, { clave, nombre, unidades, situacion });
+      });
+    return [...porClave.values()];
+  })();
 
   // Hasta cuándo se le extendió el plazo: la fecha más lejana entre los
   // equipos que todavía no volvió, sin contar los que quedaron con entrega
@@ -1494,27 +1506,21 @@ export default function ClienteSeguimientoCard({
                 )}
               </Stack>
 
-              {/* CON LA FACTURA CERRADA, el resumen de la cuenta ocupa el
-                  hueco que queda entre el plazo y los botones, igual que en la
-                  ficha del cliente: al recorrer la lista lo que se busca es
-                  cuánto es y cuánto falta.
+              {/* CON LA FACTURA CERRADA, la cuenta va en su propia fila, con
+                  todo el ancho, igual que con la factura abierta: al recorrer
+                  la lista lo que se busca es cuánto es y cuánto falta.
 
-                  Por debajo de cierto ancho el hueco no pasa de unos 300px y
-                  cuatro importes de siete cifras se montan entre sí, así que
-                  la pizarra pasa a su propia fila con todo el ancho. En la
-                  ficha ese corte es 1200px; acá es 1800, porque desde 1200
-                  está el panel de la derecha y se lleva sus 420px.
-
-                  Era 1600 y a 1663px las cifras se montaban: el renglón pide
-                  unos 270px de plazo, 580 de pizarra y 340 de botones, chip y
-                  flecha, y con el panel y los márgenes eso son ~1750px. */}
+                  Desde 1800px iba en el hueco entre el plazo y los botones,
+                  como en la ficha del cliente. Con la columna de filtros a la
+                  izquierda (2026-10-19) ese hueco ya no alcanzaba ni en las
+                  pantallas grandes y las cifras se apretaban: el dueño la
+                  pidió siempre abajo, como con la factura abierta. */}
               {!esMovil &&
                 facturaPlegada(factura.id) &&
                 renderPizarraTotales(casillasDeCuenta(cuenta), {
                   flexGrow: 1,
                   flexBasis: "100%",
                   order: 1,
-                  "@media (min-width:1800px)": { flexBasis: 0, order: 0 },
                 })}
 
               {/* Las acciones y el estado de la factura.
@@ -1532,8 +1538,8 @@ export default function ClienteSeguimientoCard({
                 alignItems={esMovil ? "flex-end" : "center"}
                 // SIEMPRE PEGADOS A LA DERECHA, aunque queden solos en su
                 // renglón. El `space-between` de la fila los acomodaba mientras
-                // hubiera algo a la izquierda, pero entre 916 y 1800px la
-                // pizarra baja a su propia línea y una factura SIN PLAZO —la
+                // hubiera algo a la izquierda, pero en computador la
+                // pizarra va en su propia línea y una factura SIN PLAZO —la
                 // que sigue en cartera solo por la plata— dejaba este bloque
                 // como único hijo: los botones y el chip se iban a la
                 // izquierda, contra el borde.
@@ -1770,38 +1776,69 @@ export default function ClienteSeguimientoCard({
               </Box>
             )}
 
-            {/* QUÉ HAY AFUERA, sin abrir la tarjeta: un recuadro del color de
-                su urgencia con el ícono de equipos y cuántas unidades hay
-                afuera. Plegada, la factura decía su número y cuánto se pasó,
-                pero no cuánto equipo tiene el cliente —y esa es la pregunta
-                que le da nombre a esta pantalla—.
+            {/* QUÉ HAY AFUERA, sin abrir la tarjeta: un recuadro por equipo
+                de cada despacho (ver recuadrosEnCartera), del color de su
+                urgencia, con cuántas unidades son y el nombre. Plegada, la
+                factura decía su número y cuánto se pasó, pero no qué equipo
+                tiene el cliente —y esa es la pregunta que le da nombre a esta
+                pantalla—.
 
-                Se cuentan en vez de nombrarse, en el celular Y en el
-                computador (2026-09-30): en computador iban chips con el
-                nombre de los tres primeros, y "TABLÓN DE MADERA PARA ANDAMIO"
-                no se reconoce de un vistazo, se lee. Con la tarjeta cerrada lo
-                que se busca es cuánto hay y qué tan urgente es; el detalle
-                está al abrir la factura. El color sale del grupo más urgente,
-                que es el primero de la lista. */}
-            {facturaPlegada(factura.id) && equiposEnCartera.length > 0 && (
+                Del 30/09 al 19/10 fue un solo recuadro con el total ("24
+                equipos"): el dueño lo cambió para ver qué es cada cosa sin
+                abrir la factura. El nombre largo se corta con puntos y se lee
+                entero al pasar el mouse, así todos miden lo mismo de alto.
+
+                EN EL CELULAR, DE A DOS POR FILA y llenando el ancho: uno solo
+                ocupa todo el renglón, dos lo parten a la mitad, y con tres van
+                dos arriba y el último abajo, a todo el ancho. Así lo pidió el
+                dueño: sueltos según el largo de su nombre quedaban huecos.
+
+                EN COMPUTADOR, DE A CUATRO POR FILA, todos del mismo ancho; del
+                quinto en adelante bajan al renglón siguiente. */}
+            {facturaPlegada(factura.id) && recuadrosEnCartera.length > 0 && (
               <Box
                 sx={{
-                  ...recuadroDeBloque(colorDeSituacion(equiposEnCartera[0].situacion)),
-                  // A todo el ancho, como el recuadro de la cuenta que tiene
-                  // justo debajo: los dos son bloques de la misma factura y
-                  // uno angosto al lado de otro ancho se lee como un resto.
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  py: 0.5,
                   mb: 1,
-                  color: colorDeSituacion(equiposEnCartera[0].situacion),
+                  gap: 0.75,
+                  display: "grid",
+                  // minmax(0, …) y no 1fr a secas: sin eso un nombre largo
+                  // estira su columna en vez de cortarse con puntos.
+                  gridTemplateColumns: esMovil
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(4, minmax(0, 1fr))",
                 }}
               >
-                <ConstructionIcon fontSize="small" />
-                <Typography variant="body2" fontWeight="bold">
-                  {unidadesEnCartera} equipo{unidadesEnCartera === 1 ? "" : "s"}
-                </Typography>
+                {recuadrosEnCartera.map(({ clave, nombre, unidades, situacion }, i) => {
+                  const color = colorDeSituacion(situacion);
+                  const texto = `${unidades} ${nombre}`;
+                  // El último de una cantidad impar se queda solo en su fila.
+                  const solo =
+                    esMovil &&
+                    i === recuadrosEnCartera.length - 1 &&
+                    recuadrosEnCartera.length % 2 === 1;
+                  return (
+                    <Tooltip key={clave} title={texto}>
+                      <Box
+                        sx={{
+                          ...recuadroDeBloque(color),
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          py: 0.5,
+                          minWidth: 0,
+                          maxWidth: "100%",
+                          color,
+                          ...(solo && { gridColumn: "1 / -1" }),
+                        }}
+                      >
+                        <ConstructionIcon fontSize="small" sx={{ flexShrink: 0 }} />
+                        <Typography variant="body2" fontWeight="bold" noWrap>
+                          {texto}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
               </Box>
             )}
 
@@ -2039,7 +2076,21 @@ export default function ClienteSeguimientoCard({
                     {/* La misma separación con su rótulo que el recuadro de la
                         gestión: pegados, los tres bloques no se leían a la
                         misma altura. */}
-                    <Box sx={cuadriculaDeEquipos(grupo.items.length)}>
+                    <Box
+                      sx={{
+                        ...cuadriculaDeEquipos(grupo.items.length),
+                        // EN EL CELULAR los equipos van sin marco propio dentro
+                        // del recuadro del grupo, y con dos o más no se veía
+                        // dónde terminaba uno y empezaba el otro: una línea
+                        // punteada del color del grupo los separa.
+                        ...(esMovil && {
+                          "& > *:not(:first-of-type)": {
+                            borderTop: `1px dashed ${alpha(colorGrupo, 0.6)}`,
+                            pt: 1,
+                          },
+                        }),
+                      }}
+                    >
                       {grupo.items.map(({ equipo, index }) =>
                         renderEquipo(equipo, `${equipo.nombre}-${index}`, grupo.clave),
                       )}
