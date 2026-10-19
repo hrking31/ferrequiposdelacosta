@@ -86,12 +86,6 @@ export default function Login({ onClose }) {
       if (error.code === "auth/multi-factor-auth-required") {
         setCodigo("");
         setSegundoPaso(prepararSegundoPaso(error));
-      } else if (error.code === "auth/password-does-not-meet-requirements") {
-        // Desde el 2026-10-16 la contraseña tiene requisitos, y las de antes
-        // que no los cumplen ya no abren: hay que poner una nueva.
-        showSnackbar(
-          "Su contraseña ya no cumple los requisitos. Toque «¿Olvidó su contraseña?» para poner una nueva.",
-        );
       } else if (error.code === "auth/wrong-password") {
         showSnackbar("Contraseña incorrecta");
       } else if (error.code === "auth/user-not-found") {

@@ -65,10 +65,6 @@ describe("Login — cuando falla, lo dice en castellano", () => {
   // Cada código que devuelve Firebase tiene su frase. Sin esta traducción, al
   // usuario le llegaría "auth/wrong-password".
   const casos = [
-    [
-      "auth/password-does-not-meet-requirements",
-      "Su contraseña ya no cumple los requisitos. Toque «¿Olvidó su contraseña?» para poner una nueva.",
-    ],
     ["auth/wrong-password", "Contraseña incorrecta"],
     ["auth/user-not-found", "Usuario no registrado"],
     ["auth/invalid-credential", "Correo o contraseña incorrectos"],
