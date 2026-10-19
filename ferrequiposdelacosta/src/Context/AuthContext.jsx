@@ -17,7 +17,7 @@ import { setUserData, clearUserData } from "../Store/Slices/userSlice";
 import { setUsuariosConectados } from "../Store/Slices/presenciaSlice";
 import { registrarConexion } from "../Components/presenciaUsuarios/presenciaUsuarios";
 import { authContext } from "./useAuth";
-import { anotarAparato, olvidarAparato } from "../Utils/aparatos";
+import { anotarAparato, idDeEsteAparato, olvidarAparato } from "../Utils/aparatos";
 import {
   empezarActivacion,
   entrarConCodigo,
@@ -29,11 +29,17 @@ import {
 // CERRAR TODAS LAS SESIONES (2026-10-16). Cuando el administrador lo hace, el
 // servidor deja en la ficha la hora (sesionesCerradasEn). Una sesión que se
 // abrió ANTES de esa hora tiene que salir: la app la cierra en el momento.
+//
+// Lo mismo con la papelera de un solo aparato (2026-10-19): la hora queda en
+// aparatosCerrados, bajo el número de ese aparato, y solo sale ese.
 const sesionCerradaDesdeAfuera = async (currentUser, profile) => {
-  const cerradasEn = profile.sesionesCerradasEn?.toMillis?.();
-  if (!cerradasEn) return false;
+  const cierres = [
+    profile.sesionesCerradasEn?.toMillis?.(),
+    profile.aparatosCerrados?.[idDeEsteAparato()]?.toMillis?.(),
+  ].filter(Boolean);
+  if (cierres.length === 0) return false;
   const { authTime } = await currentUser.getIdTokenResult();
-  return new Date(authTime).getTime() < cerradasEn;
+  return new Date(authTime).getTime() < Math.max(...cierres);
 };
 
 // EL CARNÉ (2026-10-16). Las reglas leen el rol de la sesión (custom claims),
@@ -219,6 +225,10 @@ export function AuthProvider({ children }) {
                 } catch {
                   // Puede que ya no tenga permiso: no importa, igual sale.
                 }
+                // El servidor ya lo sacó de la lista, pero un "último uso"
+                // que quedó pendiente sin internet podría haberlo vuelto a
+                // anotar.
+                await olvidarAparato(currentUser.uid).catch(() => {});
                 await signOut(auth);
                 return;
               }

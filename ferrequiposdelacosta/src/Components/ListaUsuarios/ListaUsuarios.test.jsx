@@ -15,6 +15,7 @@ const nube = vi.hoisted(() => ({
   actualizarUsuario: vi.fn(() => Promise.resolve()),
   eliminarUsuario: vi.fn(() => Promise.resolve()),
   cerrarSesiones: vi.fn(() => Promise.resolve()),
+  cerrarSesionAparato: vi.fn(() => Promise.resolve()),
   quitarDosPasos: vi.fn(() => Promise.resolve()),
 }));
 
@@ -35,6 +36,7 @@ vi.mock("firebase/functions", () => ({
       deleteUser: nube.eliminarUsuario,
       actualizarUsuario: nube.actualizarUsuario,
       cerrarSesiones: nube.cerrarSesiones,
+      cerrarSesionAparato: nube.cerrarSesionAparato,
       quitarDosPasos: nube.quitarDosPasos,
     })[nombre],
 }));
@@ -159,6 +161,39 @@ describe("ListaUsuarios", () => {
     expect(nube.cerrarSesiones).toHaveBeenCalledWith({ uid: "u1" });
     expect(
       await screen.findByText("Listo: se cerraron las sesiones de Aida Pérez."),
+    ).toBeInTheDocument();
+  });
+
+  it("la papelera de un aparato cierra solo esa sesión, después de preguntar", async () => {
+    conUsuarios(usuarios, {
+      u1: [
+        { id: "a", tipo: "celular", descripcion: "Celular Android · Chrome", ultimoUso: hace(600) },
+        { id: "b", tipo: "pc", descripcion: "PC Windows · Chrome", ultimoUso: hace(5) },
+      ],
+    });
+    const { usuario } = mostrar();
+
+    await screen.findByText("Celular Android · Chrome");
+    await usuario.click(
+      screen.getByRole("button", { name: "Cerrar la sesión en Celular Android · Chrome" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "A Aida Pérez se le cerrará la app en Celular Android · Chrome. En sus otros aparatos sigue abierta.",
+      ),
+    ).toBeInTheDocument();
+    expect(nube.cerrarSesionAparato).not.toHaveBeenCalled();
+
+    await usuario.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+
+    expect(nube.cerrarSesionAparato).toHaveBeenCalledWith({ uid: "u1", aparatoId: "a" });
+    // La de todas no se toca.
+    expect(nube.cerrarSesiones).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Listo: se cerró la sesión de Aida Pérez en Celular Android · Chrome.",
+      ),
     ).toBeInTheDocument();
   });
 

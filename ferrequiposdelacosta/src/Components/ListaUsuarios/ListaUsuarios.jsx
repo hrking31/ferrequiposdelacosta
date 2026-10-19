@@ -55,6 +55,7 @@ export default function UsersList() {
   const deleteUserCloud = httpsCallable(functions, "deleteUser");
   const actualizarUsuarioCloud = httpsCallable(functions, "actualizarUsuario");
   const cerrarSesionesCloud = httpsCallable(functions, "cerrarSesiones");
+  const cerrarSesionAparatoCloud = httpsCallable(functions, "cerrarSesionAparato");
   const quitarDosPasosCloud = httpsCallable(functions, "quitarDosPasos");
 
   const fetchUsers = useCallback(async () => {
@@ -207,6 +208,22 @@ export default function UsersList() {
     } catch (error) {
       console.error(error);
       showSnackbar("No se pudieron cerrar las sesiones. Inténtelo de nuevo.", "error");
+    }
+  };
+
+  // La papelera de un renglón (cerrarSesionAparato): solo ese aparato sale;
+  // en los otros la sesión sigue abierta.
+  const handleCerrarSesionAparato = async (usuario, aparato) => {
+    try {
+      await cerrarSesionAparatoCloud({ uid: usuario.id, aparatoId: aparato.id });
+      showSnackbar(
+        `Listo: se cerró la sesión de ${usuario.name || usuario.email} en ${aparato.descripcion}.`,
+        "success",
+      );
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+      showSnackbar("No se pudo cerrar la sesión. Inténtelo de nuevo.", "error");
     }
   };
 
@@ -398,6 +415,9 @@ export default function UsersList() {
                   <AparatosUsuario
                     nombre={user.name || user.email || "este usuario"}
                     aparatos={user.aparatos || []}
+                    onCerrarSesionAparato={(aparato) =>
+                      handleCerrarSesionAparato(user, aparato)
+                    }
                     onCerrarSesiones={() => handleCerrarSesiones(user)}
                     onQuitarDosPasos={() => handleQuitarDosPasos(user)}
                   />

@@ -10,23 +10,32 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
+  IconButton,
   Typography,
 } from "@mui/material";
 import ComputerIcon from "@mui/icons-material/Computer";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import TabletIcon from "@mui/icons-material/TabletAndroid";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { describirUltimoUso } from "../../Utils/aparatos";
 
 const ICONOS = { pc: ComputerIcon, celular: SmartphoneIcon, tablet: TabletIcon };
 
 // La parte de abajo de la tarjeta de cada usuario: en qué aparatos tiene la
-// sesión abierta, el botón para cerrárselas todas (ver Utils/aparatos.js) y el
-// de quitarle los dos pasos a quien perdió o cambió el celular (ver
-// cerrarSesiones y quitarDosPasos en functions/index.js).
+// sesión abierta, la papelera para cerrar la de uno solo, el botón para
+// cerrárselas todas (ver Utils/aparatos.js) y el de quitarle los dos pasos a
+// quien perdió o cambió el celular (ver cerrarSesionAparato, cerrarSesiones y
+// quitarDosPasos en functions/index.js).
 //
-// Las dos acciones lo sacan de todos sus aparatos, así que las dos preguntan
+// Las tres acciones lo sacan de algún aparato, así que las tres preguntan
 // antes.
 const ACCIONES = {
+  uno: {
+    titulo: "¿Cerrar esta sesión?",
+    texto: (nombre, aparato) =>
+      `A ${nombre} se le cerrará la app en ${aparato.descripcion}. En sus otros aparatos sigue abierta.`,
+    boton: "Cerrar sesión",
+  },
   cerrar: {
     titulo: "¿Cerrar todas las sesiones?",
     texto: (nombre) =>
@@ -44,23 +53,27 @@ const ACCIONES = {
 export default function AparatosUsuario({
   nombre,
   aparatos,
+  onCerrarSesionAparato,
   onCerrarSesiones,
   onQuitarDosPasos,
 }) {
+  // { tipo: "uno" | "cerrar" | "quitar", aparato }: lo que espera confirmación.
   const [accion, setAccion] = useState(null);
   const [ocupado, setOcupado] = useState(false);
 
   const confirmar = async () => {
     setOcupado(true);
     try {
-      await (accion === "quitar" ? onQuitarDosPasos() : onCerrarSesiones());
+      if (accion.tipo === "uno") await onCerrarSesionAparato(accion.aparato);
+      else if (accion.tipo === "quitar") await onQuitarDosPasos();
+      else await onCerrarSesiones();
       setAccion(null);
     } finally {
       setOcupado(false);
     }
   };
 
-  const enCurso = accion ? ACCIONES[accion] : null;
+  const enCurso = accion ? ACCIONES[accion.tipo] : null;
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -91,6 +104,14 @@ export default function AparatosUsuario({
                 <Typography variant="caption" color="text.secondary" noWrap>
                   {describirUltimoUso(aparato.ultimoUso?.toDate?.())}
                 </Typography>
+                <IconButton
+                  size="small"
+                  color="error"
+                  aria-label={`Cerrar la sesión en ${aparato.descripcion}`}
+                  onClick={() => setAccion({ tipo: "uno", aparato })}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
               </Box>
             );
           })}
@@ -106,7 +127,11 @@ export default function AparatosUsuario({
           mt: 1,
         }}
       >
-        <Button size="small" variant="text" onClick={() => setAccion("quitar")}>
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => setAccion({ tipo: "quitar" })}
+        >
           Quitar dos pasos
         </Button>
         <Button
@@ -114,7 +139,7 @@ export default function AparatosUsuario({
           color="error"
           variant="outlined"
           disabled={aparatos.length === 0}
-          onClick={() => setAccion("cerrar")}
+          onClick={() => setAccion({ tipo: "cerrar" })}
         >
           Cerrar todas las sesiones
         </Button>
@@ -130,7 +155,9 @@ export default function AparatosUsuario({
           <>
             <DialogTitle>{enCurso.titulo}</DialogTitle>
             <DialogContent>
-              <DialogContentText>{enCurso.texto(nombre)}</DialogContentText>
+              <DialogContentText>
+                {enCurso.texto(nombre, accion.aparato)}
+              </DialogContentText>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
               <Button onClick={() => setAccion(null)} disabled={ocupado}>
@@ -165,6 +192,7 @@ AparatosUsuario.propTypes = {
       ultimoUso: PropTypes.object,
     }),
   ).isRequired,
+  onCerrarSesionAparato: PropTypes.func.isRequired,
   onCerrarSesiones: PropTypes.func.isRequired,
   onQuitarDosPasos: PropTypes.func.isRequired,
 };

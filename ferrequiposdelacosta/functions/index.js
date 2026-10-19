@@ -7,7 +7,7 @@ import {
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {initializeApp} from "firebase-admin/app";
-import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {getFirestore, FieldPath, FieldValue} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 import {getMessaging} from "firebase-admin/messaging";
 import {getDatabase, ServerValue} from "firebase-admin/database";
@@ -336,7 +336,12 @@ async function sacarDeTodosLosAparatos(request, antes = async () => {}) {
 
   await antes(uid);
   await getAuth().revokeRefreshTokens(uid);
-  await ficha.update({sesionesCerradasEn: FieldValue.serverTimestamp()});
+  // Los cierres de un solo aparato (cerrarSesionAparato) quedan cubiertos por
+  // este, que es posterior: ya no hace falta guardarlos.
+  await ficha.update({
+    sesionesCerradasEn: FieldValue.serverTimestamp(),
+    aparatosCerrados: FieldValue.delete(),
+  });
   await getFirestore().recursiveDelete(ficha.collection("aparatos"));
 
   return {success: true};
@@ -345,6 +350,38 @@ async function sacarDeTodosLosAparatos(request, antes = async () => {}) {
 export const cerrarSesiones = onCall((request) =>
   sacarDeTodosLosAparatos(request),
 );
+
+// CERRAR LA SESIÓN DE UN SOLO APARATO (2026-10-19), con la papelera de cada
+// renglón de la tarjeta. Firebase no deja cortarle el carné a un aparato
+// solo (revokeRefreshTokens los corta todos), así que esto es un aviso: queda
+// en la ficha la hora del cierre de ESE aparato (aparatosCerrados) y la app
+// de ese aparato, atenta a su ficha, sale en el momento (ver AuthContext.jsx).
+// Alcanza para la sesión olvidada en un computador o el celular perdido;
+// contra quien copió la sesión fuera de la app, "Cerrar todas las sesiones".
+export const cerrarSesionAparato = onCall(async (request) => {
+  await verificarPermisoUsuarios(request);
+
+  const {uid, aparatoId} = request.data || {};
+  if (!uid || typeof uid !== "string") {
+    throw new HttpsError("invalid-argument", "Falta el usuario.");
+  }
+  if (typeof aparatoId !== "string" || !/^[\w-]{1,100}$/.test(aparatoId)) {
+    throw new HttpsError("invalid-argument", "Falta el aparato.");
+  }
+
+  const ficha = getFirestore().collection("users").doc(uid);
+  if (!(await ficha.get()).exists) {
+    throw new HttpsError("not-found", "El usuario no existe en el sistema.");
+  }
+
+  await ficha.update(
+      new FieldPath("aparatosCerrados", aparatoId),
+      FieldValue.serverTimestamp(),
+  );
+  await ficha.collection("aparatos").doc(aparatoId).delete();
+
+  return {success: true};
+});
 
 // QUITAR LOS DOS PASOS (2026-10-16), para quien perdió o cambió el celular.
 // Se le borra la aplicación de códigos de la cuenta y se lo saca de todos sus

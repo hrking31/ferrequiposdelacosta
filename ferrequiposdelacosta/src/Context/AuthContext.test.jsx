@@ -73,6 +73,7 @@ vi.mock("../Utils/dosPasos", () => ({
 
 vi.mock("../Utils/aparatos", () => ({
   anotarAparato: nube.anotarAparato,
+  idDeEsteAparato: () => "este",
   olvidarAparato: vi.fn(() => Promise.resolve()),
 }));
 
@@ -246,6 +247,31 @@ describe("AuthContext — cerrar todas las sesiones", () => {
     expect(await screen.findByText("rol: gestorEditor")).toBeInTheDocument();
     expect(nube.salir).not.toHaveBeenCalled();
     nube.entroEn = "2026-10-16T08:00:00Z";
+  });
+
+  it("si le cerraron la sesión a ESTE aparato con la papelera, sale", async () => {
+    nube.carne = { role: "gestorEditor" };
+    montar();
+    await entrar({
+      name: "Aida",
+      role: "gestorEditor",
+      aparatosCerrados: { este: horaDelCierre("2026-10-16T10:00:00Z") },
+    });
+
+    await waitFor(() => expect(nube.salir).toHaveBeenCalled());
+  });
+
+  it("si la papelera fue para OTRO aparato, este sigue normal", async () => {
+    nube.carne = { role: "gestorEditor" };
+    montar();
+    await entrar({
+      name: "Aida",
+      role: "gestorEditor",
+      aparatosCerrados: { otro: horaDelCierre("2026-10-16T10:00:00Z") },
+    });
+
+    expect(await screen.findByText("rol: gestorEditor")).toBeInTheDocument();
+    expect(nube.salir).not.toHaveBeenCalled();
   });
 });
 
