@@ -179,8 +179,10 @@ export default function ClienteFormDialog({ open, onClose, onGuardado, onElimina
     let subidas = [];
     try {
       ({ documento, subidas } = await subirFotosDocumento(clienteRef.id, fotos));
-    } catch {
-      showSnackbar(MENSAJE_FOTO_FALLIDA, "error");
+    } catch (error) {
+      // TEMPORAL (2026-10-20): el motivo real al final del aviso, para ver
+      // por qué a los gestores no les sube la foto. Revertir cuando se sepa.
+      showSnackbar(`${MENSAJE_FOTO_FALLIDA} (${error?.code || error?.message})`, "error");
       setGuardando(false);
       return;
     }
