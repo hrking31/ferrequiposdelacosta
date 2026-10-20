@@ -70,7 +70,7 @@ export default function SeguimientoClientes() {
   const altoCorto = usePantallaBaja();
   // LOS FILTROS EN UNA COLUMNA A LA IZQUIERDA, como en la lista de clientes y
   // desde el mismo ancho. Más angosto no entran al lado de las tarjetas y van
-  // en el renglón del buscador.
+  // debajo del buscador, en los desplegables del celular.
   const columnaFiltros = useMediaQuery("(min-width:1151px)") && !esCelular;
   const acento =
     theme.palette.custom.accent;
@@ -299,48 +299,46 @@ export default function SeguimientoClientes() {
     "&.Mui-focusVisible": { bgcolor: color },
   });
 
-  const enColumna = (columna) =>
-    columna
-      ? { width: "100%", justifyContent: "flex-start", "& .MuiChip-label": { width: "100%" } }
-      : {};
+  const enColumna = {
+    width: "100%",
+    justifyContent: "flex-start",
+    "& .MuiChip-label": { width: "100%" },
+  };
 
-  // El rótulo de un botón de filtro con su número. En la columna el número va
-  // en su pastilla, a la derecha, como en la lista de clientes; en el renglón,
-  // pegado al nombre.
-  const rotuloConConteo = (label, conteo, seleccionado, color, columna) =>
-    columna ? (
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ width: "100%" }}
+  // El rótulo de un botón de filtro con su número, que va en su pastilla, a
+  // la derecha, como en la lista de clientes.
+  const rotuloConConteo = (label, conteo, seleccionado, color) => (
+    <Stack
+      direction="row"
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{ width: "100%" }}
+    >
+      <Box component="span">{label}</Box>
+      <Box
+        component="span"
+        sx={{
+          minWidth: 20,
+          height: 20,
+          px: 0.75,
+          borderRadius: (t) => t.shape.pill,
+          fontSize: 11,
+          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: seleccionado ? "custom.contadorSobreChip" : "action.selected",
+          color: seleccionado ? theme.palette.getContrastText(color) : "text.secondary",
+        }}
       >
-        <Box component="span">{label}</Box>
-        <Box
-          component="span"
-          sx={{
-            minWidth: 20,
-            height: 20,
-            px: 0.75,
-            borderRadius: (t) => t.shape.pill,
-            fontSize: 11,
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: seleccionado ? "custom.contadorSobreChip" : "action.selected",
-            color: seleccionado ? theme.palette.getContrastText(color) : "text.secondary",
-          }}
-        >
-          {conteo}
-        </Box>
-      </Stack>
-    ) : (
-      `${label} ${conteo}`
-    );
+        {conteo}
+      </Box>
+    </Stack>
+  );
 
-  // Los botones de gestión, con el color de cada una y cuántas facturas hay.
-  const chipsGestion = (columna) =>
+  // Los botones de la columna. Los de gestión, con el color de cada una y
+  // cuántas facturas hay.
+  const chipsGestion = () =>
     FILTROS_GESTION.map((filtro) => {
       const seleccionado = filtroGestion === filtro.valor;
       const colorFiltro = colorPorGestion[filtro.valor];
@@ -352,7 +350,7 @@ export default function SeguimientoClientes() {
           clickable
           onClick={() => setFiltroGestion(filtro.valor)}
           variant={seleccionado ? "filled" : "outlined"}
-          label={rotuloConConteo(filtro.label, conteo, seleccionado, color, columna)}
+          label={rotuloConConteo(filtro.label, conteo, seleccionado, color)}
           icon={
             colorFiltro && !seleccionado ? (
               <Box
@@ -364,7 +362,7 @@ export default function SeguimientoClientes() {
           sx={{
             flexShrink: 0,
             fontWeight: 600,
-            ...enColumna(columna),
+            ...enColumna,
             ...(seleccionado && chipElegido(color)),
           }}
         />
@@ -372,7 +370,7 @@ export default function SeguimientoClientes() {
     });
 
   // Los de tipo, con cuántos CLIENTES hay de cada uno (ver conteosPorTipo).
-  const chipsTipo = (columna) =>
+  const chipsTipo = () =>
     FILTROS_TIPO.map((filtro) => {
       const seleccionado = filtroTipo === filtro.valor;
       const Icono = filtro.icono;
@@ -386,13 +384,12 @@ export default function SeguimientoClientes() {
             conteosPorTipo[filtro.valor],
             seleccionado,
             acento,
-            columna,
           )}
           icon={Icono ? <Icono /> : undefined}
           variant={seleccionado ? "filled" : "outlined"}
           sx={{
             flexShrink: 0,
-            ...enColumna(columna),
+            ...enColumna,
             ...(seleccionado && chipElegido(acento)),
           }}
         />
@@ -438,7 +435,8 @@ export default function SeguimientoClientes() {
     });
 
   // EN CELULAR, TRES DESPLEGABLES en un renglón, como los de la lista de
-  // clientes: gestión, días y tipo, cada uno con su rótulo.
+  // clientes: gestión, días y tipo, cada uno con su rótulo. También en el
+  // computador angosto, donde no entra la columna.
   const desplegables = (
     <Stack direction="row" spacing={1}>
       {selector({
@@ -558,22 +556,16 @@ export default function SeguimientoClientes() {
             {contador}
           </Stack>
         ) : (
-          // Sin lugar para la columna: los filtros siguen al conteo, en el
-          // mismo renglón, y bajan si no caben.
-          <Stack
-            direction="row"
-            alignItems="center"
-            sx={{ mb: 2, flexShrink: 0, flexWrap: "wrap", gap: 1.5 }}
-          >
-            {buscador}
-            {contador}
-            <Stack direction="row" spacing={1}>
-              {chipsGestion(false)}
+          // Sin lugar para la columna: debajo del buscador, los tres
+          // desplegables del celular. Antes los botones de la columna se
+          // acomodaban como podían en el renglón, y el dueño (2026-10-20)
+          // pidió que al achicar la pantalla pasara de una a lo del celular.
+          <Stack spacing={1.5} sx={{ mb: 2, flexShrink: 0 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {buscador}
+              {contador}
             </Stack>
-            {selectorDias({ minWidth: 150 })}
-            <Stack direction="row" spacing={1}>
-              {chipsTipo(false)}
-            </Stack>
+            {desplegables}
           </Stack>
         ));
 
@@ -654,10 +646,10 @@ export default function SeguimientoClientes() {
       }}
     >
       {etiquetaFiltro("Gestión")}
-      <Stack spacing={1}>{chipsGestion(true)}</Stack>
+      <Stack spacing={1}>{chipsGestion()}</Stack>
       <Box sx={{ mt: 1.5 }}>{selectorDias({ width: "100%" })}</Box>
       <Box sx={{ mt: 1 }}>{etiquetaFiltro("Tipo")}</Box>
-      <Stack spacing={1}>{chipsTipo(true)}</Stack>
+      <Stack spacing={1}>{chipsTipo()}</Stack>
     </Box>
   );
 
