@@ -75,7 +75,7 @@ const tieneTelefonoValido = (telefono) =>
   telefono && !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
 const TAMANO_PAGINA_MOVIL = 20;
-const TAMANO_PAGINA_PC = 9;
+const TAMANO_PAGINA_PC = 12;
 const ALTO_FILA = 45;
 
 export default function ListaClientes() {
