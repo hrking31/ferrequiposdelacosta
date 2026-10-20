@@ -100,6 +100,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// Cada opción lleva el nombre y la cantidad en los dos extremos del renglón.
+const partesDeLasOpciones = () =>
+  within(screen.getByRole("listbox"))
+    .getAllByRole("option")
+    .map((opcion) =>
+      [...opcion.querySelectorAll(".MuiStack-root > span")].map((parte) => parte.textContent),
+    );
+
 const elegir = async (usuario, rotulo, opcion) => {
   await usuario.click(screen.getByRole("combobox", { name: rotulo }));
   await usuario.click(within(screen.getByRole("listbox")).getByText(opcion));
@@ -117,12 +125,7 @@ describe("SeguimientoClientes — los filtros", () => {
     await screen.findByText("2 de 2");
 
     await usuario.click(screen.getByRole("combobox", { name: "Días vencidos" }));
-    // El nombre y la cantidad van cada uno en su extremo del renglón.
-    const opciones = within(screen.getByRole("listbox"))
-      .getAllByRole("option")
-      .map((opcion) =>
-        [...opcion.querySelectorAll(".MuiStack-root > span")].map((parte) => parte.textContent),
-      );
+    const opciones = partesDeLasOpciones();
 
     expect(opciones).toEqual([
       ["Todos", "3"],
@@ -136,18 +139,14 @@ describe("SeguimientoClientes — los filtros", () => {
     await screen.findByText("2 de 2");
 
     await usuario.click(screen.getByRole("combobox", { name: "Gestión" }));
-    const opciones = within(screen.getByRole("listbox"))
-      .getAllByRole("option")
-      .map((opcion) => opcion.textContent);
-
-    expect(opciones).toEqual([
-      "Todas 3",
-      "Sin gestionar 2",
-      "Sin respuesta 0",
-      "Renovación 0",
-      "Parcial 0",
-      "Entrega pactada 0",
-      "Cobro 1",
+    expect(partesDeLasOpciones()).toEqual([
+      ["Todas", "3"],
+      ["Sin gestionar", "2"],
+      ["Sin respuesta", "0"],
+      ["Renovación", "0"],
+      ["Parcial", "0"],
+      ["Entrega pactada", "0"],
+      ["Cobro", "1"],
     ]);
   });
 
@@ -156,19 +155,21 @@ describe("SeguimientoClientes — los filtros", () => {
     await screen.findByText("2 de 2");
 
     await usuario.click(screen.getByRole("combobox", { name: "Tipo" }));
-    let opciones = within(screen.getByRole("listbox"))
-      .getAllByRole("option")
-      .map((opcion) => opcion.textContent);
-    expect(opciones).toEqual(["Todos 2", "Personas 2", "Empresas 0"]);
+    expect(partesDeLasOpciones()).toEqual([
+      ["Todos", "2"],
+      ["Personas", "2"],
+      ["Empresas", "0"],
+    ]);
     await usuario.keyboard("{Escape}");
 
     // En cobro solo está Aida.
-    await elegir(usuario, "Gestión", "Cobro 1");
+    await elegir(usuario, "Gestión", "Cobro");
     await usuario.click(screen.getByRole("combobox", { name: "Tipo" }));
-    opciones = within(screen.getByRole("listbox"))
-      .getAllByRole("option")
-      .map((opcion) => opcion.textContent);
-    expect(opciones).toEqual(["Todos 1", "Personas 1", "Empresas 0"]);
+    expect(partesDeLasOpciones()).toEqual([
+      ["Todos", "1"],
+      ["Personas", "1"],
+      ["Empresas", "0"],
+    ]);
   });
 
   it("por días queda solo el cliente que tiene una factura con esos días", async () => {
@@ -186,7 +187,7 @@ describe("SeguimientoClientes — los filtros", () => {
     const { usuario } = renderConProviders(<SeguimientoClientes />);
     await screen.findByText("2 de 2");
 
-    await elegir(usuario, "Gestión", "Cobro 1");
+    await elegir(usuario, "Gestión", "Cobro");
 
     expect(await screen.findByText("1 de 2")).toBeInTheDocument();
     expect(screen.getByText("Aida Pérez")).toBeInTheDocument();

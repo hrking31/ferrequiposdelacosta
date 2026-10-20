@@ -460,7 +460,8 @@ export default function SeguimientoClientes() {
 
   // EN CELULAR, TRES DESPLEGABLES en un renglón, como los de la lista de
   // clientes: gestión, días y tipo, cada uno con su rótulo. También en el
-  // computador angosto, donde no entra la columna.
+  // computador angosto, donde no entra la columna. En los tres, la cantidad
+  // al otro extremo del nombre.
   const desplegables = (
     <Stack direction="row" spacing={1}>
       {selector({
@@ -470,7 +471,8 @@ export default function SeguimientoClientes() {
         onChange: setFiltroGestion,
         opciones: FILTROS_GESTION.map((filtro) => ({
           valor: filtro.valor,
-          label: `${filtro.label} ${conteosPorGestion[filtro.valor] || 0}`,
+          label: filtro.label,
+          cantidad: conteosPorGestion[filtro.valor] || 0,
         })),
         sx: { flex: 1, minWidth: 0 },
       })}
@@ -482,7 +484,8 @@ export default function SeguimientoClientes() {
         onChange: setFiltroTipo,
         opciones: FILTROS_TIPO.map((filtro) => ({
           valor: filtro.valor,
-          label: `${filtro.label} ${conteosPorTipo[filtro.valor]}`,
+          label: filtro.label,
+          cantidad: conteosPorTipo[filtro.valor],
         })),
         sx: { flex: 1, minWidth: 0 },
       })}
