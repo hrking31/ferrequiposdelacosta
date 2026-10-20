@@ -1757,26 +1757,60 @@ export const calcularEstadoCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
 
 // ── Los totales del panel del menú ─────────────────────────────────────
 //
-// Los dos números de "Equipos activos" y "Pagos pendientes". Los mantiene una
+// Los dos números de "Equipos activos" (con su detalle por equipo) y "Pagos
+// pendientes". Los mantiene una
 // Cloud Function en un solo documento y el menú lo lee de una. Viven acá para
 // que el servidor use EXACTAMENTE esta lógica y no una versión suya.
 export const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
 
+// EL DETALLE DE "EQUIPOS ACTIVOS" (2026-10-20): cuántas unidades hay afuera de
+// cada equipo, { "ANDAMIOS CONVENCIONALES": 43, … }. Viaja en el mismo
+// documento que el total, así que verlo no cuesta ni una lectura más. La
+// clave es el nombre del equipo tal como está en la factura.
+const tipoDeEquipo = (equipo) => String(equipo?.nombre ?? "").trim() || "Sin nombre";
+
+const sumarPorTipo = (a, b, signo = 1) => {
+  const suma = { ...a };
+  Object.entries(b).forEach(([tipo, cantidad]) => {
+    suma[tipo] = (suma[tipo] || 0) + signo * cantidad;
+  });
+  return suma;
+};
+
 export const calcularAporteFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
-  if (!doc) return { equiposActivos: 0, pagosPendientes: 0 };
+  if (!doc) return { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} };
 
   const estado = calcularEstadoFactura(doc, hoyIso);
-  const equiposActivos = ESTADOS_EQUIPOS_ACTIVOS.includes(estado)
-    ? equiposDe(doc)
-        .filter(({ equipo }) => sigueAfuera(equipo))
-        .reduce((total, { equipo }) => total + numero(equipo?.cantidadEquipos), 0)
-    : 0;
+  const afuera = ESTADOS_EQUIPOS_ACTIVOS.includes(estado)
+    ? equiposDe(doc).filter(({ equipo }) => sigueAfuera(equipo))
+    : [];
+
+  const equiposPorTipo = {};
+  afuera.forEach(({ equipo }) => {
+    const cantidad = numero(equipo?.cantidadEquipos);
+    if (!cantidad) return;
+    const tipo = tipoDeEquipo(equipo);
+    equiposPorTipo[tipo] = (equiposPorTipo[tipo] || 0) + cantidad;
+  });
 
   return {
-    equiposActivos,
+    equiposActivos: afuera.reduce(
+      (total, { equipo }) => total + numero(equipo?.cantidadEquipos),
+      0,
+    ),
     pagosPendientes: calcularCuentaFactura(doc, hoyIso).saldoPendiente,
+    equiposPorTipo,
   };
 };
+
+// Lo que cambió el detalle entre dos aportes, solo los equipos que se
+// movieron. Es lo que el disparador del servidor suma a la pizarra.
+export const diferenciaPorTipo = (antes, despues) =>
+  Object.fromEntries(
+    Object.entries(sumarPorTipo(despues.equiposPorTipo, antes.equiposPorTipo, -1)).filter(
+      ([, cantidad]) => cantidad !== 0,
+    ),
+  );
 
 export const calcularTotalesFacturas = (facturas, hoyIso = obtenerFechaHoyBogota()) =>
   (Array.isArray(facturas) ? facturas : []).reduce(
@@ -1785,9 +1819,10 @@ export const calcularTotalesFacturas = (facturas, hoyIso = obtenerFechaHoyBogota
       return {
         equiposActivos: acumulado.equiposActivos + aporte.equiposActivos,
         pagosPendientes: acumulado.pagosPendientes + aporte.pagosPendientes,
+        equiposPorTipo: sumarPorTipo(acumulado.equiposPorTipo, aporte.equiposPorTipo),
       };
     },
-    { equiposActivos: 0, pagosPendientes: 0 },
+    { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} },
   );
 
 // ── La gestión: qué se hizo para destrabar la factura ──────────────────

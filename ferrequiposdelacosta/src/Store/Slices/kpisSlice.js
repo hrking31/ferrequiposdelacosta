@@ -19,6 +19,8 @@ const initialState = {
   cotizaciones: null,
   cuentasCobro: null,
   equiposActivos: null,
+  // El detalle de equipos activos por equipo, { nombre: unidades }.
+  equiposPorTipo: null,
   pagosPendientes: null,
   equiposCatalogo: null,
 };

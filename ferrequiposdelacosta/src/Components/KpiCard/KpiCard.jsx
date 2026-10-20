@@ -1,15 +1,18 @@
 import { cloneElement } from "react";
 import PropTypes from "prop-types";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, ButtonBase, Paper, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
 // Tarjeta resumen del panel de KPIs: ícono con tinte del color, número
 // grande y subtítulo. Sin botón "Ver detalle" (a pedido, no lo trae).
 //
 // El borde de color y el resplandor van FIJOS, no en el hover: estas tarjetas
-// no se pulsan —solo informan— y reaccionar al mouse las hacía parecer
+// casi nunca se pulsan —solo informan— y reaccionar al mouse las hacía parecer
 // botones. Se quedan con el aspecto que antes solo se veía al pasar por
 // encima, que además es el que mejor las separa del fondo.
+//
+// La que trae `onClick` sí se toca (2026-10-20: "Equipos activos" abre su
+// detalle por equipo). Se ve igual que las demás; solo cambia el cursor.
 //
 // La usan el menú y Seguimiento, para que los mismos números se vean igual en
 // las dos pantallas. En Seguimiento va `compacto`: dos de lado en una columna
@@ -23,13 +26,17 @@ export default function KpiCard({
   color,
   tamanoValor = "h1",
   compacto = false,
+  onClick,
 }) {
   const tamanoIcono = compacto ? 40 : 72;
 
   return (
     <Paper
       elevation={0}
+      {...(onClick && { component: ButtonBase, onClick })}
       sx={{
+        textAlign: "left",
+        color: "text.primary",
         flex: 1,
         minWidth: 0,
         maxWidth: 320,
@@ -89,4 +96,5 @@ KpiCard.propTypes = {
   color: PropTypes.string.isRequired,
   tamanoValor: PropTypes.string,
   compacto: PropTypes.bool,
+  onClick: PropTypes.func,
 };

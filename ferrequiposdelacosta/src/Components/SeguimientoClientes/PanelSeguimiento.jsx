@@ -7,6 +7,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import KpiCard from "../KpiCard/KpiCard";
+import DetalleEquiposActivos from "../KpiCard/DetalleEquiposActivos";
 import HistorialEquipo from "../ClienteDetalle/HistorialEquipo";
 import { EncabezadoHistoria } from "./HistorialEquipoDialog";
 import { leerTotalesPanel } from "../../Views/AdminForms/totalesPanelDb";
@@ -15,7 +16,7 @@ import { formatearMoneda } from "../../Utils/formato";
 
 // LA COLUMNA DE LA DERECHA DE SEGUIMIENTO, solo en computador: arriba los dos
 // números del menú —equipos afuera y plata por cobrar— y abajo la historia del
-// equipo que se eligió en la lista.
+// equipo que se eligió en la lista, o el detalle de los equipos afuera.
 //
 // Los números salen de la misma pizarra que lee el menú (1 lectura) y quedan
 // guardados en el mismo lugar, así que las dos pantallas no pueden mostrar
@@ -26,8 +27,16 @@ export default function PanelSeguimiento({ elegido, hoy }) {
   const kpisGuardados = useSelector((state) => state.kpis);
   const [totales, setTotales] = useState({
     equiposActivos: kpisGuardados.equiposActivos,
+    equiposPorTipo: kpisGuardados.equiposPorTipo,
     pagosPendientes: kpisGuardados.pagosPendientes,
   });
+  // EL DETALLE DE EQUIPOS ACTIVOS va en el mismo recuadro de la historia: se
+  // abre tocando el número y se va solo en cuanto se elige otro equipo en la
+  // lista. Se guarda qué elección había al abrirlo; si cambió —otro equipo, o
+  // el mismo tocado de nuevo— se vuelve a la historia. `undefined` = cerrado.
+  const [detalleAbiertoCon, setDetalleAbiertoCon] = useState(undefined);
+  const elegidoAhora = elegido ?? null;
+  const verDetalle = detalleAbiertoCon !== undefined && detalleAbiertoCon === elegidoAhora;
 
   useEffect(() => {
     let cancelado = false;
@@ -38,6 +47,7 @@ export default function PanelSeguimiento({ elegido, hoy }) {
         if (cancelado || !frescos) return;
         const numeros = {
           equiposActivos: frescos.equiposActivos,
+          equiposPorTipo: frescos.equiposPorTipo,
           pagosPendientes: frescos.pagosPendientes,
         };
         setTotales(numeros);
@@ -64,6 +74,7 @@ export default function PanelSeguimiento({ elegido, hoy }) {
           color={theme.palette.warning.main}
           valor={totales.equiposActivos ?? "…"}
           subtitulo="En alquiler"
+          onClick={() => setDetalleAbiertoCon(verDetalle ? undefined : elegidoAhora)}
         />
         <KpiCard
           compacto
@@ -103,11 +114,22 @@ export default function PanelSeguimiento({ elegido, hoy }) {
             color: colorHistoria,
           }}
         >
-          <TimelineIcon fontSize="small" />
-          Historia del equipo
+          {verDetalle ? (
+            <>
+              <LocalShippingIcon fontSize="small" />
+              Equipos activos
+            </>
+          ) : (
+            <>
+              <TimelineIcon fontSize="small" />
+              Historia del equipo
+            </>
+          )}
         </Typography>
 
-        {elegido ? (
+        {verDetalle ? (
+          <DetalleEquiposActivos equiposPorTipo={totales.equiposPorTipo} />
+        ) : elegido ? (
           <>
             <EncabezadoHistoria
               equipo={elegido.equipo}

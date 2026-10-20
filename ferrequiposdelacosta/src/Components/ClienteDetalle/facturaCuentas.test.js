@@ -1755,6 +1755,7 @@ describe("los totales del menú", () => {
     expect(calcularAporteFactura(null, HOY)).toEqual({
       equiposActivos: 0,
       pagosPendientes: 0,
+      equiposPorTipo: {},
     });
   });
 

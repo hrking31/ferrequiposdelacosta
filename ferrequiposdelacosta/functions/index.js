@@ -23,6 +23,7 @@ import {
   calcularAporteFactura,
   calcularEstadoCliente,
   calcularTotalesFacturas,
+  diferenciaPorTipo,
   equiposQueVencieronHoy,
   abrirTramosFactura,
   facturaCerrada,
@@ -789,14 +790,29 @@ export const ajustarTotalesPanel = onDocumentWritten(
       const equipos = aporteDespues.equiposActivos - aporteAntes.equiposActivos;
       const pagos =
         aporteDespues.pagosPendientes - aporteAntes.pagosPendientes;
+      // El detalle de equipos afuera, solo los que se movieron. Va en la
+      // misma escritura que los dos números: no cuesta una más.
+      const porTipo = diferenciaPorTipo(aporteAntes, aporteDespues);
+      const movioPorTipo = Object.keys(porTipo).length > 0;
 
-      // Muchos cambios no mueven ninguno de los dos números (por ejemplo,
+      // Muchos cambios no mueven ninguno de los números (por ejemplo,
       // corregir una dirección). Ahí no se escribe nada.
-      if (equipos !== 0 || pagos !== 0) {
+      if (equipos !== 0 || pagos !== 0 || movioPorTipo) {
         await refTotales().set(
             {
               equiposActivos: FieldValue.increment(equipos),
               pagosPendientes: FieldValue.increment(pagos),
+              // Las claves son nombres de equipo, con puntos y espacios
+              // ("FORMALETAS 0.30 X 1.20"): dentro de un set van tal cual,
+              // nunca se leen como rutas.
+              ...(movioPorTipo && {
+                equiposPorTipo: Object.fromEntries(
+                    Object.entries(porTipo).map(([tipo, cantidad]) => [
+                      tipo,
+                      FieldValue.increment(cantidad),
+                    ]),
+                ),
+              }),
               actualizadoEn: Date.now(),
             },
             {merge: true},
@@ -985,9 +1001,21 @@ export const recalcularTotalesPanel = onSchedule(
 
       const totales = calcularTotalesFacturas(facturas, hoy);
 
+      // mergeFields y no merge: el detalle por equipo se REEMPLAZA entero.
+      // Con merge se mezclaría con el viejo, y un equipo que ya volvió
+      // del todo se quedaría en la lista con su número de ayer. Lo demás
+      // del documento (el sello de los clientes) no se toca.
       await refTotales().set(
           {...totales, actualizadoEn: Date.now(), recalculadoEn: Date.now()},
-          {merge: true},
+          {
+            mergeFields: [
+              "equiposActivos",
+              "pagosPendientes",
+              "equiposPorTipo",
+              "actualizadoEn",
+              "recalculadoEn",
+            ],
+          },
       );
 
       console.log(

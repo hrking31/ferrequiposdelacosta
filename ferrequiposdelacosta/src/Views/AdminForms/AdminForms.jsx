@@ -3,6 +3,10 @@ import {
   Box,
   Grid,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Tooltip,
   Stack,
@@ -11,6 +15,7 @@ import {
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
+import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
@@ -77,6 +82,7 @@ export default function AdminForms() {
   // cualquier empleado con sesión. Por eso estos dos recuadros ya no dependen
   // del permiso de clientes: hasta el gestorEditor los ve.
   const [stats, setStats] = useState(kpisGuardados);
+  const [detalleEquiposAbierto, setDetalleEquiposAbierto] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -91,6 +97,7 @@ export default function AdminForms() {
         const totales = await leerTotalesPanel();
         if (totales) {
           frescos.equiposActivos = totales.equiposActivos;
+          frescos.equiposPorTipo = totales.equiposPorTipo;
           frescos.pagosPendientes = totales.pagosPendientes;
         }
       } catch (error) {
@@ -161,6 +168,9 @@ export default function AdminForms() {
       color: theme.palette.warning.main,
       valor: stats.equiposActivos ?? "…",
       subtitulo: "En alquiler",
+      // Abre cuántos hay afuera de cada equipo. Viene en la misma pizarra:
+      // no cuesta ninguna lectura más.
+      onClick: () => setDetalleEquiposAbierto(true),
     },
     {
       etiqueta: "PAGOS PENDIENTES",
@@ -509,6 +519,23 @@ export default function AdminForms() {
           </Grid>
         </Box>
       )}
+
+      <Dialog
+        open={detalleEquiposAbierto}
+        onClose={() => setDetalleEquiposAbierto(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ color: theme.palette.custom.accent }}>Equipos activos</DialogTitle>
+        <DialogContent>
+          <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", px: 3, pb: 3 }}>
+          <Button variant="outlined" onClick={() => setDetalleEquiposAbierto(false)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

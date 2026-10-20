@@ -1,4 +1,8 @@
-import { calcularAporteFactura, calcularTotalesFacturas } from "./facturaCuentas";
+import {
+  calcularAporteFactura,
+  calcularTotalesFacturas,
+  diferenciaPorTipo,
+} from "./facturaCuentas";
 import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // Los dos números de los recuadros "Equipos activos" y "Pagos pendientes".
@@ -94,7 +98,7 @@ describe("calcularAporteFactura", () => {
       HOY,
     );
 
-    expect(aporte).toEqual({ equiposActivos: 0, pagosPendientes: 0 });
+    expect(aporte).toEqual({ equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} });
   });
 
   it("si devolvió todo pero debe plata, aporta solo el saldo", () => {
@@ -122,7 +126,120 @@ describe("calcularAporteFactura", () => {
     expect(calcularAporteFactura(null, HOY)).toEqual({
       equiposActivos: 0,
       pagosPendientes: 0,
+      equiposPorTipo: {},
     });
+  });
+});
+
+// El detalle de "Equipos activos": cuántos hay afuera de cada equipo.
+describe("el detalle por equipo", () => {
+  const conEquipos = (equipos, extra = {}) =>
+    unaFactura({ fechaCreacion: "2026-08-10", equipos, ...extra });
+
+  it("cuenta las unidades afuera de cada equipo, por su nombre", () => {
+    const aporte = calcularAporteFactura(
+      conEquipos([
+        unEquipo({ nombre: "ANDAMIO", cantidad: 10 }),
+        unEquipo({ nombre: "TABLÓN", cantidad: 4 }),
+        unEquipo({ nombre: "ANDAMIO", cantidad: 2 }),
+      ]),
+      HOY,
+    );
+
+    expect(aporte.equiposPorTipo).toEqual({ ANDAMIO: 12, TABLÓN: 4 });
+    expect(aporte.equiposActivos).toBe(16);
+  });
+
+  it("lo devuelto no está en el detalle", () => {
+    const aporte = calcularAporteFactura(
+      conEquipos([
+        unEquipoDevuelto({ nombre: "ANDAMIO", cantidad: 4 }),
+        unEquipo({ nombre: "ANDAMIO", cantidad: 6 }),
+        unEquipoDevuelto({ nombre: "TABLÓN", cantidad: 3 }),
+      ]),
+      HOY,
+    );
+
+    expect(aporte.equiposPorTipo).toEqual({ ANDAMIO: 6 });
+  });
+
+  it("una factura que todavía no salió no aporta al detalle", () => {
+    const aporte = calcularAporteFactura(
+      factura({ fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-10" }),
+      HOY,
+    );
+
+    expect(aporte.equiposPorTipo).toEqual({});
+  });
+
+  it("los nombres con puntos y espacios quedan tal cual", () => {
+    const aporte = calcularAporteFactura(
+      conEquipos([unEquipo({ nombre: " FORMALETAS 0.30 X 1.20 ", cantidad: 8 })]),
+      HOY,
+    );
+
+    expect(aporte.equiposPorTipo).toEqual({ "FORMALETAS 0.30 X 1.20": 8 });
+  });
+
+  // El disparador suma diferencias y el repaso de madrugada recalcula de
+  // cero: los dos tienen que dar el mismo detalle.
+  it("el detalle de todas es la suma de los de cada una", () => {
+    const totales = calcularTotalesFacturas(
+      [
+        conEquipos([unEquipo({ nombre: "ANDAMIO", cantidad: 10 })]),
+        conEquipos([
+          unEquipo({ nombre: "ANDAMIO", cantidad: 3 }),
+          unEquipo({ nombre: "RUEDAS", cantidad: 8 }),
+        ]),
+      ],
+      HOY,
+    );
+
+    expect(totales.equiposPorTipo).toEqual({ ANDAMIO: 13, RUEDAS: 8 });
+    expect(totales.equiposActivos).toBe(21);
+  });
+});
+
+describe("diferenciaPorTipo", () => {
+  const conEquipos = (equipos) => unaFactura({ fechaCreacion: "2026-08-10", equipos });
+
+  it("al devolver una parte, resta solo lo que volvió", () => {
+    const antes = calcularAporteFactura(
+      conEquipos([
+        unEquipo({ nombre: "ANDAMIO", cantidad: 10 }),
+        unEquipo({ nombre: "RUEDAS", cantidad: 4 }),
+      ]),
+      HOY,
+    );
+    const despues = calcularAporteFactura(
+      conEquipos([
+        unEquipoDevuelto({ nombre: "ANDAMIO", cantidad: 4 }),
+        unEquipo({ nombre: "ANDAMIO", cantidad: 6 }),
+        unEquipo({ nombre: "RUEDAS", cantidad: 4 }),
+      ]),
+      HOY,
+    );
+
+    // Las ruedas no se movieron: no aparecen.
+    expect(diferenciaPorTipo(antes, despues)).toEqual({ ANDAMIO: -4 });
+  });
+
+  it("una factura nueva suma todo, y una borrada lo resta", () => {
+    const doc = conEquipos([unEquipo({ nombre: "ANDAMIO", cantidad: 5 })]);
+    const nada = calcularAporteFactura(null, HOY);
+    const aporte = calcularAporteFactura(doc, HOY);
+
+    expect(diferenciaPorTipo(nada, aporte)).toEqual({ ANDAMIO: 5 });
+    expect(diferenciaPorTipo(aporte, nada)).toEqual({ ANDAMIO: -5 });
+  });
+
+  it("si no se movió ningún equipo, no hay nada que sumar", () => {
+    const aporte = calcularAporteFactura(
+      conEquipos([unEquipo({ nombre: "ANDAMIO", cantidad: 5 })]),
+      HOY,
+    );
+
+    expect(diferenciaPorTipo(aporte, aporte)).toEqual({});
   });
 });
 
@@ -147,6 +264,7 @@ describe("calcularTotalesFacturas", () => {
     expect(calcularTotalesFacturas([], HOY)).toEqual({
       equiposActivos: 0,
       pagosPendientes: 0,
+      equiposPorTipo: {},
     });
   });
 
@@ -167,6 +285,6 @@ describe("calcularTotalesFacturas", () => {
         { equiposActivos: 0, pagosPendientes: 0 },
       );
 
-    expect(total).toEqual(sumaManual);
+    expect(total).toEqual({ ...sumaManual, equiposPorTipo: { Andamio: 17 } });
   });
 });

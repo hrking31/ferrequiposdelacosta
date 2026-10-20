@@ -103,6 +103,25 @@ describe("AdminForms — las cifras del menú", () => {
     expect(nube.contarCotizaciones).not.toHaveBeenCalled();
   });
 
+  it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {
+    nube.leerTotales.mockResolvedValueOnce({
+      equiposActivos: 51,
+      pagosPendientes: 0,
+      equiposPorTipo: { TABLÓN: 8, ANDAMIO: 43 },
+    });
+    const { usuario } = comoRol("administrador");
+
+    await screen.findByText("51");
+    await usuario.click(screen.getByText("EQUIPOS ACTIVOS"));
+
+    const dialogo = await screen.findByRole("dialog");
+    expect(dialogo).toHaveTextContent("ANDAMIO43");
+    expect(dialogo).toHaveTextContent("TABLÓN8");
+    expect(dialogo).toHaveTextContent("Total51");
+    // El detalle vino en la misma lectura de la pizarra.
+    expect(nube.leerTotales).toHaveBeenCalledTimes(1);
+  });
+
   it("al de facturación sí se le piden las del mes", async () => {
     comoRol("gestorFacturacion");
 

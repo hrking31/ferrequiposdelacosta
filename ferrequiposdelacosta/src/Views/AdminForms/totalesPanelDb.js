@@ -22,6 +22,10 @@ export const DOCUMENTO = "totales";
 // Devuelve los dos números, o null si la pizarra todavía no existe (queda así
 // hasta que corra por primera vez el recálculo; ver el paso de "sembrar" en la
 // consola de Google Cloud).
+//
+// Con el detalle de los equipos afuera, sin los que quedaron en 0 (un equipo
+// que volvió del todo sigue en la pizarra con 0 hasta el repaso de la
+// madrugada). Si la pizarra todavía no tiene detalle, va null.
 export const leerTotalesPanel = async () => {
   const snap = await getDoc(doc(db, COLECCION, DOCUMENTO));
   if (!snap.exists()) return null;
@@ -31,6 +35,13 @@ export const leerTotalesPanel = async () => {
   return {
     equiposActivos: Number(datos.equiposActivos) || 0,
     pagosPendientes: Number(datos.pagosPendientes) || 0,
+    equiposPorTipo: datos.equiposPorTipo
+      ? Object.fromEntries(
+          Object.entries(datos.equiposPorTipo)
+            .map(([tipo, cantidad]) => [tipo, Number(cantidad) || 0])
+            .filter(([, cantidad]) => cantidad > 0),
+        )
+      : null,
     actualizadoEn: datos.actualizadoEn ?? null,
   };
 };
