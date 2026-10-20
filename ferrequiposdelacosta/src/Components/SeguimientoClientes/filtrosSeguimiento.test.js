@@ -123,9 +123,9 @@ describe("filtrosSeguimiento — las opciones de días", () => {
     ]);
 
     expect(opciones).toEqual([
-      { valor: "hoy", label: "Hoy", cantidad: 1 },
-      { valor: "1", label: "1 día", cantidad: 1 },
-      { valor: "3", label: "3 días", cantidad: 2 },
+      { valor: "hoy", label: "Vence hoy", cantidad: 1 },
+      { valor: "1", label: "1 día vencido", cantidad: 1 },
+      { valor: "3", label: "3 días vencidos", cantidad: 2 },
     ]);
   });
 

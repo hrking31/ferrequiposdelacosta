@@ -414,12 +414,37 @@ export default function SeguimientoClientes() {
     >
       {opciones.map((opcion) => (
         <MenuItem key={opcion.valor} value={opcion.valor}>
-          {opcion.label}
+          {/* Con `cantidad`, el número va al otro extremo del renglón: en la
+              lista y en el campo una vez elegida. Si no cabe —los tres
+              desplegables del celular son angostos— el nombre se corta con
+              "…" y el número queda siempre a la vista. */}
+          {opcion.cantidad === undefined ? (
+            opcion.label
+          ) : (
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              spacing={1}
+              sx={{ width: "100%", minWidth: 0 }}
+            >
+              <Box
+                component="span"
+                sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              >
+                {opcion.label}
+              </Box>
+              <Box component="span" sx={{ flexShrink: 0 }}>
+                {opcion.cantidad}
+              </Box>
+            </Stack>
+          )}
         </MenuItem>
       ))}
     </TextField>
   );
 
+  // "3 días vencidos" y la cantidad de facturas al otro extremo (lo pidió el
+  // dueño el 2026-10-20).
   const selectorDias = (sx) =>
     selector({
       id: "filtro-dias-seguimiento",
@@ -427,11 +452,8 @@ export default function SeguimientoClientes() {
       value: diasElegidos,
       onChange: setFiltroDias,
       opciones: [
-        { valor: "todos", label: `Todos ${conGestion.length}` },
-        ...opcionesDeDias.map((opcion) => ({
-          valor: opcion.valor,
-          label: `${opcion.label} ${opcion.cantidad}`,
-        })),
+        { valor: "todos", label: "Todos", cantidad: conGestion.length },
+        ...opcionesDeDias,
       ],
       sx,
     });

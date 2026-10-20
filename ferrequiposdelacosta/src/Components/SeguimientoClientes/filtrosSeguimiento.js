@@ -79,7 +79,12 @@ export const opcionesDias = (datosFacturas) => {
     .sort((a, b) => orden(a) - orden(b))
     .map((valor) => ({
       valor,
-      label: valor === "hoy" ? "Hoy" : valor === "1" ? "1 día" : `${valor} días`,
+      label:
+        valor === "hoy"
+          ? "Vence hoy"
+          : valor === "1"
+            ? "1 día vencido"
+            : `${valor} días vencidos`,
       cantidad: conteo.get(valor),
     }));
 };

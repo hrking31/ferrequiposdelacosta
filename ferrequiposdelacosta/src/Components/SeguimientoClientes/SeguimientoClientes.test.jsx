@@ -117,11 +117,18 @@ describe("SeguimientoClientes — los filtros", () => {
     await screen.findByText("2 de 2");
 
     await usuario.click(screen.getByRole("combobox", { name: "Días vencidos" }));
+    // El nombre y la cantidad van cada uno en su extremo del renglón.
     const opciones = within(screen.getByRole("listbox"))
       .getAllByRole("option")
-      .map((opcion) => opcion.textContent);
+      .map((opcion) =>
+        [...opcion.querySelectorAll(".MuiStack-root > span")].map((parte) => parte.textContent),
+      );
 
-    expect(opciones).toEqual(["Todos 3", "Hoy 1", "3 días 1"]);
+    expect(opciones).toEqual([
+      ["Todos", "3"],
+      ["Vence hoy", "1"],
+      ["3 días vencidos", "1"],
+    ]);
   });
 
   it("la gestión ofrece todas, aunque estén en 0, contando facturas", async () => {
@@ -168,7 +175,7 @@ describe("SeguimientoClientes — los filtros", () => {
     const { usuario } = renderConProviders(<SeguimientoClientes />);
     await screen.findByText("2 de 2");
 
-    await elegir(usuario, "Días vencidos", "Hoy 1");
+    await elegir(usuario, "Días vencidos", "Vence hoy");
 
     expect(await screen.findByText("1 de 2")).toBeInTheDocument();
     expect(screen.getByText("Bruno Díaz")).toBeInTheDocument();
