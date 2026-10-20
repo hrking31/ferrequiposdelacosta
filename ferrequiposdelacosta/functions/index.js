@@ -23,6 +23,7 @@ import {
   calcularAporteFactura,
   calcularEstadoCliente,
   calcularTotalesFacturas,
+  diferenciaPorEstado,
   diferenciaPorTipo,
   equiposQueVencieronHoy,
   abrirTramosFactura,
@@ -794,10 +795,14 @@ export const ajustarTotalesPanel = onDocumentWritten(
       // misma escritura que los dos números: no cuesta una más.
       const porTipo = diferenciaPorTipo(aporteAntes, aporteDespues);
       const movioPorTipo = Object.keys(porTipo).length > 0;
+      // Y el de la plata por estado: una factura que pasa de activa a cobro
+      // mueve su saldo de casilla aunque el total no cambie.
+      const porEstado = diferenciaPorEstado(aporteAntes, aporteDespues);
+      const movioPorEstado = Object.keys(porEstado).length > 0;
 
       // Muchos cambios no mueven ninguno de los números (por ejemplo,
       // corregir una dirección). Ahí no se escribe nada.
-      if (equipos !== 0 || pagos !== 0 || movioPorTipo) {
+      if (equipos !== 0 || pagos !== 0 || movioPorTipo || movioPorEstado) {
         await refTotales().set(
             {
               equiposActivos: FieldValue.increment(equipos),
@@ -810,6 +815,14 @@ export const ajustarTotalesPanel = onDocumentWritten(
                     Object.entries(porTipo).map(([tipo, cantidad]) => [
                       tipo,
                       FieldValue.increment(cantidad),
+                    ]),
+                ),
+              }),
+              ...(movioPorEstado && {
+                pagosPorEstado: Object.fromEntries(
+                    Object.entries(porEstado).map(([estado, monto]) => [
+                      estado,
+                      FieldValue.increment(monto),
                     ]),
                 ),
               }),
@@ -1001,7 +1014,7 @@ export const recalcularTotalesPanel = onSchedule(
 
       const totales = calcularTotalesFacturas(facturas, hoy);
 
-      // mergeFields y no merge: el detalle por equipo se REEMPLAZA entero.
+      // mergeFields y no merge: los dos detalles se REEMPLAZAN enteros.
       // Con merge se mezclaría con el viejo, y un equipo que ya volvió
       // del todo se quedaría en la lista con su número de ayer. Lo demás
       // del documento (el sello de los clientes) no se toca.
@@ -1012,6 +1025,7 @@ export const recalcularTotalesPanel = onSchedule(
               "equiposActivos",
               "pagosPendientes",
               "equiposPorTipo",
+              "pagosPorEstado",
               "actualizadoEn",
               "recalculadoEn",
             ],

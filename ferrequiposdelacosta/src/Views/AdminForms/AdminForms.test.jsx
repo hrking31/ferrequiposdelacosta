@@ -2,7 +2,12 @@ import { screen, waitFor } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 import { authContext } from "../../Context/useAuth";
+import { formatearMoneda } from "../../Utils/formato";
 import AdminForms from "./AdminForms";
+
+// La plata como la deja toHaveTextContent: el espacio especial del formato
+// queda como un espacio común.
+const plata = (monto) => formatearMoneda(monto).replace(/\s+/g, " ");
 
 // El menú del panel. Cada persona ve solo lo que su rol le permite: no es
 // seguridad —eso lo hacen las reglas del servidor— pero sí evita que alguien se
@@ -119,6 +124,27 @@ describe("AdminForms — las cifras del menú", () => {
     expect(dialogo).toHaveTextContent("TABLÓN8");
     expect(dialogo).toHaveTextContent("Total51");
     // El detalle vino en la misma lectura de la pizarra.
+    expect(nube.leerTotales).toHaveBeenCalledTimes(1);
+  });
+
+  it("tocar «Pagos pendientes» abre la plata por estado, sin pedir nada más", async () => {
+    nube.leerTotales.mockResolvedValueOnce({
+      equiposActivos: 51,
+      pagosPendientes: 700000,
+      equiposPorTipo: { ANDAMIO: 51 },
+      pagosPorEstado: { activa: 200000, vencida: 500000 },
+    });
+    const { usuario } = comoRol("administrador");
+
+    await screen.findByText("51");
+    await usuario.click(screen.getByText("PAGOS PENDIENTES"));
+
+    const dialogo = await screen.findByRole("dialog");
+    expect(dialogo).toHaveTextContent("Pagos pendientes");
+    expect(dialogo).toHaveTextContent(
+      `Vencidas${plata(500000)}Activas${plata(200000)}` +
+        `Total${plata(700000)}`,
+    );
     expect(nube.leerTotales).toHaveBeenCalledTimes(1);
   });
 

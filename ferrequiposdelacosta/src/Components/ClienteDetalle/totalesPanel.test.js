@@ -1,6 +1,7 @@
 import {
   calcularAporteFactura,
   calcularTotalesFacturas,
+  diferenciaPorEstado,
   diferenciaPorTipo,
 } from "./facturaCuentas";
 import { unEquipo, unEquipoDevuelto, unaFactura } from "../../test/facturas";
@@ -98,7 +99,12 @@ describe("calcularAporteFactura", () => {
       HOY,
     );
 
-    expect(aporte).toEqual({ equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} });
+    expect(aporte).toEqual({
+      equiposActivos: 0,
+      pagosPendientes: 0,
+      equiposPorTipo: {},
+      pagosPorEstado: {},
+    });
   });
 
   it("si devolvió todo pero debe plata, aporta solo el saldo", () => {
@@ -127,6 +133,7 @@ describe("calcularAporteFactura", () => {
       equiposActivos: 0,
       pagosPendientes: 0,
       equiposPorTipo: {},
+      pagosPorEstado: {},
     });
   });
 });
@@ -265,6 +272,7 @@ describe("calcularTotalesFacturas", () => {
       equiposActivos: 0,
       pagosPendientes: 0,
       equiposPorTipo: {},
+      pagosPorEstado: {},
     });
   });
 
@@ -285,6 +293,89 @@ describe("calcularTotalesFacturas", () => {
         { equiposActivos: 0, pagosPendientes: 0 },
       );
 
-    expect(total).toEqual({ ...sumaManual, equiposPorTipo: { Andamio: 17 } });
+    expect(total).toEqual({
+      ...sumaManual,
+      equiposPorTipo: { Andamio: 17 },
+      // Las dos están activas.
+      pagosPorEstado: { activa: sumaManual.pagosPendientes },
+    });
+  });
+});
+
+// El detalle de "Pagos pendientes": cuánto se debe según el estado de la
+// factura. Cada una pone su saldo entero en su casilla.
+describe("el detalle por estado", () => {
+  it("una activa pone su saldo en «activa»", () => {
+    expect(calcularAporteFactura(factura(), HOY).pagosPorEstado).toEqual({ activa: 500000 });
+  });
+
+  it("la que devolvió todo y debe plata va en «cobro»", () => {
+    const aporte = calcularAporteFactura(factura({ devueltos: 10, pagado: 20000 }), HOY);
+
+    expect(aporte.pagosPorEstado).toEqual({ cobro: 30000 });
+  });
+
+  it("una vencida pone en «vencida» todo su saldo, con los días de más", () => {
+    // Salió el 01 por 10 días: el 15 lleva varios vencida.
+    const aporte = calcularAporteFactura(factura({ fechaDespacho: "2026-08-01" }), HOY);
+
+    expect(aporte.pagosPorEstado).toEqual({ vencida: aporte.pagosPendientes });
+  });
+
+  it("la que todavía no salió y ya se debe va en «pendiente»", () => {
+    const aporte = calcularAporteFactura(
+      factura({ fechaDespacho: "2026-09-01", fechaVencimiento: "2026-09-10" }),
+      HOY,
+    );
+
+    expect(aporte.pagosPorEstado).toEqual({ pendiente: 500000 });
+  });
+
+  it("la que no debe nada no tiene casilla", () => {
+    const aporte = calcularAporteFactura(factura({ devueltos: 10, pagado: 50000 }), HOY);
+
+    expect(aporte.pagosPorEstado).toEqual({});
+  });
+
+  // Las casillas tienen que sumar el número del recuadro: el detalle no puede
+  // contradecir al total.
+  it("las casillas de todas suman el total", () => {
+    const totales = calcularTotalesFacturas(
+      [
+        factura(),
+        factura({ cantidad: 3, valorDia: 2000 }),
+        factura({ devueltos: 10, pagado: 20000 }),
+        factura({ fechaDespacho: "2026-08-01" }),
+      ],
+      HOY,
+    );
+    const suma = Object.values(totales.pagosPorEstado).reduce((a, b) => a + b, 0);
+
+    expect(Object.keys(totales.pagosPorEstado).sort()).toEqual(["activa", "cobro", "vencida"]);
+    expect(totales.pagosPorEstado.activa).toBe(560000);
+    expect(totales.pagosPorEstado.cobro).toBe(30000);
+    expect(suma).toBe(totales.pagosPendientes);
+  });
+});
+
+describe("diferenciaPorEstado", () => {
+  it("al devolver todo debiendo plata, el saldo pasa de «activa» a «cobro»", () => {
+    const antes = calcularAporteFactura(factura({ pagado: 20000 }), HOY);
+    const despues = calcularAporteFactura(factura({ devueltos: 10, pagado: 20000 }), HOY);
+
+    expect(diferenciaPorEstado(antes, despues)).toEqual({ activa: -480000, cobro: 30000 });
+  });
+
+  it("un abono solo baja su casilla", () => {
+    const antes = calcularAporteFactura(factura(), HOY);
+    const despues = calcularAporteFactura(factura({ abonos: [{ monto: 150000 }] }), HOY);
+
+    expect(diferenciaPorEstado(antes, despues)).toEqual({ activa: -150000 });
+  });
+
+  it("si la plata no se movió, no hay nada que sumar", () => {
+    const aporte = calcularAporteFactura(factura(), HOY);
+
+    expect(diferenciaPorEstado(aporte, aporte)).toEqual({});
   });
 });

@@ -1756,6 +1756,7 @@ describe("los totales del menú", () => {
       equiposActivos: 0,
       pagosPendientes: 0,
       equiposPorTipo: {},
+      pagosPorEstado: {},
     });
   });
 

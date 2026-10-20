@@ -22,6 +22,8 @@ const initialState = {
   // El detalle de equipos activos por equipo, { nombre: unidades }.
   equiposPorTipo: null,
   pagosPendientes: null,
+  // El detalle de pagos pendientes por estado de factura, { estado: monto }.
+  pagosPorEstado: null,
   equiposCatalogo: null,
 };
 

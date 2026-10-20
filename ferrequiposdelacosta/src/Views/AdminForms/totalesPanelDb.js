@@ -23,9 +23,19 @@ export const DOCUMENTO = "totales";
 // hasta que corra por primera vez el recálculo; ver el paso de "sembrar" en la
 // consola de Google Cloud).
 //
-// Con el detalle de los equipos afuera, sin los que quedaron en 0 (un equipo
-// que volvió del todo sigue en la pizarra con 0 hasta el repaso de la
-// madrugada). Si la pizarra todavía no tiene detalle, va null.
+// Con el detalle de los equipos afuera y el de la plata por estado, sin las
+// casillas que quedaron en 0 (un equipo que volvió del todo sigue en la
+// pizarra con 0 hasta el repaso de la madrugada). Si la pizarra todavía no
+// tiene un detalle, ese va null.
+const sinCeros = (detalle) =>
+  detalle
+    ? Object.fromEntries(
+        Object.entries(detalle)
+          .map(([clave, valor]) => [clave, Number(valor) || 0])
+          .filter(([, valor]) => valor > 0),
+      )
+    : null;
+
 export const leerTotalesPanel = async () => {
   const snap = await getDoc(doc(db, COLECCION, DOCUMENTO));
   if (!snap.exists()) return null;
@@ -35,13 +45,8 @@ export const leerTotalesPanel = async () => {
   return {
     equiposActivos: Number(datos.equiposActivos) || 0,
     pagosPendientes: Number(datos.pagosPendientes) || 0,
-    equiposPorTipo: datos.equiposPorTipo
-      ? Object.fromEntries(
-          Object.entries(datos.equiposPorTipo)
-            .map(([tipo, cantidad]) => [tipo, Number(cantidad) || 0])
-            .filter(([, cantidad]) => cantidad > 0),
-        )
-      : null,
+    equiposPorTipo: sinCeros(datos.equiposPorTipo),
+    pagosPorEstado: sinCeros(datos.pagosPorEstado),
     actualizadoEn: datos.actualizadoEn ?? null,
   };
 };

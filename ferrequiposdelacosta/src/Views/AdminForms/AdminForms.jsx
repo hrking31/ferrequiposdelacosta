@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
+import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useAuth } from "../../Context/useAuth";
@@ -82,7 +83,11 @@ export default function AdminForms() {
   // cualquier empleado con sesión. Por eso estos dos recuadros ya no dependen
   // del permiso de clientes: hasta el gestorEditor los ve.
   const [stats, setStats] = useState(kpisGuardados);
-  const [detalleEquiposAbierto, setDetalleEquiposAbierto] = useState(false);
+  // El detalle del diálogo: cuál ("equipos" o "pagos") y si está abierto. Al
+  // cerrar se conserva cuál era, para que el título no cambie mientras el
+  // diálogo se desvanece.
+  const [detalle, setDetalle] = useState({ abierto: false, cual: "equipos" });
+  const cerrarDetalle = () => setDetalle((previo) => ({ ...previo, abierto: false }));
 
   useEffect(() => {
     let cancelado = false;
@@ -99,6 +104,7 @@ export default function AdminForms() {
           frescos.equiposActivos = totales.equiposActivos;
           frescos.equiposPorTipo = totales.equiposPorTipo;
           frescos.pagosPendientes = totales.pagosPendientes;
+          frescos.pagosPorEstado = totales.pagosPorEstado;
         }
       } catch (error) {
         console.error("Error al leer los totales del panel:", error);
@@ -170,7 +176,7 @@ export default function AdminForms() {
       subtitulo: "En alquiler",
       // Abre cuántos hay afuera de cada equipo. Viene en la misma pizarra:
       // no cuesta ninguna lectura más.
-      onClick: () => setDetalleEquiposAbierto(true),
+      onClick: () => setDetalle({ abierto: true, cual: "equipos" }),
     },
     {
       etiqueta: "PAGOS PENDIENTES",
@@ -179,6 +185,9 @@ export default function AdminForms() {
       valor: stats.pagosPendientes === null ? "…" : formatearMoneda(stats.pagosPendientes),
       subtitulo: "Por cobrar",
       tamanoValor: "h4",
+      // Abre cuánto se debe en facturas vencidas, en cobro y activas. También
+      // viene en la pizarra.
+      onClick: () => setDetalle({ abierto: true, cual: "pagos" }),
     },
     mostrarCatalogo && {
       etiqueta: "EQUIPOS",
@@ -521,17 +530,23 @@ export default function AdminForms() {
       )}
 
       <Dialog
-        open={detalleEquiposAbierto}
-        onClose={() => setDetalleEquiposAbierto(false)}
+        open={detalle.abierto}
+        onClose={cerrarDetalle}
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle sx={{ color: theme.palette.custom.accent }}>Equipos activos</DialogTitle>
+        <DialogTitle sx={{ color: theme.palette.custom.accent }}>
+          {detalle.cual === "pagos" ? "Pagos pendientes" : "Equipos activos"}
+        </DialogTitle>
         <DialogContent>
-          <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
+          {detalle.cual === "pagos" ? (
+            <DetallePagosPendientes pagosPorEstado={stats.pagosPorEstado} />
+          ) : (
+            <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
+          )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", px: 3, pb: 3 }}>
-          <Button variant="outlined" onClick={() => setDetalleEquiposAbierto(false)}>
+          <Button variant="outlined" onClick={cerrarDetalle}>
             Cerrar
           </Button>
         </DialogActions>

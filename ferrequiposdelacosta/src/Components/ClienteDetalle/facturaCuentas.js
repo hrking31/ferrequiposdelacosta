@@ -1749,7 +1749,7 @@ export const calcularEstadoCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
 // ── Los totales del panel del menú ─────────────────────────────────────
 //
 // Los dos números de "Equipos activos" (con su detalle por equipo) y "Pagos
-// pendientes". Los mantiene una
+// pendientes" (con su detalle por estado). Los mantiene una
 // Cloud Function en un solo documento y el menú lo lee de una. Viven acá para
 // que el servidor use EXACTAMENTE esta lógica y no una versión suya.
 export const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
@@ -1760,6 +1760,14 @@ export const ESTADOS_EQUIPOS_ACTIVOS = ["activa", "vencida"];
 // clave es el nombre del equipo tal como está en la factura.
 const tipoDeEquipo = (equipo) => String(equipo?.nombre ?? "").trim() || "Sin nombre";
 
+// EL DETALLE DE "PAGOS PENDIENTES" (2026-10-20): cuánto se debe en facturas
+// vencidas, en cobro y activas, { vencida: 5412300, … }. Cada factura pone su
+// saldo entero en la casilla de su estado, así que las casillas suman el total.
+// Es solo plata por estado, ni un dato de cliente: puede ir en la misma
+// pizarra que lee cualquier empleado.
+//
+// Igual que el número de pagos, una factura que se vence a la medianoche no
+// cambia de casilla hasta el repaso de las 3 a.m.
 const sumarPorTipo = (a, b, signo = 1) => {
   const suma = { ...a };
   Object.entries(b).forEach(([tipo, cantidad]) => {
@@ -1769,7 +1777,9 @@ const sumarPorTipo = (a, b, signo = 1) => {
 };
 
 export const calcularAporteFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => {
-  if (!doc) return { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} };
+  if (!doc) {
+    return { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {}, pagosPorEstado: {} };
+  }
 
   const estado = calcularEstadoFactura(doc, hoyIso);
   const afuera = ESTADOS_EQUIPOS_ACTIVOS.includes(estado)
@@ -1784,24 +1794,31 @@ export const calcularAporteFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     equiposPorTipo[tipo] = (equiposPorTipo[tipo] || 0) + cantidad;
   });
 
+  const pagosPendientes = calcularCuentaFactura(doc, hoyIso).saldoPendiente;
+
   return {
     equiposActivos: afuera.reduce(
       (total, { equipo }) => total + numero(equipo?.cantidadEquipos),
       0,
     ),
-    pagosPendientes: calcularCuentaFactura(doc, hoyIso).saldoPendiente,
+    pagosPendientes,
     equiposPorTipo,
+    pagosPorEstado: pagosPendientes ? { [estado]: pagosPendientes } : {},
   };
 };
 
-// Lo que cambió el detalle entre dos aportes, solo los equipos que se
+// Lo que cambió un detalle entre dos aportes, solo las casillas que se
 // movieron. Es lo que el disparador del servidor suma a la pizarra.
-export const diferenciaPorTipo = (antes, despues) =>
+const diferenciaEntre = (antes, despues) =>
   Object.fromEntries(
-    Object.entries(sumarPorTipo(despues.equiposPorTipo, antes.equiposPorTipo, -1)).filter(
-      ([, cantidad]) => cantidad !== 0,
-    ),
+    Object.entries(sumarPorTipo(despues, antes, -1)).filter(([, cantidad]) => cantidad !== 0),
   );
+
+export const diferenciaPorTipo = (antes, despues) =>
+  diferenciaEntre(antes.equiposPorTipo, despues.equiposPorTipo);
+
+export const diferenciaPorEstado = (antes, despues) =>
+  diferenciaEntre(antes.pagosPorEstado, despues.pagosPorEstado);
 
 export const calcularTotalesFacturas = (facturas, hoyIso = obtenerFechaHoyBogota()) =>
   (Array.isArray(facturas) ? facturas : []).reduce(
@@ -1811,9 +1828,10 @@ export const calcularTotalesFacturas = (facturas, hoyIso = obtenerFechaHoyBogota
         equiposActivos: acumulado.equiposActivos + aporte.equiposActivos,
         pagosPendientes: acumulado.pagosPendientes + aporte.pagosPendientes,
         equiposPorTipo: sumarPorTipo(acumulado.equiposPorTipo, aporte.equiposPorTipo),
+        pagosPorEstado: sumarPorTipo(acumulado.pagosPorEstado, aporte.pagosPorEstado),
       };
     },
-    { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {} },
+    { equiposActivos: 0, pagosPendientes: 0, equiposPorTipo: {}, pagosPorEstado: {} },
   );
 
 // ── La gestión: qué se hizo para destrabar la factura ──────────────────
