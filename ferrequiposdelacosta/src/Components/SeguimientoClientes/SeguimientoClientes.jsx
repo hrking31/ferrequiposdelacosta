@@ -68,10 +68,12 @@ export default function SeguimientoClientes() {
   // una franja donde no cabía ni una. Con la pantalla así de baja se desplaza
   // todo junto, encabezado incluido.
   const altoCorto = usePantallaBaja();
-  // LOS FILTROS EN UNA COLUMNA A LA IZQUIERDA, como en la lista de clientes y
-  // desde el mismo ancho. Más angosto no entran al lado de las tarjetas y van
-  // debajo del buscador, en los desplegables del celular.
-  const columnaFiltros = useMediaQuery("(min-width:1151px)") && !esCelular;
+  // LOS FILTROS EN UNA COLUMNA A LA IZQUIERDA, como en la lista de clientes.
+  // Desde 1010px, el ancho en que la columna sola deja a las tarjetas unos
+  // 760px, lo que necesitan para verse enteras (lo eligió el dueño el
+  // 2026-10-20). Más angosto van debajo del buscador, en los desplegables
+  // del celular.
+  const columnaFiltros = useMediaQuery("(min-width:1010px)") && !esCelular;
   const acento =
     theme.palette.custom.accent;
   // Los mismos colores del chip de gestión de cada tarjeta.
@@ -475,10 +477,12 @@ export default function SeguimientoClientes() {
   // historia del equipo que se elija en la lista. En el celular no entra al
   // lado, y cada equipo abre su historia en un diálogo.
   //
-  // Desde 1200px. Entre 916 y 1200 los 420px del panel apretaban las
-  // facturas: ahí la lista va con todo el ancho y la historia se abre con el
-  // botón de cada equipo, como en el celular.
-  const anchoParaPanel = useMediaQuery(theme.breakpoints.up("lg"));
+  // Desde 1520px: con la columna de filtros y los 420px del panel, ahí les
+  // quedan a las tarjetas los mismos 760px. Desde 1200, como era antes, les
+  // quedaban 484 y los equipos y los números se encimaban. Más angosto la
+  // lista va sin panel y la historia se abre con el botón de cada equipo,
+  // como en el celular.
+  const anchoParaPanel = useMediaQuery("(min-width:1520px)");
   const conPanel = !esCelular && anchoParaPanel;
 
   // El equipo elegido se busca de nuevo en la lista vigente cada vez: después
