@@ -14,6 +14,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import CamionContador from "../../Components/Camion/Camion.jsx";
 
+// LAS VISTAS INTERNAS VAN SIN BARRA (2026-10-20): al empleado no le sirven el
+// camión del carrito ni el título, y la barra le quitaba un renglón a cada
+// pantalla. La barra queda para lo que ve el cliente —tienda, detalle,
+// carrito, kiosco—. Se empezó por el menú, que lleva su propio logo para ir a
+// la tienda (BotonTienda).
+const RUTAS_SIN_BARRA = ["/adminforms"];
+
 export default function MenuAppBar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -24,6 +31,7 @@ export default function MenuAppBar() {
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isKioskMode = location.pathname.startsWith("/kiosk");
   const isEnHome = ["/", "/home"].includes(location.pathname.toLowerCase());
+  const sinBarra = RUTAS_SIN_BARRA.includes(location.pathname.toLowerCase());
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
@@ -45,6 +53,8 @@ export default function MenuAppBar() {
       navigate("/vistacart");
     }
   };
+
+  if (sinBarra) return null;
 
   return (
     <Box sx={{ flexGrow: 1 }}>

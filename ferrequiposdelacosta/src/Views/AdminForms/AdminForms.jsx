@@ -15,6 +15,8 @@ import {
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
+import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
+import BotonTienda from "../../Components/NavBar/BotonTienda";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
 import { collection, getCountFromServer } from "firebase/firestore";
@@ -197,6 +199,17 @@ export default function AdminForms() {
       subtitulo: "En el catálogo",
     },
   ].filter(Boolean);
+
+  // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van solo los dos
+  // números de la pizarra, en una franja, con el logo de la tienda al
+  // extremo. Va donde estaba la barra: abajo en el celular y arriba de ahí en
+  // adelante.
+  const franja = (
+    <FranjaKpis
+      kpis={kpis.filter((kpi) => kpi.onClick)}
+      extremo={<BotonTienda alto={36} />}
+    />
+  );
 
   const botonesConfig = [
     {
@@ -416,8 +429,8 @@ export default function AdminForms() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
-        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        // Sin la barra (ver NavBar), ni arriba ni abajo hay que dejarle hueco.
+        pb: isFullScreen ? 1.5 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -460,21 +473,29 @@ export default function AdminForms() {
         )}
       </Box>
 
-      {!isMobile && kpis.length > 0 && (
+      {!isMobile && (
         <Stack
           direction="row"
           spacing={2}
           justifyContent="center"
+          alignItems="center"
           // El margen de abajo iguala al del pie de la pantalla (pb del Box
           // que envuelve todo): así los botones, que van centrados en lo que
           // queda, dejan el mismo aire contra los recuadros que contra el
           // borde inferior.
-          sx={{ flexShrink: 0, mt: 3, mb: 2, mx: 2 }}
+          sx={{ flexShrink: 0, mt: 1, mb: 2, mx: 2 }}
         >
           {kpis.map((kpi) => (
             <KpiCard key={kpi.etiqueta} {...kpi} />
           ))}
+          <BotonTienda alto={56} />
         </Stack>
+      )}
+
+      {isMobile && !isFullScreen && (
+        <Box sx={{ flexShrink: 0, mb: 2, mx: 2 }}>
+          {franja}
+        </Box>
       )}
 
       <Box
@@ -512,9 +533,7 @@ export default function AdminForms() {
       {isFullScreen && (
         // EL MISMO PIE QUE LAS OTRAS DOCE VISTAS: 12px por lado. Acá tenía 32
         // arriba, y con el celular acostado esa diferencia contra los 12 del
-        // encabezado se notaba el doble. El hueco de la barra de abajo (el
-        // `pb` de la pantalla) no se toca: es lo que evita que el botón quede
-        // por debajo de ella.
+        // encabezado se notaba el doble.
         <Box sx={{ p: 1.5, flexShrink: 0 }}>
           <Grid container justifyContent="center" spacing={1.5}>
             {/* En celular el botón de avisos va acá abajo, junto al de salir:
@@ -528,6 +547,8 @@ export default function AdminForms() {
           </Grid>
         </Box>
       )}
+
+      {isFullScreen && <Box sx={{ flexShrink: 0 }}>{franja}</Box>}
 
       <Dialog
         open={detalle.abierto}
