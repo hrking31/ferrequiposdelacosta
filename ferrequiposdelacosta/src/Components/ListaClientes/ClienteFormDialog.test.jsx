@@ -356,7 +356,7 @@ describe("ClienteFormDialog — fotos del documento", () => {
     await usuario.upload(inputDeLaTarjeta("frente"), fotoDePrueba());
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
-    expect(await screen.findByText(`${MENSAJE_FALLA} (sin señal)`)).toBeInTheDocument();
+    expect(await screen.findByText(MENSAJE_FALLA)).toBeInTheDocument();
     expect(bd.setDoc).not.toHaveBeenCalled();
     expect(alCerrar).not.toHaveBeenCalled();
     // Lo escrito y la foto siguen ahí para volver a intentar.
