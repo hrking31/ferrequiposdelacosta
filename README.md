@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-647_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-971_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -118,6 +118,10 @@ Los **seis** lugares desde donde la app escribe por WhatsApp —el botón flotan
 | **Usuarios** | Cuentas del personal, con roles y permisos |
 
 El menú de entrada muestra además **cuatro números en vivo**: equipos afuera, plata por cobrar, cotizaciones del mes y cuentas de cobro del mes. Cada uno se filtra por permiso: quien solo administra el catálogo no ve las cifras de cartera.
+
+**Los dos de cartera se abren (2026-10-20).** Al tocar *Equipos activos* sale cuántas unidades hay afuera de cada equipo —*Andamios convencionales 43, Tablón 33, Formaletas 0.40 20…*—, y al tocar *Pagos pendientes*, cuánto se debe en facturas **vencidas**, **en cobro**, **activas** y **sin despachar**, con el total al pie. Verlos no cuesta nada: los dos detalles viajan en el mismo documento que los números (ver *Lo que hace el servidor solo*). La plata va por estado y no por cliente a propósito: ese documento lo puede leer cualquier empleado, y la deuda de cada cliente ya la muestra Seguimiento.
+
+**El menú no tiene la barra de la tienda.** Al empleado no le servían el camión del carrito ni el título, y la barra le quitaba un renglón a la pantalla. El logo sigue en **el mismo rincón** donde lo tenía la barra —arriba a la izquierda en computador, abajo a la izquierda en el celular—, porque la gente ya va ahí de memoria, y sigue llevando a la tienda. En el celular, donde las tarjetas grandes no entran, los dos números de cartera van en una franja abajo, junto al logo; tocarlos abre el mismo detalle. Es el primer paso: la idea es que ninguna vista interna lleve la barra, que queda para lo que ve el cliente.
 
 ### Roles
 
@@ -414,7 +418,7 @@ El estado dice en qué punto está la factura. **La gestión dice qué se hizo p
 
 > **La bitácora también anota "Devolución total", pero nunca llega al chip.** Al volver el último equipo la factura pasa a *Cobro* —y ahí manda esa gestión— o se finaliza y sale de Seguimiento.
 
-**Los filtros de Seguimiento (2026-10-19).** La lista se filtra por **gestión** y por **días vencidos**, además de personas y empresas. Filtran facturas, no clientes: la tarjeta muestra solo las que cumplen. Las seis gestiones salen siempre, aunque estén en cero; los días, en cambio, solo los que hay —*Hoy*, *1 día*, *3 días*, sin el 2 si nadie lleva dos—, cada uno con cuántas facturas tiene. Los días son los mismos que la tarjeta dice al lado de la fecha. En computador van en una columna a la izquierda, a la altura de la primera tarjeta; en celular, en tres desplegables.
+**Los filtros de Seguimiento (2026-10-19).** La lista se filtra por **gestión** y por **días vencidos**, además de personas y empresas. Filtran facturas, no clientes: la tarjeta muestra solo las que cumplen. Las seis gestiones salen siempre, aunque estén en cero; los días, en cambio, solo los que hay —*Hoy*, *1 día*, *3 días*, sin el 2 si nadie lleva dos—, cada uno con cuántas facturas tiene. Los días son los mismos que la tarjeta dice al lado de la fecha. La columna de la izquierda aparece **desde 1010px**; más angosto, los filtros van en tres desplegables debajo del buscador, igual que en el celular. En los desplegables cada opción se lee como una frase —*Vence hoy*, *1 día vencido*, *3 días vencidos*— con su cantidad al otro extremo del renglón; si en el celular el nombre no cabe, se corta con puntos suspensivos y la cantidad se sigue viendo.
 
 Se guarda **el historial completo**, no solo lo último: así se puede reconstruir cuántas veces se llamó y cuándo (*"sin respuesta ×3"* antes de lograr contacto).
 
@@ -753,7 +757,7 @@ Ese costo va con el equipo y no arriba con la cuenta: una cosa es decirle al cli
 
 Acá vivió hasta el 14/09/2026 la historia completa del equipo en fichas —cuándo salió, a qué precio, los vencimientos por los que pasó, lo que costó cada tramo—. Contestaba *"¿cómo llegamos hasta acá?"*, que es la pregunta de la ficha del cliente y la que responde su línea de tiempo. Cartera pregunta otra: **a quién llamo hoy**.
 
-> **La historia vuelve, pero al lado (2026-09-24).** Con el cliente al teléfono a veces hace falta un dato que la ficha no trae —cuándo se pactó la última ampliación, qué días ya pagó—, y para verlo había que salir de Seguimiento. Ahora, **en computador**, la pantalla tiene una columna a la derecha: arriba los dos números del menú, *Equipos activos* y *Pagos pendientes* (de la misma pizarra, así que no pueden diferir), y abajo **la misma línea de tiempo de la ficha del cliente**, la del equipo al que se le hace clic. El elegido queda marcado con el acento; otro clic lo suelta. **En el celular** no hay columna: cada equipo lleva un botón que abre esa historia en un diálogo. La tarjeta no cambia; la historia sigue sin vivir adentro de ella.
+> **La historia vuelve, pero al lado (2026-09-24).** Con el cliente al teléfono a veces hace falta un dato que la ficha no trae —cuándo se pactó la última ampliación, qué días ya pagó—, y para verlo había que salir de Seguimiento. Ahora, **en computador**, la pantalla tiene una columna a la derecha: arriba los dos números del menú, *Equipos activos* y *Pagos pendientes* (de la misma pizarra, así que no pueden diferir), y abajo un recuadro que nunca está vacío: de entrada muestra **la plata por estado**; al hacer clic en un equipo, **la misma línea de tiempo de la ficha del cliente**; y al tocar *Equipos activos*, cuántos hay afuera de cada equipo. El elegido queda marcado con el acento; otro clic lo suelta. **En el celular** no hay columna: cada equipo lleva un botón que abre esa historia en un diálogo. La tarjeta no cambia; la historia sigue sin vivir adentro de ella.
 
 ### La misma tarjeta en el celular
 
@@ -1076,6 +1080,8 @@ flowchart LR
 
 **Los totales del menú.** El menú principal muestra cuántos equipos están afuera y cuánta plata falta cobrar. Antes esos dos números se calculaban recorriendo todos los clientes y todas sus facturas en cada visita. Hoy los mantiene el servidor en un solo documento que el menú lee de una sola vez.
 
+En ese mismo documento van **sus dos detalles**: las unidades afuera de cada equipo y la plata según el estado de la factura. Firebase cobra por documento leído, no por lo que el documento trae, así que abrirlos no cuesta ni una lectura ni una escritura más. Cada factura pone su saldo entero en la casilla de su estado, de modo que las casillas siempre suman el total; y una factura que se vence a medianoche cambia de casilla en el repaso de las 3 a.m., igual que el total se corrige ahí.
+
 Lo interesante es *cómo* se mantienen: cuando se toca una factura, el servidor recibe **cómo estaba antes y cómo quedó después**, calcula la diferencia y la ajusta. No lee ni una factura, y funciona igual para cualquier movimiento —incluidos los que se inventen mañana— sin tener que enseñarle qué es un abono o qué es una devolución.
 
 **El estado del cliente.** Se corrige en el mismo disparador. Acá sí hay que leer las facturas de ese cliente: el estado no es una suma, es *"la más urgente de todas sus facturas"*, así que si a un cliente vencido le pagan la factura vencida, hay que mirar las otras para saber en qué queda. Son las facturas de un cliente, no las de todos.
@@ -1352,7 +1358,7 @@ Casi todo eso ya estaba guardado. **Lo único que hubo que empezar a anotar es e
 
 #### En Seguimiento, al lado de la lista (2026-09-25)
 
-En Seguimiento la historia se ve sin salir de la lista: un panel a la derecha, de 420px, con los dos números del menú y la historia del equipo que se toque. **Aparece desde 1200px.** Entre 916 y 1200 esos 420px apretaban las facturas, así que ahí la lista va con todo el ancho y la historia se abre con el botón de cada equipo, como en el celular.
+En Seguimiento la historia se ve sin salir de la lista: un panel a la derecha, de 420px, con los dos números del menú y la historia del equipo que se toque. **Aparece desde 1520px** (2026-10-20; antes, 1200). Con la columna de filtros a la izquierda, esos 420px dejaban las facturas demasiado angostas, así que más abajo la lista va con todo el ancho y la historia se abre con el botón de cada equipo, como en el celular.
 
 La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el que le deja el panel. Por eso en Seguimiento la barra negra de los totales baja a su propio renglón hasta **1800px** —en la ficha del cliente lo hace hasta 1200, donde no hay panel que le quite espacio—. Era 1600 y a 1663 las cifras se montaban (2026-09-30).
 
@@ -1361,7 +1367,7 @@ La tarjeta decide cómo acomodarse por el ancho de la **pantalla**, no por el qu
 > | Ancho | Cómo se ve |
 > |---|---|
 > | hasta 915px, o el teléfono acostado | Como en el celular: la tarjeta se toca para abrir, los botones se esconden con la factura cerrada y la pizarra va abajo, corta |
-> | 916 a 1799px | Computador: los botones a la vista, la pizarra completa en su propio renglón y los equipos uno por renglón. Desde 1200 aparece el panel de la derecha |
+> | 916 a 1799px | Computador: los botones a la vista, la pizarra completa en su propio renglón y los equipos uno por renglón. Desde 1010 aparece la columna de filtros y desde 1520 el panel de la derecha |
 > | desde 1800px | La pizarra sube al lado de los botones y los equipos van de a dos |
 >
 > Antes la tarjeta tenía dos cortes —600px para lo de celular, 915 para la pizarra— y entre los dos quedaba una tarjeta de computador con la pizarra de celular.
@@ -1547,6 +1553,8 @@ Ese doble soporte escondía un bug: al agregar un equipo pagado a una factura vi
 
 Desde el 02/10/2026 cada cliente —persona o empresa— puede llevar la foto de su documento, **frente y atrás**. En el formulario se ven como la tarjeta misma, blanca y con sombra, y se tocan para elegir la foto: el celular ofrece la cámara o la galería. Antes de subirla se achica en el propio teléfono, de unos 4 MB a unos 250 KB, y se sigue leyendo.
 
+> **Si el aparato no la abre a la primera, prueba de otra forma (2026-10-20).** Una tableta de un gestor fallaba siempre con el mismo error: su navegador no lograba abrir la foto con el método rápido. Ahora, si ese falla, la app la abre como una imagen común y la achica igual. Lo que sigue sin servir son los archivos de **escáner** —TIFF o PDF—: el navegador no los dibuja. El documento se escanea en JPG o se le toma foto con la cámara.
+
 La foto va a Storage, en `documentos/{id del cliente}/`, y en el cliente queda solo su enlace. **El orden del guardado es el que evita los cabos sueltos:**
 
 - Primero suben las fotos y después se escribe el cliente. Si una foto no sube —se cayó la señal en la obra—, **el cliente no se guarda**: sale el aviso y el formulario queda abierto, con todo lo escrito. Nadie queda sin documento sin que se note.
@@ -1643,7 +1651,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**585 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**971 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 
