@@ -5,16 +5,13 @@ import { alpha } from "@mui/material/styles";
 
 // LOS NÚMEROS EN UNA FRANJA (2026-10-20), para el menú en pantalla angosta,
 // donde las tarjetas grandes no entran. Va donde estaba la barra: abajo en el
-// celular y arriba de ahí en adelante. Cada número abre su detalle, y al
-// comienzo va lo que se le pase en `inicio` (en el celular, el logo de la
-// tienda, en el mismo rincón donde lo tenía la barra).
+// celular y arriba de ahí en adelante. Cada número abre su detalle.
 //
 // Mismo lenguaje que KpiCard —borde y resplandor del color, fijos—, pero en un
 // renglón: ícono, cifra y subtítulo.
-export default function FranjaKpis({ kpis, inicio }) {
+export default function FranjaKpis({ kpis }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
-      {inicio}
       {kpis.map((kpi) => (
         <ButtonBase
           key={kpi.etiqueta}
@@ -61,5 +58,4 @@ FranjaKpis.propTypes = {
       onClick: PropTypes.func,
     }),
   ).isRequired,
-  inicio: PropTypes.node,
 };

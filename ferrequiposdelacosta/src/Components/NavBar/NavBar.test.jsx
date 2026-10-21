@@ -46,4 +46,46 @@ describe("BotonTienda", () => {
 
     expect(screen.getByText("/home?vistahome=si")).toBeInTheDocument();
   });
+
+  // En el encabezado del menú en el celular el logo ocupa el lugar del botón
+  // de salir: tiene que ofrecer las dos cosas.
+  describe("con cerrar sesión", () => {
+    const conMenu = (onCerrarSesion) =>
+      conSesion(
+        <Routes>
+          <Route path="/adminforms" element={<BotonTienda onCerrarSesion={onCerrarSesion} />} />
+          <Route path="/home" element={<DondeEstoy />} />
+        </Routes>,
+        "/adminforms",
+      );
+
+    it("al tocarlo no se va: ofrece la tienda y cerrar sesión", async () => {
+      const { usuario } = conMenu(vi.fn());
+
+      await usuario.click(screen.getByRole("button", { name: "Tienda y sesión" }));
+
+      expect(screen.getByRole("menuitem", { name: "Ir a la tienda" })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: "Cerrar sesión" })).toBeInTheDocument();
+      expect(screen.queryByText("/home?vistahome=si")).not.toBeInTheDocument();
+    });
+
+    it("«Ir a la tienda» lleva a la tienda", async () => {
+      const { usuario } = conMenu(vi.fn());
+
+      await usuario.click(screen.getByRole("button", { name: "Tienda y sesión" }));
+      await usuario.click(screen.getByRole("menuitem", { name: "Ir a la tienda" }));
+
+      expect(screen.getByText("/home?vistahome=si")).toBeInTheDocument();
+    });
+
+    it("«Cerrar sesión» usa la salida que le pasan", async () => {
+      const salir = vi.fn();
+      const { usuario } = conMenu(salir);
+
+      await usuario.click(screen.getByRole("button", { name: "Tienda y sesión" }));
+      await usuario.click(screen.getByRole("menuitem", { name: "Cerrar sesión" }));
+
+      expect(salir).toHaveBeenCalledTimes(1);
+    });
+  });
 });

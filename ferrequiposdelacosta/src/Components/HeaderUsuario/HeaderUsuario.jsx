@@ -32,8 +32,9 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import BotonTienda from "../NavBar/BotonTienda";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   // SOLO EN CELULAR: cerrar sesión se mudó acá desde el pie de cada vista. La
@@ -302,22 +303,30 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               no sirve: medido sobre el amarillo da 2,17 de contraste y sobre
               el azul 2,11, cuando el mínimo para que una figura se despegue
               de su fondo es 3. */}
-          <Tooltip title="Cerrar sesión">
-            <IconButton
-              onClick={cerrarSesion}
-              aria-label="Cerrar sesión"
-              sx={{
-                ml: "auto",
-                flexShrink: 0,
-                color: "custom.onAccent",
-                // Por encima del círculo decorativo del fondo, que si no se
-                // le monta encima y se come el toque.
-                zIndex: 1,
-              }}
-            >
-              <LogoutIcon />
-            </IconButton>
-          </Tooltip>
+          {/* CON `conLogo` (el menú, 2026-10-21) va el logo en vez del
+              botón: al tocarlo ofrece ir a la tienda o cerrar sesión. */}
+          {conLogo ? (
+            <Box sx={{ ml: "auto", flexShrink: 0, zIndex: 1 }}>
+              <BotonTienda alto={32} onCerrarSesion={cerrarSesion} />
+            </Box>
+          ) : (
+            <Tooltip title="Cerrar sesión">
+              <IconButton
+                onClick={cerrarSesion}
+                aria-label="Cerrar sesión"
+                sx={{
+                  ml: "auto",
+                  flexShrink: 0,
+                  color: "custom.onAccent",
+                  // Por encima del círculo decorativo del fondo, que si no se
+                  // le monta encima y se come el toque.
+                  zIndex: 1,
+                }}
+              >
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       ) : (
         /* ── COMPUTADOR: tarjeta clara con una barra de acento al costado ── */
@@ -599,4 +608,7 @@ HeaderUsuario.propTypes = {
   // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
   onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
+  // Solo en celular: el logo con ir a la tienda y cerrar sesión, en el lugar
+  // del botón de salir.
+  conLogo: PropTypes.bool,
 };
