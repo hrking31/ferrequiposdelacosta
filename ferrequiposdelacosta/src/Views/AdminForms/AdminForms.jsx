@@ -544,7 +544,19 @@ export default function AdminForms() {
         // EL MISMO PIE QUE LAS OTRAS DOCE VISTAS: 12px por lado. Acá tenía 32
         // arriba, y con el celular acostado esa diferencia contra los 12 del
         // encabezado se notaba el doble.
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
+        //
+        // Solo el aire de arriba: el de abajo lo pone la franja. Y si no hay
+        // botón —con los avisos ya activados, BotonAvisos no dibuja nada— el
+        // pie no ocupa nada: quedaba un hueco de 24px entre los botones y la
+        // franja. El aviso de "quedó activado" no se ve afectado: va flotando.
+        <Box
+          sx={{
+            px: 1.5,
+            pt: 1.5,
+            flexShrink: 0,
+            "&:not(:has(.MuiButton-root))": { pt: 0 },
+          }}
+        >
           <Grid container justifyContent="center" spacing={1.5}>
             {/* En celular el botón de avisos va acá abajo, junto al de salir:
                 arriba no hay lugar y es justamente donde más se usa, porque el
@@ -558,7 +570,7 @@ export default function AdminForms() {
         </Box>
       )}
 
-      {isFullScreen && <Box sx={{ flexShrink: 0 }}>{franja}</Box>}
+      {isFullScreen && <Box sx={{ flexShrink: 0, mt: 1.5 }}>{franja}</Box>}
 
       <Dialog
         open={detalle.abierto}
