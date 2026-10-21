@@ -47,6 +47,7 @@ import {
   datosFactura,
   calcularExigible,
   sellarFacturaPagada,
+  abrirTramosFactura,
   equiposDe,
   sigueAfuera,
   equipoVencido,
@@ -137,9 +138,19 @@ export default function AbonoDialog({
     setErrors({});
   }, [open]);
 
+  // LA CUENTA SE HACE A LA FECHA DEL ABONO (2026-10-21), no al día en que se
+  // anota. El cliente paga en la obra al recibir el equipo y la plata se anota
+  // al día siguiente: contada contra ese día, la deuda traía un día vencido que
+  // el cliente no debía cuando pagó —la 0773: $287.100 en vez de $233.550—, y
+  // al saldarla ese día quedaba cobrado. Lo que vino después de la fecha del
+  // abono sigue pendiente con sus reglas. Una fecha futura no adelanta nada:
+  // se cuenta a hoy.
+  const hoy = obtenerFechaHoyBogota();
+  const fechaDeLaCuenta = form.fecha && form.fecha < hoy ? form.fecha : hoy;
+
   // Solo entran las facturas que todavía deben algo, de la más antigua a la
   // más nueva, que es el orden en que las va saldando.
-  const facturasConSaldo = ordenarFacturasConSaldo(facturas);
+  const facturasConSaldo = ordenarFacturasConSaldo(facturas, fechaDeLaCuenta);
   const deudaActual = facturasConSaldo.reduce(
     (total, { cuenta }) => total + cuenta.saldoPendiente,
     0,
@@ -227,7 +238,7 @@ export default function AbonoDialog({
   // equipo afuera y sin fecha de retorno, que fue lo que pasó con la 5698—.
   // Se sacó un formulario el 2026-09-15 porque trababa el cobro. SOLO DESDE
   // CARTERA: en la ficha del cliente se registra lo que pasó con la plata.
-  const hoy = obtenerFechaHoyBogota();
+  // Este sí mira HOY: habla de cómo están los equipos ahora.
   const facturasConEquiposVencidos = !avisarEquiposVencidos
     ? []
     : filas
@@ -293,9 +304,10 @@ export default function AbonoDialog({
 
     setGuardando(true);
     try {
-      // El día de HOY, no la fecha que se le puso al abono: los días vencidos
-      // se cuentan contra el calendario real.
+      // A la fecha del abono, igual que la deuda que se mostró (ver
+      // fechaDeLaCuenta): solo se sellan los días vencidos hasta ese día.
       const hoyAlGuardar = obtenerFechaHoyBogota();
+      const fechaDelPago = form.fecha < hoyAlGuardar ? form.fecha : hoyAlGuardar;
       const tipo = loEligioElCliente ? "cliente" : "sistema";
       const batch = writeBatch(db);
       aplicaciones.forEach(({ factura, deposito, descuento: rebaja, plata }) => {
@@ -311,16 +323,23 @@ export default function AbonoDialog({
             : []),
           ...(plata > 0 ? [{ fecha: form.fecha, medio: form.medio, monto: plata, tipo }] : []),
         ];
-        // Si con este abono la factura queda sin nada que reclamarle HOY, los
-        // días que sus equipos llevan vencidos quedan cobrados: se sellan para
-        // que el contador arranque de cero (ver sellarDiasVencidos). Se mira lo
-        // EXIGIBLE y no el saldo: los días ya pactados por delante se cobran al
-        // devolver.
+        // Si con este abono la factura queda sin nada que reclamarle el día
+        // del pago, los días que sus equipos llevaban vencidos hasta ese día
+        // quedan cobrados: se sellan para que el contador arranque de cero (ver
+        // sellarDiasVencidos). Se mira lo EXIGIBLE y no el saldo: los días ya
+        // pactados por delante se cobran al devolver.
+        //
+        // Con el abono atrasado, los días que el equipo siguió afuera DESPUÉS
+        // del pago no se pagaron: su tramo se vuelve a abrir hoy mismo, como
+        // lo haría la madrugada, para que sigan corriendo.
         const conAbono = { ...factura, abonos, descuentos };
-        const grupos =
-          calcularExigible(conAbono, hoyAlGuardar) === 0
-            ? sellarFacturaPagada(conAbono, hoyAlGuardar)
+        const sellada =
+          calcularExigible(conAbono, fechaDelPago) === 0
+            ? sellarFacturaPagada(conAbono, fechaDelPago)
             : null;
+        const grupos = sellada
+          ? (abrirTramosFactura({ ...conAbono, grupos: sellada }, hoyAlGuardar) ?? sellada)
+          : null;
 
         batch.update(doc(db, "clientes", cliente.id, "facturas", factura.id), {
           abonos,

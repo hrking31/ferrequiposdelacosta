@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import AbonoDialog from "./AbonoDialog";
 import { unEquipo, unEquipoDevuelto, unaFactura,
@@ -475,6 +475,81 @@ describe("AbonoDialog — lo que ya tenía", () => {
       // abierto, y mañana le corren los días que siga afuera.
       expect(cambios.abonos).toHaveLength(1);
       expect(cambios.grupos).toBeUndefined();
+    });
+
+    // LA PLATA QUE SE ANOTA AL DÍA SIGUIENTE (la 0773, 2026-10-21). El cliente
+    // pagó en la obra al recibir la escalera, y se anotó un día después. Hoy
+    // la escalera ya lleva un día vencido, que el cliente no debía cuando
+    // pagó: la cuenta se hace a la fecha del abono.
+    describe("con la fecha del abono atrasada", () => {
+      const hoy = haceDias(0);
+      const ayer = haceDias(1);
+
+      // Salió ayer por 1 día, con IVA, flete y depósito: ayer debía
+      // $53.550 + $80.000 + $100.000. Hoy, además, el día vencido.
+      const escaleraDeAyer = () => ({
+        id: "0773",
+        ...unaFactura({
+          numeroFactura: "0773",
+          fechaCreacion: ayer,
+          aplicaIva: true,
+          transporte: "Ida y vuelta",
+          valorTransporte: 80000,
+          valorDeposito: 100000,
+          equipos: [
+            unEquipo({
+              nombre: "ESCALERA",
+              cantidad: 1,
+              valorDia: 45000,
+              dias: 1,
+              fechaDespacho: ayer,
+              vencidos: [unTramoVencido({ desde: hoy, hasta: null })],
+            }),
+          ],
+        }),
+      });
+
+      const abonarTodoConFecha = async (fecha) => {
+        const { usuario } = abrir({ facturas: [escaleraDeAyer()] });
+        await pagarTodo(usuario);
+        if (fecha) {
+          fireEvent.change(screen.getByLabelText("Fecha del abono"), {
+            target: { value: fecha },
+          });
+        }
+        await usuario.click(screen.getByRole("combobox", { name: "Medio de pago" }));
+        await usuario.click(await screen.findByRole("option", { name: "Efectivo" }));
+        return usuario;
+      };
+
+      it("sugiere lo que debía ese día, sin el día que se venció después", async () => {
+        await abonarTodoConFecha(ayer);
+
+        expect(screen.getByLabelText("Valor del abono")).toHaveValue("233.550");
+      });
+
+      it("con la fecha de hoy, el día vencido de hoy sí entra", async () => {
+        await abonarTodoConFecha();
+
+        expect(screen.getByLabelText("Valor del abono")).toHaveValue("287.100");
+      });
+
+      it("no deja cobrado el día de hoy: sigue corriendo, aparte del abono", async () => {
+        const usuario = await abonarTodoConFecha(ayer);
+        await usuario.click(screen.getByRole("button", { name: "Registrar abono" }));
+
+        const cambios = updateSimulado.mock.calls[0][1];
+        expect(cambios.abonos).toEqual([
+          { fecha: ayer, medio: "Efectivo", monto: 233550, tipo: "sistema" },
+        ]);
+        // Ningún tramo se cierra hoy: el de hoy sigue abierto y se le cobra
+        // si el equipo sigue afuera, o no, si se pacta la entrega.
+        const { vencidos } = cambios.grupos[0].equipos[0];
+        expect(vencidos.some((tramo) => tramo.hasta === hoy)).toBe(false);
+        expect(vencidos.filter((tramo) => tramo.hasta === null)).toEqual([
+          expect.objectContaining({ desde: hoy }),
+        ]);
+      });
     });
   });
 
