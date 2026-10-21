@@ -5,44 +5,54 @@ import { alpha } from "@mui/material/styles";
 
 // LOS NÚMEROS EN UNA FRANJA (2026-10-20), para el menú en pantalla angosta,
 // donde las tarjetas grandes no entran. Va donde estaba la barra: abajo en el
-// celular y arriba de ahí en adelante. Cada número abre su detalle.
+// celular y arriba de ahí en adelante.
 //
-// Mismo lenguaje que KpiCard —borde y resplandor del color, fijos—, pero en un
-// renglón: ícono, cifra y subtítulo.
+// TODOS EN UNA FILA, SOLO ÍCONO Y CIFRA (2026-10-21): los cuatro recuadros del
+// computador, sin el subtítulo, para que entren. Cada uno toma el ancho que
+// pide su cifra —la plata pendiente es la más larga—. Los que tienen detalle
+// lo abren al tocarlos; los demás solo muestran el número.
+//
+// Mismo lenguaje que KpiCard —borde y resplandor del color, fijos—.
 export default function FranjaKpis({ kpis }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1}>
-      {kpis.map((kpi) => (
-        <ButtonBase
-          key={kpi.etiqueta}
-          onClick={kpi.onClick}
-          aria-label={kpi.etiqueta}
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            justifyContent: "flex-start",
-            gap: 1,
-            px: 1.25,
-            py: 0.75,
-            textAlign: "left",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: kpi.color,
-            boxShadow: `0 0 10px ${alpha(kpi.color, 0.3)}`,
-            bgcolor: "background.paper",
-          }}
-        >
-          {cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 22, flexShrink: 0 } })}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ lineHeight: 1.2 }}>
+      {kpis.map((kpi) => {
+        const Casilla = kpi.onClick ? ButtonBase : Box;
+        return (
+          <Casilla
+            key={kpi.etiqueta}
+            onClick={kpi.onClick}
+            aria-label={kpi.etiqueta}
+            sx={{
+              flex: "1 1 auto",
+              minWidth: 0,
+              // El ícono arriba y la cifra abajo.
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 0.25,
+              px: 1,
+              py: 0.75,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: kpi.color,
+              boxShadow: `0 0 10px ${alpha(kpi.color, 0.3)}`,
+              bgcolor: "background.paper",
+            }}
+          >
+            {cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 22, flexShrink: 0 } })}
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+              noWrap
+              sx={{ lineHeight: 1.2, maxWidth: "100%" }}
+            >
               {kpi.valor}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-              {kpi.subtitulo}
-            </Typography>
-          </Box>
-        </ButtonBase>
-      ))}
+          </Casilla>
+        );
+      })}
     </Stack>
   );
 }
@@ -54,7 +64,6 @@ FranjaKpis.propTypes = {
       icono: PropTypes.element.isRequired,
       color: PropTypes.string.isRequired,
       valor: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      subtitulo: PropTypes.string.isRequired,
       onClick: PropTypes.func,
     }),
   ).isRequired,

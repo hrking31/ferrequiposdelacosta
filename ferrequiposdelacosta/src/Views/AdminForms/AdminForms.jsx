@@ -199,15 +199,15 @@ export default function AdminForms() {
     },
   ].filter(Boolean);
 
-  // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van solo los dos
-  // números de la pizarra, en una franja. Va donde estaba la barra: abajo en
-  // el celular y arriba de ahí en adelante.
+  // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van los mismos
+  // números, solo con su ícono, en una franja. Va donde estaba la barra: abajo
+  // en el celular y arriba de ahí en adelante.
   //
   // EL LOGO DE LA TIENDA: arriba a la izquierda en computador, antes del
   // saludo, en el mismo rincón donde lo tenía la barra. En el celular va
   // dentro del encabezado, en el lugar del botón de salir, y ofrece las dos
   // cosas (ver `conLogo` en HeaderUsuario).
-  const franja = <FranjaKpis kpis={kpis.filter((kpi) => kpi.onClick)} />;
+  const franja = <FranjaKpis kpis={kpis} />;
 
   const botonesConfig = [
     {
