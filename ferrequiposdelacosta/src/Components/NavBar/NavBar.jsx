@@ -17,9 +17,31 @@ import CamionContador from "../../Components/Camion/Camion.jsx";
 // LAS VISTAS INTERNAS VAN SIN BARRA (2026-10-20): al empleado no le sirven el
 // camión del carrito ni el título, y la barra le quitaba un renglón a cada
 // pantalla. La barra queda para lo que ve el cliente —tienda, detalle,
-// carrito, kiosco—. Se empezó por el menú, que lleva su propio logo para ir a
-// la tienda (BotonTienda).
-const RUTAS_SIN_BARRA = ["/adminforms"];
+// carrito, kiosco—. Se empezó por el menú; el 2026-10-21 siguieron las demás.
+// Cada una lleva su propio logo para ir a la tienda (BotonTienda).
+//
+// Cuenta también lo que cuelga de la ruta: la ficha de un cliente es
+// /vistaclientes/{id}.
+const RUTAS_SIN_BARRA = [
+  "/adminforms",
+  "/vistacotizacionesadmin",
+  "/vistacotizacion",
+  "/vistacuentadecobro",
+  "/vistacuentascobro",
+  "/vistacreaequipo",
+  "/vistaseleccionarequipo",
+  "/vistaeliminarequipo",
+  "/vistaeditarequipo",
+  "/vistacrearusuarios",
+  "/vistaeliminarusuario",
+  "/vistaclientes",
+  "/vistaseguimientoclientes",
+];
+
+const vaSinBarra = (pathname) => {
+  const ruta = pathname.toLowerCase();
+  return RUTAS_SIN_BARRA.some((sin) => ruta === sin || ruta.startsWith(`${sin}/`));
+};
 
 export default function MenuAppBar() {
   const dispatch = useDispatch();
@@ -31,7 +53,7 @@ export default function MenuAppBar() {
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isKioskMode = location.pathname.startsWith("/kiosk");
   const isEnHome = ["/", "/home"].includes(location.pathname.toLowerCase());
-  const sinBarra = RUTAS_SIN_BARRA.includes(location.pathname.toLowerCase());
+  const sinBarra = vaSinBarra(location.pathname);
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());

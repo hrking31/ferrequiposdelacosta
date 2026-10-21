@@ -25,6 +25,27 @@ describe("NavBar — dónde va", () => {
 
     expect(screen.queryByAltText("logo")).not.toBeInTheDocument();
   });
+
+  it.each(["/vistacotizacion", "/VistaCrearUsuarios", "/vistaseguimientoclientes"])(
+    "en las vistas internas tampoco (%s)",
+    (ruta) => {
+      conSesion(<NavBar />, ruta);
+
+      expect(screen.queryByAltText("logo")).not.toBeInTheDocument();
+    },
+  );
+
+  it("ni en la ficha de un cliente, que cuelga de /vistaclientes", () => {
+    conSesion(<NavBar />, "/vistaclientes/cli1");
+
+    expect(screen.queryByAltText("logo")).not.toBeInTheDocument();
+  });
+
+  it("en el carrito sí: es del cliente", () => {
+    conSesion(<NavBar />, "/vistacart");
+
+    expect(screen.getByAltText("logo")).toBeInTheDocument();
+  });
 });
 
 describe("BotonTienda", () => {

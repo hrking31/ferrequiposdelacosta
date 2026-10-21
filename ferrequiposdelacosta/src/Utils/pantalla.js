@@ -25,12 +25,3 @@ export const EN_COMPACTA = `@media ${PANTALLA_COMPACTA}`;
 // Solo el alto, para lo que cambia por falta de espacio vertical y no por
 // ancho: qué queda fijo en pantalla y qué se desplaza.
 export const usePantallaBaja = () => useMediaQuery(PANTALLA_BAJA);
-
-// DÓNDE ESTÁ LA BARRA DE NAVEGACIÓN. Hasta 915px de ancho va pegada al borde
-// de abajo y hay que dejarle su franja libre; de ahí en adelante va arriba y
-// la franja se deja del otro lado. Esta sí es pregunta de ANCHO puro —la barra
-// se mueve por ancho— y por eso no comparte el corte de arriba: el teléfono
-// acostado pasa de los 915, así que su barra sube aunque todo lo demás de la
-// pantalla siga siendo de celular. Contra eso los botones del pie quedaban
-// tapados por la barra en un teléfono y el encabezado en el otro.
-export const useNavbarAbajo = () => useMediaQuery("(max-width:915px)");

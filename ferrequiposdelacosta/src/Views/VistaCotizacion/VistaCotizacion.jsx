@@ -34,6 +34,7 @@ import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import BuildIcon from "@mui/icons-material/Build";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
@@ -203,8 +204,9 @@ export default function VistaCotizacion() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
-        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
+        // dejarle hueco. En el celular el aire de abajo lo pone el pie.
+        pb: isFullScreen ? 0 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -224,12 +226,17 @@ export default function VistaCotizacion() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
+        {/* El logo de la tienda, como en el menú: acá en computador y dentro
+            del encabezado en el celular (conLogo), con ir a la tienda y
+            cerrar sesión. */}
+        {!isFullScreen && <BotonTienda alto={44} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
             photoURL={photoURL}
             role={role}
             genero={genero}
+            conLogo
             vista={"Crea una Cotización"}
             descripcion={"Arma la cotización y envíala al cliente"}
             icono={<BuildIcon />}

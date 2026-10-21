@@ -7,11 +7,8 @@ import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import ListaCuentasCobro from "../../Components/CuentaDeCobro/ListaCuentasCobro";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import {
-  usePantallaCompacta,
-  usePantallaBaja,
-  useNavbarAbajo,
-} from "../../Utils/pantalla";
+import BotonTienda from "../../Components/NavBar/BotonTienda";
+import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 
 export default function VistaCuentasCobro() {
   const navigate = useNavigate();
@@ -21,8 +18,6 @@ export default function VistaCuentasCobro() {
   const isFullScreen = usePantallaCompacta();
   // El celular acostado: de alto quedan unos 390px y cada franja de aire pesa.
   const altoCorto = usePantallaBaja();
-  // La franja de la barra de navegación, que se mueve solo por ancho.
-  const navbarAbajo = useNavbarAbajo();
 
   const handlerLogout = async () => {
     await logout();
@@ -35,13 +30,10 @@ export default function VistaCuentasCobro() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        // El aire va del lado en que esté la barra de navegación, no del
-        // lado que diga la forma de la pantalla.
-        pt: navbarAbajo ? 0 : { md: 8, lg: 9 },
-        // Con la barra arriba, abajo no hay nada que esquivar: los 16px de
-        // computador quedaban de aire muerto, y acostado el teléfono ese alto
-        // se nota.
-        pb: navbarAbajo ? { xs: 7, sm: 8 } : altoCorto ? 0.5 : 2,
+        // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
+        // dejarle hueco. En el celular, 12px hasta el borde, los mismos que
+        // deja el encabezado arriba; acostado, 4, que cada franja de aire pesa.
+        pb: altoCorto ? 0.5 : isFullScreen ? 1.5 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -61,12 +53,17 @@ export default function VistaCuentasCobro() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
+        {/* El logo de la tienda, como en el menú: acá en computador y dentro
+            del encabezado en el celular (conLogo), con ir a la tienda y
+            cerrar sesión. */}
+        {!isFullScreen && <BotonTienda alto={44} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
             photoURL={photoURL}
             role={role}
             genero={genero}
+            conLogo
             vista={"Cuentas de Cobro"}
             descripcion={"Busca y reabre las cuentas de cobro emitidas"}
             icono={<ReceiptLongIcon />}

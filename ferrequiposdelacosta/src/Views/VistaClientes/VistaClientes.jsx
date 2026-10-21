@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import ListaClientes from "../../Components/ListaClientes/ListaClientes";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 export default function VistaClientes() {
   const navigate = useNavigate();
@@ -27,8 +28,10 @@ export default function VistaClientes() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        pt: isFullScreen ? 0 : { md: 8, lg: 9 },
-        pb: isFullScreen ? { xs: 7, sm: 8 } : 2,
+        // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
+        // dejarle hueco. En el celular, 12px hasta el borde, los mismos que
+        // deja el encabezado arriba.
+        pb: isFullScreen ? 1.5 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -48,12 +51,17 @@ export default function VistaClientes() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
+        {/* El logo de la tienda, como en el menú: acá en computador y dentro
+            del encabezado en el celular (conLogo), con ir a la tienda y
+            cerrar sesión. */}
+        {!isFullScreen && <BotonTienda alto={44} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
             photoURL={photoURL}
             role={role}
             genero={genero}
+            conLogo
             vista={"Clientes"}
             descripcion={"Consulta y administra la lista de clientes"}
             icono={<FolderSharedIcon />}
