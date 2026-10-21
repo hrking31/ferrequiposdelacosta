@@ -201,13 +201,17 @@ export default function AdminForms() {
   ].filter(Boolean);
 
   // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van solo los dos
-  // números de la pizarra, en una franja, con el logo de la tienda al
-  // extremo. Va donde estaba la barra: abajo en el celular y arriba de ahí en
-  // adelante.
+  // números de la pizarra, en una franja. Va donde estaba la barra: abajo en
+  // el celular y arriba de ahí en adelante.
+  //
+  // EL LOGO DE LA TIENDA, en el mismo rincón donde lo tenía la barra —los
+  // usuarios ya van ahí de memoria—: abajo a la izquierda en el celular, al
+  // comienzo de la franja; arriba a la izquierda en lo demás, antes del
+  // saludo.
   const franja = (
     <FranjaKpis
       kpis={kpis.filter((kpi) => kpi.onClick)}
-      extremo={<BotonTienda alto={36} />}
+      inicio={isFullScreen && <BotonTienda alto={36} />}
     />
   );
 
@@ -450,6 +454,7 @@ export default function AdminForms() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
+        {!isFullScreen && <BotonTienda alto={44} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -488,7 +493,6 @@ export default function AdminForms() {
           {kpis.map((kpi) => (
             <KpiCard key={kpi.etiqueta} {...kpi} />
           ))}
-          <BotonTienda alto={56} />
         </Stack>
       )}
 
