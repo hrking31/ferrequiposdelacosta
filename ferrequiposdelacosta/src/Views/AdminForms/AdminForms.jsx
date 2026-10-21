@@ -415,7 +415,13 @@ export default function AdminForms() {
     // desplazamiento no llega más atrás del inicio. Con el celular acostado,
     // donde las cuatro filas no entran en 360px, eso escondía la primera fila
     // entera debajo del encabezado.
-    alignContent: "safe center",
+    //
+    // CON LA FRANJA DE NÚMEROS (pantalla angosta), los botones van pegados a
+    // ella en vez de centrados: centrados, lo que sobraba de alto quedaba como
+    // un hueco entre los botones y los números. Arriba de los botones cuando
+    // la franja va arriba, abajo cuando va abajo; "safe" por lo mismo de
+    // antes, si no entran arrancan arriba.
+    alignContent: isMobile ? (isFullScreen ? "safe flex-end" : "flex-start") : "safe center",
     gap: `${gapPx}px`,
   };
 
@@ -497,7 +503,7 @@ export default function AdminForms() {
       )}
 
       {isMobile && !isFullScreen && (
-        <Box sx={{ flexShrink: 0, mb: 2, mx: 2 }}>
+        <Box sx={{ flexShrink: 0, mb: 1, mx: 2 }}>
           {franja}
         </Box>
       )}
