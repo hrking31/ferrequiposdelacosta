@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Box,
-  Grid,
   Button,
   Dialog,
   DialogActions,
@@ -557,16 +556,13 @@ export default function AdminForms() {
             "&:not(:has(.MuiButton-root))": { pt: 0 },
           }}
         >
-          <Grid container justifyContent="center" spacing={1.5}>
-            {/* En celular el botón de avisos va acá abajo, junto al de salir:
-                arriba no hay lugar y es justamente donde más se usa, porque el
-                aviso llega al teléfono. */}
-            <Grid item xs={12} sm={5} md={4}>
-              <BotonAvisos variante="boton" />
-            </Grid>
-            <Grid item xs={12} sm={5} md={4}>
-            </Grid>
-          </Grid>
+          {/* En celular el botón de avisos va acá abajo: arriba no hay lugar y
+              es justamente donde más se usa, porque el aviso llega al
+              teléfono. Sin grilla: aun sin botón, sus casillas dejaban su
+              relleno. */}
+          <Box sx={{ width: { xs: "100%", sm: "42%" }, mx: "auto" }}>
+            <BotonAvisos variante="boton" />
+          </Box>
         </Box>
       )}
 
