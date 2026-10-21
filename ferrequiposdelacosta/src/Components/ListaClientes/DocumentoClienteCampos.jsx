@@ -3,15 +3,31 @@
 // recién elegida o el dibujo de una cédula— y ES el botón: se toca la tarjeta
 // para elegir la foto. Sin botones debajo (pedido del dueño, 2026-10-02).
 //
-// Un solo selector sirve para cámara y galería: sin `capture`, el celular
-// pregunta de dónde sacarla ("Tomar foto" o la galería), y en el computador
-// abre los archivos.
+// CÁMARA O GALERÍA (2026-10-21). Antes un solo selector servía para las dos:
+// el celular preguntaba de dónde sacar la foto. Los Android nuevos ya no
+// preguntan —abren directo la galería— y no había forma de usar la cámara.
+// Ahora, en pantalla táctil, tocar la tarjeta abre un menú con "Tomar foto"
+// (un selector con `capture`, que abre la cámara) y "Elegir de la galería".
+// En el computador abre los archivos, como siempre.
 //
 // Acá no se sube nada: se elige. La subida pasa al tocar Guardar, en
 // ClienteFormDialog, para que cancelar el formulario no deje fotos en Storage.
+import { useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Box, ButtonBase, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  ButtonBase,
+  IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+  Stack,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import PersonIcon from "@mui/icons-material/Person";
 import { LADOS_DOCUMENTO } from "./documentoCliente";
@@ -101,6 +117,26 @@ TarjetaVacia.propTypes = {
 };
 
 export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, deshabilitado }) {
+  // Pantalla táctil: celular o tableta, que tienen cámara a mano.
+  const tactil = useMediaQuery("(pointer: coarse)");
+  // El menú de cámara o galería: dónde se abre y de qué lado es.
+  const [menu, setMenu] = useState(null);
+  // Los selectores escondidos, por lado y por origen ("frente-camara", …).
+  const selectores = useRef({});
+
+  const abrirSelector = (clave, origen) => selectores.current[`${clave}-${origen}`]?.click();
+
+  const alTocar = (clave) => (e) => {
+    if (tactil) setMenu({ ancla: e.currentTarget, clave });
+    else abrirSelector(clave, "galeria");
+  };
+
+  const elegirDesde = (origen) => () => {
+    const { clave } = menu;
+    setMenu(null);
+    abrirSelector(clave, origen);
+  };
+
   const alElegir = (clave) => (e) => {
     const archivo = e.target.files?.[0];
     // Se vacía para que elegir otra vez la MISMA foto también avise.
@@ -129,11 +165,12 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
                   como los logos de los medios de pago: es un papel, no un
                   recuadro de la pantalla. La foto va entera, sin recortar.
 
-                  Por dentro es la etiqueta del selector de archivos
-                  escondido: tocarla es tocar el selector. */}
+                  Tocarla abre el menú de cámara o galería (táctil) o los
+                  archivos (computador). */}
               <ButtonBase
-                component="label"
                 aria-label={`Elegir foto del ${lado}`}
+                aria-haspopup={tactil ? "menu" : undefined}
+                onClick={alTocar(clave)}
                 disabled={deshabilitado}
                 sx={{
                   display: "block",
@@ -156,15 +193,33 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
                 ) : (
                   <TarjetaVacia clave={clave} />
                 )}
-                <input
-                  hidden
-                  type="file"
-                  accept="image/*"
-                  name={`documento-${clave}`}
-                  onChange={alElegir(clave)}
-                  disabled={deshabilitado}
-                />
               </ButtonBase>
+
+              <input
+                hidden
+                type="file"
+                accept="image/*"
+                name={`documento-${clave}`}
+                ref={(nodo) => {
+                  selectores.current[`${clave}-galeria`] = nodo;
+                }}
+                onChange={alElegir(clave)}
+                disabled={deshabilitado}
+              />
+              {/* `capture` le pide al aparato la cámara de atrás, sin pasar
+                  por la galería. */}
+              <input
+                hidden
+                type="file"
+                accept="image/*"
+                capture="environment"
+                name={`documento-${clave}-camara`}
+                ref={(nodo) => {
+                  selectores.current[`${clave}-camara`] = nodo;
+                }}
+                onChange={alElegir(clave)}
+                disabled={deshabilitado}
+              />
 
               {/* Quitar: una × chica en la esquina, solo si hay foto. Va
                   FUERA de la tarjeta para que tocarla no abra el selector. */}
@@ -191,6 +246,25 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
           );
         })}
       </Stack>
+
+      <Menu
+        anchorEl={menu?.ancla}
+        open={Boolean(menu)}
+        onClose={() => setMenu(null)}
+      >
+        <MenuItem onClick={elegirDesde("camara")}>
+          <ListItemIcon>
+            <PhotoCameraIcon fontSize="small" />
+          </ListItemIcon>
+          Tomar foto
+        </MenuItem>
+        <MenuItem onClick={elegirDesde("galeria")}>
+          <ListItemIcon>
+            <PhotoLibraryIcon fontSize="small" />
+          </ListItemIcon>
+          Elegir de la galería
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

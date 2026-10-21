@@ -312,6 +312,51 @@ describe("ClienteFormDialog — fotos del documento", () => {
     expect(screen.queryByRole("img", { name: "Documento, frente" })).not.toBeInTheDocument();
   });
 
+  describe("en pantalla táctil", () => {
+    const matchMediaOriginal = window.matchMedia;
+    beforeEach(() => {
+      window.matchMedia = (query) => ({
+        ...matchMediaOriginal(query),
+        matches: query.includes("pointer: coarse"),
+      });
+    });
+    afterEach(() => {
+      window.matchMedia = matchMediaOriginal;
+    });
+
+    it("tocar la tarjeta ofrece tomar la foto o elegirla de la galería", async () => {
+      const { usuario } = abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Elegir foto del frente" }));
+
+      expect(screen.getByRole("menuitem", { name: "Tomar foto" })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: "Elegir de la galería" })).toBeInTheDocument();
+    });
+
+    it("«Tomar foto» abre el selector con cámara", async () => {
+      const { usuario } = abrir();
+      const camara = document.querySelector('input[name="documento-frente-camara"]');
+      const abrirCamara = vi.spyOn(camara, "click");
+
+      await usuario.click(screen.getByRole("button", { name: "Elegir foto del frente" }));
+      await usuario.click(screen.getByRole("menuitem", { name: "Tomar foto" }));
+
+      expect(camara).toHaveAttribute("capture", "environment");
+      expect(abrirCamara).toHaveBeenCalledTimes(1);
+    });
+
+    it("la foto de la cámara se pone igual que la de la galería", async () => {
+      const { usuario } = abrir();
+
+      await usuario.upload(
+        document.querySelector('input[name="documento-atras-camara"]'),
+        fotoDePrueba(),
+      );
+
+      expect(screen.getByRole("img", { name: "Documento, atrás" })).toBeInTheDocument();
+    });
+  });
+
   it("sin fotos se guarda como siempre: no sube nada ni agrega el campo", async () => {
     const { usuario } = abrir();
 
