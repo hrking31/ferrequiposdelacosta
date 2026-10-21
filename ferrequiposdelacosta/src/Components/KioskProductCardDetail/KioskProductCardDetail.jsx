@@ -13,7 +13,8 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { Add, Remove } from "@mui/icons-material";
+import Add from "@mui/icons-material/Add";
+import Remove from "@mui/icons-material/Remove";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector  } from "react-redux";
 import { addToCart } from "../../Store/Slices/cartSlice.js";

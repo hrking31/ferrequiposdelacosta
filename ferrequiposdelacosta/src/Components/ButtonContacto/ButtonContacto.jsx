@@ -1,6 +1,7 @@
 import { Box, Button, IconButton, useMediaQuery } from "@mui/material";
 import { keyframes } from "@mui/system";
-import { WhatsApp, LocalPhone } from "@mui/icons-material";
+import WhatsApp from "@mui/icons-material/WhatsApp";
+import LocalPhone from "@mui/icons-material/LocalPhone";
 import { styled } from "@mui/material/styles";
 import PropTypes from "prop-types";
 import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";

@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Grid, IconButton, Box, useTheme, useMediaQuery } from "@mui/material";
-import {
-  Fullscreen,
-  ChevronLeft,
-  ChevronRight,
-  FullscreenExit,
-} from "@mui/icons-material";
+import Fullscreen from "@mui/icons-material/Fullscreen";
+import ChevronLeft from "@mui/icons-material/ChevronLeft";
+import ChevronRight from "@mui/icons-material/ChevronRight";
+import FullscreenExit from "@mui/icons-material/FullscreenExit";
 import { styled } from "@mui/material/styles";
 import PropTypes from "prop-types";
 

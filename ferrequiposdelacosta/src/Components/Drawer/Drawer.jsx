@@ -20,7 +20,8 @@ import {
   Dialog,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import { WhatsApp, LocalPhone } from "@mui/icons-material";
+import WhatsApp from "@mui/icons-material/WhatsApp";
+import LocalPhone from "@mui/icons-material/LocalPhone";
 import CloseIcon from "@mui/icons-material/Close";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
@@ -36,7 +37,8 @@ import {
   clearSearchEquipo,
 } from "../../Store/Slices/searchSlice";
 import { useDispatch } from "react-redux";
-import { Brightness4, Brightness7 } from "@mui/icons-material";
+import Brightness4 from "@mui/icons-material/Brightness4";
+import Brightness7 from "@mui/icons-material/Brightness7";
 import { useColorMode } from "../../Theme/useColorMode";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";

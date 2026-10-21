@@ -6,7 +6,10 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { Instagram, Facebook, Email, Business } from "@mui/icons-material";
+import Instagram from "@mui/icons-material/Instagram";
+import Facebook from "@mui/icons-material/Facebook";
+import Email from "@mui/icons-material/Email";
+import Business from "@mui/icons-material/Business";
 import RecaptchaNotice from "../RecaptchaNotice/RecaptchaNotice";
 
 export default function Footer() {

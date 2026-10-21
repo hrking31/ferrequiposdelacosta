@@ -17,7 +17,8 @@ import {
   DialogActions,
   TextField,
 } from "@mui/material";
-import { Add, Remove } from "@mui/icons-material";
+import Add from "@mui/icons-material/Add";
+import Remove from "@mui/icons-material/Remove";
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
