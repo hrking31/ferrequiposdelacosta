@@ -122,9 +122,19 @@ export default function FacturaCard({
           bgcolor: alpha(theme.palette.warning.main, 0.08),
         }}
       >
-        <Typography variant="body2" fontWeight="bold" sx={{ color: "warning.dark" }}>
-          Pago contra entrega pendiente
-        </Typography>
+        {/* "Pendiente" en una etiqueta llena, para que salte a la vista
+            (pedido del dueño, 2026-10-22). */}
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Typography variant="body2" fontWeight="bold" sx={{ color: "warning.dark" }}>
+            Pago contra entrega
+          </Typography>
+          <Chip
+            label="PENDIENTE"
+            size="small"
+            color="warning"
+            sx={{ fontWeight: 700, letterSpacing: "0.04em" }}
+          />
+        </Stack>
         <Button
           size="small"
           variant="contained"

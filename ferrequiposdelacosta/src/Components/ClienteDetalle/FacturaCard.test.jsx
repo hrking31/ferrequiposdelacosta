@@ -365,7 +365,9 @@ describe("FacturaCard — el pago contra entrega", () => {
     const factura = facturaCon({ tipoPago: "contraEntrega" });
     const { usuario, acciones } = mostrar(factura, { onRegistrarPagoEntrega: vi.fn() });
 
-    expect(screen.getByText("Pago contra entrega pendiente")).toBeInTheDocument();
+    // Dos veces: en la información de pago y en el aviso, con su etiqueta.
+    expect(screen.getAllByText("Pago contra entrega")).toHaveLength(2);
+    expect(screen.getByText("PENDIENTE")).toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "Registrar pago de la entrega" }));
 
     expect(acciones.onRegistrarPagoEntrega).toHaveBeenCalledWith(factura, factura.grupos[0]);
@@ -374,6 +376,6 @@ describe("FacturaCard — el pago contra entrega", () => {
   it("con el pago registrado no hay aviso", () => {
     mostrar(facturaFinalizada);
 
-    expect(screen.queryByText("Pago contra entrega pendiente")).not.toBeInTheDocument();
+    expect(screen.queryByText("PENDIENTE")).not.toBeInTheDocument();
   });
 });
