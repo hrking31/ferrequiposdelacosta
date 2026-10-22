@@ -217,7 +217,7 @@ describe("AmpliarVencimientoDialog — los descuentos", () => {
     expect(screen.getByText(`Valor ${enPantalla(200000)}`)).toBeInTheDocument();
     expect(
       screen.getByText(
-        `Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`,
+        `El ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`,
       ),
     ).toBeInTheDocument();
   });

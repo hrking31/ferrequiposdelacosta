@@ -665,6 +665,7 @@ export const proyectarAmpliacion = (
     porDia,
     diasVencidos,
     vencidosDesde: diasVencidos > 0 ? tramo.desde : null,
+    vencidosHasta: diasVencidos > 0 ? tramo.hasta : null,
     // Hasta cuánto se les puede descontar: lo que valen, y nada más.
     valorVencidos: diasVencidos * porDia,
     // Los que se le prometieron, que es lo que el cliente escuchó. Y nada más:
@@ -1081,6 +1082,42 @@ export const rearmarEquipo = (
   // Y lo que haría la madrugada: si sigue afuera y ya se pasó, su mora queda
   // abierta desde ahora.
   return abrirTramoVencido(armado, hoyIso);
+};
+
+// ── ANOTAR ALGO QUE PASÓ OTRO DÍA ──────────────────────────────────────
+//
+// El equipo volvió el 07/09 y recién se anota el 10/10. Todas las funciones
+// de arriba reciben el día en que pasa lo que anotan, así que alcanza con
+// darles el 07/09 en vez de hoy... siempre que el equipo esté COMO ESTABA ese
+// día. Y entre ese día y hoy solo una cosa pudo cambiar sola: la madrugada le
+// fue abriendo la mora.
+//
+// Dos reglas lo resuelven:
+//
+//   1. No se anota nada con fecha anterior a lo último que ya tiene anotado
+//      el equipo (`ultimoHechoDe`). Lo que vino después se apoya en lo de
+//      antes; meter algo en el medio es corregir, y eso es del administrador.
+//   2. Si la mora que está corriendo empezó DESPUÉS de esa fecha, ese día el
+//      equipo todavía estaba en plazo: esa mora nunca corrió y se saca
+//      (`comoEstabaEl`). Si empezó antes, se cierra en la fecha, como siempre.
+
+// El día de lo último que se le anotó a un equipo: su despacho, o el más
+// reciente de sus hechos.
+export const ultimoHechoDe = (equipo) =>
+  hechosDeEquipo(equipo).reduce(
+    (ultimo, { fecha }) => (fecha && fecha > ultimo ? fecha : ultimo),
+    equipo?.fechaDespacho ?? "",
+  );
+
+// El equipo como estaba ese día: sin la mora que se le abrió después.
+export const comoEstabaEl = (equipo, fechaIso) => {
+  const abierto = tramoVencidoAbierto(equipo);
+  if (!abierto || abierto.desde <= fechaIso) return equipo;
+
+  return {
+    ...equipo,
+    vencidos: vencidosDe(equipo).filter((tramo) => tramo !== abierto),
+  };
 };
 
 // ── La cuenta de la factura ────────────────────────────────────────────

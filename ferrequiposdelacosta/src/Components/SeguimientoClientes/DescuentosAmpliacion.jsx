@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { TextField, Typography } from "@mui/material";
 import {
-  formatearFechaLegible,
+  formatearRangoDeDias,
   formatearMoneda,
   formatearMonedaInput,
   limpiarMonedaInput,
@@ -109,7 +109,7 @@ export function DescuentoVencidos({ proyeccion, descuento, onCambiar, etiqueta =
       helperText={ayudaDe(
         proyeccion.valorVencidos,
         monto,
-        `Desde el ${formatearFechaLegible(proyeccion.vencidosDesde)} · `,
+        `${formatearRangoDeDias(proyeccion.vencidosDesde, proyeccion.vencidosHasta)} · `,
       )}
       fullWidth
       size="small"
@@ -124,6 +124,7 @@ DescuentoVencidos.propTypes = {
     diasVencidos: PropTypes.number.isRequired,
     valorVencidos: PropTypes.number.isRequired,
     vencidosDesde: PropTypes.string,
+    vencidosHasta: PropTypes.string,
   }).isRequired,
   descuento: PropTypes.string.isRequired,
   onCambiar: PropTypes.func.isRequired,
@@ -138,6 +139,7 @@ DescuentosAmpliacion.propTypes = {
     diasVencidos: PropTypes.number.isRequired,
     valorVencidos: PropTypes.number.isRequired,
     vencidosDesde: PropTypes.string,
+    vencidosHasta: PropTypes.string,
   }).isRequired,
   cantidad: PropTypes.number.isRequired,
   valorDia: PropTypes.number.isRequired,

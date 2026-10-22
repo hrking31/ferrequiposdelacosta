@@ -63,6 +63,23 @@ export const formatearFechaLegible = (fechaIso) => {
   return `${dia}/${mes}/${anio}`;
 };
 
+// Unos días seguidos, con sus dos puntas (pedido del dueño, 2026-10-21):
+// "Del 19 al 21/10/2026", "Del 28/09 al 02/10/2026", "El 21/10/2026". La
+// fecha se repite solo en lo que cambia.
+export const formatearRangoDeDias = (desdeIso, hastaIso) => {
+  if (!desdeIso) return "";
+  if (!hastaIso || hastaIso === desdeIso) return `El ${formatearFechaLegible(desdeIso)}`;
+  const [anioDesde, mesDesde, diaDesde] = desdeIso.split("-");
+  const [anioHasta, mesHasta] = hastaIso.split("-");
+  const inicio =
+    anioDesde !== anioHasta
+      ? formatearFechaLegible(desdeIso)
+      : mesDesde !== mesHasta
+        ? `${diaDesde}/${mesDesde}`
+        : diaDesde;
+  return `Del ${inicio} al ${formatearFechaLegible(hastaIso)}`;
+};
+
 // De la hora que guarda la app (HH:MM en 24 horas) a la que se lee en
 // Colombia: "9:14 a. m.", "2:30 p. m.".
 //

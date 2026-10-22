@@ -157,7 +157,7 @@ const abrir = (props = {}) =>
 // muestra nada más, así que casi todas las pruebas arrancan por acá.
 const elegir = (usuario, decision) =>
   usuario.click(screen.getByRole("button", { name: decision }));
-const llego = (usuario) => elegir(usuario, "Llegó a la bodega");
+const llego = (usuario) => elegir(usuario, "Llegó a bodega");
 
 // Lo más común: el equipo llegó y se anota cuántos. Elegir de nuevo la misma
 // decisión no borra lo escrito, así que se puede llamar más de una vez.
@@ -211,7 +211,7 @@ describe("RegistrarDevolucionDialog — primero la decisión", () => {
   it("solo ofrece lo que se puede hacer: sin nada por recoger no hay entrega que anular", () => {
     abrir();
 
-    expect(screen.getByRole("button", { name: "Llegó a la bodega" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Llegó a bodega" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Entrega pactada" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "No entregó" })).not.toBeInTheDocument();
   });
@@ -363,7 +363,7 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
     await devolver(usuario, "5");
 
     expect(
-      screen.getByText(`Depósito: ${enPantalla(100000)} · Se le devuelve completo al cliente`),
+      screen.getByText(`Depósito: ${enPantalla(100000)} · Se le devuelve todo`),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Volvió todo completo/)).not.toBeInTheDocument();
   });
@@ -401,14 +401,18 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
 });
 
 describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
-  it("cada equipo muestra el depósito de su propio despacho", async () => {
+  // Desde el 2026-10-21 el depósito va una vez, en el título de su despacho,
+  // y no repetido en cada equipo.
+  it("cada despacho lleva su título con su propio depósito", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
     await llego(usuario);
 
+    expect(screen.getByText(/^Despacho del /)).toBeInTheDocument();
+    expect(screen.getByText("Agregado el 02/08/2026")).toBeInTheDocument();
     // Con regex y no con el texto exacto: el formateador de moneda separa el
     // signo con un espacio duro, que no se ve pero no es el espacio común.
-    expect(screen.getByText(/Depósito:.*100\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/Depósito:.*50\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/^Depósito .*100\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/^Depósito .*50\.000/)).toBeInTheDocument();
   });
 
   it("no deja retener de un equipo más de lo que dejó su despacho", async () => {
@@ -451,16 +455,23 @@ describe("RegistrarDevolucionDialog — un depósito por despacho", () => {
   // Ninguna prueba llegaba hasta acá —todas devolvían una sola línea— y el
   // renglón buscaba los equipos y el monto donde vivían antes de que la
   // factura guardara un nodo por despacho: tumbaba el diálogo entero.
-  it("al volver todo, el desglose dice qué equipos cubre cada garantía", async () => {
+  // El desglose nombra cada despacho igual que su título de arriba: el nombre
+  // aparece dos veces, una en el título y otra en la liquidación.
+  it("al volver todo, el desglose dice qué despacho cubre cada garantía", async () => {
     const { usuario } = abrir({ factura: facturaConDosDepositos });
 
     await llego(usuario);
+    expect(screen.getAllByText("Agregado el 02/08/2026")).toHaveLength(1);
+
     const cantidades = screen.getAllByLabelText("Cantidad que devuelve hoy");
     await usuario.type(cantidades[0], "5");
     await usuario.type(cantidades[1], "1");
 
-    expect(screen.getByText(/ANDAMIO:.*100\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/RANA:.*50\.000/)).toBeInTheDocument();
+    // Esta factura no tiene pagos: lo que se diga del depósito no es lo que
+    // se mira acá, sino de dónde sale.
+    expect(screen.getByText(/^Depósito: .*150\.000.* · /)).toBeInTheDocument();
+    expect(screen.getAllByText(/^Despacho del /)).toHaveLength(2);
+    expect(screen.getAllByText("Agregado el 02/08/2026")).toHaveLength(2);
   });
 
   it("y con el último de vuelta liquida las dos juntas", async () => {
@@ -1001,7 +1012,7 @@ describe("RegistrarDevolucionDialog — el descuento de los días vencidos", () 
 
     await devolver(usuario, "5");
     expect(
-      screen.getByText(`Desde el ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`),
+      screen.getByText(`El ${formatearFechaLegible(HOY)} · Valor ${enPantalla(100000)}`),
     ).toBeInTheDocument();
 
     await usuario.type(screen.getByLabelText("Descuento del día vencido"), "30000");
@@ -1090,12 +1101,12 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     const { usuario } = abrir({ factura: vencida });
 
     await llego(usuario);
-    expect(screen.getByLabelText("Cobrar el día de hoy")).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /se cobra$/ })).not.toBeChecked();
 
     await devolver(usuario, "5");
-    // Lo que se deja de cobrar: 5 andamios × $20.000.
-    expect(screen.getByText(/hoy no se cobra/)).toHaveTextContent(enPantalla(100000));
-    // Y el paso 3 lo dice entero: se cobra hasta ayer, un solo día vencido.
+    expect(screen.getByRole("checkbox", { name: "No se cobra" })).toBeInTheDocument();
+    // El paso de "Así queda" lo dice entero: se cobra hasta ayer, un solo
+    // día vencido.
     expect(asiQueda()).toEqual([
       `Se cobra hasta ${formatearFechaLegible(AYER)}`,
       `1 día vencido ${enPantalla(100000)}`,
@@ -1118,7 +1129,7 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     const { usuario } = abrir({ factura: vencida });
 
     await llego(usuario);
-    expect(screen.getByLabelText("Cobrar el día de hoy")).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /se cobra$/ })).toBeChecked();
 
     await devolver(usuario, "5");
     expect(asiQueda()).toEqual([
@@ -1140,7 +1151,7 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     const { usuario } = abrir({ factura: vencida });
 
     await llego(usuario);
-    await usuario.click(screen.getByLabelText("Cobrar el día de hoy"));
+    await usuario.click(screen.getByRole("checkbox", { name: /se cobra$/ }));
     await devolver(usuario, "5");
     await guardar(usuario);
     expect(await exito()).toBeInTheDocument();
@@ -1180,7 +1191,7 @@ describe("RegistrarDevolucionDialog — el día de hoy, antes de las 3 p.m.", ()
     const { usuario } = abrir({ factura: facturaAlDia, desdeLaFicha: true });
 
     await llego(usuario);
-    expect(screen.queryByLabelText("Cobrar el día de hoy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /se cobra$/ })).not.toBeInTheDocument();
 
     await devolver(usuario, "5");
     // En plazo no hay días vencidos que mostrar: solo hasta cuándo se cobra.
@@ -1216,7 +1227,7 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
     // Nadie vio el equipo todavía: no se pregunta cómo volvió.
     expect(screen.queryByLabelText(/en buen estado/)).not.toBeInTheDocument();
     // Y la casilla del día de hoy no aplica: ese día nunca se cobra.
-    expect(screen.queryByLabelText("Cobrar el día de hoy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /se cobra$/ })).not.toBeInTheDocument();
 
     await guardar(usuario);
     expect(await screen.findByText("Entrega pactada registrada.")).toBeInTheDocument();
@@ -1308,7 +1319,7 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
 
       await llego(usuario);
       // Su cuenta ya estaba detenida: la casilla del día de hoy no aplica.
-      expect(screen.queryByLabelText("Cobrar el día de hoy")).not.toBeInTheDocument();
+      expect(screen.queryByRole("checkbox", { name: /se cobra$/ })).not.toBeInTheDocument();
       expect(
         screen.getByText(
           `Entrega pactada el ${formatearFechaLegible(ANTEAYER)} · cuenta detenida`,
@@ -1362,5 +1373,208 @@ describe("RegistrarDevolucionDialog — entrega pactada", () => {
       expect(calcularEquipo(anulado, HOY).diasVencidos).toBe(4);
       expect(loGuardadoEnLaFactura().gestiones.at(-1).tipo).toBe("entregaAnulada");
     });
+  });
+});
+
+// LA FECHA DE LO QUE SE ANOTA. Viene con hoy y se puede atrasar: la factura
+// digitada días después de terminada, el equipo que volvió el viernes y se
+// anota el lunes. Antes la devolución quedaba siempre con la fecha de hoy, y
+// al cliente se le cobraba la demora en anotarla. Pedido del dueño, 2026-10-13.
+describe("RegistrarDevolucionDialog — la fecha de lo que se anota", () => {
+  const hace = (dias) => calcularVencimiento(HOY, -dias);
+
+  // 5 andamios a $20.000 que salieron hace 40 días por 7: cubiertos hasta
+  // hace 34, y con la mora corriendo desde hace 33.
+  const vieja = (extra = {}) => ({
+    id: "f1",
+    ...unaFactura({
+      numeroFactura: "0412",
+      fechaCreacion: hace(40),
+      equipos: [
+        andamio({
+          fechaDespacho: hace(40),
+          dias: 7,
+          vencidos: [unTramoVencido({ desde: hace(33), hasta: null })],
+          ...extra,
+        }),
+      ],
+    }),
+  });
+
+  const ponerFecha = async (usuario, etiqueta, fecha) => {
+    await usuario.clear(screen.getByLabelText(etiqueta));
+    await usuario.type(screen.getByLabelText(etiqueta), fecha);
+  };
+
+  it("viene con la fecha de hoy", async () => {
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+
+    expect(screen.getByLabelText("Fecha en que llegó a bodega")).toHaveValue(HOY);
+  });
+
+  it("si volvió a tiempo hace un mes, no se le cobra ni un día de mora", async () => {
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(34));
+    await devolver(usuario, "5");
+
+    // Ese día todavía estaba en plazo: no hay días vencidos que mostrar.
+    expect(asiQueda()).toEqual([`Se cobra hasta ${formatearFechaLegible(hace(34))}`]);
+
+    await guardar(usuario);
+    expect(await exito()).toBeInTheDocument();
+
+    const [devuelto] = equiposGuardados();
+    expect(devuelto.devolucion.fechaDevolucion).toBe(hace(34));
+    expect(devuelto.vencidos).toEqual([]);
+    expect(calcularEquipo(devuelto, HOY)).toMatchObject({ dias: 7, diasVencidos: 0 });
+  });
+
+  // La casilla del día sigue al reloj aunque la fecha sea otra (pedido del
+  // dueño, 2026-10-21), y la pregunta del paso dice de qué día habla.
+  const casillaDelDia = (dias) => {
+    expect(
+      screen.getByText(
+        `¿Se cobra el día que llegó (${formatearFechaLegible(hace(dias)).slice(0, 5)})?`,
+      ),
+    ).toBeInTheDocument();
+    return screen.getByRole("checkbox", { name: /se cobra$/ });
+  };
+
+  it("si volvió tarde, la mora llega hasta el día en que volvió y no hasta hoy", async () => {
+    // Se anota después de las 3 p.m.: la casilla viene marcada.
+    bd.cobraHoy.mockReturnValue(true);
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(20));
+    expect(casillaDelDia(20)).toBeChecked();
+
+    await devolver(usuario, "5");
+    // De hace 33 a hace 20: 14 días a $100.000.
+    expect(asiQueda()).toEqual([
+      `Se cobra hasta ${formatearFechaLegible(hace(20))}`,
+      `14 días vencidos ${enPantalla(1400000)}`,
+    ]);
+
+    await guardar(usuario);
+    expect(await exito()).toBeInTheDocument();
+    expect(equiposGuardados()[0].vencidos).toEqual([
+      { desde: hace(33), hasta: hace(20), indefinida: false },
+    ]);
+  });
+
+  it("anotado antes de las 3 p.m., la casilla viene desmarcada y ese día no se cobra", async () => {
+    bd.cobraHoy.mockReturnValue(false);
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(20));
+    expect(casillaDelDia(20)).not.toBeChecked();
+
+    await devolver(usuario, "5");
+    // De hace 33 a hace 21: 13 días; el de la devolución no se cobra.
+    expect(asiQueda()).toEqual([
+      `Se cobra hasta ${formatearFechaLegible(hace(21))}`,
+      `13 días vencidos ${enPantalla(1300000)}`,
+    ]);
+
+    await guardar(usuario);
+    expect(await exito()).toBeInTheDocument();
+    const [devuelto] = equiposGuardados();
+    expect(devuelto.devolucion).toMatchObject({ fechaDevolucion: hace(20), diaCobrado: false });
+    expect(devuelto.vencidos).toEqual([
+      { desde: hace(33), hasta: hace(21), indefinida: false },
+    ]);
+  });
+
+  // Varios equipos en la misma tanda: "Así queda" suma sus días vencidos, y
+  // el detalle, plegado, dice de dónde sale la suma (2026-10-21).
+  it("con dos equipos vencidos, el detalle plegado muestra cada uno y la suma", async () => {
+    const { usuario } = abrir({ factura: facturaConDosDepositos });
+
+    await llego(usuario);
+    const [cantidadAndamio, cantidadRana] = screen.getAllByLabelText("Cantidad que devuelve hoy");
+    await usuario.type(cantidadAndamio, "5");
+    await usuario.type(cantidadRana, "1");
+
+    expect(screen.queryByText("Días vencidos equipos")).not.toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: "Ver detalle" }));
+
+    // Un renglón de fechas por equipo (sin el "· Valor" de la ayuda del
+    // descuento), y la suma al final.
+    expect(screen.getAllByText(/^(Del [\d/]+ al|El) [\d/]+$/)).toHaveLength(2);
+    expect(screen.getByText("Días vencidos equipos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ocultar detalle" })).toBeInTheDocument();
+  });
+
+  it("con un solo equipo vencido no hay detalle que abrir", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "5");
+
+    expect(screen.queryByRole("button", { name: "Ver detalle" })).not.toBeInTheDocument();
+  });
+
+  it("la entrega pactada también: la cuenta se detiene el día del aviso", async () => {
+    const { usuario } = abrir({ factura: vieja() });
+
+    await elegir(usuario, "Entrega pactada");
+    await ponerFecha(usuario, "Fecha en que el cliente avisó", hace(20));
+    await usuario.type(screen.getByLabelText("Cantidad con entrega pactada"), "5");
+    await guardar(usuario);
+    await screen.findByText("Entrega pactada registrada.");
+
+    const [pactado] = equiposGuardados();
+    expect(pactado.entregaPactada).toEqual({ fecha: hace(20) });
+    expect(pactado.vencidos).toEqual([
+      { desde: hace(33), hasta: hace(21), indefinida: false },
+    ]);
+  });
+
+  it("no acepta una fecha futura", async () => {
+    const { usuario } = abrir({ factura: vieja() });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó a bodega", calcularVencimiento(HOY, 1));
+    await devolver(usuario, "5");
+
+    // Lo dice debajo del campo y no deja guardar.
+    expect(
+      screen.getByText(`No puede ser una fecha futura: hoy es ${formatearFechaLegible(HOY)}.`),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+    expect(bd.commit).not.toHaveBeenCalled();
+  });
+
+  // Lo que vino después se apoya en lo de antes: meter una devolución antes
+  // de una ampliación ya anotada es corregir la factura, y eso es del
+  // administrador.
+  it("ni una anterior a lo último que ya tiene anotado el equipo", async () => {
+    const ampliado = vieja({
+      vencidos: [unTramoVencido({ desde: hace(33), hasta: hace(30) })],
+      ampliaciones: [
+        { fecha: hace(30), dias: 5, desde: hace(29), hasta: hace(25), descuento: 0 },
+      ],
+    });
+    const { usuario } = abrir({ factura: ampliado });
+
+    await llego(usuario);
+    await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(32));
+    await devolver(usuario, "5");
+
+    expect(
+      screen.getByText(
+        `Tiene que ser el ${formatearFechaLegible(hace(30))} o después: ese día se le ` +
+          "anotó algo a ANDAMIO. Si de verdad llegó antes, es una corrección y la hace " +
+          "un administrador.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+    expect(bd.commit).not.toHaveBeenCalled();
   });
 });
