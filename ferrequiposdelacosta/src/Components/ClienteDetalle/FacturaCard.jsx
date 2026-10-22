@@ -16,6 +16,7 @@ import { useSelector } from "react-redux";
 import { alpha } from "@mui/material/styles";
 import {
   Box,
+  Button,
   Chip,
   IconButton,
   Stack,
@@ -48,6 +49,7 @@ import {
   adicionalesDe,
   abonosDe,
   tipoPagoDe,
+  pagoEntregaPendiente,
   ESTADO_FACTURA_INFO,
 } from "./facturaUtils";
 import EquipoRow from "./EquipoRow";
@@ -90,6 +92,7 @@ export default function FacturaCard({
   onEditar,
   onEliminar,
   onDevolverSaldo,
+  onRegistrarPagoEntrega,
 }) {
   const theme = useTheme();
   // Celular: hasta 915px de ancho, o el teléfono acostado. Es el mismo corte
@@ -97,6 +100,44 @@ export default function FacturaCard({
   // hay que mostrar la versión corta debajo.
   const esMovil = usePantallaCompacta();
   const acento = theme.palette.custom.accent;
+
+  // EL PAGO CONTRA ENTREGA que todavía no llegó (2026-10-22): un aviso bajo
+  // el pago de ese despacho, con el botón para registrarlo cuando el personal
+  // de entrega traiga la plata. Desaparece al registrarlo.
+  const renderPagoEntregaPendiente = (grupo) =>
+    pagoEntregaPendiente(grupo) && (
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        flexWrap="wrap"
+        gap={1}
+        sx={{
+          mt: 1,
+          px: 1.5,
+          py: 1,
+          borderRadius: 1,
+          border: "1px dashed",
+          borderColor: "warning.main",
+          bgcolor: alpha(theme.palette.warning.main, 0.08),
+        }}
+      >
+        <Typography variant="body2" fontWeight="bold" sx={{ color: "warning.dark" }}>
+          Pago contra entrega pendiente
+        </Typography>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={(e) => {
+            // Que no pliegue ni despliegue el bloque de abajo.
+            e.stopPropagation();
+            onRegistrarPagoEntrega?.(factura, grupo);
+          }}
+        >
+          Registrar pago de la entrega
+        </Button>
+      </Stack>
+    );
   // Cada bloque de la factura tiene su color: el pago, los equipos del
   // alta y los que se agregaron despues.
   const colorPago = theme.palette.custom.seccionPago;
@@ -696,6 +737,8 @@ export default function FacturaCard({
                   />
                 </Box>
               )}
+              {/* Fuera del bloque plegable: un pago pendiente no se esconde. */}
+              {renderPagoEntregaPendiente(grupoInicial)}
               </>)}
 
               {/* EN CELULAR, UN BLOQUE POR EQUIPO. La lista agrupada bajo
@@ -953,6 +996,7 @@ export default function FacturaCard({
                             rotuloTipoPago="Tipo de pago"
                             plano={esMovil}
                           />
+                          {renderPagoEntregaPendiente(lote)}
                         </Box>
                       </Box>,
                       )}
@@ -1193,4 +1237,5 @@ FacturaCard.propTypes = {
   onEditar: PropTypes.func.isRequired,
   onEliminar: PropTypes.func.isRequired,
   onDevolverSaldo: PropTypes.func.isRequired,
+  onRegistrarPagoEntrega: PropTypes.func,
 };

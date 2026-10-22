@@ -32,6 +32,7 @@ import { invalidarCopiaClientes } from "../ListaClientes/clientesCache";
 import FacturaFormDialog from "./FacturaFormDialog";
 import CorregirFacturaDialog from "./CorregirFacturaDialog";
 import EntregarSaldoDialog from "./EntregarSaldoDialog";
+import RegistrarPagoEntregaDialog from "./RegistrarPagoEntregaDialog";
 import AgregarEquipoDialog from "./AgregarEquipoDialog";
 import ReporteFacturasDialog from "./ReporteFacturasDialog";
 import AbonoDialog from "./AbonoDialog";
@@ -81,6 +82,8 @@ export default function ClienteDetalle() {
   // con las abiertas— no cambia por el hecho de haber mirado el historial.
   const [facturas, setFacturas] = useState([]);
   const [facturaEntregando, setFacturaEntregando] = useState(null);
+  // El despacho contra entrega cuyo pago se está registrando: { factura, grupo }.
+  const [pagoEntrega, setPagoEntrega] = useState(null);
   const [facturasCerradas, setFacturasCerradas] = useState([]);
   // Cuántas cerradas tiene, sin traerlas: lo dice el botón antes de abrirlas.
   const [totalCerradas, setTotalCerradas] = useState(0);
@@ -383,6 +386,7 @@ export default function ClienteDetalle() {
               onEditar={setFacturaEditando}
               onEliminar={setFacturaEliminando}
               onDevolverSaldo={setFacturaEntregando}
+              onRegistrarPagoEntrega={(factura, grupo) => setPagoEntrega({ factura, grupo })}
             />
           ))}
         </Stack>
@@ -481,6 +485,15 @@ export default function ClienteDetalle() {
         // contra qué cruzar.
         facturas={facturas}
         onEntregado={() => fetchCliente(true)}
+      />
+
+      <RegistrarPagoEntregaDialog
+        open={Boolean(pagoEntrega)}
+        onClose={() => setPagoEntrega(null)}
+        cliente={cliente}
+        factura={pagoEntrega?.factura}
+        grupo={pagoEntrega?.grupo}
+        onGuardado={() => fetchCliente(true)}
       />
 
       <ReporteFacturasDialog

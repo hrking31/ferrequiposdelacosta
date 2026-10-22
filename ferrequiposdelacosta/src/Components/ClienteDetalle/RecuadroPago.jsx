@@ -48,6 +48,8 @@ const TIPO_PAGO_LABELS = {
   // se lee como lo que es, un pago total.
   conAbono: "Total",
   sinPago: "Sin pago",
+  // Todavía no llegó la plata de la entrega (ver CONTRA_ENTREGA).
+  contraEntrega: "Contra entrega · pendiente",
 };
 
 export default function RecuadroPago({

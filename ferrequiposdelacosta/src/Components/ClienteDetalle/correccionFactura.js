@@ -37,6 +37,7 @@ import {
   equiposDe,
   gestionesDe,
   gruposDe,
+  pagoSinMedios,
   pagosDe,
   tipoPagoDe,
   vencidosDe,
@@ -246,10 +247,10 @@ const equipoRearmado = (item, hoyIso) =>
 const equipoCorregido = (item, hoyIso) =>
   equipoTocado(item) ? equipoRearmado(item, hoyIso) : item.original;
 
-// Los medios que de verdad son un pago: con medio y con monto. "Sin pago" no
-// guarda ninguno, aunque hayan quedado escritos.
+// Los medios que de verdad son un pago: con medio y con monto. "Sin pago" y
+// "Contra entrega" no guardan ninguno, aunque hayan quedado escritos.
 const mediosValidos = (grupo) =>
-  grupo.tipoPago === "sinPago"
+  pagoSinMedios(grupo.tipoPago)
     ? []
     : grupo.pagos
         .filter((pago) => pago.medio && numero(pago.monto) > 0)

@@ -57,6 +57,7 @@ const TIPOS_PAGO = {
   parcial: "Parcial",
   conAbono: "Total",
   sinPago: "Sin pago",
+  contraEntrega: "Contra entrega (pendiente)",
 };
 
 // El PDF de una factura: los mismos datos que muestra ClienteDetalle, en

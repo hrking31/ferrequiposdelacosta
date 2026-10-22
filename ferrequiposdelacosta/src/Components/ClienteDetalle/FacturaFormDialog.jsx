@@ -48,6 +48,8 @@ import {
   GRUPO_INICIAL,
   IVA,
   nuevoGrupo,
+  pagoSinMedios,
+  CONTRA_ENTREGA,
 } from "./facturaUtils";
 import { formatearMoneda } from "../../Utils/formato";
 import PagosMediosField from "./PagosMediosField";
@@ -127,6 +129,10 @@ const TIPO_PAGO_INFO = {
   // Se facturó pero el cliente todavía no pagó nada. Con esta opción no se
   // cargan medios de pago: la factura queda debiendo el total.
   sinPago: { label: "Sin pago" },
+  // El cliente paga al recibir el equipo en la obra: la plata llega después
+  // con el personal de entrega, y se registra con el botón de la factura (ver
+  // CONTRA_ENTREGA).
+  contraEntrega: { label: "Contra entrega" },
 };
 
 export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }) {
@@ -316,7 +322,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
   const handleCambiarTipoPago = (e) => {
     const tipoPago = e.target.value;
     setForm((prev) => {
-      if (tipoPago === "sinPago") return { ...prev, tipoPago, pagos: [] };
+      if (pagoSinMedios(tipoPago)) return { ...prev, tipoPago, pagos: [] };
       // "Parcial" y "Pago con abono" arrancan con el monto en blanco: en los
       // dos casos el valor lo escribe el usuario, no sale del total.
       const seEscribeAMano = tipoPago === "parcial" || tipoPago === "conAbono";
@@ -868,7 +874,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
                 </Select>
               </FormControl>
 
-              {form.tipoPago !== "sinPago" && (
+              {!pagoSinMedios(form.tipoPago) && (
                 <Box sx={{ mt: 2 }}>
                   <PagosMediosField
                     pagos={form.pagos}
@@ -897,7 +903,9 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
               <Paper variant="totales">
                 {pagosValidos.length === 0 ? (
                   <Box className="fila">
-                    <Typography variant="body2">Sin pago cargado</Typography>
+                    <Typography variant="body2">
+                      {form.tipoPago === CONTRA_ENTREGA ? "Se paga al entregar" : "Sin pago cargado"}
+                    </Typography>
                     <Typography variant="body2">{formatearMoneda(0)}</Typography>
                   </Box>
                 ) : (

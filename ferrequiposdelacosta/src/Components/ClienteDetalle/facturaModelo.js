@@ -17,7 +17,7 @@
 //                   grupo            "grupo-inicial" | "grupo-agregados-N"
 //                   fechaSolicitud
 //                   pagos{}          cómo se pagó ESTE despacho:
-//                                      tipoPago  total|parcial|conAbono|sinPago
+//                                      tipoPago  total|parcial|conAbono|sinPago|contraEntrega
 //                                      medios[]  { medio, monto }
 //                   adicionales{}    { transporte, valorTransporte,
 //                                      deposito, valorDeposito }
@@ -152,8 +152,21 @@ export const datosFactura = (doc) => doc?.factura ?? {};
 
 export const gruposDe = (doc) => lista(doc?.grupos);
 
-// Cómo se pagó un despacho: total, parcial, con abono o sin pago.
+// Cómo se pagó un despacho: total, parcial, con abono, sin pago o contra
+// entrega.
 export const tipoPagoDe = (grupo) => grupo?.pagos?.tipoPago ?? "sinPago";
+
+// EL PAGO CONTRA ENTREGA (2026-10-22). El cliente paga al recibir el equipo
+// en la obra, y la plata llega a la oficina después, con el personal de
+// entrega. Mientras tanto el despacho no tiene medios —como "sin pago"— pero
+// queda marcado, para que su pago se registre como pago del despacho y no
+// como un abono (la 0773: anotado como abono, su depósito no se reconocía).
+export const CONTRA_ENTREGA = "contraEntrega";
+
+export const pagoEntregaPendiente = (grupo) => tipoPagoDe(grupo) === CONTRA_ENTREGA;
+
+// Los tipos de pago que se cargan sin medios: no entró plata todavía.
+export const pagoSinMedios = (tipoPago) => tipoPago === "sinPago" || tipoPago === CONTRA_ENTREGA;
 
 export const grupoInicialDe = (doc) =>
   gruposDe(doc).find((grupo) => grupo?.grupo === GRUPO_INICIAL) ?? null;

@@ -57,9 +57,11 @@ import {
 import { autorLegible, cuandoLegible, describirCambio, esCorreccion } from "./registroFactura";
 import {
   ESTADO_FACTURA_INFO,
+  CONTRA_ENTREGA,
   MEDIO_DEPOSITO,
   MODOS_PAGO,
   abonosDe,
+  pagoSinMedios,
   calcularCuentaFactura,
   calcularEstadoFactura,
   datosFactura,
@@ -92,6 +94,7 @@ const TIPOS_DE_PAGO = [
   { valor: "parcial", label: "Parcial" },
   { valor: "conAbono", label: "Pago con abono" },
   { valor: "sinPago", label: "Sin pago" },
+  { valor: CONTRA_ENTREGA, label: "Contra entrega" },
 ];
 
 const TRANSPORTES = ["Sin transporte", "Solo ida", "Solo vuelta", "Ida y vuelta"];
@@ -1019,7 +1022,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                       {/* Acá el monto se escribe a mano, sin repartos
                           automáticos: se está corrigiendo lo que se pagó, no
                           cobrando una factura nueva. */}
-                      {grupo.tipoPago !== "sinPago" && (
+                      {!pagoSinMedios(grupo.tipoPago) && (
                         <Grid item xs={12} sm={6}>
                           <PagosMediosField
                             pagos={grupo.pagos}

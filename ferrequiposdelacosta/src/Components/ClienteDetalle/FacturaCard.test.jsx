@@ -357,3 +357,23 @@ describe("FacturaCard — el estado de cuenta discrimina la plata", () => {
     ).toBe(false);
   });
 });
+
+// EL PAGO CONTRA ENTREGA (2026-10-22): mientras la plata no llega, el despacho
+// avisa y ofrece registrarla. Con el pago registrado, el aviso se va.
+describe("FacturaCard — el pago contra entrega", () => {
+  it("avisa que está pendiente y el botón abre el registro de ese despacho", async () => {
+    const factura = facturaCon({ tipoPago: "contraEntrega" });
+    const { usuario, acciones } = mostrar(factura, { onRegistrarPagoEntrega: vi.fn() });
+
+    expect(screen.getByText("Pago contra entrega pendiente")).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Registrar pago de la entrega" }));
+
+    expect(acciones.onRegistrarPagoEntrega).toHaveBeenCalledWith(factura, factura.grupos[0]);
+  });
+
+  it("con el pago registrado no hay aviso", () => {
+    mostrar(facturaFinalizada);
+
+    expect(screen.queryByText("Pago contra entrega pendiente")).not.toBeInTheDocument();
+  });
+});

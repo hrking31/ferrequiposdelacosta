@@ -43,6 +43,8 @@ import {
   repartirEntreFacturas,
   calcularCuentaFactura,
   IVA,
+  pagoSinMedios,
+  CONTRA_ENTREGA,
   datosFactura,
   abonosDe,
   gruposDe,
@@ -220,7 +222,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
     setForm((prev) => {
       // "Sin pago" borra los medios cargados: si quedaran, se seguirían
       // sumando aunque el desplegable diga que no se pagó nada.
-      if (tipoPago === "sinPago") return { ...prev, tipoPago, pagos: [] };
+      if (pagoSinMedios(tipoPago)) return { ...prev, tipoPago, pagos: [] };
       // "Parcial" y "Pago con abono" arrancan con el monto en blanco: en los
       // dos casos el valor lo escribe el usuario, no sale del total.
       const seEscribeAMano = tipoPago === "parcial" || tipoPago === "conAbono";
@@ -832,10 +834,13 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                   <MenuItem value="parcial">Parcial de estos equipos</MenuItem>
                   <MenuItem value="conAbono">Pago con abono</MenuItem>
                   <MenuItem value="sinPago">Sin pago</MenuItem>
+                  {/* Paga al recibirlos en la obra: se registra después con el
+                      botón de la factura (ver CONTRA_ENTREGA). */}
+                  <MenuItem value={CONTRA_ENTREGA}>Contra entrega</MenuItem>
                 </Select>
               </FormControl>
 
-              {form.tipoPago !== "sinPago" && (
+              {!pagoSinMedios(form.tipoPago) && (
                 <Box sx={{ mt: 2 }}>
                   <PagosMediosField
                     pagos={form.pagos}
@@ -865,12 +870,16 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                     ? "Pago parcial"
                     : form.tipoPago === "conAbono"
                       ? "Pago con abono"
-                      : "Sin pago"}
+                      : form.tipoPago === CONTRA_ENTREGA
+                        ? "Contra entrega"
+                        : "Sin pago"}
               </Typography>
               <Paper variant="totales">
                 {pagosValidos.length === 0 ? (
                   <Box className="fila">
-                    <Typography variant="body2">Sin pago cargado</Typography>
+                    <Typography variant="body2">
+                      {form.tipoPago === CONTRA_ENTREGA ? "Se paga al entregar" : "Sin pago cargado"}
+                    </Typography>
                     <Typography variant="body2">{formatearMoneda(0)}</Typography>
                   </Box>
                 ) : (
