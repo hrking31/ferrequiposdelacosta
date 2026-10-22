@@ -45,6 +45,8 @@ import {
   contarUnidadesVencidas,
   plazoVencidoFactura,
   equipoVencido,
+  devolvibleEnSeguimiento,
+  ampliable,
   calcularEstadoFactura,
   calcularGestionFactura,
   gestionesDeSeguimiento,
@@ -973,6 +975,18 @@ export default function ClienteSeguimientoCard({
   // cuando solo venció uno le pide algo que todavía no debe.
   const equiposVencidos = contarUnidadesVencidas(factura, hoy);
 
+  // Si queda algo que devolver o que ampliar. Sin nada, los dos botones se
+  // apagan en vez de abrir un diálogo que solo dice que no hay equipos (pedido
+  // del dueño, 2026-10-22): pasa con la factura que sigue en cartera solo por
+  // la plata. Las reglas son las mismas con las que cada diálogo arma su
+  // lista, así un botón encendido nunca abre uno vacío.
+  const hayParaDevolver = equiposDe(factura).some(({ equipo }) =>
+    devolvibleEnSeguimiento(equipo, hoy),
+  );
+  const hayParaAmpliar = equiposDe(factura).some(({ equipo }) =>
+    ampliable(equipo, hoy),
+  );
+
   // Los equipos que trajeron esta factura a cartera: vencidos y todavía
   // afuera, repartidos por urgencia para la lista de la factura abierta. Los
   // recuadros de la factura cerrada salen de los mismos (ver
@@ -1566,24 +1580,52 @@ export default function ClienteSeguimientoCard({
                     el equipo quedaba sin definir: una factura podía quedar
                     pagada con el equipo afuera y sin fecha de retorno, que es
                     justo lo que hay que evitar. */}
-                <Tooltip title="Registrar devolución">
-                  <IconButton
-                    size="small"
-                    onClick={() => setDevolucionOpen(true)}
-                    sx={{ ...iconBtnSx, color: acento }}
-                  >
-                    <AssignmentReturnIcon fontSize="small" />
-                  </IconButton>
+                <Tooltip
+                  title={
+                    hayParaDevolver
+                      ? "Registrar devolución"
+                      : "No hay equipos pendientes por devolver"
+                  }
+                >
+                  {/* El span, como en el del abono: un botón deshabilitado no
+                      emite eventos de mouse y el globo no aparecería. */}
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={!hayParaDevolver}
+                      onClick={() => setDevolucionOpen(true)}
+                      sx={{
+                        ...iconBtnSx,
+                        color: acento,
+                        "&.Mui-disabled": { color: "action.disabled" },
+                      }}
+                    >
+                      <AssignmentReturnIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
 
-                <Tooltip title="Ampliar vencimiento">
-                  <IconButton
-                    size="small"
-                    onClick={() => setAmpliarOpen(true)}
-                    sx={{ ...iconBtnSx, color: acento }}
-                  >
-                    <UpdateIcon fontSize="small" />
-                  </IconButton>
+                <Tooltip
+                  title={
+                    hayParaAmpliar
+                      ? "Ampliar vencimiento"
+                      : "No hay equipos vencidos para ampliar"
+                  }
+                >
+                  <span>
+                    <IconButton
+                      size="small"
+                      disabled={!hayParaAmpliar}
+                      onClick={() => setAmpliarOpen(true)}
+                      sx={{
+                        ...iconBtnSx,
+                        color: acento,
+                        "&.Mui-disabled": { color: "action.disabled" },
+                      }}
+                    >
+                      <UpdateIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
 
                 {/* EL ABONO SE COBRA ACÁ, no en la ficha del cliente.

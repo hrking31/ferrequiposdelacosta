@@ -51,7 +51,7 @@ import {
   seCobraElDiaAlDevolver,
   ultimoDiaCobrado,
   equipoAlDia,
-  equipoVencido,
+  devolvibleEnSeguimiento,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
   obtenerGestiones,
@@ -237,12 +237,13 @@ export default function RegistrarDevolucionDialog({
     //
     // El que está por recoger se ofrece en las dos: ya no corre ni vence, y
     // lo único que le falta es que alguien anote que llegó.
-    .filter(
-      ({ equipo }) =>
-        estaPorRecoger(equipo) ||
-        (desdeLaFicha
-          ? equipoAlDia(equipo)
-          : sigueAfuera(equipo) && equipoVencido(equipo)),
+    //
+    // La regla de Seguimiento es la misma con la que su tarjeta apaga el
+    // botón: así el botón encendido nunca abre un diálogo vacío.
+    .filter(({ equipo }) =>
+      desdeLaFicha
+        ? estaPorRecoger(equipo) || equipoAlDia(equipo)
+        : devolvibleEnSeguimiento(equipo),
     );
   // Hay a quién pactarle la entrega: algún equipo que todavía corre.
   const hayParaPactar = lineasDelDialogo.some(
@@ -416,7 +417,7 @@ export default function RegistrarDevolucionDialog({
     porDevolverAlCliente <= 0
       ? "No queda nada por devolverle"
       : porDevolverAlCliente >= depositoTotal
-        ? "Se le devuelve todo"
+        ? "Se devuelve todo"
         : `Se le devuelven ${formatearMoneda(porDevolverAlCliente)} al cliente`;
 
   const handleCerrar = () => {
@@ -1199,12 +1200,11 @@ export default function RegistrarDevolucionDialog({
                 no se pregunta: su cuenta ya estaba detenida. */}
             {muestraCobroDelDia && (
               <Grid item xs={12}>
-                {/* La pregunta dice qué día; la casilla solo contesta. */}
+                {/* La pregunta dice qué día —el de la fecha de arriba—; la
+                    casilla solo contesta. */}
                 {rotuloPaso(
                   pasoCobroDelDia,
-                  esDeHoy
-                    ? "¿Se cobra el día de hoy?"
-                    : `¿Se cobra el día que llegó (${formatearFechaLegible(diaIso).slice(0, 5)})?`,
+                  esDeHoy ? "¿Se cobra el día de hoy?" : "¿Se cobra el día que llegó?",
                   0,
                 )}
                 <FormControlLabel

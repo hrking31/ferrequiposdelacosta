@@ -26,14 +26,13 @@ import {
   dejarSinFechaDeEntrega,
   descuentoExcedido,
   proyectarAmpliacion,
-  equipoVencido,
+  ampliable,
   obtenerGestiones,
   crearRegistroGestion,
   calcularEstadoCliente,
   obtenerFechaHoyBogota,
   gruposDe,
   equiposDe,
-  sigueAfuera,
   sinFechaDeEntrega,
   indefinidaDe,
 } from "../ClienteDetalle/facturaUtils";
@@ -79,7 +78,7 @@ export default function AmpliarVencimientoDialog({ open, onClose, cliente, factu
       indice,
       clave: claveDe(grupo, indice),
     }))
-    .filter(({ equipo }) => sigueAfuera(equipo) && equipoVencido(equipo));
+    .filter(({ equipo }) => ampliable(equipo));
 
   const handleCerrar = () => {
     if (guardando) return;

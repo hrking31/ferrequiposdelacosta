@@ -42,6 +42,7 @@ import {
   entregaPactadaDe,
   entregasDe,
   equiposDe,
+  estaPorRecoger,
   gestionesDe,
   gruposDe,
   pagosDe,
@@ -510,6 +511,18 @@ export const equipoVencido = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
 // sin que eso sea una gestión de cobranza.
 export const equipoAlDia = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
   ["activo", "ampliacion"].includes(calcularEstadoEquipo(equipo, hoyIso));
+
+// LO QUE SEGUIMIENTO OFRECE: lo vencido que sigue afuera, y lo que ya tiene la
+// entrega pactada y espera llegar a la bodega. Lo usan el diálogo para armar
+// su lista y la tarjeta para apagar el botón cuando no queda nada: si cada uno
+// tuviera su regla, el botón podría abrir un diálogo vacío.
+export const devolvibleEnSeguimiento = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
+  estaPorRecoger(equipo) || (sigueAfuera(equipo) && equipoVencido(equipo, hoyIso));
+
+// Lo que se puede ampliar: lo vencido que sigue afuera. Mismo motivo que el de
+// arriba para tenerlo en un solo lugar.
+export const ampliable = (equipo, hoyIso = obtenerFechaHoyBogota()) =>
+  sigueAfuera(equipo) && equipoVencido(equipo, hoyIso);
 
 const siguienteDia = (fechaIso) => calcularVencimiento(fechaIso, 1);
 

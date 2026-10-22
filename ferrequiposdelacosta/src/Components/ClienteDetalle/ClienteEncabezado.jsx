@@ -193,9 +193,12 @@ export default function ClienteEncabezado({
         alignItems="center"
         sx={{
           minWidth: 0,
-          // Sin facturas no hay pizarra que empuje el bloque al borde
-          // derecho, así que el hueco lo ocupa el nombre.
-          flexGrow: cantidadFacturas > 0 ? 0 : 1,
+          // Sin pizarra no hay quien empuje los botones al borde derecho,
+          // así que el hueco lo ocupa el nombre. Se mira lo mismo que decide
+          // la pizarra —las facturas abiertas— y no el conteo de la insignia,
+          // que también suma las finalizadas abiertas desde el historial: con
+          // eso, al abrir una finalizada los botones se corrían al nombre.
+          flexGrow: facturas.length > 0 ? 0 : 1,
           // En celular, el Stack de arriba pasa a columna y este renglón
           // (y la pizarra, su hermano) deberían estirarse solos por el
           // alignItems:"stretch" del padre — pero con flexWrap:"wrap" en

@@ -363,7 +363,7 @@ describe("RegistrarDevolucionDialog — qué pasa con el depósito", () => {
     await devolver(usuario, "5");
 
     expect(
-      screen.getByText(`Depósito: ${enPantalla(100000)} · Se le devuelve todo`),
+      screen.getByText(`Depósito: ${enPantalla(100000)} · Se devuelve todo`),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Volvió todo completo/)).not.toBeInTheDocument();
   });
@@ -1434,13 +1434,9 @@ describe("RegistrarDevolucionDialog — la fecha de lo que se anota", () => {
   });
 
   // La casilla del día sigue al reloj aunque la fecha sea otra (pedido del
-  // dueño, 2026-10-21), y la pregunta del paso dice de qué día habla.
-  const casillaDelDia = (dias) => {
-    expect(
-      screen.getByText(
-        `¿Se cobra el día que llegó (${formatearFechaLegible(hace(dias)).slice(0, 5)})?`,
-      ),
-    ).toBeInTheDocument();
+  // dueño, 2026-10-21); con otra fecha, la pregunta habla del día que llegó.
+  const casillaDelDia = () => {
+    expect(screen.getByText("¿Se cobra el día que llegó?")).toBeInTheDocument();
     return screen.getByRole("checkbox", { name: /se cobra$/ });
   };
 
@@ -1451,7 +1447,7 @@ describe("RegistrarDevolucionDialog — la fecha de lo que se anota", () => {
 
     await llego(usuario);
     await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(20));
-    expect(casillaDelDia(20)).toBeChecked();
+    expect(casillaDelDia()).toBeChecked();
 
     await devolver(usuario, "5");
     // De hace 33 a hace 20: 14 días a $100.000.
@@ -1473,7 +1469,7 @@ describe("RegistrarDevolucionDialog — la fecha de lo que se anota", () => {
 
     await llego(usuario);
     await ponerFecha(usuario, "Fecha en que llegó a bodega", hace(20));
-    expect(casillaDelDia(20)).not.toBeChecked();
+    expect(casillaDelDia()).not.toBeChecked();
 
     await devolver(usuario, "5");
     // De hace 33 a hace 21: 13 días; el de la devolución no se cobra.
