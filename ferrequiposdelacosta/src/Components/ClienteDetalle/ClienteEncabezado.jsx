@@ -67,9 +67,10 @@ export default function ClienteEncabezado({
   // Cuántas se están mostrando abajo, historial incluido: es lo que dice la
   // insignia sobre el avatar.
   cantidadFacturas,
-  // Si hay algo que reportar o que pasar a cuenta de cobro; con la lista vacía
-  // los dos botones quedan apagados.
+  // Si hay facturas con saldo, para el abono; y si hay algo que bajar en PDF
+  // o pasar a cuenta de cobro, abiertas o finalizadas.
   hayFacturasParaReporte,
+  hayFacturasParaDocumentos,
   onVolver,
   onCrearFactura,
   onDescargarReporte,
@@ -169,6 +170,7 @@ export default function ClienteEncabezado({
     >
       <BotonesCliente
         hayFacturasParaReporte={hayFacturasParaReporte}
+        hayFacturasParaDocumentos={hayFacturasParaDocumentos}
         onVolver={onVolver}
         onCrearFactura={onCrearFactura}
         onRegistrarAbono={onRegistrarAbono}
@@ -530,6 +532,7 @@ ClienteEncabezado.propTypes = {
   facturas: PropTypes.array.isRequired,
   cantidadFacturas: PropTypes.number.isRequired,
   hayFacturasParaReporte: PropTypes.bool,
+  hayFacturasParaDocumentos: PropTypes.bool,
   onVolver: PropTypes.func.isRequired,
   onCrearFactura: PropTypes.func.isRequired,
   onDescargarReporte: PropTypes.func.isRequired,

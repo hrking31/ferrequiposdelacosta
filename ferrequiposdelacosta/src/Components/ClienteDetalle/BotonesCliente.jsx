@@ -15,7 +15,11 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import EditIcon from "@mui/icons-material/Edit";
 
 export default function BotonesCliente({
+  // Facturas con saldo: las que pueden recibir un abono.
   hayFacturasParaReporte,
+  // Facturas para los documentos —PDF y cuenta de cobro—, abiertas o
+  // finalizadas (pedido del dueño, 2026-10-22).
+  hayFacturasParaDocumentos,
   onVolver,
   onCrearFactura,
   onRegistrarAbono,
@@ -103,7 +107,7 @@ export default function BotonesCliente({
           <IconButton
             size={tamano}
             onClick={onDescargarReporte}
-            disabled={!hayFacturasParaReporte}
+            disabled={!hayFacturasParaDocumentos}
             sx={botonSx}
           >
             <PictureAsPdfIcon fontSize={tamano} />
@@ -118,7 +122,7 @@ export default function BotonesCliente({
           <IconButton
             size={tamano}
             onClick={onPasarACuentaCobro}
-            disabled={!hayFacturasParaReporte}
+            disabled={!hayFacturasParaDocumentos}
             sx={botonSx}
           >
             <RequestQuoteIcon fontSize={tamano} />
@@ -137,6 +141,7 @@ export default function BotonesCliente({
 
 BotonesCliente.propTypes = {
   hayFacturasParaReporte: PropTypes.bool,
+  hayFacturasParaDocumentos: PropTypes.bool,
   onVolver: PropTypes.func.isRequired,
   onCrearFactura: PropTypes.func.isRequired,
   onRegistrarAbono: PropTypes.func.isRequired,

@@ -263,6 +263,22 @@ export default function ClienteDetalle() {
     [facturas],
   );
 
+  // LOS DOCUMENTOS —el PDF y la cuenta de cobro— también se piden de una
+  // factura finalizada (pedido del dueño, 2026-10-22): el cliente pide su
+  // factura después de devolver todo, y una finalizada puede pasarse a cuenta
+  // de cobro como constancia de lo que pagó. El abono no: ese sigue solo con
+  // las que deben algo. Las finalizadas se traen al abrir el diálogo, si
+  // todavía no se habían pedido.
+  const facturasParaDocumentos = useMemo(
+    () => [...facturasParaReporte, ...facturasCerradas],
+    [facturasParaReporte, facturasCerradas],
+  );
+  const hayFacturasParaDocumentos = facturasParaReporte.length > 0 || totalCerradas > 0;
+  const abrirConFinalizadas = async (abrir) => {
+    if (!cerradasCargadas && totalCerradas > 0) await cargarFacturasCerradas();
+    abrir(true);
+  };
+
   // Pasar las facturas elegidas a una cuenta de cobro y abrirla para
   // completarle el "por concepto de", que es lo único que no sale de acá. Lo
   // que se cobra es el saldo: ver cuentaCobroDesdeFacturas.js.
@@ -328,11 +344,12 @@ export default function ClienteDetalle() {
         facturas={facturas}
         cantidadFacturas={facturasVisibles.length}
         hayFacturasParaReporte={facturasParaReporte.length > 0}
+        hayFacturasParaDocumentos={hayFacturasParaDocumentos}
         onVolver={() => navigate("/vistaclientes")}
         onCrearFactura={() => setCrearFacturaOpen(true)}
-        onDescargarReporte={() => setReporteOpen(true)}
+        onDescargarReporte={() => abrirConFinalizadas(setReporteOpen)}
         onRegistrarAbono={() => setAbonoOpen(true)}
-        onPasarACuentaCobro={() => setCuentaCobroOpen(true)}
+        onPasarACuentaCobro={() => abrirConFinalizadas(setCuentaCobroOpen)}
         onEditarCliente={() => setEditarOpen(true)}
       />
 
@@ -418,11 +435,12 @@ export default function ClienteDetalle() {
         >
           <BotonesCliente
             hayFacturasParaReporte={facturasParaReporte.length > 0}
+            hayFacturasParaDocumentos={hayFacturasParaDocumentos}
             onVolver={() => navigate("/vistaclientes")}
             onCrearFactura={() => setCrearFacturaOpen(true)}
-            onDescargarReporte={() => setReporteOpen(true)}
+            onDescargarReporte={() => abrirConFinalizadas(setReporteOpen)}
             onRegistrarAbono={() => setAbonoOpen(true)}
-            onPasarACuentaCobro={() => setCuentaCobroOpen(true)}
+            onPasarACuentaCobro={() => abrirConFinalizadas(setCuentaCobroOpen)}
             onEditarCliente={() => setEditarOpen(true)}
             repartidos
           />
@@ -469,12 +487,12 @@ export default function ClienteDetalle() {
         open={reporteOpen}
         onClose={() => setReporteOpen(false)}
         cliente={cliente}
-        facturas={facturasParaReporte}
+        facturas={facturasParaDocumentos}
       />
 
-      {/* Las mismas facturas que el reporte —todas menos las finalizadas—: el
-          diálogo se queda solo con las que tienen saldo, que son las únicas
-          que pueden recibir parte del abono. */}
+      {/* Todas menos las finalizadas: el diálogo se queda solo con las que
+          tienen saldo, que son las únicas que pueden recibir parte del
+          abono. */}
       <AbonoDialog
         open={abonoOpen}
         onClose={() => setAbonoOpen(false)}
@@ -486,7 +504,7 @@ export default function ClienteDetalle() {
       <SeleccionarFacturasDialog
         open={cuentaCobroOpen}
         onClose={() => setCuentaCobroOpen(false)}
-        facturas={facturasParaReporte}
+        facturas={facturasParaDocumentos}
         titulo="Pasar a cuenta de cobro"
         descripcion="Elegí qué facturas se cobran. Se copian los equipos y el resumen; el total a cancelar es el saldo pendiente."
         aviso={
@@ -494,7 +512,7 @@ export default function ClienteDetalle() {
             ? "Hay una cuenta de cobro a medio hacer: se va a reemplazar."
             : undefined
         }
-        textoVacio="Este cliente no tiene facturas para cobrar (las finalizadas no entran en la lista)."
+        textoVacio="Este cliente no tiene facturas para pasar a cuenta de cobro."
         textoConfirmar="Pasar a cuenta de cobro"
         onConfirmar={handleCuentaCobro}
       />

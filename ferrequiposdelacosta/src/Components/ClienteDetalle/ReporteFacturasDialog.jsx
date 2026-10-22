@@ -3,8 +3,9 @@ import SeleccionarFacturasDialog from "./SeleccionarFacturasDialog";
 import generarReporteFacturasPdf from "../VistaPdf/VistaReporteClientePdf";
 import generarFacturaPdf from "../VistaPdf/VistaFacturaPdf";
 
-// Elegir qué facturas del cliente se bajan en PDF. Las finalizadas ya no
-// vienen en `facturas` —las filtra quien abre este diálogo—. La lista con
+// Elegir qué facturas del cliente se bajan en PDF, abiertas o finalizadas
+// (desde el 2026-10-22: el cliente pide su factura después de devolver
+// todo). La lista con
 // casillas es la misma que usa "Pasar a cuenta de cobro": vive en
 // SeleccionarFacturasDialog y acá solo se le dice qué hacer con lo elegido.
 //
@@ -27,7 +28,7 @@ export default function ReporteFacturasDialog({ open, onClose, cliente, facturas
       facturas={facturas}
       titulo="Descargar facturas en PDF"
       descripcion="Elegí una para bajar la factura completa, o varias para el estado de cuenta."
-      textoVacio="Este cliente no tiene facturas para descargar (las finalizadas no entran en la lista)."
+      textoVacio="Este cliente no tiene facturas para descargar."
       textoConfirmar="Generar PDF"
       onConfirmar={(seleccionadas) =>
         seleccionadas.length === 1
