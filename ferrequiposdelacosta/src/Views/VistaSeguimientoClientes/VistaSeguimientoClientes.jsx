@@ -1,18 +1,11 @@
-import { Box, Stack, IconButton, Tooltip } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/useAuth";
+import { Box } from "@mui/material";
 import { useSelector } from "react-redux";
 import SeguimientoClientes from "../../Components/SeguimientoClientes/SeguimientoClientes";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 
 export default function VistaSeguimientoClientes() {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
@@ -20,10 +13,6 @@ export default function VistaSeguimientoClientes() {
   const isFullScreen = usePantallaCompacta();
   // El celular acostado: de alto quedan unos 390px y cada franja de aire pesa.
   const altoCorto = usePantallaBaja();
-
-  const handlerLogout = async () => {
-    await logout();
-  };
 
   return (
     <Box
@@ -55,10 +44,8 @@ export default function VistaSeguimientoClientes() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda, al menú y cerrar sesión. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -72,21 +59,6 @@ export default function VistaSeguimientoClientes() {
             compacto={isFullScreen}
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")} color="primary">
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden", mx: isFullScreen ? 0 : 2 }}>

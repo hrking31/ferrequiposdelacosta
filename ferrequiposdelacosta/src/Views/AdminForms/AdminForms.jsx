@@ -6,8 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
-  Tooltip,
   Stack,
   useMediaQuery,
   useTheme,
@@ -15,12 +13,10 @@ import {
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
 import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
-import { useAuth } from "../../Context/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { setKpis } from "../../Store/Slices/kpisSlice";
 import BuildIcon from "@mui/icons-material/Build";
@@ -29,7 +25,6 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
-import LogoutIcon from "@mui/icons-material/Logout";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
@@ -47,7 +42,6 @@ import { formatearMoneda } from "../../Utils/formato";
 export default function AdminForms() {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { logout } = useAuth();
   const isMobile = useMediaQuery("(max-width:1024px)");
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isShortViewport = useMediaQuery("(max-height:700px)");
@@ -58,10 +52,6 @@ export default function AdminForms() {
   // "…" cada vez que se entra al menú; en cuanto llegan los frescos, se
   // reemplazan. Nunca reemplazan a la consulta: solo tapan el hueco.
   const kpisGuardados = useSelector((state) => state.kpis);
-
-  const handlerLogout = async () => {
-    await logout();
-  };
 
   // Cada recuadro necesita leer una colección distinta, y las reglas de
   // Firestore las tienen cerradas por rol. Un recuadro que el usuario no puede
@@ -203,10 +193,10 @@ export default function AdminForms() {
   // números, solo con su ícono, en una franja. Va donde estaba la barra: abajo
   // en el celular y arriba de ahí en adelante.
   //
-  // EL LOGO DE LA TIENDA: arriba a la izquierda en computador, antes del
-  // saludo, en el mismo rincón donde lo tenía la barra. En el celular va
-  // dentro del encabezado, en el lugar del botón de salir, y ofrece las dos
-  // cosas (ver `conLogo` en HeaderUsuario).
+  // EL LOGO DE LA TIENDA va dentro del encabezado (ver `conLogo` en
+  // HeaderUsuario): en el celular en el lugar del botón de salir, y en
+  // computador al extremo derecho desde el 2026-10-22, con los avisos al lado.
+  // Al tocarlo ofrece ir a la tienda o cerrar sesión.
   const franja = <FranjaKpis kpis={kpis} />;
 
   const botonesConfig = [
@@ -454,7 +444,6 @@ export default function AdminForms() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {!isFullScreen && <BotonTienda alto={44} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -464,19 +453,11 @@ export default function AdminForms() {
             vista={"Gestión de Operaciones"}
             descripcion={"Elige con qué quieres trabajar"}
             conLogo
+            // Ya se está en el menú: la lista del logo no ofrece ir a él.
+            sinIrAlMenu
+            acciones={<BotonAvisos />}
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <BotonAvisos />
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       {!isMobile && (

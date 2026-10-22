@@ -13,7 +13,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +36,6 @@ import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 export default function VistaCuentaDeCobro() {
   const dispatch = useDispatch();
@@ -243,10 +241,9 @@ export default function VistaCuentaDeCobro() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda y cerrar sesión —sin "Ir al menú": se sale por
+            "Guardar y salir"—. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -254,6 +251,7 @@ export default function VistaCuentaDeCobro() {
             role={role}
             genero={genero}
             conLogo
+            sinIrAlMenu
             vista={"Crear Cuenta de Cobro"}
             descripcion={"Genera la cuenta de cobro de un servicio"}
             icono={<ReceiptIcon />}
@@ -261,48 +259,36 @@ export default function VistaCuentaDeCobro() {
             // Igual que en la cotización: antes de salir pregunta por los
             // cambios sin guardar y libera la cuenta que tenía tomada.
             onCerrarSesion={handleLogoutClick}
+            // En computador las acciones van en el encabezado, igual que en
+            // la cotización; en celular bajan al pie de la pantalla.
+            acciones={
+              <>
+                <Tooltip title="Descargar PDF">
+                  <span>
+                    <IconButton
+                      onClick={handleDescargarPdf}
+                      disabled={loading}
+                      color="success"
+                    >
+                      <PictureAsPdfIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Guardar y salir">
+                  <span>
+                    <IconButton
+                      onClick={handleGuardarYSalirClick}
+                      disabled={loading}
+                      color="success"
+                    >
+                      <DashboardIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </>
+            }
           />
         </Box>
-
-        {/* En computador las tres acciones viven acá arriba, igual que en la
-            cotización; en celular bajan al pie de la pantalla. */}
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Descargar PDF">
-              <span>
-                <IconButton
-                  onClick={handleDescargarPdf}
-                  disabled={loading}
-                  color="success"
-                >
-                  <PictureAsPdfIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="Guardar y salir">
-              <span>
-                <IconButton
-                  onClick={handleGuardarYSalirClick}
-                  disabled={loading}
-                  color="success"
-                >
-                  <DashboardIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <span>
-                <IconButton
-                  onClick={handleLogoutClick}
-                  disabled={loading}
-                  color="error"
-                >
-                  <LogoutIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto",

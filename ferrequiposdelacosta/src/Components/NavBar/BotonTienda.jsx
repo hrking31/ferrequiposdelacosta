@@ -2,6 +2,7 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { ButtonBase, ListItemIcon, Menu, MenuItem, Tooltip } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -17,9 +18,12 @@ import Logos from "../../assets/LogoFerrequipos.png";
 // salidas, ir a la tienda y cerrar sesión. Es como va en el encabezado del
 // menú en el celular, donde el logo ocupa el lugar del botón de salir.
 //
+// CON `onIrAlMenu` (2026-10-22, solo en computador) suma "Ir al menú" entre
+// las dos: el botón suelto del menú se fue del encabezado y vive acá.
+//
 // `vistahome=si` es lo que deja ver la tienda con la sesión abierta: sin eso,
 // el inicio manda al usuario de vuelta al menú.
-export default function BotonTienda({ alto = 40, onCerrarSesion }) {
+export default function BotonTienda({ alto = 40, onCerrarSesion, onIrAlMenu }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [ancla, setAncla] = useState(null);
@@ -70,6 +74,14 @@ export default function BotonTienda({ alto = 40, onCerrarSesion }) {
             </ListItemIcon>
             Ir a la tienda
           </MenuItem>
+          {onIrAlMenu && (
+            <MenuItem onClick={elegir(onIrAlMenu)}>
+              <ListItemIcon>
+                <DashboardIcon fontSize="small" />
+              </ListItemIcon>
+              Ir al menú
+            </MenuItem>
+          )}
           <MenuItem onClick={elegir(onCerrarSesion)} sx={{ color: "error.main" }}>
             <ListItemIcon sx={{ color: "inherit" }}>
               <LogoutIcon fontSize="small" />
@@ -85,4 +97,5 @@ export default function BotonTienda({ alto = 40, onCerrarSesion }) {
 BotonTienda.propTypes = {
   alto: PropTypes.number,
   onCerrarSesion: PropTypes.func,
+  onIrAlMenu: PropTypes.func,
 };

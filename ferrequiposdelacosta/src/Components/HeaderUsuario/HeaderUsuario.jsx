@@ -17,13 +17,13 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { useTheme, alpha } from "@mui/material/styles";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import { setUserData } from "../../Store/Slices/userSlice";
 import { auth, db, storage } from "../Firebase/Firebase";
@@ -34,14 +34,15 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import BotonTienda from "../NavBar/BotonTienda";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu }) {
   const theme = useTheme();
   const dispatch = useDispatch();
-  // SOLO EN CELULAR: cerrar sesión se mudó acá desde el pie de cada vista. La
-  // sesión es del usuario, y este es su bloque —su foto, su nombre y su rol—.
-  // En el pie quedaba pegado a los botones de trabajo, donde un dedo corrido
-  // sacaba de la app en mitad de una factura. En computador no hace falta: ahí
-  // sigue arriba a la derecha, con el del menú, donde no se toca por error.
+  const navigate = useNavigate();
+  // Cerrar sesión se mudó acá desde el pie de cada vista. La sesión es del
+  // usuario, y este es su bloque —su foto, su nombre y su rol—. En el pie
+  // quedaba pegado a los botones de trabajo, donde un dedo corrido sacaba de
+  // la app en mitad de una factura. Desde el 2026-10-22 también en computador:
+  // va en la lista del logo, al extremo derecho del encabezado.
   const { logout } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -336,7 +337,9 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             display: "flex",
             alignItems: "stretch",
             width: "100%",
-            maxWidth: 900,
+            // 900 hasta el 2026-10-22: con el logo y los botones de la vista
+            // adentro, el dueño lo pidió más ancho.
+            maxWidth: 1100,
             mx: "auto",
             // El mismo tratamiento que las tarjetas de Editar o Eliminar
             // Usuarios: elevación 2 y una franja de acento al costado.
@@ -367,19 +370,60 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                 minWidth: 0,
               }}
             >
+              {/* LA FOTO, CUADRADA (2026-10-22): va en el cuadro donde
+                  estaba el muñequito, con su forma, y conserva el aro de
+                  acento y la cámara al pasar el mouse que tenía cuando iba
+                  redonda al otro extremo. */}
               <Box
+                onClick={handleOpenModal}
                 sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 2,
-                  display: "grid",
-                  placeItems: "center",
-                  bgcolor: (t) => alpha(t.palette.custom.accent, 0.12),
-                  color: "custom.accent",
+                  position: "relative",
+                  cursor: "pointer",
                   flexShrink: 0,
+                  // El aro de 3px va por fuera: este margen le hace lugar
+                  // para que no se lo coma el borde de la tarjeta.
+                  m: "3px",
+                  "&:hover .avatar-overlay": { opacity: 1 },
                 }}
               >
-                <PersonOutlineIcon />
+                <Avatar
+                  src={photoURL}
+                  alt={name}
+                  variant="rounded"
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    fontSize: "1.25rem",
+                    fontWeight: "bold",
+                    color: (t) => t.palette.custom.onAccent,
+                    bgcolor: (t) => t.palette.custom.accent,
+                    boxShadow: (t) => `0 0 0 3px ${t.palette.custom.accent}`,
+                    border: (t) => `2px solid ${t.palette.common.white}`,
+                  }}
+                >
+                  {name ? name.charAt(0).toUpperCase() : "A"}
+                </Avatar>
+
+                <Box
+                  className="avatar-overlay"
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 2,
+                    bgcolor: "custom.veloFoto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "common.white",
+                    opacity: 0,
+                    transition: "opacity 0.2s ease",
+                    border: (t) => `2px solid ${t.palette.common.white}`,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <PhotoCameraIcon fontSize="small" />
+                </Box>
               </Box>
 
               <Box sx={{ minWidth: 0 }}>
@@ -464,53 +508,24 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               }}
             />
 
-            {/* Avatar con el aro de acento y la camara al pasar el mouse */}
-            <Box
-              onClick={handleOpenModal}
-              sx={{
-                position: "relative",
-                cursor: "pointer",
-                flexShrink: 0,
-                "&:hover .avatar-overlay": { opacity: 1 },
-              }}
-            >
-              <Avatar
-                src={photoURL}
-                alt={name}
-                sx={{
-                  width: 56,
-                  height: 56,
-                  fontSize: "1.4rem",
-                  fontWeight: "bold",
-                  color: (t) => t.palette.custom.onAccent,
-                  bgcolor: (t) => t.palette.custom.accent,
-                  boxShadow: (t) => `0 0 0 3px ${t.palette.custom.accent}`,
-                  border: (t) => `2px solid ${t.palette.common.white}`,
-                }}
-              >
-                {name ? name.charAt(0).toUpperCase() : "A"}
-              </Avatar>
+            {/* LOS BOTONES DE LA VISTA Y EL LOGO (2026-10-22): antes iban
+                sueltos a los lados de la tarjeta. Cerrar sesión y el menú
+                quedaron en la lista del logo; los demás los pasa cada vista. */}
+            {acciones && (
+              <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                {acciones}
+              </Stack>
+            )}
 
-              <Box
-                className="avatar-overlay"
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "50%",
-                  bgcolor: "custom.veloFoto",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "common.white",
-                  opacity: 0,
-                  transition: "opacity 0.2s ease",
-                  border: (t) => `2px solid ${t.palette.common.white}`,
-                  boxSizing: "border-box",
-                }}
-              >
-                <PhotoCameraIcon fontSize="small" />
-              </Box>
-            </Box>
+            {conLogo && (
+              <BotonTienda
+                alto={36}
+                onCerrarSesion={cerrarSesion}
+                // Sin "Ir al menú" en el propio menú y en las vistas con
+                // trabajo a medio hacer, que salen por su "Guardar y salir".
+                onIrAlMenu={sinIrAlMenu ? undefined : () => navigate("/adminforms")}
+              />
+            )}
           </Box>
 
           <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
@@ -608,7 +623,11 @@ HeaderUsuario.propTypes = {
   // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
   onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
-  // Solo en celular: el logo con ir a la tienda y cerrar sesión, en el lugar
-  // del botón de salir.
+  // El logo con ir a la tienda y cerrar sesión: en celular en el lugar del
+  // botón de salir, en computador al extremo derecho (y con "Ir al menú").
   conLogo: PropTypes.bool,
+  // Solo en computador: los botones propios de la vista, junto al logo.
+  acciones: PropTypes.node,
+  // Solo en computador: saca "Ir al menú" de la lista del logo.
+  sinIrAlMenu: PropTypes.bool,
 };

@@ -7,25 +7,18 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import EliminarEquipos from "../../Components/EliminarEquipos/EliminarEquipos";
 import EditIcon from "@mui/icons-material/Edit";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 const VistaEliminaEquipo = () => {
   const navigate = useNavigate();
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const { logout } = useAuth();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const handlerLogout = async () => {
-    await logout();
-  };
 
   return (
     <Box
@@ -56,10 +49,9 @@ const VistaEliminaEquipo = () => {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda, al menú y cerrar sesión; en computador, también los
+            botones de la vista (acciones). */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -70,23 +62,15 @@ const VistaEliminaEquipo = () => {
             vista={"Elimina el Equipo"}
             descripcion={"Saca el equipo del catálogo"}
             icono={<EditIcon />}
+            acciones={
+              <Tooltip title="Seleccionar otro equipo">
+                <IconButton onClick={() => navigate("/vistaseleccionarequipo")} color="primary">
+                  <ListAltIcon />
+                </IconButton>
+              </Tooltip>
+            }
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Seleccionar otro equipo">
-              <IconButton onClick={() => navigate("/vistaseleccionarequipo")} color="primary">
-                <ListAltIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>

@@ -1,18 +1,13 @@
-import { Box, Stack, IconButton, Tooltip } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import ClienteDetalle from "../../Components/ClienteDetalle/ClienteDetalle";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 
 export default function VistaClienteDetalle() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
@@ -21,10 +16,6 @@ export default function VistaClienteDetalle() {
   const isFullScreen = usePantallaCompacta();
   // El celular acostado: de alto quedan unos 390px y cada franja de aire pesa.
   const altoCorto = usePantallaBaja();
-
-  const handlerLogout = async () => {
-    await logout();
-  };
 
   return (
     <Box
@@ -57,10 +48,9 @@ export default function VistaClienteDetalle() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda, al menú y cerrar sesión; en computador, también los
+            botones de la vista (acciones). */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -72,28 +62,15 @@ export default function VistaClienteDetalle() {
             descripcion={"Datos del cliente y su historial de facturas"}
             icono={<FolderSharedIcon />}
             compacto={isFullScreen}
+            acciones={
+              <Tooltip title="Volver a Clientes">
+                <IconButton onClick={() => navigate("/vistaclientes")} color="primary">
+                  <FolderSharedIcon />
+                </IconButton>
+              </Tooltip>
+            }
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Volver a Clientes">
-              <IconButton onClick={() => navigate("/vistaclientes")} color="primary">
-                <FolderSharedIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")} color="primary">
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       {/* El scroll ya no va acá: ClienteDetalle fija su propia tarjeta y el

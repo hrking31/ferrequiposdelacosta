@@ -1,24 +1,16 @@
-import { Box, Stack, Button, IconButton, Tooltip, useMediaQuery } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
+import { Box, Stack, Button, useMediaQuery } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/useAuth";
 import { useSelector } from "react-redux";
 import CrearEquipos from "../../Components/CrearEquipos/CrearEquipos";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 const VistaCreaEquipo = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const handlerLogout = async () => {
-    await logout();
-  };
 
   return (
     <Box
@@ -49,10 +41,8 @@ const VistaCreaEquipo = () => {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda, al menú y cerrar sesión. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -65,21 +55,6 @@ const VistaCreaEquipo = () => {
             icono={<AddCircleOutlineIcon />}
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")} color="primary">
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>

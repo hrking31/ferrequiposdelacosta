@@ -13,7 +13,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +33,6 @@ import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import BuildIcon from "@mui/icons-material/Build";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
@@ -226,10 +224,9 @@ export default function VistaCotizacion() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda y cerrar sesión —sin "Ir al menú": se sale por
+            "Guardar y salir"—. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -237,6 +234,7 @@ export default function VistaCotizacion() {
             role={role}
             genero={genero}
             conLogo
+            sinIrAlMenu
             vista={"Crea una Cotización"}
             descripcion={"Arma la cotización y envíala al cliente"}
             icono={<BuildIcon />}
@@ -244,34 +242,28 @@ export default function VistaCotizacion() {
             // Salir de acá no es solo cerrar sesión: si hay cambios sin
             // guardar, primero pregunta qué hacer con la cotización.
             onCerrarSesion={handleLogoutClick}
+            acciones={
+              <>
+                <Tooltip title="Descargar PDF">
+                  <span>
+                    <IconButton
+                      onClick={handleDescargarPdf}
+                      disabled={sinEquipos}
+                      color="success"
+                    >
+                      <PictureAsPdfIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Guardar y salir">
+                  <IconButton onClick={handleGuardarYSalirClick} color="success">
+                    <DashboardIcon />
+                  </IconButton>
+                </Tooltip>
+              </>
+            }
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Descargar PDF">
-              <span>
-                <IconButton
-                  onClick={handleDescargarPdf}
-                  disabled={sinEquipos}
-                  color="success"
-                >
-                  <PictureAsPdfIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="Guardar y salir">
-              <IconButton onClick={handleGuardarYSalirClick} color="success">
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handleLogoutClick} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>

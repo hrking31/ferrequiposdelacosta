@@ -3,20 +3,15 @@ import {
   Grid,
   Stack,
   Button,
-  IconButton,
-  Tooltip,
   Typography,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../Context/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import BuscadorFiltro from "../../Components/BuscadorFiltro/BuscadorFiltro";
@@ -24,7 +19,6 @@ import CardsSearchEquipos from "../../Components/CardsSearchEquipos/CardsSearchE
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import EditIcon from "@mui/icons-material/Edit";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import BotonTienda from "../../Components/NavBar/BotonTienda";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 
@@ -69,7 +63,6 @@ const VistaSeleccionarEquipo = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const { name, photoURL, role, genero } = useSelector(
@@ -118,10 +111,6 @@ const VistaSeleccionarEquipo = () => {
     } else {
       showSnackbar("Debes seleccionar un Equipo para Eliminar.", "warning");
     }
-  };
-
-  const handlerLogout = async () => {
-    await logout();
   };
 
   // El catálogo se pide una sola vez: si ya está cargado (porque se pasó por
@@ -187,10 +176,8 @@ const VistaSeleccionarEquipo = () => {
           gap: 1,
         }}
       >
-        {/* El logo de la tienda, como en el menú: acá en computador y dentro
-            del encabezado en el celular (conLogo), con ir a la tienda y
-            cerrar sesión. */}
-        {!isFullScreen && <BotonTienda alto={44} />}
+        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
+            a la tienda, al menú y cerrar sesión. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -203,21 +190,6 @@ const VistaSeleccionarEquipo = () => {
             icono={<EditIcon />}
           />
         </Box>
-
-        {!isFullScreen && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Menú">
-              <IconButton onClick={() => navigate("/adminforms")} color="primary">
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={handlerLogout} color="error">
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        )}
       </Box>
 
       {/* El buscador queda FIJO. Antes vivía dentro del área que scrollea:
