@@ -79,5 +79,10 @@ export default defineConfig({
     // campo. Con los 5 segundos que trae de fábrica, algunas fallaban por
     // tiempo al correr todas juntas —no por un error, solo por lentitud—.
     testTimeout: 20000,
+    // Como mucho 3 procesos de prueba a la vez (2026-10-22). De fábrica abre
+    // uno por hilo del procesador menos uno: en este PC (16 hilos, 15 GB) eran
+    // 15 navegadores simulados juntos, se acabó la memoria, se cerró VS Code y
+    // después se reinició el equipo.
+    maxWorkers: 3,
   },
 });
