@@ -2,7 +2,6 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { ButtonBase, ListItemIcon, Menu, MenuItem, Tooltip } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -17,13 +16,12 @@ import Logos from "../../assets/LogoFerrequipos.png";
 // CON `onCerrarSesion` (2026-10-21) no va directo: abre un menú con las dos
 // salidas, ir a la tienda y cerrar sesión. Es como va en el encabezado del
 // menú en el celular, donde el logo ocupa el lugar del botón de salir.
-//
-// CON `onIrAlMenu` (2026-10-22, solo en computador) suma "Ir al menú" entre
-// las dos: el botón suelto del menú se fue del encabezado y vive acá.
+// "Ir al menú" estuvo en esta lista un día (2026-10-22) y volvió a ser un
+// botón suelto en el encabezado: eran dos clics para volver al menú.
 //
 // `vistahome=si` es lo que deja ver la tienda con la sesión abierta: sin eso,
 // el inicio manda al usuario de vuelta al menú.
-export default function BotonTienda({ alto = 40, onCerrarSesion, onIrAlMenu }) {
+export default function BotonTienda({ alto = 40, onCerrarSesion }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [ancla, setAncla] = useState(null);
@@ -74,14 +72,6 @@ export default function BotonTienda({ alto = 40, onCerrarSesion, onIrAlMenu }) {
             </ListItemIcon>
             Ir a la tienda
           </MenuItem>
-          {onIrAlMenu && (
-            <MenuItem onClick={elegir(onIrAlMenu)}>
-              <ListItemIcon>
-                <DashboardIcon fontSize="small" />
-              </ListItemIcon>
-              Ir al menú
-            </MenuItem>
-          )}
           <MenuItem onClick={elegir(onCerrarSesion)} sx={{ color: "error.main" }}>
             <ListItemIcon sx={{ color: "inherit" }}>
               <LogoutIcon fontSize="small" />
@@ -97,5 +87,4 @@ export default function BotonTienda({ alto = 40, onCerrarSesion, onIrAlMenu }) {
 BotonTienda.propTypes = {
   alto: PropTypes.number,
   onCerrarSesion: PropTypes.func,
-  onIrAlMenu: PropTypes.func,
 };

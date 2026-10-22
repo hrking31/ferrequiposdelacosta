@@ -19,6 +19,7 @@ import {
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import LogoutIcon from "@mui/icons-material/Logout";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { useTheme, alpha } from "@mui/material/styles";
@@ -354,6 +355,10 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             sx={{
               display: "flex",
               alignItems: "center",
+              // Los bloques repartidos a lo ancho, con el mismo aire entre
+              // uno y otro (2026-10-22): antes la vista se estiraba y todo
+              // quedaba recostado a la izquierda.
+              justifyContent: "space-between",
               gap: 2,
               flex: 1,
               minWidth: 0,
@@ -458,7 +463,6 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                 alignItems: "center",
                 gap: 1.5,
                 minWidth: 0,
-                flex: 1,
               }}
             >
               {icono && (
@@ -496,6 +500,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               </Box>
             </Box>
 
+            <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+
             <Chip
               label={formatearNombreRol(role)}
               size="small"
@@ -509,22 +515,31 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             />
 
             {/* LOS BOTONES DE LA VISTA Y EL LOGO (2026-10-22): antes iban
-                sueltos a los lados de la tarjeta. Cerrar sesión y el menú
-                quedaron en la lista del logo; los demás los pasa cada vista. */}
-            {acciones && (
-              <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                {acciones}
-              </Stack>
-            )}
+                sueltos a los lados de la tarjeta. Cerrar sesión quedó en la
+                lista del logo; los demás los pasa cada vista. Van en un solo
+                bloque para que el reparto a lo ancho no los separe. */}
+            {(acciones || conLogo) && (
+              <>
+                <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
 
-            {conLogo && (
-              <BotonTienda
-                alto={36}
-                onCerrarSesion={cerrarSesion}
-                // Sin "Ir al menú" en el propio menú y en las vistas con
-                // trabajo a medio hacer, que salen por su "Guardar y salir".
-                onIrAlMenu={sinIrAlMenu ? undefined : () => navigate("/adminforms")}
-              />
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                  {acciones}
+
+                  {/* IR AL MENÚ, SUELTO (2026-10-22): vivía en la lista del
+                      logo y eran dos clics para volver. No va en el propio
+                      menú ni en las vistas con trabajo a medio hacer, que
+                      salen por su "Guardar y salir". */}
+                  {conLogo && !sinIrAlMenu && (
+                    <Tooltip title="Ir al menú">
+                      <IconButton onClick={() => navigate("/adminforms")} color="primary">
+                        <DashboardIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {conLogo && <BotonTienda alto={36} onCerrarSesion={cerrarSesion} />}
+                </Stack>
+              </>
             )}
           </Box>
 
@@ -624,10 +639,11 @@ HeaderUsuario.propTypes = {
   onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
   // El logo con ir a la tienda y cerrar sesión: en celular en el lugar del
-  // botón de salir, en computador al extremo derecho (y con "Ir al menú").
+  // botón de salir, en computador al extremo derecho (con el botón "Ir al
+  // menú" al lado).
   conLogo: PropTypes.bool,
   // Solo en computador: los botones propios de la vista, junto al logo.
   acciones: PropTypes.node,
-  // Solo en computador: saca "Ir al menú" de la lista del logo.
+  // Solo en computador: saca el botón "Ir al menú" de al lado del logo.
   sinIrAlMenu: PropTypes.bool,
 };
