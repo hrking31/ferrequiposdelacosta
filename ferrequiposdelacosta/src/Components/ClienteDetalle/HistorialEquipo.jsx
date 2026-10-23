@@ -66,7 +66,7 @@ const ICONOS = {
 };
 
 
-export default function HistorialEquipo({ equipo, hoy, enDialogo = false }) {
+export default function HistorialEquipo({ equipo, hoy, enDialogo = false, sinLinea = false }) {
   const theme = useTheme();
   const esMovil = usePantallaCompacta();
   const hitos = historialEquipo(equipo, hoy);
@@ -141,13 +141,16 @@ export default function HistorialEquipo({ equipo, hoy, enDialogo = false }) {
   return (
     // La línea separa las condiciones del alquiler —lo que se ve siempre— de
     // la historia que abre la flecha. Sin ella los dos bloques se leían como
-    // uno solo y el primer hito parecía otra condición más.
+    // uno solo y el primer hito parecía otra condición más. Con `sinLinea` (el
+    // panel de Seguimiento) no hay nada arriba que separar.
     <Box
       sx={{
-        mt: 1,
-        pt: 1,
-        borderTop: "1px solid",
-        borderColor: colorLinea,
+        ...(!sinLinea && {
+          mt: 1,
+          pt: 1,
+          borderTop: "1px solid",
+          borderColor: colorLinea,
+        }),
         display: "grid",
         // Fecha, riel, qué pasó y cuánto. La última mide lo que mide el
         // estado más largo (ver ESTADO_MAS_LARGO) y es igual en todas las
@@ -272,4 +275,6 @@ HistorialEquipo.propTypes = {
   hoy: PropTypes.string,
   // Dentro de un diálogo, las líneas usan un borde más marcado.
   enDialogo: PropTypes.bool,
+  // Sin la línea de arriba que la separa de las condiciones del alquiler.
+  sinLinea: PropTypes.bool,
 };

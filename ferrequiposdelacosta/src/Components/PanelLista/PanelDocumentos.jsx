@@ -10,6 +10,9 @@ import { alpha } from "@mui/material/styles";
 // SOLO EL RECUADRO, de alto completo, para que se vea todo (pedido del dueño,
 // 2026-10-23). Arriba llevaba dos tarjetas —la del mes y otra de la lista— y
 // se quitaron: el número del mes queda en el menú.
+//
+// Seguimiento usa el mismo recuadro debajo de sus dos tarjetas, para que las
+// tres pantallas se vean igual (ver PanelSeguimiento).
 export default function PanelDocumentos({ titulo, icono, cantidad, onCerrar, children }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;

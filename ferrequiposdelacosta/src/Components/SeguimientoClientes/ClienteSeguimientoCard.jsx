@@ -95,38 +95,12 @@ import RegistrarLlamadaDialog from "./RegistrarLlamadaDialog";
 import AbonoDialog from "../ClienteDetalle/AbonoDialog";
 import EntregarSaldoDialog from "../ClienteDetalle/EntregarSaldoDialog";
 import HistorialEquipoDialog from "./HistorialEquipoDialog";
+import {
+  GRUPOS_VENCIMIENTO,
+  clasificarVencimiento,
+  colorDeSituacion as colorDeSituacionDe,
+} from "./situacionEquipo";
 
-
-// Una factura entra a Seguimiento cuando vence, pero adentro puede tener
-// equipos en distinta situación: unos ya vencidos, otros que vencen hoy y
-// otros que todavía no. Se agrupan en ese orden, con lo urgente arriba.
-//
-// El grupo "Vence" —los que aún están en fecha— queda vacío a propósito: esta
-// pantalla solo muestra lo vencido. Se deja igual porque los grupos sin
-// equipos no se dibujan, y así un equipo mal clasificado se vería en vez de
-// desaparecer sin dejar rastro.
-const GRUPOS_VENCIMIENTO = [
-  { clave: "hoy", titulo: "Vence hoy" },
-  { clave: "vencido", titulo: "Vencido" },
-  { clave: "vence", titulo: "Vence" },
-  { clave: "indefinido", titulo: "Entrega indefinida" },
-  // Al final: es lo menos urgente de la tarjeta. Ya no corre ni un día, solo
-  // falta que el equipo llegue a la bodega.
-  { clave: "porRecoger", titulo: "Por recoger" },
-];
-
-const clasificarVencimiento = (equipo, hoy) => {
-  // La entrega pactada manda sobre la fecha: ese equipo ya no vence.
-  if (estaPorRecoger(equipo)) return "porRecoger";
-  // Hasta cuándo está cubierto no se guarda: se encadena (ver
-  // cubiertoHasta en las cuentas).
-  const cubierto = cubiertoHasta(equipo);
-  if (sinFechaDeEntrega(equipo) || !cubierto) return "indefinido";
-  if (!hoy) return "vence";
-  if (cubierto === hoy) return "hoy";
-  if (cubierto < hoy) return "vencido";
-  return "vence";
-};
 
 // Devuelve los equipos repartidos por grupo y ordenados por fecha dentro de
 // cada uno. Los grupos que quedan vacíos no aparecen.
@@ -547,16 +521,8 @@ export default function ClienteSeguimientoCard({
   // Lo miran el recuadro de cada equipo, su casilla de estado y el renglón de
   // la tarjeta plegada, y tienen que pintar igual: el mismo equipo no puede
   // ser rojo en un lado y teal en el otro.
-  const colorDeSituacion = (situacion) =>
-    situacion === "vencido"
-      ? theme.palette.error.main
-      : situacion === "hoy"
-        ? theme.palette.warning.main
-        : situacion === "indefinido"
-          ? colorIndefinido
-          : situacion === "porRecoger"
-            ? colorPorRecoger
-            : theme.palette.text.secondary;
+  // La regla vive en situacionEquipo, compartida con el panel de la derecha.
+  const colorDeSituacion = (situacion) => colorDeSituacionDe(theme, situacion);
 
   // LA MISMA CUADRÍCULA QUE LA FICHA DEL CLIENTE: dos equipos por fila en
   // pantalla grande, uno solo en el celular. Un equipo por renglón dejaba

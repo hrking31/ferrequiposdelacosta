@@ -70,11 +70,11 @@ export default function AdminForms() {
   // esos roles. Sin ninguno de los tres permisos no se la pide: sería una
   // lectura rechazada.
   const leePizarra = puedeVerCartera || puedeVerCotizaciones || puedeVerCuentasCobro;
-  // El catálogo es la única colección que puede leer cualquiera. Su recuadro
-  // aparece solo para quien no tiene ninguno de los otros dos —hoy, el
-  // gestorEditor—, para que no se encuentre el menú sin panel. A quien ya
-  // tiene los demás no se le agrega uno más, que apretaría la fila.
-  const mostrarCatalogo = !puedeVerCotizaciones && !puedeVerCuentasCobro;
+  // El recuadro del catálogo, para quien trabaja con los equipos: crear o
+  // editar. Hoy: gestorEditor, gestorIntegral y administrador; no
+  // gestorFacturacion (pedido del dueño, 2026-10-23).
+  const mostrarCatalogo =
+    permisos.includes("crearEquipos") || permisos.includes("eliminarEditarEquipos");
 
   // Equipos Activos, Pagos Pendientes y —desde el 2026-10-22— Cotizaciones y
   // Cuentas de Cobro salen de la PIZARRA: un documento con los números y su
@@ -125,6 +125,8 @@ export default function AdminForms() {
         }
       }
 
+      // Cuesta 1 lectura por visita: contar no trae los equipos. Sin el
+      // recuadro no se pregunta.
       if (mostrarCatalogo) {
         try {
           const snap = await getCountFromServer(collection(db, "equipos"));
@@ -167,6 +169,17 @@ export default function AdminForms() {
       // Abre cuántas hay en cada estado (sin plata: ver DetalleCuentasCobro).
       onClick: abrirDetalle("cuentas"),
     },
+    // El catálogo, justo después de cuentas de cobro (pedido del dueño,
+    // 2026-10-23).
+    mostrarCatalogo && {
+      etiqueta: "EQUIPOS",
+      icono: <BuildIcon />,
+      color: theme.palette.info.main,
+      valor: stats.equiposCatalogo ?? "…",
+      subtitulo: "En el catálogo",
+      // Abre el nombre de cada equipo de la tienda.
+      onClick: abrirCatalogo,
+    },
     puedeVerCartera && {
       etiqueta: "EQUIPOS ACTIVOS",
       icono: <LocalShippingIcon />,
@@ -187,15 +200,6 @@ export default function AdminForms() {
       // Abre cuánto se debe en facturas vencidas, en cobro y activas. También
       // viene en la pizarra.
       onClick: abrirDetalle("pagos"),
-    },
-    mostrarCatalogo && {
-      etiqueta: "EQUIPOS",
-      icono: <BuildIcon />,
-      color: theme.palette.info.main,
-      valor: stats.equiposCatalogo ?? "…",
-      subtitulo: "En el catálogo",
-      // Abre el nombre de cada equipo de la tienda.
-      onClick: abrirCatalogo,
     },
   ].filter(Boolean);
 
@@ -483,15 +487,20 @@ export default function AdminForms() {
           direction="row"
           spacing={2}
           justifyContent="center"
-          alignItems="center"
+          // Todas del alto de la más alta: la de pagos, con la cifra más
+          // larga, quedaba más alta que las demás (lo notó el dueño).
+          alignItems="stretch"
           // El margen de abajo iguala al del pie de la pantalla (pb del Box
           // que envuelve todo): así los botones, que van centrados en lo que
           // queda, dejan el mismo aire contra los recuadros que contra el
           // borde inferior.
           sx={{ flexShrink: 0, mt: 1, mb: 2, mx: 2 }}
         >
+          {/* EN EL COMPUTADOR las tarjetas solo muestran: el detalle en una
+              ventana queda para el celular, donde la franja no tiene espacio
+              para más (pedido del dueño, 2026-10-23). */}
           {kpis.map((kpi) => (
-            <KpiCard key={kpi.etiqueta} {...kpi} />
+            <KpiCard key={kpi.etiqueta} {...kpi} onClick={undefined} />
           ))}
         </Stack>
       )}

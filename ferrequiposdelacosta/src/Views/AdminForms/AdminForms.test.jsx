@@ -128,101 +128,37 @@ describe("AdminForms — las cifras del menú", () => {
     expect(nube.contarCatalogo).not.toHaveBeenCalled();
   });
 
-  it("tocar «Cotizaciones» abre cuántas hay en cada estado", async () => {
+  it("el catálogo lo ven quienes trabajan con equipos, no facturación", async () => {
+    for (const rol of ["administrador", "gestorIntegral", "gestorEditor"]) {
+      nube.contarCatalogo.mockClear();
+      const { unmount } = comoRol(rol);
+      expect(screen.getByText("En el catálogo")).toBeInTheDocument();
+      await waitFor(() => expect(nube.contarCatalogo).toHaveBeenCalledTimes(1));
+      unmount();
+    }
+
+    nube.contarCatalogo.mockClear();
+    comoRol("gestorFacturacion");
+    expect(screen.queryByText("En el catálogo")).not.toBeInTheDocument();
+    // Sin el recuadro, ni se cuenta.
+    expect(nube.contarCatalogo).not.toHaveBeenCalled();
+  });
+
+  it("en el computador las tarjetas solo muestran: no abren ninguna ventana", async () => {
     nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
     const { usuario } = comoRol("administrador");
 
     await screen.findByText("12");
-    await usuario.click(screen.getByRole("button", { name: /COTIZACIONES/ }));
-
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent(`Cotizaciones ${nombreMesBogota()}`);
-    expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
-    expect(nube.leerTotales).toHaveBeenCalledTimes(1);
-  });
-
-  it("tocar «Cuentas de cobro» abre cuántas hay en cada estado, sin plata", async () => {
-    nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
-    const { usuario } = comoRol("administrador");
-
-    await screen.findByText("4");
-    await usuario.click(screen.getByRole("button", { name: /CUENTAS DE COBRO/ }));
-
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent(`Cuentas de cobro ${nombreMesBogota()}`);
-    expect(dialogo).toHaveTextContent("Emitida1Pausada0En proceso1Pagada2Total4");
-  });
-
-  it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {
-    nube.leerTotales.mockResolvedValueOnce({
-      equiposActivos: 51,
-      pagosPendientes: 0,
-      equiposPorTipo: { TABLÓN: 8, ANDAMIO: 43 },
-    });
-    const { usuario } = comoRol("administrador");
-
-    await screen.findByText("51");
+    // No son botones, y tocarlas no abre nada.
+    expect(screen.queryByRole("button", { name: /COTIZACIONES/ })).not.toBeInTheDocument();
     await usuario.click(screen.getByText("EQUIPOS ACTIVOS"));
-
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("ANDAMIO43");
-    expect(dialogo).toHaveTextContent("TABLÓN8");
-    expect(dialogo).toHaveTextContent("Total51");
-    // El detalle vino en la misma lectura de la pizarra.
-    expect(nube.leerTotales).toHaveBeenCalledTimes(1);
-  });
-
-  it("tocar «Pagos pendientes» abre la plata por estado, sin pedir nada más", async () => {
-    nube.leerTotales.mockResolvedValueOnce({
-      equiposActivos: 51,
-      pagosPendientes: 700000,
-      equiposPorTipo: { ANDAMIO: 51 },
-      pagosPorEstado: { activa: 200000, vencida: 500000 },
-    });
-    const { usuario } = comoRol("administrador");
-
-    await screen.findByText("51");
-    await usuario.click(screen.getByText("PAGOS PENDIENTES"));
-
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("Pagos pendientes");
-    expect(dialogo).toHaveTextContent(
-      `Vencidas${plata(500000)}Activas${plata(200000)}` +
-        `Total${plata(700000)}`,
-    );
-    expect(nube.leerTotales).toHaveBeenCalledTimes(1);
-  });
-
-  it("el catálogo ya bajado: los nombres salen de memoria, sin leer nada", async () => {
-    nube.contarCatalogo.mockResolvedValueOnce({ data: () => ({ count: 2 }) });
-    const { usuario } = comoRol("gestorEditor", {
-      equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }],
-    });
-
-    await screen.findByText("2");
-    await usuario.click(screen.getByRole("button", { name: /EQUIPOS/ }));
-
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("Equipos del catálogo");
-    expect(dialogo).toHaveTextContent("ANDAMIOMEZCLADORATotal2");
-    expect(nube.leerCatalogo).not.toHaveBeenCalled();
-  });
-
-  it("el catálogo sin bajar: lo pide una vez al abrir el detalle", async () => {
-    nube.leerCatalogo.mockResolvedValueOnce({
-      docs: [{ id: "e1", data: () => ({ name: "ANDAMIO" }) }],
-    });
-    const { usuario } = comoRol("gestorEditor");
-
-    await usuario.click(screen.getByRole("button", { name: /EQUIPOS/ }));
-
-    const dialogo = await screen.findByRole("dialog");
-    await waitFor(() => expect(dialogo).toHaveTextContent("ANDAMIOTotal1"));
-    expect(nube.leerCatalogo).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   describe("en el celular", () => {
-    // Las pantallas angostas: todas las medidas de ancho máximo coinciden.
+    // Las pantallas angostas: todas las medidas de ancho máximo coinciden. Solo
+    // ahí las casillas abren su detalle (en el computador, desde 2026-10-23,
+    // no).
     const matchMediaOriginal = window.matchMedia;
     beforeEach(() => {
       window.matchMedia = (query) => ({
@@ -234,7 +170,7 @@ describe("AdminForms — las cifras del menú", () => {
       window.matchMedia = matchMediaOriginal;
     });
 
-    it("tocar «Cotizaciones» en la franja abre el mismo detalle", async () => {
+    it("tocar «Cotizaciones» abre cuántas hay en cada estado", async () => {
       nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
       const { usuario } = comoRol("administrador");
 
@@ -242,10 +178,12 @@ describe("AdminForms — las cifras del menú", () => {
       await usuario.click(screen.getByRole("button", { name: "COTIZACIONES" }));
 
       const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent(`Cotizaciones ${nombreMesBogota()}`);
       expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
+      expect(nube.leerTotales).toHaveBeenCalledTimes(1);
     });
 
-    it("tocar «Cuentas de cobro» en la franja abre el mismo detalle", async () => {
+    it("tocar «Cuentas de cobro» abre cuántas hay en cada estado, sin plata", async () => {
       nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
       const { usuario } = comoRol("administrador");
 
@@ -254,15 +192,75 @@ describe("AdminForms — las cifras del menú", () => {
 
       const dialogo = await screen.findByRole("dialog");
       expect(dialogo).toHaveTextContent(`Cuentas de cobro ${nombreMesBogota()}`);
+      expect(dialogo).toHaveTextContent("Emitida1Pausada0En proceso1Pagada2Total4");
     });
 
-    it("al gestor de equipos, tocar el catálogo abre los nombres", async () => {
-      const { usuario } = comoRol("gestorEditor", { equipos: [{ name: "ANDAMIO" }] });
+    it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {
+      nube.leerTotales.mockResolvedValueOnce({
+        equiposActivos: 51,
+        pagosPendientes: 0,
+        equiposPorTipo: { TABLÓN: 8, ANDAMIO: 43 },
+      });
+      const { usuario } = comoRol("administrador");
+
+      await screen.findByText("51");
+      await usuario.click(screen.getByRole("button", { name: "EQUIPOS ACTIVOS" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent("ANDAMIO43");
+      expect(dialogo).toHaveTextContent("TABLÓN8");
+      expect(dialogo).toHaveTextContent("Total51");
+      // El detalle vino en la misma lectura de la pizarra.
+      expect(nube.leerTotales).toHaveBeenCalledTimes(1);
+    });
+
+    it("tocar «Pagos pendientes» abre la plata por estado, sin pedir nada más", async () => {
+      nube.leerTotales.mockResolvedValueOnce({
+        equiposActivos: 51,
+        pagosPendientes: 700000,
+        equiposPorTipo: { ANDAMIO: 51 },
+        pagosPorEstado: { activa: 200000, vencida: 500000 },
+      });
+      const { usuario } = comoRol("administrador");
+
+      await screen.findByText("51");
+      await usuario.click(screen.getByRole("button", { name: "PAGOS PENDIENTES" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent("Pagos pendientes");
+      expect(dialogo).toHaveTextContent(
+        `Vencidas${plata(500000)}Activas${plata(200000)}` +
+          `Total${plata(700000)}`,
+      );
+      expect(nube.leerTotales).toHaveBeenCalledTimes(1);
+    });
+
+    it("el catálogo ya bajado: los nombres salen de memoria, sin leer nada", async () => {
+      nube.contarCatalogo.mockResolvedValueOnce({ data: () => ({ count: 2 }) });
+      const { usuario } = comoRol("gestorEditor", {
+        equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }],
+      });
+
+      await screen.findByText("2");
+      await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent("Equipos del catálogo");
+      expect(dialogo).toHaveTextContent("ANDAMIOMEZCLADORATotal2");
+      expect(nube.leerCatalogo).not.toHaveBeenCalled();
+    });
+
+    it("el catálogo sin bajar: lo pide una vez al abrir el detalle", async () => {
+      nube.leerCatalogo.mockResolvedValueOnce({
+        docs: [{ id: "e1", data: () => ({ name: "ANDAMIO" }) }],
+      });
+      const { usuario } = comoRol("gestorEditor");
 
       await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
 
       const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent("ANDAMIOTotal1");
+      await waitFor(() => expect(dialogo).toHaveTextContent("ANDAMIOTotal1"));
+      expect(nube.leerCatalogo).toHaveBeenCalledTimes(1);
     });
   });
 });

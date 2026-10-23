@@ -123,10 +123,12 @@ function Ranking({ filas, color }) {
   );
 }
 
-function Lista({ filas, color }) {
+function Lista({ filas, color: colorSeccion }) {
   return (
     <Stack spacing={1.25}>
-      {filas.map(({ clave, izquierda, derecha }) => (
+      {/* Cada renglón puede traer su propio color (los pagos por estado de
+          factura); si no, va el de la sección. */}
+      {filas.map(({ clave, izquierda, derecha, color = colorSeccion }) => (
         <Stack
           key={clave}
           direction="row"
@@ -196,6 +198,8 @@ const filasPropTypes = PropTypes.arrayOf(
     clave: PropTypes.string.isRequired,
     izquierda: PropTypes.node.isRequired,
     derecha: PropTypes.node.isRequired,
+    // Solo en la forma "lista": el color de ese renglón.
+    color: PropTypes.string,
   }),
 ).isRequired;
 

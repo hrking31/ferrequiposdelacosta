@@ -653,7 +653,7 @@ export default function SeguimientoClientes() {
         {cuerpo}
       </Box>
       <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
-        <PanelSeguimiento elegido={elegido} hoy={hoy} />
+        <PanelSeguimiento elegido={elegido} hoy={hoy} onSoltar={() => setSeleccion(null)} />
       </Box>
     </Box>
   ) : (
