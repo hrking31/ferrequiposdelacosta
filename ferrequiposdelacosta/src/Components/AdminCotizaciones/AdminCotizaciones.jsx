@@ -16,6 +16,7 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { setCotizacionActual } from "../../Store/Slices/cotizacionSlice.js";
@@ -35,6 +36,21 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import ChipFiltro from "../Filtros/ChipFiltro";
+import SelectorFiltro from "../Filtros/SelectorFiltro";
+import PanelDocumentos from "../PanelLista/PanelDocumentos";
+import ResumenLista from "../PanelLista/ResumenLista";
+import VistaPreviaDocumento from "../PanelLista/VistaPreviaDocumento";
+import InsightsIcon from "@mui/icons-material/Insights";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import {
+  diasDesde,
+  masAntiguas,
+  masPedidos,
+  porPersona,
+  textoEspera,
+} from "../../Utils/resumenLista";
+import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -60,6 +76,23 @@ const ESTILO_ESTADO = {
   enProceso: { Icono: AutorenewIcon, color: "info" },
   pausada: { Icono: PauseCircleOutlineIcon, color: "default" },
 };
+
+// LOS FILTROS (2026-10-22), con el mismo juego que Seguimiento: en computador
+// una columna a la izquierda, en celular dos desplegables debajo del buscador.
+// Los estados en el orden en que una solicitud los recorre.
+const FILTROS_ESTADO = [
+  { valor: "todos", label: "Todas" },
+  { valor: "pendiente", label: "Pendiente" },
+  { valor: "pausada", label: "Pausada" },
+  { valor: "enProceso", label: "En proceso" },
+  { valor: "creada", label: "Emitida" },
+];
+
+const FILTROS_TIPO = [
+  { valor: "todos", label: "Todos" },
+  { valor: "persona", label: "Personas", icono: PersonIcon },
+  { valor: "empresa", label: "Empresas", icono: BusinessIcon },
+];
 
 const estadoDe = (status) => ({
   label: etiquetaEstado(status),
@@ -106,6 +139,9 @@ export default function KioskAdminCotizaciones() {
   const [hayMas, setHayMas] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  // La solicitud cuya vista previa está en el recuadro de la derecha.
+  const [elegidaId, setElegidaId] = useState(null);
   const [aEliminar, setAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
 
@@ -159,17 +195,49 @@ export default function KioskAdminCotizaciones() {
 
   // El filtro corre sobre lo que ya está cargado, no sobre la base: lo que
   // todavía no se trajo con "Cargar más" no se encuentra buscando.
-  const cotizacionesFiltradas = useMemo(
-    () =>
-      todas.filter((quotation) => {
-        if (filtroTipo !== "todos" && quotation.tipo !== filtroTipo) return false;
-        if (!busquedaLower) return true;
-        const nombre = (quotation.empresa || "").toLowerCase();
-        const telefono = (quotation.telefono || "").toLowerCase();
-        return nombre.includes(busquedaLower) || telefono.includes(busquedaLower);
-      }),
-    [todas, filtroTipo, busquedaLower],
+  const coincideBusqueda = (quotation) => {
+    if (!busquedaLower) return true;
+    const nombre = (quotation.empresa || "").toLowerCase();
+    const telefono = (quotation.telefono || "").toLowerCase();
+    return nombre.includes(busquedaLower) || telefono.includes(busquedaLower);
+  };
+  const coincideTipo = (quotation) => filtroTipo === "todos" || quotation.tipo === filtroTipo;
+  const coincideEstado = (quotation) =>
+    filtroEstado === "todos" || quotation.status === filtroEstado;
+
+  const cotizacionesFiltradas = todas.filter(
+    (quotation) =>
+      coincideBusqueda(quotation) && coincideTipo(quotation) && coincideEstado(quotation),
   );
+
+  // Cuántas hay de cada estado y de cada tipo, con los OTROS filtros puestos:
+  // así el número de cada botón es lo que se vería al tocarlo.
+  const conteosPorEstado = { todos: 0 };
+  const conteosPorTipo = { todos: 0, persona: 0, empresa: 0 };
+  todas.forEach((quotation) => {
+    if (!coincideBusqueda(quotation)) return;
+    if (coincideTipo(quotation)) {
+      conteosPorEstado.todos += 1;
+      conteosPorEstado[quotation.status] = (conteosPorEstado[quotation.status] || 0) + 1;
+    }
+    if (coincideEstado(quotation)) {
+      conteosPorTipo.todos += 1;
+      if (quotation.tipo in conteosPorTipo) conteosPorTipo[quotation.tipo] += 1;
+    }
+  });
+
+  // LA COLUMNA DE FILTROS desde 1010px, el mismo corte de Seguimiento. LA DEL
+  // MES a la derecha desde 1200: la lista dice poco y no necesita el ancho de
+  // las tarjetas de Seguimiento (lo dijo el dueño, 2026-10-22).
+  const columnaFiltros = useMediaQuery("(min-width:1010px)") && !esCelular;
+  const conPanel = useMediaQuery("(min-width:1200px)") && !esCelular;
+  // Los mismos colores del chip de estado de cada solicitud (ESTILO_ESTADO).
+  const colorPorEstado = {
+    pendiente: theme.palette.warning.main,
+    pausada: theme.palette.grey[500],
+    enProceso: theme.palette.info.main,
+    creada: theme.palette.success.main,
+  };
 
   const handleOpenQuotation = async (quotation) => {
     try {
@@ -239,77 +307,203 @@ export default function KioskAdminCotizaciones() {
     </Typography>
   );
 
-  // Los tres filtros de tipo de cliente.
-  const chipsTipo = (
-    // En celular los tres se reparten el ancho de la pantalla: sueltos a la
-    // izquierda dejaban un hueco vacío a la derecha y cada uno medía según el
-    // largo de su palabra.
-    <Stack
-      direction="row"
-      spacing={1}
+  const etiquetaFiltro = (texto) => (
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, pl: 0.5 }}>
+      {texto}
+    </Typography>
+  );
+
+  // EN COMPUTADOR, la columna de la izquierda: los estados con su color y los
+  // tipos de cliente, cada uno con cuántas hay. Arranca a la altura de la
+  // primera solicitud y se desplaza por su cuenta, como en Seguimiento.
+  const columna = (
+    <Box
       sx={{
+        width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
-        ...(esCelular && { "& > *": { flex: 1, minWidth: 0 } }),
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+        overflowY: "auto",
       }}
     >
-      <Chip
-        label="Todos"
-        clickable
-        onClick={() => setFiltroTipo("todos")}
-        variant={filtroTipo === "todos" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "todos"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
+      {etiquetaFiltro("Estado")}
+      <Stack spacing={1}>
+        {FILTROS_ESTADO.map((filtro) => (
+          <ChipFiltro
+            key={filtro.valor}
+            label={filtro.label}
+            conteo={conteosPorEstado[filtro.valor] || 0}
+            seleccionado={filtroEstado === filtro.valor}
+            color={acento}
+            punto={colorPorEstado[filtro.valor]}
+            onClick={() => setFiltroEstado(filtro.valor)}
+          />
+        ))}
+      </Stack>
+      <Box sx={{ mt: 1 }}>{etiquetaFiltro("Tipo")}</Box>
+      <Stack spacing={1}>
+        {FILTROS_TIPO.map(({ valor, label, icono: Icono }) => (
+          <ChipFiltro
+            key={valor}
+            label={label}
+            conteo={conteosPorTipo[valor]}
+            seleccionado={filtroTipo === valor}
+            color={acento}
+            icono={Icono ? <Icono /> : undefined}
+            onClick={() => setFiltroTipo(valor)}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+
+  // EN CELULAR Y EN EL COMPUTADOR ANGOSTO, dos desplegables en un renglón,
+  // como los de Seguimiento.
+  const desplegables = (
+    <Stack direction="row" spacing={1}>
+      <SelectorFiltro
+        id="filtro-estado-cotizaciones"
+        label="Estado"
+        value={filtroEstado}
+        onChange={setFiltroEstado}
+        opciones={FILTROS_ESTADO.map((filtro) => ({
+          valor: filtro.valor,
+          label: filtro.label,
+          cantidad: conteosPorEstado[filtro.valor] || 0,
+        }))}
+        sx={{ flex: 1, minWidth: 0 }}
       />
-      <Chip
-        icon={<PersonIcon />}
-        label="Personas"
-        clickable
-        onClick={() => setFiltroTipo("persona")}
-        variant={filtroTipo === "persona" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "persona"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "& .MuiChip-icon": { color: "inherit" },
-                // Conserva su color: sin esto MUI le superpone un tinte
-                // al pasar el mouse y otro mientras tiene el foco.
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
-      />
-      <Chip
-        icon={<BusinessIcon />}
-        label="Empresas"
-        clickable
-        onClick={() => setFiltroTipo("empresa")}
-        variant={filtroTipo === "empresa" ? "filled" : "outlined"}
-        sx={
-          filtroTipo === "empresa"
-            ? {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "& .MuiChip-icon": { color: "inherit" },
-                // Conserva su color: sin esto MUI le superpone un tinte
-                // al pasar el mouse y otro mientras tiene el foco.
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }
-            : undefined
-        }
+      <SelectorFiltro
+        id="filtro-tipo-cotizaciones"
+        label="Tipo"
+        value={filtroTipo}
+        onChange={setFiltroTipo}
+        opciones={FILTROS_TIPO.map((filtro) => ({
+          valor: filtro.valor,
+          label: filtro.label,
+          cantidad: conteosPorTipo[filtro.valor],
+        }))}
+        sx={{ flex: 1, minWidth: 0 }}
       />
     </Stack>
   );
+
+  // Las dos columnas alrededor de la lista. Cada una se desplaza por su cuenta.
+  const columnaVertical = {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  };
+  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): la tarjeta del mes, una de
+  // lo que espera respuesta, y un recuadro que muestra la vista previa de la
+  // solicitud tocada o, sin ninguna, un resumen de la lista. Todo lo de la
+  // lista sale de lo que ya está cargado: ninguna lectura.
+  const sinResponder = todas.filter(
+    (quotation) => quotation.status === "pendiente" || quotation.status === "pausada",
+  );
+  const fechaDe = (quotation) => quotation.createdAt;
+  const laMasVieja = masAntiguas(sinResponder, fechaDe, 1)[0];
+  const tarjetaSinResponder = {
+    etiqueta: "SIN RESPONDER",
+    icono: <PendingActionsIcon />,
+    color: theme.palette.warning.main,
+    valor: sinResponder.length,
+    subtitulo: laMasVieja
+      ? `La más vieja: ${textoEspera(diasDesde(laMasVieja.createdAt))}`
+      : "Ninguna esperando",
+  };
+
+  const elegida = conPanel ? todas.find((quotation) => quotation.id === elegidaId) : null;
+  // Tocar la tarjeta la elige; tocarla otra vez la suelta. Los botones de la
+  // tarjeta hacen lo suyo y no la eligen.
+  const alternarElegida = (evento, quotation) => {
+    if (evento.target.closest("button, a")) return;
+    setElegidaId((previa) => (previa === quotation.id ? null : quotation.id));
+  };
+
+  const recuadro = elegida ? (
+    <VistaPreviaDocumento
+      numero={elegida.cotizacionId}
+      cliente={elegida.empresa}
+      estado={estadoDe(elegida.status)}
+      fecha={elegida.fecha ? formatearFechaLegible(elegida.fecha) : ""}
+      items={elegida.items}
+      totales={[
+        {
+          label: "Total",
+          valor:
+            typeof elegida.totalNumero === "number"
+              ? formatearMoneda(elegida.totalNumero)
+              : elegida.total || formatearMoneda(0),
+          destacado: true,
+        },
+      ]}
+      onSoltar={() => setElegidaId(null)}
+    />
+  ) : (
+    <ResumenLista
+      secciones={[
+        {
+          titulo: "LLEVAN MÁS ESPERANDO",
+          vacio: "Ninguna esperando respuesta.",
+          filas: masAntiguas(sinResponder, fechaDe).map((quotation) => ({
+            clave: quotation.id,
+            izquierda: quotation.empresa || "Cliente sin nombre",
+            derecha: textoEspera(diasDesde(quotation.createdAt)),
+          })),
+        },
+        {
+          titulo: "MÁS PEDIDOS",
+          vacio: "Todavía no hay equipos pedidos.",
+          filas: masPedidos(todas).map(({ nombre, cantidad }) => ({
+            clave: nombre,
+            izquierda: nombre,
+            derecha: cantidad,
+          })),
+        },
+        {
+          titulo: "QUIÉN ATENDIÓ (EMITIDAS)",
+          vacio: "Ninguna emitida todavía.",
+          filas: porPersona(
+            todas.filter((quotation) => quotation.status === "creada"),
+            (quotation) => quotation.atendidoPor,
+          ).map(({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad })),
+        },
+      ]}
+    />
+  );
+
+  const conElMes = (lista) =>
+    conPanel ? (
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+        <Box sx={columnaVertical}>{lista}</Box>
+        <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+          <PanelDocumentos
+            de="cotizaciones"
+            segunda={tarjetaSinResponder}
+            titulo={elegida ? "Vista previa" : "De la lista"}
+            icono={elegida ? <VisibilityIcon fontSize="small" /> : <InsightsIcon fontSize="small" />}
+          >
+            {recuadro}
+          </PanelDocumentos>
+        </Box>
+      </Box>
+    ) : (
+      lista
+    );
+  // A la izquierda, los filtros.
+  const conLosFiltros = (contenido) =>
+    columnaFiltros && todas.length > 0 ? (
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+        {columna}
+        <Box sx={columnaVertical}>{contenido}</Box>
+      </Box>
+    ) : (
+      contenido
+    );
 
   if (cargando) {
     return <LoadingLogo height="40vh" text="Cargando solicitudes..." />;
@@ -373,7 +567,7 @@ export default function KioskAdminCotizaciones() {
               </Tooltip>
             </Stack>
 
-            {chipsTipo}
+            {desplegables}
 
             <Stack
               direction="row"
@@ -387,7 +581,9 @@ export default function KioskAdminCotizaciones() {
               {contador}
             </Stack>
           </Stack>
-        ) : (
+        ) : columnaFiltros ? (
+          // Los filtros están en la columna de la izquierda: acá quedan el
+          // buscador y el conteo.
           <Stack
             direction="row"
             spacing={1.5}
@@ -396,10 +592,20 @@ export default function KioskAdminCotizaciones() {
           >
             {buscador}
             {contador}
-            {chipsTipo}
+          </Stack>
+        ) : (
+          // Sin lugar para la columna: debajo del buscador, los desplegables
+          // del celular.
+          <Stack spacing={1.5} sx={{ mb: 2, flexShrink: 0 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {buscador}
+              {contador}
+            </Stack>
+            {desplegables}
           </Stack>
         ))}
 
+      {conLosFiltros(conElMes(
       <Box
         sx={{
           display: "flex",
@@ -668,6 +874,8 @@ export default function KioskAdminCotizaciones() {
           return (
             <Card
               key={quotation.id}
+              // Con la columna de la derecha, tocarla muestra su vista previa.
+              onClick={conPanel ? (evento) => alternarElegida(evento, quotation) : undefined}
               sx={{
                 position: "relative",
                 overflow: "visible",
@@ -677,6 +885,12 @@ export default function KioskAdminCotizaciones() {
                 borderRadius: (theme) =>
                   `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
                 outline: "1px solid transparent",
+                ...(conPanel && { cursor: "pointer" }),
+                // La elegida queda marcada con el acento, como en Seguimiento.
+                ...(elegida?.id === quotation.id && {
+                  outline: "2px solid",
+                  outlineColor: "custom.accent",
+                }),
                 willChange: "transform, box-shadow",
                 transition:
                   "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
@@ -813,7 +1027,8 @@ export default function KioskAdminCotizaciones() {
           </Button>
         </Box>
       )}
-      </Box>
+      </Box>,
+      ))}
 
       <Dialog open={Boolean(aEliminar)} onClose={() => setAEliminar(null)}>
         <DialogTitle sx={{ color: acento }}>Eliminar solicitud</DialogTitle>

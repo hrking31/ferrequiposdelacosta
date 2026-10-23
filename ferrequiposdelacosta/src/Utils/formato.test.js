@@ -8,7 +8,19 @@ import {
   formatearFechaLegible,
   formatearHoraLegible,
   formatearDias,
+  nombreMesBogota,
 } from "./formato";
+
+describe("nombreMesBogota", () => {
+  it("el nombre del mes con mayúscula", () => {
+    expect(nombreMesBogota(Date.UTC(2026, 9, 15, 17))).toBe("Octubre");
+  });
+
+  it("las 9 p.m. del 31 de octubre en Colombia siguen siendo octubre", () => {
+    // En hora universal ya es 1 de noviembre.
+    expect(nombreMesBogota(Date.UTC(2026, 10, 1, 2))).toBe("Octubre");
+  });
+});
 
 // Pruebas de las funciones de formato (presentación de importes, NIT, fechas y
 // horas). Son funciones puras: reciben un valor y devuelven texto, sin tocar el

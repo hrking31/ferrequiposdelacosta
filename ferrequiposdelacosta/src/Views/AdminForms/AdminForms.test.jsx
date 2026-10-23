@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 import { authContext } from "../../Context/useAuth";
-import { formatearMoneda } from "../../Utils/formato";
+import { formatearMoneda, nombreMesBogota } from "../../Utils/formato";
 import AdminForms from "./AdminForms";
 
 // La plata como la deja toHaveTextContent: el espacio especial del formato
@@ -136,7 +136,7 @@ describe("AdminForms — las cifras del menú", () => {
     await usuario.click(screen.getByRole("button", { name: /COTIZACIONES/ }));
 
     const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("Cotizaciones del mes");
+    expect(dialogo).toHaveTextContent(`Cotizaciones ${nombreMesBogota()}`);
     expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
     expect(nube.leerTotales).toHaveBeenCalledTimes(1);
   });
@@ -149,7 +149,7 @@ describe("AdminForms — las cifras del menú", () => {
     await usuario.click(screen.getByRole("button", { name: /CUENTAS DE COBRO/ }));
 
     const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("Cuentas de cobro del mes");
+    expect(dialogo).toHaveTextContent(`Cuentas de cobro ${nombreMesBogota()}`);
     expect(dialogo).toHaveTextContent("Emitida1Pausada0En proceso1Pagada2Total4");
   });
 
@@ -253,7 +253,7 @@ describe("AdminForms — las cifras del menú", () => {
       await usuario.click(screen.getByRole("button", { name: "CUENTAS DE COBRO" }));
 
       const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent("Cuentas de cobro del mes");
+      expect(dialogo).toHaveTextContent(`Cuentas de cobro ${nombreMesBogota()}`);
     });
 
     it("al gestor de equipos, tocar el catálogo abre los nombres", async () => {

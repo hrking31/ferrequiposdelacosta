@@ -131,3 +131,21 @@ describe("ListaCuentasCobro — marcar como pagada", () => {
     expect(botonMarcarPagada()).toBeUndefined();
   });
 });
+
+describe("ListaCuentasCobro — el filtro de estado", () => {
+  // Sin columna (pantalla angosta en las pruebas) los filtros van en los
+  // desplegables, como en el celular. Cada opción dice cuántas hay.
+  it("deja solo las de ese estado, y cada opción dice cuántas hay", async () => {
+    conCuentas([cuentaEmitida, cuentaPausada, cuentaPagada]);
+    const { usuario } = mostrar();
+
+    await screen.findByText("CC-1001");
+    await usuario.click(screen.getByRole("combobox", { name: "Estado" }));
+    expect(screen.getByRole("option", { name: /^Todas\s*3$/ })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("option", { name: /^Pagada\s*1$/ }));
+
+    expect(screen.getByText("CC-1003")).toBeInTheDocument();
+    expect(screen.queryByText("CC-1001")).not.toBeInTheDocument();
+    expect(screen.queryByText("CC-1002")).not.toBeInTheDocument();
+  });
+});

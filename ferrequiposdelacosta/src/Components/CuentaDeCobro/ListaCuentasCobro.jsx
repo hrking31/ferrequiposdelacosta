@@ -18,6 +18,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -34,6 +35,20 @@ import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import ChipFiltro from "../Filtros/ChipFiltro";
+import SelectorFiltro from "../Filtros/SelectorFiltro";
+import PanelDocumentos from "../PanelLista/PanelDocumentos";
+import ResumenLista from "../PanelLista/ResumenLista";
+import VistaPreviaDocumento from "../PanelLista/VistaPreviaDocumento";
+import InsightsIcon from "@mui/icons-material/Insights";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import {
+  diasDesde,
+  masAntiguas,
+  masPedidos,
+  porPersona,
+  textoEspera,
+} from "../../Utils/resumenLista";
 import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -80,6 +95,28 @@ const saldoDe = (cuenta) =>
       (Number(cuenta.abonos) || 0),
   ) + (Number(cuenta.depositoPorCobrar) || 0);
 
+// LOS FILTROS (2026-10-22), con el mismo juego que Seguimiento y el buzón de
+// cotizaciones: en computador una columna a la izquierda, en celular dos
+// desplegables debajo del buscador. Los estados en el orden en que una cuenta
+// los recorre.
+const FILTROS_ESTADO = [
+  { valor: "todos", label: "Todas" },
+  { valor: "pausada", label: "Pausada" },
+  { valor: "enProceso", label: "En proceso" },
+  { valor: "creada", label: "Emitida" },
+  { valor: "pagada", label: "Pagada" },
+];
+
+const FILTROS_TIPO = [
+  { valor: "todos", label: "Todos" },
+  { valor: "persona", label: "Personas", icono: PersonIcon },
+  { valor: "empresa", label: "Empresas", icono: BusinessIcon },
+];
+
+// Una cuenta sin estado se muestra como pausada (ver ESTADO_INFO): se cuenta
+// y se filtra igual.
+const estadoDeCuenta = (cuenta) => (ESTADO_INFO[cuenta.status] ? cuenta.status : "pausada");
+
 export default function ListaCuentasCobro() {
   const theme = useTheme();
   // Angosta O baja: el teléfono acostado pasa de los 915px de ancho.
@@ -116,6 +153,9 @@ export default function ListaCuentasCobro() {
   // "todos" | "persona" | "empresa" — mismos filtros que Solicitudes de
   // Cotización, que es la otra pantalla donde se busca entre documentos.
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  // La cuenta cuya vista previa está en el recuadro de la derecha.
+  const [elegidaId, setElegidaId] = useState(null);
   const [aEliminar, setAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   // El id de la cuenta cuyo pago se está guardando, para apagar solo ese botón
@@ -171,31 +211,49 @@ export default function ListaCuentasCobro() {
 
   // El filtro corre sobre lo que ya está cargado, no sobre la base (ver
   // BuscadorFiltro). Busca por número, cliente, NIT y concepto.
-  const filtradas = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
+  const texto = busqueda.trim().toLowerCase();
+  const coincideBusqueda = (cuenta) =>
+    !texto ||
+    [cuenta.cuentaCobroId, cuenta.empresa, cuenta.nit, cuenta.concepto]
+      .filter(Boolean)
+      .some((campo) => String(campo).toLowerCase().includes(texto));
+  const coincideTipo = (cuenta) => filtroTipo === "todos" || cuenta.tipo === filtroTipo;
+  const coincideEstado = (cuenta) =>
+    filtroEstado === "todos" || estadoDeCuenta(cuenta) === filtroEstado;
 
-    return todas.filter((cuenta) => {
-      if (filtroTipo !== "todos" && cuenta.tipo !== filtroTipo) return false;
-      if (!texto) return true;
+  const filtradas = todas.filter(
+    (cuenta) => coincideBusqueda(cuenta) && coincideTipo(cuenta) && coincideEstado(cuenta),
+  );
 
-      return [cuenta.cuentaCobroId, cuenta.empresa, cuenta.nit, cuenta.concepto]
-        .filter(Boolean)
-        .some((campo) => String(campo).toLowerCase().includes(texto));
-    });
-  }, [todas, busqueda, filtroTipo]);
+  // Cuántas hay de cada estado y de cada tipo, con los OTROS filtros puestos:
+  // así el número de cada botón es lo que se vería al tocarlo.
+  const conteosPorEstado = { todos: 0 };
+  const conteosPorTipo = { todos: 0, persona: 0, empresa: 0 };
+  todas.forEach((cuenta) => {
+    if (!coincideBusqueda(cuenta)) return;
+    if (coincideTipo(cuenta)) {
+      const estado = estadoDeCuenta(cuenta);
+      conteosPorEstado.todos += 1;
+      conteosPorEstado[estado] = (conteosPorEstado[estado] || 0) + 1;
+    }
+    if (coincideEstado(cuenta)) {
+      conteosPorTipo.todos += 1;
+      if (cuenta.tipo in conteosPorTipo) conteosPorTipo[cuenta.tipo] += 1;
+    }
+  });
 
-  // El chip activo va relleno con el color de acento. Sin fijarle el hover y
-  // el foco, MUI le superpone un tinte y se ve de otro color al usarlo.
-  const chipActivoSx = (activo) =>
-    activo
-      ? {
-          bgcolor: acento,
-          color: theme.palette.getContrastText(acento),
-          "& .MuiChip-icon": { color: "inherit" },
-          "&:hover": { bgcolor: acento },
-          "&.Mui-focusVisible": { bgcolor: acento },
-        }
-      : undefined;
+  // LA COLUMNA DE FILTROS desde 1010px, el mismo corte de Seguimiento. LA DEL
+  // MES a la derecha desde 1200: la lista dice poco y no necesita el ancho de
+  // las tarjetas de Seguimiento (lo dijo el dueño, 2026-10-22).
+  const columnaFiltros = useMediaQuery("(min-width:1010px)") && !esCelular;
+  const conPanel = useMediaQuery("(min-width:1200px)") && !esCelular;
+  // Los mismos colores del chip de estado de cada cuenta (ESTADO_INFO).
+  const colorPorEstado = {
+    pausada: theme.palette.grey[500],
+    enProceso: theme.palette.info.main,
+    creada: theme.palette.success.main,
+    pagada: theme.palette.primary.main,
+  };
 
   // Reabrir: la carga tal cual en el formulario. Como trae su `id`, volver a
   // guardarla actualiza esta misma y no crea otra.
@@ -300,44 +358,198 @@ export default function ListaCuentasCobro() {
     </Typography>
   );
 
-  // Los tres filtros de tipo de cliente.
-  const chipsTipo = (
-    // En celular los tres se reparten el ancho de la pantalla: sueltos a la
-    // izquierda dejaban un hueco vacío a la derecha y cada uno medía según el
-    // largo de su palabra.
-    <Stack
-      direction="row"
-      spacing={1}
+  const etiquetaFiltro = (rotulo) => (
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, pl: 0.5 }}>
+      {rotulo}
+    </Typography>
+  );
+
+  // EN COMPUTADOR, la columna de la izquierda: los estados con su color y los
+  // tipos de cliente, cada uno con cuántas hay. Arranca a la altura de la
+  // primera cuenta y se desplaza por su cuenta, como en Seguimiento.
+  const columna = (
+    <Box
       sx={{
+        width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
-        ...(esCelular && { "& > *": { flex: 1, minWidth: 0 } }),
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+        overflowY: "auto",
       }}
     >
-      <Chip
-        label="Todos"
-        clickable
-        onClick={() => setFiltroTipo("todos")}
-        variant={filtroTipo === "todos" ? "filled" : "outlined"}
-        sx={chipActivoSx(filtroTipo === "todos")}
+      {etiquetaFiltro("Estado")}
+      <Stack spacing={1}>
+        {FILTROS_ESTADO.map((filtro) => (
+          <ChipFiltro
+            key={filtro.valor}
+            label={filtro.label}
+            conteo={conteosPorEstado[filtro.valor] || 0}
+            seleccionado={filtroEstado === filtro.valor}
+            color={acento}
+            punto={colorPorEstado[filtro.valor]}
+            onClick={() => setFiltroEstado(filtro.valor)}
+          />
+        ))}
+      </Stack>
+      <Box sx={{ mt: 1 }}>{etiquetaFiltro("Tipo")}</Box>
+      <Stack spacing={1}>
+        {FILTROS_TIPO.map(({ valor, label, icono: Icono }) => (
+          <ChipFiltro
+            key={valor}
+            label={label}
+            conteo={conteosPorTipo[valor]}
+            seleccionado={filtroTipo === valor}
+            color={acento}
+            icono={Icono ? <Icono /> : undefined}
+            onClick={() => setFiltroTipo(valor)}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+
+  // EN CELULAR Y EN EL COMPUTADOR ANGOSTO, dos desplegables en un renglón,
+  // como los de Seguimiento.
+  const desplegables = (
+    <Stack direction="row" spacing={1}>
+      <SelectorFiltro
+        id="filtro-estado-cuentas-cobro"
+        label="Estado"
+        value={filtroEstado}
+        onChange={setFiltroEstado}
+        opciones={FILTROS_ESTADO.map((filtro) => ({
+          valor: filtro.valor,
+          label: filtro.label,
+          cantidad: conteosPorEstado[filtro.valor] || 0,
+        }))}
+        sx={{ flex: 1, minWidth: 0 }}
       />
-      <Chip
-        icon={<PersonIcon />}
-        label="Personas"
-        clickable
-        onClick={() => setFiltroTipo("persona")}
-        variant={filtroTipo === "persona" ? "filled" : "outlined"}
-        sx={chipActivoSx(filtroTipo === "persona")}
-      />
-      <Chip
-        icon={<BusinessIcon />}
-        label="Empresas"
-        clickable
-        onClick={() => setFiltroTipo("empresa")}
-        variant={filtroTipo === "empresa" ? "filled" : "outlined"}
-        sx={chipActivoSx(filtroTipo === "empresa")}
+      <SelectorFiltro
+        id="filtro-tipo-cuentas-cobro"
+        label="Tipo"
+        value={filtroTipo}
+        onChange={setFiltroTipo}
+        opciones={FILTROS_TIPO.map((filtro) => ({
+          valor: filtro.valor,
+          label: filtro.label,
+          cantidad: conteosPorTipo[filtro.valor],
+        }))}
+        sx={{ flex: 1, minWidth: 0 }}
       />
     </Stack>
   );
+
+  // Las dos columnas alrededor de la lista. Cada una se desplaza por su cuenta.
+  const columnaVertical = {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+  };
+  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): la tarjeta del mes, una de
+  // lo emitido sin pagar, y un recuadro que muestra la vista previa de la
+  // cuenta tocada o, sin ninguna, un resumen de la lista. Todo lo de la lista
+  // sale de lo que ya está cargado: ninguna lectura.
+  const sinPagar = todas.filter((cuenta) => cuenta.status === "creada");
+  const fechaDe = (cuenta) => cuenta.creadaEn;
+  const laMasVieja = masAntiguas(sinPagar, fechaDe, 1)[0];
+  const tarjetaSinPagar = {
+    etiqueta: "SIN PAGAR",
+    icono: <MoneyOffIcon />,
+    color: theme.palette.warning.main,
+    valor: sinPagar.length,
+    subtitulo: laMasVieja
+      ? `La más vieja: ${textoEspera(diasDesde(laMasVieja.creadaEn))}`
+      : "Ninguna sin pagar",
+  };
+
+  const elegida = conPanel ? todas.find((cuenta) => cuenta.id === elegidaId) : null;
+  // Tocar la tarjeta la elige; tocarla otra vez la suelta. Los botones de la
+  // tarjeta hacen lo suyo y no la eligen.
+  const alternarElegida = (evento, cuenta) => {
+    if (evento.target.closest("button, a")) return;
+    setElegidaId((previa) => (previa === cuenta.id ? null : cuenta.id));
+  };
+
+  const pagadoDe = (cuenta) => (Number(cuenta.pagado) || 0) + (Number(cuenta.abonos) || 0);
+  const recuadro = elegida ? (
+    <VistaPreviaDocumento
+      numero={elegida.cuentaCobroId}
+      cliente={elegida.empresa}
+      estado={ESTADO_INFO[estadoDeCuenta(elegida)]}
+      fecha={elegida.fecha ? formatearFechaLegible(elegida.fecha) : ""}
+      items={elegida.items}
+      totales={[
+        { label: "Total", valor: formatearMoneda(Number(elegida.total) || 0) },
+        // Lo ya cobrado, solo si hubo: en la mayoría de las cuentas no hay.
+        ...(pagadoDe(elegida) > 0
+          ? [{ label: "Ya pagado", valor: formatearMoneda(pagadoDe(elegida)) }]
+          : []),
+        { label: "Total a cancelar", valor: formatearMoneda(saldoDe(elegida)), destacado: true },
+      ]}
+      onSoltar={() => setElegidaId(null)}
+    />
+  ) : (
+    <ResumenLista
+      secciones={[
+        {
+          titulo: "LLEVAN MÁS SIN PAGAR",
+          vacio: "Ninguna emitida sin pagar.",
+          filas: masAntiguas(sinPagar, fechaDe).map((cuenta) => ({
+            clave: cuenta.id,
+            izquierda: cuenta.empresa || "Cliente sin nombre",
+            derecha: textoEspera(diasDesde(cuenta.creadaEn)),
+          })),
+        },
+        {
+          titulo: "MÁS FACTURADO",
+          vacio: "Todavía no hay equipos facturados.",
+          filas: masPedidos(todas.filter((cuenta) => cuenta.emitida)).map(
+            ({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad }),
+          ),
+        },
+        {
+          titulo: "QUIÉN EMITIÓ",
+          vacio: "Ninguna emitida todavía.",
+          filas: porPersona(
+            todas.filter((cuenta) => cuenta.emitida),
+            (cuenta) => cuenta.emitidaPor?.nombre,
+          ).map(({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad })),
+        },
+      ]}
+    />
+  );
+
+  const conElMes = (lista) =>
+    conPanel ? (
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+        <Box sx={columnaVertical}>{lista}</Box>
+        <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+          <PanelDocumentos
+            de="cuentas"
+            segunda={tarjetaSinPagar}
+            titulo={elegida ? "Vista previa" : "De la lista"}
+            icono={elegida ? <VisibilityIcon fontSize="small" /> : <InsightsIcon fontSize="small" />}
+          >
+            {recuadro}
+          </PanelDocumentos>
+        </Box>
+      </Box>
+    ) : (
+      lista
+    );
+  // A la izquierda, los filtros.
+  const conLosFiltros = (contenido) =>
+    columnaFiltros && todas.length > 0 ? (
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
+        {columna}
+        <Box sx={columnaVertical}>{contenido}</Box>
+      </Box>
+    ) : (
+      contenido
+    );
 
   if (cargando) {
     return <LoadingLogo height="40vh" text="Cargando cuentas de cobro..." />;
@@ -379,7 +591,7 @@ export default function ListaCuentasCobro() {
             </Tooltip>
           </Stack>
 
-          {chipsTipo}
+          {desplegables}
 
           <Stack
             direction="row"
@@ -393,7 +605,9 @@ export default function ListaCuentasCobro() {
             {contador}
           </Stack>
         </Stack>
-      ) : (
+      ) : columnaFiltros ? (
+        // Los filtros están en la columna de la izquierda: acá quedan el
+        // buscador y el conteo.
         <Stack
           direction="row"
           spacing={1.5}
@@ -402,10 +616,20 @@ export default function ListaCuentasCobro() {
         >
           {buscador}
           {contador}
-          {chipsTipo}
+        </Stack>
+      ) : (
+        // Sin lugar para la columna: debajo del buscador, los desplegables del
+        // celular.
+        <Stack spacing={1.5} sx={{ flexShrink: 0, pb: 2 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            {buscador}
+            {contador}
+          </Stack>
+          {desplegables}
         </Stack>
       )}
 
+      {conLosFiltros(conElMes(
       <Box
         sx={{
           pr: 0.5,
@@ -418,7 +642,7 @@ export default function ListaCuentasCobro() {
           <Typography color="text.secondary" sx={{ textAlign: "center", py: 6 }}>
             {todas.length === 0
               ? "Todavía no hay cuentas de cobro guardadas."
-              : "Ninguna cuenta coincide con la búsqueda."}
+              : "Ninguna cuenta coincide con la búsqueda o los filtros."}
           </Typography>
         ) : (
           <Stack spacing={2}>
@@ -656,6 +880,8 @@ export default function ListaCuentasCobro() {
                 // arriba, los datos, una divisoria y las acciones.
                 <Card
                   key={cuenta.id}
+                  // Con la columna de la derecha, tocarla muestra su vista previa.
+                  onClick={conPanel ? (evento) => alternarElegida(evento, cuenta) : undefined}
                   sx={{
                     position: "relative",
                     overflow: "visible",
@@ -665,6 +891,12 @@ export default function ListaCuentasCobro() {
                     borderRadius: (theme) =>
                       `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
                     outline: "1px solid transparent",
+                    ...(conPanel && { cursor: "pointer" }),
+                    // La elegida queda marcada con el acento, como en Seguimiento.
+                    ...(elegida?.id === cuenta.id && {
+                      outline: "2px solid",
+                      outlineColor: "custom.accent",
+                    }),
                     willChange: "transform, box-shadow",
                     transition:
                       "box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
@@ -794,7 +1026,8 @@ export default function ListaCuentasCobro() {
             </Button>
           </Box>
         )}
-      </Box>
+      </Box>,
+      ))}
 
       <Dialog open={Boolean(aEliminar)} onClose={() => setAEliminar(null)}>
         <DialogTitle sx={{ color: acento }}>Eliminar cuenta de cobro</DialogTitle>

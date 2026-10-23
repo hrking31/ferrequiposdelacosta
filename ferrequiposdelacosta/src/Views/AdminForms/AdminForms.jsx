@@ -39,7 +39,7 @@ import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
-import { formatearMoneda } from "../../Utils/formato";
+import { formatearMoneda, nombreMesBogota } from "../../Utils/formato";
 
 export default function AdminForms() {
   const theme = useTheme();
@@ -200,8 +200,8 @@ export default function AdminForms() {
   ].filter(Boolean);
 
   const TITULOS_DETALLE = {
-    cotizaciones: "Cotizaciones del mes",
-    cuentas: "Cuentas de cobro del mes",
+    cotizaciones: `Cotizaciones ${nombreMesBogota()}`,
+    cuentas: `Cuentas de cobro ${nombreMesBogota()}`,
     equipos: "Equipos activos",
     pagos: "Pagos pendientes",
     catalogo: "Equipos del catálogo",

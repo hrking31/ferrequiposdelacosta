@@ -106,3 +106,15 @@ export const formatearHoraLegible = (horaHHMM) => {
   const hora12 = horas % 12 === 0 ? 12 : horas % 12;
   return `${hora12}:${String(minutos).padStart(2, "0")} ${horas < 12 ? "a. m." : "p. m."}`;
 };
+
+// El nombre del mes de un instante, en hora de Colombia y con mayúscula:
+// "Octubre". Para los títulos de las cotizaciones y cuentas de cobro del mes
+// (lo pidió el dueño el 2026-10-22: "Cotizaciones Octubre" en vez de "del mes").
+// Se usa en: AdminForms y PanelDelMes.
+export const nombreMesBogota = (ms = Date.now()) => {
+  const nombre = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    month: "long",
+  }).format(new Date(ms));
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+};

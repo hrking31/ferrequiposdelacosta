@@ -109,3 +109,60 @@ describe("AdminCotizaciones — eliminar", () => {
     expect(datos.eliminar).not.toHaveBeenCalled();
   });
 });
+
+describe("AdminCotizaciones — el filtro de estado", () => {
+  // Sin columna (pantalla angosta en las pruebas) los filtros van en los
+  // desplegables, como en el celular. Cada opción dice cuántas hay.
+  it("deja solo las de ese estado, y cada opción dice cuántas hay", async () => {
+    conCotizaciones([pendiente, emitida]);
+    const { usuario } = mostrar();
+
+    await screen.findByText(/COT-1001/);
+    await usuario.click(screen.getByRole("combobox", { name: "Estado" }));
+    expect(screen.getByRole("option", { name: /^En proceso\s*0$/ })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("option", { name: /^Emitida\s*1$/ }));
+
+    expect(screen.getByText(/COT-1002/)).toBeInTheDocument();
+    expect(screen.queryByText(/COT-1001/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AdminCotizaciones — la columna de la derecha", () => {
+  // Pantalla ancha: coinciden las medidas de ancho mínimo, no las de máximo.
+  const matchMediaOriginal = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = (query) => ({
+      ...matchMediaOriginal(query),
+      matches: query.includes("min-width"),
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = matchMediaOriginal;
+  });
+
+  it("sin nada elegido muestra el resumen; tocar una solicitud muestra su vista previa sin abrirla", async () => {
+    conCotizaciones([pendiente, emitida]);
+    const { usuario } = renderConProviders(<AdminCotizaciones />, {
+      estadoInicial: {
+        user: { uid: "u1", name: "Aida", role: "administrador", permisos: [] },
+        presence: { usuariosConectados: {} },
+        kpis: { cotizacionesMes: { total: 2, pendientes: 1, pausadas: 0, enProceso: 0, emitidas: 1 } },
+      },
+    });
+
+    await screen.findByText(/COT-1001/);
+    expect(screen.getByText("LLEVAN MÁS ESPERANDO")).toBeInTheDocument();
+    expect(screen.getByText("SIN RESPONDER")).toBeInTheDocument();
+
+    await usuario.click(screen.getByText(/COT-1001/));
+
+    expect(screen.getByText("Vista previa")).toBeInTheDocument();
+    expect(screen.getByText("4 × 3 días")).toBeInTheDocument();
+    // Mirar no es abrir: no se marca "En proceso".
+    expect(datos.marcarEnProceso).not.toHaveBeenCalled();
+
+    // Tocarla otra vez la suelta.
+    await usuario.click(screen.getAllByText(/COT-1001/)[0]);
+    expect(screen.getByText("LLEVAN MÁS ESPERANDO")).toBeInTheDocument();
+  });
+});
