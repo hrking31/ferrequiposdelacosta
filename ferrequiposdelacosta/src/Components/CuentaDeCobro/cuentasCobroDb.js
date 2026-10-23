@@ -64,7 +64,7 @@ const documentoDesdeFormulario = (cuenta, estado, usuario) => {
     // —"enProceso" mientras alguien la tiene abierta, "pagada" cuando entra la
     // plata— pero haberse emitido no se deshace nunca. Guardarlo aparte deja
     // contar las del mes con una sola consulta en vez de traerlas todas y
-    // mirarles el estado (ver Utils/resumenDocumentos).
+    // mirarles el estado (ver Views/AdminForms/documentosDelMesDb).
     //
     // Se pone al emitir y no se saca: una vez true, se queda en true.
     ...(ESTADOS_YA_EMITIDA.includes(estado) ? { emitida: true } : {}),

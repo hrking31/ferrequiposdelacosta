@@ -95,7 +95,7 @@ describe("guardarCuentaCobro", () => {
   });
 
   // `emitida` es lo que hace posible contar las del mes con UNA lectura, así
-  // que tiene que nacer con el documento (ver Utils/resumenDocumentos).
+  // que tiene que nacer con el documento (ver Views/AdminForms/documentosDelMesDb).
   it("al emitir deja marcado que se emitió", async () => {
     mocks.addDoc.mockResolvedValue({ id: "nuevo" });
     await guardarCuentaCobro(cuenta, "creada", usuario);

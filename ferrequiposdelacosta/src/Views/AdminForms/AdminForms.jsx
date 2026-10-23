@@ -15,8 +15,6 @@ import KpiCard from "../../Components/KpiCard/KpiCard";
 import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
-import DetalleCotizaciones from "../../Components/KpiCard/DetalleCotizaciones";
-import DetalleCuentasCobro from "../../Components/KpiCard/DetalleCuentasCobro";
 import DetalleCatalogo from "../../Components/KpiCard/DetalleCatalogo";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
@@ -37,9 +35,10 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import { leerTotalesPanel } from "./totalesPanelDb";
+import { contarCotizacionesDelMes, contarCuentasCobroDelMes } from "./documentosDelMesDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
-import { formatearMoneda, nombreMesBogota } from "../../Utils/formato";
+import { formatearMoneda } from "../../Utils/formato";
 
 export default function AdminForms() {
   const theme = useTheme();
@@ -66,25 +65,21 @@ export default function AdminForms() {
   // 2026-10-22, solo para quien hace el seguimiento de clientes. Quien solo
   // edita el catálogo no tiene por qué ver equipos alquilados ni plata.
   const puedeVerCartera = permisos.includes("gestionCartera");
-  // Todos esos números salen de la pizarra, que las reglas dejan leer solo a
-  // esos roles. Sin ninguno de los tres permisos no se la pide: sería una
-  // lectura rechazada.
-  const leePizarra = puedeVerCartera || puedeVerCotizaciones || puedeVerCuentasCobro;
   // El recuadro del catálogo, para quien trabaja con los equipos: crear o
   // editar. Hoy: gestorEditor, gestorIntegral y administrador; no
   // gestorFacturacion (pedido del dueño, 2026-10-23).
   const mostrarCatalogo =
     permisos.includes("crearEquipos") || permisos.includes("eliminarEditarEquipos");
 
-  // Equipos Activos, Pagos Pendientes y —desde el 2026-10-22— Cotizaciones y
-  // Cuentas de Cobro salen de la PIZARRA: un documento con los números y su
-  // detalle, que mantiene el servidor. Antes los dos primeros se calculaban acá
-  // leyendo todos los clientes y todas sus facturas en CADA visita al menú, y
-  // los otros dos costaban una consulta cada uno: ahora es 1 lectura en total.
+  // Equipos Activos y Pagos Pendientes salen de la PIZARRA: un documento con
+  // los números y su detalle, que mantiene el servidor. Antes se calculaban acá
+  // leyendo todos los clientes y todas sus facturas en CADA visita al menú:
+  // ahora es 1 lectura. Cotizaciones y Cuentas de Cobro se cuentan aparte, 1
+  // lectura cada una (ver documentosDelMesDb).
   const [stats, setStats] = useState(kpisGuardados);
-  // El detalle del diálogo: cuál ("cotizaciones", "cuentas", "equipos",
-  // "pagos" o "catalogo") y si está abierto. Al cerrar se conserva cuál era,
-  // para que el título no cambie mientras el diálogo se desvanece.
+  // El detalle del diálogo: cuál ("equipos", "pagos" o "catalogo") y si está
+  // abierto. Al cerrar se conserva cuál era, para que el título no cambie
+  // mientras el diálogo se desvanece.
   const [detalle, setDetalle] = useState({ abierto: false, cual: "equipos" });
   const abrirDetalle = (cual) => () => setDetalle({ abierto: true, cual });
   const cerrarDetalle = () => setDetalle((previo) => ({ ...previo, abierto: false }));
@@ -107,7 +102,9 @@ export default function AdminForms() {
       // recuadros igual muestran su número.
       const frescos = {};
 
-      if (leePizarra) {
+      // La pizarra la dejan leer las reglas solo a quien ve la cartera: sin
+      // ese permiso no se la pide, sería una lectura rechazada.
+      if (puedeVerCartera) {
         try {
           const totales = await leerTotalesPanel();
           if (totales) {
@@ -115,13 +112,25 @@ export default function AdminForms() {
             frescos.equiposPorTipo = totales.equiposPorTipo;
             frescos.pagosPendientes = totales.pagosPendientes;
             frescos.pagosPorEstado = totales.pagosPorEstado;
-            frescos.cotizacionesMes = totales.cotizacionesMes;
-            frescos.cotizaciones = totales.cotizacionesMes?.total;
-            frescos.cuentasCobroMes = totales.cuentasCobroMes;
-            frescos.cuentasCobro = totales.cuentasCobroMes?.total;
           }
         } catch (error) {
           console.error("Error al leer los totales del panel:", error);
+        }
+      }
+
+      if (puedeVerCotizaciones) {
+        try {
+          frescos.cotizaciones = await contarCotizacionesDelMes();
+        } catch (error) {
+          console.error("Error al contar las cotizaciones del mes:", error);
+        }
+      }
+
+      if (puedeVerCuentasCobro) {
+        try {
+          frescos.cuentasCobro = await contarCuentasCobroDelMes();
+        } catch (error) {
+          console.error("Error al contar las cuentas de cobro del mes:", error);
         }
       }
 
@@ -147,7 +156,7 @@ export default function AdminForms() {
     return () => {
       cancelado = true;
     };
-  }, [dispatch, leePizarra, mostrarCatalogo]);
+  }, [dispatch, puedeVerCartera, puedeVerCotizaciones, puedeVerCuentasCobro, mostrarCatalogo]);
 
   const kpis = [
     puedeVerCotizaciones && {
@@ -156,9 +165,7 @@ export default function AdminForms() {
       color: theme.palette.info.main,
       valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
-      // Abre cuántas hay en cada estado. Viene en la misma pizarra: no cuesta
-      // ninguna lectura más.
-      onClick: abrirDetalle("cotizaciones"),
+      // Sin detalle por estado (decisión del dueño, 2026-10-23): solo el número.
     },
     puedeVerCuentasCobro && {
       etiqueta: "CUENTAS DE COBRO",
@@ -166,8 +173,6 @@ export default function AdminForms() {
       color: theme.palette.success.main,
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
-      // Abre cuántas hay en cada estado (sin plata: ver DetalleCuentasCobro).
-      onClick: abrirDetalle("cuentas"),
     },
     // El catálogo, justo después de cuentas de cobro (pedido del dueño,
     // 2026-10-23).
@@ -204,8 +209,6 @@ export default function AdminForms() {
   ].filter(Boolean);
 
   const TITULOS_DETALLE = {
-    cotizaciones: `Cotizaciones ${nombreMesBogota()}`,
-    cuentas: `Cuentas de cobro ${nombreMesBogota()}`,
     equipos: "Equipos activos",
     pagos: "Pagos pendientes",
     catalogo: "Equipos del catálogo",
@@ -582,12 +585,6 @@ export default function AdminForms() {
           {TITULOS_DETALLE[detalle.cual]}
         </DialogTitle>
         <DialogContent>
-          {detalle.cual === "cotizaciones" && (
-            <DetalleCotizaciones cotizacionesMes={stats.cotizacionesMes} />
-          )}
-          {detalle.cual === "cuentas" && (
-            <DetalleCuentasCobro cuentasCobroMes={stats.cuentasCobroMes} />
-          )}
           {detalle.cual === "equipos" && (
             <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
           )}

@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 import { authContext } from "../../Context/useAuth";
-import { formatearMoneda, nombreMesBogota } from "../../Utils/formato";
+import { formatearMoneda } from "../../Utils/formato";
 import AdminForms from "./AdminForms";
 
 // La plata como la deja toHaveTextContent: el espacio especial del formato
@@ -19,6 +19,8 @@ const nube = vi.hoisted(() => ({
   leerTotales: vi.fn(() => Promise.resolve({ equiposActivos: 0, pagosPendientes: 0 })),
   contarCatalogo: vi.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })),
   leerCatalogo: vi.fn(() => Promise.resolve({ docs: [] })),
+  contarCotizaciones: vi.fn(() => Promise.resolve(0)),
+  contarCuentas: vi.fn(() => Promise.resolve(0)),
 }));
 
 vi.mock("../../Components/Firebase/Firebase", () => ({ db: {}, auth: {}, storage: {} }));
@@ -28,6 +30,10 @@ vi.mock("firebase/firestore", () => ({
   getDocs: nube.leerCatalogo,
 }));
 vi.mock("./totalesPanelDb", () => ({ leerTotalesPanel: nube.leerTotales }));
+vi.mock("./documentosDelMesDb", () => ({
+  contarCotizacionesDelMes: nube.contarCotizaciones,
+  contarCuentasCobroDelMes: nube.contarCuentas,
+}));
 
 // El menú usa la sesión (para el botón de salir), así que necesita su contexto.
 const comoRol = (role, { equipos = [] } = {}) =>
@@ -52,13 +58,8 @@ const comoRol = (role, { equipos = [] } = {}) =>
     },
   );
 
-// La pizarra con las cotizaciones y cuentas del mes.
-const pizarraDelMes = {
-  equiposActivos: 51,
-  pagosPendientes: 0,
-  cotizacionesMes: { total: 12, pendientes: 2, pausadas: 1, enProceso: 1, emitidas: 8 },
-  cuentasCobroMes: { total: 4, emitidas: 1, pausadas: 0, enProceso: 1, pagadas: 2 },
-};
+// La pizarra, con los equipos afuera.
+const pizarra = { equiposActivos: 51, pagosPendientes: 0 };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -114,18 +115,30 @@ describe("AdminForms — las cifras del menú", () => {
     expect(nube.leerTotales).not.toHaveBeenCalled();
   });
 
-  it("al de facturación, todas las cifras salen de una sola lectura de la pizarra", async () => {
-    nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
+  it("al de facturación: la cartera de la pizarra y el mes contado aparte", async () => {
+    nube.leerTotales.mockResolvedValueOnce(pizarra);
+    nube.contarCotizaciones.mockResolvedValueOnce(12);
+    nube.contarCuentas.mockResolvedValueOnce(4);
     comoRol("gestorFacturacion");
 
-    // Cotizaciones y cuentas del mes, junto con los equipos activos.
     expect(await screen.findByText("12")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByText("51")).toBeInTheDocument();
     expect(screen.getByText("EQUIPOS ACTIVOS")).toBeInTheDocument();
+    // Una lectura por cosa: la pizarra, las cotizaciones y las cuentas.
     expect(nube.leerTotales).toHaveBeenCalledTimes(1);
-    // Ya no se cuentan aparte.
+    expect(nube.contarCotizaciones).toHaveBeenCalledTimes(1);
+    expect(nube.contarCuentas).toHaveBeenCalledTimes(1);
+    // Sin el recuadro del catálogo, ni se cuenta.
     expect(nube.contarCatalogo).not.toHaveBeenCalled();
+  });
+
+  it("al gestor de equipos no se le cuentan cotizaciones ni cuentas", async () => {
+    comoRol("gestorEditor");
+
+    await waitFor(() => expect(nube.contarCatalogo).toHaveBeenCalledTimes(1));
+    expect(nube.contarCotizaciones).not.toHaveBeenCalled();
+    expect(nube.contarCuentas).not.toHaveBeenCalled();
   });
 
   it("el catálogo lo ven quienes trabajan con equipos, no facturación", async () => {
@@ -145,7 +158,8 @@ describe("AdminForms — las cifras del menú", () => {
   });
 
   it("en el computador las tarjetas solo muestran: no abren ninguna ventana", async () => {
-    nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
+    nube.leerTotales.mockResolvedValueOnce(pizarra);
+    nube.contarCotizaciones.mockResolvedValueOnce(12);
     const { usuario } = comoRol("administrador");
 
     await screen.findByText("12");
@@ -170,29 +184,16 @@ describe("AdminForms — las cifras del menú", () => {
       window.matchMedia = matchMediaOriginal;
     });
 
-    it("tocar «Cotizaciones» abre cuántas hay en cada estado", async () => {
-      nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
-      const { usuario } = comoRol("administrador");
+    // Sin detalle por estado (decisión del dueño, 2026-10-23): solo el número.
+    it("«Cotizaciones» y «Cuentas de cobro» no abren nada", async () => {
+      nube.contarCotizaciones.mockResolvedValueOnce(12);
+      nube.contarCuentas.mockResolvedValueOnce(4);
+      comoRol("administrador");
 
       await screen.findByText("12");
-      await usuario.click(screen.getByRole("button", { name: "COTIZACIONES" }));
-
-      const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent(`Cotizaciones ${nombreMesBogota()}`);
-      expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
-      expect(nube.leerTotales).toHaveBeenCalledTimes(1);
-    });
-
-    it("tocar «Cuentas de cobro» abre cuántas hay en cada estado, sin plata", async () => {
-      nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
-      const { usuario } = comoRol("administrador");
-
-      await screen.findByText("4");
-      await usuario.click(screen.getByRole("button", { name: "CUENTAS DE COBRO" }));
-
-      const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent(`Cuentas de cobro ${nombreMesBogota()}`);
-      expect(dialogo).toHaveTextContent("Emitida1Pausada0En proceso1Pagada2Total4");
+      expect(screen.getByText("4")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "COTIZACIONES" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "CUENTAS DE COBRO" })).not.toBeInTheDocument();
     });
 
     it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {

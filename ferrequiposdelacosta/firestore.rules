@@ -293,11 +293,10 @@ service cloud.firestore {
     // ---------------------------------------------------------------
     // La pizarra: los totales del panel del menú
     // ---------------------------------------------------------------
-    // Un solo documento (resumen/totales) con cuántos equipos están afuera,
-    // cuánta plata falta cobrar y, desde el 2026-10-22, las cotizaciones y
-    // cuentas de cobro del mes con su plata. Lo mantienen las Cloud Functions
-    // (ajustarTotalesPanel, recalcularTotalesPanel y las de cotizaciones y
-    // cuentas).
+    // Un solo documento (resumen/totales) con cuántos equipos están afuera y
+    // cuánta plata falta cobrar. Lo mantienen las Cloud Functions
+    // (ajustarTotalesPanel y recalcularTotalesPanel). Las cotizaciones y
+    // cuentas de cobro del mes ya no van acá: el menú las cuenta directo.
     //
     // Adentro no hay datos de clientes, pero sí la cartera de la empresa en
     // números. Hasta el 2026-10-22 lo leía cualquier empleado, incluido el

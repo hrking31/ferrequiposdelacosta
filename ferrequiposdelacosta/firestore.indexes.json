@@ -7,23 +7,6 @@
         { "fieldPath": "emitida", "order": "ASCENDING" },
         { "fieldPath": "creadaEn", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "cuentasCobro",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "emitida", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "creadaEn", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "cotizaciones",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
