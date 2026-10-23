@@ -1,60 +1,88 @@
-// LO QUE SE PUEDE SACAR DE UNA LISTA YA CARGADA (2026-10-22), para la columna
-// de la derecha del buzón de cotizaciones y de la lista de cuentas de cobro:
-// las que llevan más esperando, lo más pedido y quién atendió.
+// LO QUE SE PUEDE SACAR DE UNA LISTA YA CARGADA, para el recuadro de la
+// columna de la derecha del buzón de cotizaciones y de la lista de cuentas de
+// cobro. Lo eligió el dueño el 2026-10-23: en el buzón cuántas llegaron hoy y
+// esta semana, lo más pedido y quién pide más; en las cuentas, cuántas se
+// emitieron hoy y esta semana y quién debe más.
 //
 // Trabaja sobre lo que la pantalla YA trajo —las 50 más recientes, más lo que
-// se pida con "Cargar más"—, así que no cuesta ninguna lectura. Por lo mismo
-// no es "del mes": es de lo que se está viendo. El número exacto del mes lo
-// lleva el servidor en la pizarra (ver Utils/resumenDocumentos).
-
-import { formatearDias } from "./formato";
+// se pida con "Cargar más"—, así que no cuesta ninguna lectura. Hoy y esta
+// semana caben de sobra en esas 50.
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+// Colombia no cambia de hora en el año: siempre 5 horas menos que la hora
+// universal.
+const DESFASE_BOGOTA = 5 * 60 * 60 * 1000;
 
-// Cuántos días enteros pasaron desde un instante.
-export const diasDesde = (ms, ahora = Date.now()) =>
-  Math.max(0, Math.floor((ahora - ms) / DIA_MS));
+// Cuándo empezó, en Colombia, el día de un instante.
+export const inicioDelDiaBogota = (ms) => {
+  const local = ms - DESFASE_BOGOTA;
+  return local - (((local % DIA_MS) + DIA_MS) % DIA_MS) + DESFASE_BOGOTA;
+};
 
-// "hoy", "hace 1 día", "hace 3 días".
-export const textoEspera = (dias) => (dias === 0 ? "hoy" : `hace ${formatearDias(dias)}`);
+// Cuándo empezó, en Colombia, la semana de un instante: el lunes a las 12 a. m.
+export const inicioDeSemanaBogota = (ms) => {
+  const dia = inicioDelDiaBogota(ms);
+  const diaDeLaSemana = new Date(dia - DESFASE_BOGOTA).getUTCDay(); // 0 es domingo
+  return dia - ((diaDeLaSemana + 6) % 7) * DIA_MS;
+};
 
-// Las `cuantas` más viejas según su fecha, de la más vieja a la más nueva. Las
-// que no tienen fecha no entran: no se sabe cuánto llevan.
-export const masAntiguas = (documentos, fechaDe, cuantas = 4) =>
-  documentos
-    .filter((documento) => Number(fechaDe(documento)))
-    .sort((a, b) => fechaDe(a) - fechaDe(b))
-    .slice(0, cuantas);
+// Cuántos nacieron hoy y cuántos desde el lunes. Los que no tienen fecha no
+// cuentan.
+export const hoyYEstaSemana = (documentos, fechaDe, ahora = Date.now()) => {
+  const hoy = inicioDelDiaBogota(ahora);
+  const lunes = inicioDeSemanaBogota(ahora);
+  return documentos.reduce(
+    (cuenta, documento) => {
+      const fecha = Number(fechaDe(documento));
+      if (fecha >= hoy) cuenta.hoy += 1;
+      if (fecha >= lunes) cuenta.semana += 1;
+      return cuenta;
+    },
+    { hoy: 0, semana: 0 },
+  );
+};
 
-// Los equipos que más se piden, sumando la cantidad de cada renglón. El mismo
-// equipo escrito con otras mayúsculas o con espacios de más cuenta como uno.
-export const masPedidos = (documentos, cuantos = 5) => {
+// LOS EQUIPOS QUE APARECEN EN MÁS DOCUMENTOS: en cuántas cotizaciones está
+// cada uno, sin importar cuántas unidades pidieron. Antes se sumaban las
+// unidades y un solo pedido grande (300 chazas) se llevaba el ranking; el
+// dueño prefirió ver qué piden más clientes (2026-10-23).
+//
+// Un equipo repetido en dos renglones del mismo documento cuenta una vez. El
+// mismo equipo escrito con otras mayúsculas o con espacios de más cuenta como
+// uno.
+export const equiposEnMas = (documentos, cuantos = 5) => {
   const porEquipo = new Map();
   documentos.forEach((documento) => {
+    const vistos = new Set();
     (documento.items || []).forEach((item) => {
       const nombre = String(item.description || "").trim();
-      if (!nombre) return;
       const clave = nombre.toUpperCase();
+      if (!nombre || vistos.has(clave)) return;
+      vistos.add(clave);
       const previo = porEquipo.get(clave) || { nombre, cantidad: 0 };
-      previo.cantidad += Number(item.quantity) || 0;
+      previo.cantidad += 1;
       porEquipo.set(clave, previo);
     });
   });
   return [...porEquipo.values()]
-    .filter(({ cantidad }) => cantidad > 0)
     .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre))
     .slice(0, cuantos);
 };
 
-// Cuántos documentos tiene cada persona, de quien más tiene a quien menos.
-export const porPersona = (documentos, nombreDe) => {
+// Los que más aparecen —los clientes que más piden—, contando cuántos
+// documentos tiene cada uno. El mismo nombre escrito con otras mayúsculas o
+// con espacios de más cuenta como uno.
+export const masFrecuentes = (documentos, nombreDe, cuantos = 5) => {
   const conteos = new Map();
   documentos.forEach((documento) => {
     const nombre = String(nombreDe(documento) || "").trim();
     if (!nombre) return;
-    conteos.set(nombre, (conteos.get(nombre) || 0) + 1);
+    const clave = nombre.toUpperCase();
+    const previo = conteos.get(clave) || { nombre, cantidad: 0 };
+    previo.cantidad += 1;
+    conteos.set(clave, previo);
   });
-  return [...conteos.entries()]
-    .map(([nombre, cantidad]) => ({ nombre, cantidad }))
-    .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre));
+  return [...conteos.values()]
+    .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre))
+    .slice(0, cuantos);
 };

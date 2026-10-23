@@ -28,6 +28,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PaidIcon from "@mui/icons-material/Paid";
+import OutboxIcon from "@mui/icons-material/Outbox";
 import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -40,15 +41,10 @@ import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
 import ResumenLista from "../PanelLista/ResumenLista";
 import VistaPreviaDocumento from "../PanelLista/VistaPreviaDocumento";
+import { estiloElegida } from "../PanelLista/estiloElegida";
 import InsightsIcon from "@mui/icons-material/Insights";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import {
-  diasDesde,
-  masAntiguas,
-  masPedidos,
-  porPersona,
-  textoEspera,
-} from "../../Utils/resumenLista";
+import { hoyYEstaSemana, masFrecuentes } from "../../Utils/resumenLista";
 import { usePantallaCompacta, usePantallaBaja } from "../../Utils/pantalla";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -448,22 +444,25 @@ export default function ListaCuentasCobro() {
     display: "flex",
     flexDirection: "column",
   };
-  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): la tarjeta del mes, una de
-  // lo emitido sin pagar, y un recuadro que muestra la vista previa de la
-  // cuenta tocada o, sin ninguna, un resumen de la lista. Todo lo de la lista
-  // sale de lo que ya está cargado: ninguna lectura.
-  const sinPagar = todas.filter((cuenta) => cuenta.status === "creada");
-  const fechaDe = (cuenta) => cuenta.creadaEn;
-  const laMasVieja = masAntiguas(sinPagar, fechaDe, 1)[0];
-  const tarjetaSinPagar = {
-    etiqueta: "SIN PAGAR",
-    icono: <MoneyOffIcon />,
-    color: theme.palette.warning.main,
-    valor: sinPagar.length,
-    subtitulo: laMasVieja
-      ? `La más vieja: ${textoEspera(diasDesde(laMasVieja.creadaEn))}`
-      : "Ninguna sin pagar",
-  };
+  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): un recuadro que muestra
+  // la vista previa de la cuenta tocada o, sin ninguna, un resumen de la
+  // lista. Todo lo de la lista sale de lo que ya está cargado: ninguna lectura.
+  //
+  // Cuentas hechas hoy y esta semana: las que se emitieron, por el día en que
+  // se CREARON (no hay fecha de emisión; casi siempre es el mismo día), estén
+  // pagadas o no. Se llamaba "Emitidas" y confundía con el estado Emitida, que
+  // son las que esperan pago: el dueño le cambió el nombre (2026-10-23).
+  // Clientes con más cuentas sin pagar: cuántas emitidas sin pagar tiene cada uno,
+  // contadas y no sumadas en plata (los montos dependen de que cada quien
+  // anote bien lo pagado; ver DetalleCuentasCobro).
+  const emitidas = hoyYEstaSemana(
+    todas.filter((cuenta) => cuenta.emitida || ["creada", "pagada"].includes(cuenta.status)),
+    (cuenta) => cuenta.creadaEn,
+  );
+  const masDeben = masFrecuentes(
+    todas.filter((cuenta) => cuenta.status === "creada"),
+    (cuenta) => cuenta.empresa,
+  );
 
   const elegida = conPanel ? todas.find((cuenta) => cuenta.id === elegidaId) : null;
   // Tocar la tarjeta la elige; tocarla otra vez la suelta. Los botones de la
@@ -489,34 +488,34 @@ export default function ListaCuentasCobro() {
           : []),
         { label: "Total a cancelar", valor: formatearMoneda(saldoDe(elegida)), destacado: true },
       ]}
-      onSoltar={() => setElegidaId(null)}
     />
   ) : (
     <ResumenLista
+      // Son solo dos: repartidas a lo alto, la segunda se iba al fondo.
+      justificado={false}
       secciones={[
         {
-          titulo: "LLEVAN MÁS SIN PAGAR",
-          vacio: "Ninguna emitida sin pagar.",
-          filas: masAntiguas(sinPagar, fechaDe).map((cuenta) => ({
-            clave: cuenta.id,
-            izquierda: cuenta.empresa || "Cliente sin nombre",
-            derecha: textoEspera(diasDesde(cuenta.creadaEn)),
+          titulo: "CUENTAS HECHAS",
+          icono: <OutboxIcon />,
+          color: theme.palette.success.main,
+          forma: "cifras",
+          vacio: "",
+          filas: [
+            { clave: "hoy", izquierda: "Hoy", derecha: emitidas.hoy },
+            { clave: "semana", izquierda: "Esta semana", derecha: emitidas.semana },
+          ],
+        },
+        {
+          titulo: "CLIENTES CON MÁS CUENTAS SIN PAGAR",
+          icono: <MoneyOffIcon />,
+          color: theme.palette.warning.main,
+          forma: "ranking",
+          vacio: "Ninguna cuenta emitida sin pagar.",
+          filas: masDeben.map(({ nombre, cantidad }) => ({
+            clave: nombre,
+            izquierda: nombre,
+            derecha: cantidad,
           })),
-        },
-        {
-          titulo: "MÁS FACTURADO",
-          vacio: "Todavía no hay equipos facturados.",
-          filas: masPedidos(todas.filter((cuenta) => cuenta.emitida)).map(
-            ({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad }),
-          ),
-        },
-        {
-          titulo: "QUIÉN EMITIÓ",
-          vacio: "Ninguna emitida todavía.",
-          filas: porPersona(
-            todas.filter((cuenta) => cuenta.emitida),
-            (cuenta) => cuenta.emitidaPor?.nombre,
-          ).map(({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad })),
         },
       ]}
     />
@@ -528,9 +527,9 @@ export default function ListaCuentasCobro() {
         <Box sx={columnaVertical}>{lista}</Box>
         <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
           <PanelDocumentos
-            de="cuentas"
-            segunda={tarjetaSinPagar}
-            titulo={elegida ? "Vista previa" : "De la lista"}
+            onCerrar={elegida ? () => setElegidaId(null) : undefined}
+            titulo={elegida ? "Vista previa" : "Estadísticas"}
+            cantidad={elegida ? undefined : todas.length}
             icono={elegida ? <VisibilityIcon fontSize="small" /> : <InsightsIcon fontSize="small" />}
           >
             {recuadro}
@@ -890,21 +889,21 @@ export default function ListaCuentasCobro() {
                     borderColor: "divider",
                     borderRadius: (theme) =>
                       `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                    outline: "1px solid transparent",
                     ...(conPanel && { cursor: "pointer" }),
-                    // La elegida queda marcada con el acento, como en Seguimiento.
-                    ...(elegida?.id === cuenta.id && {
-                      outline: "2px solid",
-                      outlineColor: "custom.accent",
-                    }),
                     willChange: "transform, box-shadow",
                     transition:
                       "box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
                     "&:hover": {
-                      outlineColor: "custom.accent",
-                      boxShadow: (theme) =>
-                        theme.palette.custom.sombraTarjetaHover,
+                      // El borde de verdad, que es redondeado, se tiñe del acento.
+                      borderColor: "custom.accent",
+                      boxShadow: theme.palette.custom.sombraTarjetaHover,
                     },
+                    // La elegida, teñida del acento por dentro (ver estiloElegida).
+                    ...(elegida?.id === cuenta.id &&
+                      estiloElegida(
+                        theme.palette.custom.accent,
+                        theme.palette.custom.sombraTarjetaHover,
+                      )),
                   }}
                 >
                   <Box

@@ -41,15 +41,13 @@ import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
 import ResumenLista from "../PanelLista/ResumenLista";
 import VistaPreviaDocumento from "../PanelLista/VistaPreviaDocumento";
+import { estiloElegida } from "../PanelLista/estiloElegida";
 import InsightsIcon from "@mui/icons-material/Insights";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import {
-  diasDesde,
-  masAntiguas,
-  masPedidos,
-  porPersona,
-  textoEspera,
-} from "../../Utils/resumenLista";
+import MoveToInboxIcon from "@mui/icons-material/MoveToInbox";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import GroupsIcon from "@mui/icons-material/Groups";
+import { equiposEnMas, hoyYEstaSemana, masFrecuentes } from "../../Utils/resumenLista";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
@@ -397,24 +395,11 @@ export default function KioskAdminCotizaciones() {
     display: "flex",
     flexDirection: "column",
   };
-  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): la tarjeta del mes, una de
-  // lo que espera respuesta, y un recuadro que muestra la vista previa de la
-  // solicitud tocada o, sin ninguna, un resumen de la lista. Todo lo de la
-  // lista sale de lo que ya está cargado: ninguna lectura.
-  const sinResponder = todas.filter(
-    (quotation) => quotation.status === "pendiente" || quotation.status === "pausada",
-  );
+  // LA COLUMNA DE LA DERECHA (ver PanelDocumentos): un recuadro que muestra
+  // la vista previa de la solicitud tocada o, sin ninguna, un resumen de la
+  // lista. Todo lo de la lista sale de lo que ya está cargado: ninguna lectura.
   const fechaDe = (quotation) => quotation.createdAt;
-  const laMasVieja = masAntiguas(sinResponder, fechaDe, 1)[0];
-  const tarjetaSinResponder = {
-    etiqueta: "SIN RESPONDER",
-    icono: <PendingActionsIcon />,
-    color: theme.palette.warning.main,
-    valor: sinResponder.length,
-    subtitulo: laMasVieja
-      ? `La más vieja: ${textoEspera(diasDesde(laMasVieja.createdAt))}`
-      : "Ninguna esperando",
-  };
+  const llegaron = hoyYEstaSemana(todas, fechaDe);
 
   const elegida = conPanel ? todas.find((quotation) => quotation.id === elegidaId) : null;
   // Tocar la tarjeta la elige; tocarla otra vez la suelta. Los botones de la
@@ -441,36 +426,46 @@ export default function KioskAdminCotizaciones() {
           destacado: true,
         },
       ]}
-      onSoltar={() => setElegidaId(null)}
     />
   ) : (
     <ResumenLista
       secciones={[
         {
-          titulo: "LLEVAN MÁS ESPERANDO",
-          vacio: "Ninguna esperando respuesta.",
-          filas: masAntiguas(sinResponder, fechaDe).map((quotation) => ({
-            clave: quotation.id,
-            izquierda: quotation.empresa || "Cliente sin nombre",
-            derecha: textoEspera(diasDesde(quotation.createdAt)),
-          })),
+          // Todas las que entraron al buzón: las que pidió un cliente y las que
+          // hizo un usuario (no se guarda de dónde vino cada una). Por eso no
+          // "Llegaron", que daba a entender que todas eran de clientes; mismo
+          // nombre que "Cuentas hechas" en cuentas de cobro (dueño, 2026-10-23).
+          titulo: "COTIZACIONES HECHAS",
+          icono: <MoveToInboxIcon />,
+          color: theme.palette.info.main,
+          forma: "cifras",
+          vacio: "",
+          filas: [
+            { clave: "hoy", izquierda: "Hoy", derecha: llegaron.hoy },
+            { clave: "semana", izquierda: "Esta semana", derecha: llegaron.semana },
+          ],
         },
         {
-          titulo: "MÁS PEDIDOS",
+          titulo: "EQUIPOS MÁS SOLICITADOS",
+          icono: <TrendingUpIcon />,
+          color: theme.palette.success.main,
+          forma: "ranking",
           vacio: "Todavía no hay equipos pedidos.",
-          filas: masPedidos(todas).map(({ nombre, cantidad }) => ({
+          filas: equiposEnMas(todas).map(({ nombre, cantidad }) => ({
             clave: nombre,
             izquierda: nombre,
             derecha: cantidad,
           })),
         },
         {
-          titulo: "QUIÉN ATENDIÓ (EMITIDAS)",
-          vacio: "Ninguna emitida todavía.",
-          filas: porPersona(
-            todas.filter((quotation) => quotation.status === "creada"),
-            (quotation) => quotation.atendidoPor,
-          ).map(({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad })),
+          titulo: "CLIENTES QUE MÁS SOLICITAN",
+          icono: <GroupsIcon />,
+          color: theme.palette.custom.accent,
+          forma: "ranking",
+          vacio: "Todavía no hay solicitudes.",
+          filas: masFrecuentes(todas, (quotation) => quotation.empresa).map(
+            ({ nombre, cantidad }) => ({ clave: nombre, izquierda: nombre, derecha: cantidad }),
+          ),
         },
       ]}
     />
@@ -482,9 +477,9 @@ export default function KioskAdminCotizaciones() {
         <Box sx={columnaVertical}>{lista}</Box>
         <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
           <PanelDocumentos
-            de="cotizaciones"
-            segunda={tarjetaSinResponder}
-            titulo={elegida ? "Vista previa" : "De la lista"}
+            onCerrar={elegida ? () => setElegidaId(null) : undefined}
+            titulo={elegida ? "Vista previa" : "Estadísticas"}
+            cantidad={elegida ? undefined : todas.length}
             icono={elegida ? <VisibilityIcon fontSize="small" /> : <InsightsIcon fontSize="small" />}
           >
             {recuadro}
@@ -884,25 +879,23 @@ export default function KioskAdminCotizaciones() {
                 borderColor: "divider",
                 borderRadius: (theme) =>
                   `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                outline: "1px solid transparent",
                 ...(conPanel && { cursor: "pointer" }),
-                // La elegida queda marcada con el acento, como en Seguimiento.
-                ...(elegida?.id === quotation.id && {
-                  outline: "2px solid",
-                  outlineColor: "custom.accent",
-                }),
                 willChange: "transform, box-shadow",
                 transition:
                   "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
                 "&:hover": {
                   transform: "translateY(0)",
-                  outlineColor: "custom.accent",
-                  boxShadow: (theme) => theme.palette.custom.sombraTarjetaHover,
+                  // El borde de verdad, que es redondeado, se tiñe del acento.
+                  borderColor: "custom.accent",
+                  boxShadow: theme.palette.custom.sombraTarjetaHover,
                 },
 
                 "&:not(:hover)": {
                   transform: "translateY(0)",
                 },
+                // La elegida, teñida del acento por dentro (ver estiloElegida).
+                ...(elegida?.id === quotation.id &&
+                  estiloElegida(theme.palette.custom.accent, theme.palette.custom.sombraTarjetaHover)),
               }}
             >
               {/* Barra superior */}

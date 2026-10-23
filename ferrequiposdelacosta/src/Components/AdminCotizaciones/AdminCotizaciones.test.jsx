@@ -140,19 +140,20 @@ describe("AdminCotizaciones — la columna de la derecha", () => {
     window.matchMedia = matchMediaOriginal;
   });
 
-  it("sin nada elegido muestra el resumen; tocar una solicitud muestra su vista previa sin abrirla", async () => {
+  it("sin nada elegido muestra las estadísticas de lo cargado; tocar una solicitud muestra su vista previa sin abrirla", async () => {
     conCotizaciones([pendiente, emitida]);
-    const { usuario } = renderConProviders(<AdminCotizaciones />, {
-      estadoInicial: {
-        user: { uid: "u1", name: "Aida", role: "administrador", permisos: [] },
-        presence: { usuariosConectados: {} },
-        kpis: { cotizacionesMes: { total: 2, pendientes: 1, pausadas: 0, enProceso: 0, emitidas: 1 } },
-      },
-    });
+    const { usuario } = mostrar();
 
     await screen.findByText(/COT-1001/);
-    expect(screen.getByText("LLEVAN MÁS ESPERANDO")).toBeInTheDocument();
-    expect(screen.getByText("SIN RESPONDER")).toBeInTheDocument();
+    expect(screen.getByText("Estadísticas")).toBeInTheDocument();
+    expect(screen.getByText("Basado en las últimas 2")).toBeInTheDocument();
+    expect(screen.getByText("COTIZACIONES HECHAS")).toBeInTheDocument();
+    // Las dos piden andamios: el equipo cuenta por cotización, no por unidad.
+    expect(screen.getByText("EQUIPOS MÁS SOLICITADOS")).toBeInTheDocument();
+    expect(screen.getByText("ANDAMIO").nextSibling).toHaveTextContent("2");
+    expect(screen.getByText("CLIENTES QUE MÁS SOLICITAN")).toBeInTheDocument();
+    // Sin vista previa no hay X.
+    expect(screen.queryByRole("button", { name: "Volver al resumen" })).not.toBeInTheDocument();
 
     await usuario.click(screen.getByText(/COT-1001/));
 
@@ -161,8 +162,14 @@ describe("AdminCotizaciones — la columna de la derecha", () => {
     // Mirar no es abrir: no se marca "En proceso".
     expect(datos.marcarEnProceso).not.toHaveBeenCalled();
 
-    // Tocarla otra vez la suelta.
+    // La X de la esquina vuelve a las estadísticas.
+    await usuario.click(screen.getByRole("button", { name: "Volver al resumen" }));
+    expect(screen.getByText("Estadísticas")).toBeInTheDocument();
+
+    // Tocar la tarjeta también la elige y, otra vez, la suelta.
+    await usuario.click(screen.getByText(/COT-1001/));
+    expect(screen.getByText("Vista previa")).toBeInTheDocument();
     await usuario.click(screen.getAllByText(/COT-1001/)[0]);
-    expect(screen.getByText("LLEVAN MÁS ESPERANDO")).toBeInTheDocument();
+    expect(screen.getByText("Estadísticas")).toBeInTheDocument();
   });
 });
