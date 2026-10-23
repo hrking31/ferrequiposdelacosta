@@ -1,13 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "cuentasCobro",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "emitida", "order": "ASCENDING" },
-        { "fieldPath": "creadaEn", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }

@@ -63,8 +63,8 @@ const documentoDesdeFormulario = (cuenta, estado, usuario) => {
     // Que la cuenta se emitió es un HECHO, no un estado. El estado va y viene
     // —"enProceso" mientras alguien la tiene abierta, "pagada" cuando entra la
     // plata— pero haberse emitido no se deshace nunca. Guardarlo aparte deja
-    // contar las del mes con una sola consulta en vez de traerlas todas y
-    // mirarles el estado (ver Views/AdminForms/documentosDelMesDb).
+    // saber cuáles se emitieron sin depender del estado de hoy (ver
+    // ListaCuentasCobro).
     //
     // Se pone al emitir y no se saca: una vez true, se queda en true.
     ...(ESTADOS_YA_EMITIDA.includes(estado) ? { emitida: true } : {}),

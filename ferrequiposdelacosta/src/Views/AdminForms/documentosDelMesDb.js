@@ -29,14 +29,7 @@ const contar = async (consulta) => (await getCountFromServer(consulta)).data().c
 export const contarCotizacionesDelMes = () =>
   contar(query(collection(db, "cotizaciones"), where("createdAt", ">=", inicioDeMesBogota())));
 
-// Solo las EMITIDAS: un borrador no se facturó. `emitida` no se deshace aunque
-// la cuenta vuelva a quedar pausada (ver cuentasCobroDb). Esta pregunta usa el
-// índice (emitida, creadaEn) de firestore.indexes.json.
+// Todas las HECHAS este mes, en cualquier estado, igual que las cotizaciones
+// (pedido del dueño, 2026-10-23): también las pausadas que no se emitieron.
 export const contarCuentasCobroDelMes = () =>
-  contar(
-    query(
-      collection(db, "cuentasCobro"),
-      where("emitida", "==", true),
-      where("creadaEn", ">=", inicioDeMesBogota()),
-    ),
-  );
+  contar(query(collection(db, "cuentasCobro"), where("creadaEn", ">=", inicioDeMesBogota())));
