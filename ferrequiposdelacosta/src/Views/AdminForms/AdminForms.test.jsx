@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import RolesPermisos from "../../Components/RolesPermisos/RolesPermisos";
 import { authContext } from "../../Context/useAuth";
@@ -208,6 +208,30 @@ describe("AdminForms — las cifras del menú", () => {
       const dialogo = await screen.findByRole("dialog");
       expect(dialogo).toHaveTextContent("CUENTAS DE COBRO4Este mes");
       expect(nube.contarCuentas).toHaveBeenCalledTimes(1);
+    });
+
+    // Pedido del dueño, 2026-10-23: sin botón "Cerrar" al pie. La tarjeta sola
+    // no lleva nada; los que muestran datos, una X arriba.
+    it("la tarjeta sola no trae botón de cerrar", async () => {
+      const { usuario } = comoRol("administrador");
+
+      await usuario.click(screen.getByRole("button", { name: "COTIZACIONES" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(within(dialogo).queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("el detalle se cierra con la X de arriba", async () => {
+      nube.leerTotales.mockResolvedValueOnce({ equiposActivos: 51, pagosPendientes: 0 });
+      const { usuario } = comoRol("administrador");
+
+      await screen.findByText("51");
+      await usuario.click(screen.getByRole("button", { name: "EQUIPOS ACTIVOS" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(within(dialogo).queryByText("Cerrar")).not.toBeInTheDocument();
+      await usuario.click(within(dialogo).getByRole("button", { name: "Cerrar" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 
     it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {

@@ -3,10 +3,11 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Stack,
+  Tooltip,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -34,6 +35,7 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
+import CloseIcon from "@mui/icons-material/Close";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import { contarCotizacionesDelMes, contarCuentasCobroDelMes } from "./documentosDelMesDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
@@ -593,14 +595,34 @@ export default function AdminForms() {
         fullWidth
         maxWidth="xs"
       >
+        {/* LA X ARRIBA, al lado del título, y sin botón "Cerrar" al pie (pedido
+            del dueño, 2026-10-23), como en la historia del equipo. La tarjeta
+            sola no lleva ni eso: se cierra tocando afuera. */}
         {TITULOS_DETALLE[detalle.cual] && (
-          <DialogTitle sx={{ color: theme.palette.custom.accent }}>
-            {TITULOS_DETALLE[detalle.cual]}
+          <DialogTitle
+            sx={{
+              color: theme.palette.custom.accent,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              pr: 1,
+            }}
+          >
+            <Box component="span" sx={{ flex: 1 }}>
+              {TITULOS_DETALLE[detalle.cual]}
+            </Box>
+            <Tooltip title="Cerrar">
+              {/* El rojo del tema para cancelar y salir, el mismo de "Cerrar
+                  sesión" en el encabezado. */}
+              <IconButton size="small" color="error" aria-label="Cerrar" onClick={cerrarDetalle}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </DialogTitle>
         )}
         <DialogContent>
           {tarjetaEnVentana && (
-            <Box sx={{ display: "flex", justifyContent: "center", pt: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
               <KpiCard {...tarjetaEnVentana} onClick={undefined} />
             </Box>
           )}
@@ -616,11 +638,6 @@ export default function AdminForms() {
             />
           )}
         </DialogContent>
-        <DialogActions sx={{ justifyContent: "center", px: 3, pb: 3 }}>
-          <Button variant="outlined" onClick={cerrarDetalle}>
-            Cerrar
-          </Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );
