@@ -117,7 +117,13 @@ export default function Register() {
     <Box
       component="form"
       onSubmit={handleSubmit}
+      // Ancho FIJO hasta 400 (2026-10-22). Sin `width` el formulario medía lo
+      // que su renglón más largo, y la ayuda de la contraseña cambia de largo
+      // al escribir: todo el formulario se angostaba y ensanchaba con cada
+      // letra. Así la ayuda larga se parte en dos renglones.
+      width="100%"
       maxWidth={400}
+      boxSizing="border-box"
       mx="auto"
       p={3}
       pt={{ xs: 6, sm: 3 }}
