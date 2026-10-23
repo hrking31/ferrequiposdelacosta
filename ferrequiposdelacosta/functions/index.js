@@ -1083,6 +1083,12 @@ export const ajustarCuentasCobroPanel = onDocumentWritten(
 // (firestore.indexes.json). Sin desplegarlos, esto falla y el mensaje del
 // registro trae el enlace para crearlos.
 //
+// OJO CON LAS SUMAS (pasó al publicarlo, 2026-10-22): para sumar un campo, el
+// campo tiene que estar TAMBIÉN en el índice, no solo los de las condiciones.
+// Y un documento al que le falte uno de los cuatro campos sumados queda fuera
+// de esa pregunta entera. No pasa con las cuentas del mes: todas nacen con los
+// cuatro en cero (ver cuentacobroSlice).
+//
 // Escribe solo el mes de hoy y REEMPLAZA los dos mapas (mergeFields): de paso
 // se van los meses viejos, que ya nadie lee.
 //
