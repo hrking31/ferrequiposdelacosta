@@ -1,29 +1,32 @@
 import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
-import { formatearMoneda } from "../../Utils/formato";
 import DetalleCotizaciones from "./DetalleCotizaciones";
 import DetalleCuentasCobro from "./DetalleCuentasCobro";
 import DetalleCatalogo from "./DetalleCatalogo";
 
-// La plata como la deja toHaveTextContent: el espacio especial del formato
-// queda como un espacio común.
-const plata = (monto) => formatearMoneda(monto).replace(/\s+/g, " ");
-
 // Los detalles de Cotizaciones, Cuentas de cobro y el catálogo. Lo que importa:
-// que el total al pie sea el mismo número del recuadro, y que un mes sin nada
-// no se confunda con una pizarra que todavía no tiene el dato.
+// que vayan todos los estados —también los que están en cero, que es lo que
+// los vuelve útiles para revisar—, que el total al pie sea el mismo número del
+// recuadro, y que un mes sin nada no se confunda con una pizarra que todavía
+// no tiene el dato.
 describe("DetalleCotizaciones", () => {
-  it("por atender, cotizadas y el total", () => {
+  it("los cuatro estados en orden, con el total", () => {
     const { container } = renderConProviders(
-      <DetalleCotizaciones cotizacionesMes={{ total: 12, cotizadas: 9, porAtender: 3 }} />,
+      <DetalleCotizaciones
+        cotizacionesMes={{ total: 35, pendientes: 0, pausadas: 0, enProceso: 3, emitidas: 32 }}
+      />,
     );
 
-    expect(container).toHaveTextContent("Por atender3Cotizadas9Total12");
+    expect(container).toHaveTextContent(
+      "Pendiente0Pausada0En proceso3Emitida32Total35",
+    );
   });
 
   it("un mes sin cotizaciones lo dice", () => {
     renderConProviders(
-      <DetalleCotizaciones cotizacionesMes={{ total: 0, cotizadas: 0, porAtender: 0 }} />,
+      <DetalleCotizaciones
+        cotizacionesMes={{ total: 0, pendientes: 0, pausadas: 0, enProceso: 0, emitidas: 0 }}
+      />,
     );
 
     expect(screen.getByText("Todavía no hay cotizaciones este mes.")).toBeInTheDocument();
@@ -37,38 +40,21 @@ describe("DetalleCotizaciones", () => {
 });
 
 describe("DetalleCuentasCobro", () => {
-  it("por cobrar y pagadas, cada una con su plata, y el total", () => {
+  it("los cuatro estados, sin plata, con el total", () => {
     const { container } = renderConProviders(
       <DetalleCuentasCobro
-        cuentasCobroMes={{
-          total: 4,
-          monto: 2750000,
-          porCobrar: 2,
-          montoPorCobrar: 1800000,
-          pagadas: 2,
-          montoPagadas: 950000,
-        }}
+        cuentasCobroMes={{ total: 16, emitidas: 12, pausadas: 0, enProceso: 2, pagadas: 2 }}
       />,
     );
 
-    expect(container).toHaveTextContent(
-      `Por cobrar2 · ${plata(1800000)}` +
-        `Pagadas2 · ${plata(950000)}` +
-        `Total4 · ${plata(2750000)}`,
-    );
+    expect(container).toHaveTextContent("Emitida12Pausada0En proceso2Pagada2Total16");
+    expect(container).not.toHaveTextContent("$");
   });
 
   it("un mes sin cuentas emitidas lo dice", () => {
     renderConProviders(
       <DetalleCuentasCobro
-        cuentasCobroMes={{
-          total: 0,
-          monto: 0,
-          porCobrar: 0,
-          montoPorCobrar: 0,
-          pagadas: 0,
-          montoPagadas: 0,
-        }}
+        cuentasCobroMes={{ total: 0, emitidas: 0, pausadas: 0, enProceso: 0, pagadas: 0 }}
       />,
     );
 

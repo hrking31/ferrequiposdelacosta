@@ -154,8 +154,8 @@ export default function AdminForms() {
       color: theme.palette.info.main,
       valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
-      // Abre cuántas faltan por atender y cuántas se cotizaron. Viene en la
-      // misma pizarra: no cuesta ninguna lectura más.
+      // Abre cuántas hay en cada estado. Viene en la misma pizarra: no cuesta
+      // ninguna lectura más.
       onClick: abrirDetalle("cotizaciones"),
     },
     puedeVerCuentasCobro && {
@@ -164,7 +164,7 @@ export default function AdminForms() {
       color: theme.palette.success.main,
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
-      // Abre cuántas faltan por cobrar y cuántas se pagaron, con su plata.
+      // Abre cuántas hay en cada estado (sin plata: ver DetalleCuentasCobro).
       onClick: abrirDetalle("cuentas"),
     },
     puedeVerCartera && {

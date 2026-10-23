@@ -56,15 +56,8 @@ const comoRol = (role, { equipos = [] } = {}) =>
 const pizarraDelMes = {
   equiposActivos: 51,
   pagosPendientes: 0,
-  cotizacionesMes: { total: 12, cotizadas: 9, porAtender: 3 },
-  cuentasCobroMes: {
-    total: 4,
-    monto: 2750000,
-    porCobrar: 2,
-    montoPorCobrar: 1800000,
-    pagadas: 2,
-    montoPagadas: 950000,
-  },
+  cotizacionesMes: { total: 12, pendientes: 2, pausadas: 1, enProceso: 1, emitidas: 8 },
+  cuentasCobroMes: { total: 4, emitidas: 1, pausadas: 0, enProceso: 1, pagadas: 2 },
 };
 
 beforeEach(() => {
@@ -135,7 +128,7 @@ describe("AdminForms — las cifras del menú", () => {
     expect(nube.contarCatalogo).not.toHaveBeenCalled();
   });
 
-  it("tocar «Cotizaciones» abre las por atender y las cotizadas", async () => {
+  it("tocar «Cotizaciones» abre cuántas hay en cada estado", async () => {
     nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
     const { usuario } = comoRol("administrador");
 
@@ -144,11 +137,11 @@ describe("AdminForms — las cifras del menú", () => {
 
     const dialogo = await screen.findByRole("dialog");
     expect(dialogo).toHaveTextContent("Cotizaciones del mes");
-    expect(dialogo).toHaveTextContent("Por atender3Cotizadas9Total12");
+    expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
     expect(nube.leerTotales).toHaveBeenCalledTimes(1);
   });
 
-  it("tocar «Cuentas de cobro» abre las por cobrar y las pagadas, con su plata", async () => {
+  it("tocar «Cuentas de cobro» abre cuántas hay en cada estado, sin plata", async () => {
     nube.leerTotales.mockResolvedValueOnce(pizarraDelMes);
     const { usuario } = comoRol("administrador");
 
@@ -157,11 +150,7 @@ describe("AdminForms — las cifras del menú", () => {
 
     const dialogo = await screen.findByRole("dialog");
     expect(dialogo).toHaveTextContent("Cuentas de cobro del mes");
-    expect(dialogo).toHaveTextContent(
-      `Por cobrar2 · ${plata(1800000)}` +
-        `Pagadas2 · ${plata(950000)}` +
-        `Total4 · ${plata(2750000)}`,
-    );
+    expect(dialogo).toHaveTextContent("Emitida1Pausada0En proceso1Pagada2Total4");
   });
 
   it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {
@@ -253,7 +242,7 @@ describe("AdminForms — las cifras del menú", () => {
       await usuario.click(screen.getByRole("button", { name: "COTIZACIONES" }));
 
       const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent("Por atender3Cotizadas9Total12");
+      expect(dialogo).toHaveTextContent("Pendiente2Pausada1En proceso1Emitida8Total12");
     });
 
     it("tocar «Cuentas de cobro» en la franja abre el mismo detalle", async () => {

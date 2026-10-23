@@ -18,11 +18,12 @@ import { createSlice } from "@reduxjs/toolkit";
 // recarga nunca muestra cifras de la sesión de otra persona.
 const initialState = {
   cotizaciones: null,
-  // El detalle del mes: { total, cotizadas, porAtender }.
+  // Cuántas hay en cada estado este mes: { total, pendientes, pausadas,
+  // enProceso, emitidas }.
   cotizacionesMes: null,
   cuentasCobro: null,
-  // El detalle del mes: { total, monto, porCobrar, montoPorCobrar, pagadas,
-  // montoPagadas }.
+  // Cuántas emitidas hay en cada estado este mes: { total, emitidas, pausadas,
+  // enProceso, pagadas }.
   cuentasCobroMes: null,
   equiposActivos: null,
   // El detalle de equipos activos por equipo, { nombre: unidades }.
