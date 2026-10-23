@@ -2,8 +2,9 @@ import { createSlice } from "@reduxjs/toolkit";
 
 // Los últimos números que se vieron en los recuadros del menú (AdminForms).
 //
-// Esto NO es la fuente de la verdad: los cuatro números se vuelven a consultar
-// cada vez que se entra al menú. Lo único que hace este slice es evitar que se
+// Esto NO es la fuente de la verdad: los números se vuelven a consultar cada
+// vez que se entra al menú (desde el 2026-10-22, todos en la misma lectura de
+// la pizarra, salvo el del catálogo). Lo único que hace este slice es evitar que se
 // vean tres puntitos mientras esa consulta va y vuelve — se muestra lo último
 // conocido y se reemplaza en cuanto llega el dato fresco.
 //
@@ -17,7 +18,12 @@ import { createSlice } from "@reduxjs/toolkit";
 // recarga nunca muestra cifras de la sesión de otra persona.
 const initialState = {
   cotizaciones: null,
+  // El detalle del mes: { total, cotizadas, porAtender }.
+  cotizacionesMes: null,
   cuentasCobro: null,
+  // El detalle del mes: { total, monto, porCobrar, montoPorCobrar, pagadas,
+  // montoPagadas }.
+  cuentasCobroMes: null,
   equiposActivos: null,
   // El detalle de equipos activos por equipo, { nombre: unidades }.
   equiposPorTipo: null,

@@ -13,7 +13,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getCountFromServer,
   getDocs,
   limit,
   onSnapshot,
@@ -21,7 +20,6 @@ import {
   query,
   startAfter,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 
@@ -66,7 +64,7 @@ const documentoDesdeFormulario = (cuenta, estado, usuario) => {
     // —"enProceso" mientras alguien la tiene abierta, "pagada" cuando entra la
     // plata— pero haberse emitido no se deshace nunca. Guardarlo aparte deja
     // contar las del mes con una sola consulta en vez de traerlas todas y
-    // mirarles el estado acá (ver contarCuentasCobroDelMes).
+    // mirarles el estado (ver Utils/resumenDocumentos).
     //
     // Se pone al emitir y no se saca: una vez true, se queda en true.
     ...(ESTADOS_YA_EMITIDA.includes(estado) ? { emitida: true } : {}),
@@ -188,39 +186,3 @@ export const marcarCuentaPagada = (cuentaId, pagada, usuario) =>
       ? { uid: usuario?.uid || null, nombre: usuario?.name || "" }
       : null,
   });
-
-// Cuántas cuentas se EMITIERON en el mes corriente, para el panel del menú.
-// Los borradores no cuentan: lo que interesa es cuánto se facturó, no cuántas
-// quedaron a medias.
-//
-// De los cuatro recuadros del menú este era el único que costaba N lecturas
-// por visita —una por cada cuenta del mes—, porque la condición era compuesta
-// y el estado se miraba acá:
-//
-//   status === "creada" || (status === "enProceso" && statusPrevio === "creada")
-//
-// Ese enredo existía porque el estado SE MUEVE: mientras alguien tiene la
-// cuenta abierta dice "enProceso", y sin la segunda parte el número del mes
-// bajaba solo porque alguien la abrió a mirar. Con el campo `emitida` —un
-// hecho que no se deshace— la condición vuelve a ser simple y la cuenta la
-// hace el servidor: 1 lectura, sin traer un solo documento.
-//
-// Mismo patrón que el campo `cerrada` de las facturas.
-//
-// Ojo: necesita el índice compuesto (emitida + creadaEn) en Firestore. Sin él
-// la consulta falla, y el mensaje de error trae el enlace para crearlo.
-export const contarCuentasCobroDelMes = async () => {
-  const inicioDeMes = new Date();
-  inicioDeMes.setDate(1);
-  inicioDeMes.setHours(0, 0, 0, 0);
-
-  const snap = await getCountFromServer(
-    query(
-      collection(db, COLECCION),
-      where("emitida", "==", true),
-      where("creadaEn", ">=", inicioDeMes.getTime()),
-    ),
-  );
-
-  return snap.data().count;
-};

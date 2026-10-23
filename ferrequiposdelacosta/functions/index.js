@@ -7,7 +7,12 @@ import {
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {initializeApp} from "firebase-admin/app";
-import {getFirestore, FieldPath, FieldValue} from "firebase-admin/firestore";
+import {
+  getFirestore,
+  AggregateField,
+  FieldPath,
+  FieldValue,
+} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 import {getMessaging} from "firebase-admin/messaging";
 import {getDatabase, ServerValue} from "firebase-admin/database";
@@ -37,6 +42,17 @@ import {datosFactura} from "./compartido/facturaModelo.js";
 import RolesPermisos from "./compartido/rolesPermisos.js";
 // Lo que se le exige a una contraseña, la misma copia que usa el formulario.
 import {faltanEnLaClave} from "./compartido/requisitosClave.js";
+// Las cotizaciones y cuentas de cobro del mes en la pizarra: la misma copia
+// con la que la app las lee.
+import {
+  aporteCotizacion,
+  aporteCuentaCobro,
+  cotizacionesDesdeConteos,
+  cuentasCobroDesdeSumas,
+  diferenciaPorMes,
+  inicioDeMesBogota,
+  mesBogota,
+} from "./compartido/resumenDocumentos.js";
 
 initializeApp();
 
@@ -978,6 +994,193 @@ export const sellarCambioDeClientes = onDocumentWritten(
           {clientesActualizadoEn: Date.now()},
           {merge: true},
       );
+    },
+);
+
+// LAS COTIZACIONES Y CUENTAS DE COBRO DEL MES (2026-10-22).
+//
+// El menú las contaba preguntándole a la base en cada visita: 2 lecturas cada
+// vez que alguien entraba. Ahora van en la pizarra, por mes y con su detalle
+// (cotizadas y por atender, pagadas y por cobrar), y el menú las recibe en la
+// misma lectura de siempre. Las cuentas están en compartido/resumenDocumentos.
+//
+// Mismo método que ajustarTotalesPanel con las facturas: el aviso trae cómo
+// estaba el documento y cómo quedó, y se suma la diferencia. Cero lecturas y,
+// si algo se movió, una escritura. Abrir un documento a mirarlo no mueve nada
+// (se cuenta en el estado que traía), así que ahí no se escribe.
+/**
+ * Suma en la pizarra lo que cambió en cada mes.
+ * @param {string} campo El mapa de la pizarra: "cotizacionesPorMes" o
+ *     "cuentasCobroPorMes".
+ * @param {Object} cambios Lo que se movió: {"2026-10": {total: 1}}.
+ * @return {Promise} Promesa vacía.
+ */
+async function ajustarPorMes(campo, cambios) {
+  if (Object.keys(cambios).length === 0) return;
+
+  // Con increment, como los demás números de la pizarra: dos cambios en el
+  // mismo segundo se aplican los dos.
+  await refTotales().set(
+      {
+        [campo]: Object.fromEntries(
+            Object.entries(cambios).map(([mes, valores]) => [
+              mes,
+              Object.fromEntries(
+                  Object.entries(valores).map(([clave, valor]) => [
+                    clave,
+                    FieldValue.increment(valor),
+                  ]),
+              ),
+            ]),
+        ),
+      },
+      {merge: true},
+  );
+}
+
+export const ajustarCotizacionesPanel = onDocumentWritten(
+    "cotizaciones/{cotizacionId}",
+    async (event) => {
+      const antes = event.data?.before?.data() ?? null;
+      const despues = event.data?.after?.data() ?? null;
+
+      await ajustarPorMes(
+          "cotizacionesPorMes",
+          diferenciaPorMes(aporteCotizacion(antes), aporteCotizacion(despues)),
+      );
+    },
+);
+
+export const ajustarCuentasCobroPanel = onDocumentWritten(
+    "cuentasCobro/{cuentaId}",
+    async (event) => {
+      const antes = event.data?.before?.data() ?? null;
+      const despues = event.data?.after?.data() ?? null;
+
+      await ajustarPorMes(
+          "cuentasCobroPorMes",
+          diferenciaPorMes(
+              aporteCuentaCobro(antes),
+              aporteCuentaCobro(despues),
+          ),
+      );
+    },
+);
+
+// EL RECUENTO de las cotizaciones y cuentas del mes: lunes, miércoles y
+// viernes a las 3 de la mañana. Decisión del dueño (2026-10-22): los ajustes
+// de arriba ya llevan el número; esto es solo por si alguno se perdió, y no
+// vale la pena pagarlo todas las noches.
+//
+// No lee los documentos: les hace a la base preguntas de contar y sumar, que
+// cuestan 1 lectura cada una sin importar cuántos haya. Son 6 por recuento.
+//
+// Va aparte del repaso de las facturas porque corre otros días, y porque a
+// diferencia de aquel no hace falta para el cambio de mes: los números van
+// guardados por mes y el menú lee el de hoy.
+//
+// Las preguntas con más de una condición necesitan sus índices
+// (firestore.indexes.json). Sin desplegarlos, esto falla y el mensaje del
+// registro trae el enlace para crearlos.
+//
+// Escribe solo el mes de hoy y REEMPLAZA los dos mapas (mergeFields): de paso
+// se van los meses viejos, que ya nadie lee.
+//
+// Para llenar la pizarra la primera vez, después de desplegar: Cloud Scheduler
+// → recontarDocumentosDelMes → Forzar ejecución.
+export const recontarDocumentosDelMes = onSchedule(
+    {schedule: "0 3 * * 1,3,5", timeZone: "America/Bogota"},
+    async () => {
+      const db = getFirestore();
+      const ahora = Date.now();
+      const mes = mesBogota(ahora);
+      const desde = inicioDeMesBogota(ahora);
+
+      const cotizaciones = db
+          .collection("cotizaciones")
+          .where("createdAt", ">=", desde);
+      const cuentas = db
+          .collection("cuentasCobro")
+          .where("emitida", "==", true)
+          .where("creadaEn", ">=", desde);
+
+      // Una cuenta abierta dice "enProceso": se pregunta aparte por las que
+      // venían de cotizadas o de pagadas, que se cuentan en ese estado.
+      const abiertasDe = (consulta, estado) =>
+        consulta
+            .where("status", "==", "enProceso")
+            .where("statusPrevio", "==", estado);
+
+      const contar = async (consulta) =>
+        (await consulta.count().get()).data().count;
+
+      // Cuántas y cuánto suman, en una sola pregunta.
+      const sumar = async (consulta) => {
+        const datos = (
+          await consulta
+              .aggregate({
+                cantidad: AggregateField.count(),
+                total: AggregateField.sum("total"),
+                pagado: AggregateField.sum("pagado"),
+                abonos: AggregateField.sum("abonos"),
+                deposito: AggregateField.sum("depositoPorCobrar"),
+              })
+              .get()
+        ).data();
+        return Object.fromEntries(
+            Object.entries(datos).map(([clave, valor]) => [
+              clave,
+              Number(valor) || 0,
+            ]),
+        );
+      };
+
+      const [
+        todas,
+        cotizadas,
+        cotizadasAbiertas,
+        emitidas,
+        pagadas,
+        pagadasAbiertas,
+      ] = await Promise.all([
+        contar(cotizaciones),
+        contar(cotizaciones.where("status", "==", "creada")),
+        contar(abiertasDe(cotizaciones, "creada")),
+        sumar(cuentas),
+        sumar(cuentas.where("status", "==", "pagada")),
+        sumar(abiertasDe(cuentas, "pagada")),
+      ]);
+
+      const delMesCotizaciones = cotizacionesDesdeConteos({
+        todas,
+        cotizadas,
+        cotizadasAbiertas,
+      });
+      const delMesCuentas = cuentasCobroDesdeSumas({
+        emitidas,
+        pagadas,
+        pagadasAbiertas,
+      });
+
+      await refTotales().set(
+          {
+            cotizacionesPorMes: {[mes]: delMesCotizaciones},
+            cuentasCobroPorMes: {[mes]: delMesCuentas},
+            documentosRecontadosEn: ahora,
+          },
+          {
+            mergeFields: [
+              "cotizacionesPorMes",
+              "cuentasCobroPorMes",
+              "documentosRecontadosEn",
+            ],
+          },
+      );
+
+      console.log(`Cotizaciones y cuentas de ${mes} recontadas:`, {
+        cotizaciones: delMesCotizaciones,
+        cuentas: delMesCuentas,
+      });
     },
 );
 

@@ -15,10 +15,14 @@ import KpiCard from "../../Components/KpiCard/KpiCard";
 import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
+import DetalleCotizaciones from "../../Components/KpiCard/DetalleCotizaciones";
+import DetalleCuentasCobro from "../../Components/KpiCard/DetalleCuentasCobro";
+import DetalleCatalogo from "../../Components/KpiCard/DetalleCatalogo";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
 import { useDispatch, useSelector } from "react-redux";
 import { setKpis } from "../../Store/Slices/kpisSlice";
+import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import BuildIcon from "@mui/icons-material/Build";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -32,8 +36,6 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ManageSearchIcon from "@mui/icons-material/ManageSearch";
-import { contarCuentasCobroDelMes } from "../../Components/CuentaDeCobro/cuentasCobroDb";
-import { contarCotizacionesDelMes } from "../../Components/AdminCotizaciones/cotizacionesDb";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
@@ -60,25 +62,41 @@ export default function AdminForms() {
   // el permiso, el recuadro no existe y no se pregunta nada.
   const puedeVerCotizaciones = permisos.includes("cotizacion");
   const puedeVerCuentasCobro = permisos.includes("cuentaCombro");
+  // Equipos activos y Pagos pendientes son la cartera de la empresa: desde el
+  // 2026-10-22, solo para quien hace el seguimiento de clientes. Quien solo
+  // edita el catálogo no tiene por qué ver equipos alquilados ni plata.
+  const puedeVerCartera = permisos.includes("gestionCartera");
+  // Todos esos números salen de la pizarra, que las reglas dejan leer solo a
+  // esos roles. Sin ninguno de los tres permisos no se la pide: sería una
+  // lectura rechazada.
+  const leePizarra = puedeVerCartera || puedeVerCotizaciones || puedeVerCuentasCobro;
   // El catálogo es la única colección que puede leer cualquiera. Su recuadro
   // aparece solo para quien no tiene ninguno de los otros dos —hoy, el
   // gestorEditor—, para que no se encuentre el menú sin panel. A quien ya
   // tiene los demás no se le agrega uno más, que apretaría la fila.
   const mostrarCatalogo = !puedeVerCotizaciones && !puedeVerCuentasCobro;
 
-  // Equipos Activos y Pagos Pendientes salen de la PIZARRA: un documento con
-  // los dos números, que mantiene el servidor. Antes se calculaban acá
-  // leyendo todos los clientes y todas sus facturas en CADA visita al menú.
-  //
-  // Como la pizarra tiene solo números —ni un dato de cliente— la puede leer
-  // cualquier empleado con sesión. Por eso estos dos recuadros ya no dependen
-  // del permiso de clientes: hasta el gestorEditor los ve.
+  // Equipos Activos, Pagos Pendientes y —desde el 2026-10-22— Cotizaciones y
+  // Cuentas de Cobro salen de la PIZARRA: un documento con los números y su
+  // detalle, que mantiene el servidor. Antes los dos primeros se calculaban acá
+  // leyendo todos los clientes y todas sus facturas en CADA visita al menú, y
+  // los otros dos costaban una consulta cada uno: ahora es 1 lectura en total.
   const [stats, setStats] = useState(kpisGuardados);
-  // El detalle del diálogo: cuál ("equipos" o "pagos") y si está abierto. Al
-  // cerrar se conserva cuál era, para que el título no cambie mientras el
-  // diálogo se desvanece.
+  // El detalle del diálogo: cuál ("cotizaciones", "cuentas", "equipos",
+  // "pagos" o "catalogo") y si está abierto. Al cerrar se conserva cuál era,
+  // para que el título no cambie mientras el diálogo se desvanece.
   const [detalle, setDetalle] = useState({ abierto: false, cual: "equipos" });
+  const abrirDetalle = (cual) => () => setDetalle({ abierto: true, cual });
   const cerrarDetalle = () => setDetalle((previo) => ({ ...previo, abierto: false }));
+
+  // El catálogo en memoria, el mismo de la tienda y de editar o eliminar
+  // equipos. Para ver los nombres se usa ese; si todavía no se bajó en esta
+  // sesión, se pide al abrir el detalle y queda para esas pantallas.
+  const { equipos: catalogo, loading: cargandoCatalogo } = useSelector((state) => state.equipos);
+  const abrirCatalogo = () => {
+    if (catalogo.length === 0 && !cargandoCatalogo) dispatch(fetchEquiposData());
+    setDetalle({ abierto: true, cual: "catalogo" });
+  };
 
   useEffect(() => {
     let cancelado = false;
@@ -89,36 +107,21 @@ export default function AdminForms() {
       // recuadros igual muestran su número.
       const frescos = {};
 
-      try {
-        const totales = await leerTotalesPanel();
-        if (totales) {
-          frescos.equiposActivos = totales.equiposActivos;
-          frescos.equiposPorTipo = totales.equiposPorTipo;
-          frescos.pagosPendientes = totales.pagosPendientes;
-          frescos.pagosPorEstado = totales.pagosPorEstado;
-        }
-      } catch (error) {
-        console.error("Error al leer los totales del panel:", error);
-      }
-
-      if (puedeVerCuentasCobro) {
+      if (leePizarra) {
         try {
-          frescos.cuentasCobro = await contarCuentasCobroDelMes();
+          const totales = await leerTotalesPanel();
+          if (totales) {
+            frescos.equiposActivos = totales.equiposActivos;
+            frescos.equiposPorTipo = totales.equiposPorTipo;
+            frescos.pagosPendientes = totales.pagosPendientes;
+            frescos.pagosPorEstado = totales.pagosPorEstado;
+            frescos.cotizacionesMes = totales.cotizacionesMes;
+            frescos.cotizaciones = totales.cotizacionesMes?.total;
+            frescos.cuentasCobroMes = totales.cuentasCobroMes;
+            frescos.cuentasCobro = totales.cuentasCobroMes?.total;
+          }
         } catch (error) {
-          console.error("Error al contar las cuentas de cobro del mes:", error);
-        }
-      }
-
-      if (puedeVerCotizaciones) {
-        // Antes este número se sacaba contando la lista completa de
-        // cotizaciones que la app tenía en memoria. Ahora que el buzón carga
-        // de a 50, esa cuenta quedaría corta sin que se note: hay que
-        // preguntárselo a la base. Cuesta 1 lectura, porque Firestore
-        // devuelve solo el número (ver contarCotizacionesDelMes).
-        try {
-          frescos.cotizaciones = await contarCotizacionesDelMes();
-        } catch (error) {
-          console.error("Error al contar las cotizaciones del mes:", error);
+          console.error("Error al leer los totales del panel:", error);
         }
       }
 
@@ -142,7 +145,7 @@ export default function AdminForms() {
     return () => {
       cancelado = true;
     };
-  }, [dispatch, puedeVerCuentasCobro, puedeVerCotizaciones, mostrarCatalogo]);
+  }, [dispatch, leePizarra, mostrarCatalogo]);
 
   const kpis = [
     puedeVerCotizaciones && {
@@ -151,6 +154,9 @@ export default function AdminForms() {
       color: theme.palette.info.main,
       valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
+      // Abre cuántas faltan por atender y cuántas se cotizaron. Viene en la
+      // misma pizarra: no cuesta ninguna lectura más.
+      onClick: abrirDetalle("cotizaciones"),
     },
     puedeVerCuentasCobro && {
       etiqueta: "CUENTAS DE COBRO",
@@ -158,8 +164,10 @@ export default function AdminForms() {
       color: theme.palette.success.main,
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
+      // Abre cuántas faltan por cobrar y cuántas se pagaron, con su plata.
+      onClick: abrirDetalle("cuentas"),
     },
-    {
+    puedeVerCartera && {
       etiqueta: "EQUIPOS ACTIVOS",
       icono: <LocalShippingIcon />,
       color: theme.palette.warning.main,
@@ -167,9 +175,9 @@ export default function AdminForms() {
       subtitulo: "En alquiler",
       // Abre cuántos hay afuera de cada equipo. Viene en la misma pizarra:
       // no cuesta ninguna lectura más.
-      onClick: () => setDetalle({ abierto: true, cual: "equipos" }),
+      onClick: abrirDetalle("equipos"),
     },
-    {
+    puedeVerCartera && {
       etiqueta: "PAGOS PENDIENTES",
       icono: <ErrorOutlineIcon />,
       color: theme.palette.error.main,
@@ -178,7 +186,7 @@ export default function AdminForms() {
       tamanoValor: "h4",
       // Abre cuánto se debe en facturas vencidas, en cobro y activas. También
       // viene en la pizarra.
-      onClick: () => setDetalle({ abierto: true, cual: "pagos" }),
+      onClick: abrirDetalle("pagos"),
     },
     mostrarCatalogo && {
       etiqueta: "EQUIPOS",
@@ -186,8 +194,18 @@ export default function AdminForms() {
       color: theme.palette.info.main,
       valor: stats.equiposCatalogo ?? "…",
       subtitulo: "En el catálogo",
+      // Abre el nombre de cada equipo de la tienda.
+      onClick: abrirCatalogo,
     },
   ].filter(Boolean);
+
+  const TITULOS_DETALLE = {
+    cotizaciones: "Cotizaciones del mes",
+    cuentas: "Cuentas de cobro del mes",
+    equipos: "Equipos activos",
+    pagos: "Pagos pendientes",
+    catalogo: "Equipos del catálogo",
+  };
 
   // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van los mismos
   // números, solo con su ícono, en una franja. Va donde estaba la barra: abajo
@@ -552,13 +570,25 @@ export default function AdminForms() {
         maxWidth="xs"
       >
         <DialogTitle sx={{ color: theme.palette.custom.accent }}>
-          {detalle.cual === "pagos" ? "Pagos pendientes" : "Equipos activos"}
+          {TITULOS_DETALLE[detalle.cual]}
         </DialogTitle>
         <DialogContent>
-          {detalle.cual === "pagos" ? (
-            <DetallePagosPendientes pagosPorEstado={stats.pagosPorEstado} />
-          ) : (
+          {detalle.cual === "cotizaciones" && (
+            <DetalleCotizaciones cotizacionesMes={stats.cotizacionesMes} />
+          )}
+          {detalle.cual === "cuentas" && (
+            <DetalleCuentasCobro cuentasCobroMes={stats.cuentasCobroMes} />
+          )}
+          {detalle.cual === "equipos" && (
             <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
+          )}
+          {detalle.cual === "pagos" && (
+            <DetallePagosPendientes pagosPorEstado={stats.pagosPorEstado} />
+          )}
+          {detalle.cual === "catalogo" && (
+            <DetalleCatalogo
+              equipos={catalogo.length === 0 && cargandoCatalogo ? null : catalogo}
+            />
           )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", px: 3, pb: 3 }}>

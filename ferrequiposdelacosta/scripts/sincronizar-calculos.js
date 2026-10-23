@@ -37,6 +37,9 @@ const ORIGENES = {
   "facturaCuentas.js": "src/Components/ClienteDetalle/facturaCuentas.js",
   "rolesPermisos.js": "src/Components/RolesPermisos/RolesPermisos.jsx",
   "requisitosClave.js": "src/Utils/requisitosClave.js",
+  // Desde el 2026-10-22: las cotizaciones y cuentas de cobro del mes en la
+  // pizarra del menú.
+  "resumenDocumentos.js": "src/Utils/resumenDocumentos.js",
 };
 
 const origen = (archivo) => resolve(raiz, ORIGENES[archivo]);

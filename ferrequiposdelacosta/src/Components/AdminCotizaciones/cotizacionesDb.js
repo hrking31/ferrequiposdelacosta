@@ -18,7 +18,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getCountFromServer,
   getDocs,
   limit,
   onSnapshot,
@@ -26,7 +25,6 @@ import {
   query,
   startAfter,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "../Firebase/Firebase";
 
@@ -149,27 +147,3 @@ export const liberarCotizacion = (cotizacionId, status) =>
 // administrador; el botón escondido en el buzón es apenas la parte visible.
 export const eliminarCotizacion = (cotizacionId) =>
   deleteDoc(doc(db, COLECCION, cotizacionId));
-
-// Cuántas solicitudes entraron en el mes corriente, para el panel del menú.
-//
-// Cuenta TODAS las del mes, en cualquier estado: la pregunta que responde el
-// recuadro es cuánto trabajo llegó, no cuánto se terminó.
-//
-// Usa el contador del servidor: Firestore devuelve solo el número, sin mandar
-// las cotizaciones. Eso son 1 lectura por visita al menú en vez de una por
-// cotización del mes. Se puede porque hay una sola condición —la fecha—, así
-// que tampoco hace falta crear un índice compuesto.
-export const contarCotizacionesDelMes = async () => {
-  const inicioDeMes = new Date();
-  inicioDeMes.setDate(1);
-  inicioDeMes.setHours(0, 0, 0, 0);
-
-  const snap = await getCountFromServer(
-    query(
-      collection(db, COLECCION),
-      where("createdAt", ">=", inicioDeMes.getTime()),
-    ),
-  );
-
-  return snap.data().count;
-};

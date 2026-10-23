@@ -13,8 +13,15 @@
 // El documento no lo puede escribir nadie desde el navegador, ni siquiera el
 // administrador: sus reglas dicen `allow write: if false` y solo las funciones
 // —que corren con permisos de administrador— lo tocan.
+//
+// Desde el 2026-10-22 trae también las cotizaciones y cuentas de cobro del mes,
+// con su detalle (ver Utils/resumenDocumentos): el menú dejó de contarlas con
+// dos consultas aparte en cada visita.
+//
+// Y la leen solo los roles con clientes y cartera (ver firestore.rules).
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../Components/Firebase/Firebase";
+import { cotizacionesDelMes, cuentasCobroDelMes, mesBogota } from "../../Utils/resumenDocumentos";
 
 export const COLECCION = "resumen";
 export const DOCUMENTO = "totales";
@@ -41,12 +48,16 @@ export const leerTotalesPanel = async () => {
   if (!snap.exists()) return null;
 
   const datos = snap.data();
+  const mes = mesBogota(Date.now());
 
   return {
     equiposActivos: Number(datos.equiposActivos) || 0,
     pagosPendientes: Number(datos.pagosPendientes) || 0,
     equiposPorTipo: sinCeros(datos.equiposPorTipo),
     pagosPorEstado: sinCeros(datos.pagosPorEstado),
+    // El mes de hoy, o null si la pizarra todavía no los tiene.
+    cotizacionesMes: cotizacionesDelMes(datos.cotizacionesPorMes, mes),
+    cuentasCobroMes: cuentasCobroDelMes(datos.cuentasCobroPorMes, mes),
     actualizadoEn: datos.actualizadoEn ?? null,
   };
 };

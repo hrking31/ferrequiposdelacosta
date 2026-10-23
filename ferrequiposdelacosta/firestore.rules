@@ -293,21 +293,23 @@ service cloud.firestore {
     // ---------------------------------------------------------------
     // La pizarra: los totales del panel del menú
     // ---------------------------------------------------------------
-    // Un solo documento (resumen/totales) con cuántos equipos están afuera y
-    // cuánta plata falta cobrar. Lo mantienen las Cloud Functions
-    // ajustarTotalesPanel y recalcularTotalesPanel.
+    // Un solo documento (resumen/totales) con cuántos equipos están afuera,
+    // cuánta plata falta cobrar y, desde el 2026-10-22, las cotizaciones y
+    // cuentas de cobro del mes con su plata. Lo mantienen las Cloud Functions
+    // (ajustarTotalesPanel, recalcularTotalesPanel y las de cotizaciones y
+    // cuentas).
     //
-    // Adentro NO hay un solo dato de cliente: son dos números sueltos. Por eso
-    // lo puede leer cualquier empleado con sesión, incluido el gestorEditor
-    // —que no tiene acceso a clientes ni facturas y por eso hasta ahora no
-    // podía ver "Equipos activos", porque calcularlo exigía leerle la cartera
-    // entera a la empresa—.
+    // Adentro no hay datos de clientes, pero sí la cartera de la empresa en
+    // números. Hasta el 2026-10-22 lo leía cualquier empleado, incluido el
+    // gestorEditor; el dueño decidió que quien solo edita el catálogo no tiene
+    // por qué ver equipos alquilados ni plata. Ahora, solo los roles con
+    // clientes y cartera — los mismos que ven esos números en el menú.
     //
     // Escribir queda prohibido desde el navegador: las funciones usan el SDK
     // de administrador y no pasan por estas reglas. Así el número no lo puede
     // tocar nadie a mano, ni por error ni a propósito.
     match /resumen/{documento} {
-      allow read: if sesionCompleta();
+      allow read: if puedeGestionarClientes();
       allow write: if false;
     }
 

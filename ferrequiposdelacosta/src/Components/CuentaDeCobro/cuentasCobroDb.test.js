@@ -8,14 +8,12 @@ const mocks = vi.hoisted(() => ({
   updateDoc: vi.fn(),
   deleteDoc: vi.fn(),
   getDocs: vi.fn(),
-  getCountFromServer: vi.fn(),
   collection: vi.fn((_db, nombre) => ({ nombre })),
   doc: vi.fn((_db, nombre, id) => ({ nombre, id })),
   query: vi.fn((base, ...partes) => ({ base, partes })),
   orderBy: vi.fn((campo, dir) => ({ tipo: "orderBy", campo, dir })),
   limit: vi.fn((n) => ({ tipo: "limit", n })),
   startAfter: vi.fn((cursor) => ({ tipo: "startAfter", cursor })),
-  where: vi.fn((campo, op, valor) => ({ tipo: "where", campo, op, valor })),
 }));
 
 vi.mock("firebase/firestore", () => mocks);
@@ -24,7 +22,6 @@ vi.mock("../Firebase/Firebase", () => ({ db: {} }));
 const {
   COLECCION,
   POR_TANDA,
-  contarCuentasCobroDelMes,
   eliminarCuentaCobro,
   generarCuentaCobroId,
   guardarCuentaCobro,
@@ -98,7 +95,7 @@ describe("guardarCuentaCobro", () => {
   });
 
   // `emitida` es lo que hace posible contar las del mes con UNA lectura, así
-  // que tiene que nacer con el documento (ver contarCuentasCobroDelMes).
+  // que tiene que nacer con el documento (ver Utils/resumenDocumentos).
   it("al emitir deja marcado que se emitió", async () => {
     mocks.addDoc.mockResolvedValue({ id: "nuevo" });
     await guardarCuentaCobro(cuenta, "creada", usuario);
@@ -164,47 +161,6 @@ describe("leerCuentasCobro", () => {
     expect(tanda.cuentas).toEqual([]);
     expect(tanda.ultimo).toBeNull();
     expect(tanda.hayMas).toBe(false);
-  });
-});
-
-describe("contarCuentasCobroDelMes", () => {
-  // Lo que se cuida acá es que el número lo saque el SERVIDOR: antes se traían
-  // todas las del mes para mirarles el estado, y eso costaba una lectura por
-  // cuenta cada vez que alguien abría el menú.
-  it("pide el número al servidor, sin traer los documentos", async () => {
-    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 7 }) });
-
-    expect(await contarCuentasCobroDelMes()).toBe(7);
-    expect(mocks.getDocs).not.toHaveBeenCalled();
-  });
-
-  it("cuenta por el hecho de haberse emitido, no por el estado", async () => {
-    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
-
-    await contarCuentasCobroDelMes();
-
-    // El estado va y viene —"enProceso" mientras alguien la tiene abierta,
-    // "pagada" cuando entra la plata— y el número del mes no puede moverse
-    // por eso. Por eso se pregunta por `emitida`, que no se deshace.
-    const [campo, operador, valor] = mocks.where.mock.calls[0];
-    expect(campo).toBe("emitida");
-    expect(operador).toBe("==");
-    expect(valor).toBe(true);
-  });
-
-  it("filtra desde el primer día del mes", async () => {
-    mocks.getCountFromServer.mockResolvedValue({ data: () => ({ count: 0 }) });
-
-    await contarCuentasCobroDelMes();
-
-    const [campo, operador, desde] = mocks.where.mock.calls[1];
-    expect(campo).toBe("creadaEn");
-    expect(operador).toBe(">=");
-
-    const fecha = new Date(desde);
-    expect(fecha.getDate()).toBe(1);
-    expect(fecha.getHours()).toBe(0);
-    expect(fecha.getMonth()).toBe(new Date().getMonth());
   });
 });
 
