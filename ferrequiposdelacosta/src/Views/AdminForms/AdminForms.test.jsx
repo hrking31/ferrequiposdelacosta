@@ -184,16 +184,30 @@ describe("AdminForms — las cifras del menú", () => {
       window.matchMedia = matchMediaOriginal;
     });
 
-    // Sin detalle por estado (decisión del dueño, 2026-10-23): solo el número.
-    it("«Cotizaciones» y «Cuentas de cobro» no abren nada", async () => {
+    // Sin detalle por estado (decisión del dueño, 2026-10-23): la ventana
+    // muestra la tarjeta del computador, sin pedir nada más.
+    it("tocar «Cotizaciones» abre su tarjeta como en el computador", async () => {
       nube.contarCotizaciones.mockResolvedValueOnce(12);
-      nube.contarCuentas.mockResolvedValueOnce(4);
-      comoRol("administrador");
+      const { usuario } = comoRol("administrador");
 
       await screen.findByText("12");
-      expect(screen.getByText("4")).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "COTIZACIONES" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "CUENTAS DE COBRO" })).not.toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "COTIZACIONES" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent("COTIZACIONES12Este mes");
+      expect(nube.contarCotizaciones).toHaveBeenCalledTimes(1);
+    });
+
+    it("tocar «Cuentas de cobro» abre su tarjeta como en el computador", async () => {
+      nube.contarCuentas.mockResolvedValueOnce(4);
+      const { usuario } = comoRol("administrador");
+
+      await screen.findByText("4");
+      await usuario.click(screen.getByRole("button", { name: "CUENTAS DE COBRO" }));
+
+      const dialogo = await screen.findByRole("dialog");
+      expect(dialogo).toHaveTextContent("CUENTAS DE COBRO4Este mes");
+      expect(nube.contarCuentas).toHaveBeenCalledTimes(1);
     });
 
     it("tocar «Equipos activos» abre el detalle por equipo, sin pedir nada más", async () => {

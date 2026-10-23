@@ -165,7 +165,9 @@ export default function AdminForms() {
       color: theme.palette.info.main,
       valor: stats.cotizaciones ?? "…",
       subtitulo: "Este mes",
-      // Sin detalle por estado (decisión del dueño, 2026-10-23): solo el número.
+      // Sin detalle por estado (decisión del dueño, 2026-10-23): en el celular
+      // abre la misma tarjeta del computador, con el número y "Este mes".
+      onClick: abrirDetalle("cotizaciones"),
     },
     puedeVerCuentasCobro && {
       etiqueta: "CUENTAS DE COBRO",
@@ -173,6 +175,7 @@ export default function AdminForms() {
       color: theme.palette.success.main,
       valor: stats.cuentasCobro ?? "…",
       subtitulo: "Este mes",
+      onClick: abrirDetalle("cuentas"),
     },
     // El catálogo, justo después de cuentas de cobro (pedido del dueño,
     // 2026-10-23).
@@ -213,6 +216,15 @@ export default function AdminForms() {
     pagos: "Pagos pendientes",
     catalogo: "Equipos del catálogo",
   };
+  // Las que no tienen detalle: la ventana muestra su propia tarjeta, sin
+  // título aparte (ya lo trae la tarjeta).
+  const TARJETA_EN_VENTANA = {
+    cotizaciones: "COTIZACIONES",
+    cuentas: "CUENTAS DE COBRO",
+  };
+  const tarjetaEnVentana = kpis.find(
+    (kpi) => kpi.etiqueta === TARJETA_EN_VENTANA[detalle.cual],
+  );
 
   // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van los mismos
   // números, solo con su ícono, en una franja. Va donde estaba la barra: abajo
@@ -581,10 +593,17 @@ export default function AdminForms() {
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle sx={{ color: theme.palette.custom.accent }}>
-          {TITULOS_DETALLE[detalle.cual]}
-        </DialogTitle>
+        {TITULOS_DETALLE[detalle.cual] && (
+          <DialogTitle sx={{ color: theme.palette.custom.accent }}>
+            {TITULOS_DETALLE[detalle.cual]}
+          </DialogTitle>
+        )}
         <DialogContent>
+          {tarjetaEnVentana && (
+            <Box sx={{ display: "flex", justifyContent: "center", pt: 3 }}>
+              <KpiCard {...tarjetaEnVentana} onClick={undefined} />
+            </Box>
+          )}
           {detalle.cual === "equipos" && (
             <DetalleEquiposActivos equiposPorTipo={stats.equiposPorTipo} />
           )}
