@@ -17,8 +17,6 @@ import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
 import DetalleCatalogo from "../../Components/KpiCard/DetalleCatalogo";
-import { collection, getCountFromServer } from "firebase/firestore";
-import { db } from "../../Components/Firebase/Firebase";
 import { useDispatch, useSelector } from "react-redux";
 import { setKpis } from "../../Store/Slices/kpisSlice";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
@@ -87,13 +85,24 @@ export default function AdminForms() {
   const cerrarDetalle = () => setDetalle((previo) => ({ ...previo, abierto: false }));
 
   // El catálogo en memoria, el mismo de la tienda y de editar o eliminar
-  // equipos. Para ver los nombres se usa ese; si todavía no se bajó en esta
-  // sesión, se pide al abrir el detalle y queda para esas pantallas.
+  // equipos. De ahí salen el número del recuadro y los nombres de su detalle
+  // (2026-10-26, decisión del dueño): la app ya lo bajó al abrirse, así que
+  // entrar al menú no cuesta ninguna lectura. Antes se contaba en la base en
+  // cada visita (1 lectura). Si la memoria está vacía —se recargó la página
+  // estando acá— se pide una vez y queda para las demás pantallas.
+  //
+  // A sabiendas: un equipo que cree otra persona desde otro aparato no se ve
+  // hasta recargar, igual que en la tienda.
   const { equipos: catalogo, loading: cargandoCatalogo } = useSelector((state) => state.equipos);
-  const abrirCatalogo = () => {
-    if (catalogo.length === 0 && !cargandoCatalogo) dispatch(fetchEquiposData());
-    setDetalle({ abierto: true, cual: "catalogo" });
-  };
+  const abrirCatalogo = () => setDetalle({ abierto: true, cual: "catalogo" });
+
+  useEffect(() => {
+    if (mostrarCatalogo && catalogo.length === 0 && !cargandoCatalogo) {
+      dispatch(fetchEquiposData());
+    }
+    // Solo al entrar: si el catálogo vuelve vacío o falla, no se insiste.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, mostrarCatalogo]);
 
   useEffect(() => {
     let cancelado = false;
@@ -136,17 +145,6 @@ export default function AdminForms() {
         }
       }
 
-      // Cuesta 1 lectura por visita: contar no trae los equipos. Sin el
-      // recuadro no se pregunta.
-      if (mostrarCatalogo) {
-        try {
-          const snap = await getCountFromServer(collection(db, "equipos"));
-          frescos.equiposCatalogo = snap.data().count;
-        } catch (error) {
-          console.error("Error al contar los equipos del catálogo:", error);
-        }
-      }
-
       if (cancelado) return;
 
       setStats((previos) => ({ ...previos, ...frescos }));
@@ -158,7 +156,7 @@ export default function AdminForms() {
     return () => {
       cancelado = true;
     };
-  }, [dispatch, puedeVerCartera, puedeVerCotizaciones, puedeVerCuentasCobro, mostrarCatalogo]);
+  }, [dispatch, puedeVerCartera, puedeVerCotizaciones, puedeVerCuentasCobro]);
 
   const kpis = [
     puedeVerCotizaciones && {
@@ -185,7 +183,9 @@ export default function AdminForms() {
       etiqueta: "EQUIPOS",
       icono: <BuildIcon />,
       color: theme.palette.info.main,
-      valor: stats.equiposCatalogo ?? "…",
+      // "…" mientras la memoria está vacía: el catálogo nunca lo está de
+      // verdad, así que vacío quiere decir que se está bajando.
+      valor: catalogo.length > 0 ? catalogo.length : "…",
       subtitulo: "En el catálogo",
       // Abre el nombre de cada equipo de la tienda.
       onClick: abrirCatalogo,

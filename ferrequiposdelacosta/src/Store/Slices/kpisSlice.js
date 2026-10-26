@@ -24,7 +24,6 @@ const initialState = {
   pagosPendientes: null,
   // El detalle de pagos pendientes por estado de factura, { estado: monto }.
   pagosPorEstado: null,
-  equiposCatalogo: null,
 };
 
 const kpisSlice = createSlice({

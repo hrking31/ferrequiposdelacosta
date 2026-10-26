@@ -105,10 +105,11 @@ describe("AdminForms — qué ve cada rol", () => {
 
 describe("AdminForms — las cifras del menú", () => {
   it("al gestor de equipos no se le muestra la cartera ni se le lee la pizarra", async () => {
-    nube.contarCatalogo.mockResolvedValueOnce({ data: () => ({ count: 37 }) });
-    comoRol("gestorEditor");
+    comoRol("gestorEditor", {
+      equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }, { name: "RANA" }],
+    });
 
-    await screen.findByText("37");
+    await screen.findByText("3");
     expect(screen.queryByText("EQUIPOS ACTIVOS")).not.toBeInTheDocument();
     expect(screen.queryByText("PAGOS PENDIENTES")).not.toBeInTheDocument();
     // La regla se la rechazaría: ni se le pregunta.
@@ -129,32 +130,53 @@ describe("AdminForms — las cifras del menú", () => {
     expect(nube.leerTotales).toHaveBeenCalledTimes(1);
     expect(nube.contarCotizaciones).toHaveBeenCalledTimes(1);
     expect(nube.contarCuentas).toHaveBeenCalledTimes(1);
-    // Sin el recuadro del catálogo, ni se cuenta.
-    expect(nube.contarCatalogo).not.toHaveBeenCalled();
+    // Sin el recuadro del catálogo, ni se baja.
+    expect(nube.leerCatalogo).not.toHaveBeenCalled();
   });
 
   it("al gestor de equipos no se le cuentan cotizaciones ni cuentas", async () => {
-    comoRol("gestorEditor");
+    comoRol("gestorEditor", { equipos: [{ name: "ANDAMIO" }] });
 
-    await waitFor(() => expect(nube.contarCatalogo).toHaveBeenCalledTimes(1));
+    await screen.findByText("En el catálogo");
     expect(nube.contarCotizaciones).not.toHaveBeenCalled();
     expect(nube.contarCuentas).not.toHaveBeenCalled();
   });
 
+  // Desde el 2026-10-26 el número sale del catálogo en memoria: ya no se
+  // cuenta en la base en cada visita.
+  it("el número del catálogo sale de la memoria, sin leer nada", async () => {
+    comoRol("gestorEditor", { equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }] });
+
+    expect(await screen.findByText("2")).toBeInTheDocument();
+    expect(nube.contarCatalogo).not.toHaveBeenCalled();
+    expect(nube.leerCatalogo).not.toHaveBeenCalled();
+  });
+
+  it("con la memoria vacía (se recargó acá), baja el catálogo una vez", async () => {
+    nube.leerCatalogo.mockResolvedValueOnce({
+      docs: [{ id: "e1", data: () => ({ name: "ANDAMIO" }) }],
+    });
+    comoRol("gestorEditor");
+
+    expect(await screen.findByText("1")).toBeInTheDocument();
+    expect(nube.leerCatalogo).toHaveBeenCalledTimes(1);
+    expect(nube.contarCatalogo).not.toHaveBeenCalled();
+  });
+
   it("el catálogo lo ven quienes trabajan con equipos, no facturación", async () => {
     for (const rol of ["administrador", "gestorIntegral", "gestorEditor"]) {
-      nube.contarCatalogo.mockClear();
+      nube.leerCatalogo.mockClear();
       const { unmount } = comoRol(rol);
       expect(screen.getByText("En el catálogo")).toBeInTheDocument();
-      await waitFor(() => expect(nube.contarCatalogo).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(nube.leerCatalogo).toHaveBeenCalledTimes(1));
       unmount();
     }
 
-    nube.contarCatalogo.mockClear();
+    nube.leerCatalogo.mockClear();
     comoRol("gestorFacturacion");
     expect(screen.queryByText("En el catálogo")).not.toBeInTheDocument();
-    // Sin el recuadro, ni se cuenta.
-    expect(nube.contarCatalogo).not.toHaveBeenCalled();
+    // Sin el recuadro, ni se baja.
+    expect(nube.leerCatalogo).not.toHaveBeenCalled();
   });
 
   it("en el computador las tarjetas solo muestran: no abren ninguna ventana", async () => {
@@ -275,7 +297,6 @@ describe("AdminForms — las cifras del menú", () => {
     });
 
     it("el catálogo ya bajado: los nombres salen de memoria, sin leer nada", async () => {
-      nube.contarCatalogo.mockResolvedValueOnce({ data: () => ({ count: 2 }) });
       const { usuario } = comoRol("gestorEditor", {
         equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }],
       });
@@ -289,7 +310,7 @@ describe("AdminForms — las cifras del menú", () => {
       expect(nube.leerCatalogo).not.toHaveBeenCalled();
     });
 
-    it("el catálogo sin bajar: lo pide una vez al abrir el detalle", async () => {
+    it("el catálogo sin bajar: lo pide una vez y el detalle lo muestra", async () => {
       nube.leerCatalogo.mockResolvedValueOnce({
         docs: [{ id: "e1", data: () => ({ name: "ANDAMIO" }) }],
       });
