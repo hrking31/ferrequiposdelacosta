@@ -77,6 +77,9 @@ export default function Detail() {
             <DetailGallery
               isFullscreen={isGalleryFullscreen}
               setIsFullscreen={setIsGalleryFullscreen}
+              // Flechas en las miniaturas si no entran todas, y las de la foto
+              // grande solo al tocarla (ver DetailGallery).
+              deLaTienda
             />
           </Box>
         </Box>

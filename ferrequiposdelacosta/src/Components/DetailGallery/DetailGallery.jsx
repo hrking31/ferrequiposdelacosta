@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Grid, IconButton, Box, useTheme, useMediaQuery } from "@mui/material";
 import Fullscreen from "@mui/icons-material/Fullscreen";
@@ -72,7 +72,124 @@ const NavButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
+// Cuánto corre la fila cada flecha: dos miniaturas (60px) con su espacio.
+const PASO_MINIATURAS = 2 * (60 + 8);
+
+// LAS MINIATURAS CON FLECHAS (solo el detalle de la tienda, pedido del dueño,
+// 2026-10-26): si no entran todas debajo de la foto grande, flechas a los
+// lados de la fila avisan que hay más y la van corriendo; las siguientes
+// entran por la derecha. Con el dedo se sigue deslizando. Si entran todas,
+// no hay flechas y la fila queda centrada como siempre.
+//
+// Se mide si sobran al cambiar el ancho y al deslizar; no entra en bucle: las
+// flechas no cambian cuántas miniaturas hay, solo dónde se ven.
+function MiniaturasConFlechas({ images, selectedIndex, onSelect }) {
+  const theme = useTheme();
+  const tiraRef = useRef(null);
+  const [tira, setTira] = useState({ sobran: false, alInicio: true, alFinal: true });
+
+  const medir = useCallback(() => {
+    const nodo = tiraRef.current;
+    if (!nodo) return;
+    const sobran = nodo.scrollWidth > nodo.clientWidth + 1;
+    const alInicio = nodo.scrollLeft <= 1;
+    const alFinal = nodo.scrollLeft + nodo.clientWidth >= nodo.scrollWidth - 1;
+    setTira((previa) =>
+      previa.sobran === sobran && previa.alInicio === alInicio && previa.alFinal === alFinal
+        ? previa
+        : { sobran, alInicio, alFinal },
+    );
+  }, []);
+
+  useEffect(() => {
+    const nodo = tiraRef.current;
+    if (!nodo) return undefined;
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(nodo);
+    return () => observador.disconnect();
+  }, [images.length, medir]);
+
+  // Al cambiar de foto con las flechas de la foto grande, la fila trae a la
+  // vista su miniatura.
+  useEffect(() => {
+    const nodo = tiraRef.current;
+    const miniatura = nodo?.firstElementChild?.children[selectedIndex];
+    if (!miniatura) return;
+    const izquierda = miniatura.offsetLeft - nodo.firstElementChild.offsetLeft;
+    if (izquierda < nodo.scrollLeft) nodo.scrollLeft = izquierda;
+    else if (izquierda + miniatura.offsetWidth > nodo.scrollLeft + nodo.clientWidth) {
+      nodo.scrollLeft = izquierda + miniatura.offsetWidth - nodo.clientWidth;
+    }
+  }, [selectedIndex]);
+
+  const correr = (sentido) =>
+    tiraRef.current?.scrollBy({ left: sentido * PASO_MINIATURAS, behavior: "smooth" });
+
+  const flecha = (sentido, etiqueta, Icono, apagada) =>
+    tira.sobran && (
+      <IconButton
+        aria-label={etiqueta}
+        disabled={apagada}
+        onClick={() => correr(sentido)}
+        sx={{ flexShrink: 0, color: theme.palette.custom.accent }}
+      >
+        <Icono />
+      </IconButton>
+    );
+
+  return (
+    <Box sx={{ display: "flex", alignItems: "center" }}>
+      {flecha(-1, "Fotos anteriores", ChevronLeft, tira.alInicio)}
+      <Box
+        ref={tiraRef}
+        onScroll={medir}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          p: 1,
+          overflowX: "auto",
+          scrollBehavior: "smooth",
+          // Sin barra: lo avisan las flechas.
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        }}
+      >
+        {/* Centrada con margen automático: con justify-content, si no
+            entran, las de la izquierda quedarían fuera de alcance. */}
+        <Box sx={{ display: "flex", gap: 1, width: "max-content", mx: "auto" }}>
+          {images.map((image, index) => (
+            <ThumbnailImage
+              key={index}
+              src={image.url}
+              alt={`Miniatura ${index + 1}`}
+              selected={index === selectedIndex}
+              onClick={() => onSelect(index)}
+            />
+          ))}
+        </Box>
+      </Box>
+      {flecha(1, "Más fotos", ChevronRight, tira.alFinal)}
+    </Box>
+  );
+}
+
+MiniaturasConFlechas.propTypes = {
+  images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })).isRequired,
+  selectedIndex: PropTypes.number.isRequired,
+  onSelect: PropTypes.func.isRequired,
+};
+
+// Cuánto quedan a la vista las flechas de la foto grande después de tocarla.
+const FLECHAS_VISIBLES_MS = 2500;
+
+// `deLaTienda`: lo que el dueño pidió para el detalle de la tienda
+// (2026-10-26), y que el kiosco no lleva:
+// - la fila de miniaturas con sus flechas (ver MiniaturasConFlechas);
+// - las flechas de la foto grande, con su círculo oscuro, invisibles
+//   mientras no se toca la foto: así no la tapan. Aparecen al tocarla o al
+//   pasarle el mouse y se van solas.
+export default function DetailGallery({ isFullscreen, setIsFullscreen, deLaTienda = false }) {
   const theme = useTheme();
   const isMobile = useMediaQuery("(max-width:915px)");
    const fullScreen = useMediaQuery("(max-width:1200px)");
@@ -81,6 +198,31 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
   );
   const images = Array.isArray(imagenes) ? imagenes : [];
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Las flechas de la foto grande a la vista (en el kiosco, siempre).
+  const [flechasALaVista, setFlechasALaVista] = useState(false);
+  const temporizadorRef = useRef(null);
+  const mostrarFlechas = () => {
+    setFlechasALaVista(true);
+    clearTimeout(temporizadorRef.current);
+    temporizadorRef.current = setTimeout(() => setFlechasALaVista(false), FLECHAS_VISIBLES_MS);
+  };
+  // Solo con el mouse: en el celular, al levantar el dedo el navegador también
+  // avisa que el puntero "salió", y las escondía apenas aparecían. Ahí se van
+  // solas, con el tiempo.
+  const esconderFlechas = (e) => {
+    if (e.pointerType !== "mouse") return;
+    clearTimeout(temporizadorRef.current);
+    setFlechasALaVista(false);
+  };
+  useEffect(() => () => clearTimeout(temporizadorRef.current), []);
+  const flechasVisibles = !deLaTienda || flechasALaVista;
+  const estiloFlecha = {
+    opacity: flechasVisibles ? 1 : 0,
+    // Invisibles no se pueden tocar: el primer toque solo las muestra.
+    pointerEvents: flechasVisibles ? "auto" : "none",
+    transition: "opacity 0.3s ease",
+  };
 
   const handleImageClick = (index) => {
     setSelectedImageIndex(index);
@@ -135,6 +277,11 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
             zIndex: isFullscreen ? theme.zIndex.modal : "auto",
             borderRadius: isMobile || fullScreen || isFullscreen ? 0 : "28px",
           }}
+          {...(deLaTienda && {
+            onPointerDown: mostrarFlechas,
+            onPointerMove: mostrarFlechas,
+            onPointerLeave: esconderFlechas,
+          })}
         >
           <MainImage
             src={selectedImage}
@@ -145,7 +292,7 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
             <>
               <NavButton
                 onClick={handlePrev}
-                sx={{ left: theme.spacing(2) }}
+                sx={{ left: theme.spacing(2), ...estiloFlecha }}
                 size="large"
               >
                 <ChevronLeft fontSize="large" />
@@ -153,7 +300,7 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
 
               <NavButton
                 onClick={handleNext}
-                sx={{ right: theme.spacing(2) }}
+                sx={{ right: theme.spacing(2), ...estiloFlecha }}
                 size="large"
               >
                 <ChevronRight fontSize="large" />
@@ -178,7 +325,15 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
           </IconButton>
         </GalleryContainer>
 
-        {!isFullscreen && images.length > 1 && (
+        {!isFullscreen && images.length > 1 && deLaTienda && (
+          <MiniaturasConFlechas
+            images={images}
+            selectedIndex={selectedImageIndex}
+            onSelect={handleImageClick}
+          />
+        )}
+
+        {!isFullscreen && images.length > 1 && !deLaTienda && (
           <ThumbnailContainer>
             {images.map((image, index) => (
               <ThumbnailImage
@@ -199,4 +354,5 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen }) {
 DetailGallery.propTypes = {
   isFullscreen: PropTypes.bool.isRequired,
   setIsFullscreen: PropTypes.func.isRequired,
+  deLaTienda: PropTypes.bool,
 };
