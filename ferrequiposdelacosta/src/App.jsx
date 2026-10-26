@@ -24,7 +24,7 @@ import {
   VistaClienteDetalle,
   VistaSeguimientoClientes,
 } from "./Views";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
@@ -200,11 +200,6 @@ function App() {
             </ProtectedRoutes>
           }
         />
-        {/* Las direcciones de las tres pantallas de antes, por si alguien las
-            tiene guardadas. */}
-        <Route path="/vistaseleccionarequipo" element={<Navigate to="/vistaequipos" replace />} />
-        <Route path="/vistaeliminarequipo" element={<Navigate to="/vistaequipos" replace />} />
-        <Route path="/vistaeditarequipo" element={<Navigate to="/vistaequipos" replace />} />
         <Route
           path="/vistacrearusuarios"
           element={
