@@ -1,13 +1,7 @@
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  Grid,
-  Stack,
-  TextField,
-  Divider,
-  Chip,
-} from "@mui/material";
+import PropTypes from "prop-types";
+import { Button, Stack, useTheme } from "@mui/material";
+import { usePantallaCompacta } from "../../Utils/pantalla";
 import { useDispatch } from "react-redux";
 import { storage, db } from "../Firebase/Firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -16,14 +10,40 @@ import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
+import FormularioEquipo from "../FormularioEquipo/FormularioEquipo";
+import Seccion from "../FormularioEquipo/Seccion";
+import SeccionDatos from "../FormularioEquipo/SeccionDatos";
+import SeccionVariantes from "../FormularioEquipo/SeccionVariantes";
+import SeccionCotizacion from "../FormularioEquipo/SeccionCotizacion";
+import ZonaElegirFoto from "../FormularioEquipo/ZonaElegirFoto";
+import TarjetaFoto from "../FormularioEquipo/TarjetaFoto";
+import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
+import BarraFoto from "../FormularioEquipo/BarraFoto";
+import GrillaFotos from "../FormularioEquipo/GrillaFotos";
+import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
 
-const CrearEquipos = () => {
+// `anchoCompleto`: con lugar (ver VistaCreaEquipo) el formulario ocupa todo el
+// ancho que le queda, en dos columnas de secciones al alto de la pantalla.
+//
+// `botonesAbajo`: Crear y Cancelar al pie del formulario. En el computador
+// van en el encabezado (como en la cotización y la cuenta de cobro) y llegan
+// a este formulario por su `idFormulario`: un botón puede enviar o limpiar un
+// formulario que está en otra parte de la pantalla.
+const CrearEquipos = ({
+  anchoCompleto = false,
+  botonesAbajo = true,
+  idFormulario = "form-crear-equipo",
+  fotosPorFila,
+}) => {
+  const theme = useTheme();
+  // Angosta O baja, como Seguimiento: el teléfono acostado también es celular.
+  const esCelular = usePantallaCompacta();
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState({ name: "", description: "" });
   const [images, setImages] = useState([]);
   const [varianteNombre, setVarianteNombre] = useState("");
   const [variantes, setVariantes] = useState([]);
-  const [nuevaVarianteValor, setNuevaVarianteValor] = useState("");
   const [textoExtra, setTextoExtra] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
@@ -34,8 +54,7 @@ const CrearEquipos = () => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+  const handleImageChange = (files) => {
     const newImages = files.map((file) => ({
       id: crypto.randomUUID(),
       file,
@@ -57,18 +76,13 @@ const CrearEquipos = () => {
     setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  const handleAddVariante = () => {
-    const valor = nuevaVarianteValor.trim();
-    if (!valor || variantes.includes(valor)) {
-      setNuevaVarianteValor("");
-      return;
-    }
-    setVariantes((prev) => [...prev, valor]);
-    setNuevaVarianteValor("");
-  };
-
-  const handleRemoveVariante = (indexToRemove) => {
-    setVariantes((prev) => prev.filter((_, index) => index !== indexToRemove));
+  // ◀ ▶: la cambia de lugar con la de al lado. La primera es la portada.
+  const handleMoveImage = (index, paso) => {
+    setImages((prev) => {
+      const ordenadas = [...prev];
+      [ordenadas[index], ordenadas[index + paso]] = [ordenadas[index + paso], ordenadas[index]];
+      return ordenadas;
+    });
   };
 
   const handleUploadImages = async (equipoId) => {
@@ -81,6 +95,15 @@ const CrearEquipos = () => {
     });
 
     return await Promise.all(uploadPromises);
+  };
+
+  const handleCancel = () => {
+    setFormValues({ name: "", description: "" });
+    setImages([]);
+    setVarianteNombre("");
+    setVariantes([]);
+    setTextoExtra("");
+    setSubtitulo("");
   };
 
   const handleSubmit = async (e) => {
@@ -115,19 +138,12 @@ const CrearEquipos = () => {
 
       // Mismo motivo que en EditarEquipos: el catálogo vive en Redux y solo se
       // consulta cuando está vacío, así que sin este refresh el equipo recién
-      // creado no aparece en la tienda, el kiosco ni el buscador de editar o
-      // eliminar hasta que se recargue la página.
+      // creado no aparece en la tienda, el kiosco ni la pantalla de Equipos
+      // hasta que se recargue la página.
       dispatch(fetchEquiposData());
 
       showSnackbar("Equipo creado exitosamente.", "success");
-
-      setFormValues({ name: "", description: "" });
-      setImages([]);
-      setVarianteNombre("");
-      setVariantes([]);
-      setNuevaVarianteValor("");
-      setTextoExtra("");
-      setSubtitulo("");
+      handleCancel();
     } catch (error) {
       showSnackbar(`Error: ${error.message}`, "error");
     } finally {
@@ -135,233 +151,113 @@ const CrearEquipos = () => {
     }
   };
 
-  const handleCancel = () => {
-    setFormValues({ name: "", description: "" });
-    setImages([]);
-    setVarianteNombre("");
-    setVariantes([]);
-    setNuevaVarianteValor("");
-    setTextoExtra("");
-    setSubtitulo("");
-  };
-
   if (loading) return <LoadingLogo text="Creando equipo..." />;
 
+  const colores = coloresDelFormulario(theme);
+  // En el computador, con las secciones al alto de la pantalla, los campos
+  // largos llenan su recuadro; en el celular crecen a medida que se escribe.
+  const llenar = anchoCompleto;
+  // Fotos por fila: la vista lo decide por sus cortes (ver VistaCreaEquipo);
+  // si no lo dice, una en el celular (a todo el ancho) y dos en el computador.
+  const porFila = fotosPorFila ?? (esCelular ? 1 : 2);
+
+  const texto = (
+    <>
+      <SeccionDatos
+        nombre={formValues.name}
+        descripcion={formValues.description}
+        onChange={handlerInputChange}
+        color={colores.datos}
+        llenar={llenar}
+      />
+      <SeccionVariantes
+        nombre={varianteNombre}
+        onCambiarNombre={setVarianteNombre}
+        valores={variantes}
+        onCambiarValores={setVariantes}
+        color={colores.variantes}
+        esCelular={esCelular}
+      />
+      <SeccionCotizacion
+        subtitulo={subtitulo}
+        onCambiarSubtitulo={setSubtitulo}
+        textoExtra={textoExtra}
+        onCambiarTextoExtra={setTextoExtra}
+        color={colores.cotizacion}
+        llenar={llenar}
+        esCelular={esCelular}
+      />
+    </>
+  );
+
+  const fotos = (
+    <Seccion titulo="FOTOS" icono={<PhotoLibraryIcon />} color={colores.fotos} crece={llenar}>
+      <ZonaElegirFoto
+        id="file-upload"
+        titulo="Selecciona una Imagen"
+        onElegir={handleImageChange}
+        color={colores.fotos}
+        esCelular={esCelular}
+      />
+
+      <GrillaFotos porFila={porFila} cantidad={images.length} color={colores.fotos} llenar={llenar}>
+        {images.map((img, index) => (
+          <TarjetaFoto
+            key={img.id}
+            url={img.preview}
+            alt={`preview-${index}`}
+            nombre={img.name}
+            nombreCampo={`imagenNombre-${index}`}
+            onCambiarNombre={(nombre) => handleNameChange(index, nombre)}
+            // La portada y el organizador, como al editar (pedido del dueño,
+            // 2026-10-26).
+            etiquetas={index === 0 && <EtiquetasFoto portada />}
+            barra={
+              <BarraFoto
+                index={index}
+                total={images.length}
+                onMover={handleMoveImage}
+                onQuitar={handleRemoveImage}
+              />
+            }
+          />
+        ))}
+      </GrillaFotos>
+    </Seccion>
+  );
+
   return (
-    <form onSubmit={handleSubmit}>
-      <Grid container spacing={2} justifyContent="center">
-        <Box
-          sx={{
-            width: { xs: "90%", md: "60%" },
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            flexDirection: "column",
-            mt: 3,
-          }}
-        >
-          <TextField
-            name="name"
-            label="Nombre del equipo"
-            value={formValues.name}
-            onChange={handlerInputChange}
-            fullWidth
-          />
-
-          <TextField
-            name="description"
-            label="Descripción del equipo"
-            value={formValues.description}
-            onChange={handlerInputChange}
-            fullWidth
-            multiline
-            rows={4}
-            margin="normal"
-          />
-
-          <TextField
-            name="varianteNombre"
-            label="Nombre de la variante (opcional, ej. Tamaño, Color)"
-            value={varianteNombre}
-            onChange={(e) => setVarianteNombre(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-
-          <Box sx={{ display: "flex", gap: 1, width: "100%", mt: 1 }}>
-            <TextField
-              name="nuevaVarianteValor"
-              label="Valor de la variante (ej. 1.20m)"
-              value={nuevaVarianteValor}
-              onChange={(e) => setNuevaVarianteValor(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddVariante();
-                }
-              }}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              color="accent"
-              onClick={handleAddVariante}
-            >
-              Agregar
-            </Button>
-          </Box>
-
-          {variantes.length > 0 && (
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ width: "100%", mt: 2 }}
-            >
-              {variantes.map((variante, index) => (
-                <Chip
-                  key={`${variante}-${index}`}
-                  label={variante}
-                  onDelete={() => handleRemoveVariante(index)}
-                />
-              ))}
-            </Stack>
-          )}
-
-          <TextField
-            name="textoExtra"
-            label="Texto extra (opcional)"
-            value={textoExtra}
-            onChange={(e) => setTextoExtra(e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-            margin="normal"
-          />
-
-          <TextField
-            name="subtitulo"
-            label="Subtítulo para cotización/PDF (opcional, no se muestra al público)"
-            helperText="Se usa en vez del nombre del catálogo al generar la cotización/PDF. Útil cuando el nombre del catálogo es informal (ej. 'RANA' → 'Vibrocompactador tipo rana'). Si se deja vacío, se sigue usando la descripción."
-            value={subtitulo}
-            onChange={(e) => setSubtitulo(e.target.value)}
-            fullWidth
-            margin="normal"
-          />
-
-          <Divider sx={{ width: "100%", mt: 2, mb: 1 }} />
-
-          {images &&
-            images.map((img, index) => (
-              <Box
-                key={img.id}
-                sx={{
-                  mb: 2,
-                  mt: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "100%",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
-                    maxWidth: "100%",
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={img.preview}
-                    alt={`preview-${index}`}
-                    sx={{
-                      width: { xs: 80, sm: 90, md: 100 },
-                      height: { xs: 80, sm: 90, md: 100 },
-                      marginRight: 1.5,
-                    }}
-                  />
-                  <TextField
-                    name={`imagenNombre-${index}`}
-                    label="Nombre de la imagen"
-                    value={img.name}
-                    onChange={(e) => handleNameChange(index, e.target.value)}
-                    sx={{
-                      marginRight: 1.5,
-                    }}
-                  />
-
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => handleRemoveImage(index)}
-                  >
-                    Eliminar
-                  </Button>
-                </Box>
-              </Box>
-            ))}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
-              <Grid container spacing={2} justifyContent="center">
-                <Button
-                  variant="contained"
-                  color="accent"
-                  component="span"
-                  fullWidth
-                  sx={{
-                    mt: 2,
-                  }}
-                >
-                  Selecciona una Imagen
-                </Button>
-              </Grid>
-            </label>
-            <input
-              id="file-upload"
-              type="file"
-              name="fotos"
-              onChange={handleImageChange}
-              style={{ display: "none" }}
-            />
-          </Box>
-        </Box>
-      </Grid>
-
-      <Box sx={{ mb: 2 }}>
-        <Divider
-          sx={{
-            width: "100%",
-            mt: 1,
-            mb: { xs: 3, md: 4 },
-            borderBottomWidth: "2.5px",
-          }}
-        />
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={10} sm={4} md={4}>
+    <FormularioEquipo
+      idFormulario={idFormulario}
+      onSubmit={handleSubmit}
+      onReset={handleCancel}
+      anchoCompleto={anchoCompleto}
+      porFila={porFila}
+      texto={texto}
+      fotos={fotos}
+      abajo={
+        botonesAbajo && (
+          <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
             <Button type="submit" variant="contained" color="success" disabled={loading} fullWidth>
               CREAR EQUIPO
             </Button>
-          </Grid>
-          <Grid item xs={10} sm={4} md={4}>
-            <Button onClick={handleCancel} variant="contained" color="error" fullWidth>
+            <Button type="reset" variant="contained" color="error" fullWidth>
               CANCELAR
             </Button>
-          </Grid>
-        </Grid>
-      </Box>
-
+          </Stack>
+        )
+      }
+    >
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
-    </form>
+    </FormularioEquipo>
   );
+};
+
+CrearEquipos.propTypes = {
+  anchoCompleto: PropTypes.bool,
+  botonesAbajo: PropTypes.bool,
+  idFormulario: PropTypes.string,
+  fotosPorFila: PropTypes.oneOf([1, 2]),
 };
 
 export default CrearEquipos;

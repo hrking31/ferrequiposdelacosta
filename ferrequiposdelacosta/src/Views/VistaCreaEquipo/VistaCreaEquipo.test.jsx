@@ -17,8 +17,12 @@ vi.mock("firebase/firestore", () => ({
   getDocs: nube.getDocs,
 }));
 vi.mock("firebase/storage", () => ({ ref: vi.fn(), uploadBytes: vi.fn(), getDownloadURL: vi.fn() }));
-// El encabezado no es lo que se prueba acá.
-vi.mock("../../Components/HeaderUsuario/HeaderUsuario", () => ({ default: () => null }));
+// Del encabezado solo importan los botones de la vista.
+vi.mock("../../Components/HeaderUsuario/HeaderUsuario", () => ({
+  default: function HeaderFalso({ acciones }) {
+    return <div>{acciones}</div>;
+  },
+}));
 
 const abrir = (equipos = []) =>
   renderConProviders(<VistaCreaEquipo />, {
@@ -32,14 +36,45 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("VistaCreaEquipo — el catálogo al lado", () => {
-  it("en el computador, la lista sale de la memoria sin leer nada", () => {
+// Una pantalla así de ancha o más: todas las medidas de ancho mínimo coinciden.
+const conPantalla = (coincide) => {
+  const matchMediaOriginal = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = (query) => ({ ...matchMediaOriginal(query), matches: coincide(query) });
+  });
+  afterEach(() => {
+    window.matchMedia = matchMediaOriginal;
+  });
+};
+
+describe("VistaCreaEquipo — el catálogo al lado, en el computador ancho", () => {
+  conPantalla((query) => query.includes("min-width"));
+
+  it("la lista sale de la memoria sin leer nada", () => {
     abrir([{ name: "RANA" }, { name: "ANDAMIO" }]);
 
-    expect(screen.getByText("Catálogo")).toBeInTheDocument();
+    expect(screen.getByText("Catálogo · 2")).toBeInTheDocument();
     expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
     expect(screen.getByText("RANA")).toBeInTheDocument();
+    // Con la columna no hace falta el botón.
+    expect(screen.queryByRole("button", { name: "VER CATÁLOGO" })).not.toBeInTheDocument();
     expect(nube.getDocs).not.toHaveBeenCalled();
+  });
+
+  it("Crear y Cancelar van en el encabezado y llegan al formulario", async () => {
+    const { usuario } = abrir([{ name: "ANDAMIO" }]);
+
+    // Al pie del formulario ya no están.
+    expect(screen.queryByRole("button", { name: "CREAR EQUIPO" })).not.toBeInTheDocument();
+
+    // Cancelar limpia lo escrito.
+    await usuario.type(screen.getByLabelText(/Nombre del equipo/), "RANA");
+    await usuario.click(screen.getByRole("button", { name: "Cancelar y limpiar el formulario" }));
+    expect(screen.getByLabelText(/Nombre del equipo/)).toHaveValue("");
+
+    // Crear envía el formulario: vacío, avisa lo que falta.
+    await usuario.click(screen.getByRole("button", { name: "Crear equipo" }));
+    expect(await screen.findByText("Todos los campos son obligatorios.")).toBeInTheDocument();
   });
 
   it("con la memoria vacía (se recargó acá), baja el catálogo una vez", async () => {
@@ -52,28 +87,40 @@ describe("VistaCreaEquipo — el catálogo al lado", () => {
     expect(nube.getDocs).toHaveBeenCalledTimes(1);
   });
 
-  describe("en el celular", () => {
-    const matchMediaOriginal = window.matchMedia;
-    beforeEach(() => {
-      window.matchMedia = (query) => ({
-        ...matchMediaOriginal(query),
-        matches: query.includes("max-width"),
-      });
-    });
-    afterEach(() => {
-      window.matchMedia = matchMediaOriginal;
-    });
+});
 
-    it("la lista va en una ventana que abre «Ver catálogo»", async () => {
-      const { usuario } = abrir([{ name: "ANDAMIO" }]);
+describe("VistaCreaEquipo — en el celular", () => {
+  conPantalla((query) => query.includes("max-width"));
 
-      // No hay columna: no entra.
-      expect(screen.queryByText("ANDAMIO")).not.toBeInTheDocument();
+  it("el pie trae catálogo, crear, cancelar y menú; el catálogo abre la lista", async () => {
+    const { usuario } = abrir([{ name: "ANDAMIO" }]);
 
-      await usuario.click(screen.getByRole("button", { name: "VER CATÁLOGO" }));
-      const dialogo = await screen.findByRole("dialog");
-      expect(dialogo).toHaveTextContent("Equipos del catálogo");
-      expect(dialogo).toHaveTextContent("ANDAMIOTotal1");
-    });
+    // No hay columna: no entra.
+    expect(screen.queryByText("ANDAMIO")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ir al menú" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crear equipo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar y limpiar el formulario" })).toBeInTheDocument();
+    // Ni el botón de antes ni los del pie del formulario.
+    expect(screen.queryByRole("button", { name: "VER CATÁLOGO" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "CREAR EQUIPO" })).not.toBeInTheDocument();
+
+    // Solo el ícono, como los demás del pie.
+    await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
+    const dialogo = await screen.findByRole("dialog");
+    expect(dialogo).toHaveTextContent("Equipos del catálogo · 1");
+    expect(dialogo).toHaveTextContent("ANDAMIO");
+  });
+});
+
+describe("VistaCreaEquipo — computador sin lugar para la columna", () => {
+  // Más de 915px (no es celular) pero menos de 1520: ninguna medida coincide.
+  conPantalla(() => false);
+
+  it("el catálogo se abre desde el encabezado y no hay pie", async () => {
+    const { usuario } = abrir([{ name: "ANDAMIO" }]);
+
+    expect(screen.queryByRole("button", { name: "Ir al menú" })).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Ver catálogo" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("ANDAMIO");
   });
 });

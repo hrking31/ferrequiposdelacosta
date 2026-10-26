@@ -11,9 +11,7 @@ import {
   VistaCuentaDeCobro,
   VistaCuentasCobro,
   VistaCreaEquipo,
-  VistaSeleccionarEquipo,
-  VistaEliminarEquipo,
-  VistaEditarEquipo,
+  VistaEquipos,
   VistaCrearUsuarios,
   VistaEliminarUsuario,
   VistaNoAutorizada,
@@ -26,7 +24,7 @@ import {
   VistaClienteDetalle,
   VistaSeguimientoClientes,
 } from "./Views";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
 import NavBar from "./Components/NavBar/NavBar";
 import KioskScreensaver from "./Components/KioskScreensaver/KioskScreensaver.jsx";
@@ -183,31 +181,30 @@ function App() {
             </ProtectedRoutes>
           }
         />
+        {/* Ver, editar y eliminar equipos, en una sola pantalla
+            (2026-10-26): la lista, la ficha de uno y su editor, cada uno
+            en su dirección. */}
         <Route
-          path="/vistaseleccionarequipo"
+          path="/vistaequipos/:id?"
           element={
             <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
-              <VistaSeleccionarEquipo />
+              <VistaEquipos />
             </ProtectedRoutes>
           }
         />
         <Route
-          exact
-          path="/vistaeliminarequipo"
+          path="/vistaequipos/:id/editar"
           element={
             <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
-              <VistaEliminarEquipo />
+              <VistaEquipos editando />
             </ProtectedRoutes>
           }
         />
-        <Route
-          path="/vistaeditarequipo"
-          element={
-            <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
-              <VistaEditarEquipo />
-            </ProtectedRoutes>
-          }
-        />
+        {/* Las direcciones de las tres pantallas de antes, por si alguien las
+            tiene guardadas. */}
+        <Route path="/vistaseleccionarequipo" element={<Navigate to="/vistaequipos" replace />} />
+        <Route path="/vistaeliminarequipo" element={<Navigate to="/vistaequipos" replace />} />
+        <Route path="/vistaeditarequipo" element={<Navigate to="/vistaequipos" replace />} />
         <Route
           path="/vistacrearusuarios"
           element={

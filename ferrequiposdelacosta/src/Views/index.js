@@ -5,9 +5,7 @@ import VistaCotizacion from "./VistaCotizacion/VistaCotizacion";
 import VistaCuentaDeCobro from "./VistaCuentaDeCobro/VistaCuentaDeCobro";
 import VistaCuentasCobro from "./VistaCuentasCobro/VistaCuentasCobro";
 import VistaCreaEquipo from "./VistaCreaEquipo/VistaCreaEquipo";
-import VistaSeleccionarEquipo from "./VistaSeleccionarEquipo/VistaSeleccionarEquipo";
-import VistaEliminarEquipo from "./VistaEliminarEquipo/VistaEliminarEquipo";
-import VistaEditarEquipo from "./VistaEditarEquipo/VistaEditarEquipo";
+import VistaEquipos from "./VistaEquipos/VistaEquipos";
 import VistaCrearUsuarios from "./VistaCrearUsuarios/VistaCrearUsuarios";
 import VistaEliminarUsuario from "./VistaEliminarUsuario/VistaEliminarUsuario";
 import VistaNoAutorizada from "./VistaNoAutorizada/VistaNoAutorizada";
@@ -28,9 +26,7 @@ export {
   VistaCuentaDeCobro,
   VistaCuentasCobro,
   VistaCreaEquipo,
-  VistaSeleccionarEquipo,
-  VistaEliminarEquipo,
-  VistaEditarEquipo,
+  VistaEquipos,
   VistaCrearUsuarios,
   VistaEliminarUsuario,
   VistaNoAutorizada,

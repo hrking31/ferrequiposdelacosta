@@ -259,7 +259,7 @@ export default function AdminForms() {
     },
     {
       permiso: "eliminarEditarEquipos",
-      to: "/vistaseleccionarequipo",
+      to: "/vistaequipos",
       icon: <EditIcon />,
       label: "EDITAR / ELIMINAR EQUIPO",
     },

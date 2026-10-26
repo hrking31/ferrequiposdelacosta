@@ -824,7 +824,7 @@ export const CustomThemeProvider = ({ children }) => {
         },
 
         // h6 se usa como título de sección en varias pantallas (ClienteDetalle,
-        // ListaClientes, EliminarEquipos y el Footer en móvil). Antes no estaba
+        // ListaClientes, la galería de Equipos y el Footer en móvil). Antes no estaba
         // definido y caía al default de MUI: Roboto, peso 500 y 1.25rem — o sea
         // otra fuente y MÁS GRANDE que h5, invirtiendo la jerarquía.
         h6: {

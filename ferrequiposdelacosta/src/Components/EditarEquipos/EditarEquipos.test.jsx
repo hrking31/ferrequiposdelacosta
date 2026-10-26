@@ -2,13 +2,13 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import EditarEquipos from "./EditarEquipos";
 
-// La edición de un equipo del catálogo. El equipo a editar llega por la
-// navegación (lo elige la pantalla anterior), no por una consulta.
-//
-// La regla que más importa acá es la del REFRESCO: el catálogo vive en memoria
-// y solo se consulta cuando está vacío, así que después de guardar hay que
-// volver a pedirlo. Sin eso, la tienda, el kiosco y el selector de equipos
-// siguen mostrando los datos viejos hasta que alguien recargue la página.
+// La edición de un equipo del catálogo (2026-10-26: dentro de la pantalla de
+// Equipos, que le pasa el equipo). Lo que importa:
+// - guarda en el equipo que corresponde, con el nombre en minúsculas;
+// - después de guardar vuelve a pedir el catálogo (vive en memoria);
+// - las fotos quitadas se borran del almacenamiento DESPUÉS de guardar;
+// - el orden de las fotos (la primera es la portada) se guarda;
+// - sin cambios no escribe nada, y Deshacer vuelve a lo guardado.
 const nube = vi.hoisted(() => ({
   updateDoc: vi.fn(() => Promise.resolve()),
   getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
@@ -20,17 +20,13 @@ const nube = vi.hoisted(() => ({
 vi.mock("../Firebase/Firebase", () => ({ db: {}, storage: {} }));
 
 vi.mock("firebase/firestore", () => ({
-  getFirestore: () => ({}),
   collection: (_db, nombre) => nombre,
   doc: (_db, ...partes) => partes.join("/"),
   updateDoc: nube.updateDoc,
   getDocs: nube.getDocs,
-  query: (...args) => args,
-  orderBy: (...args) => args,
 }));
 
 vi.mock("firebase/storage", () => ({
-  getStorage: () => ({}),
   ref: (_storage, ruta) => ({ fullPath: ruta }),
   deleteObject: nube.deleteObject,
   uploadBytes: nube.uploadBytes,
@@ -42,22 +38,37 @@ const equipo = {
   name: "ANDAMIO",
   description: "Andamio metálico",
   nameLowerCase: "andamio",
-  images: [{ name: "andamio", url: "https://fotos/andamio.jpg", path: "eq1/andamio" }],
+  images: [
+    { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
+    { name: "lado", url: "https://fotos/lado.jpg", path: "eq1/lado" },
+  ],
   varianteNombre: "Tamaño",
   variantes: ["1.20m"],
   textoExtra: "",
   subtitulo: "",
 };
 
-// El equipo llega por la navegación, igual que en la app.
-const abrirCon = (equipoAEditar = equipo) =>
-  renderConProviders(<EditarEquipos />, {
-    ruta: { pathname: "/editarequipos", state: { equipo: equipoAEditar } },
-    estadoInicial: { equipos: { equipos: [equipoAEditar], loading: false, error: null } },
-  });
+// Guardar y Deshacer viven afuera (encabezado o pie) y llegan por el id.
+const abrir = (onCambios = vi.fn()) => ({
+  onCambios,
+  ...renderConProviders(
+    <>
+      <EditarEquipos equipo={equipo} onCambios={onCambios} />
+      <button type="submit" form="form-editar-equipo">
+        Guardar
+      </button>
+      <button type="reset" form="form-editar-equipo">
+        Deshacer
+      </button>
+    </>,
+    { estadoInicial: { equipos: { equipos: [equipo], loading: false, error: null } } },
+  ),
+});
 
-const guardar = (usuario) =>
-  usuario.click(screen.getByRole("button", { name: "Guardar Equipo" }));
+const cambiarNombre = async (usuario, nombre) => {
+  await usuario.clear(screen.getByLabelText(/Nombre del equipo/));
+  await usuario.type(screen.getByLabelText(/Nombre del equipo/), nombre);
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -66,58 +77,81 @@ beforeEach(() => {
 
 describe("EditarEquipos", () => {
   it("abre con los datos del equipo cargados", () => {
-    abrirCon();
+    abrir();
 
     expect(screen.getByLabelText(/Nombre del equipo/)).toHaveValue("ANDAMIO");
     expect(screen.getByLabelText(/Descripción del equipo/)).toHaveValue("Andamio metálico");
+    expect(screen.getByText("PORTADA")).toBeInTheDocument();
   });
 
-  it("guarda los cambios en el equipo que corresponde", async () => {
-    const { usuario } = abrirCon();
+  it("guarda en el equipo que corresponde, con el nombre en minúsculas, y vuelve a pedir el catálogo", async () => {
+    const { usuario } = abrir();
 
-    await usuario.clear(screen.getByLabelText(/Nombre del equipo/));
-    await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO NUEVO");
-    await guardar(usuario);
+    await cambiarNombre(usuario, "ANDAMIO NUEVO");
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
-
     const [ruta, datos] = nube.updateDoc.mock.calls[0];
     expect(ruta).toBe("equipos/eq1");
     expect(datos.name).toBe("ANDAMIO NUEVO");
-  });
-
-  it("rehace el nombre en minúsculas, que es por donde busca la tienda", async () => {
-    const { usuario } = abrirCon();
-
-    await usuario.clear(screen.getByLabelText(/Nombre del equipo/));
-    await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO NUEVO");
-    await guardar(usuario);
-
-    expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
-    // Si esto no se rehace, el equipo cambia de nombre pero se sigue
-    // encontrando por el viejo — y no por el nuevo.
-    expect(nube.updateDoc.mock.calls[0][1].nameLowerCase).toBe("andamio nuevo");
-  });
-
-  it("después de guardar vuelve a pedir el catálogo", async () => {
-    const { usuario } = abrirCon();
-
-    await guardar(usuario);
-
-    expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
-    // Sin este refresco, el resto de la app muestra los datos viejos hasta que
-    // alguien recargue la página.
+    // Si no se rehace, se sigue encontrando por el nombre viejo.
+    expect(datos.nameLowerCase).toBe("andamio nuevo");
+    expect(datos.varianteNombre).toBe("Tamaño");
+    expect(datos.variantes).toEqual(["1.20m"]);
     expect(nube.getDocs).toHaveBeenCalled();
   });
 
-  it("conserva las variantes del equipo", async () => {
-    const { usuario } = abrirCon();
+  it("sin cambios no escribe nada", async () => {
+    const { usuario } = abrir();
 
-    await guardar(usuario);
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText("No hay cambios para guardar.")).toBeInTheDocument();
+    expect(nube.updateDoc).not.toHaveBeenCalled();
+  });
+
+  it("la foto quitada se borra del almacenamiento después de guardar", async () => {
+    const { usuario } = abrir();
+
+    // Quita la segunda (lado).
+    await usuario.click(screen.getAllByRole("button", { name: "Quitar foto" })[1]);
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
-    const datos = nube.updateDoc.mock.calls[0][1];
-    expect(datos.varianteNombre).toBe("Tamaño");
-    expect(datos.variantes).toEqual(["1.20m"]);
+    expect(nube.updateDoc.mock.calls[0][1].images).toEqual([
+      { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
+    ]);
+    expect(nube.deleteObject).toHaveBeenCalledWith({ fullPath: "eq1/lado" });
+    // Primero el equipo, después el borrado: nunca apunta a una foto borrada.
+    expect(nube.updateDoc.mock.invocationCallOrder[0]).toBeLessThan(
+      nube.deleteObject.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("mover una foto cambia la portada que se guarda", async () => {
+    const { usuario } = abrir();
+
+    await usuario.click(screen.getAllByRole("button", { name: "Mover después" })[0]);
+    await usuario.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
+    expect(nube.updateDoc.mock.calls[0][1].images.map((foto) => foto.name)).toEqual([
+      "lado",
+      "frente",
+    ]);
+    expect(nube.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it("avisa los cambios sin guardar, y Deshacer vuelve a lo guardado", async () => {
+    const { usuario, onCambios } = abrir();
+
+    await cambiarNombre(usuario, "OTRO");
+    expect(screen.getByRole("status", { name: "Cambios sin guardar" })).toBeInTheDocument();
+    expect(onCambios).toHaveBeenLastCalledWith(1);
+
+    await usuario.click(screen.getByRole("button", { name: "Deshacer" }));
+    expect(screen.getByLabelText(/Nombre del equipo/)).toHaveValue("ANDAMIO");
+    expect(screen.queryByRole("status", { name: "Cambios sin guardar" })).not.toBeInTheDocument();
+    expect(onCambios).toHaveBeenLastCalledWith(0);
   });
 });
