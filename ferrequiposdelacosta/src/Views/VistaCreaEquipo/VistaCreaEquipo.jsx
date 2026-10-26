@@ -52,7 +52,7 @@ const VistaCreaEquipo = () => {
   // no crear uno repetido. Es la misma lista del recuadro "Equipos" del menú y
   // sale del catálogo en memoria, que la app ya bajó al abrirse: verla no
   // cuesta ninguna lectura. Si la memoria está vacía —se recargó la página
-  // estando acá— se pide una vez, como en editar o eliminar equipo.
+  // estando acá— se pide una vez, como en la pantalla de Equipos.
   const { equipos: catalogo, loading: cargandoCatalogo } = useSelector((state) => state.equipos);
   const equiposEnLista = catalogo.length === 0 && cargandoCatalogo ? null : catalogo;
   const [verCatalogo, setVerCatalogo] = useState(false);
@@ -165,7 +165,6 @@ const VistaCreaEquipo = () => {
           <CrearEquipos
             anchoCompleto={dosColumnas}
             fotosPorFila={dosFotosPorFila ? 2 : 1}
-            botonesAbajo={false}
             idFormulario={ID_FORMULARIO}
           />
         </Box>

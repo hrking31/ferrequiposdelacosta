@@ -5,8 +5,8 @@ import { Box, Divider, Stack, Typography } from "@mui/material";
 // de la tienda, por orden alfabético, con el total al pie. Es la tarjeta de
 // quien solo edita el catálogo.
 //
-// La lista es la misma que la app ya baja para la tienda y para editar o
-// eliminar equipos (el catálogo en memoria, ver equiposSlice). Si ya se bajó
+// La lista es la misma que la app ya baja para la tienda y para la pantalla de
+// Equipos (el catálogo en memoria, ver equiposSlice). Si ya se bajó
 // en esta sesión, verla no cuesta nada; si no, el menú la pide al abrir esto y
 // queda guardada para esas pantallas.
 //

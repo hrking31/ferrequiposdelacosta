@@ -40,6 +40,6 @@ MiniaturaEquipo.propTypes = {
   equipo: PropTypes.shape({
     images: PropTypes.arrayOf(PropTypes.shape({ url: PropTypes.string })),
   }).isRequired,
-  ancho: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  ancho: PropTypes.number.isRequired,
   radio: PropTypes.number,
 };

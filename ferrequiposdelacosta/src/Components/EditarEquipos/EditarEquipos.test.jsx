@@ -53,7 +53,12 @@ const abrir = (onCambios = vi.fn()) => ({
   onCambios,
   ...renderConProviders(
     <>
-      <EditarEquipos equipo={equipo} onCambios={onCambios} />
+      <EditarEquipos
+        equipo={equipo}
+        idFormulario="form-editar-equipo"
+        fotosPorFila={1}
+        onCambios={onCambios}
+      />
       <button type="submit" form="form-editar-equipo">
         Guardar
       </button>

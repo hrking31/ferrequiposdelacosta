@@ -58,7 +58,7 @@ const desdeEquipo = (equipo) => ({
 // guardó y el catálogo se volvió a bajar—, el formulario se rehace con él.
 const EditarEquipos = ({
   equipo,
-  idFormulario = "form-editar-equipo",
+  idFormulario,
   anchoCompleto = false,
   fotosPorFila,
   onCambios,
@@ -204,7 +204,6 @@ const EditarEquipos = ({
 
   const colores = coloresDelFormulario(theme);
   const llenar = anchoCompleto;
-  const porFila = fotosPorFila ?? (esCelular ? 1 : 2);
 
   const texto = (
     <>
@@ -255,7 +254,7 @@ const EditarEquipos = ({
       />
 
       <GrillaFotos
-        porFila={porFila}
+        porFila={fotosPorFila}
         cantidad={form.fotos.length}
         color={colores.fotos}
         llenar={llenar}
@@ -294,7 +293,7 @@ const EditarEquipos = ({
       // Deshacer: todo como está guardado.
       onReset={() => setForm(desdeEquipo(equipo))}
       anchoCompleto={anchoCompleto}
-      porFila={porFila}
+      porFila={fotosPorFila}
       texto={texto}
       fotos={fotos}
     >
@@ -316,9 +315,9 @@ EditarEquipos.propTypes = {
     textoExtra: PropTypes.string,
     subtitulo: PropTypes.string,
   }).isRequired,
-  idFormulario: PropTypes.string,
+  idFormulario: PropTypes.string.isRequired,
   anchoCompleto: PropTypes.bool,
-  fotosPorFila: PropTypes.oneOf([1, 2]),
+  fotosPorFila: PropTypes.oneOf([1, 2]).isRequired,
   // Recibe cuántos recuadros tienen cambios sin guardar (0 si ninguno).
   onCambios: PropTypes.func,
 };

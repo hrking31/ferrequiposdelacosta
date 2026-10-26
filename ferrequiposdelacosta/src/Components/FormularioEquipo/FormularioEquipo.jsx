@@ -18,7 +18,6 @@ export default function FormularioEquipo({
   porFila,
   texto,
   fotos,
-  abajo,
   children,
 }) {
   const anchoTexto = porFila === 1 ? 8 : 6;
@@ -58,7 +57,6 @@ export default function FormularioEquipo({
             </Stack>
           </Grid>
         </Grid>
-        {abajo}
       </Box>
       {children}
     </form>
@@ -74,7 +72,5 @@ FormularioEquipo.propTypes = {
   // Las secciones de texto (columna izquierda) y la de fotos (derecha).
   texto: PropTypes.node.isRequired,
   fotos: PropTypes.node.isRequired,
-  // Lo que va debajo de las dos columnas (los botones, si van abajo).
-  abajo: PropTypes.node,
   children: PropTypes.node,
 };

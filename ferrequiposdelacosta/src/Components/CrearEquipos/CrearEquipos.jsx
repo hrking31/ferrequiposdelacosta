@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { Button, Stack, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import { useDispatch } from "react-redux";
 import { storage, db } from "../Firebase/Firebase";
@@ -26,16 +26,13 @@ import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
 // `anchoCompleto`: con lugar (ver VistaCreaEquipo) el formulario ocupa todo el
 // ancho que le queda, en dos columnas de secciones al alto de la pantalla.
 //
-// `botonesAbajo`: Crear y Cancelar al pie del formulario. En el computador
-// van en el encabezado (como en la cotización y la cuenta de cobro) y llegan
-// a este formulario por su `idFormulario`: un botón puede enviar o limpiar un
+// Crear y Cancelar no van acá: viven en el encabezado (computador) o en el
+// pie (celular), como en la cotización y la cuenta de cobro, y llegan a este
+// formulario por su `idFormulario`: un botón puede enviar o limpiar un
 // formulario que está en otra parte de la pantalla.
-const CrearEquipos = ({
-  anchoCompleto = false,
-  botonesAbajo = true,
-  idFormulario = "form-crear-equipo",
-  fotosPorFila,
-}) => {
+//
+// `fotosPorFila`: lo decide la vista por sus cortes de pantalla.
+const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => {
   const theme = useTheme();
   // Angosta O baja, como Seguimiento: el teléfono acostado también es celular.
   const esCelular = usePantallaCompacta();
@@ -157,9 +154,6 @@ const CrearEquipos = ({
   // En el computador, con las secciones al alto de la pantalla, los campos
   // largos llenan su recuadro; en el celular crecen a medida que se escribe.
   const llenar = anchoCompleto;
-  // Fotos por fila: la vista lo decide por sus cortes (ver VistaCreaEquipo);
-  // si no lo dice, una en el celular (a todo el ancho) y dos en el computador.
-  const porFila = fotosPorFila ?? (esCelular ? 1 : 2);
 
   const texto = (
     <>
@@ -200,7 +194,7 @@ const CrearEquipos = ({
         esCelular={esCelular}
       />
 
-      <GrillaFotos porFila={porFila} cantidad={images.length} color={colores.fotos} llenar={llenar}>
+      <GrillaFotos porFila={fotosPorFila} cantidad={images.length} color={colores.fotos} llenar={llenar}>
         {images.map((img, index) => (
           <TarjetaFoto
             key={img.id}
@@ -232,21 +226,9 @@ const CrearEquipos = ({
       onSubmit={handleSubmit}
       onReset={handleCancel}
       anchoCompleto={anchoCompleto}
-      porFila={porFila}
+      porFila={fotosPorFila}
       texto={texto}
       fotos={fotos}
-      abajo={
-        botonesAbajo && (
-          <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-            <Button type="submit" variant="contained" color="success" disabled={loading} fullWidth>
-              CREAR EQUIPO
-            </Button>
-            <Button type="reset" variant="contained" color="error" fullWidth>
-              CANCELAR
-            </Button>
-          </Stack>
-        )
-      }
     >
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
     </FormularioEquipo>
@@ -255,9 +237,8 @@ const CrearEquipos = ({
 
 CrearEquipos.propTypes = {
   anchoCompleto: PropTypes.bool,
-  botonesAbajo: PropTypes.bool,
-  idFormulario: PropTypes.string,
-  fotosPorFila: PropTypes.oneOf([1, 2]),
+  idFormulario: PropTypes.string.isRequired,
+  fotosPorFila: PropTypes.oneOf([1, 2]).isRequired,
 };
 
 export default CrearEquipos;

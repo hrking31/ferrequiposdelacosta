@@ -46,8 +46,20 @@ const elegirFoto = () => {
   });
 };
 
+// Como en la pantalla: Crear vive afuera (encabezado o pie) y llega al
+// formulario por su id.
+const abrir = () =>
+  renderConProviders(
+    <>
+      <CrearEquipos idFormulario="form-crear-equipo" fotosPorFila={1} />
+      <button type="submit" form="form-crear-equipo">
+        Crear equipo
+      </button>
+    </>,
+  );
+
 const crear = (usuario) =>
-  usuario.click(screen.getByRole("button", { name: "CREAR EQUIPO" }));
+  usuario.click(screen.getByRole("button", { name: "Crear equipo" }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,7 +70,7 @@ beforeEach(() => {
 
 describe("CrearEquipos — lo que exige antes de crear", () => {
   it("sin nombre ni descripción no crea nada", async () => {
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await crear(usuario);
 
@@ -67,7 +79,7 @@ describe("CrearEquipos — lo que exige antes de crear", () => {
   });
 
   it("con los datos pero sin foto, tampoco: un equipo sin foto no se puede mostrar", async () => {
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO");
     await usuario.type(screen.getByLabelText(/Descripción del equipo/), "Andamio metálico");
@@ -80,7 +92,7 @@ describe("CrearEquipos — lo que exige antes de crear", () => {
 
 describe("CrearEquipos — al crear", () => {
   it("sube la foto, guarda el equipo y refresca el catálogo", async () => {
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO");
     await usuario.type(screen.getByLabelText(/Descripción del equipo/), "Andamio metálico");
@@ -108,7 +120,7 @@ describe("CrearEquipos — al crear", () => {
   });
 
   it("guarda las variantes cargadas y no repite las iguales", async () => {
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO");
     await usuario.type(screen.getByLabelText(/Descripción del equipo/), "Andamio metálico");
@@ -135,7 +147,7 @@ describe("CrearEquipos — al crear", () => {
   });
 
   it("deja el formulario limpio para cargar el siguiente equipo", async () => {
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO");
     await usuario.type(screen.getByLabelText(/Descripción del equipo/), "Andamio metálico");
@@ -149,7 +161,7 @@ describe("CrearEquipos — al crear", () => {
 
   it("si falla la subida, lo dice y no deja el equipo a medio crear", async () => {
     nube.uploadBytes.mockRejectedValue(new Error("sin conexión"));
-    const { usuario } = renderConProviders(<CrearEquipos />);
+    const { usuario } = abrir();
 
     await usuario.type(screen.getByLabelText(/Nombre del equipo/), "ANDAMIO");
     await usuario.type(screen.getByLabelText(/Descripción del equipo/), "Andamio metálico");
