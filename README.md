@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-971_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-1040_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -114,7 +114,8 @@ Los **seis** lugares desde donde la app escribe por WhatsApp —el botón flotan
 | **Cuenta de cobro** | Emite el documento de cobro con numeración propia (`CC-…`), y guarda el historial |
 | **Clientes** | Ficha de cada cliente: sus facturas, su estado de cuenta y sus documentos |
 | **Cartera / Seguimiento** | Los clientes que deben o se les venció el plazo, con su bitácora de gestiones |
-| **Equipos** | Alta, edición y eliminación del catálogo, con fotos y variantes |
+| **Crear equipo** | Alta de un equipo del catálogo, con fotos, portada y variantes |
+| **Equipos** | El catálogo en una sola pantalla: la lista con miniaturas, la ficha de cada equipo, su editor y el borrado |
 | **Usuarios** | Cuentas del personal, con roles y permisos |
 
 El menú de entrada muestra además **cuatro números en vivo**: equipos afuera, plata por cobrar, cotizaciones del mes y cuentas de cobro del mes. Cada uno se filtra por permiso: quien solo administra el catálogo no ve las cifras de cartera.
@@ -131,6 +132,45 @@ El menú de entrada muestra además **cuatro números en vivo**: equipos afuera,
 | `gestorFacturacion` | Cotizaciones, cuentas de cobro, clientes y cartera |
 | `gestorIntegral` | Todo lo anterior junto |
 | `administrador` | Todo, más la gestión de usuarios |
+
+### El catálogo: ver, editar y eliminar en una sola pantalla (2026-10-26)
+
+Para corregir un equipo había que pasar por **tres pantallas**: buscarlo, abrirlo para editar o para eliminar, y volver a buscar el siguiente. Las tres pedían el mismo permiso y trabajaban sobre el mismo equipo, que viajaba de una a otra "de paso": si se recargaba la página en Editar, el formulario quedaba en blanco.
+
+Ahora es **una sola pantalla con tres niveles**, cada uno en su dirección, así que recargar no pierde dónde se estaba:
+
+| Nivel | Dirección | Qué muestra |
+|---|---|---|
+| **La lista** | `/vistaequipos` | El catálogo con la miniatura de cada portada, un buscador y cuántos coinciden |
+| **La ficha** | `/vistaequipos/{id}` | La foto grande —entera, sobre blanco, como en la tienda— con las demás en una fila, y los textos en recuadros del color de su sección. En el computador va al lado de la lista y llena el alto de la pantalla |
+| **El editor** | `/vistaequipos/{id}/editar` | El mismo formulario de Crear equipo, con la lista al lado para pasar a otro |
+
+La **llave** sube un nivel —del editor a la ficha, de la ficha a la lista— igual en el celular que en el computador. Las pantallas viejas se borraron enteras, sin redirecciones: solo se llegaba a ellas desde el menú.
+
+**Lo propio de editar:**
+
+- **Se ve qué cambió.** Cada recuadro modificado lleva un punto de su color que palpita, y el encabezado cuenta cuántos. Con cambios sin guardar, dejar el equipo —otro de la lista, la llave, el menú del celular, recargar— **pregunta antes**.
+- **Las fotos se ordenan** con ◀ ▶ y se quitan con 🗑, en una franja **debajo** de la foto para no taparla. La primera lleva ★ PORTADA, que es la que se ve en la tienda; las que todavía no se guardaron dicen NUEVA. Para cambiar una foto se quita y se agrega la nueva: un botón de reemplazar ahorraba un paso solo con la portada y no pagaba el lugar que ocupaba.
+- **Lo viejo se borra después de guardar.** Primero se suben las fotos nuevas, después se guarda el equipo y recién entonces se borran del almacenamiento las que se quitaron. Si algo falla a la mitad, el equipo nunca queda apuntando a una foto que ya no existe.
+- **Al guardar se queda en el mismo equipo**, y sin cambios no escribe nada.
+
+**Borrar pide escribir el nombre.** La ventana muestra la portada, cuántas fotos y variantes se van con el equipo, y el botón rojo se activa recién cuando se escribe su nombre: un toque en falso no se lleva un equipo con todas sus fotos.
+
+**Crear equipo usa las mismas piezas.** Los recuadros —datos, variantes, textos de la cotización y fotos—, la franja de cada foto y la lista del catálogo viven en un solo lugar (`Components/FormularioEquipo`), así que las dos pantallas no pueden separarse. En el computador el formulario ocupa el alto de la pantalla, con los textos a la izquierda y las fotos a la derecha, y **con muchas fotos se desplaza solo ese recuadro**, no la pantalla. Al lado va la lista del catálogo, para ver que el equipo no exista ya; en el celular se abre con la llave.
+
+**Ver el catálogo no cuesta lecturas.** La lista, el número del menú y la columna de Crear salen del catálogo que la app ya bajó al abrirse. Lo que sí cuesta es la **descarga de las fotos**: hoy se suben sin achicar y cada miniatura baja la foto entera. Se bajan solo las que se ven, pero el arreglo de fondo —comprimir al subir y guardar una miniatura aparte— es lo siguiente.
+
+> [!WARNING]
+> **Medir la pantalla para llenarla entró en bucle.** Debajo de las fotos quedaba un hueco, y la primera idea fue medirlo y pintar tantas tarjetas de muestra como entraran. Pero lo que se medía incluía esas mismas tarjetas: más tarjetas sacaban la barra de desplazamiento, la barra angostaba las fotos, entraban más tarjetas… y React cortó con *"Maximum update depth exceeded"*. Ahora no se mide nada: se pintan doce tarjetas fijas, flotando en el espacio que sobra, y lo que no entra se corta.
+
+### Las fotos en el detalle de la tienda
+
+En el detalle de un equipo, si las miniaturas no entran debajo de la foto grande, ahora salen **flechas a los lados de la fila**: antes se podían arrastrar, pero nada avisaba que había más. Y las flechas de la foto grande, con su círculo oscuro, ya no la tapan: aparecen al tocarla —o al pasarle el mouse— y se van solas.
+
+Las dos cosas son solo de la tienda. El kiosco usa la misma galería y quedó igual, y la galería las activa solo cuando el detalle se lo pide.
+
+> [!NOTE]
+> **En el celular las flechas no aparecían.** Se escondían cuando el puntero "salía" de la foto, y en una pantalla táctil el navegador avisa esa salida apenas se levanta el dedo: aparecían y se iban en el mismo instante, y como invisibles no se pueden tocar, tampoco se podía pasar de foto. Esconderlas al salir quedó solo para el mouse; con el dedo se van por tiempo.
 
 ---
 
@@ -182,9 +222,9 @@ Es la fecha del **despacho**, y de nada más. El cliente puede llegar a las 4 de
 
 Usa **exactamente los mismos estados** que la cotización: se abre, se pausa y se emite igual. Se numera sola (`CC-…`) y cobra el **saldo pendiente** de la factura, no el total.
 
-Al emitirse queda **sellada**: una marca que dice que ese documento ya salió. El menú la usa para contar cuántas se emitieron en el mes con **una sola consulta**, en vez de traerse las cuentas del mes y contarlas una por una.
+Al emitirse queda **sellada**: una marca que dice que ese documento ya salió. Ese sello es lo que hace posible el botón de **pagada** —solo para administradores y solo sobre cuentas ya emitidas, con quien la marcó y cuándo—. Es un interruptor: si se marcó por error, se vuelve atrás.
 
-Ese sello es también lo que hace posible el botón de **pagada** —solo para administradores y solo sobre cuentas ya emitidas, con quien la marcó y cuándo—. Es un interruptor: si se marcó por error, se vuelve atrás. Y como el conteo del mes mira el sello y no el estado, cobrar una cuenta **no le mueve el número**: el menú sigue diciendo cuánto se facturó, que es lo que se le preguntó, y no cuánto falta cobrar.
+El menú cuenta las cuentas de cobro **hechas en el mes**, emitidas o no, con una sola consulta por la fecha en que se crearon. Como mira esa fecha y no el estado, cobrar una cuenta **no le mueve el número**: el menú sigue diciendo cuánto se trabajó, y no cuánto falta cobrar.
 
 ### 3. La factura: su estado se calcula, nunca se guarda
 
@@ -1232,7 +1272,7 @@ Y una tercera cosa se volvió **estructuralmente imposible** en vez de quedar "a
 
 ## Arquitectura
 
-### El mismo aire en las catorce pantallas
+### El mismo aire en todas las pantallas
 
 Cada pantalla del panel tenía su propio espaciado: el encabezado dejaba 16px, el pie 12, la fila de búsqueda 24 en Seguimiento y Solicitudes pero 16 en Buscar cuentas de cobro, y el menú ponía 32 entre el último botón y el pie. Al recorrerlas de corrido se notaba el salto.
 
@@ -1651,7 +1691,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**971 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**1040 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 
