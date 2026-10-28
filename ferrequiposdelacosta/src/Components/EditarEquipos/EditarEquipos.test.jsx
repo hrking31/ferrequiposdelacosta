@@ -37,8 +37,7 @@ vi.mock("../../Utils/achicarImagen", () => ({
   default: vi.fn(() => Promise.resolve(new Blob(["foto"], { type: "image/webp" }))),
 }));
 
-// "frente" es de antes de las miniaturas (2026-10-28); "lado" ya tiene la
-// suya.
+const miniaturaFrente = { url: "https://fotos/frente-miniatura.webp", path: "eq1/frente-miniatura" };
 const miniaturaLado = { url: "https://fotos/lado-miniatura.webp", path: "eq1/lado-miniatura" };
 const equipo = {
   id: "eq1",
@@ -46,7 +45,7 @@ const equipo = {
   description: "Andamio metálico",
   nameLowerCase: "andamio",
   images: [
-    { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
+    { name: "frente", url: "https://fotos/frente.webp", path: "eq1/frente", miniatura: miniaturaFrente },
     { name: "lado", url: "https://fotos/lado.webp", path: "eq1/lado", miniatura: miniaturaLado },
   ],
   varianteNombre: "Tamaño",
@@ -131,7 +130,7 @@ describe("EditarEquipos", () => {
 
     expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
     expect(nube.updateDoc.mock.calls[0][1].images).toEqual([
-      { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
+      { name: "frente", url: "https://fotos/frente.webp", path: "eq1/frente", miniatura: miniaturaFrente },
     ]);
     // Las dos versiones: la grande y la miniatura.
     expect(nube.deleteObject).toHaveBeenCalledTimes(2);
@@ -154,7 +153,7 @@ describe("EditarEquipos", () => {
     expect(fotos.map((foto) => foto.name)).toEqual(["lado", "frente"]);
     // La miniatura viaja con su foto.
     expect(fotos[0].miniatura).toEqual(miniaturaLado);
-    expect(fotos[1]).not.toHaveProperty("miniatura");
+    expect(fotos[1].miniatura).toEqual(miniaturaFrente);
     expect(nube.deleteObject).not.toHaveBeenCalled();
   });
 

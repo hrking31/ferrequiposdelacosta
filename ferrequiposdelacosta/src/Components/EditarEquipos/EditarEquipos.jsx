@@ -40,6 +40,7 @@ const desdeEquipo = (equipo) => ({
     url: img.url,
     name: img.name || "",
     path: img.path || null,
+    // null y no undefined: Firestore no guarda un campo undefined.
     miniatura: img.miniatura || null,
     file: null,
   })),
@@ -162,10 +163,7 @@ const EditarEquipos = ({
       const images = await Promise.all(
         form.fotos.map((foto) => {
           if (foto.file) return subirFotoEquipo(equipo.id, foto);
-          const guardada = { name: foto.name, url: foto.url, path: foto.path };
-          // Una foto guardada por la versión anterior de la app no tiene
-          // miniatura: se guarda como está, sin inventarle una vacía.
-          return foto.miniatura ? { ...guardada, miniatura: foto.miniatura } : guardada;
+          return { name: foto.name, url: foto.url, path: foto.path, miniatura: foto.miniatura };
         }),
       );
 
