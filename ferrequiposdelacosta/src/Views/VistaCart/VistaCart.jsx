@@ -40,6 +40,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
+import { miniaturaDe } from "../../Components/CatalogoEquipos/catalogoEquipos";
 
 export default function VistaCart() {
   // reCAPTCHA se enciende ACÁ, al entrar al carrito, y no al abrir la app: es
@@ -423,7 +424,7 @@ export default function VistaCart() {
                   )}
 
                   <img
-                    src={item.images[0].url}
+                    src={miniaturaDe(item.images[0])}
                     style={{
                       width: isSmallScreen ? "100px" : "120px",
                       height: isSmallScreen ? "100px" : "120px",

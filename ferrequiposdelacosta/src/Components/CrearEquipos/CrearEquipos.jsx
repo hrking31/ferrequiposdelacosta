@@ -3,8 +3,7 @@ import PropTypes from "prop-types";
 import { useTheme } from "@mui/material";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import { useDispatch } from "react-redux";
-import { storage, db } from "../Firebase/Firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db } from "../Firebase/Firebase";
 import { collection, setDoc, doc } from "firebase/firestore";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
@@ -22,6 +21,7 @@ import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
 import BarraFoto from "../FormularioEquipo/BarraFoto";
 import GrillaFotos from "../FormularioEquipo/GrillaFotos";
 import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
+import { subirFotoEquipo } from "../FormularioEquipo/fotosEquipo";
 
 // `anchoCompleto`: con lugar (ver VistaCreaEquipo) el formulario ocupa todo el
 // ancho que le queda, en dos columnas de secciones al alto de la pantalla.
@@ -82,17 +82,9 @@ const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => 
     });
   };
 
-  const handleUploadImages = async (equipoId) => {
-    const uploadPromises = images.map(async (img) => {
-      const uniqueName = `${img.name}-${Date.now()}`;
-      const storageRef = ref(storage, `${equipoId}/${uniqueName}`);
-      await uploadBytes(storageRef, img.file);
-      const downloadURL = await getDownloadURL(storageRef);
-      return { name: img.name, url: downloadURL, path: storageRef.fullPath };
-    });
-
-    return await Promise.all(uploadPromises);
-  };
+  // Cada foto se achica y se sube en dos tamaños (ver fotosEquipo).
+  const handleUploadImages = (equipoId) =>
+    Promise.all(images.map((img) => subirFotoEquipo(equipoId, img)));
 
   const handleCancel = () => {
     setFormValues({ name: "", description: "" });

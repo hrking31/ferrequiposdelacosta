@@ -1,9 +1,11 @@
 import PropTypes from "prop-types";
-import { Box, Divider, Stack, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
+import ListaEquipos from "../CatalogoEquipos/ListaEquipos";
 
-// EL DETALLE DE "EQUIPOS" DEL CATÁLOGO (2026-10-22): el nombre de cada equipo
-// de la tienda, por orden alfabético, con el total al pie. Es la tarjeta de
-// quien solo edita el catálogo.
+// EL DETALLE DE "EQUIPOS" DEL CATÁLOGO (2026-10-22): la lista de equipos de
+// la tienda. Desde el 2026-10-28 (pedido del dueño), la misma de Equipos y
+// Crear equipo, solo para mirar: miniatura de la portada, buscador y, debajo,
+// "Lista de equipos" con el contador.
 //
 // La lista es la misma que la app ya baja para la tienda y para la pantalla de
 // Equipos (el catálogo en memoria, ver equiposSlice). Si ya se bajó
@@ -28,33 +30,7 @@ export default function DetalleCatalogo({ equipos }) {
     );
   }
 
-  const nombres = equipos
-    .map((equipo) => (equipo.name || "").trim() || "Sin nombre")
-    .sort((a, b) => a.localeCompare(b));
-
-  return (
-    <Box>
-      {nombres.map((nombre, indice) => (
-        <Typography
-          // El nombre solo podría repetirse: va con su posición.
-          key={`${nombre}-${indice}`}
-          variant="body2"
-          sx={{ py: 0.75 }}
-        >
-          {nombre}
-        </Typography>
-      ))}
-      <Divider sx={{ my: 0.5 }} />
-      <Stack direction="row" justifyContent="space-between" spacing={2} sx={{ py: 0.75 }}>
-        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-          Total
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-          {nombres.length}
-        </Typography>
-      </Stack>
-    </Box>
-  );
+  return <ListaEquipos equipos={equipos} enPanel contadorDebajo />;
 }
 
 DetalleCatalogo.propTypes = {

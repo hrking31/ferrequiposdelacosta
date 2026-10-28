@@ -16,6 +16,7 @@ import CrearEquipos from "../../Components/CrearEquipos/CrearEquipos";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import BuildIcon from "@mui/icons-material/Build";
 import CloseIcon from "@mui/icons-material/Close";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import PanelDocumentos from "../../Components/PanelLista/PanelDocumentos";
 import ListaEquipos from "../../Components/CatalogoEquipos/ListaEquipos";
@@ -56,10 +57,11 @@ const VistaCreaEquipo = () => {
   const { equipos: catalogo, loading: cargandoCatalogo } = useSelector((state) => state.equipos);
   const equiposEnLista = catalogo.length === 0 && cargandoCatalogo ? null : catalogo;
   const [verCatalogo, setVerCatalogo] = useState(false);
-  // La cantidad junto al título de la columna y de la ventana, en vez del
-  // contador al lado del buscador (pedido del dueño, 2026-10-26).
-  const tituloCatalogo = (titulo) =>
-    catalogo.length > 0 ? `${titulo} · ${catalogo.length}` : titulo;
+  // EN EL CELULAR, el catálogo no va en una ventana sino en el lugar del
+  // formulario, como una pantalla más (pedido del dueño, 2026-10-28: la
+  // ventana se achicaba al buscar). La llave del pie va y vuelve; el
+  // formulario solo se esconde, así no se pierde lo escrito.
+  const listaEnPantalla = isFullScreen && verCatalogo;
 
   useEffect(() => {
     if (catalogo.length === 0) {
@@ -159,7 +161,14 @@ const VistaCreaEquipo = () => {
           mx: isFullScreen ? 0 : 2,
         }}
       >
-        <Box sx={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            overflowY: "auto",
+            display: listaEnPantalla ? "none" : undefined,
+          }}
+        >
           {/* Crear y Cancelar viven siempre afuera: en el encabezado o en el
               pie. */}
           <CrearEquipos
@@ -168,9 +177,22 @@ const VistaCreaEquipo = () => {
             idFormulario={ID_FORMULARIO}
           />
         </Box>
+        {listaEnPantalla && (
+          // Como la lista de Equipos en el celular: el buscador y, debajo,
+          // "Lista de equipos" con el contador.
+          <Box sx={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+            {equiposEnLista === null ? (
+              <DetalleCatalogo equipos={null} />
+            ) : (
+              <ListaEquipos equipos={catalogo} />
+            )}
+          </Box>
+        )}
         {conPanel && (
           <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
-            <PanelDocumentos titulo={tituloCatalogo("Catálogo")} icono={<BuildIcon fontSize="small" />}>
+            {/* Sin título, como en Equipos: solo el buscador y su contador
+                (pedido del dueño, 2026-10-28). */}
+            <PanelDocumentos>
               {equiposEnLista === null ? (
                 <Box sx={{ mt: 2, px: 1 }}>
                   <DetalleCatalogo equipos={null} />
@@ -178,7 +200,7 @@ const VistaCreaEquipo = () => {
               ) : (
                 // La misma lista de Equipos, con buscador y miniaturas
                 // (pedido del dueño, 2026-10-26). Acá solo se mira.
-                <ListaEquipos equipos={catalogo} enPanel conContador={false} />
+                <ListaEquipos equipos={catalogo} enPanel />
               )}
             </PanelDocumentos>
           </Box>
@@ -195,32 +217,50 @@ const VistaCreaEquipo = () => {
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             {/* El catálogo primero; solo íconos en el pie, para un orden
                 visual parejo (pedido del dueño, 2026-10-26). */}
-            <Tooltip title="Ver catálogo">
+            {/* Va y vuelve entre el formulario y la lista; marcada mientras
+                se ve la lista. Para volver, la hoja con lápiz (el formulario)
+                en vez de la llave (pedido del dueño, 2026-10-28). */}
+            <Tooltip title={listaEnPantalla ? "Volver al formulario" : "Ver catálogo"}>
               <IconButton
-                aria-label="EQUIPOS"
-                onClick={() => setVerCatalogo(true)}
-                sx={{ p: 1.25, color: "info.main" }}
+                aria-label={listaEnPantalla ? "Volver al formulario" : "EQUIPOS"}
+                onClick={() => setVerCatalogo((v) => !v)}
+                sx={{
+                  p: 1.25,
+                  color: "info.main",
+                  bgcolor: listaEnPantalla ? "action.selected" : undefined,
+                }}
               >
-                <BuildIcon />
+                {listaEnPantalla ? <EditNoteIcon /> : <BuildIcon />}
               </IconButton>
             </Tooltip>
+            {/* Con la lista en pantalla, apagados: no se guarda ni se limpia
+                un formulario que no se ve. El span deja al globo funcionar
+                con el botón apagado. */}
             <Tooltip title="Crear equipo">
-              <IconButton
-                type="submit"
-                form={ID_FORMULARIO}
-                sx={{ p: 1.25, color: "success.main" }}
-              >
-                <SaveIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  type="submit"
+                  form={ID_FORMULARIO}
+                  aria-label="Crear equipo"
+                  disabled={listaEnPantalla}
+                  sx={{ p: 1.25, color: "success.main" }}
+                >
+                  <SaveIcon />
+                </IconButton>
+              </span>
             </Tooltip>
             <Tooltip title="Cancelar y limpiar el formulario">
-              <IconButton
-                type="reset"
-                form={ID_FORMULARIO}
-                sx={{ p: 1.25, color: "error.main" }}
-              >
-                <RestartAltIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  type="reset"
+                  form={ID_FORMULARIO}
+                  aria-label="Cancelar y limpiar el formulario"
+                  disabled={listaEnPantalla}
+                  sx={{ p: 1.25, color: "error.main" }}
+                >
+                  <RestartAltIcon />
+                </IconButton>
+              </span>
             </Tooltip>
             {/* El menú al final, como en el encabezado del computador. */}
             <Tooltip title="Ir al menú">
@@ -235,10 +275,11 @@ const VistaCreaEquipo = () => {
         </Box>
       )}
 
-      {/* La X arriba y sin botón "Cerrar" al pie, como las ventanas de los
-          recuadros del menú. */}
+      {/* EN EL COMPUTADOR sin lugar para la columna, el catálogo en una
+          ventana. La X arriba y sin botón "Cerrar" al pie, como las ventanas
+          de los recuadros del menú. */}
       <Dialog
-        open={!conPanel && verCatalogo}
+        open={!conPanel && !isFullScreen && verCatalogo}
         onClose={() => setVerCatalogo(false)}
         fullWidth
         maxWidth="xs"
@@ -253,7 +294,7 @@ const VistaCreaEquipo = () => {
           }}
         >
           <Box component="span" sx={{ flex: 1 }}>
-            {tituloCatalogo("Equipos del catálogo")}
+            Equipos del catálogo
           </Box>
           <Tooltip title="Cerrar">
             {/* El rojo del tema para cancelar y salir, el mismo de "Cerrar
@@ -269,13 +310,12 @@ const VistaCreaEquipo = () => {
           </Tooltip>
         </DialogTitle>
         {/* La misma lista de la columna, con buscador y miniaturas (pedido
-            del dueño, 2026-10-26): la llave muestra lo mismo en cualquier
-            pantalla. */}
+            del dueño, 2026-10-26). */}
         <DialogContent>
           {equiposEnLista === null ? (
             <DetalleCatalogo equipos={null} />
           ) : (
-            <ListaEquipos equipos={catalogo} enPanel conContador={false} />
+            <ListaEquipos equipos={catalogo} enPanel />
           )}
         </DialogContent>
       </Dialog>

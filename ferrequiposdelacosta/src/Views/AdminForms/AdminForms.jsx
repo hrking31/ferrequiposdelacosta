@@ -187,7 +187,7 @@ export default function AdminForms() {
       // verdad, así que vacío quiere decir que se está bajando.
       valor: catalogo.length > 0 ? catalogo.length : "…",
       subtitulo: "En el catálogo",
-      // Abre el nombre de cada equipo de la tienda.
+      // Abre la lista de equipos de la tienda, con su miniatura.
       onClick: abrirCatalogo,
     },
     puedeVerCartera && {
@@ -589,11 +589,24 @@ export default function AdminForms() {
 
       {isFullScreen && <Box sx={{ flexShrink: 0, mt: 1.5 }}>{franja}</Box>}
 
+      {/* EL CATÁLOGO, más ancho y de alto fijo (pedido del dueño,
+          2026-10-28): con el buscador, la ventana no se achica al filtrar.
+          En el celular, casi de borde a borde. */}
       <Dialog
         open={detalle.abierto}
         onClose={cerrarDetalle}
         fullWidth
-        maxWidth="xs"
+        maxWidth={detalle.cual === "catalogo" ? "sm" : "xs"}
+        sx={
+          detalle.cual === "catalogo"
+            ? {
+                "& .MuiDialog-paper": {
+                  height: "80dvh",
+                  ...(isFullScreen && { m: 1, width: "calc(100% - 16px)" }),
+                },
+              }
+            : undefined
+        }
       >
         {/* LA X ARRIBA, al lado del título, y sin botón "Cerrar" al pie (pedido
             del dueño, 2026-10-23), como en la historia del equipo. La tarjeta

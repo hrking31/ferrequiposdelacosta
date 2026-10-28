@@ -36,37 +36,41 @@ export default function PanelDocumentos({ titulo, icono, cantidad, onCerrar, chi
         flexDirection: "column",
       }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-        {/* Más grande y en negrita que la línea de abajo, que es chica, gris
-            y sin mayúsculas: con los dos del mismo tamaño no se distinguían
-            (lo notó el dueño, 2026-10-23). */}
-        <Typography
-          variant="subtitle1"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.75,
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            lineHeight: 1.6,
-            color: acento,
-            "& svg": { fontSize: 22 },
-          }}
-        >
-          {icono}
-          {titulo}
-        </Typography>
-        {/* Con una vista previa abierta, la X de la esquina vuelve al
-            resumen (pedido del dueño, 2026-10-23). */}
-        {onCerrar && (
-          <Tooltip title="Volver al resumen">
-            <IconButton size="small" onClick={onCerrar} aria-label="Volver al resumen">
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Stack>
+      {/* Sin título, solo el contenido (la lista de Equipos, que lleva el
+          nombre en el encabezado de la pantalla). */}
+      {titulo && (
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+          {/* Más grande y en negrita que la línea de abajo, que es chica, gris
+              y sin mayúsculas: con los dos del mismo tamaño no se distinguían
+              (lo notó el dueño, 2026-10-23). */}
+          <Typography
+            variant="subtitle1"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              lineHeight: 1.6,
+              color: acento,
+              "& svg": { fontSize: 22 },
+            }}
+          >
+            {icono}
+            {titulo}
+          </Typography>
+          {/* Con una vista previa abierta, la X de la esquina vuelve al
+              resumen (pedido del dueño, 2026-10-23). */}
+          {onCerrar && (
+            <Tooltip title="Volver al resumen">
+              <IconButton size="small" onClick={onCerrar} aria-label="Volver al resumen">
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
+      )}
       {/* De cuántas salen los números, para que nadie espere que coincidan
           con los del mes. Debajo del título y en gris: el dueño lo prefirió
           así a una pastilla junto al título (2026-10-23). */}
@@ -83,9 +87,9 @@ export default function PanelDocumentos({ titulo, icono, cantidad, onCerrar, chi
 }
 
 PanelDocumentos.propTypes = {
-  // El rótulo del recuadro y su ícono.
-  titulo: PropTypes.string.isRequired,
-  icono: PropTypes.element.isRequired,
+  // El rótulo del recuadro y su ícono. Sin rótulo, el recuadro va sin título.
+  titulo: PropTypes.string,
+  icono: PropTypes.element,
   // Si viene, la línea "Basado en las últimas N" debajo del título: de
   // cuántas de la lista salen las estadísticas.
   cantidad: PropTypes.number,

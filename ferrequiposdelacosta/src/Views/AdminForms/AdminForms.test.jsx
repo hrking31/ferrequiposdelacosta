@@ -296,9 +296,14 @@ describe("AdminForms — las cifras del menú", () => {
       expect(nube.leerTotales).toHaveBeenCalledTimes(1);
     });
 
+    // Desde el 2026-10-28, la lista de Equipos: miniatura, buscador y,
+    // debajo, "Lista de equipos" con el contador. Solo para mirar.
     it("el catálogo ya bajado: los nombres salen de memoria, sin leer nada", async () => {
       const { usuario } = comoRol("gestorEditor", {
-        equipos: [{ name: "MEZCLADORA" }, { name: "ANDAMIO" }],
+        equipos: [
+          { id: "e2", name: "MEZCLADORA" },
+          { id: "e1", name: "ANDAMIO" },
+        ],
       });
 
       await screen.findByText("2");
@@ -306,7 +311,10 @@ describe("AdminForms — las cifras del menú", () => {
 
       const dialogo = await screen.findByRole("dialog");
       expect(dialogo).toHaveTextContent("Equipos del catálogo");
-      expect(dialogo).toHaveTextContent("ANDAMIOMEZCLADORATotal2");
+      expect(dialogo).toHaveTextContent("Lista de equipos2 de 2");
+      expect(dialogo).toHaveTextContent(/ANDAMIO.*MEZCLADORA/);
+      // Los equipos no se tocan: no son botones.
+      expect(within(dialogo).queryByRole("button", { name: /ANDAMIO/ })).not.toBeInTheDocument();
       expect(nube.leerCatalogo).not.toHaveBeenCalled();
     });
 
@@ -319,7 +327,8 @@ describe("AdminForms — las cifras del menú", () => {
       await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
 
       const dialogo = await screen.findByRole("dialog");
-      await waitFor(() => expect(dialogo).toHaveTextContent("ANDAMIOTotal1"));
+      await waitFor(() => expect(dialogo).toHaveTextContent("ANDAMIO"));
+      expect(dialogo).toHaveTextContent("1 de 1");
       expect(nube.leerCatalogo).toHaveBeenCalledTimes(1);
     });
   });

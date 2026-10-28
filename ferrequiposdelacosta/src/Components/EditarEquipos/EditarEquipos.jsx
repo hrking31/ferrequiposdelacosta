@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { useTheme } from "@mui/material";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, deleteObject } from "firebase/storage";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, storage } from "../Firebase/Firebase";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
@@ -22,9 +22,11 @@ import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
 import BarraFoto from "../FormularioEquipo/BarraFoto";
 import GrillaFotos from "../FormularioEquipo/GrillaFotos";
 import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
+import { rutasDeFoto, subirFotoEquipo } from "../FormularioEquipo/fotosEquipo";
 
 // Lo que se edita, sacado del equipo tal como está guardado. Cada foto lleva:
 // - `path`: dónde está guardada (null si todavía no se subió);
+// - `miniatura`: su versión chica, { url, path } (ver fotosEquipo);
 // - `file`: el archivo elegido, si es nueva.
 const desdeEquipo = (equipo) => ({
   name: equipo.name || "",
@@ -38,6 +40,7 @@ const desdeEquipo = (equipo) => ({
     url: img.url,
     name: img.name || "",
     path: img.path || null,
+    miniatura: img.miniatura || null,
     file: null,
   })),
   // Lo guardado que se quitó: se borra del almacenamiento
@@ -112,6 +115,7 @@ const EditarEquipos = ({
           url: URL.createObjectURL(file),
           name: "",
           path: null,
+          miniatura: null,
           file,
         })),
       ],
@@ -129,7 +133,8 @@ const EditarEquipos = ({
       const vieja = prev.fotos[index];
       return {
         fotos: prev.fotos.filter((_, i) => i !== index),
-        porBorrar: vieja.path ? [...prev.porBorrar, vieja.path] : prev.porBorrar,
+        // Las dos versiones, la grande y la miniatura.
+        porBorrar: [...prev.porBorrar, ...rutasDeFoto(vieja)],
       };
     });
 
@@ -153,13 +158,14 @@ const EditarEquipos = ({
       // Primero se suben las nuevas, después se guarda el equipo y recién
       // entonces se borra lo viejo: si algo falla a mitad, el equipo sigue
       // apuntando a fotos que existen.
+      // Las nuevas se achican y suben en dos tamaños (ver fotosEquipo).
       const images = await Promise.all(
-        form.fotos.map(async (foto) => {
-          if (!foto.file) return { name: foto.name, url: foto.url, path: foto.path };
-          const destino = ref(storage, `${equipo.id}/${foto.name}-${Date.now()}`);
-          await uploadBytes(destino, foto.file);
-          const url = await getDownloadURL(destino);
-          return { name: foto.name, url, path: destino.fullPath };
+        form.fotos.map((foto) => {
+          if (foto.file) return subirFotoEquipo(equipo.id, foto);
+          const guardada = { name: foto.name, url: foto.url, path: foto.path };
+          // Una foto guardada por la versión anterior de la app no tiene
+          // miniatura: se guarda como está, sin inventarle una vacía.
+          return foto.miniatura ? { ...guardada, miniatura: foto.miniatura } : guardada;
         }),
       );
 

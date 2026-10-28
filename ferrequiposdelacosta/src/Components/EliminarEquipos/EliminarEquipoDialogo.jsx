@@ -107,9 +107,15 @@ export default function EliminarEquipoDialogo({ equipo, open, onClose, onTermina
           </Alert>
         )}
 
+        {/* La instrucción va afuera y la casilla en blanco: que la casilla
+            no dicte lo que hay que escribir (pedido del dueño, 2026-10-28). */}
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Escribe <strong>{nombre}</strong> para confirmar
+        </Typography>
+
         <TextField
           name="confirmarNombre"
-          label={`Escribe ${nombre} para confirmar`}
+          inputProps={{ "aria-label": "Confirmar eliminación" }}
           value={escrito}
           onChange={(e) => setEscrito(e.target.value)}
           onKeyDown={(e) => {

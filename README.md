@@ -154,14 +154,34 @@ La **llave** sube un nivel —del editor a la ficha, de la ficha a la lista— i
 - **Lo viejo se borra después de guardar.** Primero se suben las fotos nuevas, después se guarda el equipo y recién entonces se borran del almacenamiento las que se quitaron. Si algo falla a la mitad, el equipo nunca queda apuntando a una foto que ya no existe.
 - **Al guardar se queda en el mismo equipo**, y sin cambios no escribe nada.
 
-**Borrar pide escribir el nombre.** La ventana muestra la portada, cuántas fotos y variantes se van con el equipo, y el botón rojo se activa recién cuando se escribe su nombre: un toque en falso no se lleva un equipo con todas sus fotos.
+**Borrar pide escribir el nombre.** La ventana muestra la portada, cuántas fotos y variantes se van con el equipo, y el botón rojo se activa recién cuando se escribe su nombre: un toque en falso no se lleva un equipo con todas sus fotos. La casilla viene en blanco y la instrucción va encima —*Escribe **MEZCLADORA** para confirmar*—: que la casilla no dicte lo que hay que escribir.
 
-**Crear equipo usa las mismas piezas.** Los recuadros —datos, variantes, textos de la cotización y fotos—, la franja de cada foto y la lista del catálogo viven en un solo lugar (`Components/FormularioEquipo`), así que las dos pantallas no pueden separarse. En el computador el formulario ocupa el alto de la pantalla, con los textos a la izquierda y las fotos a la derecha, y **con muchas fotos se desplaza solo ese recuadro**, no la pantalla. Al lado va la lista del catálogo, para ver que el equipo no exista ya; en el celular se abre con la llave.
+**Crear equipo usa las mismas piezas.** Los recuadros —datos, variantes, textos de la cotización y fotos—, la franja de cada foto y la lista del catálogo viven en un solo lugar (`Components/FormularioEquipo`), así que las dos pantallas no pueden separarse. En el computador el formulario ocupa el alto de la pantalla, con los textos a la izquierda y las fotos a la derecha, y **con muchas fotos se desplaza solo ese recuadro**, no la pantalla. Al lado va la lista del catálogo, para ver que el equipo no exista ya.
 
-**Ver el catálogo no cuesta lecturas.** La lista, el número del menú y la columna de Crear salen del catálogo que la app ya bajó al abrirse. Lo que sí cuesta es la **descarga de las fotos**: hoy se suben sin achicar y cada miniatura baja la foto entera. Se bajan solo las que se ven, pero el arreglo de fondo —comprimir al subir y guardar una miniatura aparte— es lo siguiente.
+**En el celular, la lista ocupa el lugar del formulario.** Primero se abría en una ventana, pero la ventana se encogía al buscar y su X roja quedaba pegada a la X del buscador, que hace otra cosa. Ahora la llave del pie cambia el formulario por la lista, a pantalla completa, y en su lugar aparece una hoja con lápiz para volver. El formulario solo se esconde: lo escrito no se pierde. Mientras se ve la lista, Guardar y Reiniciar se apagan, para no guardar ni borrar algo que no está a la vista.
+
+**La misma lista en todas partes.** El título de la pantalla dice *Catálogo de equipos*, y la lista lleva solo el buscador con el contador al lado —*3 de 19*—. La ventana del recuadro EQUIPOS del menú es la misma lista, con miniaturas, solo para mirar: el contador va debajo del buscador, junto a *Lista de equipos*, y la ventana tiene alto fijo para no encogerse al buscar.
+
+**Ver el catálogo no cuesta lecturas.** La lista, el número del menú y la columna de Crear salen del catálogo que la app ya bajó al abrirse. Lo que se paga es la **descarga de las fotos**, y por eso se achican (ver abajo).
 
 > [!WARNING]
 > **Medir la pantalla para llenarla entró en bucle.** Debajo de las fotos quedaba un hueco, y la primera idea fue medirlo y pintar tantas tarjetas de muestra como entraran. Pero lo que se medía incluía esas mismas tarjetas: más tarjetas sacaban la barra de desplazamiento, la barra angostaba las fotos, entraban más tarjetas… y React cortó con *"Maximum update depth exceeded"*. Ahora no se mide nada: se pintan doce tarjetas fijas, flotando en el espacio que sobra, y lo que no entra se corta.
+
+### Las fotos, livianas (2026-10-28)
+
+Una foto sale del celular con uno a cuatro megas, y Storage cobra por cada descarga: cada miniatura de una lista bajaba la foto entera. Ahora la app **la achica sola al subirla**, en el mismo navegador y sin ningún botón aparte, y guarda dos:
+
+| Versión | Tamaño | Dónde se ve |
+|---|---|---|
+| **Grande** | Hasta 1600 px, en WebP | La ficha, el detalle de la tienda, el carrusel y el protector del kiosco |
+| **Miniatura** | Hasta 500 px, en WebP | Las listas, las tarjetas de la tienda y del kiosco, el carrito |
+
+Las dos van en la carpeta del equipo: quitar la foto borra las dos, y borrar el equipo vacía la carpeta. Cada archivo lleva la hora en el nombre y no se reescribe nunca, así que el navegador lo guarda un año y no lo vuelve a bajar. La **portada** sigue siendo la primera foto: la que muestran las tarjetas, el carrusel y las listas.
+
+Las fotos que ya estaban se rehicieron una sola vez, desde el computador: **el catálogo completo pasó de 13,3 MB a 951 KB**. La retroexcavadora, con sus cinco fotos, bajó de 7,3 MB a 426 KB, y se ve igual.
+
+> [!NOTE]
+> **El navegador que no sabe hacer WebP no avisa: entrega PNG**, que pesa más que la foto original. La app lo nota y la rehace en JPEG, pintada sobre blanco, porque JPEG no tiene transparencia y lo transparente de una foto recortada saldría negro.
 
 ### Las fotos en el detalle de la tienda
 

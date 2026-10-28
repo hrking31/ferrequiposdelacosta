@@ -10,6 +10,7 @@ import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import TuneIcon from "@mui/icons-material/Tune";
 import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
 import { coloresDelFormulario, lugarDeLaFoto } from "../FormularioEquipo/piezasFormulario";
+import { miniaturaDe } from "./catalogoEquipos";
 
 // Un dato de la ficha: su título chico en el color de su recuadro del
 // formulario (descripción azul, variantes naranja, cotización verde).
@@ -116,7 +117,7 @@ function TiraDeFotos({ fotos, vista, onVer, acento }) {
             >
               <Box
                 component="img"
-                src={foto.url}
+                src={miniaturaDe(foto)}
                 alt=""
                 loading="lazy"
                 sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}

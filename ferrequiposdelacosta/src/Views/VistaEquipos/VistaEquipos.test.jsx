@@ -115,7 +115,7 @@ describe("VistaEquipos — en el computador ancho", () => {
     const eliminar = await screen.findByRole("button", { name: "Eliminar" });
     expect(eliminar).toBeDisabled();
 
-    await usuario.type(screen.getByLabelText(/Escribe RANA para confirmar/), "rana");
+    await usuario.type(screen.getByLabelText("Confirmar eliminación"), "rana");
     expect(eliminar).toBeEnabled();
     await usuario.click(eliminar);
 

@@ -35,6 +35,12 @@ vi.mock("firebase/storage", () => ({
   getDownloadURL: nube.getDownloadURL,
 }));
 
+// Achicar necesita el lienzo del navegador, que acá no existe (se prueba
+// aparte, en achicarImagen.test): devuelve una foto WebP cualquiera.
+vi.mock("../../Utils/achicarImagen", () => ({
+  default: vi.fn(() => Promise.resolve(new Blob(["foto"], { type: "image/webp" }))),
+}));
+
 const archivoDeFoto = () =>
   new File(["contenido"], "andamio.jpg", { type: "image/jpeg" });
 
@@ -101,13 +107,21 @@ describe("CrearEquipos — al crear", () => {
 
     expect(await screen.findByText("Equipo creado exitosamente.")).toBeInTheDocument();
 
-    // La foto va primero a Storage; en el documento queda su dirección.
-    expect(nube.uploadBytes).toHaveBeenCalledTimes(1);
+    // La foto va primero a Storage, achicada y en dos tamaños (la grande y
+    // la miniatura de las listas); en el documento quedan sus direcciones.
+    expect(nube.uploadBytes).toHaveBeenCalledTimes(2);
+    for (const [, , metadatos] of nube.uploadBytes.mock.calls) {
+      expect(metadatos.contentType).toBe("image/webp");
+    }
 
     const [, datos] = nube.setDoc.mock.calls[0];
     expect(datos.name).toBe("ANDAMIO");
     expect(datos.description).toBe("Andamio metálico");
     expect(datos.images[0].url).toBe("https://fotos/equipo.jpg");
+    expect(datos.images[0].path).toMatch(/^eq-nuevo\//);
+    expect(datos.images[0].miniatura.url).toBe("https://fotos/equipo.jpg");
+    // En la misma carpeta del equipo: borrar el equipo vacía esa carpeta.
+    expect(datos.images[0].miniatura.path).toMatch(/^eq-nuevo\/[^/]+-miniatura$/);
 
     // El buscador de la tienda compara en minúsculas: si este campo no se
     // guarda, el equipo existe pero no aparece al buscarlo.

@@ -53,7 +53,7 @@ describe("VistaCreaEquipo — el catálogo al lado, en el computador ancho", () 
   it("la lista sale de la memoria sin leer nada", () => {
     abrir([{ name: "RANA" }, { name: "ANDAMIO" }]);
 
-    expect(screen.getByText("Catálogo · 2")).toBeInTheDocument();
+    expect(screen.getByText("2 de 2")).toBeInTheDocument();
     expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
     expect(screen.getByText("RANA")).toBeInTheDocument();
     // Con la columna no hace falta el botón.
@@ -104,11 +104,20 @@ describe("VistaCreaEquipo — en el celular", () => {
     expect(screen.queryByRole("button", { name: "VER CATÁLOGO" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "CREAR EQUIPO" })).not.toBeInTheDocument();
 
-    // Solo el ícono, como los demás del pie.
+    // Solo el ícono, como los demás del pie. La lista va en el lugar del
+    // formulario, sin ventana; mientras, Crear y Cancelar se apagan.
     await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
-    const dialogo = await screen.findByRole("dialog");
-    expect(dialogo).toHaveTextContent("Equipos del catálogo · 1");
-    expect(dialogo).toHaveTextContent("ANDAMIO");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Lista de equipos")).toBeInTheDocument();
+    expect(screen.getByText("1 de 1")).toBeInTheDocument();
+    expect(screen.getByText("ANDAMIO")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crear equipo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancelar y limpiar el formulario" })).toBeDisabled();
+
+    // En su lugar, la hoja con lápiz, que vuelve al formulario.
+    await usuario.click(screen.getByRole("button", { name: "Volver al formulario" }));
+    expect(screen.queryByText("Lista de equipos")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crear equipo" })).toBeEnabled();
   });
 });
 

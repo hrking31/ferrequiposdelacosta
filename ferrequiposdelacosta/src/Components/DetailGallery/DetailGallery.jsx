@@ -7,6 +7,7 @@ import ChevronRight from "@mui/icons-material/ChevronRight";
 import FullscreenExit from "@mui/icons-material/FullscreenExit";
 import { styled } from "@mui/material/styles";
 import PropTypes from "prop-types";
+import { miniaturaDe } from "../CatalogoEquipos/catalogoEquipos";
 
 const GalleryContainer = styled(Box)(({ theme }) => ({
   position: "relative",
@@ -161,7 +162,7 @@ function MiniaturasConFlechas({ images, selectedIndex, onSelect }) {
           {images.map((image, index) => (
             <ThumbnailImage
               key={index}
-              src={image.url}
+              src={miniaturaDe(image)}
               alt={`Miniatura ${index + 1}`}
               selected={index === selectedIndex}
               onClick={() => onSelect(index)}
@@ -338,7 +339,7 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen, deLaTiend
             {images.map((image, index) => (
               <ThumbnailImage
                 key={index}
-                src={image.url}
+                src={miniaturaDe(image)}
                 alt={`Miniatura ${index + 1}`}
                 selected={index === selectedImageIndex}
                 onClick={() => handleImageClick(index)}

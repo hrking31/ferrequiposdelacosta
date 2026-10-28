@@ -155,8 +155,10 @@ const VistaEquipos = ({ editando = false }) => {
     />
   );
 
+  // Sin título: el nombre va en el encabezado de la pantalla (pedido del
+  // dueño, 2026-10-28).
   const panelCatalogo = (
-    <PanelDocumentos titulo="Catálogo" icono={<BuildIcon fontSize="small" />}>
+    <PanelDocumentos>
       <ListaEquipos equipos={catalogo} idElegido={equipo?.id} onElegir={elegir} enPanel />
     </PanelDocumentos>
   );
@@ -270,7 +272,7 @@ const VistaEquipos = ({ editando = false }) => {
             role={role}
             genero={genero}
             conLogo
-            vista={"Equipos"}
+            vista={"Catálogo de equipos"}
             descripcion={descripcion}
             icono={<EditIcon />}
             compacto={isFullScreen}

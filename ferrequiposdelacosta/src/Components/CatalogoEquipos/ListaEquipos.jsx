@@ -26,19 +26,19 @@ export default function ListaEquipos({
   onElegir,
   accion,
   enPanel = false,
-  conContador = true,
+  contadorDebajo = false,
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const esCelular = usePantallaCompacta();
   const [busqueda, setBusqueda] = useState("");
   const visibles = filtrarCatalogo(equipos, busqueda);
-  const enDosRenglones = esCelular && !enPanel;
+  const enDosRenglones = contadorDebajo || (esCelular && !enPanel);
 
   const buscador = (
     <BuscadorFiltro value={busqueda} onChange={setBusqueda} placeholder="Buscar equipo..." />
   );
-  const contador = conContador && (
+  const contador = (
     <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
       {visibles.length} de {equipos.length}
       {enPanel || esCelular ? "" : " equipos"}
@@ -67,7 +67,7 @@ export default function ListaEquipos({
             </Stack>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ gap: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                Catálogo de equipos
+                Lista de equipos
               </Typography>
               {contador}
             </Stack>
@@ -145,7 +145,8 @@ ListaEquipos.propTypes = {
   // Un botón al lado del buscador (en el celular, el del menú).
   accion: PropTypes.node,
   enPanel: PropTypes.bool,
-  // Sin el contador al lado del buscador: en Crear equipo la cantidad va en
-  // el título (pedido del dueño, 2026-10-26).
-  conContador: PropTypes.bool,
+  // "Lista de equipos" y el contador debajo del buscador en cualquier
+  // pantalla, no solo en el celular (la ventana del menú, pedido del dueño,
+  // 2026-10-28).
+  contadorDebajo: PropTypes.bool,
 };

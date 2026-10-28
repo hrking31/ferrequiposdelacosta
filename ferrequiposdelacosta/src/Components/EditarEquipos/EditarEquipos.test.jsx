@@ -33,6 +33,13 @@ vi.mock("firebase/storage", () => ({
   getDownloadURL: nube.getDownloadURL,
 }));
 
+vi.mock("../../Utils/achicarImagen", () => ({
+  default: vi.fn(() => Promise.resolve(new Blob(["foto"], { type: "image/webp" }))),
+}));
+
+// "frente" es de antes de las miniaturas (2026-10-28); "lado" ya tiene la
+// suya.
+const miniaturaLado = { url: "https://fotos/lado-miniatura.webp", path: "eq1/lado-miniatura" };
 const equipo = {
   id: "eq1",
   name: "ANDAMIO",
@@ -40,7 +47,7 @@ const equipo = {
   nameLowerCase: "andamio",
   images: [
     { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
-    { name: "lado", url: "https://fotos/lado.jpg", path: "eq1/lado" },
+    { name: "lado", url: "https://fotos/lado.webp", path: "eq1/lado", miniatura: miniaturaLado },
   ],
   varianteNombre: "Tamaño",
   variantes: ["1.20m"],
@@ -126,7 +133,10 @@ describe("EditarEquipos", () => {
     expect(nube.updateDoc.mock.calls[0][1].images).toEqual([
       { name: "frente", url: "https://fotos/frente.jpg", path: "eq1/frente" },
     ]);
+    // Las dos versiones: la grande y la miniatura.
+    expect(nube.deleteObject).toHaveBeenCalledTimes(2);
     expect(nube.deleteObject).toHaveBeenCalledWith({ fullPath: "eq1/lado" });
+    expect(nube.deleteObject).toHaveBeenCalledWith({ fullPath: "eq1/lado-miniatura" });
     // Primero el equipo, después el borrado: nunca apunta a una foto borrada.
     expect(nube.updateDoc.mock.invocationCallOrder[0]).toBeLessThan(
       nube.deleteObject.mock.invocationCallOrder[0],
@@ -140,10 +150,11 @@ describe("EditarEquipos", () => {
     await usuario.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(await screen.findByText("Equipo actualizado con éxito")).toBeInTheDocument();
-    expect(nube.updateDoc.mock.calls[0][1].images.map((foto) => foto.name)).toEqual([
-      "lado",
-      "frente",
-    ]);
+    const fotos = nube.updateDoc.mock.calls[0][1].images;
+    expect(fotos.map((foto) => foto.name)).toEqual(["lado", "frente"]);
+    // La miniatura viaja con su foto.
+    expect(fotos[0].miniatura).toEqual(miniaturaLado);
+    expect(fotos[1]).not.toHaveProperty("miniatura");
     expect(nube.deleteObject).not.toHaveBeenCalled();
   });
 

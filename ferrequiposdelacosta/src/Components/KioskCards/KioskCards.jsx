@@ -2,6 +2,7 @@ import { useSelector } from "react-redux";
 import { Grid, Box } from "@mui/material";
 import KioskCard from "../KioskCard/KioskCard.jsx";
 import LoadingLogo from "../LoadingLogo/LoadingLogo.jsx";
+import { miniaturaDe } from "../CatalogoEquipos/catalogoEquipos";
 
 export default function KioskCards() {
   const { equipos, loading } = useSelector((state) => state.equipos);
@@ -26,7 +27,7 @@ export default function KioskCards() {
           equiposToDisplay.map((equipo, index) => {
             const imageUrl =
               equipo.images && equipo.images.length > 0
-                ? equipo.images[0].url
+                ? miniaturaDe(equipo.images[0])
                 : "default-image-url.jpg";
 
             return (
