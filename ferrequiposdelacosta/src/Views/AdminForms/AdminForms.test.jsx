@@ -71,8 +71,11 @@ describe("AdminForms — qué ve cada rol", () => {
 
     expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
     expect(screen.getByText("CLIENTES")).toBeInTheDocument();
-    expect(screen.getByText("CREAR USUARIOS")).toBeInTheDocument();
     expect(screen.getByText("CREAR EQUIPO")).toBeInTheDocument();
+    // Crear y editar/eliminar usuarios son un solo botón desde el 2026-10-28.
+    expect(screen.getByText("USUARIOS")).toBeInTheDocument();
+    expect(screen.queryByText("CREAR USUARIOS")).not.toBeInTheDocument();
+    expect(screen.queryByText("EDITAR / ELIMINAR USUARIOS")).not.toBeInTheDocument();
   });
 
   it("el gestor de equipos solo ve el catálogo", () => {
@@ -82,7 +85,7 @@ describe("AdminForms — qué ve cada rol", () => {
     // Nada de plata ni de usuarios.
     expect(screen.queryByText("COTIZACIÓN")).not.toBeInTheDocument();
     expect(screen.queryByText("CLIENTES")).not.toBeInTheDocument();
-    expect(screen.queryByText("CREAR USUARIOS")).not.toBeInTheDocument();
+    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
   });
 
   it("el gestor de facturación ve cartera pero no el catálogo ni usuarios", () => {
@@ -91,7 +94,7 @@ describe("AdminForms — qué ve cada rol", () => {
     expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
     expect(screen.getByText("CLIENTES")).toBeInTheDocument();
     expect(screen.queryByText("CREAR EQUIPO")).not.toBeInTheDocument();
-    expect(screen.queryByText("CREAR USUARIOS")).not.toBeInTheDocument();
+    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
   });
 
   it("el gestor integral ve las dos áreas, pero no usuarios", () => {
@@ -99,7 +102,7 @@ describe("AdminForms — qué ve cada rol", () => {
 
     expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
     expect(screen.getByText("CREAR EQUIPO")).toBeInTheDocument();
-    expect(screen.queryByText("CREAR USUARIOS")).not.toBeInTheDocument();
+    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
   });
 });
 

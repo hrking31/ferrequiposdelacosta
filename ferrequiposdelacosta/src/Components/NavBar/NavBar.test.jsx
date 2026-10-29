@@ -26,7 +26,7 @@ describe("NavBar — dónde va", () => {
     expect(screen.queryByAltText("logo")).not.toBeInTheDocument();
   });
 
-  it.each(["/vistacotizacion", "/VistaCrearUsuarios", "/vistaseguimientoclientes"])(
+  it.each(["/vistacotizacion", "/vistausuarios/nuevo", "/vistaseguimientoclientes"])(
     "en las vistas internas tampoco (%s)",
     (ruta) => {
       conSesion(<NavBar />, ruta);

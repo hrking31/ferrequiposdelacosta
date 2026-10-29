@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
   IconButton,
   Typography,
 } from "@mui/material";
@@ -21,8 +20,8 @@ import { describirUltimoUso } from "../../Utils/aparatos";
 
 const ICONOS = { pc: ComputerIcon, celular: SmartphoneIcon, tablet: TabletIcon };
 
-// La parte de abajo de la tarjeta de cada usuario: en qué aparatos tiene la
-// sesión abierta, la papelera para cerrar la de uno solo, el botón para
+// Las sesiones abiertas de una persona, dentro del recuadro SESIONES ABIERTAS
+// de su ficha (FichaUsuario): en qué aparatos tiene la sesión abierta, la papelera para cerrar la de uno solo, el botón para
 // cerrárselas todas (ver Utils/aparatos.js) y el de quitarle los dos pasos a
 // quien perdió o cambió el celular (ver cerrarSesionAparato, cerrarSesiones y
 // quitarDosPasos en functions/index.js).
@@ -48,6 +47,27 @@ const ACCIONES = {
       `Úselo si ${nombre} perdió o cambió el celular. Se le cerrará la app en todos sus aparatos y, al volver a entrar, tendrá que activar los dos pasos con el celular nuevo.`,
     boton: "Quitar dos pasos",
   },
+};
+
+// LA LISTA EN SU PROPIO RECUADRO, para que se vea dónde empieza y termina
+// lo que se desplaza, y de ALTO FIJO —unas cuatro sesiones— para que la
+// ficha no cambie de tamaño con pocas o ninguna (pedido del dueño,
+// 2026-10-28). Si son más, se desplazan adentro. Solo se achica si en la
+// pantalla no cabe (ver `encoge` en Seccion).
+const RECUADRO_LISTA = {
+  height: 232,
+  flex: "0 1 auto",
+  minHeight: 0,
+  boxSizing: "border-box",
+  p: 1,
+  border: "1px solid",
+  borderColor: "divider",
+  borderRadius: 2,
+  bgcolor: "background.default",
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.75,
+  overflowY: "auto",
 };
 
 export default function AparatosUsuario({
@@ -76,26 +96,36 @@ export default function AparatosUsuario({
   const enCurso = accion ? ACCIONES[accion.tipo] : null;
 
   return (
-    <Box sx={{ width: "100%" }}>
-      <Divider sx={{ mb: 1.5 }} />
-
-      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-        Sesiones abiertas
-      </Typography>
-
+    // En columna y achicable: si al recuadro no le alcanza el alto, la lista
+    // cede y los botones de abajo quedan a la vista.
+    <Box sx={{ width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {aparatos.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          Ninguna.
-        </Typography>
+        <Box sx={{ ...RECUADRO_LISTA, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            Ninguna: no tiene la app abierta en ningún aparato.
+          </Typography>
+        </Box>
       ) : (
-        <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
+        <Box component="ul" sx={{ ...RECUADRO_LISTA, listStyle: "none", m: 0 }}>
           {aparatos.map((aparato) => {
             const Icono = ICONOS[aparato.tipo] || ComputerIcon;
             return (
               <Box
                 component="li"
                 key={aparato.id}
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  pl: 1.5,
+                  pr: 0.5,
+                  py: 0.25,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                  flexShrink: 0,
+                }}
               >
                 <Icono fontSize="small" sx={{ color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
@@ -124,14 +154,11 @@ export default function AparatosUsuario({
           flexWrap: "wrap",
           justifyContent: "flex-end",
           gap: 1,
-          mt: 1,
+          mt: 1.5,
+          flexShrink: 0,
         }}
       >
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => setAccion({ tipo: "quitar" })}
-        >
+        <Button size="small" variant="text" onClick={() => setAccion({ tipo: "quitar" })}>
           Quitar dos pasos
         </Button>
         <Button

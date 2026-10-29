@@ -203,9 +203,9 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             // píxeles, 60 veces por segundo y sobre un área más grande que el
             // botón. En un PC no se nota, en el equipo del local sí.
             //
-            // Es el mismo criterio que ya siguen las otras cuatro animaciones
-            // infinitas del proyecto (el ripple de ListaUsuarios, el pulseDot
-            // de AdminCotizaciones, ButtonContacto y AnimatedBox): solo
+            // Es el mismo criterio que ya siguen las otras animaciones
+            // infinitas del proyecto (el pulseDot de AdminCotizaciones,
+            // ButtonContacto y AnimatedBox): solo
             // transform y opacity. Esta era la única que se salía.
             animation: "pulse 2s infinite",
             "@keyframes pulse": {

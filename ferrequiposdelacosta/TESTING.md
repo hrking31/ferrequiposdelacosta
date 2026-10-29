@@ -217,12 +217,29 @@ escribió y **qué** se escribió.
 - [x] Si no entra, se queda donde está
 - [x] El ojo muestra y vuelve a ocultar la contraseña
 
-### ✅ Register — 7 pruebas · `Register.test.jsx`
-- [x] No crea la cuenta sin nombre, con correo incompleto, con contraseña de
-      menos de 6 o sin rol
-- [x] Adjunta los permisos que salen del **mapa de roles**, no de una lista suelta
-- [x] Deja el formulario limpio para cargar al siguiente
-- [x] "El correo ya está registrado" en vez del código de Firebase
+### ✅ Usuarios — 43 pruebas · `src/Components/Usuarios/*.test.*` y `VistaUsuarios.test.jsx`
+Desde el 2026-10-28 crear, ver, editar y eliminar usuarios es una sola
+pantalla; reemplaza a `Register` (7) y a `ListaUsuarios` (3), que se borraron
+con sus pruebas.
+- [x] `usuarios` (12): los cuatro roles son los del mapa de permisos; iniciales;
+      "hace cuánto" (minutos, horas, ayer, días) y desconectada/o según el
+      género; el buscador encuentra sin tildes por nombre, correo o rol; la
+      contraseña generada **siempre** cumple los requisitos y nunca lleva guion
+- [x] `MenuDelRol` (7): qué botones ve cada rol; al cambiarlo, qué GANA y qué
+      PIERDE; en el celular sin etiquetas
+- [x] `CrearUsuario` (8): no crea sin nombre, con correo incompleto, sin rol ni
+      con contraseña débil; manda datos y rol **sin permisos** (los calcula el
+      servidor); si el servidor rechaza, deja lo escrito; GENERAR pone una que
+      cumple y la deja a la vista; los requisitos se marcan al escribir
+- [x] `EditarUsuario` (7): cuenta un recuadro por datos y otro por rol; sin
+      cambios no llama al servidor; guarda nombre, género y rol de esa persona;
+      sin nombre no guarda; Deshacer vuelve a lo guardado
+- [x] `EliminarUsuarioDialogo` (4): se activa con el **correo**, no con el
+      nombre; borra por el correo; si es uno mismo cierra la sesión; el aviso de
+      las cotizaciones solo a quien factura
+- [x] `VistaUsuarios` (5): el personal se lee una vez; ficha, editor, preguntar
+      antes de dejar cambios, NUEVO USUARIO, y la papelera de un aparato cierra
+      solo esa sesión
 
 ### ✅ CrearEquipos — 6 pruebas · `CrearEquipos.test.jsx`
 - [x] Exige nombre, descripción y al menos una foto
@@ -300,15 +317,13 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
 - [x] `KioskCart` (4): manda la solicitud pero **no** abre WhatsApp — el cliente
       está en el local
 
-### ✅ Las pantallas del panel — 22 pruebas
+### ✅ Las pantallas del panel — 19 pruebas
 - [x] `ListaCuentasCobro` (6): marcar como pagada es solo del administrador y
       solo sobre emitidas; es un interruptor
 - [x] `AdminCotizaciones` (5): el buzón, tomar una pendiente, y eliminar solo
       para el administrador (pedirlo abre la confirmación, no borra)
 - [x] `EditarEquipos` (5): guarda en el equipo correcto, rehace el nombre en
       minúsculas y vuelve a pedir el catálogo
-- [x] `ListaUsuarios` (3): cambiar el rol cambia el juego de permisos, que sale
-      del mapa de roles
 - [x] `DatosClienteModal` (6): persona/empresa, identificación de 5 dígitos
       mínimo, teléfono solo números, y los datos quedan en el estado de la app
 - [x] `AdminForms` (6): cada rol ve solo lo suyo, y a quien no puede ver cartera

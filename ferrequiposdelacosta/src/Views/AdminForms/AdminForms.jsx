@@ -21,19 +21,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { setKpis } from "../../Store/Slices/kpisSlice";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
 import BuildIcon from "@mui/icons-material/Build";
-import ReceiptIcon from "@mui/icons-material/Receipt";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import EditIcon from "@mui/icons-material/Edit";
-import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
-import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import CloseIcon from "@mui/icons-material/Close";
+import BOTONES_MENU from "../../Components/RolesPermisos/botonesMenu";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import { contarCotizacionesDelMes, contarCuentasCobroDelMes } from "./documentosDelMesDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
@@ -238,70 +231,9 @@ export default function AdminForms() {
   // Al tocarlo ofrece ir a la tienda o cerrar sesión.
   const franja = <FranjaKpis kpis={kpis} />;
 
-  const botonesConfig = [
-    {
-      permiso: "cotizacion",
-      to: "/vistacotizacion",
-      icon: <BuildIcon />,
-      label: "COTIZACIÓN",
-    },
-    {
-      permiso: "cuentaCombro",
-      to: "/vistacuentadecobro",
-      icon: <ReceiptIcon />,
-      label: "CUENTA DE COBRO",
-    },
-    {
-      permiso: "crearEquipos",
-      to: "/vistacreaequipo",
-      icon: <AddCircleOutlineIcon />,
-      label: "CREAR EQUIPO",
-    },
-    {
-      permiso: "eliminarEditarEquipos",
-      to: "/vistaequipos",
-      icon: <EditIcon />,
-      label: "EDITAR / ELIMINAR EQUIPO",
-    },
-    {
-      permiso: "crearUsuarios",
-      to: "/VistaCrearUsuarios",
-      icon: <PersonAddAlt1Icon />,
-      label: "CREAR USUARIOS",
-    },
-    {
-      permiso: "eliminarUsuarios",
-      to: "/VistaEliminarUsuario",
-      icon: <PersonRemoveIcon />,
-      label: "EDITAR / ELIMINAR USUARIOS",
-    },
-    {
-      permiso: "clientes",
-      to: "/vistaclientes",
-      icon: <FolderSharedIcon />,
-      label: "CLIENTES",
-    },
-    {
-      permiso: "gestionCartera",
-      to: "/vistaseguimientoclientes",
-      icon: <SupportAgentIcon />,
-      label: "SEGUIMIENTO de CLIENTES",
-    },
-    {
-      permiso: "solicitudesCotizaciones",
-      to: "/vistacotizacionesAdmin",
-      icon: <ReceiptLongIcon />,
-      label: "SOLICITUDES COTIZACIONES",
-    },
-    {
-      permiso: "cuentaCombro",
-      to: "/vistacuentascobro",
-      icon: <ManageSearchIcon />,
-      label: "BUSCAR CUENTAS DE COBRO",
-    },
-  ];
-
-  const botonesVisibles = botonesConfig.filter((boton) =>
+  // Los botones salen de la lista compartida (ver botonesMenu): la pantalla de
+  // Usuarios muestra los mismos para cada rol.
+  const botonesVisibles = BOTONES_MENU.filter((boton) =>
     permisos.includes(boton.permiso)
   );
 

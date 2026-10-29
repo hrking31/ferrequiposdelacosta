@@ -584,7 +584,7 @@ export const CustomThemeProvider = ({ children }) => {
           seccionGestion: "#DB2777", // rosa
 
           // El puntito verde que indica que un usuario está conectado.
-          // Se usa en: ListaUsuarios y AdminCotizaciones.
+          // Se usa en: la pantalla de Usuarios (AvatarUsuario) y AdminCotizaciones.
           online: VERDE,
 
           // Los colores oficiales de WhatsApp y del botón de llamar. Son de

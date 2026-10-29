@@ -276,7 +276,7 @@ export const deleteUser = onCall(async (request) => {
   }
 });
 
-// Editar nombre, género y rol de un usuario (ListaUsuarios.jsx). Pasa por acá
+// Editar nombre, género y rol de un usuario (EditarUsuario.jsx). Pasa por acá
 // y no por el navegador porque el rol tiene que quedar en el carné, que solo
 // lo imprime el servidor; las reglas ya no dejan cambiar el rol desde afuera,
 // ni siquiera al administrador.
@@ -308,8 +308,8 @@ export const actualizarUsuario = onCall(async (request) => {
   return {success: true};
 });
 
-// CERRAR TODAS LAS SESIONES de un usuario (2026-10-16), desde su tarjeta en
-// ListaUsuarios.jsx. Tres cosas:
+// CERRAR TODAS LAS SESIONES de un usuario (2026-10-16), desde su ficha en
+// la pantalla de Usuarios (AparatosUsuario.jsx). Tres cosas:
 //   1. Le corta la renovación del carné en todos sus aparatos.
 //   2. Deja en su ficha la hora del cierre. La app de cada aparato está
 //      atenta a esa ficha y, si su sesión es de antes, sale en el momento

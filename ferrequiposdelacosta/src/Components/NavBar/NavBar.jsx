@@ -30,8 +30,7 @@ const RUTAS_SIN_BARRA = [
   "/vistacuentascobro",
   "/vistacreaequipo",
   "/vistaequipos",
-  "/vistacrearusuarios",
-  "/vistaeliminarusuario",
+  "/vistausuarios",
   "/vistaclientes",
   "/vistaseguimientoclientes",
 ];

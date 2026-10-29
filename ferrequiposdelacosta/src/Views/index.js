@@ -6,8 +6,7 @@ import VistaCuentaDeCobro from "./VistaCuentaDeCobro/VistaCuentaDeCobro";
 import VistaCuentasCobro from "./VistaCuentasCobro/VistaCuentasCobro";
 import VistaCreaEquipo from "./VistaCreaEquipo/VistaCreaEquipo";
 import VistaEquipos from "./VistaEquipos/VistaEquipos";
-import VistaCrearUsuarios from "./VistaCrearUsuarios/VistaCrearUsuarios";
-import VistaEliminarUsuario from "./VistaEliminarUsuario/VistaEliminarUsuario";
+import VistaUsuarios from "./VistaUsuarios/VistaUsuarios";
 import VistaNoAutorizada from "./VistaNoAutorizada/VistaNoAutorizada";
 import VistaCart from "./VistaCart/VistaCart";
 import KioskHome from "./KioskHome/KioskHome";
@@ -27,8 +26,7 @@ export {
   VistaCuentasCobro,
   VistaCreaEquipo,
   VistaEquipos,
-  VistaCrearUsuarios,
-  VistaEliminarUsuario,
+  VistaUsuarios,
   VistaNoAutorizada,
   VistaCart,
   KioskHome,

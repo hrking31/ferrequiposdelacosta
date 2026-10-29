@@ -20,13 +20,18 @@ const palpitar = keyframes`
 // sobra en su columna, y su contenido se estira con ella. Sin eso mide lo que
 // ocupa.
 //
+// `encoge`: mide lo que ocupa pero, si en su columna no cabe, se achica y su
+// contenido decide qué se desplaza adentro (las sesiones de la ficha de un
+// usuario: así la pantalla no se desplaza, pedido del dueño, 2026-10-28).
+//
 // `cambiado`: al editar, un punto del color de la sección junto al título
 // avisa que tiene cambios sin guardar.
-export default function Seccion({ titulo, icono, color, crece = false, cambiado = false, children }) {
+export default function Seccion({ titulo, icono, color, crece = false, encoge = false, cambiado = false, children }) {
   return (
     <Box
       sx={{
-        flex: crece ? "1 1 0" : "0 0 auto",
+        flex: crece ? "1 1 0" : encoge ? "0 1 auto" : "0 0 auto",
+        ...(encoge && { minHeight: 0 }),
         display: "flex",
         flexDirection: "column",
         // 16px: con más, las tres de texto no entraban al alto de la pantalla
@@ -72,6 +77,7 @@ Seccion.propTypes = {
   icono: PropTypes.element.isRequired,
   color: PropTypes.string.isRequired,
   crece: PropTypes.bool,
+  encoge: PropTypes.bool,
   cambiado: PropTypes.bool,
   children: PropTypes.node,
 };

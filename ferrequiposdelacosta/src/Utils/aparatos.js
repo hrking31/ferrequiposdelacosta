@@ -2,7 +2,7 @@
 //
 // Cada navegador donde alguien inicia sesión queda anotado en
 // users/{uid}/aparatos/{id}: qué aparato es y cuándo se usó por última vez.
-// El administrador lo ve en la tarjeta de cada usuario (ListaUsuarios.jsx) y
+// El administrador lo ve en la ficha de cada usuario (FichaUsuario.jsx) y
 // desde ahí puede cerrarle la sesión de uno (la papelera) o de todos.
 //
 // El "en línea" de la presencia no sirve para esto: es por usuario y no por

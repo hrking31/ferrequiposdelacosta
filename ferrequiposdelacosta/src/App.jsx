@@ -12,8 +12,7 @@ import {
   VistaCuentasCobro,
   VistaCreaEquipo,
   VistaEquipos,
-  VistaCrearUsuarios,
-  VistaEliminarUsuario,
+  VistaUsuarios,
   VistaNoAutorizada,
   VistaCart,
   KioskHome,
@@ -200,19 +199,14 @@ function App() {
             </ProtectedRoutes>
           }
         />
+        {/* Crear, ver, editar y eliminar usuarios, en una sola pantalla
+            (2026-10-28). Una sola ruta: la lista, crear, la ficha y el
+            editor cuelgan de ella (ver VistaUsuarios). */}
         <Route
-          path="/vistacrearusuarios"
+          path="/vistausuarios/*"
           element={
-            <ProtectedRoutes allowedRoles={["crearUsuarios"]}>
-              <VistaCrearUsuarios />
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/vistaeliminarusuario"
-          element={
-            <ProtectedRoutes allowedRoles={["eliminarUsuarios"]}>
-              <VistaEliminarUsuario />
+            <ProtectedRoutes allowedRoles={["crearUsuarios", "eliminarUsuarios"]}>
+              <VistaUsuarios />
             </ProtectedRoutes>
           }
         />
