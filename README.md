@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-1040_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-1102_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -51,6 +51,11 @@ Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del pers
 Explora el catálogo, entra al detalle de un equipo y arma su pedido eligiendo **cuántos** y **por cuántos días**. Los equipos que vienen en distintas presentaciones —medidas, capacidades— tienen **variantes**: se eligen con un toque, y el nombre del grupo lo define quien carga el equipo ("Tamaño", "Capacidad", lo que corresponda).
 
 Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la solicitud entra al buzón del personal.
+
+**El buscador encuentra lo que se escribe (2026-10-29).** Filtra **mientras se escribe**, sin botón ni Enter, sobre el catálogo que la app ya bajó al abrirse: buscar no cuesta lecturas. Encuentra lo escrito **en cualquier parte del nombre** y sin importar tildes ni mayúsculas —*convencional* trae los ANDAMIOS CONVENCIONALES, *tablon* el TABLÓN—, deja el orden de la tienda y, si nada coincide, lo dice. Es el mismo comportamiento de los buscadores del panel; la tienda, el panel lateral del celular y el kiosco usan la misma pieza.
+
+> [!WARNING]
+> **Antes parecía no funcionar, y casi nunca funcionaba.** Consultaba la base al dar Enter pidiendo los nombres que **empezaran** exactamente con lo escrito, en minúsculas. Un espacio de más al final —el que pone solo el teclado del celular—, una palabra del medio del nombre o una tilde de menos, y no encontraba nada. Y sin resultados, las tarjetas volvían a mostrar **todo el catálogo**: el cliente buscaba, la pantalla no cambiaba y no había forma de saber si había buscado. Con el buscador nuevo, la copia del nombre en minúsculas que cada equipo guardaba solo para esa consulta dejó de escribirse.
 
 > [!NOTE]
 > La campana suena **solo** para los pedidos que llegan de clientes. Una cotización que arma el propio personal no la hace sonar, y es a propósito: ya la está atendiendo quien la escribe. Cuando una alarma suena para todo, se deja de mirar.
@@ -114,15 +119,36 @@ Los **seis** lugares desde donde la app escribe por WhatsApp —el botón flotan
 | **Cuenta de cobro** | Emite el documento de cobro con numeración propia (`CC-…`), y guarda el historial |
 | **Clientes** | Ficha de cada cliente: sus facturas, su estado de cuenta y sus documentos |
 | **Cartera / Seguimiento** | Los clientes que deben o se les venció el plazo, con su bitácora de gestiones |
-| **Crear equipo** | Alta de un equipo del catálogo, con fotos, portada y variantes |
-| **Equipos** | El catálogo en una sola pantalla: la lista con miniaturas, la ficha de cada equipo, su editor y el borrado |
-| **Usuarios** | Cuentas del personal, con roles y permisos |
+| **Equipos** | El catálogo en una sola pantalla: la lista con miniaturas, crear un equipo, la ficha de cada uno, su editor y el borrado |
+| **Usuarios** | El personal en una sola pantalla: crear, ver, editar y eliminar cuentas, con su rol y sus sesiones abiertas |
 
-El menú de entrada muestra además **cuatro números en vivo**: equipos afuera, plata por cobrar, cotizaciones del mes y cuentas de cobro del mes. Cada uno se filtra por permiso: quien solo administra el catálogo no ve las cifras de cartera.
+El menú de entrada muestra además **cinco números en vivo**: cotizaciones y cuentas de cobro del mes, equipos del catálogo, equipos afuera y plata por cobrar. Cada uno se filtra por permiso: quien solo administra el catálogo no ve las cifras de cartera.
 
 **Los dos de cartera se abren (2026-10-20).** Al tocar *Equipos activos* sale cuántas unidades hay afuera de cada equipo —*Andamios convencionales 43, Tablón 33, Formaletas 0.40 20…*—, y al tocar *Pagos pendientes*, cuánto se debe en facturas **vencidas**, **en cobro**, **activas** y **sin despachar**, con el total al pie. Verlos no cuesta nada: los dos detalles viajan en el mismo documento que los números (ver *Lo que hace el servidor solo*). La plata va por estado y no por cliente a propósito: ese documento lo puede leer cualquier empleado, y la deuda de cada cliente ya la muestra Seguimiento.
 
-**El menú no tiene la barra de la tienda.** Al empleado no le servían el camión del carrito ni el título, y la barra le quitaba un renglón a la pantalla. El logo sigue en **el mismo rincón** donde lo tenía la barra —arriba a la izquierda en computador, abajo a la izquierda en el celular—, porque la gente ya va ahí de memoria, y sigue llevando a la tienda. En el celular, donde las tarjetas grandes no entran, los dos números de cartera van en una franja abajo, junto al logo; tocarlos abre el mismo detalle. Es el primer paso: la idea es que ninguna vista interna lleve la barra, que queda para lo que ve el cliente.
+**El menú no tiene la barra de la tienda.** Al empleado no le servían el camión del carrito ni el título, y la barra le quitaba un renglón a la pantalla. El logo sigue en **el mismo rincón** donde lo tenía la barra —arriba a la izquierda en computador, abajo a la izquierda en el celular—, porque la gente ya va ahí de memoria, y sigue llevando a la tienda. En el celular, donde las tarjetas grandes no entran, los números van en una franja abajo; tocar los de cartera abre el mismo detalle. Ninguna vista interna lleva ya la barra, que quedó para lo que ve el cliente.
+
+### El menú: por áreas, y los números según la pantalla (2026-10-29)
+
+Al juntar las pantallas de equipos y de usuarios el menú quedó con **ocho botones**, y se reorganizó en **cuatro áreas**, cada una en su recuadro con su ícono y su color: **Ventas** (cotización y solicitudes), **Cobros** (cuenta de cobro y su buscador), **Clientes** (la lista y el seguimiento) y **Catálogo y personal** (equipos y usuarios). Cada rol ve solo las áreas en las que tiene algo: a quien solo administra el catálogo le aparece una.
+
+**Ya no se mide la pantalla.** Antes el menú medía su contenedor para repartir los botones en filas parejas; ahora el acomodo sale solo de cuántas áreas hay y del CSS, y el alto de los botones va con el de la pantalla, con un mínimo y un máximo.
+
+Los cinco números cambian de forma según el lugar que hay, de lo más ancho a lo más angosto:
+
+| Pantalla | Cómo van los números |
+|---|---|
+| **Desde 1600 px** | Las cinco tarjetas en fila, arriba de los botones. Más angosto, sus nombres ya no entraban en un renglón |
+| **1150 a 1599 px** | La plata por cobrar en una tarjeta grande y las otras cuatro de a dos, bajitas |
+| **Computador angosto, acostado** | Una columna a la derecha del menú, del mismo alto que los botones, con las mismas tarjetas en una copia más chica |
+| **De pie** (una tableta, o una ventana más alta que ancha) | Arriba, la plata y los equipos afuera en tarjetas del doble de ancho, y los otros tres apilados al lado; abajo, las áreas en 2 × 2 |
+| **Celular de pie** | La franja de abajo; las áreas una debajo de otra, con los botones llenando el alto |
+| **Celular acostado** | La franja de pie, a la izquierda, y las áreas en 2 × 2 |
+
+En las pantallas grandes, el alto que sobra se reparte en partes iguales arriba, entre los números y los botones, y abajo: centrar el bloque dejaba el hueco todo arriba. Y en la tarjeta de la plata, cuya cifra va en letra más chica para que quepa, el renglón de la cifra mide lo mismo que el de las demás, así *Por cobrar* queda a la altura de *Este mes*.
+
+> [!NOTE]
+> **El celular acostado se reconoce por el alto, no por el ancho.** Un teléfono grande acostado pasa de 915 px de ancho y se lo trataba como computador, con una columna que no cabía en sus 430 de alto. Un computador nunca baja de unos 600 de alto; un teléfono acostado, nunca los pasa.
 
 ### Roles
 
@@ -133,7 +159,7 @@ El menú de entrada muestra además **cuatro números en vivo**: equipos afuera,
 | `gestorIntegral` | Todo lo anterior junto |
 | `administrador` | Todo, más la gestión de usuarios |
 
-### El catálogo: ver, editar y eliminar en una sola pantalla (2026-10-26)
+### El catálogo: crear, ver, editar y eliminar en una sola pantalla (2026-10-26)
 
 Para corregir un equipo había que pasar por **tres pantallas**: buscarlo, abrirlo para editar o para eliminar, y volver a buscar el siguiente. Las tres pedían el mismo permiso y trabajaban sobre el mismo equipo, que viajaba de una a otra "de paso": si se recargaba la página en Editar, el formulario quedaba en blanco.
 
@@ -142,6 +168,7 @@ Ahora es **una sola pantalla con tres niveles**, cada uno en su dirección, así
 | Nivel | Dirección | Qué muestra |
 |---|---|---|
 | **La lista** | `/vistaequipos` | El catálogo con la miniatura de cada portada, un buscador y cuántos coinciden |
+| **Crear** | `/vistaequipos/nuevo` | El formulario de un equipo nuevo (desde el 2026-10-29; antes tenía su propia pantalla y su botón en el menú) |
 | **La ficha** | `/vistaequipos/{id}` | La foto grande —entera, sobre blanco, como en la tienda— con las demás en una fila, y los textos en recuadros del color de su sección. En el computador va al lado de la lista y llena el alto de la pantalla |
 | **El editor** | `/vistaequipos/{id}/editar` | El mismo formulario de Crear equipo, con la lista al lado para pasar a otro |
 
@@ -156,13 +183,15 @@ La **llave** sube un nivel —del editor a la ficha, de la ficha a la lista— i
 
 **Borrar pide escribir el nombre.** La ventana muestra la portada, cuántas fotos y variantes se van con el equipo, y el botón rojo se activa recién cuando se escribe su nombre: un toque en falso no se lleva un equipo con todas sus fotos. La casilla viene en blanco y la instrucción va encima —*Escribe **MEZCLADORA** para confirmar*—: que la casilla no dicte lo que hay que escribir.
 
-**Crear equipo usa las mismas piezas.** Los recuadros —datos, variantes, textos de la cotización y fotos—, la franja de cada foto y la lista del catálogo viven en un solo lugar (`Components/FormularioEquipo`), así que las dos pantallas no pueden separarse. En el computador el formulario ocupa el alto de la pantalla, con los textos a la izquierda y las fotos a la derecha, y **con muchas fotos se desplaza solo ese recuadro**, no la pantalla. Al lado va la lista del catálogo, para ver que el equipo no exista ya.
+**Crear un equipo es un nivel más de la misma pantalla (2026-10-29).** Se entra por la zona punteada **NUEVO EQUIPO** de arriba de la lista —en el celular, el **+** junto al buscador—, y el formulario es el mismo del editor: los recuadros de datos, variantes, textos de la cotización y fotos viven en un solo lugar (`Components/FormularioEquipo`), así que crear y editar no pueden separarse. En el computador el formulario ocupa el alto de la pantalla, con los textos a la izquierda y las fotos a la derecha, y **con muchas fotos se desplaza solo ese recuadro**, no la pantalla. Desde 1520 px va la lista al lado, para ver que el equipo no exista ya. Al crearlo, el formulario queda en blanco para el siguiente.
 
-**En el celular, la lista ocupa el lugar del formulario.** Primero se abría en una ventana, pero la ventana se encogía al buscar y su X roja quedaba pegada a la X del buscador, que hace otra cosa. Ahora la llave del pie cambia el formulario por la lista, a pantalla completa, y en su lugar aparece una hoja con lápiz para volver. El formulario solo se esconde: lo escrito no se pierde. Mientras se ve la lista, Guardar y Reiniciar se apagan, para no guardar ni borrar algo que no está a la vista.
+**Y pregunta antes de perder lo escrito**, como el editor: con algo escrito o alguna foto, la llave, otro equipo de la lista o el menú abren el aviso de *Salir sin guardar*. NUEVO EQUIPO solo aparece mientras se miran equipos: al lado del editor o del propio formulario de crear distraía.
+
+**La ficha según el ancho.** Entre 1010 y 1500 px la ficha ancha no cabía al lado de la lista y la foto quedaba angosta. Ahí, con un equipo abierto, la lista **se guarda en una franja** a la izquierda —el ícono de equipos con cuántos hay, la miniatura de cada uno, que se abre al tocarla, y el abierto marcado— y una flecha la saca entera, por encima. La misma franja la usa Usuarios. De 960 a 1032 px la ficha va en dos pisos —la foto junto a la descripción, y debajo las variantes y los textos de la cotización, del mismo alto—, y en el celular todo va apilado, con la foto, sus miniaturas y el nombre en su propio recuadro, como el carné de una persona. Los recuadros de la ficha llevan los nombres de los de Crear, y debajo del título su subtítulo: el nombre de la variante, el de la cotización.
 
 **La misma lista en todas partes.** El título de la pantalla dice *Catálogo de equipos*, y la lista lleva solo el buscador con el contador al lado —*3 de 19*—. La ventana del recuadro EQUIPOS del menú es la misma lista, con miniaturas, solo para mirar: el contador va debajo del buscador, junto a *Lista de equipos*, y la ventana tiene alto fijo para no encogerse al buscar.
 
-**Ver el catálogo no cuesta lecturas.** La lista, el número del menú y la columna de Crear salen del catálogo que la app ya bajó al abrirse. Lo que se paga es la **descarga de las fotos**, y por eso se achican (ver abajo).
+**Ver el catálogo no cuesta lecturas.** La lista, la franja, el número del menú y el buscador de la tienda salen del catálogo que la app ya bajó al abrirse. Lo que se paga es la **descarga de las fotos**, y por eso se achican (ver abajo).
 
 > [!WARNING]
 > **Medir la pantalla para llenarla entró en bucle.** Debajo de las fotos quedaba un hueco, y la primera idea fue medirlo y pintar tantas tarjetas de muestra como entraran. Pero lo que se medía incluía esas mismas tarjetas: más tarjetas sacaban la barra de desplazamiento, la barra angostaba las fotos, entraban más tarjetas… y React cortó con *"Maximum update depth exceeded"*. Ahora no se mide nada: se pintan doce tarjetas fijas, flotando en el espacio que sobra, y lo que no entra se corta.
@@ -180,6 +209,8 @@ Las dos van en la carpeta del equipo: quitar la foto borra las dos, y borrar el 
 
 Las fotos que ya estaban se rehicieron una sola vez, desde el computador: **el catálogo completo pasó de 13,3 MB a 951 KB**. La retroexcavadora, con sus cinco fotos, bajó de 7,3 MB a 426 KB, y se ve igual.
 
+**El nombre de cada foto lo pone la app (2026-10-29)**, con el del equipo: *Mezcladora 1/2 bulto* sube como `mezcladora-1-2-bulto-…`. Antes se escribía uno por foto, nadie lo veía —ni la tienda ni las cotizaciones— y una barra en el nombre mandaba la foto a una subcarpeta que borrar el equipo no vaciaba. Y cada foto del formulario muestra **su miniatura en la esquina**, la misma que se va a subir: en una nueva se arma al elegirla; en una guardada es la de la nube, y si faltara lo dice.
+
 > [!NOTE]
 > **El navegador que no sabe hacer WebP no avisa: entrega PNG**, que pesa más que la foto original. La app lo nota y la rehace en JPEG, pintada sobre blanco, porque JPEG no tiene transparencia y lo transparente de una foto recortada saldría negro.
 
@@ -191,6 +222,18 @@ Las dos cosas son solo de la tienda. El kiosco usa la misma galería y quedó ig
 
 > [!NOTE]
 > **En el celular las flechas no aparecían.** Se escondían cuando el puntero "salía" de la foto, y en una pantalla táctil el navegador avisa esa salida apenas se levanta el dedo: aparecían y se iban en el mismo instante, y como invisibles no se pueden tocar, tampoco se podía pasar de foto. Esconderlas al salir quedó solo para el mouse; con el dedo se van por tiempo.
+
+### El personal en una sola pantalla (2026-10-28)
+
+Crear una cuenta y editar o eliminar otra eran dos pantallas y dos botones en el menú. Ahora son una, con la misma lógica de niveles que el catálogo —la lista, **nuevo**, la ficha y el editor, cada uno en su dirección—, pero bajo **una sola ruta**, para que pasar de un nivel a otro no vuelva a leer al personal: se lee una vez al entrar.
+
+**La lista** muestra la cara de cada persona con un punto de conexión, su rol y desde cuándo no se conecta, y el buscador encuentra sin tildes por nombre, correo o rol. **La ficha** junta lo que antes estaba disperso: el carné, sus datos, su rol con **los botones que verá en el menú** —encendidos los suyos, con candado los demás— y sus **sesiones abiertas**, aparato por aparato. Desde ahí se cierra la sesión de un aparato, la de todos o se le quitan los dos pasos; lo hace el servidor, para esa persona y no para quien está mirando.
+
+- **Al cambiarle el rol se ve qué gana y qué pierde**: las casillas del menú se pintan de verde o de rojo antes de guardar, y con cambios sin guardar dejar el editor pregunta.
+- **Al crearla, GENERAR inventa una contraseña** que siempre cumple los requisitos y la deja a la vista para entregarla. La cuenta la crea el servidor: el navegador no puede, ni siquiera el administrador, y es el servidor el que le pone el rol a la sesión.
+- **Eliminar se confirma escribiendo el correo**, no el nombre: dos personas pueden llamarse igual. Si su rol hacía cotizaciones, el aviso aclara que **sus cotizaciones se quedan**.
+
+Entre 1010 y 1500 px, con alguien abierto, la lista se guarda en la misma franja de Equipos, esta vez con las caras, y la ficha, el editor y la cuenta nueva usan su vista ancha.
 
 ---
 
@@ -1711,7 +1754,7 @@ FERREQUIPOS DE LA COSTA/
 
 ## Pruebas
 
-**1040 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
+**1102 pruebas** con **Vitest** y **React Testing Library**, junto al archivo que prueban.
 
 Cubren la lógica de dinero completa —estados de factura, saldos, renovaciones con y sin IVA, días vencidos y su corte en la devolución, días pagados y no usados en una devolución anticipada, reparto de abonos entre varias facturas, el sellado de los días vencidos que el cliente paga, devolución y retención del depósito, la regla de las 3 p.m., cuándo una factura cuenta como cerrada—, los 11 slices de Redux, el mapa de permisos y los hooks. Las funciones de cálculo reciben la fecha como parámetro, así que las pruebas no dependen del reloj; la excepción es la regla de las 3 p.m., que **es** sobre el reloj y se prueba fijándolo.
 
@@ -1721,7 +1764,7 @@ Y ya no se quedan en la lógica: **las pantallas se prueban dibujándolas de ver
 
 Algunos ejemplos de lo que queda fijado: que un abono se reparta como se mostró en pantalla y no pise los anteriores; que la devolución parcial **parta la línea del equipo en dos**, una cerrada y otra que sigue corriendo; que el pago de un lote de equipos viaje **solo en el primero** —contarlo dos veces hacía subir el pagado al doble—; que al eliminar un cliente se avise cuántas facturas se lleva por delante; que el abono recuerde los equipos vencidos sin trabar el cobro; que los días que el cliente ya pagó no vuelvan a contarse al día siguiente; y que cada rol vea únicamente lo suyo.
 
-**Lo que deliberadamente no se prueba** también es una decisión: los PDF, las piezas que solo muestran una cuenta ya calculada, la tienda y las vistas que arman el layout. Una prueba de un componente que únicamente repite lo que le pasan no atrapa errores: los repite.
+**Lo que deliberadamente no se prueba** también es una decisión: los PDF, las piezas que solo muestran una cuenta ya calculada, la tienda —salvo su buscador, que sí decide qué se ve— y las vistas que arman el layout. Una prueba de un componente que únicamente repite lo que le pasan no atrapa errores: los repite.
 
 > [!TIP]
 > Dos hallazgos del camino, anotados para no repetirlos. Una prueba **pasaba sin comprobar nada** —buscaba un botón por una etiqueta que no existía, no encontraba ninguno y daba por buena la afirmación—; desde entonces, cuando se afirma que algo está bloqueado se prueba **también** el caso en que debe estar habilitado. Y varias pruebas de formularios fallaban solo al correr todas juntas: no era un error, era que se pasaban del límite de tiempo.
@@ -1737,3 +1780,21 @@ El checklist completo está en [`TESTING.md`](ferrequiposdelacosta/TESTING.md).
 <sub>Proyecto privado. Este documento describe la aplicación con fines de portafolio.</sub>
 
 </div>
+
+---
+
+<p align="center">
+  <a href="https://hernandorey-31.web.app/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/firma-es-oscuro.svg">
+      <img alt="Hernando Rey, Desarrollador Full Stack e Ingeniero Electrónico" src="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/firma-es-claro.svg" width="100%">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://hernandorey-31.web.app/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-portafolio-oscuro.svg"><img alt="Portafolio" src="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-portafolio-claro.svg" height="41"></picture></a>
+  <a href="https://www.linkedin.com/in/hernandorey/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-linkedin-oscuro.svg"><img alt="LinkedIn" src="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-linkedin-claro.svg" height="41"></picture></a>
+  <a href="https://github.com/hrking31"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-github-oscuro.svg"><img alt="GitHub" src="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-github-claro.svg" height="41"></picture></a>
+  <a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=hrking31@gmail.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-correo-oscuro.svg"><img alt="hrking31@gmail.com" src="https://raw.githubusercontent.com/hrking31/hrking31/main/firma/boton-correo-claro.svg" height="41"></picture></a>
+</p>
