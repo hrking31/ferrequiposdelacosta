@@ -22,12 +22,18 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import TouchAppIcon from "@mui/icons-material/TouchApp";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import PanelDocumentos from "../../Components/PanelLista/PanelDocumentos";
+import CrearEquipos from "../../Components/CrearEquipos/CrearEquipos";
 import EditarEquipos from "../../Components/EditarEquipos/EditarEquipos";
 import EliminarEquipoDialogo from "../../Components/EliminarEquipos/EliminarEquipoDialogo";
 import ListaEquipos from "../../Components/CatalogoEquipos/ListaEquipos";
 import FichaEquipo from "../../Components/CatalogoEquipos/FichaEquipo";
+import MiniaturaEquipo from "../../Components/CatalogoEquipos/MiniaturaEquipo";
+import { filtrarCatalogo } from "../../Components/CatalogoEquipos/catalogoEquipos";
+import FranjaLista from "../../Components/PanelLista/FranjaLista";
+import CajonLista from "../../Components/PanelLista/CajonLista";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -37,32 +43,52 @@ import { usePantallaCompacta } from "../../Utils/pantalla";
 // Con este id los botones del encabezado y del pie guardan y deshacen.
 const ID_FORMULARIO = "form-editar-equipo";
 
-const rutaFicha = (id) => `/vistaequipos/${id}`;
-const rutaEditar = (id) => `/vistaequipos/${id}/editar`;
+const RUTA = "/vistaequipos";
+const RUTA_NUEVO = `${RUTA}/nuevo`;
+const rutaFicha = (id) => `${RUTA}/${id}`;
+const rutaEditar = (id) => `${RUTA}/${id}/editar`;
 
 // EQUIPOS: VER, EDITAR Y ELIMINAR EN UNA SOLA PANTALLA (2026-10-26, pedido
-// del dueño; antes eran tres pantallas). Tres niveles, cada uno en su
-// dirección (así recargar no pierde dónde se estaba):
+// del dueño; antes eran tres pantallas), y desde el 2026-10-29 también CREAR
+// (antes, su propia pantalla). Cada nivel en su dirección (así recargar no
+// pierde dónde se estaba):
 // - /vistaequipos: la lista del catálogo;
-// - /vistaequipos/{id}: la ficha del equipo, con EDITAR y ELIMINAR. En el
-//   computador (desde 1010px), la lista a la izquierda y la ficha a la
-//   derecha (la opción 2 que eligió el dueño); más angosto, una u otra;
+// - /vistaequipos/nuevo (`creando`): el formulario de crear, como el editor
+//   (desde 1520px, la lista al lado). Al crear, el formulario queda en blanco
+//   para el siguiente. Con algo escrito, pregunta antes de dejarlo;
+// - /vistaequipos/{id}: la ficha del equipo, con EDITAR y ELIMINAR. Desde
+//   1501px, la lista a la izquierda y la ficha a la derecha (la opción 2 que
+//   eligió el dueño). Entre 1010 y 1500 la ficha ancha no cabe al lado de la
+//   lista: con un equipo abierto la lista se guarda en una franja de
+//   miniaturas a la izquierda, y su flecha la saca entera, por encima
+//   (pedido del dueño, 2026-10-29); sin
+//   equipo, la lista y el recuadro de elegir, como en la vista ancha. Más
+//   angosto, una u otra;
 // - /vistaequipos/{id}/editar (`editando`): el editor y, desde 1520px, la
 //   lista al lado para pasar a editar otro. Si hay cambios sin guardar,
 //   pregunta antes de dejarlo.
 // La llave sube un nivel: del editor a la ficha del mismo equipo (en el
-// computador, con la lista al lado) y de la ficha a la lista.
+// computador, con la lista al lado) y de la ficha (o de crear) a la lista.
 //
-// Los mismos cortes de Crear equipo (que son los de Seguimiento).
-const VistaEquipos = ({ editando = false }) => {
+// Los mismos cortes de Seguimiento.
+const VistaEquipos = ({ editando = false, creando = false }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
-  const { name, photoURL, role, genero } = useSelector((state) => state.user);
+  const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
+  const puedeCrear = permisos.includes("crearEquipos");
   const isFullScreen = usePantallaCompacta();
   const dosColumnas = useMediaQuery("(min-width:1010px)") && !isFullScreen;
   const conPanel = useMediaQuery("(min-width:1520px)") && !isFullScreen;
   const dosFotosPorFila = useMediaQuery("(min-width:1170px)") && !isFullScreen;
+  // Desde 1501px la lista va fija al lado de la ficha; entre 1010 y 1500 se
+  // guarda y sale de la izquierda (`conCajon`).
+  const listaAlLado = useMediaQuery("(min-width:1501px)") && !isFullScreen;
+  const conCajon = dosColumnas && !listaAlLado;
+  // De 960 a 1032px la ficha va en dos pisos (ver FichaEquipo).
+  const fichaEnDosPisos =
+    useMediaQuery("(min-width:960px) and (max-width:1032px)") && !isFullScreen;
+  const [verLista, setVerLista] = useState(false);
 
   // El catálogo en memoria (lo baja la app al abrirse): verlo no cuesta
   // lecturas. Si está vacío —se recargó la página acá— se pide una vez.
@@ -100,7 +126,7 @@ const VistaEquipos = ({ editando = false }) => {
     return () => window.removeEventListener("beforeunload", avisar);
   }, [cambios]);
 
-  // Deja el editor: si tiene cambios sin guardar, primero pregunta.
+  // Deja el editor o crear: si tiene cambios sin guardar, primero pregunta.
   const irA = (ruta) => {
     if (cambios > 0) setDestinoPendiente(ruta);
     else navigate(ruta);
@@ -109,37 +135,53 @@ const VistaEquipos = ({ editando = false }) => {
   const elegir = (otro) => {
     if (otro.id === id) return;
     if (editar) irA(rutaEditar(otro.id));
-    else navigate(rutaFicha(otro.id));
+    else irA(rutaFicha(otro.id));
   };
+  const nuevo = () => irA(RUTA_NUEVO);
   // Sube un nivel.
   const volver = () => {
     if (editar) irA(rutaFicha(equipo.id));
-    else if (id) navigate("/vistaequipos");
+    else if (creando) irA(RUTA);
+    else if (id) navigate(RUTA);
   };
   const abrirEditor = () => navigate(rutaEditar(equipo.id));
 
-  const descripcion = editar
-    ? cambios > 0
-      ? `${equipo.name} · ${cambios} ${cambios === 1 ? "recuadro" : "recuadros"} con cambios sin guardar`
-      : `Editando ${equipo.name}`
-    : equipo
-      ? equipo.name
-      : "Elige un equipo para verlo, editarlo o eliminarlo";
+  const descripcion = creando
+    ? "Agrega un equipo nuevo al catálogo"
+    : editar
+      ? cambios > 0
+        ? `${equipo.name} · ${cambios} ${cambios === 1 ? "recuadro" : "recuadros"} con cambios sin guardar`
+        : `Editando ${equipo.name}`
+      : equipo
+        ? equipo.name
+        : "Elige un equipo para verlo, editarlo o eliminarlo";
 
-  // El menú al lado del buscador, en el celular (como en Clientes y
-  // Seguimiento).
-  const menuJuntoAlBuscador = isFullScreen && (
-    <Tooltip title="Menú">
-      <IconButton
-        onClick={() => navigate("/adminforms")}
-        aria-label="Menú"
-        color="primary"
-        sx={{ flexShrink: 0 }}
-      >
-        <DashboardIcon />
-      </IconButton>
-    </Tooltip>
+  // En el celular, en la lista: nuevo y el menú al lado del buscador (como en
+  // Usuarios).
+  const accionesCelular = isFullScreen && (
+    <>
+      {puedeCrear && (
+        <Tooltip title="Nuevo equipo">
+          <IconButton onClick={nuevo} aria-label="Nuevo equipo" color="primary" sx={{ flexShrink: 0 }}>
+            <AddCircleOutlineIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+      <Tooltip title="Menú">
+        <IconButton
+          onClick={() => navigate("/adminforms")}
+          aria-label="Menú"
+          color="primary"
+          sx={{ flexShrink: 0 }}
+        >
+          <DashboardIcon />
+        </IconButton>
+      </Tooltip>
+    </>
   );
+  // La zona punteada NUEVO EQUIPO en el computador, con la lista en su
+  // columna o sola (916 a 1009px); en el celular, el ícono junto al buscador.
+  const onNuevo = puedeCrear && !isFullScreen ? nuevo : undefined;
 
   const ficha = equipo && (
     // Una por equipo: al pasar a otro arranca en su portada.
@@ -150,22 +192,45 @@ const VistaEquipos = ({ editando = false }) => {
       onEliminar={() => setVerEliminar(true)}
       // En el celular, EDITAR y Eliminar van en el pie.
       conBotones={!isFullScreen}
-      // Al lado de la lista, al alto de la pantalla: sin hueco abajo.
-      llenarAlto={dosColumnas}
+      // En el computador, en una fila al alto de la pantalla; en el celular,
+      // la foto arriba y los datos debajo.
+      llenarAlto={!isFullScreen}
+      enDosPisos={fichaEnDosPisos}
     />
   );
 
   // Sin título: el nombre va en el encabezado de la pantalla (pedido del
-  // dueño, 2026-10-28).
+  // dueño, 2026-10-28). NUEVO EQUIPO solo mientras se miran equipos, no al
+  // lado del editor ni de crear (pedido del dueño, 2026-10-29).
   const panelCatalogo = (
     <PanelDocumentos>
-      <ListaEquipos equipos={catalogo} idElegido={equipo?.id} onElegir={elegir} enPanel />
+      <ListaEquipos
+        equipos={catalogo}
+        idElegido={equipo?.id}
+        onElegir={elegir}
+        onNuevo={editar || creando ? undefined : onNuevo}
+        enPanel
+      />
     </PanelDocumentos>
   );
 
   let contenido;
   if (esperandoCatalogo) {
     contenido = <LoadingLogo height="40vh" text="Cargando equipos..." />;
+  } else if (creando) {
+    contenido = (
+      <>
+        <Box sx={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+          <CrearEquipos
+            idFormulario={ID_FORMULARIO}
+            anchoCompleto={dosColumnas}
+            fotosPorFila={dosFotosPorFila ? 2 : 1}
+            onCambios={setCambios}
+          />
+        </Box>
+        {conPanel && <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>{panelCatalogo}</Box>}
+      </>
+    );
   } else if (editar) {
     contenido = (
       <>
@@ -183,8 +248,30 @@ const VistaEquipos = ({ editando = false }) => {
         {conPanel && <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>{panelCatalogo}</Box>}
       </>
     );
+  } else if (conCajon && equipo) {
+    // La franja de la lista guardada y la ficha ancha en todo lo demás.
+    contenido = (
+      <>
+        {/* Las miniaturas en el orden de la lista. */}
+        <FranjaLista
+          icono={<BuildIcon />}
+          items={filtrarCatalogo(catalogo, "").map((otro) => ({
+            id: otro.id,
+            nombre: otro.name || "Sin nombre",
+            vista: <MiniaturaEquipo equipo={otro} ancho={52} />,
+            elemento: otro,
+          }))}
+          idElegido={equipo.id}
+          onElegir={elegir}
+          onAbrir={() => setVerLista(true)}
+        />
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{ficha}</Box>
+      </>
+    );
   } else if (dosColumnas) {
-    // La opción 2: la lista a la izquierda y la ficha a la derecha.
+    // La opción 2: la lista a la izquierda y la ficha a la derecha. Entre
+    // 1010 y 1500, solo mientras no hay equipo elegido: el recuadro de
+    // "Elige un equipo" como en la vista ancha (pedido del dueño, 2026-10-29).
     contenido = (
       <>
         <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>{panelCatalogo}</Box>
@@ -226,17 +313,22 @@ const VistaEquipos = ({ editando = false }) => {
                 {aviso}
               </Typography>
             )}
-            <ListaEquipos equipos={catalogo} onElegir={elegir} accion={menuJuntoAlBuscador} />
+            <ListaEquipos
+              equipos={catalogo}
+              onElegir={elegir}
+              onNuevo={onNuevo}
+              accion={accionesCelular}
+            />
           </>
         )}
       </Box>
     );
   }
 
-  // EN EL CELULAR, el pie solo con un equipo abierto: EQUIPOS (sube un nivel),
-  // lo de la ficha o del editor, y el menú al final. En la lista no
-  // hay pie: el menú va junto al buscador.
-  const conPie = isFullScreen && equipo !== null;
+  // EN EL CELULAR, el pie solo con un equipo abierto o creando uno: EQUIPOS
+  // (sube un nivel), lo de la ficha, del editor o de crear, y el menú al
+  // final. En la lista no hay pie: nuevo y el menú van junto al buscador.
+  const conPie = isFullScreen && (equipo !== null || creando);
   const botonPie = { p: 1.25 };
 
   return (
@@ -276,12 +368,32 @@ const VistaEquipos = ({ editando = false }) => {
             descripcion={descripcion}
             icono={<EditIcon />}
             compacto={isFullScreen}
-            // En computador: editando, la llave, Guardar, Deshacer y
-            // Eliminar; en la ficha sin lugar para la
-            // lista, la llave para volver a ella. El
+            // En computador: creando, la llave, Crear y Cancelar; editando,
+            // la llave, Guardar, Deshacer y Eliminar; en la ficha sin lugar
+            // para la lista, la llave para volver a ella. El
             // menú lo pone el encabezado al final. En celular, todo al pie.
             acciones={
-              isFullScreen ? undefined : editar ? (
+              isFullScreen ? undefined : creando ? (
+                <>
+                  {/* La llave vuelve a la lista, también con la lista al
+                      lado, como en el editor. */}
+                  <Tooltip title="Volver a la lista">
+                    <IconButton onClick={volver} color="info">
+                      <BuildIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Crear equipo">
+                    <IconButton type="submit" form={ID_FORMULARIO} color="success">
+                      <SaveIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Cancelar y limpiar el formulario">
+                    <IconButton type="reset" form={ID_FORMULARIO} color="error">
+                      <RestartAltIcon />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              ) : editar ? (
                 <>
                   {/* La llave, que es la que lleva a la lista: siempre, también
                       con la lista al lado (pedido del dueño, 2026-10-26). */}
@@ -333,7 +445,30 @@ const VistaEquipos = ({ editando = false }) => {
                 <BuildIcon />
               </IconButton>
             </Tooltip>
-            {editar ? (
+            {creando ? (
+              <>
+                <Tooltip title="Crear equipo">
+                  <IconButton
+                    type="submit"
+                    form={ID_FORMULARIO}
+                    aria-label="Crear equipo"
+                    sx={{ ...botonPie, color: "success.main" }}
+                  >
+                    <SaveIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Cancelar y limpiar el formulario">
+                  <IconButton
+                    type="reset"
+                    form={ID_FORMULARIO}
+                    aria-label="Cancelar y limpiar el formulario"
+                    sx={{ ...botonPie, color: "error.main" }}
+                  >
+                    <RestartAltIcon />
+                  </IconButton>
+                </Tooltip>
+              </>
+            ) : editar ? (
               <>
                 <Tooltip title="Guardar cambios">
                   <IconButton type="submit" form={ID_FORMULARIO} sx={{ ...botonPie, color: "success.main" }}>
@@ -353,11 +488,13 @@ const VistaEquipos = ({ editando = false }) => {
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title="Eliminar equipo">
-              <IconButton onClick={() => setVerEliminar(true)} sx={{ ...botonPie, color: "error.main" }}>
-                <DeleteOutlineIcon />
-              </IconButton>
-            </Tooltip>
+            {!creando && (
+              <Tooltip title="Eliminar equipo">
+                <IconButton onClick={() => setVerEliminar(true)} sx={{ ...botonPie, color: "error.main" }}>
+                  <DeleteOutlineIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <Tooltip title="Ir al menú">
               <IconButton onClick={() => irA("/adminforms")} sx={{ ...botonPie, color: "custom.accent" }}>
                 <DashboardIcon />
@@ -366,6 +503,28 @@ const VistaEquipos = ({ editando = false }) => {
           </Stack>
         </Box>
       )}
+
+      {/* ENTRE 1010 Y 1500, la lista completa que saca la flecha de la franja,
+          por encima de la ficha. Elegir un equipo o NUEVO EQUIPO la guarda; la
+          flecha de abajo también. */}
+      <CajonLista open={conCajon && !editar && !creando && verLista} onClose={() => setVerLista(false)}>
+        <ListaEquipos
+          equipos={catalogo}
+          idElegido={equipo?.id}
+          onElegir={(otro) => {
+            setVerLista(false);
+            elegir(otro);
+          }}
+          onNuevo={
+            onNuevo &&
+            (() => {
+              setVerLista(false);
+              onNuevo();
+            })
+          }
+          enPanel
+        />
+      </CajonLista>
 
       {equipo && (
         <EliminarEquipoDialogo
@@ -378,7 +537,7 @@ const VistaEquipos = ({ editando = false }) => {
             if (eliminado) {
               setVerEliminar(false);
               setCambios(0);
-              navigate("/vistaequipos", { replace: true });
+              navigate(RUTA, { replace: true });
             }
           }}
         />
@@ -394,8 +553,14 @@ const VistaEquipos = ({ editando = false }) => {
         <DialogTitle sx={{ fontWeight: "bold" }}>Cambios sin guardar</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            <strong>{equipo?.name}</strong> tiene cambios sin guardar. Si sales,
-            se pierden.
+            {creando ? (
+              <>El equipo nuevo todavía no se ha creado. Si sales, se pierde lo escrito.</>
+            ) : (
+              <>
+                <strong>{equipo?.name}</strong> tiene cambios sin guardar. Si sales,
+                se pierden.
+              </>
+            )}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2.5, gap: 1.5, "& > :not(style)": { m: "0 !important" } }}>
@@ -426,6 +591,8 @@ const VistaEquipos = ({ editando = false }) => {
 VistaEquipos.propTypes = {
   // En /vistaequipos/{id}/editar: el editor en vez de la ficha.
   editando: PropTypes.bool,
+  // En /vistaequipos/nuevo: el formulario de crear.
+  creando: PropTypes.bool,
 };
 
 export default VistaEquipos;

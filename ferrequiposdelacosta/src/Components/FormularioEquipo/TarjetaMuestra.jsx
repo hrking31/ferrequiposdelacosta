@@ -4,7 +4,7 @@ import { alpha } from "@mui/material/styles";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import { ALTO_FRANJA, lugarDeLaFoto } from "./piezasFormulario";
 
-// LA TARJETA DE MUESTRA, del tamaño de una foto con su nombre: marca dónde va
+// LA TARJETA DE MUESTRA, del tamaño de una foto con su organizador: marca dónde va
 // la siguiente. No se puede tocar (las fotos se eligen arriba).
 export default function TarjetaMuestra({ color }) {
   return (
@@ -47,17 +47,11 @@ export default function TarjetaMuestra({ color }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px dashed",
-            borderColor: alpha(color, 0.35),
           }}
         >
           <Skeleton variant="circular" animation="wave" width={22} height={22} />
           <Skeleton variant="circular" animation="wave" width={22} height={22} />
           <Skeleton variant="circular" animation="wave" width={22} height={22} />
-        </Box>
-        {/* El nombre, del alto de su campo (un renglón). */}
-        <Box sx={{ p: 1, flexShrink: 0 }}>
-          <Skeleton variant="rounded" animation="wave" height={40} />
         </Box>
       </Box>
     </Box>

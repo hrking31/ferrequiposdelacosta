@@ -1,13 +1,14 @@
 import { useSelector } from "react-redux";
-import { Grid, Box } from "@mui/material";
+import { Grid, Box, Typography } from "@mui/material";
 import KioskCard from "../KioskCard/KioskCard.jsx";
 import LoadingLogo from "../LoadingLogo/LoadingLogo.jsx";
-import { miniaturaDe } from "../CatalogoEquipos/catalogoEquipos";
+import { buscarEnCatalogo, miniaturaDe } from "../CatalogoEquipos/catalogoEquipos";
 
 export default function KioskCards() {
   const { equipos, loading } = useSelector((state) => state.equipos);
-  const equipo = useSelector((state) => state.search.results);
-  const equiposToDisplay = equipo && equipo.length > 0 ? equipo : equipos;
+  // Lo escrito en el buscador filtra el catálogo en memoria (ver Search).
+  const termino = useSelector((state) => state.search.termino);
+  const equiposToDisplay = buscarEnCatalogo(equipos, termino);
 
   return (
     <Box
@@ -36,6 +37,13 @@ export default function KioskCards() {
               </Grid>
             );
           })
+        )}
+        {!loading && termino.trim() && equiposToDisplay.length === 0 && (
+          <Grid item xs={12}>
+            <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+              Ningún equipo coincide con &quot;{termino.trim()}&quot;.
+            </Typography>
+          </Grid>
         )}
       </Grid>
     </Box>

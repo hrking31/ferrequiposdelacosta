@@ -1,3 +1,4 @@
+import sinTildes from "../../Utils/sinTildes";
 import RolesPermisos from "../RolesPermisos/RolesPermisos";
 
 // LO QUE COMPARTEN LAS PIEZAS DE LA PANTALLA DE USUARIOS (2026-10-28).
@@ -60,10 +61,6 @@ export const estadoConexion = (presencia, genero) => {
   const desconectado = genero === "femenino" ? "Desconectada" : "Desconectado";
   return { enLinea: false, corto: hace, largo: `${desconectado} · ${hace}` };
 };
-
-// Sin tildes ni mayúsculas, para que "martinez" encuentre a Martínez.
-const sinTildes = (texto = "") =>
-  texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 // La lista como la muestra la pantalla: por orden alfabético y, si hay algo
 // escrito en el buscador, solo quien lo tenga en el nombre, el correo o el rol.

@@ -128,3 +128,27 @@ describe("VistaUsuarios", () => {
     expect(nube.cerrarSesionAparato).toHaveBeenCalledWith({ uid: "u1", aparatoId: "a1" });
   });
 });
+
+// Entre 1010 y 1500px (2026-10-29), como en Equipos: con alguien abierto la
+// lista se guarda en una franja de caras, y su flecha la saca entera.
+describe("VistaUsuarios — en el computador angosto", () => {
+  beforeEach(() => {
+    window.matchMedia = (query) => ({ ...matchMediaOriginal(query), matches: /min-width:1010px/.test(query) });
+  });
+
+  it("las caras de la franja abren a otra persona", async () => {
+    const { usuario } = abrir("/vistausuarios/u1");
+
+    expect(await screen.findByRole("heading", { name: /Aida Pérez/ })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Carlos Ríos" }));
+    expect(await screen.findByRole("heading", { name: /Carlos Ríos/ })).toBeInTheDocument();
+  });
+
+  it("la flecha saca la lista completa", async () => {
+    const { usuario } = abrir("/vistausuarios/u1");
+
+    await usuario.click(await screen.findByRole("button", { name: "Ver la lista completa" }));
+    expect(await screen.findByPlaceholderText("Buscar usuario...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Esconder la lista" })).toBeInTheDocument();
+  });
+});

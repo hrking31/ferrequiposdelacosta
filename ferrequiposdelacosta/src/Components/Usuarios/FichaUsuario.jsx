@@ -36,8 +36,13 @@ const GENEROS = { femenino: "Femenino", masculino: "Masculino" };
 //   (verde), con la papelera por aparato, cerrar todas y quitar los dos pasos.
 //
 // `conBotones`: EDITAR y ELIMINAR al pie del carné; en el celular van en el
-// pie de la pantalla. `llenarAlto`: en el computador, al lado de la lista, el
-// carné a la izquierda y los recuadros a la derecha, al alto de la pantalla.
+// pie de la pantalla. `llenarAlto`: en el computador (desde 916px), el carné
+// a la izquierda y los recuadros a la derecha, al alto de la pantalla.
+//
+// `enDosPisos` (con `llenarAlto`): de 960 a 1032px, como la ficha de un
+// equipo (pedido del dueño, 2026-10-29): arriba el carné y DATOS, mitad y
+// mitad; abajo ROL, angosto y con su menú de a dos, y SESIONES al lado, del
+// mismo alto; y EDITAR y ELIMINAR al final. Se desplaza si no cabe.
 export default function FichaUsuario({
   usuario,
   conexion,
@@ -49,6 +54,7 @@ export default function FichaUsuario({
   onQuitarDosPasos,
   conBotones = true,
   llenarAlto = false,
+  enDosPisos = false,
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
@@ -58,7 +64,13 @@ export default function FichaUsuario({
   const nombre = usuario.name || usuario.email || "este usuario";
 
   const etiquetas = (
-    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent={llenarAlto ? "center" : "flex-start"}>
+    <Stack
+      direction="row"
+      spacing={1}
+      useFlexGap
+      flexWrap="wrap"
+      justifyContent={llenarAlto ? "center" : "flex-start"}
+    >
       <Chip
         size="small"
         icon={<VerifiedUserIcon />}
@@ -91,7 +103,9 @@ export default function FichaUsuario({
   const carne = llenarAlto ? (
     <Box
       sx={{
-        width: 300,
+        // En dos pisos, la mitad del ancho (ver abajo).
+        width: enDosPisos ? "auto" : 300,
+        minWidth: 0,
         flexShrink: 0,
         boxSizing: "border-box",
         p: 3,
@@ -124,7 +138,8 @@ export default function FichaUsuario({
         {usuario.email}
       </Typography>
       {etiquetas}
-      {botones}
+      {/* En dos pisos van al final de la ficha. */}
+      {!enDosPisos && botones}
     </Box>
   ) : (
     <Box
@@ -155,59 +170,103 @@ export default function FichaUsuario({
     </Box>
   );
 
+  // En dos pisos, DATOS va al lado del carné: un dato por renglón y al alto
+  // del carné.
+  const seccionDatos = (
+    <Seccion titulo="DATOS" icono={<PersonIcon />} color={colores.datos} crece={enDosPisos}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: llenarAlto && !enDosPisos ? "repeat(3, minmax(0, 1fr))" : "1fr",
+          gap: llenarAlto ? 2 : 1,
+        }}
+      >
+        <Dato nombre="Nombre">{usuario.name || "Sin nombre"}</Dato>
+        <Dato nombre="Correo">{usuario.email}</Dato>
+        <Dato nombre="Género">{GENEROS[usuario.genero] || "Sin elegir"}</Dato>
+      </Box>
+    </Seccion>
+  );
+
+  const seccionRol = (
+    <Seccion titulo="ROL" icono={<VerifiedUserIcon />} color={colores.rol}>
+      <Typography variant="body2" sx={{ mt: -0.5, mb: 1.5 }}>
+        <strong>{rol?.nombre || "Sin rol"}</strong>
+        {rol && ` · ${rol.descripcion}`}
+      </Typography>
+      <MenuDelRol rol={usuario.role} compacto={!llenarAlto || enDosPisos} columnas={enDosPisos ? 2 : 3} />
+    </Seccion>
+  );
+
+  const seccionSesiones = (
+    <Seccion
+      titulo="SESIONES ABIERTAS"
+      icono={<DevicesIcon />}
+      color={colores.sesiones}
+      encoge={llenarAlto && !enDosPisos}
+    >
+      <AparatosUsuario
+        nombre={nombre}
+        aparatos={aparatos}
+        onCerrarSesionAparato={onCerrarSesionAparato}
+        onCerrarSesiones={onCerrarSesiones}
+        onQuitarDosPasos={onQuitarDosPasos}
+      />
+    </Seccion>
+  );
+
   const recuadros = (
     <>
-      <Seccion titulo="DATOS" icono={<PersonIcon />} color={colores.datos}>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: llenarAlto ? "repeat(3, minmax(0, 1fr))" : "1fr",
-            gap: llenarAlto ? 2 : 1,
-          }}
-        >
-          <Dato nombre="Nombre">{usuario.name || "Sin nombre"}</Dato>
-          <Dato nombre="Correo">{usuario.email}</Dato>
-          <Dato nombre="Género">{GENEROS[usuario.genero] || "Sin elegir"}</Dato>
-        </Box>
-      </Seccion>
-
-      <Seccion titulo="ROL" icono={<VerifiedUserIcon />} color={colores.rol}>
-        <Typography variant="body2" sx={{ mt: -0.5, mb: 1.5 }}>
-          <strong>{rol?.nombre || "Sin rol"}</strong>
-          {rol && ` · ${rol.descripcion}`}
-        </Typography>
-        <MenuDelRol rol={usuario.role} compacto={!llenarAlto} />
-      </Seccion>
-
-      <Seccion titulo="SESIONES ABIERTAS" icono={<DevicesIcon />} color={colores.sesiones} encoge={llenarAlto}>
-        <AparatosUsuario
-          nombre={nombre}
-          aparatos={aparatos}
-          onCerrarSesionAparato={onCerrarSesionAparato}
-          onCerrarSesiones={onCerrarSesiones}
-          onQuitarDosPasos={onQuitarDosPasos}
-        />
-      </Seccion>
+      {seccionDatos}
+      {seccionRol}
+      {seccionSesiones}
     </>
   );
 
+  // El recuadro grande de la ficha en el computador.
+  const marco = {
+    height: "100%",
+    boxSizing: "border-box",
+    p: 3,
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: "divider",
+    borderTop: "3px solid",
+    borderTopColor: acento,
+    borderRadius: 2,
+    display: "flex",
+  };
+
+  if (enDosPisos) {
+    return (
+      <Box sx={{ ...marco, flexDirection: "column", gap: 2, overflowY: "auto" }}>
+        {/* Mitad y mitad, y del mismo alto: el del más alto. */}
+        <Box sx={{ flexShrink: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 3 }}>
+          {carne}
+          <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>{seccionDatos}</Box>
+        </Box>
+        {/* ROL angosto (su menú de a dos) y SESIONES con el resto. */}
+        <Box sx={{ flexShrink: 0, display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)", gap: 2 }}>
+          {seccionRol}
+          {seccionSesiones}
+        </Box>
+        {conBotones && (
+          <Stack direction="row" spacing={1.5} sx={{ flexShrink: 0 }}>
+            <Button variant="contained" color="accent" startIcon={<EditIcon />} onClick={onEditar} fullWidth>
+              EDITAR
+            </Button>
+            <Button variant="outlined" color="error" startIcon={<DeleteOutlineIcon />} onClick={onEliminar} fullWidth>
+              ELIMINAR
+            </Button>
+          </Stack>
+        )}
+      </Box>
+    );
+  }
+
   if (llenarAlto) {
     return (
-      <Box
-        sx={{
-          height: "100%",
-          boxSizing: "border-box",
-          p: 3,
-          bgcolor: "background.paper",
-          border: "1px solid",
-          borderColor: "divider",
-          borderTop: "3px solid",
-          borderTopColor: acento,
-          borderRadius: 2,
-          display: "flex",
-          gap: 3,
-        }}
-      >
+      <Box sx={{ ...marco, gap: 3 }}>
         {carne}
         {/* Sin barra para desplazar (pedido del dueño, 2026-10-28): si no
             cabe, se achican las sesiones y solo su lista se desplaza. */}
@@ -246,4 +305,5 @@ FichaUsuario.propTypes = {
   onQuitarDosPasos: PropTypes.func.isRequired,
   conBotones: PropTypes.bool,
   llenarAlto: PropTypes.bool,
+  enDosPisos: PropTypes.bool,
 };

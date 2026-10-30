@@ -13,9 +13,19 @@ import { alpha } from "@mui/material/styles";
 // lo abren al tocarlos; los demás solo muestran el número.
 //
 // Mismo lenguaje que KpiCard —borde y resplandor del color, fijos—.
-export default function FranjaKpis({ kpis }) {
+//
+// `vertical`: de pie, una encima de la otra y repartidas en el alto, para el
+// celular acostado, donde va a la izquierda del menú (pedido del dueño,
+// 2026-10-29), con el ícono al lado de la cifra para que entren las cinco en
+// ese alto. Mide lo que pide su cifra más larga.
+export default function FranjaKpis({ kpis, vertical = false }) {
   return (
-    <Stack direction="row" alignItems="center" spacing={1}>
+    <Stack
+      direction={vertical ? "column" : "row"}
+      alignItems={vertical ? "stretch" : "center"}
+      spacing={1}
+      sx={vertical ? { flexShrink: 0, py: "6px" } : undefined}
+    >
       {kpis.map((kpi) => {
         const Casilla = kpi.onClick ? ButtonBase : Box;
         return (
@@ -26,14 +36,14 @@ export default function FranjaKpis({ kpis }) {
             sx={{
               flex: "1 1 auto",
               minWidth: 0,
-              // El ícono arriba y la cifra abajo.
+              // El ícono arriba y la cifra abajo; de pie, uno al lado del otro.
               display: "flex",
-              flexDirection: "column",
+              flexDirection: vertical ? "row" : "column",
               alignItems: "center",
-              justifyContent: "center",
-              gap: 0.25,
-              px: 1,
-              py: 0.75,
+              justifyContent: vertical ? "flex-start" : "center",
+              gap: vertical ? 1 : 0.25,
+              px: vertical ? 1.25 : 1,
+              py: vertical ? 0.5 : 0.75,
               borderRadius: 2,
               border: "1px solid",
               borderColor: kpi.color,
@@ -67,4 +77,5 @@ FranjaKpis.propTypes = {
       onClick: PropTypes.func,
     }),
   ).isRequired,
+  vertical: PropTypes.bool,
 };

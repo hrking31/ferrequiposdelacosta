@@ -32,18 +32,13 @@ import ButtonContacto, {
   WhatsAppButton,
 } from "../../Components/ButtonContacto/ButtonContacto";
 import EquipoImageCarousel from "../../Components/EquipoImageCarousel/EquipoImageCarousel.jsx";
-import {
-  fetchEquipos,
-  clearSearchEquipo,
-} from "../../Store/Slices/searchSlice";
+import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
 import { useDispatch } from "react-redux";
 import Brightness4 from "@mui/icons-material/Brightness4";
 import Brightness7 from "@mui/icons-material/Brightness7";
 import { useColorMode } from "../../Theme/useColorMode";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
 import Login from "../Login/Login";
-import useSnackbar from "../../Hooks/useSnackbar";
-import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
 
 export default function MobileDrawerLayout() {
@@ -52,38 +47,19 @@ export default function MobileDrawerLayout() {
   const [openAccount, setOpenAccount] = useState(false);
   const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
-  const equipo = useSelector((state) => state.search.results);
   const loading = useSelector((state) => state.equipos.loading);
-  const error = useSelector((state) => state.search.error);
-  const hasSearched = useSelector((state) => state.search.hasSearched);
   const { toggleColorMode } = useColorMode();
   const isSmallScreen = useMediaQuery("(max-width:599px)");
   const isMediumScreen = useMediaQuery(
     "(min-width:600px) and (max-width:915px)",
   );
 
-  const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    if (error) {
-      showSnackbar(
-        "Hubo un problema al realizar la búsqueda. Inténtalo de nuevo.",
-        "error",
-      );
-    } else if (hasSearched && !loading && equipo.length === 0) {
-      showSnackbar("No se encontraron equipos.", "warning");
-    }
-  }, [error, equipo, loading, hasSearched, showSnackbar]);
-
+  // Al salir de la tienda, el buscador vuelve vacío.
   useEffect(() => {
     return () => {
       dispatch(clearSearchEquipo());
     };
   }, [dispatch]);
-
-  const handleSearch = (searchTerm) => {
-    dispatch(fetchEquipos(searchTerm));
-  };
 
   const handleOpenAccount = () => setOpenAccount(true);
   const handleCloseAccount = () => setOpenAccount(false);
@@ -268,7 +244,7 @@ export default function MobileDrawerLayout() {
               <MenuIcon />
             </IconButton>
             <Box sx={{ flexGrow: 1 }}>
-              <Search onSearch={handleSearch} LabelOff={false} />
+              <Search LabelOff={false} />
             </Box>
           </Toolbar>
         </AppBar>
@@ -326,7 +302,7 @@ export default function MobileDrawerLayout() {
           >
             <Box sx={{ p: 1 }}>
               <Box sx={{ pt: 2, pb: 4 }}>
-                <Search onSearch={handleSearch} />
+                <Search />
               </Box>
 
               <InstallApp />
@@ -534,7 +510,6 @@ export default function MobileDrawerLayout() {
           <Login onClose={handleCloseAccount} />
         </Dialog>
 
-        <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
       </Grid>
     </Box>
   );

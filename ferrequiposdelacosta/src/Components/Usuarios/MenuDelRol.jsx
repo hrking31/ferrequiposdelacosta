@@ -19,7 +19,11 @@ import { permisosDelRol } from "./usuarios";
 //
 // `llenar`: las casillas crecen hasta llenar su recuadro, como los botones
 // del menú (el editor en el computador ancho, sin huecos).
-export default function MenuDelRol({ rol, rolAntes, compacto = false, llenar = false }) {
+//
+// `columnas`: de a cuántas por fila; de a dos en la ficha en dos pisos, para
+// que ROL quede angosto y SESIONES tenga más lugar (pedido del dueño,
+// 2026-10-29).
+export default function MenuDelRol({ rol, rolAntes, compacto = false, llenar = false, columnas = 3 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
   const ahora = permisosDelRol(rol);
@@ -42,9 +46,9 @@ export default function MenuDelRol({ rol, rolAntes, compacto = false, llenar = f
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))`,
           gap: compacto ? 0.75 : 1,
-          ...(llenar && { flex: 1, gridTemplateRows: `repeat(${Math.ceil(BOTONES_MENU.length / 3)}, 1fr)` }),
+          ...(llenar && { flex: 1, gridTemplateRows: `repeat(${Math.ceil(BOTONES_MENU.length / columnas)}, 1fr)` }),
         }}
       >
         {BOTONES_MENU.map((boton) => {
@@ -124,5 +128,6 @@ MenuDelRol.propTypes = {
   rol: PropTypes.string,
   rolAntes: PropTypes.string,
   compacto: PropTypes.bool,
+  columnas: PropTypes.oneOf([2, 3]),
   llenar: PropTypes.bool,
 };

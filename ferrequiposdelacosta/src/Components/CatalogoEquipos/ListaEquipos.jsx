@@ -3,15 +3,19 @@ import PropTypes from "prop-types";
 import { Box, ButtonBase, Stack, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import MiniaturaEquipo from "./MiniaturaEquipo";
 import { filtrarCatalogo } from "./catalogoEquipos";
 
-// LA LISTA DEL CATÁLOGO de Equipos y de Crear equipo (pedido del dueño,
-// 2026-10-26): en Equipos, tocar un equipo lo abre; en Crear, solo se mira,
-// para no repetir uno. Cada uno con la miniatura de su
+// LA LISTA DEL CATÁLOGO de Equipos y de la ventana del menú (pedido del
+// dueño, 2026-10-26): en Equipos, tocar un equipo lo abre; en el menú, solo
+// se mira. Cada uno con la miniatura de su
 // portada y la letra un poco más chica; el abierto, marcado con el lápiz.
+//
+// `onNuevo`: arriba, la zona punteada NUEVO EQUIPO, como NUEVO USUARIO en
+// Usuarios (2026-10-29: Crear equipo pasó a la pantalla de Equipos).
 //
 // `enPanel`: dentro del recuadro de la columna (PanelDocumentos), con su
 // buscador pegado arriba al desplazar. Sin eso ocupa la pantalla (celular o
@@ -25,6 +29,7 @@ export default function ListaEquipos({
   idElegido,
   onElegir,
   accion,
+  onNuevo,
   enPanel = false,
   contadorDebajo = false,
 }) {
@@ -79,12 +84,35 @@ export default function ListaEquipos({
             {contador}
           </Stack>
         )}
+
+        {onNuevo && (
+          <ButtonBase
+            onClick={onNuevo}
+            sx={{
+              mt: 1.25,
+              width: "100%",
+              height: 46,
+              gap: 1,
+              borderRadius: 2,
+              border: `2px dashed ${alpha(acento, 0.45)}`,
+              bgcolor: alpha(acento, 0.04),
+              color: acento,
+              fontWeight: 700,
+              fontSize: "0.875rem",
+              letterSpacing: 0.5,
+              "&:hover": { bgcolor: alpha(acento, 0.08), borderColor: acento },
+            }}
+          >
+            <AddCircleOutlineIcon fontSize="small" />
+            NUEVO EQUIPO
+          </ButtonBase>
+        )}
       </Box>
 
       <Stack spacing={enPanel ? 0.5 : 1}>
         {visibles.map((equipo) => {
           const elegido = equipo.id === idElegido;
-          // Sin `onElegir` (Crear equipo) los renglones solo se miran.
+          // Sin `onElegir` (la ventana del menú) los renglones solo se miran.
           const Renglon = onElegir ? ButtonBase : Box;
           return (
             <Renglon
@@ -140,10 +168,12 @@ ListaEquipos.propTypes = {
   equipos: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string, name: PropTypes.string }))
     .isRequired,
   idElegido: PropTypes.string,
-  // Tocar un equipo. Sin esto, la lista solo se mira (Crear equipo).
+  // Tocar un equipo. Sin esto, la lista solo se mira (la ventana del menú).
   onElegir: PropTypes.func,
-  // Un botón al lado del buscador (en el celular, el del menú).
+  // Un botón al lado del buscador (en el celular, nuevo y el menú).
   accion: PropTypes.node,
+  // La zona NUEVO EQUIPO.
+  onNuevo: PropTypes.func,
   enPanel: PropTypes.bool,
   // "Lista de equipos" y el contador debajo del buscador en cualquier
   // pantalla, no solo en el celular (la ventana del menú, pedido del dueño,

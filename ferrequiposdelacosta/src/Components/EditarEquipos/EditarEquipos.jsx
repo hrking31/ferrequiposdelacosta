@@ -22,12 +22,13 @@ import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
 import BarraFoto from "../FormularioEquipo/BarraFoto";
 import GrillaFotos from "../FormularioEquipo/GrillaFotos";
 import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
-import { rutasDeFoto, subirFotoEquipo } from "../FormularioEquipo/fotosEquipo";
+import { rutasDeFoto, subirFotoEquipo, verMiniatura } from "../FormularioEquipo/fotosEquipo";
 
 // Lo que se edita, sacado del equipo tal como está guardado. Cada foto lleva:
 // - `path`: dónde está guardada (null si todavía no se subió);
 // - `miniatura`: su versión chica, { url, path } (ver fotosEquipo);
-// - `file`: el archivo elegido, si es nueva.
+// - `file`: el archivo elegido, si es nueva, y `vistaMiniatura`, su miniatura
+//   para verla antes de guardar (llega después, ver agregarFotos).
 const desdeEquipo = (equipo) => ({
   name: equipo.name || "",
   description: equipo.description || "",
@@ -90,9 +91,7 @@ const EditarEquipos = ({
     fotos:
       form.porBorrar.length > 0 ||
       form.fotos.length !== guardado.fotos.length ||
-      form.fotos.some(
-        (foto, i) => foto.path !== guardado.fotos[i].path || foto.name !== guardado.fotos[i].name,
-      ),
+      form.fotos.some((foto, i) => foto.path !== guardado.fotos[i].path),
   };
   const cambios = Object.values(cambiado).filter(Boolean).length;
 
@@ -107,20 +106,22 @@ const EditarEquipos = ({
   const cambiarFotos = (transformar) =>
     setForm((prev) => ({ ...prev, ...transformar(prev) }));
 
-  const agregarFotos = (files) =>
-    cambiarFotos((prev) => ({
-      fotos: [
-        ...prev.fotos,
-        ...files.map((file) => ({
-          id: crypto.randomUUID(),
-          url: URL.createObjectURL(file),
-          name: "",
-          path: null,
-          miniatura: null,
-          file,
-        })),
-      ],
+  const agregarFotos = (files) => {
+    const nuevas = files.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      path: null,
+      miniatura: null,
+      file,
     }));
+    cambiarFotos((prev) => ({ fotos: [...prev.fotos, ...nuevas] }));
+    nuevas.forEach(async ({ id, file }) => {
+      const vistaMiniatura = await verMiniatura(file);
+      cambiarFotos((prev) => ({
+        fotos: prev.fotos.map((foto) => (foto.id === id ? { ...foto, vistaMiniatura } : foto)),
+      }));
+    });
+  };
 
   const moverFoto = (index, paso) =>
     cambiarFotos((prev) => {
@@ -138,11 +139,6 @@ const EditarEquipos = ({
         porBorrar: [...prev.porBorrar, ...rutasDeFoto(vieja)],
       };
     });
-
-  const nombrarFoto = (index, name) =>
-    cambiarFotos((prev) => ({
-      fotos: prev.fotos.map((foto, i) => (i === index ? { ...foto, name } : foto)),
-    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,7 +158,7 @@ const EditarEquipos = ({
       // Las nuevas se achican y suben en dos tamaños (ver fotosEquipo).
       const images = await Promise.all(
         form.fotos.map((foto) => {
-          if (foto.file) return subirFotoEquipo(equipo.id, foto);
+          if (foto.file) return subirFotoEquipo(equipo.id, form.name, foto.file);
           return { name: foto.name, url: foto.url, path: foto.path, miniatura: foto.miniatura };
         }),
       );
@@ -171,7 +167,6 @@ const EditarEquipos = ({
         name: form.name,
         description: form.description,
         images,
-        nameLowerCase: form.name.toLowerCase(),
         varianteNombre: form.varianteNombre.trim(),
         variantes: form.variantes,
         textoExtra: form.textoExtra.trim(),
@@ -267,10 +262,9 @@ const EditarEquipos = ({
           <TarjetaFoto
             key={foto.id}
             url={foto.url}
-            alt={foto.name || `Foto ${index + 1}`}
-            nombre={foto.name}
-            nombreCampo={`imagenNombre-${index}`}
-            onCambiarNombre={(nombre) => nombrarFoto(index, nombre)}
+            alt={`Foto ${index + 1}`}
+            // La nueva, la hecha al elegirla; la guardada, la de la nube.
+            miniatura={foto.file ? foto.vistaMiniatura : (foto.miniatura?.url ?? null)}
             etiquetas={
               (index === 0 || foto.file) && (
                 <EtiquetasFoto portada={index === 0} nueva={Boolean(foto.file)} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Button, IconButton, InputAdornment, Stack, TextField, Tooltip, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -39,9 +39,8 @@ const esCorreo = (correo) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
 // - MENÚ: su saludo y los botones de su menú, como lo verá al entrar.
 //
 // Crear y Limpiar viven afuera (encabezado o pie) y llegan por
-// `idFormulario`. `onCambio` le pasa a la vista lo escrito, para el renglón de
-// muestra de la lista.
-export default function CrearUsuario({ idFormulario, anchoCompleto = false, onCambio, onTerminar }) {
+// `idFormulario`.
+export default function CrearUsuario({ idFormulario, anchoCompleto = false, onTerminar }) {
   const theme = useTheme();
   const colores = coloresDeUsuarios(theme);
   const esCelular = usePantallaCompacta();
@@ -59,10 +58,6 @@ export default function CrearUsuario({ idFormulario, anchoCompleto = false, onCa
         ? theme.palette.warning.main
         : theme.palette.success.main;
   const botonesDelRol = BOTONES_MENU.filter((b) => permisosDelRol(form.role).includes(b.permiso)).length;
-
-  useEffect(() => {
-    onCambio({ name: form.name, email: form.email, role: form.role });
-  }, [form.name, form.email, form.role, onCambio]);
 
   const crear = async (event) => {
     event.preventDefault();
@@ -298,7 +293,6 @@ export default function CrearUsuario({ idFormulario, anchoCompleto = false, onCa
 CrearUsuario.propTypes = {
   idFormulario: PropTypes.string.isRequired,
   anchoCompleto: PropTypes.bool,
-  onCambio: PropTypes.func.isRequired,
   // ({ mensaje, severidad, uid }): la vista avisa y, si se creó (`uid`),
   // vuelve a leer la lista y abre su ficha.
   onTerminar: PropTypes.func.isRequired,

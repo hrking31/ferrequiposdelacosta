@@ -28,7 +28,6 @@ const RUTAS_SIN_BARRA = [
   "/vistacotizacion",
   "/vistacuentadecobro",
   "/vistacuentascobro",
-  "/vistacreaequipo",
   "/vistaequipos",
   "/vistausuarios",
   "/vistaclientes",

@@ -16,6 +16,10 @@
 //
 // Cada archivo lleva la hora en el nombre y nunca se reescribe: por eso el
 // navegador puede guardarlo un año y no volver a bajarlo.
+//
+// El nombre lo pone la app, con el del equipo (2026-10-29, pedido del dueño:
+// antes se escribía uno por foto, nadie lo veía y una "/" lo mandaba a una
+// subcarpeta que borrar el equipo no vacía).
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../Firebase/Firebase";
 import achicarImagen from "../../Utils/achicarImagen";
@@ -30,14 +34,38 @@ const subirArchivo = async (foto, ruta) => {
   return { url: await getDownloadURL(destino), path: destino.fullPath };
 };
 
-// Achica y sube una foto elegida (`file`) con su nombre. Devuelve la foto tal
+// "Mezcladora 1/2 bulto" → "mezcladora-1-2-bulto": sin tildes, espacios ni
+// nada que no sirva en el nombre de un archivo.
+export const nombreDeFoto = (nombreEquipo) =>
+  (nombreEquipo || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 40)
+    .replace(/^-+|-+$/g, "") || "foto";
+
+// LA MINIATURA DE UNA FOTO ELEGIDA, para verla antes de guardar: la misma
+// que se va a subir (mismo tamaño y calidad). Devuelve su dirección en el
+// aparato, o null si no se pudo hacer.
+export const verMiniatura = async (file) => {
+  try {
+    return URL.createObjectURL(await achicarImagen(file, MINIATURA));
+  } catch {
+    return null;
+  }
+};
+
+// Achica y sube una foto elegida (`file`) del equipo. Devuelve la foto tal
 // como se guarda en el equipo.
-export const subirFotoEquipo = async (equipoId, { name, file }) => {
+export const subirFotoEquipo = async (equipoId, nombreEquipo, file) => {
   const [grande, miniatura] = await Promise.all([
     achicarImagen(file, GRANDE),
     achicarImagen(file, MINIATURA),
   ]);
-  const base = `${equipoId}/${name}-${Date.now()}`;
+  const name = nombreDeFoto(nombreEquipo);
+  // Las fotos se suben juntas: la hora sola podría repetirse.
+  const base = `${equipoId}/${name}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const [subidaGrande, subidaMiniatura] = await Promise.all([
     subirArchivo(grande, base),
     subirArchivo(miniatura, `${base}-miniatura`),

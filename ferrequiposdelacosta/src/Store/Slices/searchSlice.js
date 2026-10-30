@@ -1,70 +1,24 @@
+import { createSlice } from "@reduxjs/toolkit";
 
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../Components/Firebase/Firebase";
-
-export const fetchEquipos = createAsyncThunk(
-  "equipos/fetchEquipos",
-  async (searchTerm, { rejectWithValue }) => {
-    try {
-      // throw new Error("Error simulado al buscar equipos");
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      const q = query(
-        collection(db, "equipos"),
-        where("nameLowerCase", ">=", lowerCaseSearchTerm),
-        where("nameLowerCase", "<=", lowerCaseSearchTerm + "\uf8ff")
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        return [];
-      } else {
-        const items = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        return items;
-      }
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
+// LO QUE SE ESCRIBE EN EL BUSCADOR DE LA TIENDA Y DEL KIOSCO (2026-10-29,
+// pedido del dueño: que funcione como los de Usuarios y Equipos). Filtra
+// MIENTRAS se escribe sobre el catálogo en memoria (ver buscarEnCatalogo);
+// antes consultaba Firestore al enviar y solo encontraba los nombres que
+// EMPEZABAN exactamente con lo escrito: un espacio de más, una palabra del
+// medio o una tilde de menos y no salía nada. Vive acá porque el buscador y
+// las tarjetas están en partes distintas de la pantalla.
 const searchSlice = createSlice({
   name: "search",
-  initialState: {
-    results: [],
-    loading: false,
-    error: null,
-    hasSearched: false,
-  },
+  initialState: { termino: "" },
   reducers: {
-    clearSearchEquipo: (state) => {
-      state.results = [];
-      state.loading = false;
-      state.error = null;
-      state.hasSearched = false;
+    ponerBusqueda: (state, action) => {
+      state.termino = action.payload;
     },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchEquipos.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchEquipos.fulfilled, (state, action) => {
-        state.loading = false;
-        state.results = action.payload;
-        state.hasSearched = true;
-      })
-      .addCase(fetchEquipos.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+    clearSearchEquipo: (state) => {
+      state.termino = "";
+    },
   },
 });
 
-export const { clearSearchEquipo } = searchSlice.actions;
+export const { ponerBusqueda, clearSearchEquipo } = searchSlice.actions;
 export default searchSlice.reducer;

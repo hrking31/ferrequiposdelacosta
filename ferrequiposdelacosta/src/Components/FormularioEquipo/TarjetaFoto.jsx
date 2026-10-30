@@ -1,21 +1,16 @@
 import PropTypes from "prop-types";
-import { Box, Stack, TextField } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { ALTO_FRANJA, lugarDeLaFoto } from "./piezasFormulario";
 
-// UNA FOTO DEL EQUIPO EN SU TARJETA: la foto arriba, siempre de 4 a 3, y su
-// nombre debajo. Sobre la foto, lo que ponga cada pantalla:
+// UNA FOTO DEL EQUIPO EN SU TARJETA: la foto, siempre de 4 a 3. Sobre ella, lo
+// que ponga cada pantalla:
 // - `etiquetas`, arriba a la izquierda (PORTADA, NUEVA);
-// Y `barra`, el organizador (mover y quitar), en su franja entre la foto y
-// el nombre.
-export default function TarjetaFoto({
-  url,
-  alt,
-  nombre,
-  nombreCampo,
-  onCambiarNombre,
-  etiquetas,
-  barra,
-}) {
+// - abajo a la derecha, su `miniatura` (pedido del dueño, 2026-10-29), para
+//   confirmar cómo se verá en las listas y las tarjetas: undefined mientras
+//   se hace, null si no tiene (sale el aviso).
+// Y `barra`, el organizador (mover y quitar), en su franja debajo.
+// Sin nombre: lo pone la app al subirla (ver fotosEquipo).
+export default function TarjetaFoto({ url, alt, miniatura, etiquetas, barra }) {
   return (
     <Box sx={{ display: "flex", minHeight: 0 }}>
       <Box
@@ -48,6 +43,45 @@ export default function TarjetaFoto({
               {etiquetas}
             </Stack>
           )}
+          {miniatura && (
+            <Box
+              component="img"
+              src={miniatura}
+              alt={`Miniatura de ${alt}`}
+              title="Miniatura: así se ve en las listas y las tarjetas"
+              sx={{
+                position: "absolute",
+                right: 6,
+                bottom: 6,
+                width: "30%",
+                aspectRatio: "4 / 3",
+                objectFit: "cover",
+                display: "block",
+                borderRadius: 1,
+                border: "2px solid",
+                borderColor: "common.white",
+                boxShadow: 3,
+              }}
+            />
+          )}
+          {miniatura === null && (
+            <Typography
+              variant="caption"
+              sx={{
+                position: "absolute",
+                right: 6,
+                bottom: 6,
+                px: 0.75,
+                py: 0.25,
+                borderRadius: 1,
+                fontWeight: 700,
+                bgcolor: "error.main",
+                color: "error.contrastText",
+              }}
+            >
+              SIN MINIATURA
+            </Typography>
+          )}
         </Box>
         {/* El organizador, debajo de la foto y no encima: así se ve entera
             (pedido del dueño, 2026-10-26). Del mismo alto que su franja en
@@ -61,29 +95,11 @@ export default function TarjetaFoto({
               height: ALTO_FRANJA,
               px: 0.5,
               flexShrink: 0,
-              borderBottom: "1px solid",
-              borderColor: "divider",
             }}
           >
             {barra}
           </Stack>
         )}
-        <Box sx={{ p: 1, flexShrink: 0 }}>
-          {/* De un renglón en todas las pantallas (pedido del dueño,
-              2026-10-26). Sin saltos de línea: el nombre va en la dirección
-              del archivo guardado. */}
-          <TextField
-            name={nombreCampo}
-            label="Nombre de la imagen"
-            value={nombre}
-            onChange={(e) => onCambiarNombre(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.preventDefault();
-            }}
-            size="small"
-            fullWidth
-          />
-        </Box>
       </Box>
     </Box>
   );
@@ -92,9 +108,7 @@ export default function TarjetaFoto({
 TarjetaFoto.propTypes = {
   url: PropTypes.string.isRequired,
   alt: PropTypes.string.isRequired,
-  nombre: PropTypes.string.isRequired,
-  nombreCampo: PropTypes.string.isRequired,
-  onCambiarNombre: PropTypes.func.isRequired,
+  miniatura: PropTypes.string,
   etiquetas: PropTypes.node,
   barra: PropTypes.node,
 };

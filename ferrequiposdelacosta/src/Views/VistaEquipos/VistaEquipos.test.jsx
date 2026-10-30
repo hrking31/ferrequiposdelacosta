@@ -44,6 +44,7 @@ const catalogo = [
 const abrir = (ruta = "/vistaequipos") =>
   renderConProviders(
     <Routes>
+      <Route path="/vistaequipos/nuevo" element={<VistaEquipos creando />} />
       <Route path="/vistaequipos/:id?" element={<VistaEquipos />} />
       <Route path="/vistaequipos/:id/editar" element={<VistaEquipos editando />} />
       <Route path="/adminforms" element={<div>MENÚ PRINCIPAL</div>} />
@@ -51,7 +52,13 @@ const abrir = (ruta = "/vistaequipos") =>
     {
       ruta,
       estadoInicial: {
-        user: { name: "Aida", photoURL: "", role: "gestorEditor", genero: "femenino" },
+        user: {
+          name: "Aida",
+          photoURL: "",
+          role: "gestorEditor",
+          genero: "femenino",
+          permisos: ["eliminarEditarEquipos", "crearEquipos"],
+        },
         equipos: { equipos: catalogo, loading: false, error: null },
       },
     },
@@ -126,6 +133,60 @@ describe("VistaEquipos — en el computador ancho", () => {
   });
 });
 
+// Crear un equipo pasó a esta pantalla el 2026-10-29 (antes, la suya).
+describe("VistaEquipos — crear, en el computador ancho", () => {
+  conPantalla((query) => query.includes("min-width"));
+
+  it("NUEVO EQUIPO abre el formulario de crear, vacío", async () => {
+    const { usuario } = abrir();
+
+    await usuario.click(screen.getByRole("button", { name: /NUEVO EQUIPO/ }));
+    expect(screen.getByLabelText(/Nombre del equipo/)).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Crear equipo" })).toBeInTheDocument();
+  });
+
+  it("con algo escrito, pregunta antes de volver a la lista", async () => {
+    const { usuario } = abrir("/vistaequipos/nuevo");
+
+    await usuario.type(screen.getByLabelText(/Nombre del equipo/), "GRÚA");
+    await usuario.click(screen.getByRole("button", { name: "Volver a la lista" }));
+
+    expect(await screen.findByText(/El equipo nuevo todavía no se ha creado/)).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Salir sin guardar" }));
+    expect(await screen.findByText("Elige un equipo de la lista")).toBeInTheDocument();
+  });
+
+  it("sin nada escrito, vuelve sin preguntar", async () => {
+    const { usuario } = abrir("/vistaequipos/nuevo");
+
+    await usuario.click(screen.getByRole("button", { name: "Volver a la lista" }));
+    expect(screen.queryByText("Cambios sin guardar")).not.toBeInTheDocument();
+    expect(screen.getByText("Elige un equipo de la lista")).toBeInTheDocument();
+  });
+});
+
+// Entre 1010 y 1500px (2026-10-29): con un equipo abierto la lista se guarda
+// en una franja de miniaturas, y su flecha la saca entera.
+describe("VistaEquipos — en el computador angosto", () => {
+  conPantalla((query) => /min-width:(1010|1170)px/.test(query));
+
+  it("las miniaturas de la franja abren otro equipo", async () => {
+    const { usuario } = abrir("/vistaequipos/e1");
+
+    expect(screen.getByRole("heading", { name: "RANA" })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "ANDAMIO" }));
+    expect(screen.getByRole("heading", { name: "ANDAMIO" })).toBeInTheDocument();
+  });
+
+  it("la flecha saca la lista completa, con su buscador y su flecha de esconder", async () => {
+    const { usuario } = abrir("/vistaequipos/e1");
+
+    await usuario.click(screen.getByRole("button", { name: "Ver la lista completa" }));
+    expect(await screen.findByPlaceholderText("Buscar equipo...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Esconder la lista" })).toBeInTheDocument();
+  });
+});
+
 describe("VistaEquipos — en el celular", () => {
   conPantalla((query) => query.includes("max-width"));
 
@@ -145,5 +206,12 @@ describe("VistaEquipos — en el celular", () => {
     expect(screen.getByRole("heading", { name: "RANA" })).toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "EQUIPOS" }));
     expect(screen.getByRole("button", { name: "ANDAMIO" })).toBeInTheDocument();
+  });
+
+  it("el + junto al buscador abre el formulario de crear", async () => {
+    const { usuario } = abrir();
+
+    await usuario.click(screen.getByRole("button", { name: "Nuevo equipo" }));
+    expect(screen.getByLabelText(/Nombre del equipo/)).toHaveValue("");
   });
 });

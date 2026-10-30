@@ -8,14 +8,16 @@ import MenuDelRol from "./MenuDelRol";
 const candados = () => screen.queryAllByTestId("LockOutlinedIcon").length;
 
 describe("MenuDelRol", () => {
-  it("el administrador ve los nueve botones", () => {
+  // Ocho desde el 2026-10-29: Crear equipo y Editar / eliminar se juntaron
+  // en EQUIPOS.
+  it("el administrador ve los ocho botones", () => {
     renderConProviders(<MenuDelRol rol="administrador" />);
 
-    expect(BOTONES_MENU).toHaveLength(9);
+    expect(BOTONES_MENU).toHaveLength(8);
     expect(candados()).toBe(0);
   });
 
-  it("el gestor editor solo los dos del catálogo", () => {
+  it("el gestor editor, solo el del catálogo", () => {
     renderConProviders(<MenuDelRol rol="gestorEditor" />);
 
     expect(candados()).toBe(7);
@@ -24,13 +26,13 @@ describe("MenuDelRol", () => {
   it("sin rol, todo con candado", () => {
     renderConProviders(<MenuDelRol rol="" />);
 
-    expect(candados()).toBe(9);
+    expect(candados()).toBe(8);
   });
 
-  it("al pasar de facturación a integral, gana los dos del catálogo y no pierde nada", () => {
+  it("al pasar de facturación a integral, gana el del catálogo y no pierde nada", () => {
     renderConProviders(<MenuDelRol rol="gestorIntegral" rolAntes="gestorFacturacion" />);
 
-    expect(screen.getAllByText("GANA")).toHaveLength(2);
+    expect(screen.getAllByText("GANA")).toHaveLength(1);
     expect(screen.queryByText("PIERDE")).not.toBeInTheDocument();
   });
 

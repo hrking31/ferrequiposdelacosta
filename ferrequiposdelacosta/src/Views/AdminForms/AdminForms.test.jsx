@@ -65,44 +65,64 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// Los botones, por su enlace: "EQUIPOS" y "CLIENTES" también son el nombre de
+// un KPI y de un área.
+const boton = (nombre) => screen.queryByRole("link", { name: nombre });
+// Las áreas del menú (2026-10-29), cada una en su recuadro con nombre.
+const area = (nombre) => screen.queryByRole("region", { name: nombre });
+
 describe("AdminForms — qué ve cada rol", () => {
   it("el administrador ve todo, incluida la gestión de usuarios", () => {
     comoRol("administrador");
 
-    expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
-    expect(screen.getByText("CLIENTES")).toBeInTheDocument();
-    expect(screen.getByText("CREAR EQUIPO")).toBeInTheDocument();
-    // Crear y editar/eliminar usuarios son un solo botón desde el 2026-10-28.
-    expect(screen.getByText("USUARIOS")).toBeInTheDocument();
-    expect(screen.queryByText("CREAR USUARIOS")).not.toBeInTheDocument();
-    expect(screen.queryByText("EDITAR / ELIMINAR USUARIOS")).not.toBeInTheDocument();
+    expect(boton("COTIZACIÓN")).toBeInTheDocument();
+    expect(boton("CLIENTES")).toBeInTheDocument();
+    // Crear y editar equipos son un solo botón desde el 2026-10-29, como los
+    // usuarios desde el 2026-10-28.
+    expect(boton("EQUIPOS")).toHaveAttribute("href", "/vistaequipos");
+    expect(boton("CREAR EQUIPO")).not.toBeInTheDocument();
+    expect(boton("USUARIOS")).toBeInTheDocument();
+    expect(boton("CREAR USUARIOS")).not.toBeInTheDocument();
+  });
+
+  it("los botones van en sus cuatro áreas", () => {
+    comoRol("administrador");
+
+    for (const nombre of ["VENTAS", "COBROS", "CLIENTES", "CATÁLOGO Y PERSONAL"]) {
+      expect(area(nombre)).toBeInTheDocument();
+    }
+    expect(within(area("VENTAS")).getByRole("link", { name: "COTIZACIÓN" })).toBeInTheDocument();
+    expect(within(area("CATÁLOGO Y PERSONAL")).getByRole("link", { name: "USUARIOS" })).toBeInTheDocument();
   });
 
   it("el gestor de equipos solo ve el catálogo", () => {
     comoRol("gestorEditor");
 
-    expect(screen.getByText("CREAR EQUIPO")).toBeInTheDocument();
-    // Nada de plata ni de usuarios.
-    expect(screen.queryByText("COTIZACIÓN")).not.toBeInTheDocument();
-    expect(screen.queryByText("CLIENTES")).not.toBeInTheDocument();
-    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
+    expect(boton("EQUIPOS")).toBeInTheDocument();
+    // Nada de plata ni de usuarios, ni sus áreas.
+    expect(boton("COTIZACIÓN")).not.toBeInTheDocument();
+    expect(boton("CLIENTES")).not.toBeInTheDocument();
+    expect(boton("USUARIOS")).not.toBeInTheDocument();
+    expect(area("VENTAS")).not.toBeInTheDocument();
+    expect(area("CATÁLOGO Y PERSONAL")).toBeInTheDocument();
   });
 
   it("el gestor de facturación ve cartera pero no el catálogo ni usuarios", () => {
     comoRol("gestorFacturacion");
 
-    expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
-    expect(screen.getByText("CLIENTES")).toBeInTheDocument();
-    expect(screen.queryByText("CREAR EQUIPO")).not.toBeInTheDocument();
-    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
+    expect(boton("COTIZACIÓN")).toBeInTheDocument();
+    expect(boton("CLIENTES")).toBeInTheDocument();
+    expect(boton("EQUIPOS")).not.toBeInTheDocument();
+    expect(boton("USUARIOS")).not.toBeInTheDocument();
+    expect(area("CATÁLOGO Y PERSONAL")).not.toBeInTheDocument();
   });
 
   it("el gestor integral ve las dos áreas, pero no usuarios", () => {
     comoRol("gestorIntegral");
 
-    expect(screen.getByText("COTIZACIÓN")).toBeInTheDocument();
-    expect(screen.getByText("CREAR EQUIPO")).toBeInTheDocument();
-    expect(screen.queryByText("USUARIOS")).not.toBeInTheDocument();
+    expect(boton("COTIZACIÓN")).toBeInTheDocument();
+    expect(boton("EQUIPOS")).toBeInTheDocument();
+    expect(boton("USUARIOS")).not.toBeInTheDocument();
   });
 });
 

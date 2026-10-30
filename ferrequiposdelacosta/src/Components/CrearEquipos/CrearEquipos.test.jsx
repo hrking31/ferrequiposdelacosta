@@ -123,9 +123,9 @@ describe("CrearEquipos — al crear", () => {
     // En la misma carpeta del equipo: borrar el equipo vacía esa carpeta.
     expect(datos.images[0].miniatura.path).toMatch(/^eq-nuevo\/[^/]+-miniatura$/);
 
-    // El buscador de la tienda compara en minúsculas: si este campo no se
-    // guarda, el equipo existe pero no aparece al buscarlo.
-    expect(datos.nameLowerCase).toBe("andamio");
+    // La copia en minúsculas era del buscador viejo de la tienda (2026-10-29:
+    // ahora filtra en memoria): ya no se guarda.
+    expect(datos).not.toHaveProperty("nameLowerCase");
 
     // Y el catálogo se vuelve a pedir: vive en memoria y solo se consulta
     // cuando está vacío, así que sin esto el equipo nuevo no se ve hasta

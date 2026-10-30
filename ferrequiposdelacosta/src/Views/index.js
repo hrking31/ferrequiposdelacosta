@@ -4,7 +4,6 @@ import AdminForms from "./AdminForms/AdminForms";
 import VistaCotizacion from "./VistaCotizacion/VistaCotizacion";
 import VistaCuentaDeCobro from "./VistaCuentaDeCobro/VistaCuentaDeCobro";
 import VistaCuentasCobro from "./VistaCuentasCobro/VistaCuentasCobro";
-import VistaCreaEquipo from "./VistaCreaEquipo/VistaCreaEquipo";
 import VistaEquipos from "./VistaEquipos/VistaEquipos";
 import VistaUsuarios from "./VistaUsuarios/VistaUsuarios";
 import VistaNoAutorizada from "./VistaNoAutorizada/VistaNoAutorizada";
@@ -24,7 +23,6 @@ export {
   VistaCotizacion,
   VistaCuentaDeCobro,
   VistaCuentasCobro,
-  VistaCreaEquipo,
   VistaEquipos,
   VistaUsuarios,
   VistaNoAutorizada,

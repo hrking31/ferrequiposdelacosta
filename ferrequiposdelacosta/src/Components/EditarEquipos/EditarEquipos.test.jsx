@@ -43,7 +43,6 @@ const equipo = {
   id: "eq1",
   name: "ANDAMIO",
   description: "Andamio metálico",
-  nameLowerCase: "andamio",
   images: [
     { name: "frente", url: "https://fotos/frente.webp", path: "eq1/frente", miniatura: miniaturaFrente },
     { name: "lado", url: "https://fotos/lado.webp", path: "eq1/lado", miniatura: miniaturaLado },
@@ -105,8 +104,6 @@ describe("EditarEquipos", () => {
     const [ruta, datos] = nube.updateDoc.mock.calls[0];
     expect(ruta).toBe("equipos/eq1");
     expect(datos.name).toBe("ANDAMIO NUEVO");
-    // Si no se rehace, se sigue encontrando por el nombre viejo.
-    expect(datos.nameLowerCase).toBe("andamio nuevo");
     expect(datos.varianteNombre).toBe("Tamaño");
     expect(datos.variantes).toEqual(["1.20m"]);
     expect(nube.getDocs).toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -26,6 +26,8 @@ import TouchAppIcon from "@mui/icons-material/TouchApp";
 import { functions } from "../../Components/Firebase/Firebase";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import PanelDocumentos from "../../Components/PanelLista/PanelDocumentos";
+import FranjaLista from "../../Components/PanelLista/FranjaLista";
+import CajonLista from "../../Components/PanelLista/CajonLista";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import ListaUsuarios from "../../Components/Usuarios/ListaUsuarios";
@@ -33,8 +35,9 @@ import FichaUsuario from "../../Components/Usuarios/FichaUsuario";
 import EditarUsuario from "../../Components/Usuarios/EditarUsuario";
 import CrearUsuario from "../../Components/Usuarios/CrearUsuario";
 import EliminarUsuarioDialogo from "../../Components/Usuarios/EliminarUsuarioDialogo";
+import AvatarUsuario from "../../Components/Usuarios/AvatarUsuario";
 import useUsuarios from "../../Components/Usuarios/useUsuarios";
-import { estadoConexion } from "../../Components/Usuarios/usuarios";
+import { estadoConexion, filtrarUsuarios } from "../../Components/Usuarios/usuarios";
 import useSnackbar from "../../Hooks/useSnackbar";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 
@@ -59,10 +62,13 @@ const rutaEditar = (id) => `${RUTA}/${id}/editar`;
 // Es UNA sola ruta (/vistausuarios/*) para que pasar de un nivel a otro no
 // vuelva a leer la lista: el personal se lee una vez al entrar.
 //
-// En el computador (desde 1010px) la lista va siempre a la izquierda y lo
-// demás a la derecha: los formularios de una persona son cortos y caben al
-// lado. Más angosto, una cosa a la vez. El ícono del grupo sube un nivel:
-// del editor a la ficha y de la ficha (o de crear) a la lista.
+// En el computador, desde 1501px, la lista va a la izquierda y lo demás a la
+// derecha. Entre 1010 y 1500, con alguien abierto (su ficha o el editor) o
+// creando, la lista se guarda en una franja de caras a la izquierda, cuya
+// flecha la saca entera, y lo de la derecha usa la vista ancha (pedido del
+// dueño, 2026-10-29, como en Equipos); sin nadie elegido, la lista y el
+// recuadro de elegir. Más angosto, una cosa a la vez. El ícono del grupo sube
+// un nivel: del editor a la ficha y de la ficha (o de crear) a la lista.
 export default function VistaUsuarios() {
   const navigate = useNavigate();
   const { "*": resto = "" } = useParams();
@@ -73,16 +79,25 @@ export default function VistaUsuarios() {
   const presencia = useSelector((state) => state.presence.usuariosConectados || {});
   const isFullScreen = usePantallaCompacta();
   const dosColumnas = useMediaQuery("(min-width:1010px)") && !isFullScreen;
-  // LA VISTA ANCHA, desde 1501px, igual para las tres (pedido del dueño,
-  // 2026-10-28): la ficha en su recuadro grande con el carné al lado de los
-  // recuadros, y el editor y crear en dos columnas. Entre 1010 y 1500, al
-  // lado de la lista no caben y van en una sola columna.
+  // LA VISTA ANCHA, igual para las tres (pedido del dueño, 2026-10-28): la
+  // ficha en su recuadro grande con el carné al lado de los recuadros, y el
+  // editor y crear en dos columnas. Desde 1501px, al lado de la lista; entre
+  // 1010 y 1500, con la lista guardada en la franja (`conCajon`).
   const vistaAncha = useMediaQuery("(min-width:1501px)") && !isFullScreen;
+  const conCajon = dosColumnas && !vistaAncha;
+  // LA FICHA, con los cortes de la de un equipo (pedido del dueño,
+  // 2026-10-29): en todo el computador el carné y los recuadros en una fila
+  // y, de 960 a 1032px, en dos pisos (ver FichaUsuario).
+  const fichaEnDosPisos =
+    useMediaQuery("(min-width:960px) and (max-width:1032px)") && !isFullScreen;
+  const [verLista, setVerLista] = useState(false);
 
   const { usuarios, cargando, error, recargar } = useUsuarios();
   const usuario = id ? usuarios.find((u) => u.id === id) || null : null;
   const esperando = cargando && usuarios.length === 0;
   const editar = segundo === "editar" && usuario !== null;
+  const conFranja = conCajon && (creando || usuario !== null);
+  const ancho = vistaAncha || conFranja;
   // Mientras se vuelve a leer (recién creada) todavía no aparece: no avisar.
   const aviso = id && !usuario && !cargando ? "Esa persona ya no está en la lista: elige otra." : null;
 
@@ -90,8 +105,6 @@ export default function VistaUsuarios() {
   // Adónde ir si confirma que deja los cambios sin guardar.
   const [destinoPendiente, setDestinoPendiente] = useState(null);
   const [verEliminar, setVerEliminar] = useState(false);
-  // Lo que se va escribiendo al crear, para el renglón de muestra de la lista.
-  const [borrador, setBorrador] = useState({ name: "", email: "", role: "" });
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
@@ -134,8 +147,6 @@ export default function VistaUsuarios() {
     else navigate(RUTA);
   };
   const abrirEditor = () => navigate(rutaEditar(usuario.id));
-
-  const anotarBorrador = useCallback((datos) => setBorrador(datos), []);
 
   // Las sesiones: las hace el servidor y después se vuelve a leer la lista.
   const llamar = async (funcion, datos, listo, fallo) => {
@@ -199,18 +210,36 @@ export default function VistaUsuarios() {
     </>
   );
 
-  const lista = (enPanel) => (
+  // `enCajon`: la lista que sale de la franja; elegir la guarda.
+  const lista = (enPanel, enCajon = false) => (
     <ListaUsuarios
       usuarios={usuarios}
       presencia={presencia}
       miUid={miUid}
       idElegido={usuario?.id}
       editando={editar}
-      onElegir={elegir}
+      onElegir={
+        enCajon
+          ? (otro) => {
+              setVerLista(false);
+              elegir(otro);
+            }
+          : elegir
+      }
       // La zona punteada en el computador, con la lista en su columna o sola
-      // (916 a 1009px); en el celular, el ícono junto al buscador.
-      onNuevo={isFullScreen ? undefined : nuevo}
-      nuevo={creando && enPanel ? borrador : undefined}
+      // (916 a 1009px), pero no al lado del editor ni de crear (pedido del
+      // dueño, 2026-10-29, como en Equipos); en el celular, el ícono junto al
+      // buscador.
+      onNuevo={
+        isFullScreen || editar || creando
+          ? undefined
+          : enCajon
+            ? () => {
+                setVerLista(false);
+                nuevo();
+              }
+            : nuevo
+      }
       accion={enPanel ? undefined : accionesCelular}
       enPanel={enPanel}
     />
@@ -234,8 +263,7 @@ export default function VistaUsuarios() {
     detalle = (
       <CrearUsuario
         idFormulario={ID_FORMULARIO}
-        anchoCompleto={vistaAncha}
-        onCambio={anotarBorrador}
+        anchoCompleto={ancho}
         onTerminar={terminarFormulario}
       />
     );
@@ -246,7 +274,7 @@ export default function VistaUsuarios() {
         key={usuario.id}
         usuario={usuario}
         idFormulario={ID_FORMULARIO}
-        anchoCompleto={vistaAncha}
+        anchoCompleto={ancho}
         onCambios={setCambios}
         onTerminar={terminarFormulario}
       />
@@ -262,7 +290,8 @@ export default function VistaUsuarios() {
         {...sesiones}
         // En el celular, EDITAR y ELIMINAR van en el pie.
         conBotones={!isFullScreen}
-        llenarAlto={vistaAncha}
+        llenarAlto={!isFullScreen}
+        enDosPisos={fichaEnDosPisos}
       />
     );
   }
@@ -270,6 +299,35 @@ export default function VistaUsuarios() {
   let contenido;
   if (esperando) {
     contenido = <LoadingLogo height="40vh" text="Cargando usuarios..." />;
+  } else if (conFranja) {
+    contenido = (
+      <>
+        {/* Las caras en el orden de la lista, con su punto de conexión. */}
+        <FranjaLista
+          icono={<GroupIcon />}
+          redondas
+          items={filtrarUsuarios(usuarios, "").map((otro) => ({
+            id: otro.id,
+            nombre: otro.name || otro.email || "Sin nombre",
+            vista: (
+              <AvatarUsuario
+                usuario={otro}
+                tamano={44}
+                enLinea={estadoConexion(presencia[otro.id], otro.genero).enLinea}
+              />
+            ),
+            elemento: otro,
+          }))}
+          idElegido={usuario?.id}
+          onElegir={elegir}
+          onAbrir={() => setVerLista(true)}
+        />
+        {/* La ficha ancha no se desplaza (solo su lista de sesiones). */}
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: usuario && !editar ? "hidden" : "auto" }}>
+          {detalle}
+        </Box>
+      </>
+    );
   } else if (dosColumnas) {
     contenido = (
       <>
@@ -463,6 +521,12 @@ export default function VistaUsuarios() {
           </Stack>
         </Box>
       )}
+
+      {/* ENTRE 1010 Y 1500, la lista completa que saca la flecha de la franja,
+          por encima. Elegir a alguien (o NUEVO USUARIO) la guarda. */}
+      <CajonLista open={conFranja && verLista} onClose={() => setVerLista(false)}>
+        {lista(true, true)}
+      </CajonLista>
 
       {usuario && (
         <EliminarUsuarioDialogo

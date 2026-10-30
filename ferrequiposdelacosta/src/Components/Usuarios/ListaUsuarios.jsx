@@ -15,8 +15,7 @@ import { estadoConexion, filtrarUsuarios, nombreDelRol } from "./usuarios";
 // elegida, marcada con el borde y, si se está editando, con el lápiz.
 //
 // `onNuevo`: arriba, la zona punteada NUEVO USUARIO (la de "Agregar foto" de
-// Equipos). Mientras se crea uno, `nuevo` la cambia por su renglón de muestra,
-// que se va llenando con lo que se escribe.
+// Equipos).
 //
 // `enPanel`: dentro del recuadro de la columna (PanelDocumentos), con el
 // buscador pegado arriba. Sin eso ocupa la pantalla (celular), con renglones
@@ -29,7 +28,6 @@ export default function ListaUsuarios({
   editando = false,
   onElegir,
   onNuevo,
-  nuevo,
   accion,
   enPanel = false,
 }) {
@@ -85,56 +83,27 @@ export default function ListaUsuarios({
           </Stack>
         )}
 
-        {nuevo ? (
-          // El que se está creando, arriba de todos.
-          <Box
+        {onNuevo && (
+          <ButtonBase
+            onClick={onNuevo}
             sx={{
               mt: 1.25,
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              p: 1,
+              width: "100%",
+              height: 46,
+              gap: 1,
               borderRadius: 2,
-              border: `2px dashed ${acento}`,
-              bgcolor: alpha(acento, 0.08),
+              border: `2px dashed ${alpha(acento, 0.45)}`,
+              bgcolor: alpha(acento, 0.04),
+              color: acento,
+              fontWeight: 700,
+              fontSize: "0.875rem",
+              letterSpacing: 0.5,
+              "&:hover": { bgcolor: alpha(acento, 0.08), borderColor: acento },
             }}
           >
-            <AvatarUsuario usuario={{ id: "nuevo", name: nuevo.name, email: nuevo.email }} tamano={avatar} />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography noWrap sx={{ fontSize: "0.875rem", fontWeight: 700, color: acento }}>
-                {nuevo.name.trim() || "Sin nombre"}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {nuevo.role ? nombreDelRol(nuevo.role) : "Sin rol"}
-              </Typography>
-            </Box>
-            <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.5, color: acento }}>
-              NUEVO
-            </Typography>
-          </Box>
-        ) : (
-          onNuevo && (
-            <ButtonBase
-              onClick={onNuevo}
-              sx={{
-                mt: 1.25,
-                width: "100%",
-                height: 46,
-                gap: 1,
-                borderRadius: 2,
-                border: `2px dashed ${alpha(acento, 0.45)}`,
-                bgcolor: alpha(acento, 0.04),
-                color: acento,
-                fontWeight: 700,
-                fontSize: "0.875rem",
-                letterSpacing: 0.5,
-                "&:hover": { bgcolor: alpha(acento, 0.08), borderColor: acento },
-              }}
-            >
-              <PersonAddAlt1Icon fontSize="small" />
-              NUEVO USUARIO
-            </ButtonBase>
-          )
+            <PersonAddAlt1Icon fontSize="small" />
+            NUEVO USUARIO
+          </ButtonBase>
         )}
       </Box>
 
@@ -219,7 +188,6 @@ ListaUsuarios.propTypes = {
   editando: PropTypes.bool,
   onElegir: PropTypes.func.isRequired,
   onNuevo: PropTypes.func,
-  nuevo: PropTypes.shape({ name: PropTypes.string, email: PropTypes.string, role: PropTypes.string }),
   accion: PropTypes.node,
   enPanel: PropTypes.bool,
 };

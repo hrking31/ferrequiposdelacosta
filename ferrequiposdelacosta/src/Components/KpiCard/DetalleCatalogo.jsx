@@ -3,8 +3,8 @@ import { Typography } from "@mui/material";
 import ListaEquipos from "../CatalogoEquipos/ListaEquipos";
 
 // EL DETALLE DE "EQUIPOS" DEL CATÁLOGO (2026-10-22): la lista de equipos de
-// la tienda. Desde el 2026-10-28 (pedido del dueño), la misma de Equipos y
-// Crear equipo, solo para mirar: miniatura de la portada, buscador y, debajo,
+// la tienda. Desde el 2026-10-28 (pedido del dueño), la misma de Equipos,
+// solo para mirar: miniatura de la portada, buscador y, debajo,
 // "Lista de equipos" con el contador.
 //
 // La lista es la misma que la app ya baja para la tienda y para la pantalla de

@@ -10,7 +10,6 @@ import {
   VistaCotizacion,
   VistaCuentaDeCobro,
   VistaCuentasCobro,
-  VistaCreaEquipo,
   VistaEquipos,
   VistaUsuarios,
   VistaNoAutorizada,
@@ -172,22 +171,22 @@ function App() {
             </ProtectedRoutes>
           }
         />
-        <Route
-          path="/vistacreaequipo"
-          element={
-            <ProtectedRoutes allowedRoles={["crearEquipos"]}>
-              <VistaCreaEquipo />
-            </ProtectedRoutes>
-          }
-        />
-        {/* Ver, editar y eliminar equipos, en una sola pantalla
-            (2026-10-26): la lista, la ficha de uno y su editor, cada uno
-            en su dirección. */}
+        {/* Crear, ver, editar y eliminar equipos, en una sola pantalla
+            (2026-10-26; crear desde el 2026-10-29): la lista, crear, la
+            ficha de uno y su editor, cada uno en su dirección. */}
         <Route
           path="/vistaequipos/:id?"
           element={
             <ProtectedRoutes allowedRoles={["eliminarEditarEquipos"]}>
               <VistaEquipos />
+            </ProtectedRoutes>
+          }
+        />
+        <Route
+          path="/vistaequipos/nuevo"
+          element={
+            <ProtectedRoutes allowedRoles={["crearEquipos"]}>
+              <VistaEquipos creando />
             </ProtectedRoutes>
           }
         />

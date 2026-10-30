@@ -12,9 +12,8 @@ import PropTypes from "prop-types";
  * él. Por eso no tiene botón de buscar ni hace nada con la tecla Enter.
  *
  * Es el mismo campo, calcado, que tenían Clientes y Seguimiento de Clientes;
- * vive acá para que las tres pantallas no lo repitan. OJO: no confundir con
- * Components/Search, que es el buscador de la tienda y el kiosco y sí consulta
- * Firestore al enviar.
+ * vive acá para que las tres pantallas no lo repitan. El de la tienda y el
+ * kiosco (Components/Search) filtra igual, con su propio diseño.
  */
 export default function BuscadorFiltro({ value, onChange, placeholder }) {
   return (

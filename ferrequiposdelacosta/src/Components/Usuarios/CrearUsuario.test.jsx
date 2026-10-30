@@ -23,7 +23,7 @@ const abrir = () => {
   const onTerminar = vi.fn();
   const resultado = renderConProviders(
     <>
-      <CrearUsuario idFormulario="form-prueba" onCambio={vi.fn()} onTerminar={onTerminar} />
+      <CrearUsuario idFormulario="form-prueba" onTerminar={onTerminar} />
       <button type="submit" form="form-prueba">
         CREAR
       </button>

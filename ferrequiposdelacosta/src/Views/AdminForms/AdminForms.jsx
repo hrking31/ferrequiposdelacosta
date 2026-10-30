@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { cloneElement, useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -8,12 +8,16 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
 import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
+import KpisDestacados from "../../Components/KpiCard/KpisDestacados";
+import KpisResumen from "../../Components/KpiCard/KpisResumen";
 import DetalleEquiposActivos from "../../Components/KpiCard/DetalleEquiposActivos";
 import DetallePagosPendientes from "../../Components/KpiCard/DetallePagosPendientes";
 import DetalleCatalogo from "../../Components/KpiCard/DetalleCatalogo";
@@ -26,20 +30,49 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CloseIcon from "@mui/icons-material/Close";
-import BOTONES_MENU from "../../Components/RolesPermisos/botonesMenu";
+import BOTONES_MENU, { AREAS_MENU } from "../../Components/RolesPermisos/botonesMenu";
 import { leerTotalesPanel } from "./totalesPanelDb";
 import { contarCotizacionesDelMes, contarCuentasCobroDelMes } from "./documentosDelMesDb";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
 import { formatearMoneda } from "../../Utils/formato";
 
+// En la pantalla de pie, los KPI de la izquierda (la columna del doble de
+// ancho), en este orden: los de la cartera. Los demás van a la derecha.
+const KPIS_IZQUIERDA_DE_PIE = ["PAGOS PENDIENTES", "EQUIPOS ACTIVOS"];
+
 export default function AdminForms() {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const isMobile = useMediaQuery("(max-width:1024px)");
-  const isFullScreen = useMediaQuery("(max-width:915px)");
-  const isShortViewport = useMediaQuery("(max-height:700px)");
-  const isCompact = isFullScreen || isShortViewport;
+  // EL CELULAR ACOSTADO se reconoce por el alto (un teléfono acostado no
+  // pasa de unos 430px; un computador nunca baja tanto), no por el ancho: uno
+  // grande pasa de 915 y se lo trataba como computador (pedido del dueño,
+  // 2026-10-29). Va como celular, con la franja de números de pie a la
+  // izquierda y las áreas en 2 × 2.
+  const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
+  const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
+  // LOS KPI SEGÚN EL ANCHO (pedido del dueño, 2026-10-29), de ancho a
+  // angosto: las cinco tarjetas en fila (desde 1600px: más angosto, sus
+  // nombres ya no caben en un renglón); la plata destacada y los demás de a
+  // dos (1150 a 1599, ver KpisDestacados); una columna de resumen a la
+  // derecha del menú, que va de a dos áreas (916 a 1149, ver KpisResumen); y
+  // en el celular, la franja de abajo. Cortes elegidos mirando la pantalla.
+  // La columna, solo con la pantalla más ancha que alta: en una tableta de pie
+  // (un iPad Pro, 1024 × 1366) sobraba muchísimo alto arriba y abajo, y ahí
+  // van arriba, como en la pantalla grande (pedido del dueño, 2026-10-29).
+  const kpisEnFila = useMediaQuery("(min-width:1600px)");
+  const kpisEnColumna =
+    useMediaQuery("(max-width:1149px) and (orientation: landscape)") && !isFullScreen;
+  // Desde 1150px los KPI van arriba de los botones, juntos (ver abajo).
+  const bloqueCentrado = !isFullScreen && !kpisEnColumna;
+  // LA PANTALLA DE PIE (más alta que ancha, desde 916px, sin la fila de cinco
+  // tarjetas: una tableta, o una ventana de computador de pie). Pedido del
+  // dueño, 2026-10-29 (en un iPad Pro sobraba muchísimo alto; estirar los
+  // botones y el mosaico tipo Pinterest no le gustaron): arriba los KPI, a la
+  // izquierda con el doble de ancho pagos y equipos activos, y a la derecha
+  // los otros tres uno encima del otro; abajo las áreas en 2 × 2, con sus
+  // botones lado a lado. El alto que sobra se reparte en partes iguales.
+  const dePie = useMediaQuery("(orientation: portrait)") && !isFullScreen && !kpisEnFila;
   const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
   // Los números que se vieron la última vez que se pasó por acá. Se muestran
   // mientras la consulta va y vuelve, para que los recuadros no arranquen en
@@ -221,9 +254,9 @@ export default function AdminForms() {
     (kpi) => kpi.etiqueta === TARJETA_EN_VENTANA[detalle.cual],
   );
 
-  // EN PANTALLA ANGOSTA las tarjetas grandes no entran: van los mismos
-  // números, solo con su ícono, en una franja. Va donde estaba la barra: abajo
-  // en el celular y arriba de ahí en adelante.
+  // EN EL CELULAR las tarjetas grandes no entran: van los mismos números,
+  // solo con su ícono, en una franja abajo. Desde 916px, las tarjetas (pedido
+  // del dueño, 2026-10-29; antes la franja seguía hasta 1024).
   //
   // EL LOGO DE LA TIENDA va dentro del encabezado (ver `conLogo` en
   // HeaderUsuario): en el celular en el lugar del botón de salir, y en
@@ -237,155 +270,116 @@ export default function AdminForms() {
     permisos.includes(boton.permiso)
   );
 
-  const gapPx = isCompact ? 12 : 32;
-
-  // La forma del botón (ícono arriba, texto abajo) vive en el tema, como
-  // variant="adminSquare". Acá solo va cómo se acomodan entre ellos.
+  // LOS BOTONES POR ÁREAS (pedido del dueño, 2026-10-29): VENTAS, COBROS,
+  // CLIENTES y CATÁLOGO Y PERSONAL, cada una en su recuadro con sus botones.
+  // Solo las áreas en las que el rol tiene algo.
   //
-  // Se mide el ancho real del contenedor en vez de suponerlo. Antes las
-  // columnas se fijaban a mano ("en computador, tres") mientras el ancho
-  // máximo de cada tile hacía que en pantalla ancha entraran seis; el alto,
-  // repartido entre las filas que ese cálculo suponía, salía para cuatro
-  // cuando en realidad había dos: tiles de la mitad de alto —con el rótulo
-  // cortado— y un hueco enorme debajo.
-  // ARRANCA CON UNA ESTIMACIÓN, no en cero. Entre el primer dibujo y el que
-  // ya trae la medida real pasan unos 60ms —de sobra para que el navegador
-  // pinte—, y con ancho 0 ese primer cuadro repartía los tiles en una sola
-  // columna: eso es lo que se veía acomodarse al cargar.
-  //
-  // La cuenta es la de la pantalla: el ancho de la ventana menos los rellenos
-  // que ya se conocen (los del contenedor y los del área de tiles), y el alto
-  // menos lo que ocupan el encabezado y los recuadros de arriba. No tiene que
-  // ser exacta: basta con que el reparto salga bien de entrada, y el
-  // observador la corrige en el mismo cuadro.
-  const [caja, setCaja] = useState(() => {
-    if (typeof window === "undefined") return { ancho: 0, alto: 0 };
-    return {
-      ancho: Math.max(0, window.innerWidth - 80),
-      alto: Math.max(0, window.innerHeight - 300),
-    };
-  });
-  const observadorRef = useRef(null);
+  // SIN MEDIR LA PANTALLA (también pedido suyo): antes se medía el contenedor
+  // para repartir los botones en filas parejas. Ahora el acomodo sale solo de
+  // cuántas áreas hay y del CSS: en el computador, una columna por área; en el
+  // celular, una debajo de la otra (de a dos si está acostado), con sus
+  // botones lado a lado. El alto de los botones va con el de la pantalla
+  // (dvh) y con tope, así nunca quedan aplastados ni gigantes.
+  const areas = AREAS_MENU.map((area) => ({
+    ...area,
+    tono: area.color === "accent" ? theme.palette.custom.accent : theme.palette[area.color].main,
+    botones: botonesVisibles.filter((boton) => boton.area === area.id),
+  })).filter((area) => area.botones.length > 0);
 
-  // LA MEDIDA SE TOMA APENAS EXISTE EL CONTENEDOR, no en un efecto: React
-  // llama a esta función con el nodo en el mismo momento en que lo monta, así
-  // que el primer cuadro que se pinta ya sale con los tiles en su tamaño.
-  //
-  // Con un efecto —aunque sea useLayoutEffect— el primer cuadro salía con los
-  // valores de arranque y el segundo ya con la medida: eso era el reacomodo
-  // que se veía al cargar la pantalla.
-  //
-  // Se mide el CONTENIDO, sin el relleno, que es lo mismo que informa el
-  // observador (contentRect) y lo que de verdad se reparte entre los tiles.
-  const contenedorRef = useCallback((nodo) => {
-    observadorRef.current?.disconnect();
-    observadorRef.current = null;
-    if (!nodo) return;
-
-    const estilo = getComputedStyle(nodo);
-    setCaja({
-      ancho:
-        nodo.clientWidth -
-        parseFloat(estilo.paddingLeft) -
-        parseFloat(estilo.paddingRight),
-      alto:
-        nodo.clientHeight -
-        parseFloat(estilo.paddingTop) -
-        parseFloat(estilo.paddingBottom),
-    });
-
-    // Y de ahí en adelante, cada vez que cambie: girar el teléfono, achicar la
-    // ventana, abrir el teclado.
-    const observador = new ResizeObserver(([entrada]) => {
-      setCaja({
-        ancho: entrada.contentRect.width,
-        alto: entrada.contentRect.height,
-      });
-    });
-    observador.observe(nodo);
-    observadorRef.current = observador;
-  }, []);
-
-  // LAS FILAS QUEDAN PAREJAS. No se meten todos los tiles que entren en la
-  // primera fila para que a la última le sobren los que sean: se busca cuántas
-  // filas hacen falta y después se reparten los botones entre ellas. Con diez
-  // botones y sitio para seis, son dos filas de cinco y no una de seis y otra
-  // de cuatro. El reparto cambia solo con los permisos de cada rol, que es lo
-  // que decide cuántos tiles hay.
-  //
-  // En pantalla angosta son dos columnas y punto: la medida daría tres en un
-  // celular grande y dos en uno chico, y los tiles no tienen por qué cambiar
-  // de acomodo entre un teléfono y otro. En computador sí se mide, porque ahí
-  // el ancho va de una ventana a media pantalla a un monitor de 27 pulgadas.
-  // EL CELULAR ACOSTADO no es un celular angosto. La regla de "dos columnas"
-  // vale de pie, donde sobra alto y falta ancho; girado es al revés —ancho de
-  // sobra y 400px de alto— y esas dos columnas obligaban a cuatro o cinco
-  // filas: tiles de 40px, anchos y aplastados. Ahí se mide igual que en el
-  // computador, que es lo que reparte según lo que hay.
-  const deSuAlto = caja.alto >= caja.ancho;
-  const cabenPorFila =
-    isFullScreen && deSuAlto
-      ? 2
-      : Math.max(1, Math.floor((caja.ancho + gapPx) / (200 + gapPx)));
-  const filas = Math.max(1, Math.ceil(botonesVisibles.length / cabenPorFila));
-  const columnas = Math.ceil(botonesVisibles.length / filas);
-
-  // Va como fila que se dobla y no como grilla, por la última fila: cuando
-  // queda incompleta —achicando la ventana, diez botones pasan a 4+4+2— una
-  // grilla la pega a la izquierda, y así se centra sola. A cambio hay que
-  // darle la medida a cada tile, que es para lo que se mide el contenedor.
-  //
-  // El tope de ancho es para los roles con pocos permisos: con dos tiles
-  // sueltos, sin él, cada uno se llevaría media pantalla. Con muchos, en
-  // cambio, se encogen y llenan el ancho en vez de dejar los costados vacíos.
-  const anchoTile = Math.min(
-    300,
-    (caja.ancho - (columnas - 1) * gapPx) / columnas,
+  // De pie, los KPI en dos columnas (ver `dePie`).
+  // En el orden de la lista: la plata arriba.
+  const kpisIzquierda = KPIS_IZQUIERDA_DE_PIE.map((etiqueta) => kpis.find((kpi) => kpi.etiqueta === etiqueta)).filter(
+    Boolean,
   );
-  // En pantalla angosta el alto es el que toque: los diez tiles tienen que
-  // entrar de una, sin scroll, y para eso el tema los achica (ver la variante
-  // "adminSquare" y su media query). En computador va topado, para que queden
-  // apaisados y no lleguen pegados al borde de abajo; lo que sobra se reparte
-  // arriba y abajo, en vez de acumularse todo abajo como un hueco.
-  const altoTile = Math.max(
-    // Nunca por debajo de lo que necesita el ícono con su rótulo: con el
-    // celular acostado el reparto daba 40px y el texto quedaba comido. Si no
-    // entran, que la lista se desplace.
-    56,
-    Math.min(
-      isFullScreen && deSuAlto ? Infinity : 125,
-      (caja.alto - (filas - 1) * gapPx) / filas,
-    ),
+  const kpisDerecha = kpis.filter((kpi) => !KPIS_IZQUIERDA_DE_PIE.includes(kpi.etiqueta));
+
+  // UN ÁREA DEL MENÚ en su recuadro: su título y sus botones. La usan el menú
+  // y la pantalla de pie.
+  const tarjetaArea = (area) => (
+    <Box
+      key={area.id}
+      component="section"
+      aria-label={area.titulo}
+      sx={{
+        minWidth: 0,
+        // En el celular acostado, más justo: el alto no sobra.
+        p: acostado ? 1 : isFullScreen ? 1.25 : 2,
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: alpha(area.tono, 0.3),
+        borderTop: "3px solid",
+        borderTopColor: area.tono,
+        bgcolor: alpha(area.tono, theme.palette.mode === "dark" ? 0.08 : 0.03),
+      }}
+    >
+      {/* El título del área: su ícono en un círculo y el nombre. */}
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: acostado ? 0.5 : isFullScreen ? 1 : 1.5 }}>
+        <Box
+          sx={{
+            width: isFullScreen ? 24 : 30,
+            height: isFullScreen ? 24 : 30,
+            borderRadius: "50%",
+            display: "grid",
+            placeItems: "center",
+            bgcolor: alpha(area.tono, 0.15),
+            flexShrink: 0,
+          }}
+        >
+          {cloneElement(area.icono, { sx: { fontSize: isFullScreen ? 15 : 18, color: area.tono } })}
+        </Box>
+        <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.8, color: area.tono }}>
+          {area.titulo}
+        </Typography>
+      </Stack>
+      {/* Sus botones: uno debajo del otro en el computador, lado a lado
+          en el celular y en la pantalla de pie. */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: isFullScreen ? 1 : 1.5,
+          gridTemplateColumns: isFullScreen || dePie ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+          // En el celular, al alto del área.
+          ...(isFullScreen && { flex: 1 }),
+        }}
+      >
+        {area.botones.map((boton) => (
+          <Button
+            // La ruta y no el permiso: crear y buscar cuentas de cobro
+            // comparten el permiso "cuentaCombro" y la clave estaría
+            // repetida.
+            key={boton.to}
+            component={Link}
+            to={boton.to}
+            variant="adminSquare"
+            sx={{
+              width: "100%",
+              minWidth: 0,
+              // En el celular, el alto de su área (con un mínimo).
+              ...(isFullScreen && { minHeight: acostado ? 52 : 64 }),
+              height: isFullScreen
+                ? "auto"
+                : kpisEnColumna
+                  ? "clamp(84px, 13dvh, 140px)"
+                  : dePie
+                    ? "clamp(108px, 13dvh, 170px)"
+                    : "clamp(84px, 19dvh, 176px)",
+              // El ícono con el color de su área; con la columna de
+              // resumen, más chico y más pegado al nombre, para que los de
+              // dos renglones quepan.
+              "& .MuiSvgIcon-root": { color: area.tono, ...(kpisEnColumna && { fontSize: 30 }) },
+              ...(kpisEnColumna && { gap: 1 }),
+              "&:hover": { borderColor: area.tono },
+            }}
+          >
+            {boton.icon}
+            {boton.label}
+          </Button>
+        ))}
+      </Box>
+    </Box>
   );
-
-  const contenedorStyle = {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    // "safe": centra mientras el contenido entre, y si no entra lo alinea
-    // arriba en vez de centrarlo igual.
-    //
-    // Con "center" a secas, el contenido que sobra se reparte a los dos lados
-    // —también hacia ARRIBA— y esa parte queda fuera de alcance: el
-    // desplazamiento no llega más atrás del inicio. Con el celular acostado,
-    // donde las cuatro filas no entran en 360px, eso escondía la primera fila
-    // entera debajo del encabezado.
-    //
-    // CON LA FRANJA DE NÚMEROS (pantalla angosta), los botones van pegados a
-    // ella en vez de centrados: centrados, lo que sobraba de alto quedaba como
-    // un hueco entre los botones y los números. Arriba de los botones cuando
-    // la franja va arriba, abajo cuando va abajo; "safe" por lo mismo de
-    // antes, si no entran arrancan arriba.
-    alignContent: isMobile ? (isFullScreen ? "safe flex-end" : "flex-start") : "safe center",
-    gap: `${gapPx}px`,
-  };
-
-  const buttonStyle = {
-    width: anchoTile,
-    height: altoTile,
-    minWidth: 0,
-    flexShrink: 0,
-  };
 
   return (
     <Box
@@ -426,71 +420,188 @@ export default function AdminForms() {
             conLogo
             // Ya se está en el menú: la lista del logo no ofrece ir a él.
             sinIrAlMenu
+            // También con el celular acostado, aunque pase de 915px.
+            compacto={isFullScreen}
             acciones={<BotonAvisos />}
           />
         </Box>
       </Box>
 
-      {!isMobile && (
-        <Stack
-          direction="row"
-          spacing={2}
-          justifyContent="center"
-          // Todas del alto de la más alta: la de pagos, con la cifra más
-          // larga, quedaba más alta que las demás (lo notó el dueño).
-          alignItems="stretch"
-          // El margen de abajo iguala al del pie de la pantalla (pb del Box
-          // que envuelve todo): así los botones, que van centrados en lo que
-          // queda, dejan el mismo aire contra los recuadros que contra el
-          // borde inferior.
-          sx={{ flexShrink: 0, mt: 1, mb: 2, mx: 2 }}
+      {/* EN EL COMPUTADOR, desde 1150px, el alto que sobra se reparte en
+          partes iguales: entre el encabezado y los KPI, entre los KPI y los
+          botones, y debajo de los botones (pedido del dueño, 2026-10-29: los
+          KPI quedaban pegados al encabezado y lejos de los botones; centrar
+          el bloque dejaba el hueco arriba). Si no cabe, arranca arriba y se
+          desplaza. Con la columna de resumen o en el celular, la envoltura no
+          cuenta. */}
+      {dePie ? (
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+            mx: 2,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-evenly",
+            gap: 3,
+            // Aire para el resplandor y el levantarse de los botones.
+            py: "6px",
+          }}
         >
-          {/* EN EL COMPUTADOR las tarjetas solo muestran: el detalle en una
-              ventana queda para el celular, donde la franja no tiene espacio
-              para más (pedido del dueño, 2026-10-23). */}
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.etiqueta} {...kpi} onClick={undefined} />
-          ))}
-        </Stack>
-      )}
+          {/* Los KPI: los de la izquierda con el doble de ancho; las dos
+              columnas, del mismo alto. Si un rol no tiene los de un lado, el
+              otro ocupa todo. */}
+          {kpis.length > 0 && (
+            <Box
+              sx={{
+                flexShrink: 0,
+                display: "grid",
+                gap: 2,
+                gridTemplateColumns:
+                  kpisIzquierda.length > 0 && kpisDerecha.length > 0
+                    ? "minmax(0, 2fr) minmax(0, 1fr)"
+                    : "minmax(0, 1fr)",
+              }}
+            >
+              {[kpisIzquierda, kpisDerecha]
+                .filter((lado) => lado.length > 0)
+                .map((lado) => (
+                  <Stack key={lado[0].etiqueta} spacing={1.5}>
+                    {lado.map((kpi) => (
+                      <KpiCard
+                        key={kpi.etiqueta}
+                        {...kpi}
+                        mediano
+                        // Las anchas de la izquierda: círculo grande, nombre
+                        // más grande y más aire.
+                        ancha={lado === kpisIzquierda}
+                        onClick={undefined}
+                      />
+                    ))}
+                  </Stack>
+                ))}
+            </Box>
+          )}
+          {/* Las áreas en 2 × 2. */}
+          <Box
+            sx={{
+              flexShrink: 0,
+              display: "grid",
+              gap: 3,
+              gridTemplateColumns: `repeat(${Math.min(areas.length, 2)}, minmax(0, 1fr))`,
+            }}
+          >
+            {areas.map(tarjetaArea)}
+          </Box>
+        </Box>
+      ) : (
+        <Box
+          sx={
+            bloqueCentrado
+              ? {
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-evenly",
+                  gap: 3,
+                }
+              : { display: "contents" }
+          }
+        >
+          {kpisEnFila && (
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="center"
+              // Todas del alto de la más alta: la de pagos, con la cifra más
+              // larga, quedaba más alta que las demás (lo notó el dueño).
+              alignItems="stretch"
+              sx={{ flexShrink: 0, mx: 2 }}
+            >
+              {/* EN EL COMPUTADOR las tarjetas solo muestran: el detalle en una
+                  ventana queda para el celular, donde la franja no tiene espacio
+                  para más (pedido del dueño, 2026-10-23). */}
+              {kpis.map((kpi) => (
+                <KpiCard key={kpi.etiqueta} {...kpi} onClick={undefined} />
+              ))}
+            </Stack>
+          )}
 
-      {isMobile && !isFullScreen && (
-        <Box sx={{ flexShrink: 0, mb: 1, mx: 2 }}>
-          {franja}
+          {!isFullScreen && !kpisEnFila && !kpisEnColumna && (
+            <Box sx={{ flexShrink: 0, mx: 2 }}>
+              <KpisDestacados kpis={kpis} />
+            </Box>
+          )}
+
+          {/* Con la columna de resumen, el menú y ella lado a lado en una misma
+              fila, que toma el alto de los botones: así la columna mide lo mismo
+              que ellos (pedido del dueño, 2026-10-29). La fila va centrada a lo
+              alto, como iban los botones. Si no, la envoltura no cuenta
+              (display: contents). */}
+          <Box
+            sx={
+              kpisEnColumna
+                ? {
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) 280px",
+                    alignContent: "safe center",
+                    gap: 3,
+                    mx: 2,
+                    mt: 1,
+                  }
+                : acostado
+                  ? // El celular acostado: la franja de pie y el menú al lado.
+                    { flex: 1, minHeight: 0, display: "flex", gap: 1.5 }
+                  : { display: "contents" }
+            }
+          >
+            {acostado && <FranjaKpis kpis={kpis} vertical />}
+            <Box
+              sx={{
+                // Dentro del bloque centrado, lo que ocupa; si no, el alto que
+                // quede, con su propio desplazamiento.
+                ...(bloqueCentrado
+                  ? { flexShrink: 0 }
+                  : { flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }),
+                minWidth: 0,
+                mx: isFullScreen || kpisEnColumna ? 0 : 2,
+                // Aire arriba y abajo para que quepa el hover: los botones se
+                // levantan unos px y este contenedor recorta lo que se sale.
+                py: "6px",
+                display: "grid",
+                gap: isFullScreen ? 1.25 : 3,
+                // "safe": centradas mientras entren; si no, desde arriba (con
+                // "center" a secas, lo de arriba quedaba fuera de alcance). EN EL
+                // CELULAR las áreas se reparten todo el alto y sus botones crecen
+                // (pedido del dueño, 2026-10-29: quedaba un hueco arriba); si no
+                // caben, se desplazan.
+                alignContent: isFullScreen ? "stretch" : "safe center",
+                ...(isFullScreen && { gridAutoRows: "1fr" }),
+                justifyContent: "center",
+                gridTemplateColumns: isFullScreen
+                  ? "minmax(0, 1fr)"
+                  : kpisEnColumna
+                    ? `repeat(${Math.min(areas.length, 2)}, minmax(0, 1fr))`
+                    : `repeat(${areas.length}, minmax(0, 320px))`,
+                // El celular acostado: ancho de sobra y poco alto, de a dos áreas.
+                ...(isFullScreen && {
+                  "@media (orientation: landscape)": { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
+                }),
+              }}
+            >
+              {areas.map(tarjetaArea)}
+            </Box>
+            {kpisEnColumna && <KpisResumen kpis={kpis} />}
+          </Box>
         </Box>
       )}
-
-      <Box
-        ref={contenedorRef}
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          ...contenedorStyle,
-          overflowY: "auto",
-          overflowX: "hidden",
-          mx: isFullScreen ? 0 : 2,
-          // Aire arriba para que quepa el hover. Los botones se levantan 3px
-          // al pasar el mouse, y como este contenedor recorta lo que se sale
-          // —tiene overflow para poder hacer scroll—, a los de la primera fila
-          // se les cortaba el borde de arriba justo debajo del encabezado.
-          pt: "6px",
-        }}
-      >
-        {botonesVisibles.map((boton) => (
-          <Button
-            // La ruta y no el permiso: crear y buscar cuentas de cobro
-            // comparten el permiso "cuentaCombro" y la clave estaría repetida.
-            key={boton.to}
-            component={Link}
-            to={boton.to}
-            variant="adminSquare"
-            sx={buttonStyle}
-          >
-            {boton.icon}
-            {boton.label}
-          </Button>
-        ))}
-      </Box>
 
       {isFullScreen && (
         // EL MISMO PIE QUE LAS OTRAS DOCE VISTAS: 12px por lado. Acá tenía 32
@@ -519,7 +630,7 @@ export default function AdminForms() {
         </Box>
       )}
 
-      {isFullScreen && <Box sx={{ flexShrink: 0, mt: 1.5 }}>{franja}</Box>}
+      {isFullScreen && !acostado && <Box sx={{ flexShrink: 0, mt: 1.5 }}>{franja}</Box>}
 
       {/* EL CATÁLOGO, más ancho y de alto fijo (pedido del dueño,
           2026-10-28): con el buscador, la ventana no se achica al filtrar.

@@ -120,7 +120,7 @@ Reducers probados como funciones puras (`reducer(estado, acción)`):
 - [x] cuentacobroSlice.js — cuenta de cobro + persistencia en localStorage
 - [x] detailSlice.js — reducers del detalle (el thunk de Firestore queda fuera)
 - [x] equiposSlice.js — fases del thunk fetchEquiposData (pending/fulfilled/rejected)
-- [x] searchSlice.js — fases de fetchEquipos + limpiar búsqueda
+- [x] searchSlice.js — lo escrito en el buscador de la tienda y limpiarlo (desde el 29/10 ya no consulta la base)
 - [x] userSlice.js — merge de datos y limpieza (login/logout)
 - [x] presenciaSlice.js — mapa de usuarios en línea
 - [x] installAppSlice.js — mostrar/ocultar aviso de instalación
@@ -225,8 +225,9 @@ con sus pruebas.
       "hace cuánto" (minutos, horas, ayer, días) y desconectada/o según el
       género; el buscador encuentra sin tildes por nombre, correo o rol; la
       contraseña generada **siempre** cumple los requisitos y nunca lleva guion
-- [x] `MenuDelRol` (7): qué botones ve cada rol; al cambiarlo, qué GANA y qué
-      PIERDE; en el celular sin etiquetas
+- [x] `MenuDelRol` (7): qué botones ve cada rol (ocho desde el 29/10: el
+      catálogo es uno solo, EQUIPOS); al cambiarlo, qué GANA y qué PIERDE; en
+      el celular sin etiquetas
 - [x] `CrearUsuario` (8): no crea sin nombre, con correo incompleto, sin rol ni
       con contraseña débil; manda datos y rol **sin permisos** (los calcula el
       servidor); si el servidor rechaza, deja lo escrito; GENERAR pone una que
@@ -237,14 +238,36 @@ con sus pruebas.
 - [x] `EliminarUsuarioDialogo` (4): se activa con el **correo**, no con el
       nombre; borra por el correo; si es uno mismo cierra la sesión; el aviso de
       las cotizaciones solo a quien factura
-- [x] `VistaUsuarios` (5): el personal se lee una vez; ficha, editor, preguntar
+- [x] `VistaUsuarios` (7): el personal se lee una vez; ficha, editor, preguntar
       antes de dejar cambios, NUEVO USUARIO, y la papelera de un aparato cierra
-      solo esa sesión
+      solo esa sesión; entre 1010 y 1500px, las caras de la franja abren a otra
+      persona y su flecha saca la lista completa
+
+### ✅ Equipos y la tienda — 39 pruebas (29/10)
+Crear un equipo pasó a la pantalla de Equipos (se borró `VistaCreaEquipo` con
+sus pruebas); el buscador de la tienda filtra en memoria.
+- [x] `VistaEquipos` (11): además de ficha, editor, preguntar y eliminar:
+      NUEVO EQUIPO (y el + del celular) abre el formulario vacío; con algo
+      escrito pregunta antes de volver; vacío, no; entre 1010 y 1500px la franja
+      de miniaturas abre otro equipo y su flecha saca la lista
+- [x] `catalogoEquipos` (8): el buscador de la tienda encuentra en cualquier
+      parte del nombre, sin tildes, y deja el orden; la lista de Equipos ordena
+      y no distingue tildes; la miniatura es la de la portada
+- [x] `fotosEquipo` (5): el nombre de cada foto lo arma la app (sin tildes,
+      barras ni guiones sueltos, corto, "foto" sin nombre); las dos rutas para
+      borrar
+- [x] `Search` (3) y `CardsEquipos` (3): lo escrito va a la búsqueda y la X lo
+      borra; las tarjetas filtran y, sin resultados, lo dicen
+- [x] `FranjaLista` (3): cuántos hay, el abierto marcado, tocar uno lo abre y
+      la flecha saca la lista
+- [x] `KpisResumen` / `KpisDestacados` (4): la plata primero o destacada, y sin
+      ella (un rol sin cartera) las demás
+- [x] `sinTildes` (2)
 
 ### ✅ CrearEquipos — 6 pruebas · `CrearEquipos.test.jsx`
 - [x] Exige nombre, descripción y al menos una foto
 - [x] Sube la imagen a Storage y guarda su dirección en el equipo
-- [x] Guarda `nameLowerCase` (sin él el equipo no aparece al buscarlo)
+- [x] Ya no guarda `nameLowerCase` (el buscador de la tienda filtra en memoria desde el 29/10)
 - [x] Refresca el catálogo, que vive en memoria
 - [x] Guarda las variantes y no repite las iguales
 - [x] Si falla la subida, avisa y **no** guarda un equipo sin imagen
@@ -322,12 +345,13 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
       solo sobre emitidas; es un interruptor
 - [x] `AdminCotizaciones` (5): el buzón, tomar una pendiente, y eliminar solo
       para el administrador (pedirlo abre la confirmación, no borra)
-- [x] `EditarEquipos` (5): guarda en el equipo correcto, rehace el nombre en
-      minúsculas y vuelve a pedir el catálogo
+- [x] `EditarEquipos` (5): guarda en el equipo correcto y vuelve a pedir el
+      catálogo (el nombre en minúsculas ya no se guarda desde el 29/10)
 - [x] `DatosClienteModal` (6): persona/empresa, identificación de 5 dígitos
       mínimo, teléfono solo números, y los datos quedan en el estado de la app
-- [x] `AdminForms` (6): cada rol ve solo lo suyo, y a quien no puede ver cartera
-      ni siquiera se le piden esas cifras
+- [x] `AdminForms` (7): cada rol ve solo lo suyo —sus botones y sus áreas
+      (VENTAS, COBROS, CLIENTES, CATÁLOGO Y PERSONAL, desde el 29/10)—, y a
+      quien no puede ver cartera ni siquiera se le piden esas cifras
 
 ### ✅ La copia local de clientes — 7 pruebas
 - [x] `clientesCache` : usa la copia cuando el sello coincide (0 lecturas),
@@ -345,7 +369,8 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
   calcula una sola vez en `FacturaCard`— y la muestran. La cuenta está probada
   en `facturaCuentas.test.js`.
 - **La tienda y el kiosco** (`ProductCardDetail`, `KioskProductCardDetail`,
-  `Search`, `Drawer`, protector de pantalla): navegación y presentación.
+  `Drawer`, protector de pantalla): navegación y presentación. (`Search` sí
+  se prueba desde el 29/10: decide qué se busca.)
 - **Las vistas contenedoras** (`Vista*`): arman el layout y delegan en los
   componentes ya probados.
 

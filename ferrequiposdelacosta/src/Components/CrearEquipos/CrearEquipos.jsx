@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useTheme } from "@mui/material";
 import { usePantallaCompacta } from "../../Utils/pantalla";
@@ -21,9 +21,9 @@ import EtiquetasFoto from "../FormularioEquipo/EtiquetasFoto";
 import BarraFoto from "../FormularioEquipo/BarraFoto";
 import GrillaFotos from "../FormularioEquipo/GrillaFotos";
 import { coloresDelFormulario } from "../FormularioEquipo/piezasFormulario";
-import { subirFotoEquipo } from "../FormularioEquipo/fotosEquipo";
+import { subirFotoEquipo, verMiniatura } from "../FormularioEquipo/fotosEquipo";
 
-// `anchoCompleto`: con lugar (ver VistaCreaEquipo) el formulario ocupa todo el
+// `anchoCompleto`: con lugar (ver VistaEquipos) el formulario ocupa todo el
 // ancho que le queda, en dos columnas de secciones al alto de la pantalla.
 //
 // Crear y Cancelar no van acá: viven en el encabezado (computador) o en el
@@ -32,7 +32,10 @@ import { subirFotoEquipo } from "../FormularioEquipo/fotosEquipo";
 // formulario que está en otra parte de la pantalla.
 //
 // `fotosPorFila`: lo decide la vista por sus cortes de pantalla.
-const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => {
+//
+// `onCambios`: cuántos recuadros tienen algo escrito, para que la vista
+// pregunte antes de dejarlo (pedido del dueño, 2026-10-29), como al editar.
+const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila, onCambios }) => {
   const theme = useTheme();
   // Angosta O baja, como Seguimiento: el teléfono acostado también es celular.
   const esCelular = usePantallaCompacta();
@@ -46,27 +49,36 @@ const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => 
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
   const dispatch = useDispatch();
 
+  const cambios = [
+    formValues.name.trim() || formValues.description.trim(),
+    varianteNombre.trim() || variantes.length > 0,
+    subtitulo.trim() || textoExtra.trim(),
+    images.length > 0,
+  ].filter(Boolean).length;
+
+  useEffect(() => {
+    onCambios?.(cambios);
+  }, [cambios, onCambios]);
+  // Al cerrarse, ya no hay nada que cuidar.
+  useEffect(() => () => onCambios?.(0), [onCambios]);
+
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Cada foto elegida, con su miniatura, que se hace aparte y llega después.
   const handleImageChange = (files) => {
     const newImages = files.map((file) => ({
       id: crypto.randomUUID(),
       file,
       preview: URL.createObjectURL(file),
-      name: "",
     }));
     setImages((prev) => [...prev, ...newImages]);
-  };
-
-  const handleNameChange = (index, newName) => {
-    setImages((prevImages) =>
-      prevImages.map((img, i) =>
-        i === index ? { ...img, name: newName } : img,
-      ),
-    );
+    newImages.forEach(async ({ id, file }) => {
+      const miniatura = await verMiniatura(file);
+      setImages((prev) => prev.map((img) => (img.id === id ? { ...img, miniatura } : img)));
+    });
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -84,7 +96,7 @@ const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => 
 
   // Cada foto se achica y se sube en dos tamaños (ver fotosEquipo).
   const handleUploadImages = (equipoId) =>
-    Promise.all(images.map((img) => subirFotoEquipo(equipoId, img)));
+    Promise.all(images.map((img) => subirFotoEquipo(equipoId, formValues.name, img.file)));
 
   const handleCancel = () => {
     setFormValues({ name: "", description: "" });
@@ -116,7 +128,6 @@ const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => 
         name,
         description,
         images: uploadedImages,
-        nameLowerCase: name.toLowerCase(),
         varianteNombre: varianteNombre.trim(),
         variantes,
         textoExtra: textoExtra.trim(),
@@ -191,10 +202,8 @@ const CrearEquipos = ({ anchoCompleto = false, idFormulario, fotosPorFila }) => 
           <TarjetaFoto
             key={img.id}
             url={img.preview}
-            alt={`preview-${index}`}
-            nombre={img.name}
-            nombreCampo={`imagenNombre-${index}`}
-            onCambiarNombre={(nombre) => handleNameChange(index, nombre)}
+            alt={`Foto ${index + 1}`}
+            miniatura={img.miniatura}
             // La portada y el organizador, como al editar (pedido del dueño,
             // 2026-10-26).
             etiquetas={index === 0 && <EtiquetasFoto portada />}
@@ -231,6 +240,7 @@ CrearEquipos.propTypes = {
   anchoCompleto: PropTypes.bool,
   idFormulario: PropTypes.string.isRequired,
   fotosPorFila: PropTypes.oneOf([1, 2]).isRequired,
+  onCambios: PropTypes.func,
 };
 
 export default CrearEquipos;
