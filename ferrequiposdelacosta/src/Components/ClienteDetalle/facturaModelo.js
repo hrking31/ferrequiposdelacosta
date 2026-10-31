@@ -20,7 +20,14 @@
 //                                      tipoPago  total|parcial|conAbono|sinPago|contraEntrega
 //                                      medios[]  { medio, monto }
 //                   adicionales{}    { transporte, valorTransporte,
-//                                      deposito, valorDeposito }
+//                                      deposito, valorDeposito,
+//                                      transportesAdicionales[]? }
+//                     transportesAdicionales[]  { fecha, valor } — el viaje
+//                                     de más para recoger lo que queda
+//                                     afuera, cuando el cliente devolvió una
+//                                     parte y la vuelta pagada ya se usó. Se
+//                                     anota al registrar esa devolución
+//                                     parcial (pedido del dueño, 2026-10-30).
 //                   equipos[]        { nombre, cantidadEquipos, valorDia,
 //                                      diasAlquilados, fechaDespacho,
 //                                      aplicaIva,
@@ -188,6 +195,17 @@ export const gestionesDe = (doc) => lista(doc?.gestiones);
 // que quien recorre pagos no se entera de que ahora cuelgan de un nodo.
 export const pagosDe = (grupo) => lista(grupo?.pagos?.medios);
 export const adicionalesDe = (grupo) => grupo?.adicionales ?? {};
+export const transportesAdicionalesDe = (grupo) =>
+  lista(adicionalesDe(grupo).transportesAdicionales);
+
+// Un transporte adicional más en el despacho, al final de los que ya tenía.
+export const agregarTransporteAdicional = (grupo, fecha, valor) => ({
+  ...grupo,
+  adicionales: {
+    ...adicionalesDe(grupo),
+    transportesAdicionales: [...transportesAdicionalesDe(grupo), { fecha, valor }],
+  },
+});
 export const ampliacionesDe = (equipo) => lista(equipo?.ampliaciones);
 
 // Los tramos en que el equipo estuvo afuera pasado su plazo, en orden. El
@@ -234,16 +252,6 @@ export const equiposAfuera = (doc) =>
   equiposDe(doc).filter(({ equipo }) => sigueAfuera(equipo));
 
 // ── Cómo se arma un documento nuevo ───────────────────────────────────
-
-// Una factura recién creada: su primer despacho y nada más. Los abonos, las
-// entregas y las gestiones nacen vacíos porque todavía no pasó nada.
-export const nuevaFactura = ({ factura, grupoInicial }) => ({
-  factura,
-  grupos: grupoInicial ? [grupoInicial] : [],
-  abonos: [],
-  entregas: [],
-  gestiones: [],
-});
 
 // Un despacho: su plata y sus equipos.
 export const nuevoGrupo = ({

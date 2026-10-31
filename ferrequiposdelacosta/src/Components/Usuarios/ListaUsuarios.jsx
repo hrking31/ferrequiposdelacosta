@@ -4,6 +4,7 @@ import { Box, ButtonBase, Stack, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import AvatarUsuario from "./AvatarUsuario";
@@ -20,6 +21,9 @@ import { estadoConexion, filtrarUsuarios, nombreDelRol } from "./usuarios";
 // `enPanel`: dentro del recuadro de la columna (PanelDocumentos), con el
 // buscador pegado arriba. Sin eso ocupa la pantalla (celular), con renglones
 // más altos para el dedo, y `accion` (nuevo y menú) al lado del buscador.
+// Ahí, como no está el recuadro de "Elige a alguien" del computador, debajo
+// del buscador va qué hacer y cada renglón lleva su flechita (pedido del
+// dueño, 2026-10-30).
 export default function ListaUsuarios({
   usuarios,
   presencia,
@@ -58,7 +62,15 @@ export default function ListaUsuarios({
           top: enPanel ? -12 : 0,
           zIndex: 1,
           bgcolor: enPanel ? "background.paper" : "background.default",
-          pt: enPanel ? 1.5 : 1,
+          // Dentro del recuadro sigue su degradado en vez de cortarlo. Sube
+          // los 12px del relleno del recuadro (y los devuelve por dentro) para
+          // arrancar en su mismo borde: así el degradado coincide también
+          // antes de bajar por la lista.
+          ...(enPanel && {
+            backgroundImage: theme.degradadoRecuadro(acento),
+            mt: -1.5,
+          }),
+          pt: enPanel ? 3 : 1,
           pb: 1.5,
         }}
       >
@@ -69,8 +81,8 @@ export default function ListaUsuarios({
               {accion}
             </Stack>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Lista de usuarios
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0 }}>
+                Toca un usuario para verlo, editarlo o eliminarlo
               </Typography>
               {contador}
             </Stack>
@@ -162,6 +174,7 @@ export default function ListaUsuarios({
                   {conexion.corto}
                 </Typography>
               )}
+              {enDosRenglones && <ChevronRightIcon sx={{ color: "text.disabled", flexShrink: 0, ml: -0.5 }} />}
             </ButtonBase>
           );
         })}

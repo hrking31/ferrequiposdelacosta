@@ -18,17 +18,7 @@ import { alpha } from "@mui/material/styles";
 export function TituloSeccion({ titulo, icono, color }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-      <Box
-        sx={{
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          display: "grid",
-          placeItems: "center",
-          bgcolor: alpha(color, 0.15),
-          flexShrink: 0,
-        }}
-      >
+      <Box sx={(theme) => theme.iconoDeRecuadro(color, 28)}>
         {cloneElement(icono, { sx: { fontSize: 17, color } })}
       </Box>
       <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.6, color }}>

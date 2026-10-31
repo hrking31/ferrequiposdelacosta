@@ -35,7 +35,7 @@ import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import BotonTienda from "../NavBar/BotonTienda";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu, logoQuieto }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -309,7 +309,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               botón: al tocarlo ofrece ir a la tienda o cerrar sesión. */}
           {conLogo ? (
             <Box sx={{ ml: "auto", flexShrink: 0, zIndex: 1 }}>
-              <BotonTienda alto={32} onCerrarSesion={cerrarSesion} />
+              <BotonTienda alto={32} onCerrarSesion={cerrarSesion} quieto={logoQuieto} />
             </Box>
           ) : (
             <Tooltip title="Cerrar sesión">
@@ -503,6 +503,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
 
             <Chip
+              icon={<VerifiedUserIcon />}
               label={formatearNombreRol(role)}
               size="small"
               variant="outlined"
@@ -511,6 +512,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                 fontWeight: 600,
                 borderColor: "custom.accent",
                 color: "custom.accent",
+                "& .MuiChip-icon": { fontSize: 16, color: "custom.accent" },
               }}
             />
 
@@ -537,7 +539,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                     </Tooltip>
                   )}
 
-                  {conLogo && <BotonTienda alto={36} onCerrarSesion={cerrarSesion} />}
+                  {conLogo && <BotonTienda alto={36} onCerrarSesion={cerrarSesion} quieto={logoQuieto} />}
                 </Stack>
               </>
             )}
@@ -646,4 +648,6 @@ HeaderUsuario.propTypes = {
   acciones: PropTypes.node,
   // Solo en computador: saca el botón "Ir al menú" de al lado del logo.
   sinIrAlMenu: PropTypes.bool,
+  // El logo sin llevar a ningún lado (ver BotonTienda): corregir una factura.
+  logoQuieto: PropTypes.bool,
 };

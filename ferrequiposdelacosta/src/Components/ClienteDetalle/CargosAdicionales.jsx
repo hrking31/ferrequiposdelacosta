@@ -21,7 +21,9 @@
 // que obliga a restar de cabeza para saber lo que interesa.
 //
 // El transporte no se desglosa porque no es por equipo: se cobra una vez por
-// despacho, no importa cuántos equipos hayan salido en él.
+// despacho, no importa cuántos equipos hayan salido en él. Los transportes
+// adicionales —el viaje de más para recoger lo que quedó afuera tras una
+// devolución parcial— van cada uno en su renglón, con su fecha.
 //
 // El depósito NO está acá: no es un cargo sino una garantía, y tiene su
 // propio recuadro (RecuadroDeposito). Mientras estuvo entre los cargos se
@@ -56,10 +58,13 @@ import {
   sxRenglonPlegable,
 } from "./recuadrosCuenta";
 // Con alias: la moneda que deja el hueco vacío si no hay número.
-import { formatearMonedaOVacio as formatearMoneda } from "../../Utils/formato";
+import { formatearMonedaOVacio as formatearMoneda, formatearFechaLegible } from "../../Utils/formato";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 
 const IVA = 0.19;
+
+const sumaDeAdicionales = (transportesAdicionales) =>
+  transportesAdicionales.reduce((total, { valor }) => total + (Number(valor) || 0), 0);
 
 // Los datos del recuadro de importes. Antes vivía dentro del cuadro de pago,
 // mezclado con el medio y el monto; ahora va en su propio recuadro, debajo de
@@ -68,14 +73,18 @@ const IVA = 0.19;
 const datosAdicionales = ({
   transporteTipo,
   transporteMonto,
+  transportesAdicionales,
   iva,
   colores,
 }) => {
   const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
   const hayIva = Number(iva) > 0;
-  if (!hayTransporte && !hayIva) return null;
+  if (!hayTransporte && !hayIva && transportesAdicionales.length === 0) return null;
 
-  const total = (hayIva ? Number(iva) : 0) + (hayTransporte ? transporteMonto : 0);
+  const total =
+    (hayIva ? Number(iva) : 0) +
+    (hayTransporte ? transporteMonto : 0) +
+    sumaDeAdicionales(transportesAdicionales);
 
   const datos = [];
   if (hayIva) {
@@ -104,6 +113,15 @@ const datosAdicionales = ({
           : transporteTipo,
     });
   }
+  transportesAdicionales.forEach(({ fecha, valor }, posicion) => {
+    datos.push({
+      clave: `transporte-adicional-${posicion}`,
+      Icono: LocalShippingIcon,
+      colorIcono: colores.movimiento,
+      rotulo: "Transporte adicional",
+      valor: `${formatearFechaLegible(fecha)} · ${formatearMoneda(Number(valor) || 0)}`,
+    });
+  });
   // La suma de todo lo que se cobra aparte del alquiler. Se llama "Total
   // adicionales" y no "Total" a secas porque más abajo, en el mismo
   // recuadro, está el "Total factura": dos números distintos con el mismo
@@ -137,6 +155,7 @@ export default function CargosAdicionales({
   equipos,
   transporteTipo,
   transporteMonto,
+  transportesAdicionales = [],
   // La marca de IVA de la factura: vale para los equipos que no traen la suya
   // propia (las facturas viejas, migradas del Excel).
   abierto,
@@ -202,6 +221,7 @@ export default function CargosAdicionales({
     iva: ivaDeEquipos(equipos),
     transporteTipo,
     transporteMonto,
+    transportesAdicionales,
     colores: {
       impuesto: theme.palette.custom.seccionEquiposAgregados,
       movimiento: theme.palette.custom.estadoEquipo.ampliacion,
@@ -216,9 +236,9 @@ export default function CargosAdicionales({
   // sola vez, así que la columna NO totaliza —sumarla daría más que el
   // "Total adicionales" de arriba, que es el número que manda—.
   const cargosDelLote =
-    transporteTipo && transporteTipo !== "Sin transporte"
+    (transporteTipo && transporteTipo !== "Sin transporte"
       ? Number(transporteMonto) || 0
-      : 0;
+      : 0) + sumaDeAdicionales(transportesAdicionales);
 
   // Hay algo que desglosar si más de un equipo aporta IVA —si fuera uno
   // solo, la línea repetiría el total que ya está arriba— o si ese único
@@ -509,6 +529,9 @@ CargosAdicionales.propTypes = {
   equipos: PropTypes.array.isRequired,
   transporteTipo: PropTypes.string,
   transporteMonto: PropTypes.number,
+  transportesAdicionales: PropTypes.arrayOf(
+    PropTypes.shape({ fecha: PropTypes.string, valor: PropTypes.number }),
+  ),
   abierto: PropTypes.bool,
   onToggle: PropTypes.func.isRequired,
   bloqueAbierto: PropTypes.bool,

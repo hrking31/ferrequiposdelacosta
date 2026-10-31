@@ -126,7 +126,7 @@ export default function EditarUsuario({ usuario, idFormulario, anchoCompleto = f
         />
         <ElegirGenero valor={form.genero} onChange={(genero) => setForm((f) => ({ ...f, genero }))} />
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: anchoCompleto ? 0.5 : 1 }}>
         El correo no se cambia: es su usuario para entrar.
       </Typography>
     </Seccion>
@@ -166,7 +166,9 @@ export default function EditarUsuario({ usuario, idFormulario, anchoCompleto = f
         // una franja arriba y, debajo, ROL y MENÚ lado a lado, del mismo
         // alto y hasta el pie de la pantalla; sus tarjetas y casillas crecen
         // para llenarlos.
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, pb: 2 }}>
+        // Con poco aire, para que quepa en una pantalla baja (pedido del
+        // dueño, 2026-10-30).
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1.5, pb: 1 }}>
           {datos}
           <Box sx={{ flex: 1, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 2 }}>
             {rol}

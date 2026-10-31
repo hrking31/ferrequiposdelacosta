@@ -317,10 +317,9 @@ export default function ClienteEncabezado({
         // contenido.
         ...(esMovil && { py: 1.25 }),
         [theme.pantallaAngosta]: { px: 1 },
-        borderRadius: 2,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
+        // El recuadro de toda la app (theme.recuadro), como el de cada
+        // cliente en Seguimiento.
+        ...theme.recuadro(acento),
         boxShadow: 1,
         // El mismo aire que el resto de la app: 12px en el celular y 16 en el
         // computador. Con 24, el hueco hasta la primera factura era el doble

@@ -26,17 +26,13 @@ import { miniaturaDe } from "./catalogoEquipos";
 function Dato({ titulo, subtitulo, icono, color, crece = false, children }) {
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         p: 2,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: alpha(color, 0.35),
-        borderTop: "3px solid",
-        borderTopColor: color,
-        bgcolor: "background.paper",
+        // El recuadro de toda la app (theme.recuadro).
+        ...theme.recuadro(color),
         flexShrink: 0,
         ...(crece && { flex: "1 1 auto", minHeight: 96, overflowY: "auto" }),
-      }}
+      })}
     >
       <TituloSeccion titulo={titulo} icono={icono} color={color} />
       {subtitulo && (
@@ -314,8 +310,15 @@ export default function FichaEquipo({
     </Dato>
   );
 
-  const botones = conBotones && (
-    <Stack direction="row" spacing={1.5} sx={{ mt: "auto", pt: 1, flexShrink: 0 }}>
+  // `enColumna`: en dos pisos van al lado de los textos de la cotización, uno
+  // encima del otro (pedido del dueño, 2026-10-30), y no en su propia fila.
+  const botonesEn = (enColumna) => conBotones && (
+    <Stack
+      direction={enColumna ? "column" : "row"}
+      spacing={1.5}
+      justifyContent="center"
+      sx={enColumna ? { flexShrink: 0, width: 170 } : { mt: "auto", pt: 1, flexShrink: 0 }}
+    >
       <Button variant="contained" color="accent" startIcon={<EditIcon />} onClick={onEditar} fullWidth>
         EDITAR
       </Button>
@@ -367,12 +370,7 @@ export default function FichaEquipo({
     boxSizing: "border-box",
     overflowY: "auto",
     p: 3,
-    bgcolor: "background.paper",
-    border: "1px solid",
-    borderColor: "divider",
-    borderTop: "3px solid",
-    borderTopColor: acento,
-    borderRadius: 2,
+    ...theme.recuadro(acento),
     display: "flex",
   };
 
@@ -398,12 +396,20 @@ export default function FichaEquipo({
           </Box>
         </Box>
         {/* Abajo, a todo el ancho: variantes y cotización del mismo alto (el
-            del más alto), y los botones. */}
-        <Box sx={{ flexShrink: 0, display: "grid", gridAutoRows: "1fr", gap: 2 }}>
-          {recuadroVariantes}
+            del más alto), con los botones al lado de la cotización. */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            display: "grid",
+            gridAutoRows: "1fr",
+            gridTemplateColumns: "minmax(0, 1fr) auto",
+            gap: 2,
+          }}
+        >
+          {recuadroVariantes && <Box sx={{ gridColumn: "1 / -1", display: "grid" }}>{recuadroVariantes}</Box>}
           {recuadroCotizacion}
+          {botonesEn(true)}
         </Box>
-        {botones}
       </Box>
     );
   }
@@ -417,12 +423,7 @@ export default function FichaEquipo({
         <Box
           sx={{
             p: 1.75,
-            borderRadius: 2,
-            bgcolor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-            borderTop: "3px solid",
-            borderTopColor: acento,
+            ...theme.recuadro(acento),
           }}
         >
           {fotoConMiniaturas}
@@ -431,7 +432,7 @@ export default function FichaEquipo({
         {descripcion}
         {recuadroVariantes}
         {recuadroCotizacion}
-        {botones}
+        {botonesEn(false)}
       </Stack>
     );
   }
@@ -455,7 +456,7 @@ export default function FichaEquipo({
         {descripcion}
         {recuadroVariantes}
         {recuadroCotizacion}
-        {botones}
+        {botonesEn(false)}
       </Box>
     </Box>
   );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { ButtonBase, ListItemIcon, Menu, MenuItem, Tooltip } from "@mui/material";
+import { Box, ButtonBase, ListItemIcon, Menu, MenuItem, Tooltip } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useDispatch } from "react-redux";
@@ -21,7 +21,11 @@ import Logos from "../../assets/LogoFerrequipos.png";
 //
 // `vistahome=si` es lo que deja ver la tienda con la sesión abierta: sin eso,
 // el inicio manda al usuario de vuelta al menú.
-export default function BotonTienda({ alto = 40, onCerrarSesion }) {
+//
+// `quieto` (2026-10-30): el logo solo, sin llevar a ningún lado. Para las
+// pantallas donde salir a mitad de camino perdería el trabajo, como corregir
+// una factura.
+export default function BotonTienda({ alto = 40, onCerrarSesion, quieto = false }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [ancla, setAncla] = useState(null);
@@ -37,6 +41,21 @@ export default function BotonTienda({ alto = 40, onCerrarSesion }) {
     accion();
   };
 
+  const sxLogo = {
+    flexShrink: 0,
+    p: 0.75,
+    borderRadius: (theme) => theme.shape.pill,
+    // Blanco siempre, como en la barra: el logo es rojo y azul y sobre
+    // otro fondo se pierde.
+    bgcolor: "common.white",
+    boxShadow: (theme) => theme.shadows[2],
+  };
+  const logo = (
+    <img src={Logos} alt="Ferrequipos" style={{ display: "block", height: alto, width: "auto" }} />
+  );
+
+  if (quieto) return <Box sx={sxLogo}>{logo}</Box>;
+
   return (
     <>
       <Tooltip title={conMenu ? "Tienda y sesión" : "Ir a la tienda"}>
@@ -44,17 +63,9 @@ export default function BotonTienda({ alto = 40, onCerrarSesion }) {
           onClick={conMenu ? (e) => setAncla(e.currentTarget) : irALaTienda}
           aria-label={conMenu ? "Tienda y sesión" : "Ir a la tienda"}
           aria-haspopup={conMenu ? "menu" : undefined}
-          sx={{
-            flexShrink: 0,
-            p: 0.75,
-            borderRadius: (theme) => theme.shape.pill,
-            // Blanco siempre, como en la barra: el logo es rojo y azul y sobre
-            // otro fondo se pierde.
-            bgcolor: "common.white",
-            boxShadow: (theme) => theme.shadows[2],
-          }}
+          sx={sxLogo}
         >
-          <img src={Logos} alt="Ferrequipos" style={{ display: "block", height: alto, width: "auto" }} />
+          {logo}
         </ButtonBase>
       </Tooltip>
 
@@ -87,4 +98,5 @@ export default function BotonTienda({ alto = 40, onCerrarSesion }) {
 BotonTienda.propTypes = {
   alto: PropTypes.number,
   onCerrarSesion: PropTypes.func,
+  quieto: PropTypes.bool,
 };

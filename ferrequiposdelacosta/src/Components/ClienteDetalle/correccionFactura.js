@@ -40,6 +40,7 @@ import {
   pagoSinMedios,
   pagosDe,
   tipoPagoDe,
+  transportesAdicionalesDe,
   vencidosDe,
 } from "./facturaModelo";
 import { formatearFechaLegible, formatearMoneda } from "../../Utils/formato";
@@ -96,6 +97,12 @@ const grupoABorrador = (grupo) => {
     transporte: adicionales.transporte ?? "",
     valorTransporte: adicionales.valorTransporte || "",
     valorDeposito: adicionales.valorDeposito || "",
+    // Los que se anotaron al devolver una parte: se corrigen la fecha y el
+    // valor, o se quitan (pedido del dueño, 2026-10-30).
+    transportesAdicionales: transportesAdicionalesDe(grupo).map(({ fecha, valor }) => ({
+      fecha: fecha ?? "",
+      valor: valor || "",
+    })),
     equipos: (grupo.equipos ?? []).map((equipo, indice) =>
       equipoABorrador(equipo, `${grupo.grupo}#${indice}`),
     ),
@@ -257,10 +264,15 @@ const mediosValidos = (grupo) =>
         .map(({ medio, monto }) => ({ medio, monto: numero(monto) }));
 
 const pagoDe = ({ tipoPago, pagos }) => ({ tipoPago, pagos });
-const adicionalesDelBorrador = ({ transporte, valorTransporte, valorDeposito }) => ({
+// Los transportes adicionales como se guardan: el valor en número.
+const transportesDelBorrador = (transportesAdicionales = []) =>
+  transportesAdicionales.map(({ fecha, valor }) => ({ fecha, valor: numero(valor) }));
+
+const adicionalesDelBorrador = ({ transporte, valorTransporte, valorDeposito, transportesAdicionales }) => ({
   transporte,
   valorTransporte,
   valorDeposito,
+  transportesAdicionales: transportesDelBorrador(transportesAdicionales),
 });
 
 // Cada parte del despacho que no cambió se queda con lo que estaba guardado,
@@ -281,11 +293,15 @@ const grupoCorregido = (original, grupo, hoyIso) => {
   }
   if (cambio(adicionalesDelBorrador(grupo), adicionalesDelBorrador(inicial))) {
     const sinTransporte = !grupo.transporte || grupo.transporte === "Sin transporte";
+    const transportesAdicionales = transportesDelBorrador(grupo.transportesAdicionales);
     corregido.adicionales = {
       transporte: grupo.transporte || "",
       valorTransporte: sinTransporte ? 0 : numero(grupo.valorTransporte),
       deposito: numero(grupo.valorDeposito) > 0,
       valorDeposito: numero(grupo.valorDeposito),
+      // Sin ninguno, ni la lista vacía: el despacho queda como los que nunca
+      // tuvieron uno.
+      ...(transportesAdicionales.length > 0 && { transportesAdicionales }),
     };
   }
   return corregido;
@@ -671,6 +687,16 @@ export const erroresDelBorrador = (borrador, hoyIso = obtenerFechaHoyBogota()) =
     if (grupo.equipos.length === 0) {
       errores.push(`${despacho}: no puede quedar sin equipos.`);
     }
+
+    (grupo.transportesAdicionales ?? []).forEach(({ fecha, valor }) => {
+      if (!fecha) errores.push(`${despacho}: falta la fecha de un transporte adicional.`);
+      else if (fecha > hoyIso) {
+        errores.push(`${despacho}: un transporte adicional no puede tener una fecha futura.`);
+      }
+      if (numero(valor) <= 0) {
+        errores.push(`${despacho}: un transporte adicional no tiene valor (si no va, quitalo).`);
+      }
+    });
 
     grupo.equipos.forEach((item) => {
       const nombre = String(item.nombre ?? "").trim();

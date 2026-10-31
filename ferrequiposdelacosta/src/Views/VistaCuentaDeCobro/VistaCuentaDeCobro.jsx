@@ -36,6 +36,7 @@ import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
+import { ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
 
 export default function VistaCuentaDeCobro() {
   const dispatch = useDispatch();
@@ -45,7 +46,11 @@ export default function VistaCuentaDeCobro() {
   const { name, photoURL, role, genero } = usuario;
   const { logout } = useAuth();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
-  const isFullScreen = useMediaQuery("(max-width:915px)");
+  // EL CELULAR ACOSTADO se reconoce por el alto (uno grande pasa de 915px
+  // de ancho): va como celular, con los botones en una columna a la
+  // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
+  const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
+  const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -212,6 +217,28 @@ export default function VistaCuentaDeCobro() {
     handleCerrarSesionSinGuardar();
   };
 
+  // En el celular acostado, Descargar PDF y Guardar y salir en una columna a
+  // la izquierda, uno encima del otro y repartidos a lo alto: solo los íconos, los mismos del
+  // encabezado del computador (pedido del dueño, 2026-10-30).
+  const botonesAlLado = (
+    <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
+      <Tooltip title="Descargar PDF" placement="right">
+        <span>
+          <IconButton onClick={handleDescargarPdf} disabled={loading} color="success" sx={{ p: 1.25 }}>
+            <PictureAsPdfIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Guardar y salir" placement="right">
+        <span>
+          <IconButton onClick={handleGuardarYSalirClick} disabled={loading} color="success" sx={{ p: 1.25 }}>
+            <DashboardIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+
   return (
     <Box
       sx={{
@@ -221,7 +248,7 @@ export default function VistaCuentaDeCobro() {
         width: "100%",
         // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
         // dejarle hueco. En el celular el aire de abajo lo pone el pie.
-        pb: isFullScreen ? 0 : 2,
+        pb: isFullScreen && !acostado ? 0 : isFullScreen ? 1.5 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -252,6 +279,7 @@ export default function VistaCuentaDeCobro() {
             genero={genero}
             conLogo
             sinIrAlMenu
+            compacto={isFullScreen}
             vista={"Crear Cuenta de Cobro"}
             descripcion={"Genera la cuenta de cobro de un servicio"}
             icono={<ReceiptIcon />}
@@ -291,7 +319,9 @@ export default function VistaCuentaDeCobro() {
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto",
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 0.5 }}>
+        {acostado && botonesAlLado}
+      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto",
         mx: isFullScreen ? 0 : 2
           }}>
         <Box sx={{ mb: 2 }}>
@@ -305,7 +335,7 @@ export default function VistaCuentaDeCobro() {
           </Grid>
         </Box>
 
-        {isFullScreen && (
+        {isFullScreen && !acostado && (
           <Box sx={{ mb: 2 }}>
             <Grid container spacing={2} justifyContent="center">
               <Grid item xs={10} sm={6} md={4}>
@@ -325,7 +355,9 @@ export default function VistaCuentaDeCobro() {
         )}
       </Box>
 
-      {isFullScreen && (
+      </Box>
+
+      {isFullScreen && !acostado && (
         <Box sx={{ p: 1.5, flexShrink: 0 }}>
           <Stack
             direction="row"

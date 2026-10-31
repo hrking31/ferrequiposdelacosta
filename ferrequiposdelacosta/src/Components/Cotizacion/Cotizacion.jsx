@@ -15,7 +15,8 @@ import {
   Paper,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import { TituloSeccion } from "../PanelLista/ResumenLista";
 import {
   setFormCotizacion,
   setItems,
@@ -130,9 +131,7 @@ export default function Cotizacion() {
   const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
 
   return (
-    // El aire de los costados es para el resplandor de los recuadros de ítem:
-    // son 20px de sombra difusa y sin este margen el contenedor que scrollea
-    // la recortaba contra el borde izquierdo.
+    // Aire a los costados del formulario y de los recuadros de cada ítem.
     <Box mx="auto" display="flex" flexDirection="column" sx={{ px: 2 }}>
       <Box component="form">
         <Grid container spacing={2} sx={{ mt: { xs: 0, md: 0 } }}>
@@ -431,17 +430,20 @@ export default function Cotizacion() {
             justifyContent="center"
             sx={{
               mt: 2,
-              pb: 1,
-              pt: 1,
-              px: 1,
-              // Resplandor de acento. Antes usaba un azul (#669BBC) que ya no
-              // existe en la paleta; ahora se deriva del acento del tema.
-              boxShadow: (theme) =>
-                `0 0 20px ${alpha(theme.palette.custom.accent, 0.4)}`,
-              borderRadius: 0.5,
+              p: 2,
+              // El recuadro de toda la app (theme.recuadro), del acento, con
+              // su título arriba (pedido del dueño, 2026-10-30).
+              ...theme.recuadro(theme.palette.custom.accent),
             }}
           >
             <Grid container spacing={1} key={index}>
+              <Grid item xs={12}>
+                <TituloSeccion
+                  titulo={`ÍTEM ${index + 1}`}
+                  icono={<ConstructionIcon />}
+                  color={theme.palette.custom.accent}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth

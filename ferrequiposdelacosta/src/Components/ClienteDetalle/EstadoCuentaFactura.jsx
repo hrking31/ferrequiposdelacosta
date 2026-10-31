@@ -193,7 +193,15 @@ export default function EstadoCuentaFactura({
   // POR ENCIMA del recuadro que los contiene: el recuadro de bloque pinta un
   // degradado de su color sobre todo lo que tiene adentro, y acá adentro hay
   // paneles negros opacos que el degradado teñía.
-  const sxPanel = { position: "relative", zIndex: 1, width: "100%" };
+  // En computador la cuenta y el depósito van uno AL LADO del otro, cada uno
+  // con su ancho de siempre: uno debajo del otro alargaban la factura y
+  // dejaban un hueco blanco grande a la izquierda (lo notó el dueño,
+  // 2026-10-30). Si no caben los dos, el segundo baja solo.
+  const sxPanel = {
+    position: "relative",
+    zIndex: 1,
+    ...(esMovil ? { width: "100%" } : { flex: "0 0 auto", minWidth: 300 }),
+  };
 
   // El ícono va dentro del texto y a su altura: en una caja aparte le sumaba
   // alto al renglón y la cifra quedaba más abajo que las demás.
@@ -290,7 +298,10 @@ export default function EstadoCuentaFactura({
           width: esMovil ? "100%" : "auto",
           minWidth: esMovil ? 0 : 300,
           display: "flex",
-          flexDirection: "column",
+          flexDirection: esMovil ? "column" : "row",
+          flexWrap: esMovil ? "nowrap" : "wrap",
+          // Cada uno con su alto: el depósito no se estira al de la cuenta.
+          alignItems: esMovil ? "stretch" : "flex-start",
           gap: 1.5,
         }}
       >

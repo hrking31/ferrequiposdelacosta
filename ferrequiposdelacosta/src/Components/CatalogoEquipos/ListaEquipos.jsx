@@ -4,6 +4,7 @@ import { Box, ButtonBase, Stack, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import { usePantallaCompacta } from "../../Utils/pantalla";
 import MiniaturaEquipo from "./MiniaturaEquipo";
@@ -23,7 +24,10 @@ import { filtrarCatalogo } from "./catalogoEquipos";
 //
 // El buscador lleva al lado el contador de las demás pantallas (Clientes,
 // Seguimiento): "3 de 19". En el celular, como allá: el buscador con
-// `accion` (el menú) y, debajo, qué lista es y cuántos se ven.
+// `accion` (el menú) y, debajo, qué lista es y cuántos se ven. Si los
+// renglones se tocan, en vez de qué lista es va qué hacer con ella, y cada
+// renglón lleva su flechita: en el celular no está el recuadro de "Elige un
+// equipo" del computador (pedido del dueño, 2026-10-30).
 export default function ListaEquipos({
   equipos,
   idElegido,
@@ -39,6 +43,8 @@ export default function ListaEquipos({
   const [busqueda, setBusqueda] = useState("");
   const visibles = filtrarCatalogo(equipos, busqueda);
   const enDosRenglones = contadorDebajo || (esCelular && !enPanel);
+  // La lista del celular que abre la ficha: dice qué hacer y lleva flechitas.
+  const conAyuda = esCelular && !enPanel && Boolean(onElegir);
 
   const buscador = (
     <BuscadorFiltro value={busqueda} onChange={setBusqueda} placeholder="Buscar equipo..." />
@@ -60,7 +66,15 @@ export default function ListaEquipos({
           top: enPanel ? -12 : 0,
           zIndex: 1,
           bgcolor: enPanel ? "background.paper" : "background.default",
-          pt: enPanel ? 1.5 : 1,
+          // Dentro del recuadro sigue su degradado en vez de cortarlo. Sube
+          // los 12px del relleno del recuadro (y los devuelve por dentro) para
+          // arrancar en su mismo borde: así el degradado coincide también
+          // antes de bajar por la lista.
+          ...(enPanel && {
+            backgroundImage: theme.degradadoRecuadro(acento),
+            mt: -1.5,
+          }),
+          pt: enPanel ? 3 : 1,
           pb: 1.5,
         }}
       >
@@ -71,8 +85,8 @@ export default function ListaEquipos({
               {accion}
             </Stack>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Lista de equipos
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0 }}>
+                {conAyuda ? "Toca un equipo para verlo, editarlo o eliminarlo" : "Lista de equipos"}
               </Typography>
               {contador}
             </Stack>
@@ -151,6 +165,7 @@ export default function ListaEquipos({
                 {equipo.name || "Sin nombre"}
               </Typography>
               {elegido && <EditIcon sx={{ fontSize: 16, color: acento }} />}
+              {conAyuda && !elegido && <ChevronRightIcon sx={{ color: "text.disabled", flexShrink: 0 }} />}
             </Renglon>
           );
         })}

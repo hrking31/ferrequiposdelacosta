@@ -31,6 +31,7 @@ import {
   pagosDe,
   tipoPagoDe,
   tramoVencidoAbierto,
+  transportesAdicionalesDe,
   vencidosDe,
 } from "./facturaModelo";
 import { nombreDelGrupo } from "./correccionFactura";
@@ -246,6 +247,28 @@ const cambiosDeGrupo = (antes, despues) => {
     const transporte = ({ transporte: tipo, valorTransporte }) =>
       `${tipo || "Sin transporte"} ${plata(valorTransporte)}`;
     decir(corrige, `transporte ${transporte(adicionalesAntes)} → ${transporte(adicionalesDespues)}`);
+  }
+  // El transporte adicional que se suma al devolver una parte es trabajo de
+  // todos los días; cambiar o quitar uno que ya estaba es corregir.
+  const adicionalesDeAntes = transportesAdicionalesDe(antes);
+  const adicionalesDeDespues = transportesAdicionalesDe(despues);
+  if (!igual(adicionalesDeAntes, adicionalesDeDespues)) {
+    const soloSeSumaron =
+      adicionalesDeDespues.length > adicionalesDeAntes.length &&
+      igual(adicionalesDeDespues.slice(0, adicionalesDeAntes.length), adicionalesDeAntes);
+    if (soloSeSumaron) {
+      adicionalesDeDespues
+        .slice(adicionalesDeAntes.length)
+        .forEach(({ fecha: dia, valor }) =>
+          decir(anota, `transporte adicional ${plata(valor)} (${fecha(dia)})`),
+        );
+    } else {
+      const total = (lista) => lista.reduce((suma, { valor }) => suma + numero(valor), 0);
+      decir(
+        corrige,
+        `transporte adicional ${plata(total(adicionalesDeAntes))} → ${plata(total(adicionalesDeDespues))}`,
+      );
+    }
   }
   if (numero(adicionalesAntes.valorDeposito) !== numero(adicionalesDespues.valorDeposito)) {
     decir(

@@ -65,6 +65,7 @@ import {
   gruposDe,
   equiposDe,
   adicionalesDe,
+  agregarTransporteAdicional,
   sigueAfuera,
 } from "../ClienteDetalle/facturaUtils";
 import { formatearMoneda, formatearRangoDeDias } from "../../Utils/formato";
@@ -194,6 +195,11 @@ export default function RegistrarDevolucionDialog({
   const [guardando, setGuardando] = useState(false);
   // El detalle de los días vencidos en "Así queda": plegado de entrada.
   const [verDetalle, setVerDetalle] = useState(false);
+  // EL TRANSPORTE ADICIONAL (pedido del dueño, 2026-10-30): el cliente pidió
+  // ida y vuelta y devuelve una parte; la vuelta pagada se usa hoy, y para
+  // recoger lo que queda hace falta otro viaje. Se cobra acá, en la devolución
+  // parcial, y no con el último equipo.
+  const [transporteAdicional, setTransporteAdicional] = useState({ marcado: false, valor: "" });
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("success");
 
   useEffect(() => {
@@ -203,6 +209,7 @@ export default function RegistrarDevolucionDialog({
     setDecision(null);
     setCobrarHoy(seCobraElDiaAlDevolver());
     setVerDetalle(false);
+    setTransporteAdicional({ marcado: false, valor: "" });
     setFecha(obtenerFechaHoyBogota());
   }, [open]);
 
@@ -319,6 +326,13 @@ export default function RegistrarDevolucionDialog({
   const hayDevolucion = equiposPendientes.some(
     ({ equipo, clave }) => cantidadQueDevuelve(equipo, clave) > 0,
   );
+  // Solo cuando vuelve algo y todavía queda algo afuera: con el último equipo
+  // ya no hay nada más que ir a buscar.
+  const ofreceTransporteAdicional = decision === "llego" && hayDevolucion && quedanEquiposAfuera;
+  const valorTransporteAdicional =
+    ofreceTransporteAdicional && transporteAdicional.marcado
+      ? Number(transporteAdicional.valor) || 0
+      : 0;
 
   // ── El estado en que volvió cada equipo, y la plata que eso cuesta ────
   //
@@ -644,6 +658,9 @@ export default function RegistrarDevolucionDialog({
           },
         ]
       : []),
+    ...(valorTransporteAdicional > 0
+      ? [{ rotulo: "Transporte adicional", valor: formatearMoneda(valorTransporteAdicional) }]
+      : []),
   ];
 
   // LA FECHA de lo que se anota. No puede ser futura, ni anterior a lo
@@ -802,6 +819,11 @@ export default function RegistrarDevolucionDialog({
       return;
     }
 
+    if (ofreceTransporteAdicional && transporteAdicional.marcado && valorTransporteAdicional <= 0) {
+      showSnackbar("Escribí el valor del transporte adicional.", "warning");
+      return;
+    }
+
     // La fecha ya se dijo debajo de su campo (ver errorFecha).
     if (errorFecha) return;
 
@@ -844,7 +866,7 @@ export default function RegistrarDevolucionDialog({
         return restante;
       };
 
-      const gruposActualizados = gruposDe(factura).map((grupo) => {
+      const gruposDevueltos = gruposDe(factura).map((grupo) => {
         const equiposActualizados = [];
 
         (grupo.equipos ?? []).forEach((equipo, indice) => {
@@ -979,6 +1001,20 @@ export default function RegistrarDevolucionDialog({
 
         return { ...grupo, equipos: equiposActualizados };
       });
+
+      // El transporte adicional va al despacho del primer equipo que vuelve:
+      // es la vuelta pagada de ese despacho la que se usó.
+      const grupoDelTransporte = equiposPendientes.find(
+        ({ equipo, clave }) => cantidadQueDevuelve(equipo, clave) > 0,
+      )?.grupo?.grupo;
+      const gruposActualizados =
+        valorTransporteAdicional > 0
+          ? gruposDevueltos.map((grupo) =>
+              grupo.grupo === grupoDelTransporte
+                ? agregarTransporteAdicional(grupo, dia, valorTransporteAdicional)
+                : grupo,
+            )
+          : gruposDevueltos;
 
       // El estado de la factura ya no se guarda: sale solo de los equipos y
       // del saldo (ver calcularEstadoFactura). Lo que sí se anota es la
@@ -1556,6 +1592,45 @@ export default function RegistrarDevolucionDialog({
                 </Grid>
               );
             })}
+
+            {/* El transporte adicional: después de los equipos, porque
+                depende de lo que vuelve y de lo que queda afuera. */}
+            {ofreceTransporteAdicional && (
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      name="transporteAdicional"
+                      checked={transporteAdicional.marcado}
+                      onChange={(e) =>
+                        setTransporteAdicional((previo) => ({ ...previo, marcado: e.target.checked }))
+                      }
+                    />
+                  }
+                  label="Transporte adicional"
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  Para recoger lo que queda afuera. Se suma al transporte de la factura.
+                </Typography>
+                {transporteAdicional.marcado && (
+                  <TextField
+                    label="Valor del transporte adicional"
+                    name="valorTransporteAdicional"
+                    value={formatearMonedaInput(transporteAdicional.valor)}
+                    onChange={(e) =>
+                      setTransporteAdicional((previo) => ({
+                        ...previo,
+                        valor: limpiarMonedaInput(e.target.value),
+                      }))
+                    }
+                    fullWidth
+                    size="small"
+                    sx={{ mt: 1 }}
+                  />
+                )}
+              </Grid>
+            )}
 
             {/* ── 5. Así queda ── Recién con algo escrito arriba: sin una
                 cantidad no hay cuenta que mostrar. */}

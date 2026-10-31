@@ -70,12 +70,20 @@ const RECUADRO_LISTA = {
   overflowY: "auto",
 };
 
+// `estira`: la lista crece con el recuadro, desde ese alto fijo como mínimo
+// (la ficha en dos pisos de una tableta de pie, donde sobra alto; pedido del
+// dueño, 2026-10-30).
+// `fechaDebajo`: en un recuadro angosto (ROL y SESIONES lado a lado), la fecha
+// va debajo del nombre del aparato y no al lado, que lo partía en tres
+// renglones (2026-10-30).
 export default function AparatosUsuario({
   nombre,
   aparatos,
   onCerrarSesionAparato,
   onCerrarSesiones,
   onQuitarDosPasos,
+  estira = false,
+  fechaDebajo = false,
 }) {
   // { tipo: "uno" | "cerrar" | "quitar", aparato }: lo que espera confirmación.
   const [accion, setAccion] = useState(null);
@@ -94,19 +102,22 @@ export default function AparatosUsuario({
   };
 
   const enCurso = accion ? ACCIONES[accion.tipo] : null;
+  const recuadroLista = estira
+    ? { ...RECUADRO_LISTA, height: "auto", flex: "1 1 auto", minHeight: RECUADRO_LISTA.height }
+    : RECUADRO_LISTA;
 
   return (
     // En columna y achicable: si al recuadro no le alcanza el alto, la lista
     // cede y los botones de abajo quedan a la vista.
     <Box sx={{ width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {aparatos.length === 0 ? (
-        <Box sx={{ ...RECUADRO_LISTA, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+        <Box sx={{ ...recuadroLista, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
           <Typography variant="body2" color="text.secondary">
             Ninguna: no tiene la app abierta en ningún aparato.
           </Typography>
         </Box>
       ) : (
-        <Box component="ul" sx={{ ...RECUADRO_LISTA, listStyle: "none", m: 0 }}>
+        <Box component="ul" sx={{ ...recuadroLista, listStyle: "none", m: 0 }}>
           {aparatos.map((aparato) => {
             const Icono = ICONOS[aparato.tipo] || ComputerIcon;
             return (
@@ -128,12 +139,25 @@ export default function AparatosUsuario({
                 }}
               >
                 <Icono fontSize="small" sx={{ color: "text.secondary" }} />
-                <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
-                  {aparato.descripcion}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {describirUltimoUso(aparato.ultimoUso?.toDate?.())}
-                </Typography>
+                {fechaDebajo ? (
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" noWrap title={aparato.descripcion}>
+                      {aparato.descripcion}
+                    </Typography>
+                    <Typography variant="caption" component="p" color="text.secondary" noWrap>
+                      {describirUltimoUso(aparato.ultimoUso?.toDate?.())}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
+                      {aparato.descripcion}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {describirUltimoUso(aparato.ultimoUso?.toDate?.())}
+                    </Typography>
+                  </>
+                )}
                 <IconButton
                   size="small"
                   color="error"
@@ -222,4 +246,6 @@ AparatosUsuario.propTypes = {
   onCerrarSesionAparato: PropTypes.func.isRequired,
   onCerrarSesiones: PropTypes.func.isRequired,
   onQuitarDosPasos: PropTypes.func.isRequired,
+  estira: PropTypes.bool,
+  fechaDebajo: PropTypes.bool,
 };

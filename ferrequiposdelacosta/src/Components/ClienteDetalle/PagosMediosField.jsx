@@ -7,6 +7,7 @@ import {
   Select,
   MenuItem,
   TextField,
+  FormHelperText,
   IconButton,
   Button,
   Typography,
@@ -20,8 +21,12 @@ const FILA_VACIA = { medio: "", monto: "" };
 // Lista repetible de medio de pago + monto (un pago puede repartirse en más
 // de un medio, ej. parte por Bancolombia y parte en efectivo). Se usa igual
 // en FacturaFormDialog y en AgregarEquipoDialog.
-export default function PagosMediosField({ pagos, onChange, idPrefix, apilado = false }) {
+//
+// `marcarCambio(indice, campo)`: al corregir una factura, cómo se ve un dato
+// que ya no es el guardado —{ sx, helperText }—; en los demás diálogos no va.
+export default function PagosMediosField({ pagos, onChange, idPrefix, apilado = false, marcarCambio }) {
   const filas = pagos.length > 0 ? pagos : [FILA_VACIA];
+  const marcaDe = (index, campo) => marcarCambio?.(index, campo) ?? {};
 
   const handleChangeFila = (index, campo, valor) => {
     onChange(filas.map((fila, i) => (i === index ? { ...fila, [campo]: valor } : fila)));
@@ -46,7 +51,7 @@ export default function PagosMediosField({ pagos, onChange, idPrefix, apilado = 
             direction={apilado ? "column" : { xs: "column", sm: "row" }}
             spacing={1}
           >
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={marcaDe(index, "medio").sx}>
               <InputLabel
                 id={`${idPrefix}-medio-${index}-label`}
                 htmlFor={`${idPrefix}-medio-${index}-input`}
@@ -66,12 +71,15 @@ export default function PagosMediosField({ pagos, onChange, idPrefix, apilado = 
                   </MenuItem>
                 ))}
               </Select>
+              {marcaDe(index, "medio").helperText && (
+                <FormHelperText>{marcaDe(index, "medio").helperText}</FormHelperText>
+              )}
             </FormControl>
             {/* Apilado, el monto y el bote van en la misma línea: el monto se
                 achica lo necesario para dejarle lugar al botón.
                 Siempre se puede borrar un medio de pago; si era el único, el
                 renglón queda vacío para volver a cargarlo. */}
-            <Stack direction="row" spacing={0.5} alignItems="center">
+            <Stack direction="row" spacing={0.5} alignItems="flex-start">
               <TextField
                 label="Monto"
                 value={formatearMonedaInput(fila.monto)}
@@ -79,6 +87,8 @@ export default function PagosMediosField({ pagos, onChange, idPrefix, apilado = 
                   handleChangeFila(index, "monto", limpiarMonedaInput(e.target.value))
                 }
                 fullWidth
+                sx={marcaDe(index, "monto").sx}
+                helperText={marcaDe(index, "monto").helperText}
               />
               <IconButton size="small" onClick={() => handleQuitarFila(index)}>
                 <DeleteIcon fontSize="small" />
@@ -123,4 +133,5 @@ PagosMediosField.propTypes = {
   idPrefix: PropTypes.string.isRequired,
   // Pone el medio y el monto uno debajo del otro, para columnas angostas.
   apilado: PropTypes.bool,
+  marcarCambio: PropTypes.func,
 };

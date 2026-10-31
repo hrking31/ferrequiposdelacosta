@@ -231,25 +231,12 @@ export default function EquipoRow({ equipo, color, plano = false }) {
           ? { p: 0 }
           : {
               p: 1,
-              borderRadius: 1,
-              bgcolor: "background.paper",
-              border: "1px solid",
-              // Mismo tratamiento que el recuadro de pago. El BORDE se queda
-              // siempre con el color del lote: es lo que ata la tarjeta a su
-              // grupo, y si también se volviera verde la devuelta parecería
-              // de otro lote. Lo que cambia es el relleno (ver colorEquipo).
-              borderColor: color,
-              boxShadow: `inset 0 0 12px ${alpha(colorEquipo, 0.2)}`,
-              position: "relative",
-              overflow: "hidden",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                inset: 0,
-                borderRadius: "inherit",
-                background: `linear-gradient(135deg, ${alpha(colorEquipo, 0.12)}, ${alpha(colorEquipo, 0.03)})`,
-                pointerEvents: "none",
-              },
+              // El recuadro de toda la app (theme.recuadro). La franja y el
+              // BORDE se quedan siempre con el color del lote: es lo que ata
+              // la tarjeta a su grupo, y si también se volviera verde la
+              // devuelta parecería de otro lote. Lo que cambia es el relleno
+              // (ver colorEquipo).
+              ...theme.recuadro(color, colorEquipo),
             }),
       }}
     >

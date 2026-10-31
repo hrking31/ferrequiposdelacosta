@@ -51,6 +51,7 @@ import {
   sinFechaDeEntrega,
   tieneEntregaPactada,
   tramoVencidoAbierto,
+  transportesAdicionalesDe,
   vencidosDe,
 // Con la extensión .js, y es obligatorio: este archivo viaja como copia al
 // servidor, y allá lo carga Node directamente. Node exige la extensión en los
@@ -1178,13 +1179,16 @@ export const calcularIvaEquipos = (doc, hoyIso = obtenerFechaHoyBogota()) =>
     0,
   );
 
+// El transporte de un despacho: el flete con que salió más cada transporte
+// adicional que se le sumó después, al devolver una parte.
+export const transporteDelGrupo = (grupo) =>
+  numero(adicionalesDe(grupo).valorTransporte) +
+  transportesAdicionalesDe(grupo).reduce((total, { valor }) => total + numero(valor), 0);
+
 // El transporte de TODA la factura: el de cada despacho, porque cada uno sale
 // con su propio flete.
 export const calcularTransporteTotal = (doc) =>
-  gruposDe(doc).reduce(
-    (total, grupo) => total + numero(adicionalesDe(grupo).valorTransporte),
-    0,
-  );
+  gruposDe(doc).reduce((total, grupo) => total + transporteDelGrupo(grupo), 0);
 
 // ── El depósito: una garantía, no un ingreso ───────────────────────────
 //
@@ -1796,6 +1800,12 @@ export const calcularEstadoCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
   return PRIORIDAD_ESTADO_CLIENTE.find((estado) => estados.includes(estado)) ?? "inactivo";
 };
 
+// Si la factura sigue en juego: cualquier estado menos "finalizada". Es lo que
+// cuenta la columna "Facturas" de la lista de clientes; el servidor lleva la
+// cuenta por cliente en la pizarra del menú (ver ajustarTotalesPanel).
+export const facturaAbierta = (doc, hoyIso = obtenerFechaHoyBogota()) =>
+  Boolean(doc) && calcularEstadoFactura(doc, hoyIso) !== "finalizada";
+
 // ── Los totales del panel del menú ─────────────────────────────────────
 //
 // Los dos números de "Equipos activos" (con su detalle por equipo) y "Pagos
@@ -1920,11 +1930,6 @@ export const crearRegistroGestion = (tipo, datos = {}) => ({
   hora: obtenerHoraBogotaHHMM(),
   ...datos,
 });
-
-export const contarLlamadasSinRespuesta = (doc) =>
-  obtenerGestiones(doc).filter(
-    (registro) => registro.tipo === "llamada" && !registro.contesto,
-  ).length;
 
 // Desde cuándo corre el vencimiento que se está cobrando HOY: el día en que se
 // abrió el tramo vencido más antiguo de los que siguen corriendo.
@@ -2058,10 +2063,4 @@ export const describirMovimientosFactura = (doc) => {
   if (depositoResuelto) partes.push("el depósito ya resuelto");
 
   return partes;
-};
-
-// Etiqueta ordinal para cada fecha del historial de un equipo.
-export const etiquetaVencimiento = (indice) => {
-  const ordinales = ["1er", "2do", "3er", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
-  return `${ordinales[indice] || `${indice + 1}º`} vencimiento`;
 };

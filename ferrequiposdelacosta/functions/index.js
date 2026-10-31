@@ -27,6 +27,7 @@ import {
   diferenciaPorTipo,
   equiposQueVencieronHoy,
   abrirTramosFactura,
+  facturaAbierta,
   facturaCerrada,
   facturaEnSeguimiento,
   obtenerFechaHoyBogota,
@@ -799,10 +800,25 @@ export const ajustarTotalesPanel = onDocumentWritten(
       // mueve su saldo de casilla aunque el total no cambie.
       const porEstado = diferenciaPorEstado(aporteAntes, aporteDespues);
       const movioPorEstado = Object.keys(porEstado).length > 0;
+      // Y cuántas facturas sin finalizar tiene el cliente: la columna
+      // "Facturas" de la lista de clientes. Va acá y no en el documento del
+      // cliente porque la lista ya lee este documento en cada visita (es su
+      // sello): así cuesta cero lecturas, y la copia de los clientes no se
+      // vence cada vez que se abre o se cierra una factura. Solo se mueve al
+      // crear, borrar, terminar o reabrir una factura.
+      const abiertas =
+        Number(facturaAbierta(despues, hoy)) -
+        Number(facturaAbierta(antes, hoy));
 
       // Muchos cambios no mueven ninguno de los números (por ejemplo,
       // corregir una dirección). Ahí no se escribe nada.
-      if (equipos !== 0 || pagos !== 0 || movioPorTipo || movioPorEstado) {
+      if (
+        equipos !== 0 ||
+        pagos !== 0 ||
+        movioPorTipo ||
+        movioPorEstado ||
+        abiertas !== 0
+      ) {
         await refTotales().set(
             {
               equiposActivos: FieldValue.increment(equipos),
@@ -825,6 +841,11 @@ export const ajustarTotalesPanel = onDocumentWritten(
                       FieldValue.increment(monto),
                     ]),
                 ),
+              }),
+              ...(abiertas !== 0 && {
+                facturasAbiertasPorCliente: {
+                  [event.params.clienteId]: FieldValue.increment(abiertas),
+                },
               }),
               actualizadoEn: Date.now(),
             },
@@ -1014,18 +1035,34 @@ export const recalcularTotalesPanel = onSchedule(
 
       const totales = calcularTotalesFacturas(facturas, hoy);
 
-      // mergeFields y no merge: los dos detalles se REEMPLAZAN enteros.
+      // Las facturas sin finalizar de cada cliente (ver ajustarTotalesPanel).
+      // Un cliente sin ninguna no figura: la lista lo muestra en cero.
+      const facturasAbiertasPorCliente = {};
+      for (const facturaSnap of snap.docs) {
+        const clienteId = facturaSnap.ref.parent.parent?.id;
+        if (!clienteId || !facturaAbierta(facturaSnap.data(), hoy)) continue;
+        facturasAbiertasPorCliente[clienteId] =
+          (facturasAbiertasPorCliente[clienteId] ?? 0) + 1;
+      }
+
+      // mergeFields y no merge: los detalles se REEMPLAZAN enteros.
       // Con merge se mezclaría con el viejo, y un equipo que ya volvió
       // del todo se quedaría en la lista con su número de ayer. Lo demás
       // del documento (el sello de los clientes) no se toca.
       await refTotales().set(
-          {...totales, actualizadoEn: Date.now(), recalculadoEn: Date.now()},
+          {
+            ...totales,
+            facturasAbiertasPorCliente,
+            actualizadoEn: Date.now(),
+            recalculadoEn: Date.now(),
+          },
           {
             mergeFields: [
               "equiposActivos",
               "pagosPendientes",
               "equiposPorTipo",
               "pagosPorEstado",
+              "facturasAbiertasPorCliente",
               "actualizadoEn",
               "recalculadoEn",
             ],

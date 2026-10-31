@@ -574,14 +574,18 @@ export default function SeguimientoClientes() {
           </Stack>
         ) : columnaFiltros ? (
           // Los filtros están en la columna de la izquierda: acá quedan el
-          // buscador y el conteo.
+          // título, el buscador y el conteo, como en la lista de Clientes y
+          // solo sobre las tarjetas y el panel (pedido del dueño, 2026-10-30).
           <Stack
             direction="row"
-            spacing={1.5}
+            spacing={2}
             alignItems="center"
-            sx={{ mb: 2, flexShrink: 0 }}
+            sx={{ mb: 1.5, flexShrink: 0 }}
           >
-            {buscador}
+            <Typography variant="h6" sx={{ flexShrink: 0 }}>
+              Lista de Clientes
+            </Typography>
+            <Box sx={{ flex: 1, minWidth: 150 }}>{buscador}</Box>
             {contador}
           </Stack>
         ) : (
@@ -674,6 +678,10 @@ export default function SeguimientoClientes() {
         overflowY: "auto",
       }}
     >
+      {/* Lo que mide la fila del buscador (40 + 12 debajo, con los 8 del
+          espacio entre piezas): los filtros arrancan a la altura de la
+          primera tarjeta, como en la lista de Clientes. */}
+      <Box sx={{ height: 44, flexShrink: 0 }} />
       {etiquetaFiltro("Gestión")}
       <Stack spacing={1}>{chipsGestion()}</Stack>
       <Box sx={{ mt: 1.5 }}>{selectorDias({ width: "100%" })}</Box>
@@ -693,8 +701,6 @@ export default function SeguimientoClientes() {
           : { display: "flex", flexDirection: "column" }),
       }}
     >
-      {encabezado}
-
       {columnaFiltros && clientesConSeguimiento.length > 0 ? (
         <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
           {columna}
@@ -707,11 +713,15 @@ export default function SeguimientoClientes() {
               flexDirection: "column",
             }}
           >
+            {encabezado}
             {lista}
           </Box>
         </Box>
       ) : (
-        lista
+        <>
+          {encabezado}
+          {lista}
+        </>
       )}
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />

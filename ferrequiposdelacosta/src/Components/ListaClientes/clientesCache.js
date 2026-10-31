@@ -34,12 +34,23 @@ const CLAVE = "clientes_copia";
 // y media hora es lo máximo que vale la pena arriesgar.
 const VIGENCIA_MS = 30 * 60 * 1000;
 
-const leerSello = async () => {
+// El documento del sello trae además las facturas sin finalizar de cada
+// cliente (las cuenta el servidor, ver ajustarTotalesPanel): vienen en la
+// misma lectura, así que la columna "Facturas" no cuesta ninguna más. Y como
+// se leen en CADA visita, están siempre al día aunque la lista salga de la
+// copia.
+const leerResumen = async () => {
   const snap = await getDoc(doc(db, COLECCION, DOCUMENTO));
   // Sin documento o sin el campo, el sello es 0: sirve igual para comparar, y
   // en cuanto alguien toque un cliente pasa a ser una fecha real.
-  if (!snap.exists()) return 0;
-  return Number(snap.data().clientesActualizadoEn) || 0;
+  if (!snap.exists()) return { sello: 0, facturasAbiertas: null };
+  const datos = snap.data();
+  return {
+    sello: Number(datos.clientesActualizadoEn) || 0,
+    // null mientras el servidor no las haya contado nunca: la lista muestra
+    // "—" en vez de un cero que no sería cierto.
+    facturasAbiertas: datos.facturasAbiertasPorCliente ?? null,
+  };
 };
 
 const leerCopia = () => {
@@ -87,15 +98,15 @@ export const invalidarCopiaClientes = () => {
 // Firestore; se recibe como parámetro para que este archivo no dependa de cómo
 // consulta la pantalla.
 export const obtenerClientes = async (traerTodos) => {
-  const sello = await leerSello();
+  const { sello, facturasAbiertas } = await leerResumen();
   const copia = leerCopia();
 
   if (copia && copia.sello === sello) {
-    return { clientes: copia.clientes, desdeCopia: true };
+    return { clientes: copia.clientes, desdeCopia: true, facturasAbiertas };
   }
 
   const clientes = await traerTodos();
   guardarCopia(sello, clientes);
 
-  return { clientes, desdeCopia: false };
+  return { clientes, desdeCopia: false, facturasAbiertas };
 };

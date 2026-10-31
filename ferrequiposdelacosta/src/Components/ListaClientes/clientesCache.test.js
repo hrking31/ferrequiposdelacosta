@@ -131,5 +131,35 @@ describe("clientesCache — cuando algo sale mal", () => {
     const resultado = await obtenerClientes(traerTodos);
 
     expect(resultado.clientes).toHaveLength(1);
+    expect(resultado.facturasAbiertas).toBeNull();
+  });
+});
+
+describe("clientesCache — las facturas sin finalizar", () => {
+  it("vienen en la misma lectura del sello, también desde la copia", async () => {
+    const conAbiertas = (abiertas) =>
+      sello.mockReturnValue({
+        exists: () => true,
+        data: () => ({ clientesActualizadoEn: 1000, facturasAbiertasPorCliente: abiertas }),
+      });
+
+    conAbiertas({ c0: 2 });
+    await obtenerClientes(() => Promise.resolve(listaDe("Aida")));
+
+    // Segunda visita: los clientes salen de la copia, pero la cuenta es la de
+    // hoy, no la que había cuando se guardó.
+    conAbiertas({ c0: 1 });
+    const resultado = await obtenerClientes(() => Promise.resolve(listaDe("Aida")));
+
+    expect(resultado.desdeCopia).toBe(true);
+    expect(resultado.facturasAbiertas).toEqual({ c0: 1 });
+    // Una sola lectura por visita: la del sello.
+    expect(sello).toHaveBeenCalledTimes(2);
+  });
+
+  it("sin contar todavía por el servidor, no inventa ceros", async () => {
+    conSello(1000);
+    const resultado = await obtenerClientes(() => Promise.resolve(listaDe("Aida")));
+    expect(resultado.facturasAbiertas).toBeNull();
   });
 });

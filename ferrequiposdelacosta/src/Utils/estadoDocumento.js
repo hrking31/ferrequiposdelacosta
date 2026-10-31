@@ -67,6 +67,13 @@ const CAMPOS_INTERNOS = [
   "createdAt",
 ];
 
+// Lo que se CALCULA de los ítems, el IVA, el transporte y el depósito: si esos
+// no cambiaron, esto tampoco. Se deja afuera porque la misma cifra puede
+// quedar escrita distinto —"$0" en la cotización en blanco, "$ 0" al
+// recalcularla—, y agregar un ítem y quitarlo preguntaba al salir por un
+// cambio que no hubo (lo notó el dueño, 2026-10-30).
+const CAMPOS_CALCULADOS = ["subtotal", "subtotalNumero", "ivaNumero", "total", "totalNumero"];
+
 // Si el formulario difiere de como se abrió (ver Utils/cambios).
 export const hayCambios = (actual, original) =>
-  compararFormularios(actual, original, CAMPOS_INTERNOS);
+  compararFormularios(actual, original, [...CAMPOS_INTERNOS, ...CAMPOS_CALCULADOS]);

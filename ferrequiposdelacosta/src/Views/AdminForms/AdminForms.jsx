@@ -12,7 +12,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
 import KpiCard from "../../Components/KpiCard/KpiCard";
 import FranjaKpis from "../../Components/KpiCard/FranjaKpis";
@@ -37,9 +36,9 @@ import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario"
 import BotonAvisos from "../../Components/Avisos/BotonAvisos";
 import { formatearMoneda } from "../../Utils/formato";
 
-// En la pantalla de pie, los KPI de la izquierda (la columna del doble de
-// ancho), en este orden: los de la cartera. Los demás van a la derecha.
-const KPIS_IZQUIERDA_DE_PIE = ["PAGOS PENDIENTES", "EQUIPOS ACTIVOS"];
+// En la pantalla de pie, los KPI de la fila de arriba, en este orden: los de
+// la cartera. Los demás van en la fila de abajo.
+const KPIS_ARRIBA_DE_PIE = ["PAGOS PENDIENTES", "EQUIPOS ACTIVOS"];
 
 export default function AdminForms() {
   const theme = useTheme();
@@ -51,6 +50,11 @@ export default function AdminForms() {
   // izquierda y las áreas en 2 × 2.
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
+  // EL CELULAR ACOSTADO MUY BAJITO (unos 360px de alto): ahí los botones con
+  // el ícono arriba no entraban y salía barra. Botones acostados, uno debajo
+  // del otro, y todo un poco más justo (pedido del dueño, 2026-10-30; en los
+  // más altos, como estaba).
+  const bajito = useMediaQuery("(max-height:380px) and (orientation: landscape)");
   // LOS KPI SEGÚN EL ANCHO (pedido del dueño, 2026-10-29), de ancho a
   // angosto: las cinco tarjetas en fila (desde 1600px: más angosto, sus
   // nombres ya no caben en un renglón); la plata destacada y los demás de a
@@ -68,10 +72,10 @@ export default function AdminForms() {
   // LA PANTALLA DE PIE (más alta que ancha, desde 916px, sin la fila de cinco
   // tarjetas: una tableta, o una ventana de computador de pie). Pedido del
   // dueño, 2026-10-29 (en un iPad Pro sobraba muchísimo alto; estirar los
-  // botones y el mosaico tipo Pinterest no le gustaron): arriba los KPI, a la
-  // izquierda con el doble de ancho pagos y equipos activos, y a la derecha
-  // los otros tres uno encima del otro; abajo las áreas en 2 × 2, con sus
-  // botones lado a lado. El alto que sobra se reparte en partes iguales.
+  // botones y el mosaico tipo Pinterest no le gustaron): arriba los KPI en
+  // dos filas —pagos y equipos activos mitad y mitad, y debajo los otros tres
+  // (2026-10-30)—; abajo las áreas en 2 × 2, con sus botones lado a lado. El
+  // alto que sobra se reparte en partes iguales.
   const dePie = useMediaQuery("(orientation: portrait)") && !isFullScreen && !kpisEnFila;
   const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
   // Los números que se vieron la última vez que se pasó por acá. Se muestran
@@ -286,12 +290,10 @@ export default function AdminForms() {
     botones: botonesVisibles.filter((boton) => boton.area === area.id),
   })).filter((area) => area.botones.length > 0);
 
-  // De pie, los KPI en dos columnas (ver `dePie`).
-  // En el orden de la lista: la plata arriba.
-  const kpisIzquierda = KPIS_IZQUIERDA_DE_PIE.map((etiqueta) => kpis.find((kpi) => kpi.etiqueta === etiqueta)).filter(
-    Boolean,
-  );
-  const kpisDerecha = kpis.filter((kpi) => !KPIS_IZQUIERDA_DE_PIE.includes(kpi.etiqueta));
+  // De pie, los KPI en dos filas (ver `dePie`).
+  // En el orden de la lista: la plata primero.
+  const kpisArriba = KPIS_ARRIBA_DE_PIE.map((etiqueta) => kpis.find((kpi) => kpi.etiqueta === etiqueta)).filter(Boolean);
+  const kpisAbajo = kpis.filter((kpi) => !KPIS_ARRIBA_DE_PIE.includes(kpi.etiqueta));
 
   // UN ÁREA DEL MENÚ en su recuadro: su título y sus botones. La usan el menú
   // y la pantalla de pie.
@@ -303,28 +305,20 @@ export default function AdminForms() {
       sx={{
         minWidth: 0,
         // En el celular acostado, más justo: el alto no sobra.
-        p: acostado ? 1 : isFullScreen ? 1.25 : 2,
+        p: bajito ? 0.75 : acostado ? 1 : isFullScreen ? 1.25 : 2,
         display: "flex",
         flexDirection: "column",
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: alpha(area.tono, 0.3),
-        borderTop: "3px solid",
-        borderTopColor: area.tono,
-        bgcolor: alpha(area.tono, theme.palette.mode === "dark" ? 0.08 : 0.03),
+        // El recuadro de toda la app (theme.recuadro).
+        ...theme.recuadro(area.tono),
       }}
     >
       {/* El título del área: su ícono en un círculo y el nombre. */}
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: acostado ? 0.5 : isFullScreen ? 1 : 1.5 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: bajito ? 0.25 : acostado ? 0.5 : isFullScreen ? 1 : 1.5 }}>
         <Box
           sx={{
-            width: isFullScreen ? 24 : 30,
-            height: isFullScreen ? 24 : 30,
-            borderRadius: "50%",
-            display: "grid",
-            placeItems: "center",
-            bgcolor: alpha(area.tono, 0.15),
-            flexShrink: 0,
+            width: bajito ? 20 : isFullScreen ? 24 : 30,
+            height: bajito ? 20 : isFullScreen ? 24 : 30,
+            ...theme.iconoDeRecuadro(area.tono, bajito ? 20 : isFullScreen ? 24 : 30),
           }}
         >
           {cloneElement(area.icono, { sx: { fontSize: isFullScreen ? 15 : 18, color: area.tono } })}
@@ -339,7 +333,11 @@ export default function AdminForms() {
         sx={{
           display: "grid",
           gap: isFullScreen ? 1 : 1.5,
-          gridTemplateColumns: isFullScreen || dePie ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+          // En el celular acostado bajito, uno debajo del otro: lado a lado,
+          // con el ícono al costado, los nombres largos no cabían.
+          gridTemplateColumns:
+            (isFullScreen || dePie) && !bajito ? "repeat(2, minmax(0, 1fr))" : "minmax(0, 1fr)",
+          ...(bajito && { gap: 0.75 }),
           // En el celular, al alto del área.
           ...(isFullScreen && { flex: 1 }),
         }}
@@ -370,6 +368,22 @@ export default function AdminForms() {
               // dos renglones quepan.
               "& .MuiSvgIcon-root": { color: area.tono, ...(kpisEnColumna && { fontSize: 30 }) },
               ...(kpisEnColumna && { gap: 1 }),
+              // EN EL CELULAR ACOSTADO BAJITO, el botón también acostado: el
+              // ícono a la izquierda y el nombre al lado, en un renglón
+              // (pedido del dueño, 2026-10-30: con 360px de alto, el ícono
+              // arriba y los nombres largos en tres renglones sacaban barra).
+              ...(bajito && {
+                minHeight: 34,
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                textAlign: "left",
+                gap: 1,
+                px: 1.25,
+                py: 0.25,
+                fontSize: "0.72rem",
+                lineHeight: 1.25,
+                "& .MuiSvgIcon-root": { color: area.tono, fontSize: 22, flexShrink: 0 },
+              }),
               "&:hover": { borderColor: area.tono },
             }}
           >
@@ -450,39 +464,32 @@ export default function AdminForms() {
             py: "6px",
           }}
         >
-          {/* Los KPI: los de la izquierda con el doble de ancho; las dos
-              columnas, del mismo alto. Si un rol no tiene los de un lado, el
-              otro ocupa todo. */}
+          {/* Los KPI en dos filas (pedido del dueño, 2026-10-30): arriba los
+              de la cartera, mitad y mitad y en grande; abajo los demás, en
+              partes iguales. Si un rol no tiene los de una fila, esa no va. */}
           {kpis.length > 0 && (
-            <Box
-              sx={{
-                flexShrink: 0,
-                display: "grid",
-                gap: 2,
-                gridTemplateColumns:
-                  kpisIzquierda.length > 0 && kpisDerecha.length > 0
-                    ? "minmax(0, 2fr) minmax(0, 1fr)"
-                    : "minmax(0, 1fr)",
-              }}
-            >
-              {[kpisIzquierda, kpisDerecha]
-                .filter((lado) => lado.length > 0)
-                .map((lado) => (
-                  <Stack key={lado[0].etiqueta} spacing={1.5}>
-                    {lado.map((kpi) => (
+            <Stack spacing={2} sx={{ flexShrink: 0 }}>
+              {[kpisArriba, kpisAbajo]
+                .filter((fila) => fila.length > 0)
+                .map((fila) => (
+                  <Box
+                    key={fila[0].etiqueta}
+                    sx={{ display: "grid", gap: 2, gridTemplateColumns: `repeat(${fila.length}, minmax(0, 1fr))` }}
+                  >
+                    {fila.map((kpi) => (
                       <KpiCard
                         key={kpi.etiqueta}
                         {...kpi}
                         mediano
-                        // Las anchas de la izquierda: círculo grande, nombre
-                        // más grande y más aire.
-                        ancha={lado === kpisIzquierda}
+                        // Las de arriba: círculo grande, nombre más grande y
+                        // más aire.
+                        ancha={fila === kpisArriba}
                         onClick={undefined}
                       />
                     ))}
-                  </Stack>
+                  </Box>
                 ))}
-            </Box>
+            </Stack>
           )}
           {/* Las áreas en 2 × 2. */}
           <Box
@@ -576,7 +583,7 @@ export default function AdminForms() {
                 // levantan unos px y este contenedor recorta lo que se sale.
                 py: "6px",
                 display: "grid",
-                gap: isFullScreen ? 1.25 : 3,
+                gap: bajito ? 0.75 : isFullScreen ? 1.25 : 3,
                 // "safe": centradas mientras entren; si no, desde arriba (con
                 // "center" a secas, lo de arriba quedaba fuera de alcance). EN EL
                 // CELULAR las áreas se reparten todo el alto y sus botones crecen

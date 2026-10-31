@@ -16,6 +16,7 @@ import {
   grupoInicialDe,
   pagosDe,
   adicionalesDe,
+  transportesAdicionalesDe,
   abonosDe,
   tipoPagoDe,
   ESTADO_FACTURA_INFO,
@@ -245,7 +246,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   // Lo que se cobra aparte del alquiler.
   // El depósito no va acá: no es un cargo, y tiene su propia sección.
-  const tablaAdicionales = ({ iva, transporteTipo, transporteMonto }) => {
+  // Los transportes adicionales, uno por fila con su fecha: el viaje de más
+  // para recoger lo que quedó afuera tras una devolución parcial.
+  const tablaAdicionales = ({ iva, transporteTipo, transporteMonto, adicionalesDespues }) => {
     const hayTransporte = transporteTipo && transporteTipo !== "Sin transporte";
     const filas = [];
     if (iva > 0) filas.push(["IVA (19%)", moneda(iva)]);
@@ -255,9 +258,18 @@ export default function generarFacturaPdf({ factura, cliente }) {
         moneda(transporteMonto),
       ]);
     }
+    adicionalesDespues.forEach(({ fecha, valor }) => {
+      filas.push([
+        `Transporte adicional · ${formatearFechaLegible(fecha)}`,
+        moneda(Number(valor) || 0),
+      ]);
+    });
     if (filas.length === 0) return;
 
-    const total = (iva > 0 ? iva : 0) + (hayTransporte ? transporteMonto : 0);
+    const total =
+      (iva > 0 ? iva : 0) +
+      (hayTransporte ? transporteMonto : 0) +
+      adicionalesDespues.reduce((suma, { valor }) => suma + (Number(valor) || 0), 0);
     filas.push(["Total", moneda(total)]);
 
     y = titulo("CARGOS ADICIONALES");
@@ -310,6 +322,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
       iva: ivaDeEquipos(equiposDelGrupo),
       transporteTipo: adicionales.transporte,
       transporteMonto: Number(adicionales.valorTransporte) || 0,
+      adicionalesDespues: transportesAdicionalesDe(grupo),
     });
   };
 

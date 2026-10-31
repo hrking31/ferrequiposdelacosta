@@ -38,7 +38,7 @@ import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
-import { usePantallaCompacta } from "../../Utils/pantalla";
+import { usePantallaCompacta, usePantallaBaja, ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
 
 // Con este id los botones del encabezado y del pie guardan y deshacen.
 const ID_FORMULARIO = "form-editar-equipo";
@@ -78,6 +78,9 @@ const VistaEquipos = ({ editando = false, creando = false }) => {
   const { name, photoURL, role, genero, permisos } = useSelector((state) => state.user);
   const puedeCrear = permisos.includes("crearEquipos");
   const isFullScreen = usePantallaCompacta();
+  // EL CELULAR ACOSTADO: los botones del pie pasan a una columna a la
+  // izquierda (pedido del dueño, 2026-10-30), como en el menú.
+  const acostado = usePantallaBaja();
   const dosColumnas = useMediaQuery("(min-width:1010px)") && !isFullScreen;
   const conPanel = useMediaQuery("(min-width:1520px)") && !isFullScreen;
   const dosFotosPorFila = useMediaQuery("(min-width:1170px)") && !isFullScreen;
@@ -331,6 +334,75 @@ const VistaEquipos = ({ editando = false, creando = false }) => {
   const conPie = isFullScreen && (equipo !== null || creando);
   const botonPie = { p: 1.25 };
 
+  // Los botones del pie: abajo en fila o, acostado, en columna a la izquierda.
+  const botonesPie = (
+    <>
+      {/* Solo íconos en el pie (pedido del dueño, 2026-10-26). La
+          llave sube un nivel, como en el computador: del editor a la
+          ficha y, tocándola otra vez, a la lista. */}
+      <Tooltip title={editar ? "Volver al equipo" : "Ver catálogo"}>
+        <IconButton aria-label="EQUIPOS" onClick={volver} sx={{ ...botonPie, color: "info.main" }}>
+          <BuildIcon />
+        </IconButton>
+      </Tooltip>
+      {creando ? (
+        <>
+          <Tooltip title="Crear equipo">
+            <IconButton
+              type="submit"
+              form={ID_FORMULARIO}
+              aria-label="Crear equipo"
+              sx={{ ...botonPie, color: "success.main" }}
+            >
+              <SaveIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Cancelar y limpiar el formulario">
+            <IconButton
+              type="reset"
+              form={ID_FORMULARIO}
+              aria-label="Cancelar y limpiar el formulario"
+              sx={{ ...botonPie, color: "error.main" }}
+            >
+              <RestartAltIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      ) : editar ? (
+        <>
+          <Tooltip title="Guardar cambios">
+            <IconButton type="submit" form={ID_FORMULARIO} sx={{ ...botonPie, color: "success.main" }}>
+              <SaveIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Deshacer los cambios">
+            <IconButton type="reset" form={ID_FORMULARIO} sx={{ ...botonPie, color: "warning.main" }}>
+              <RestartAltIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      ) : (
+        <Tooltip title="Editar equipo">
+          <IconButton aria-label="Editar equipo" onClick={abrirEditor} sx={{ ...botonPie, color: "custom.accent" }}>
+            <EditIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+      {!creando && (
+        <Tooltip title="Eliminar equipo">
+          <IconButton onClick={() => setVerEliminar(true)} sx={{ ...botonPie, color: "error.main" }}>
+            <DeleteOutlineIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+      <Tooltip title="Ir al menú">
+        <IconButton onClick={() => irA("/adminforms")} sx={{ ...botonPie, color: "custom.accent" }}>
+          <DashboardIcon />
+        </IconButton>
+      </Tooltip>
+    </>
+  );
+
   return (
     <Box
       sx={{
@@ -340,7 +412,7 @@ const VistaEquipos = ({ editando = false, creando = false }) => {
         width: "100%",
         // En el celular el pie deja 5px bajo sus botones: con 7 más suman los
         // 12 del encabezado, como en la ficha del cliente. Sin pie, los 12.
-        pb: isFullScreen ? (conPie ? "7px" : 1.5) : 2,
+        pb: isFullScreen ? (conPie && !acostado ? "7px" : 1.5) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -430,76 +502,19 @@ const VistaEquipos = ({ editando = false, creando = false }) => {
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3, mx: isFullScreen ? 0 : 2 }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: acostado ? 0.5 : 3, mx: isFullScreen ? 0 : 2 }}>
+        {conPie && acostado && (
+          <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
+            {botonesPie}
+          </Stack>
+        )}
         {contenido}
       </Box>
 
-      {conPie && (
+      {conPie && !acostado && (
         <Box sx={{ py: 0.625, flexShrink: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            {/* Solo íconos en el pie (pedido del dueño, 2026-10-26). La
-                llave sube un nivel, como en el computador: del editor a la
-                ficha y, tocándola otra vez, a la lista. */}
-            <Tooltip title={editar ? "Volver al equipo" : "Ver catálogo"}>
-              <IconButton aria-label="EQUIPOS" onClick={volver} sx={{ ...botonPie, color: "info.main" }}>
-                <BuildIcon />
-              </IconButton>
-            </Tooltip>
-            {creando ? (
-              <>
-                <Tooltip title="Crear equipo">
-                  <IconButton
-                    type="submit"
-                    form={ID_FORMULARIO}
-                    aria-label="Crear equipo"
-                    sx={{ ...botonPie, color: "success.main" }}
-                  >
-                    <SaveIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Cancelar y limpiar el formulario">
-                  <IconButton
-                    type="reset"
-                    form={ID_FORMULARIO}
-                    aria-label="Cancelar y limpiar el formulario"
-                    sx={{ ...botonPie, color: "error.main" }}
-                  >
-                    <RestartAltIcon />
-                  </IconButton>
-                </Tooltip>
-              </>
-            ) : editar ? (
-              <>
-                <Tooltip title="Guardar cambios">
-                  <IconButton type="submit" form={ID_FORMULARIO} sx={{ ...botonPie, color: "success.main" }}>
-                    <SaveIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Deshacer los cambios">
-                  <IconButton type="reset" form={ID_FORMULARIO} sx={{ ...botonPie, color: "warning.main" }}>
-                    <RestartAltIcon />
-                  </IconButton>
-                </Tooltip>
-              </>
-            ) : (
-              <Tooltip title="Editar equipo">
-                <IconButton aria-label="Editar equipo" onClick={abrirEditor} sx={{ ...botonPie, color: "custom.accent" }}>
-                  <EditIcon />
-                </IconButton>
-              </Tooltip>
-            )}
-            {!creando && (
-              <Tooltip title="Eliminar equipo">
-                <IconButton onClick={() => setVerEliminar(true)} sx={{ ...botonPie, color: "error.main" }}>
-                  <DeleteOutlineIcon />
-                </IconButton>
-              </Tooltip>
-            )}
-            <Tooltip title="Ir al menú">
-              <IconButton onClick={() => irA("/adminforms")} sx={{ ...botonPie, color: "custom.accent" }}>
-                <DashboardIcon />
-              </IconButton>
-            </Tooltip>
+            {botonesPie}
           </Stack>
         </Box>
       )}

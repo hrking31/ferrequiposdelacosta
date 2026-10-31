@@ -39,7 +39,7 @@ import AvatarUsuario from "../../Components/Usuarios/AvatarUsuario";
 import useUsuarios from "../../Components/Usuarios/useUsuarios";
 import { estadoConexion, filtrarUsuarios } from "../../Components/Usuarios/usuarios";
 import useSnackbar from "../../Hooks/useSnackbar";
-import { usePantallaCompacta } from "../../Utils/pantalla";
+import { usePantallaCompacta, usePantallaBaja, ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
 
 // Con este id los botones del encabezado y del pie guardan, crean, deshacen y
 // limpian el formulario que se ve.
@@ -78,6 +78,9 @@ export default function VistaUsuarios() {
   const { uid: miUid, name, photoURL, role, genero } = useSelector((state) => state.user);
   const presencia = useSelector((state) => state.presence.usuariosConectados || {});
   const isFullScreen = usePantallaCompacta();
+  // EL CELULAR ACOSTADO: los botones del pie pasan a una columna a la
+  // izquierda (pedido del dueño, 2026-10-30), como en el menú.
+  const acostado = usePantallaBaja();
   const dosColumnas = useMediaQuery("(min-width:1010px)") && !isFullScreen;
   // LA VISTA ANCHA, igual para las tres (pedido del dueño, 2026-10-28): la
   // ficha en su recuadro grande con el carné al lado de los recuadros, y el
@@ -87,9 +90,16 @@ export default function VistaUsuarios() {
   const conCajon = dosColumnas && !vistaAncha;
   // LA FICHA, con los cortes de la de un equipo (pedido del dueño,
   // 2026-10-29): en todo el computador el carné y los recuadros en una fila
-  // y, de 960 a 1032px, en dos pisos (ver FichaUsuario).
+  // y, de 960 a 1032px con la pantalla de pie (una tableta grande), en dos
+  // pisos (ver FichaUsuario). Acostada —un iPad mini— los dos pisos no caben
+  // de alto: va como en el resto del computador (pedido del dueño, 2026-10-30).
+  const dePie = useMediaQuery("(orientation: portrait)");
   const fichaEnDosPisos =
-    useMediaQuery("(min-width:960px) and (max-width:1032px)") && !isFullScreen;
+    useMediaQuery("(min-width:960px) and (max-width:1032px)") && !isFullScreen && dePie;
+  // Con la pantalla baja (un iPad mini acostado, un portátil de 768), ROL y
+  // SESIONES lado a lado: uno debajo del otro no cabían (pedido del dueño,
+  // 2026-10-30).
+  const pantallaBaja = useMediaQuery("(max-height:800px)");
   const [verLista, setVerLista] = useState(false);
 
   const { usuarios, cargando, error, recargar } = useUsuarios();
@@ -292,6 +302,7 @@ export default function VistaUsuarios() {
         conBotones={!isFullScreen}
         llenarAlto={!isFullScreen}
         enDosPisos={fichaEnDosPisos}
+        rolYSesionesAlLado={pantallaBaja && !isFullScreen}
       />
     );
   }
@@ -451,6 +462,30 @@ export default function VistaUsuarios() {
     </Tooltip>
   );
 
+  // Los botones del pie: abajo en fila o, acostado, en columna a la izquierda.
+  const botonesPie = (
+    <>
+      {iconoPie(editar ? "Volver a la ficha" : "Volver a la lista", GroupIcon, "info.main", {
+        onClick: volver,
+      })}
+      {creando && (
+        <>
+          {iconoPie("Crear usuario", SaveIcon, "success.main", { type: "submit", form: ID_FORMULARIO })}
+          {iconoPie("Limpiar el formulario", RestartAltIcon, "error.main", { type: "reset", form: ID_FORMULARIO })}
+        </>
+      )}
+      {editar && (
+        <>
+          {iconoPie("Guardar cambios", SaveIcon, "success.main", { type: "submit", form: ID_FORMULARIO })}
+          {iconoPie("Deshacer los cambios", RestartAltIcon, "warning.main", { type: "reset", form: ID_FORMULARIO })}
+        </>
+      )}
+      {usuario && !editar && iconoPie("Editar usuario", EditIcon, "custom.accent", { onClick: abrirEditor })}
+      {usuario && iconoPie("Eliminar usuario", DeleteOutlineIcon, "error.main", { onClick: () => setVerEliminar(true) })}
+      {iconoPie("Ir al menú", DashboardIcon, "custom.accent", { onClick: () => irA("/adminforms") })}
+    </>
+  );
+
   return (
     <Box
       sx={{
@@ -460,7 +495,7 @@ export default function VistaUsuarios() {
         width: "100%",
         // Los mismos aires de Equipos: con pie, 7px que con los 5 del pie
         // suman los 12 del encabezado.
-        pb: isFullScreen ? (conPie ? "7px" : 1.5) : 2,
+        pb: isFullScreen ? (conPie && !acostado ? "7px" : 1.5) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -493,31 +528,19 @@ export default function VistaUsuarios() {
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3, mx: isFullScreen ? 0 : 2 }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: acostado ? 0.5 : 3, mx: isFullScreen ? 0 : 2 }}>
+        {conPie && acostado && (
+          <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
+            {botonesPie}
+          </Stack>
+        )}
         {contenido}
       </Box>
 
-      {conPie && (
+      {conPie && !acostado && (
         <Box sx={{ py: 0.625, flexShrink: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            {iconoPie(editar ? "Volver a la ficha" : "Volver a la lista", GroupIcon, "info.main", {
-              onClick: volver,
-            })}
-            {creando && (
-              <>
-                {iconoPie("Crear usuario", SaveIcon, "success.main", { type: "submit", form: ID_FORMULARIO })}
-                {iconoPie("Limpiar el formulario", RestartAltIcon, "error.main", { type: "reset", form: ID_FORMULARIO })}
-              </>
-            )}
-            {editar && (
-              <>
-                {iconoPie("Guardar cambios", SaveIcon, "success.main", { type: "submit", form: ID_FORMULARIO })}
-                {iconoPie("Deshacer los cambios", RestartAltIcon, "warning.main", { type: "reset", form: ID_FORMULARIO })}
-              </>
-            )}
-            {usuario && !editar && iconoPie("Editar usuario", EditIcon, "custom.accent", { onClick: abrirEditor })}
-            {usuario && iconoPie("Eliminar usuario", DeleteOutlineIcon, "error.main", { onClick: () => setVerEliminar(true) })}
-            {iconoPie("Ir al menú", DashboardIcon, "custom.accent", { onClick: () => irA("/adminforms") })}
+            {botonesPie}
           </Stack>
         </Box>
       )}

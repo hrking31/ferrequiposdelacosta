@@ -11,7 +11,9 @@ import BOTONES_MENU from "../RolesPermisos/botonesMenu";
 // `rolGuardado`: al editar, la tarjeta del rol que tiene hoy lo dice.
 // `columnas`: dos en el computador; una en el celular.
 // `llenar`: las tarjetas se reparten el alto de su recuadro (el editor en el
-// computador ancho, sin huecos).
+// computador ancho, sin huecos), con poco aire de mínimo: estiradas no se
+// nota, y en una pantalla baja —el iPad mini acostado— así caben (pedido del
+// dueño, 2026-10-30).
 export default function ElegirRol({ valor, onChange, rolGuardado, columnas = 2, llenar = false }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
@@ -23,7 +25,7 @@ export default function ElegirRol({ valor, onChange, rolGuardado, columnas = 2, 
       sx={{
         display: "grid",
         gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))`,
-        gap: 1.25,
+        gap: llenar ? 0.75 : 1.25,
         alignContent: "start",
         ...(llenar && { flex: 1, gridTemplateRows: `repeat(${ROLES.length / columnas}, 1fr)`, alignContent: "stretch" }),
       }}
@@ -42,9 +44,9 @@ export default function ElegirRol({ valor, onChange, rolGuardado, columnas = 2, 
               flexDirection: "column",
               alignItems: "stretch",
               justifyContent: "center",
-              gap: 0.5,
+              gap: llenar ? 0.25 : 0.5,
               px: 1.75,
-              py: columnas === 1 ? 1 : 1.5,
+              py: llenar ? 0.625 : columnas === 1 ? 1 : 1.5,
               borderRadius: 2,
               border: "2px solid",
               borderColor: marcado ? acento : "divider",

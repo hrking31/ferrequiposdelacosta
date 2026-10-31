@@ -492,27 +492,9 @@ export default function ClienteSeguimientoCard({
   // llegue a la bodega.
   const colorPorRecoger = theme.palette.custom.estadoEquipo.porRecoger;
 
-  // El recuadro teñido de los bloques de factura: borde del color, un
-  // resplandor hacia adentro y un degradado en diagonal. Copiado tal cual de
-  // ClienteDetalle para que las dos pantallas no se separen.
-  const recuadroDeBloque = (color) => ({
-    p: 1,
-    borderRadius: 1,
-    bgcolor: "background.paper",
-    border: "1px solid",
-    borderColor: color,
-    boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
-    position: "relative",
-    overflow: "hidden",
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: "inherit",
-      background: `linear-gradient(135deg, ${alpha(color, 0.12)}, ${alpha(color, 0.03)})`,
-      pointerEvents: "none",
-    },
-  });
+  // El recuadro de los bloques de factura: el de toda la app
+  // (theme.recuadro), igual que en la ficha del cliente.
+  const recuadroDeBloque = (color) => ({ p: 1, ...theme.recuadro(color) });
 
   // El color de la URGENCIA: rojo lo vencido, ámbar lo que vence hoy, gris lo
   // que todavía tiene plazo, teal lo de entrega indefinida. En Seguimiento eso
@@ -1127,10 +1109,9 @@ export default function ClienteSeguimientoCard({
   return (
     <Box
       sx={{
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
+        // El recuadro de toda la app (theme.recuadro), como el de cada
+        // factura en la ficha del cliente.
+        ...theme.recuadro(acento),
         boxShadow: 1,
         // EN EL CELULAR, la mitad de relleno. Este recuadro y el de la factura
         // ponían 16px por lado cada uno: entre los dos, 68px de los 344 de

@@ -110,9 +110,8 @@ export const renderMedioPago = (medio) => {
 };
 
 // El recuadro de color que envuelve cada bloque de una factura: la
-// informacion de pago, los cargos adicionales y los abonos. Todo su aspecto
-// —el borde, el resplandor y el degradado— sale del color que se le pase,
-// que es el del bloque al que pertenece.
+// informacion de pago, los cargos adicionales y los abonos. Su aspecto es el
+// de todos los recuadros de la app (theme.recuadro), del color del bloque.
 export const renderRecuadroBloque = (color, contenido, key) => (
   <Box
     key={key}
@@ -121,30 +120,7 @@ export const renderRecuadroBloque = (color, contenido, key) => (
       // En el celular angosto los bordes se aprietan a la mitad: el aire que
       // sobra a los lados le hace falta al contenido.
       [theme.pantallaAngosta]: { px: 0.75 },
-      borderRadius: 1,
-      bgcolor: "background.paper",
-      border: "1px solid",
-      // Todo el recuadro se tiñe del color del bloque: el borde, un
-      // resplandor difuso alrededor y un degradado por encima.
-      borderColor: color,
-      // El resplandor va hacia ADENTRO: como sombra externa se derramaba
-      // por fuera del borde y manchaba lo que tenía al lado.
-      boxShadow: `inset 0 0 12px ${alpha(color, 0.2)}`,
-      position: "relative",
-      // Recorta el degradado al radio del borde: con inset 0 las esquinas
-      // se le salían por encima.
-      overflow: "hidden",
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        // El degradado cubre el recuadro completo: entra fuerte por la
-        // esquina de arriba y se va aclarando en diagonal, pero sin llegar
-        // nunca a transparente.
-        background: `linear-gradient(135deg, ${alpha(color, 0.16)}, ${alpha(color, 0.04)})`,
-        pointerEvents: "none",
-      },
+      ...theme.recuadro(color),
     })}
   >
     {contenido}

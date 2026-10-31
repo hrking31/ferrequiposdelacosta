@@ -603,6 +603,16 @@ describe("RegistrarDevolucionDialog — calificar sin devolver todo", () => {
   });
 });
 
+describe("RegistrarDevolucionDialog — transporte adicional con el último equipo", () => {
+  it("si vuelve todo no lo ofrece: ya no queda nada que ir a buscar", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "5");
+
+    expect(screen.queryByLabelText("Transporte adicional")).not.toBeInTheDocument();
+  });
+});
+
 describe("RegistrarDevolucionDialog — devuelve una parte", () => {
   it("parte la línea en dos: lo que volvió y lo que sigue afuera", async () => {
     const { usuario } = abrir();
@@ -698,6 +708,44 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
       tipo: "devolucionParcial",
       unidades: 3,
     });
+  });
+
+  // EL TRANSPORTE ADICIONAL (pedido del dueño, 2026-10-30): la vuelta pagada
+  // se usa con lo que vuelve hoy, y recoger lo que queda es otro viaje.
+  it("ofrece el transporte adicional y lo suma al despacho, con su fecha", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "3");
+    await usuario.click(screen.getByLabelText("Transporte adicional"));
+    await usuario.type(screen.getByLabelText("Valor del transporte adicional"), "40000");
+    expect(asiQueda()).toContain(`Transporte adicional ${enPantalla(40000)}`);
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [despacho] = loGuardadoEnLaFactura().grupos;
+    expect(despacho.adicionales.transportesAdicionales).toEqual([{ fecha: HOY, valor: 40000 }]);
+  });
+
+  it("marcado sin valor no guarda", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "3");
+    await usuario.click(screen.getByLabelText("Transporte adicional"));
+    await guardar(usuario);
+
+    expect(await screen.findByText("Escribí el valor del transporte adicional.")).toBeInTheDocument();
+    expect(bd.update).not.toHaveBeenCalled();
+  });
+
+  it("sin marcar, el despacho queda sin transporte adicional", async () => {
+    const { usuario } = abrir();
+
+    await devolver(usuario, "3");
+    await guardar(usuario);
+
+    expect(await exito()).toBeInTheDocument();
+    const [despacho] = loGuardadoEnLaFactura().grupos;
+    expect(despacho.adicionales).not.toHaveProperty("transportesAdicionales");
   });
 
   // Los andamios vencían el 3 de agosto, así que esta factura ya está en

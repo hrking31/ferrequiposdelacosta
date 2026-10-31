@@ -13,6 +13,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import EditIcon from "@mui/icons-material/Edit";
+import { ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
 
 export default function BotonesCliente({
   // Facturas con saldo: las que pueden recibir un abono.
@@ -29,6 +30,10 @@ export default function BotonesCliente({
   // En el pie los seis se reparten el ancho; dentro de la tarjeta van
   // pegados a la derecha, como estaban.
   repartidos = false,
+  // Con el celular acostado van en una columna a la izquierda, uno encima
+  // del otro y repartidos a lo alto (pedido del dueño, 2026-10-30), igual de
+  // grandes que en el pie.
+  enColumna = false,
   // En computador la vista ya tiene su propia carpeta para volver, arriba a
   // la derecha, así que ahí esta no va.
   conVolver = true,
@@ -45,18 +50,23 @@ export default function BotonesCliente({
   // franja que los contiene compensa con menos aire: 44 + 5 + 5 = los mismos
   // 54px que medía con los botones chicos. Dentro de la tarjeta —computador,
   // con mouse— siguen chicos, que es lo que entra al lado del nombre.
-  const tamano = repartidos ? "medium" : "small";
-  const botonSx = { color: "custom.accent", ...(repartidos && { p: 1.25 }) };
+  const grandes = repartidos || enColumna;
+  const tamano = grandes ? "medium" : "small";
+  const botonSx = { color: "custom.accent", ...(grandes && { p: 1.25 }) };
 
   return (
     <Stack
-      direction="row"
+      direction={enColumna ? "column" : "row"}
       alignItems="center"
       // Repartidos, cada uno cae bajo el dedo sin apuntar; juntos, se aprietan
       // entre sí.
-      justifyContent={repartidos ? "space-between" : "flex-end"}
-      spacing={repartidos ? 0 : 1}
-      sx={{ flexShrink: 0, width: repartidos ? "100%" : "auto" }}
+      justifyContent={repartidos ? "space-between" : enColumna ? "space-evenly" : "flex-end"}
+      spacing={repartidos || enColumna ? 0 : 1}
+      sx={{
+        flexShrink: 0,
+        width: repartidos ? "100%" : "auto",
+        ...(enColumna && { ml: ALINEAR_CON_EL_BORDE }),
+      }}
     >
       {conVolver && (
         <Tooltip title="Volver a Clientes">
@@ -149,5 +159,6 @@ BotonesCliente.propTypes = {
   onPasarACuentaCobro: PropTypes.func.isRequired,
   onEditarCliente: PropTypes.func.isRequired,
   repartidos: PropTypes.bool,
+  enColumna: PropTypes.bool,
   conVolver: PropTypes.bool,
 };

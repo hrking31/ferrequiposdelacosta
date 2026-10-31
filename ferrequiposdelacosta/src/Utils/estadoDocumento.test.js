@@ -92,6 +92,21 @@ describe("hayCambios", () => {
     expect(hayCambios(cotizacion({ items: [] }), cotizacion())).toBe(true);
   });
 
+  // Agregar un ítem y quitarlo recalcula los totales: la misma cifra queda
+  // escrita "$ 0" en vez de "$0", y eso no es un cambio del usuario.
+  it("agregar un ítem y quitarlo no cuenta como cambio", () => {
+    const enBlanco = cotizacion({ items: [], subtotal: "$0", total: "$0", totalNumero: 0 });
+    const recalculada = cotizacion({
+      items: [],
+      subtotal: "$ 0",
+      total: "$ 0",
+      totalNumero: 0,
+      subtotalNumero: 0,
+      ivaNumero: 0,
+    });
+    expect(hayCambios(recalculada, enBlanco)).toBe(false);
+  });
+
   it("no le afecta el orden en que estén las claves", () => {
     const alReves = { totalNumero: 2000, empresa: "Ana Pérez" };
     const enOrden = { empresa: "Ana Pérez", totalNumero: 2000 };

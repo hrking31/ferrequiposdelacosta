@@ -1,7 +1,6 @@
 import PropTypes from "prop-types";
 import { Box, IconButton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { alpha } from "@mui/material/styles";
 
 // LA COLUMNA DE LA DERECHA del buzón de cotizaciones y de la lista de cuentas
 // de cobro, solo en computador ancho (2026-10-22): un recuadro que muestra lo
@@ -25,10 +24,8 @@ export default function PanelDocumentos({ titulo, icono, cantidad, onCerrar, chi
         minHeight: 0,
         overflowY: "auto",
         p: 1.5,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: alpha(acento, 0.5),
-        bgcolor: "background.paper",
+        // El recuadro de toda la app (theme.recuadro), del acento.
+        ...theme.recuadro(acento),
         boxSizing: "border-box",
         // En columna, para que el contenido pueda estirarse al alto que queda
         // (ver ResumenLista, que reparte sus secciones a lo alto).

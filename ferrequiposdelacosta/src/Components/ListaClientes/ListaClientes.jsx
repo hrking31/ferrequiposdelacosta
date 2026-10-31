@@ -75,6 +75,10 @@ const tieneTelefonoValido = (telefono) =>
   telefono && !CODIGOS_SIN_TELEFONO.includes(String(telefono).trim().toUpperCase());
 
 const TAMANO_PAGINA_MOVIL = 20;
+// En el PC la página trae los clientes que caben enteros en la tabla, en
+// cualquier pantalla (se mide su alto, pedido del dueño, 2026-10-30); 12 es
+// solo hasta medir. Para que la cuenta sirva, cada fila es de UN renglón:
+// lo que no cabe se corta con "…" y se lee entero al pasar el mouse.
 const TAMANO_PAGINA_PC = 12;
 const ALTO_FILA = 45;
 
@@ -87,8 +91,14 @@ export default function ListaClientes() {
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [clientes, setClientes] = useState([]);
+  // Las facturas sin finalizar de cada cliente, por id. Llegan con el sello de
+  // la copia, sin lecturas de más (ver clientesCache). null: el servidor
+  // todavía no las contó nunca.
+  const [facturasAbiertas, setFacturasAbiertas] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pagina, setPagina] = useState(1);
+  const [filasQueCaben, setFilasQueCaben] = useState(TAMANO_PAGINA_PC);
+  const [cajaTabla, setCajaTabla] = useState(null);
   const [cantidadVisible, setCantidadVisible] = useState(TAMANO_PAGINA_MOVIL);
   const [crearClienteOpen, setCrearClienteOpen] = useState(false);
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
@@ -99,7 +109,7 @@ export default function ListaClientes() {
   const fetchClientes = useCallback(async () => {
     try {
       setLoading(true);
-      const { clientes: lista } = await obtenerClientes(async () => {
+      const { clientes: lista, facturasAbiertas: abiertas } = await obtenerClientes(async () => {
         const querySnapshot = await getDocs(collection(db, "clientes"));
         return querySnapshot.docs.map((docSnap) => ({
           id: docSnap.id,
@@ -107,6 +117,7 @@ export default function ListaClientes() {
         }));
       });
       setClientes(lista);
+      setFacturasAbiertas(abiertas);
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
       showSnackbar("Error al cargar la lista de clientes", "error");
@@ -165,16 +176,34 @@ export default function ListaClientes() {
     setCantidadVisible(TAMANO_PAGINA_MOVIL);
   }, [busqueda, filtroEstado, filtroTipo]);
 
-  const tamanoPaginaActual = esMovil ? TAMANO_PAGINA_MOVIL : TAMANO_PAGINA_PC;
+  useEffect(() => {
+    if (!cajaTabla) return undefined;
+    const medir = () => {
+      if (!cajaTabla.clientHeight) return;
+      const encabezado = cajaTabla.querySelector("thead")?.offsetHeight ?? ALTO_FILA;
+      setFilasQueCaben(Math.max(1, Math.floor((cajaTabla.clientHeight - encabezado) / ALTO_FILA)));
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(cajaTabla);
+    return () => observador.disconnect();
+  }, [cajaTabla]);
+
+  const tamanoPaginaActual = esMovil ? TAMANO_PAGINA_MOVIL : filasQueCaben;
   const totalPaginas = Math.max(1, Math.ceil(clientesFiltrados.length / tamanoPaginaActual));
   const inicioMostrado = clientesFiltrados.length === 0 ? 0 : (pagina - 1) * tamanoPaginaActual + 1;
   const finMostrado = Math.min(pagina * tamanoPaginaActual, clientesFiltrados.length);
 
   const clientesVisibles = useMemo(() => {
     if (esMovil) return clientesFiltrados.slice(0, cantidadVisible);
-    const inicio = (pagina - 1) * TAMANO_PAGINA_PC;
-    return clientesFiltrados.slice(inicio, inicio + TAMANO_PAGINA_PC);
-  }, [clientesFiltrados, esMovil, cantidadVisible, pagina]);
+    const inicio = (pagina - 1) * filasQueCaben;
+    return clientesFiltrados.slice(inicio, inicio + filasQueCaben);
+  }, [clientesFiltrados, esMovil, cantidadVisible, pagina, filasQueCaben]);
+
+  // Si al agrandar la ventana caben más y sobran páginas, vuelve a la última.
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
 
   const botonAgregar = (
     <Button
@@ -501,10 +530,8 @@ export default function ListaClientes() {
                         }}
                         sx={{
                           p: 1.25,
-                          borderRadius: 3,
-                          bgcolor: "background.paper",
-                          border: "1px solid",
-                          borderColor: "divider",
+                          // El recuadro de toda la app (theme.recuadro).
+                          ...theme.recuadro(acento),
                           boxShadow: 1,
                           cursor: "pointer",
                           userSelect: "none",
@@ -608,10 +635,9 @@ export default function ListaClientes() {
           onClick={() => setCrearClienteOpen(true)}
           sx={{
             position: "fixed",
-            // Los 120 de antes dejaban libre el pie con el botón MENU, que se
-            // mudó arriba junto al buscador. Ahora solo tiene que librar la
-            // barra inferior de la app.
-            bottom: 80,
+            // Pegado abajo, de pie y acostado: la vista ya no tiene barra
+            // inferior que librar (pedido del dueño, 2026-10-30).
+            bottom: 24,
             right: 24,
             bgcolor: acento,
             color: theme.palette.getContrastText(acento),
@@ -718,28 +744,36 @@ export default function ListaClientes() {
               minHeight: 0,
               display: "flex",
               flexDirection: "column",
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.paper",
+              // El recuadro de toda la app (theme.recuadro), del acento.
+              ...theme.recuadro(acento),
             }}
           >
-            <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <Box ref={setCajaTabla} sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
               <Table
                 stickyHeader
                 size="small"
                 sx={{
+                  tableLayout: "fixed",
                   "& .MuiTableRow-root": { height: ALTO_FILA },
+                  // Los títulos quedan fijos al bajar y llevan fondo propio:
+                  // con el degradado del recuadro no lo cortan.
+                  "& .MuiTableCell-stickyHeader": {
+                    bgcolor: "background.paper",
+                    backgroundImage: theme.degradadoRecuadro(acento),
+                  },
                   "& tbody .MuiTableCell-root": { borderBottom: "none" },
                 }}
               >
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700 }}>Nombre del Cliente</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Contacto</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 160 }}>Contacto</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Dirección</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} align={ocultarSidebar ? "center" : "left"}>
+                    <TableCell sx={{ fontWeight: 700, width: 140 }}>Estado</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 90 }} align="center">
+                      Facturas
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 160 }} align={ocultarSidebar ? "center" : "left"}>
                       Acciones
                     </TableCell>
                   </TableRow>
@@ -747,7 +781,7 @@ export default function ListaClientes() {
                 <TableBody>
                   {clientesVisibles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4, border: 0 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4, border: 0 }}>
                         <Typography variant="body2" color="text.secondary">
                           No se encontraron clientes.
                         </Typography>
@@ -763,7 +797,7 @@ export default function ListaClientes() {
                     return (
                       <TableRow key={cliente.id} hover>
                         <TableCell>
-                          <Stack direction="row" spacing={1.5} alignItems="center">
+                          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
                             <Avatar
                               sx={{
                                 bgcolor:
@@ -778,7 +812,7 @@ export default function ListaClientes() {
                                 <PersonIcon sx={{ fontSize: 16 }} />
                               )}
                             </Avatar>
-                            <Typography variant="body2" fontWeight="bold">
+                            <Typography variant="body2" fontWeight="bold" noWrap title={nombreCompleto}>
                               {nombreCompleto}
                             </Typography>
                           </Stack>
@@ -788,10 +822,10 @@ export default function ListaClientes() {
                           {telefonoValido ? (
                             <Stack direction="row" spacing={0.5} alignItems="center">
                               <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                              <Typography variant="body2">{cliente.telefono}</Typography>
+                              <Typography variant="body2" noWrap>{cliente.telefono}</Typography>
                             </Stack>
                           ) : (
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" noWrap>
                               Sin teléfono
                             </Typography>
                           )}
@@ -801,12 +835,8 @@ export default function ListaClientes() {
                           <Typography
                             variant="body2"
                             color="text.secondary"
-                            sx={{
-                              maxWidth: 220,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
+                            noWrap
+                            title={cliente.direccion || undefined}
                           >
                             {cliente.direccion || "—"}
                           </Typography>
@@ -824,6 +854,13 @@ export default function ListaClientes() {
                               "& .MuiChip-icon": { color: "inherit" },
                             }}
                           />
+                        </TableCell>
+
+                        {/* Solo las que no están finalizadas. */}
+                        <TableCell align="center">
+                          <Typography variant="body2" fontWeight={600}>
+                            {facturasAbiertas ? facturasAbiertas[cliente.id] ?? 0 : "—"}
+                          </Typography>
                         </TableCell>
 
                         <TableCell>

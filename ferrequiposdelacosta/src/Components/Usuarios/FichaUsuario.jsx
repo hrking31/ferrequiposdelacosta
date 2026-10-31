@@ -42,7 +42,14 @@ const GENEROS = { femenino: "Femenino", masculino: "Masculino" };
 // `enDosPisos` (con `llenarAlto`): de 960 a 1032px, como la ficha de un
 // equipo (pedido del dueño, 2026-10-29): arriba el carné y DATOS, mitad y
 // mitad; abajo ROL, angosto y con su menú de a dos, y SESIONES al lado, del
-// mismo alto; y EDITAR y ELIMINAR al final. Se desplaza si no cabe.
+// mismo alto; y EDITAR y ELIMINAR al final. Se desplaza si no cabe. Es para
+// una tableta de pie: arriba mide lo justo y el alto que sobra se lo lleva el
+// piso de abajo, donde las casillas del rol y la lista de sesiones crecen
+// (2026-10-30).
+//
+// `rolYSesionesAlLado` (con `llenarAlto`): en una pantalla baja —un iPad mini
+// acostado— ROL y SESIONES van lado a lado debajo de DATOS; uno debajo del
+// otro, las sesiones quedaban aplastadas (pedido del dueño, 2026-10-30).
 export default function FichaUsuario({
   usuario,
   conexion,
@@ -55,6 +62,7 @@ export default function FichaUsuario({
   conBotones = true,
   llenarAlto = false,
   enDosPisos = false,
+  rolYSesionesAlLado = false,
 }) {
   const theme = useTheme();
   const acento = theme.palette.custom.accent;
@@ -70,6 +78,7 @@ export default function FichaUsuario({
       useFlexGap
       flexWrap="wrap"
       justifyContent={llenarAlto ? "center" : "flex-start"}
+      sx={{ maxWidth: "100%" }}
     >
       <Chip
         size="small"
@@ -81,6 +90,11 @@ export default function FichaUsuario({
         size="small"
         label={conexion.largo}
         sx={{
+          // En el carné angosto (ROL y SESIONES lado a lado) no cabe en un
+          // renglón: se parte en dos en vez de salirse (2026-10-30).
+          height: "auto",
+          minHeight: 24,
+          "& .MuiChip-label": { whiteSpace: "normal", textAlign: "center" },
           fontWeight: 700,
           bgcolor: conexion.enLinea ? alpha(theme.palette.success.main, 0.12) : "action.hover",
           color: conexion.enLinea ? "success.dark" : "text.secondary",
@@ -103,8 +117,9 @@ export default function FichaUsuario({
   const carne = llenarAlto ? (
     <Box
       sx={{
-        // En dos pisos, la mitad del ancho (ver abajo).
-        width: enDosPisos ? "auto" : 300,
+        // En dos pisos, la mitad del ancho (ver abajo). Con ROL y SESIONES
+        // lado a lado, más angosto: el ancho les hace falta a ellos.
+        width: enDosPisos ? "auto" : rolYSesionesAlLado ? 240 : 300,
         minWidth: 0,
         flexShrink: 0,
         boxSizing: "border-box",
@@ -117,6 +132,7 @@ export default function FichaUsuario({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        ...(enDosPisos && { justifyContent: "center" }),
         textAlign: "center",
         gap: 1.5,
         overflowY: "auto",
@@ -148,12 +164,7 @@ export default function FichaUsuario({
         alignItems: "center",
         gap: 1.75,
         p: 1.75,
-        borderRadius: 2,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
-        borderTop: "3px solid",
-        borderTopColor: acento,
+        ...theme.recuadro(acento),
       }}
     >
       <AvatarUsuario usuario={usuario} tamano={72} enLinea={conexion.enLinea} anillo />
@@ -189,12 +200,17 @@ export default function FichaUsuario({
   );
 
   const seccionRol = (
-    <Seccion titulo="ROL" icono={<VerifiedUserIcon />} color={colores.rol}>
+    <Seccion titulo="ROL" icono={<VerifiedUserIcon />} color={colores.rol} crece={enDosPisos}>
       <Typography variant="body2" sx={{ mt: -0.5, mb: 1.5 }}>
         <strong>{rol?.nombre || "Sin rol"}</strong>
         {rol && ` · ${rol.descripcion}`}
       </Typography>
-      <MenuDelRol rol={usuario.role} compacto={!llenarAlto || enDosPisos} columnas={enDosPisos ? 2 : 3} />
+      <MenuDelRol
+        rol={usuario.role}
+        compacto={!llenarAlto || enDosPisos || rolYSesionesAlLado}
+        columnas={enDosPisos || rolYSesionesAlLado ? 2 : 3}
+        llenar={enDosPisos || rolYSesionesAlLado}
+      />
     </Seccion>
   );
 
@@ -211,16 +227,10 @@ export default function FichaUsuario({
         onCerrarSesionAparato={onCerrarSesionAparato}
         onCerrarSesiones={onCerrarSesiones}
         onQuitarDosPasos={onQuitarDosPasos}
+        estira={enDosPisos || rolYSesionesAlLado}
+        fechaDebajo={rolYSesionesAlLado}
       />
     </Seccion>
-  );
-
-  const recuadros = (
-    <>
-      {seccionDatos}
-      {seccionRol}
-      {seccionSesiones}
-    </>
   );
 
   // El recuadro grande de la ficha en el computador.
@@ -228,25 +238,36 @@ export default function FichaUsuario({
     height: "100%",
     boxSizing: "border-box",
     p: 3,
-    bgcolor: "background.paper",
-    border: "1px solid",
-    borderColor: "divider",
-    borderTop: "3px solid",
-    borderTopColor: acento,
-    borderRadius: 2,
+    ...theme.recuadro(acento),
     display: "flex",
   };
 
   if (enDosPisos) {
     return (
       <Box sx={{ ...marco, flexDirection: "column", gap: 2, overflowY: "auto" }}>
-        {/* Mitad y mitad, y del mismo alto: el del más alto. */}
-        <Box sx={{ flexShrink: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 3 }}>
+        {/* Mitad y mitad, y del mismo alto: el del más alto. Mide lo justo:
+            el alto sobrante se lo lleva el piso de abajo, que tiene más que
+            mostrar (pedido del dueño, 2026-10-30). */}
+        <Box
+          sx={{
+            flex: "0 0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 3,
+          }}
+        >
           {carne}
           <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>{seccionDatos}</Box>
         </Box>
-        {/* ROL angosto (su menú de a dos) y SESIONES con el resto. */}
-        <Box sx={{ flexShrink: 0, display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)", gap: 2 }}>
+        {/* ROL (su menú de a dos) y SESIONES, mitad y mitad (2026-10-30). */}
+        <Box
+          sx={{
+            flex: "1 1 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 2,
+          }}
+        >
           {seccionRol}
           {seccionSesiones}
         </Box>
@@ -271,7 +292,27 @@ export default function FichaUsuario({
         {/* Sin barra para desplazar (pedido del dueño, 2026-10-28): si no
             cabe, se achican las sesiones y solo su lista se desplaza. */}
         <Stack spacing={2} sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
-          {recuadros}
+          {seccionDatos}
+          {rolYSesionesAlLado ? (
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gridTemplateRows: "minmax(0, 1fr)",
+                gap: 2,
+              }}
+            >
+              {seccionRol}
+              {seccionSesiones}
+            </Box>
+          ) : (
+            <>
+              {seccionRol}
+              {seccionSesiones}
+            </>
+          )}
         </Stack>
       </Box>
     );
@@ -280,7 +321,9 @@ export default function FichaUsuario({
   return (
     <Stack spacing={1.5} sx={{ pb: 1.5 }}>
       {carne}
-      {recuadros}
+      {seccionDatos}
+      {seccionRol}
+      {seccionSesiones}
       {botones}
     </Stack>
   );
@@ -306,4 +349,6 @@ FichaUsuario.propTypes = {
   conBotones: PropTypes.bool,
   llenarAlto: PropTypes.bool,
   enDosPisos: PropTypes.bool,
+  // La pantalla más alta que ancha (una tableta de pie).
+  rolYSesionesAlLado: PropTypes.bool,
 };

@@ -336,6 +336,71 @@ describe("corregir una factura — los datos del equipo y del despacho", () => {
     expect(corregida.grupos[0].equipos[0]).toBe(factura.grupos[0].equipos[0]);
   });
 
+  // El formulario de corrección no los muestra: corregir el flete no puede
+  // borrar el transporte adicional que se anotó al devolver una parte.
+  it("corregir el transporte conserva los transportes adicionales", () => {
+    const factura = facturaVieja();
+    const adicional = { fecha: "2026-10-05", valor: 40000 };
+    factura.grupos[0].adicionales = {
+      ...factura.grupos[0].adicionales,
+      transportesAdicionales: [adicional],
+    };
+    const inicial = borradorDe(factura);
+    const borrador = {
+      ...inicial,
+      grupos: [{ ...inicial.grupos[0], transporte: "Solo ida", valorTransporte: "15000" }],
+    };
+
+    const corregida = facturaCorregida(factura, borrador, HOY);
+
+    expect(corregida.grupos[0].adicionales.valorTransporte).toBe(15000);
+    expect(corregida.grupos[0].adicionales.transportesAdicionales).toEqual([adicional]);
+  });
+
+  it("corrige la fecha y el valor de un transporte adicional, o lo quita", () => {
+    const factura = facturaVieja();
+    factura.grupos[0].adicionales = {
+      ...factura.grupos[0].adicionales,
+      transportesAdicionales: [{ fecha: "2026-10-05", valor: 40000 }],
+    };
+    const inicial = borradorDe(factura);
+    const conLista = (transportesAdicionales) => ({
+      ...inicial,
+      grupos: [{ ...inicial.grupos[0], transportesAdicionales }],
+    });
+
+    const corregida = facturaCorregida(
+      factura,
+      conLista([{ fecha: "2026-10-06", valor: "30000" }]),
+      HOY,
+    );
+    expect(corregida.grupos[0].adicionales.transportesAdicionales).toEqual([
+      { fecha: "2026-10-06", valor: 30000 },
+    ]);
+
+    const sinNinguno = facturaCorregida(factura, conLista([]), HOY);
+    expect(sinNinguno.grupos[0].adicionales).not.toHaveProperty("transportesAdicionales");
+  });
+
+  it("un transporte adicional sin valor o con fecha futura no deja guardar", () => {
+    const factura = facturaVieja();
+    factura.grupos[0].adicionales = {
+      ...factura.grupos[0].adicionales,
+      transportesAdicionales: [{ fecha: "2026-10-05", valor: 40000 }],
+    };
+    const inicial = borradorDe(factura);
+    const borrador = {
+      ...inicial,
+      grupos: [
+        { ...inicial.grupos[0], transportesAdicionales: [{ fecha: "2026-10-20", valor: "" }] },
+      ],
+    };
+
+    const errores = erroresDelBorrador(borrador, HOY).join(" | ");
+    expect(errores).toContain("un transporte adicional no puede tener una fecha futura");
+    expect(errores).toContain("un transporte adicional no tiene valor");
+  });
+
   it("se puede cargar el equipo que faltó y quitar el que sobraba", () => {
     const factura = facturaVieja();
     const inicial = borradorDe(factura);

@@ -314,6 +314,22 @@ export default function ClienteDetalle() {
     );
   }
 
+  // Los botones del cliente en el celular: en el pie o, acostado, en una
+  // columna a la izquierda.
+  const botonesDelCliente = (forma) => (
+    <BotonesCliente
+      hayFacturasParaReporte={facturasParaReporte.length > 0}
+      hayFacturasParaDocumentos={hayFacturasParaDocumentos}
+      onVolver={() => navigate("/vistaclientes")}
+      onCrearFactura={() => setCrearFacturaOpen(true)}
+      onDescargarReporte={() => abrirConFinalizadas(setReporteOpen)}
+      onRegistrarAbono={() => setAbonoOpen(true)}
+      onPasarACuentaCobro={() => abrirConFinalizadas(setCuentaCobroOpen)}
+      onEditarCliente={() => setEditarOpen(true)}
+      {...forma}
+    />
+  );
+
   return (
     <Box
       sx={{
@@ -323,10 +339,14 @@ export default function ClienteDetalle() {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
+        // Acostado, los botones del cliente van en una columna a la izquierda
+        // en vez del pie.
+        flexDirection: altoCorto ? "row" : "column",
+        columnGap: 0.5,
         minHeight: 0,
       }}
     >
+      {altoCorto && botonesDelCliente({ enColumna: true })}
       {/* CON LA PANTALLA ALTA esto es una columna y solo la lista de abajo se
           desplaza; con el celular acostado es una sola caja que se desplaza
           entera, tarjeta del cliente incluida. Los botones del pie quedan
@@ -425,7 +445,7 @@ export default function ClienteDetalle() {
           pulgar, y arriba, en la esquina de la tarjeta, era el peor lugar
           para tocar de todos. Se dibujan acá y no en la vista porque acá
           viven los diálogos que abren. */}
-      {isFullScreen && (
+      {isFullScreen && !altoCorto && (
         // El mismo aire arriba y abajo: la fila queda centrada en su franja.
         // Son 5px y no 12 porque los botones de acá abajo son los grandes, de
         // 44: entre los dos suman los mismos 54px de franja que antes.
@@ -437,17 +457,7 @@ export default function ClienteDetalle() {
             alignItems: "center",
           }}
         >
-          <BotonesCliente
-            hayFacturasParaReporte={facturasParaReporte.length > 0}
-            hayFacturasParaDocumentos={hayFacturasParaDocumentos}
-            onVolver={() => navigate("/vistaclientes")}
-            onCrearFactura={() => setCrearFacturaOpen(true)}
-            onDescargarReporte={() => abrirConFinalizadas(setReporteOpen)}
-            onRegistrarAbono={() => setAbonoOpen(true)}
-            onPasarACuentaCobro={() => abrirConFinalizadas(setCuentaCobroOpen)}
-            onEditarCliente={() => setEditarOpen(true)}
-            repartidos
-          />
+          {botonesDelCliente({ repartidos: true })}
         </Box>
       )}
 

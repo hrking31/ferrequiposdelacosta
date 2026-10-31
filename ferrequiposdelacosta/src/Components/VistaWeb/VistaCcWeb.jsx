@@ -209,7 +209,7 @@ export default function VistaCcWeb() {
         sx={{
           color: theme.palette.custom.documentText,
           textAlign: "center",
-          m: "20px",
+          m: "14px",
         }}
       >
         CUENTA DE COBRO
@@ -265,7 +265,7 @@ export default function VistaCcWeb() {
         sx={{
           color: theme.palette.custom.documentText,
           textAlign: "center",
-          m: "20px",
+          m: "14px",
         }}
       >
         DEBE A
@@ -276,7 +276,7 @@ export default function VistaCcWeb() {
         sx={{
           color: theme.palette.custom.documentText,
           textAlign: "center",
-          m: "20px ",
+          m: "14px",
         }}
       >
         FERREQUIPOS DE LA COSTA
@@ -347,7 +347,9 @@ export default function VistaCcWeb() {
           Subtotal siempre y el resto solo si tiene valor. Los tres renglones
           fuertes llevan el rótulo pegado a la cifra, más grande y en negrita;
           los demás, al principio. Lo que se cobra es el saldo, no el total. */}
-      <Box sx={{ mt: "44px", mx: { xs: 0, sm: 4 } }}>
+      {/* Los aires, algo más justos (pedido del dueño, 2026-10-30): así la
+          cuenta vacía, al entrar, cabe entera sin barra en el computador. */}
+      <Box sx={{ mt: "28px", mx: { xs: 0, sm: 4 } }}>
         <Table size="small" sx={estiloTabla}>
           <TableBody>
             {filasTotales.map(({ etiqueta, valor, fuerte, resta }) => (
@@ -379,7 +381,7 @@ export default function VistaCcWeb() {
         </Table>
       </Box>
 
-      <Box sx={{ mt: "40px", textAlign: "center" }}>
+      <Box sx={{ mt: "28px", textAlign: "center" }}>
         <Typography
           variant="documentoPie"
           sx={{

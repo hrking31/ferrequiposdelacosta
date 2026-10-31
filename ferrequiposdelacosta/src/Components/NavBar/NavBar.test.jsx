@@ -109,4 +109,20 @@ describe("BotonTienda", () => {
       expect(salir).toHaveBeenCalledTimes(1);
     });
   });
+
+  // Al corregir una factura el logo se ve pero no lleva a ningún lado: salir a
+  // mitad de camino perdería la corrección.
+  it("quieto, es solo el logo: no es un botón", async () => {
+    const { usuario } = conSesion(
+      <Routes>
+        <Route path="/adminforms" element={<BotonTienda quieto />} />
+        <Route path="/home" element={<DondeEstoy />} />
+      </Routes>,
+      "/adminforms",
+    );
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("img", { name: "Ferrequipos" }));
+    expect(screen.queryByText("/home?vistahome=si")).not.toBeInTheDocument();
+  });
 });

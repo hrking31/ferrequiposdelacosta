@@ -47,6 +47,7 @@ import {
   grupoInicialDe,
   pagosDe,
   adicionalesDe,
+  transportesAdicionalesDe,
   abonosDe,
   tipoPagoDe,
   pagoEntregaPendiente,
@@ -488,13 +489,8 @@ export default function FacturaCard({
         // Celular angosto: la mitad de borde a los lados, para que el
         // contenido tenga el ancho que le falta.
         [theme.pantallaAngosta]: { px: 1 },
-        borderRadius: 2,
-        // El fondo de tarjeta sobre el fondo de la app ya alcanza
-        // para que se despegue: en modo noche es el azul acero sobre
-        // el azul noche.
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "custom.accent",
+        // El recuadro de toda la app (theme.recuadro), como los de adentro.
+        ...theme.recuadro(theme.palette.custom.accent),
         // Sin esto, la pizarra de totales estira la tarjeta más allá
         // del ancho de la pantalla y aparece scroll horizontal.
         minWidth: 0,
@@ -837,6 +833,7 @@ export default function FacturaCard({
                 equipos={equiposOriginales}
                 transporteTipo={transporteTipo}
                 transporteMonto={Number(adicionalesInicial.valorTransporte) || 0}
+                transportesAdicionales={transportesAdicionalesDe(grupoInicial)}
                 abierto={seccionAbierta(factura.id, "adicionales-factura")}
                 onToggle={() =>
                   toggleSeccion(factura.id, "adicionales-factura")
@@ -1090,6 +1087,7 @@ export default function FacturaCard({
                         transporteMonto={
                           Number(adicionalesLote.valorTransporte) || 0
                         }
+                        transportesAdicionales={transportesAdicionalesDe(lote)}
                         abierto={seccionAbierta(
                           factura.id,
                           `lote-adicionales-${indiceLote}`,

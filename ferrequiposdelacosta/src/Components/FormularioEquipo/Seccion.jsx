@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Box, Tooltip } from "@mui/material";
+import { Box, Tooltip, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@mui/system";
 import { TituloSeccion } from "../PanelLista/ResumenLista";
@@ -27,6 +27,7 @@ const palpitar = keyframes`
 // `cambiado`: al editar, un punto del color de la sección junto al título
 // avisa que tiene cambios sin guardar.
 export default function Seccion({ titulo, icono, color, crece = false, encoge = false, cambiado = false, children }) {
+  const theme = useTheme();
   return (
     <Box
       sx={{
@@ -37,12 +38,8 @@ export default function Seccion({ titulo, icono, color, crece = false, encoge = 
         // 16px: con más, las tres de texto no entraban al alto de la pantalla
         // y salía la barra para desplazar (pedido del dueño, 2026-10-26).
         p: 2,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: alpha(color, 0.35),
-        borderTop: "3px solid",
-        borderTopColor: color,
-        bgcolor: "background.paper",
+        // El recuadro de toda la app (theme.recuadro).
+        ...theme.recuadro(color),
       }}
     >
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>

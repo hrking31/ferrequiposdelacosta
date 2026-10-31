@@ -258,6 +258,28 @@ describe("el registro de cambios — qué es una corrección", () => {
     expect(esUna(conAbono, sinAbono)).toBe(true);
   });
 
+  it("sumar un transporte adicional al devolver no es corregir; cambiarlo o quitarlo, sí", () => {
+    const conTransportes = (transportesAdicionales) => {
+      const documento = factura();
+      documento.grupos[0].adicionales = {
+        ...documento.grupos[0].adicionales,
+        transportesAdicionales,
+      };
+      return documento;
+    };
+    const sinTransporte = factura();
+    const conUno = conTransportes([{ fecha: HOY, valor: 40000 }]);
+
+    expect(esUna(sinTransporte, conUno)).toBe(false);
+    expect(
+      cambio(sinTransporte, conUno).some((renglon) =>
+        renglon.endsWith(`transporte adicional ${plata(40000)} (13/10/2026)`),
+      ),
+    ).toBe(true);
+    expect(esUna(conUno, conTransportes([{ fecha: HOY, valor: 30000 }]))).toBe(true);
+    expect(esUna(conUno, sinTransporte)).toBe(true);
+  });
+
   // El abono que usa el depósito y además trae plata anota dos de una vez.
   it("dos abonos que llegan juntos se anotan uno por uno", () => {
     const antes = factura();

@@ -25,3 +25,8 @@ export const EN_COMPACTA = `@media ${PANTALLA_COMPACTA}`;
 // Solo el alto, para lo que cambia por falta de espacio vertical y no por
 // ancho: qué queda fijo en pantalla y qué se desplaza.
 export const usePantallaBaja = () => useMediaQuery(PANTALLA_BAJA);
+
+// LA COLUMNA DE BOTONES del celular acostado (pedido del dueño, 2026-10-30): se
+// corre a la izquierda lo que mide el relleno del botón (10px) para que el
+// ícono quede alineado con el borde del encabezado y no lejos del borde.
+export const ALINEAR_CON_EL_BORDE = "-10px";

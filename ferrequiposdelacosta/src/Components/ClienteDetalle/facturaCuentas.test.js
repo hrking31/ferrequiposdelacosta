@@ -46,10 +46,10 @@ import {
   repartirEntreFacturas,
   separarExcedentePago,
   calcularEstadoCliente,
+  facturaAbierta,
   calcularAporteFactura,
   calcularTotalesFacturas,
   calcularGestionFactura,
-  contarLlamadasSinRespuesta,
   movimientosFactura,
   describirMovimientosFactura,
   diasDeAlquiler,
@@ -864,6 +864,24 @@ describe("la cuenta de la factura", () => {
     });
     expect(calcularTransporteTotal(conDos)).toBe(230000);
     expect(calcularDepositoTotal(conDos)).toBe(500000);
+  });
+
+  // Pidió ida y vuelta, devolvió una parte y la vuelta pagada se usó: el
+  // viaje para recoger el resto se suma al flete del despacho.
+  it("el transporte adicional se suma al flete de su despacho", () => {
+    const conAdicional = facturaCon([equipo()], {
+      adicionales: {
+        transporte: "Ida y vuelta",
+        valorTransporte: 80000,
+        deposito: false,
+        valorDeposito: 0,
+        transportesAdicionales: [
+          { fecha: "2026-10-30", valor: 40000 },
+          { fecha: "2026-11-02", valor: 35000 },
+        ],
+      },
+    });
+    expect(calcularTransporteTotal(conAdicional)).toBe(155000);
   });
 
   // ── Los cuatro cargos ────────────────────────────────────────────────
@@ -1736,6 +1754,25 @@ describe("la cuenta del cliente y el reparto de abonos", () => {
     expect(calcularEstadoCliente([activa, vencida], HOY)).toBe("vencida");
     expect(calcularEstadoCliente([], HOY)).toBe("inactivo");
   });
+
+  it("abierta es toda factura que no está finalizada", () => {
+    const terminada = facturaCon(
+      [
+        equipo({
+          cantidadEquipos: 1,
+          valorDia: 10000,
+          diasAlquilados: 3,
+          devolucion: { fechaDevolucion: "2026-09-06", buenEstado: true, valorRetenido: 0 },
+        }),
+      ],
+      { pagos: [{ medio: "Efectivo", monto: 30000 }] },
+    );
+    expect(facturaAbierta(facturaCon([equipo()]), HOY)).toBe(true);
+    expect(facturaAbierta(facturaCon([equipo({ venceEl: "2026-09-01" })]), HOY)).toBe(true);
+    expect(facturaAbierta(terminada, HOY)).toBe(false);
+    // Una factura que no existe (recién creada o borrada, para el servidor).
+    expect(facturaAbierta(null, HOY)).toBe(false);
+  });
 });
 
 describe("los totales del menú", () => {
@@ -1802,7 +1839,6 @@ describe("las gestiones", () => {
       gestiones: [{ tipo: "llamada", fecha: HOY, contesto: false }],
     });
     expect(calcularGestionFactura(doc, "vencida")).toBe("sinRespuesta");
-    expect(contarLlamadasSinRespuesta(doc)).toBe(1);
   });
 
   it("sin gestiones, sin gestionar", () => {

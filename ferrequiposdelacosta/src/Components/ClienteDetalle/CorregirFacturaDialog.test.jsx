@@ -23,6 +23,13 @@ const bd = vi.hoisted(() => ({
 }));
 
 vi.mock("../Firebase/Firebase", () => ({ db: {} }));
+// El encabezado de la app trae la sesión y la foto del usuario; acá solo
+// importan los botones que la corrección le pasa.
+vi.mock("../HeaderUsuario/HeaderUsuario", () => ({
+  default: function HeaderFalso({ acciones }) {
+    return <div>{acciones}</div>;
+  },
+}));
 vi.mock("firebase/firestore", () => ({
   doc: (_db, ...partes) => partes.join("/"),
   collection: (_db, ...partes) => partes.join("/"),
@@ -595,6 +602,36 @@ describe("CorregirFacturaDialog — los abonos", () => {
   });
 });
 
+// Todo campo cambiado dice cómo estaba, y la pizarra cuenta lo que se tocó.
+// Volver al valor de antes borra las dos cosas: con la plata no pasaba, porque
+// lo escrito vuelve como texto y lo guardado es número (2026-10-30).
+describe("CorregirFacturaDialog — lo que se modificó", () => {
+  it("un campo cambiado muestra lo de antes y la pizarra lo cuenta", async () => {
+    const { usuario } = abrir();
+    expect(screen.getByText("TODAVÍA NO MODIFICASTE NADA")).toBeInTheDocument();
+
+    await usuario.clear(screen.getByLabelText("Cantidad"));
+    await usuario.type(screen.getByLabelText("Cantidad"), "4");
+
+    expect(screen.getByText("Antes: 6")).toBeInTheDocument();
+    expect(screen.getByText(/^MODIFICASTE \d+ COSAS?$/)).toBeInTheDocument();
+  });
+
+  it("devolver la plata a su valor deja de marcarla", async () => {
+    const { usuario } = abrirConPlata({
+      abonos: [{ fecha: SE_ANOTO, medio: "Nequi", monto: 20000, tipo: "cliente" }],
+    });
+    const abono = within(screen.getByRole("group", { name: "Abono" }));
+
+    await escribirPlata(usuario, abono.getByLabelText("Monto"), "200000");
+    expect(screen.getByText(`Antes: ${enPantalla(20000)}`)).toBeInTheDocument();
+
+    await escribirPlata(usuario, abono.getByLabelText("Monto"), "20000");
+    expect(screen.queryByText(/^Antes:/)).not.toBeInTheDocument();
+    expect(screen.getByText("TODAVÍA NO MODIFICASTE NADA")).toBeInTheDocument();
+  });
+});
+
 describe("CorregirFacturaDialog — los cruces", () => {
   // De la 0412 salieron $50.000 a la 0500.
   const CRUCE = { fecha: SE_ANOTO, medio: "Cruce", monto: 50000, haciaFacturas: ["0500"] };
@@ -750,5 +787,34 @@ describe("CorregirFacturaDialog — el descuento al cobrar", () => {
     expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
     const [, escrito] = bd.update.mock.calls[0];
     expect(escrito).not.toHaveProperty("descuentos");
+  });
+});
+
+// EN EL CELULAR cada sección se pliega como las facturas (pedido del dueño,
+// 2026-10-30): arrancan cerradas y se abren tocando su título.
+describe("CorregirFacturaDialog — en el celular", () => {
+  it("las secciones arrancan cerradas y se abren tocando su título", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = (query) => ({
+      matches: query.includes("max-width:915px"),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+    try {
+      const { usuario } = abrir();
+
+      expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Mostrar Despacho inicial" }));
+      expect(screen.getByLabelText("Fecha de devolución")).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Ocultar Despacho inicial" }));
+      expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });

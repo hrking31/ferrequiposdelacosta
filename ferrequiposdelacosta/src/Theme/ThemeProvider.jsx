@@ -23,6 +23,11 @@ const getInitialMode = () => {
     : "light";
 };
 
+// El techo de color de un recuadro: el color arriba, desvanecido en 64px. Ver
+// `recuadro` y `degradadoRecuadro` en el tema.
+const degradadoRecuadro = (color) =>
+  `linear-gradient(180deg, ${alpha(color, 0.14)} 0, ${alpha(color, 0)} 64px)`;
+
 export const CustomThemeProvider = ({ children }) => {
   const [mode, setMode] = useState(getInitialMode);
   const location = useLocation();
@@ -634,6 +639,57 @@ export const CustomThemeProvider = ({ children }) => {
       // que lleva adentro se comían 80px de los 320 solo en márgenes, y el
       // contenido quedaba con menos de la mitad del ancho real.
       pantallaAngosta: "@media (max-width:359.95px)",
+
+      // El "techo" de color de los recuadros, solo. Lo usan además las partes
+      // que quedan FIJAS arriba dentro de un recuadro —el buscador de una
+      // lista, los títulos de una tabla— y necesitan fondo propio para tapar
+      // lo que pasa por debajo al bajar: con este fondo siguen el degradado
+      // del recuadro en vez de cortarlo con un rectángulo blanco (pedido del
+      // dueño, 2026-10-30). Va con bgcolor "background.paper" debajo.
+      degradadoRecuadro,
+
+      // ── LOS RECUADROS CON COLOR (2026-10-30) ─────────────────────────
+      //
+      // Todo recuadro de sección de la app —los bloques de la factura en la
+      // ficha del cliente y en Seguimiento, las secciones de Usuarios,
+      // Equipos y Crear equipo, la corrección de una factura, las áreas del
+      // menú— se dibuja con esto, para cambiarlo UNA vez y que cambie en
+      // todas partes.
+      //
+      // Es la mezcla de los dos estilos que había (pedido del dueño): de las
+      // fichas, la franja gruesa de color arriba y el fondo limpio; de las
+      // facturas, el borde de todo el contorno teñido y el degradado del
+      // color, que ahora queda solo arriba —un "techo" que se desvanece en
+      // 64px— y nunca tiñe lo de adentro (campos, pizarras oscuras). Sin el
+      // resplandor por dentro de antes.
+      //
+      // `color`: la franja y el borde. `relleno`: el degradado, si va de otro
+      // color —un equipo que ya volvió se pinta de gris sin dejar de mostrar
+      // el color de su despacho en el borde—.
+      //
+      // Uso: sx={{ p: 2, ...theme.recuadro(color) }}.
+      recuadro: (color, relleno = color) => ({
+        bgcolor: "background.paper",
+        backgroundImage: degradadoRecuadro(relleno),
+        border: "1px solid",
+        borderColor: alpha(color, 0.5),
+        borderTop: "3px solid",
+        borderTopColor: color,
+        borderRadius: "14px",
+      }),
+
+      // El ícono del título de un recuadro: en un cuadro de esquinas suaves
+      // del color de la sección, el mismo en toda la app.
+      iconoDeRecuadro: (color, tamano = 28) => ({
+        width: tamano,
+        height: tamano,
+        borderRadius: `${Math.round(tamano * 0.3)}px`,
+        display: "grid",
+        placeItems: "center",
+        bgcolor: alpha(color, 0.15),
+        color,
+        flexShrink: 0,
+      }),
 
       rotuloEstado: {
         display: "block",

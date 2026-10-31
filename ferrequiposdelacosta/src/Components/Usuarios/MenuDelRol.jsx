@@ -60,9 +60,12 @@ export default function MenuDelRol({ rol, rolAntes, compacto = false, llenar = f
               key={boton.to}
               sx={{
                 minWidth: 0,
-                minHeight: compacto ? 64 : 72,
+                // Llenando su recuadro se estiran: el mínimo y el relleno más
+                // bajos solo cuentan en una pantalla baja, para que quepan
+                // (2026-10-30).
+                minHeight: compacto ? (llenar ? 56 : 64) : 72,
                 px: 0.5,
-                py: 1,
+                py: llenar ? 0.75 : 1,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",

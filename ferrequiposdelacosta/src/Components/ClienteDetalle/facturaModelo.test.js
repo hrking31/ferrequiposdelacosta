@@ -15,7 +15,6 @@ import {
   adicionalesDe,
   estaDevuelto,
   sigueAfuera,
-  nuevaFactura,
   nuevoGrupo,
 } from "./facturaModelo";
 
@@ -203,23 +202,6 @@ describe("cómo se nombra el próximo despacho", () => {
 });
 
 describe("cómo se arma un documento nuevo", () => {
-  it("una factura nace con su despacho y el resto vacío", () => {
-    const doc = nuevaFactura({
-      factura: { numeroFactura: "1300", total: 100000 },
-      grupoInicial: nuevoGrupo({
-        grupo: GRUPO_INICIAL,
-        fechaSolicitud: "2026-09-20",
-        equipos: [{ nombre: "ANDAMIO", cantidadEquipos: 4 }],
-      }),
-    });
-
-    expect(doc.grupos).toHaveLength(1);
-    expect(doc.grupos[0].equipos[0].nombre).toBe("ANDAMIO");
-    expect(doc.abonos).toEqual([]);
-    expect(doc.entregas).toEqual([]);
-    expect(doc.gestiones).toEqual([]);
-  });
-
   it("un grupo sin adicionales nace con los cuatro campos en cero", () => {
     const grupo = nuevoGrupo({ grupo: GRUPO_INICIAL, fechaSolicitud: "2026-09-20" });
     expect(grupo.adicionales).toEqual({
