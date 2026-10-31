@@ -39,17 +39,21 @@ const VIGENCIA_MS = 30 * 60 * 1000;
 // misma lectura, así que la columna "Facturas" no cuesta ninguna más. Y como
 // se leen en CADA visita, están siempre al día aunque la lista salga de la
 // copia.
+//
+// Lo mismo con los números de factura de cada cliente, para que el buscador
+// encuentre también por número: { clienteId: { facturaId: "0773" } }.
 const leerResumen = async () => {
   const snap = await getDoc(doc(db, COLECCION, DOCUMENTO));
   // Sin documento o sin el campo, el sello es 0: sirve igual para comparar, y
   // en cuanto alguien toque un cliente pasa a ser una fecha real.
-  if (!snap.exists()) return { sello: 0, facturasAbiertas: null };
+  if (!snap.exists()) return { sello: 0, facturasAbiertas: null, numerosFactura: {} };
   const datos = snap.data();
   return {
     sello: Number(datos.clientesActualizadoEn) || 0,
     // null mientras el servidor no las haya contado nunca: la lista muestra
     // "—" en vez de un cero que no sería cierto.
     facturasAbiertas: datos.facturasAbiertasPorCliente ?? null,
+    numerosFactura: datos.numerosFacturaPorCliente ?? {},
   };
 };
 
@@ -98,15 +102,15 @@ export const invalidarCopiaClientes = () => {
 // Firestore; se recibe como parámetro para que este archivo no dependa de cómo
 // consulta la pantalla.
 export const obtenerClientes = async (traerTodos) => {
-  const { sello, facturasAbiertas } = await leerResumen();
+  const { sello, facturasAbiertas, numerosFactura } = await leerResumen();
   const copia = leerCopia();
 
   if (copia && copia.sello === sello) {
-    return { clientes: copia.clientes, desdeCopia: true, facturasAbiertas };
+    return { clientes: copia.clientes, desdeCopia: true, facturasAbiertas, numerosFactura };
   }
 
   const clientes = await traerTodos();
   guardarCopia(sello, clientes);
 
-  return { clientes, desdeCopia: false, facturasAbiertas };
+  return { clientes, desdeCopia: false, facturasAbiertas, numerosFactura };
 };

@@ -28,16 +28,18 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
+import AddCardIcon from "@mui/icons-material/AddCard";
 import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import ConstructionIcon from "@mui/icons-material/Construction";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import HistoryIcon from "@mui/icons-material/History";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -68,7 +70,6 @@ import {
   facturaCorregida,
   hayCorrecciones,
   mediosParaCorregir,
-  nombreDelGrupo,
   otrasCorregidas,
   quitarHecho,
   tieneCrucesPropios,
@@ -391,6 +392,12 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       ),
     }));
 
+  // Uno nuevo viene con la fecha de hoy y el valor vacío por escribir.
+  const agregarTransporteAdicional = (indiceGrupo) =>
+    cambiarGrupo(indiceGrupo, (grupo) => ({
+      transportesAdicionales: [...grupo.transportesAdicionales, { fecha: hoy, valor: "" }],
+    }));
+
   const quitarTransporteAdicional = (indiceGrupo, posicion) =>
     cambiarGrupo(indiceGrupo, (grupo) => ({
       transportesAdicionales: grupo.transportesAdicionales.filter(
@@ -414,6 +421,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         ),
       ],
     }));
+    // El bloque del equipo nuevo, abierto: se agrega para llenarlo.
+    const grupo = borrador.grupos[indiceGrupo];
+    setAbiertas((previas) => ({ ...previas, [`corregir-${grupo.grupo}-nuevo-${nuevos}-bloque`]: true }));
     setNuevos((cuantos) => cuantos + 1);
   };
 
@@ -1055,6 +1065,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       (!igualQueAntes(borrador.abonos, inicial.abonos) ||
         !igualQueAntes(borrador.descuentos, inicial.descuentos)),
   };
+  // Lo mismo, para un bloque del despacho: si alguno de sus campos cambió.
+  const cambioEn = (grupo, antes, campos) =>
+    Boolean(inicial) && (!antes || campos.some((campo) => !igualQueAntes(grupo[campo], antes[campo])));
 
   // Un campo que ya no dice lo que estaba guardado: ámbar, y debajo lo de antes.
   const marca = (actual, antes, mostrar = (valor) => valor) => {
@@ -1077,10 +1090,14 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
   // `plegable`: { id, cambiada } — en el celular el renglón entero abre y
   // cierra la sección, con la flecha a la derecha y el punto naranja si tiene
   // cambios, como el encabezado de una factura.
-  const plegada = (id) => esCompacta && !abiertas[id];
+  // `siempre`: la sección se pliega también en el computador, no solo en el
+  // celular (Abonos y descuentos e Historial, pedido del dueño, 2026-10-31).
+  const plegada = (id, siempre = false) => (esCompacta || siempre) && !abiertas[id];
   const alternar = (id) => setAbiertas((previas) => ({ ...previas, [id]: !previas[id] }));
+  const puntoDeCambio = <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: "warning.main" }} />;
   const encabezado = ({ Icono, texto, detalle, tono = acento, relleno = false, extra = null, plegable = null }) => {
-    const conFlecha = esCompacta && plegable;
+    const conFlecha = plegable && (esCompacta || plegable.siempre);
+    const cerrada = conFlecha && plegada(plegable.id, plegable.siempre);
     return (
     <Stack
       direction="row"
@@ -1090,9 +1107,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       flexWrap="wrap"
       {...(conFlecha
         ? propsRenglonPlegable({
-            abierto: !plegada(plegable.id),
+            abierto: !cerrada,
             alternar: () => alternar(plegable.id),
-            etiqueta: `${plegada(plegable.id) ? "Mostrar" : "Ocultar"} ${texto}`,
+            etiqueta: `${cerrada ? "Mostrar" : "Ocultar"} ${texto}`,
           })
         : {})}
       sx={conFlecha ? sxRenglonPlegable : undefined}
@@ -1130,10 +1147,8 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       </Box>
       {conFlecha && (
         <Stack direction="row" alignItems="center" gap={1.5} sx={{ ml: "auto", flexShrink: 0 }}>
-          {plegable.cambiada && (
-            <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: "warning.main" }} />
-          )}
-          {renderFlechaPlegable(!plegada(plegable.id), acento)}
+          {plegable.cambiada && puntoDeCambio}
+          {renderFlechaPlegable(!cerrada, acento)}
         </Stack>
       )}
       </Stack>
@@ -1145,15 +1160,82 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
   // EL COLOR DE CADA SECCIÓN (pedido del dueño, 2026-10-30), como en las demás
   // vistas: la franja de arriba y el ícono, y LOS MISMOS colores que la factura
   // en la ficha del cliente, así cada parte se reconoce igual en las dos
-  // pantallas: los equipos del despacho inicial en azul, los agregados en
-  // violeta, el transporte en el naranja de los cargos y los abonos en el azul
-  // de los abonos. El "cambiaste" de los campos es ámbar, no ese naranja.
+  // pantallas: el despacho inicial en cian con sus equipos en azul, los
+  // agregados en violeta, el pago en el suyo, los cargos en su naranja y los
+  // abonos en el azul de los abonos. El "cambiaste" de los campos es ámbar, no
+  // ese naranja.
   const colores = theme.palette.custom;
+  const esInicial = (grupo) => grupo.grupo === GRUPO_INICIAL;
   const colorDelDespacho = (grupo) =>
-    grupo.grupo === GRUPO_INICIAL ? colores.seccionEquipos : colores.seccionEquiposAgregados;
+    esInicial(grupo) ? colores.seccionDespacho : colores.seccionEquiposAgregados;
+  const colorDeLosEquipos = (grupo) =>
+    esInicial(grupo) ? colores.seccionEquipos : colores.seccionEquiposAgregados;
+  // Los nombres de la factura en la ficha (pedido del dueño, 2026-10-31): el
+  // alta es "Equipo inicial" y cada despacho de después, "Agregados" con su
+  // fecha, que es lo que lo distingue de los otros.
+  const tituloDelDespacho = (grupo) => (esInicial(grupo) ? "Equipo inicial" : "Agregados");
+  const nombreDelDespacho = (grupo) =>
+    [tituloDelDespacho(grupo), !esInicial(grupo) && comoFecha(grupo.fechaSolicitud)]
+      .filter(Boolean)
+      .join(" · ");
   const colorCargos = colores.seccionAdicionales;
   const colorAbonos = theme.palette.info.main;
   const tarjetaDe = (color) => ({ ...TARJETA, ...theme.recuadro(color) });
+
+  // LOS BLOQUES DE CADA DESPACHO, con los títulos, íconos y colores de la
+  // factura en la ficha: Información de pago, cada equipo por separado y
+  // Cargos adicionales. Todos cerrados al entrar (pedido del dueño,
+  // 2026-10-31): el título dice lo que hay adentro y se abre lo que se va a
+  // corregir. El punto naranja avisa que adentro hay algo cambiado aunque esté
+  // cerrado. Solo el equipo recién agregado aparece abierto, para llenarlo.
+  //
+  // `relleno`: el degradado de otro color —el equipo que ya volvió, en gris—.
+  const bloque = ({
+    id,
+    Icono,
+    texto,
+    etiqueta = texto,
+    color,
+    relleno = color,
+    resumen = "",
+    cambiado,
+    contenido,
+  }) => {
+    const abierto = Boolean(abiertas[id]);
+    return (
+      <Box key={id} id={id} role="group" aria-label={etiqueta} sx={{ p: 2, ...theme.recuadro(color, relleno) }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1}
+          {...propsRenglonPlegable({
+            abierto,
+            alternar: () => alternar(id),
+            etiqueta: `${abierto ? "Ocultar" : "Mostrar"} ${texto}`,
+          })}
+          sx={sxRenglonPlegable}
+        >
+          <Typography
+            variant="overline"
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, lineHeight: 1.6, color, flexShrink: 0 }}
+          >
+            <Icono fontSize="small" />
+            {texto}
+          </Typography>
+          {resumen && (
+            <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
+              {resumen}
+            </Typography>
+          )}
+          <Stack direction="row" alignItems="center" gap={1.5} sx={{ ml: "auto", flexShrink: 0 }}>
+            {cambiado && puntoDeCambio}
+            {renderFlechaPlegable(abierto, color)}
+          </Stack>
+        </Stack>
+        {abierto && <Box sx={{ mt: 1.5 }}>{contenido}</Box>}
+      </Box>
+    );
+  };
 
   const etiqueta = (texto, tono = acento) => (
     <Box
@@ -1479,6 +1561,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
     </Stack>
   );
 
+  const hayAgregados = borrador.grupos.some((grupo) => !esInicial(grupo));
   const hayPlata =
     borrador.abonos.length > 0 || borrador.entregas.length > 0 || borrador.descuentos.length > 0;
   // Las secciones, para el índice del computador y las pestañas del celular.
@@ -1486,7 +1569,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
     { id: "corregir-seccion-factura", texto: "Factura", cambiada: seccionCambiada.factura },
     ...borrador.grupos.map((grupo) => ({
       id: `corregir-seccion-${grupo.grupo}`,
-      texto: nombreDelGrupo(grupo.grupo),
+      texto: nombreDelDespacho(grupo),
       cambiada: seccionCambiada.grupo(grupo),
     })),
     ...(hayPlata
@@ -1770,12 +1853,18 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                 const pagado = grupo.pagos.reduce((suma, { monto }) => suma + plataDe(monto), 0);
                 const marcaTransporte = marca(grupo.transporte, antesGrupo?.transporte);
                 const marcaTipoPago = marca(grupo.tipoPago, antesGrupo?.tipoPago, comoTipoDePago);
+                // Con un solo despacho no hay nada que esconder: va abierto y
+                // sin flecha. Con agregados, todos llevan flecha y entran
+                // cerrados, en todas las pantallas (pedido del dueño,
+                // 2026-10-31).
+                const idSeccion = `corregir-seccion-${grupo.grupo}`;
+                const despachoCerrado = hayAgregados && plegada(idSeccion, true);
                 return (
                   <Box
                     key={grupo.grupo}
                     component="section"
-                    id={`corregir-seccion-${grupo.grupo}`}
-                    aria-label={nombreDelGrupo(grupo.grupo)}
+                    id={idSeccion}
+                    aria-label={nombreDelDespacho(grupo)}
                     sx={{ ...tarjetaDe(colorDelDespacho(grupo)), p: 0, overflow: "hidden" }}
                   >
                     <Box
@@ -1784,19 +1873,26 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                         py: 2,
                         // Cerrado no hay nada debajo que separar: la línea se
                         // juntaba con el borde de la tarjeta.
-                        ...(!plegada(`corregir-seccion-${grupo.grupo}`) && {
+                        ...(!despachoCerrado && {
                           borderBottom: "1px solid",
                           borderColor: "divider",
                         }),
                       }}
                     >
                       {encabezado({
-                        Icono: LocalShippingIcon,
-                        texto: nombreDelGrupo(grupo.grupo),
-                        detalle: `${grupo.equipos.length} ${grupo.equipos.length === 1 ? "equipo" : "equipos"}`,
+                        Icono: esInicial(grupo) ? ConstructionIcon : LibraryAddIcon,
+                        texto: tituloDelDespacho(grupo),
+                        detalle: [
+                          !esInicial(grupo) && comoFecha(grupo.fechaSolicitud),
+                          `${grupo.equipos.length} ${grupo.equipos.length === 1 ? "equipo" : "equipos"}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · "),
                         relleno: true,
                         tono: colorDelDespacho(grupo),
-                        plegable: { id: `corregir-seccion-${grupo.grupo}`, cambiada: seccionCambiada.grupo(grupo) },
+                        plegable: hayAgregados
+                          ? { id: idSeccion, cambiada: seccionCambiada.grupo(grupo), siempre: true }
+                          : null,
                         extra: (
                           <Stack direction="row" gap={1} flexWrap="wrap">
                             {plataDe(grupo.valorDeposito) > 0 &&
@@ -1810,11 +1906,25 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                       })}
                     </Box>
 
-                    {!plegada(`corregir-seccion-${grupo.grupo}`) && (
-                    <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 } }}>
-                      {/* En una caja: el Stack le quita al Grid su margen
-                          negativo y la fila se salía por la derecha. */}
-                      <Box>
+                    {!despachoCerrado && (
+                    <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
+                      {/* ── Información de pago ── El depósito va acá, como
+                          en la factura. */}
+                      {bloque({
+                        id: `${idGrupo}-bloque-pago`,
+                        Icono: PaymentsIcon,
+                        texto: "Información de pago",
+                        color: colores.seccionPago,
+                        resumen: [
+                          comoTipoDePago(grupo.tipoPago),
+                          pagado > 0 && formatearMoneda(pagado),
+                          plataDe(grupo.valorDeposito) > 0 &&
+                            `Depósito ${formatearMoneda(plataDe(grupo.valorDeposito))}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · "),
+                        cambiado: cambioEn(grupo, antesGrupo, ["fechaSolicitud", "valorDeposito", "tipoPago", "pagos"]),
+                        contenido: (
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={4}>
                           <TextField
@@ -1897,133 +2007,12 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                           </Grid>
                         )}
                       </Grid>
-                      </Box>
+                        ),
+                      })}
 
-                      {/* EL TRANSPORTE, como un tiquete: el del despacho y,
-                          debajo, cada transporte adicional que se anotó al
-                          devolver una parte. */}
-                      <Box
-                        sx={{
-                          borderRadius: "14px",
-                          border: "1px solid",
-                          borderColor: alpha(colorCargos, 0.3),
-                          bgcolor: alpha(colorCargos, 0.05),
-                          p: 2,
-                        }}
-                      >
-                        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.5, color: colorCargos }}>
-                          <LocalShippingIcon fontSize="small" />
-                          <Typography sx={{ fontFamily: FUENTE_TITULOS, fontWeight: 800, fontSize: "0.8rem", letterSpacing: "0.08em" }}>
-                            TRANSPORTE
-                          </Typography>
-                          <Typography sx={{ ml: "auto", fontFamily: FUENTE_TITULOS, fontWeight: 800, color: "text.primary" }}>
-                            Total {formatearMoneda(transporteDelDespacho)}
-                          </Typography>
-                        </Stack>
-                        <Grid container spacing={1.5} alignItems="flex-start">
-                          <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth size="small" sx={{ bgcolor: "background.paper", ...marcaTransporte.sx }}>
-                              <InputLabel
-                                id={`${idGrupo}-transporte-label`}
-                                htmlFor={`${idGrupo}-transporte-input`}
-                              >
-                                Transporte
-                              </InputLabel>
-                              <Select
-                                labelId={`${idGrupo}-transporte-label`}
-                                inputProps={{
-                                  id: `${idGrupo}-transporte-input`,
-                                  name: `${idGrupo}-transporte`,
-                                }}
-                                label="Transporte"
-                                value={grupo.transporte}
-                                onChange={(e) =>
-                                  cambiarGrupo(indiceGrupo, () => ({ transporte: e.target.value }))
-                                }
-                              >
-                                {TRANSPORTES.map((opcion) => (
-                                  <MenuItem key={opcion} value={opcion}>
-                                    {opcion}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                              {marcaTransporte.helperText && (
-                                <FormHelperText>{marcaTransporte.helperText}</FormHelperText>
-                              )}
-                            </FormControl>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label="Valor transporte"
-                              name={`${idGrupo}-valorTransporte`}
-                              value={formatearMonedaInput(grupo.valorTransporte)}
-                              onChange={(e) =>
-                                cambiarGrupo(indiceGrupo, () => ({
-                                  valorTransporte: limpiarMonedaInput(e.target.value),
-                                }))
-                              }
-                              disabled={sinTransporte}
-                              fullWidth
-                              size="small"
-                              {...marca(grupo.valorTransporte, antesGrupo?.valorTransporte, comoPlata)}
-                            />
-                          </Grid>
-                          {grupo.transportesAdicionales.map((adicional, posicion) => {
-                            const antesAdicional = antesGrupo?.transportesAdicionales[posicion];
-                            return (
-                              <Grid item xs={12} key={`${idGrupo}-adicional-${posicion}`}>
-                                <Stack
-                                  direction="row"
-                                  spacing={1.5}
-                                  alignItems="flex-start"
-                                  sx={{ pt: 1.5, borderTop: "1px dashed", borderColor: alpha(colorCargos, 0.35) }}
-                                >
-                                  <TextField
-                                    label="Transporte adicional · fecha"
-                                    name={`${idGrupo}-adicional-${posicion}-fecha`}
-                                    type="date"
-                                    value={adicional.fecha}
-                                    onChange={(e) =>
-                                      cambiarTransporteAdicional(indiceGrupo, posicion, {
-                                        fecha: e.target.value,
-                                      })
-                                    }
-                                    fullWidth
-                                    size="small"
-                                    InputLabelProps={{ shrink: true }}
-                                    {...marca(adicional.fecha, antesAdicional?.fecha, comoFecha)}
-                                  />
-                                  <TextField
-                                    label="Valor"
-                                    name={`${idGrupo}-adicional-${posicion}-valor`}
-                                    value={formatearMonedaInput(adicional.valor)}
-                                    onChange={(e) =>
-                                      cambiarTransporteAdicional(indiceGrupo, posicion, {
-                                        valor: limpiarMonedaInput(e.target.value),
-                                      })
-                                    }
-                                    fullWidth
-                                    size="small"
-                                    {...marca(adicional.valor, antesAdicional?.valor, comoPlata)}
-                                  />
-                                  <Tooltip title="Quitar este transporte adicional">
-                                    <IconButton
-                                      aria-label="Quitar este transporte adicional"
-                                      color="error"
-                                      onClick={() => quitarTransporteAdicional(indiceGrupo, posicion)}
-                                      sx={{ border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper" }}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                </Stack>
-                              </Grid>
-                            );
-                          })}
-                        </Grid>
-                      </Box>
-
-                      {grupo.equipos.map((item) => {
+                      {/* ── Los equipos ── Cada uno en su bloque, como en la
+                          factura: "Equipo 1", "Equipo 2"… */}
+                      {grupo.equipos.map((item, indiceEquipo) => {
                         const idEquipo = `${idGrupo}-${item.clave}`;
                         const antes = equipoAntes(grupo, item.clave);
                         const devolucion = item.hechos.find(({ tipo }) => tipo === "devolucion");
@@ -2032,22 +2021,19 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                         const volvioMalAntes = devolucionAntes
                           ? devolucionAntes.devolucion?.buenEstado === false
                           : undefined;
-                        return (
-                          <Box
-                            key={item.clave}
-                            role="group"
-                            aria-label={`Equipo ${item.nombre || "nuevo"}`}
-                            // Como el equipo en la factura (EquipoRow): el
-                            // color de su despacho, y por dentro gris si ya
-                            // volvió.
-                            sx={{
-                              p: 2,
-                              ...theme.recuadro(
-                                colorDelDespacho(grupo),
-                                devolucion ? colores.seccionDevuelto : colorDelDespacho(grupo),
-                              ),
-                            }}
-                          >
+                        return bloque({
+                          id: `${idEquipo}-bloque`,
+                          Icono: ConstructionIcon,
+                          texto: `Equipo ${indiceEquipo + 1}`,
+                          etiqueta: `Equipo ${item.nombre || "nuevo"}`,
+                          resumen: item.nombre || "Nuevo",
+                          // Como el equipo en la factura (EquipoRow): el color
+                          // de su despacho, y por dentro gris si ya volvió.
+                          color: colorDeLosEquipos(grupo),
+                          relleno: devolucion ? colores.seccionDevuelto : colorDeLosEquipos(grupo),
+                          cambiado: Boolean(inicial) && (!antes || !igualQueAntes(item, antes)),
+                          contenido: (
+                          <>
                             <Grid container spacing={1.5} alignItems="flex-start">
                               <Grid item xs={10} sm={11} md={3.5}>
                                 <TextField
@@ -2326,8 +2312,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                                 </Grid>
                               </Box>
                             )}
-                          </Box>
-                        );
+                          </>
+                          ),
+                        });
                       })}
 
                       <Button
@@ -2342,8 +2329,147 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                           fontWeight: 700,
                         }}
                       >
-                        Agregar un equipo a este despacho
+                        {/* En el celular, corto: el largo no cabía. */}
+                        {esCompacta ? "Agregar equipo" : "Agregar un equipo a este despacho"}
                       </Button>
+
+                      {/* ── Cargos adicionales ── El transporte del despacho y,
+                          debajo, cada transporte adicional que se anotó al
+                          devolver una parte. */}
+                      {bloque({
+                        id: `${idGrupo}-bloque-cargos`,
+                        Icono: AddCardIcon,
+                        texto: "Cargos adicionales",
+                        color: colorCargos,
+                        resumen:
+                          transporteDelDespacho > 0
+                            ? `Transporte ${formatearMoneda(transporteDelDespacho)}`
+                            : "Sin transporte",
+                        cambiado: cambioEn(grupo, antesGrupo, ["transporte", "valorTransporte", "transportesAdicionales"]),
+                        contenido: (
+                        <Grid container spacing={1.5} alignItems="flex-start">
+                          <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth size="small" sx={{ bgcolor: "background.paper", ...marcaTransporte.sx }}>
+                              <InputLabel
+                                id={`${idGrupo}-transporte-label`}
+                                htmlFor={`${idGrupo}-transporte-input`}
+                              >
+                                Transporte
+                              </InputLabel>
+                              <Select
+                                labelId={`${idGrupo}-transporte-label`}
+                                inputProps={{
+                                  id: `${idGrupo}-transporte-input`,
+                                  name: `${idGrupo}-transporte`,
+                                }}
+                                label="Transporte"
+                                value={grupo.transporte}
+                                onChange={(e) =>
+                                  cambiarGrupo(indiceGrupo, () => ({ transporte: e.target.value }))
+                                }
+                              >
+                                {TRANSPORTES.map((opcion) => (
+                                  <MenuItem key={opcion} value={opcion}>
+                                    {opcion}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {marcaTransporte.helperText && (
+                                <FormHelperText>{marcaTransporte.helperText}</FormHelperText>
+                              )}
+                            </FormControl>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label="Valor transporte"
+                              name={`${idGrupo}-valorTransporte`}
+                              value={formatearMonedaInput(grupo.valorTransporte)}
+                              onChange={(e) =>
+                                cambiarGrupo(indiceGrupo, () => ({
+                                  valorTransporte: limpiarMonedaInput(e.target.value),
+                                }))
+                              }
+                              disabled={sinTransporte}
+                              fullWidth
+                              size="small"
+                              {...marca(grupo.valorTransporte, antesGrupo?.valorTransporte, comoPlata)}
+                            />
+                          </Grid>
+                          {grupo.transportesAdicionales.map((adicional, posicion) => {
+                            // Uno que no estaba se marca contra "vacío".
+                            const antesAdicional = antesGrupo
+                              ? (antesGrupo.transportesAdicionales[posicion] ?? { fecha: "", valor: "" })
+                              : undefined;
+                            return (
+                              <Grid item xs={12} key={`${idGrupo}-adicional-${posicion}`}>
+                                <Stack
+                                  direction="row"
+                                  spacing={1.5}
+                                  alignItems="flex-start"
+                                  sx={{ pt: 1.5, borderTop: "1px dashed", borderColor: alpha(colorCargos, 0.35) }}
+                                >
+                                  <TextField
+                                    label="Transporte adicional · fecha"
+                                    name={`${idGrupo}-adicional-${posicion}-fecha`}
+                                    type="date"
+                                    value={adicional.fecha}
+                                    onChange={(e) =>
+                                      cambiarTransporteAdicional(indiceGrupo, posicion, {
+                                        fecha: e.target.value,
+                                      })
+                                    }
+                                    fullWidth
+                                    size="small"
+                                    InputLabelProps={{ shrink: true }}
+                                    {...marca(adicional.fecha, antesAdicional?.fecha, comoFecha)}
+                                  />
+                                  <TextField
+                                    label="Valor"
+                                    name={`${idGrupo}-adicional-${posicion}-valor`}
+                                    value={formatearMonedaInput(adicional.valor)}
+                                    onChange={(e) =>
+                                      cambiarTransporteAdicional(indiceGrupo, posicion, {
+                                        valor: limpiarMonedaInput(e.target.value),
+                                      })
+                                    }
+                                    fullWidth
+                                    size="small"
+                                    {...marca(adicional.valor, antesAdicional?.valor, comoPlata)}
+                                  />
+                                  <Tooltip title="Quitar este transporte adicional">
+                                    <IconButton
+                                      aria-label="Quitar este transporte adicional"
+                                      color="error"
+                                      onClick={() => quitarTransporteAdicional(indiceGrupo, posicion)}
+                                      sx={{ border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper" }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Stack>
+                              </Grid>
+                            );
+                          })}
+                          <Grid item xs={12}>
+                            <Button
+                              startIcon={<AddIcon />}
+                              onClick={() => agregarTransporteAdicional(indiceGrupo)}
+                              fullWidth
+                              sx={{
+                                height: 40,
+                                borderRadius: "12px",
+                                border: "2px dashed",
+                                borderColor: alpha(colorCargos, 0.35),
+                                color: colorCargos,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Agregar transporte adicional
+                            </Button>
+                          </Grid>
+                        </Grid>
+                        ),
+                      })}
                     </Stack>
                     )}
                   </Box>
@@ -2365,9 +2491,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                     texto: "Abonos y descuentos",
                     detalle: "La plata que entró o salió después del despacho",
                     tono: colorAbonos,
-                    plegable: { id: "corregir-seccion-plata", cambiada: seccionCambiada.plata },
+                    plegable: { id: "corregir-seccion-plata", cambiada: seccionCambiada.plata, siempre: true },
                   })}
-                  {!plegada("corregir-seccion-plata") && (
+                  {!plegada("corregir-seccion-plata", true) && (
                   <Stack spacing={1} sx={{ mt: 1 }}>
                     {borrador.abonos.map(filaAbono)}
                     {borrador.descuentos.map(filaDescuento)}
@@ -2404,9 +2530,9 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                   texto: "Historial de correcciones",
                   detalle: "Solo lo que se corrigió; los abonos y devoluciones de todos los días no salen",
                   tono: colores.seccionDevuelto,
-                  plegable: { id: "corregir-seccion-historial", cambiada: false },
+                  plegable: { id: "corregir-seccion-historial", cambiada: false, siempre: true },
                 })}
-                {!plegada("corregir-seccion-historial") && (
+                {!plegada("corregir-seccion-historial", true) && (
                 <Box sx={{ mt: 2 }}>
                   {historial.estado === "cargando" && (
                     <Typography variant="body2" color="text.secondary">

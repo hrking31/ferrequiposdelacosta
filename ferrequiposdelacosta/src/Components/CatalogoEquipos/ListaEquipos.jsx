@@ -22,6 +22,11 @@ import { filtrarCatalogo } from "./catalogoEquipos";
 // buscador pegado arriba al desplazar. Sin eso ocupa la pantalla (celular o
 // computador angosto), con renglones más altos para el dedo.
 //
+// `enVentana`: con `enPanel`, pero dentro de un diálogo (el catálogo del
+// menú): ahí no hay recuadro con degradado, y la franja del buscador lleva el
+// fondo de la ventana para no verse de otro color (pedido del dueño,
+// 2026-10-31).
+//
 // El buscador lleva al lado el contador de las demás pantallas (Clientes,
 // Seguimiento): "3 de 19". En el celular, como allá: el buscador con
 // `accion` (el menú) y, debajo, qué lista es y cuántos se ven. Si los
@@ -35,6 +40,7 @@ export default function ListaEquipos({
   accion,
   onNuevo,
   enPanel = false,
+  enVentana = false,
   contadorDebajo = false,
 }) {
   const theme = useTheme();
@@ -65,13 +71,17 @@ export default function ListaEquipos({
           // pegado al borde de arriba.
           top: enPanel ? -12 : 0,
           zIndex: 1,
-          bgcolor: enPanel ? "background.paper" : "background.default",
+          bgcolor: enVentana
+            ? "background.elevated"
+            : enPanel
+              ? "background.paper"
+              : "background.default",
           // Dentro del recuadro sigue su degradado en vez de cortarlo. Sube
           // los 12px del relleno del recuadro (y los devuelve por dentro) para
           // arrancar en su mismo borde: así el degradado coincide también
           // antes de bajar por la lista.
           ...(enPanel && {
-            backgroundImage: theme.degradadoRecuadro(acento),
+            ...(!enVentana && { backgroundImage: theme.degradadoRecuadro(acento) }),
             mt: -1.5,
           }),
           pt: enPanel ? 3 : 1,
@@ -190,6 +200,7 @@ ListaEquipos.propTypes = {
   // La zona NUEVO EQUIPO.
   onNuevo: PropTypes.func,
   enPanel: PropTypes.bool,
+  enVentana: PropTypes.bool,
   // "Lista de equipos" y el contador debajo del buscador en cualquier
   // pantalla, no solo en el celular (la ventana del menú, pedido del dueño,
   // 2026-10-28).

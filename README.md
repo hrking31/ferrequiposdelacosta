@@ -506,6 +506,10 @@ Si las demás facturas del cliente no se pueden leer —por ejemplo, sin interne
 
 Dos cosas quedaron afuera a propósito. El **cierre de mora que hizo un pago** no se mueve ni se quita al corregir el abono: no cambia la plata, solo pone en cero el contador de días. Y el **depósito resuelto** no tiene casilla: se rehace solo cuando se corrige una devolución.
 
+**La pantalla se lee como la factura (2026-10-31).** Cada despacho lleva el nombre que tiene en la ficha del cliente —*Equipo inicial* en cian, *Agregados* con su fecha en violeta— y adentro los mismos bloques, en el mismo orden y con los mismos íconos y colores: **Información de pago** (fecha del despacho, depósito, tipo de pago y medios), **cada equipo por separado** —*Equipo 1*, *Equipo 2*— y **Cargos adicionales** (el transporte y los transportes adicionales). Todo entra **cerrado**, con lo de adentro resumido en el título —*Total · $350.000 · Depósito $100.000*, *Transporte $80.000*—, y se abre solo lo que se va a corregir; un punto naranja avisa que adentro hay algo cambiado aunque esté cerrado. Con un solo despacho, el despacho va abierto y sin flecha; con agregados, todos se pliegan. *Abonos y descuentos* y el historial también. El equipo que se agrega en la corrección aparece abierto, para llenarlo.
+
+**El transporte adicional también se corrige y se agrega acá.** Además de cambiar o quitar el que se anotó al devolver, el botón *Agregar transporte adicional* de Cargos adicionales suma uno nuevo, con la fecha de hoy. En la devolución es un paso más, con su número: *¿Se cobra transporte adicional?*.
+
 ### 4. Las gestiones: la bitácora del cobro
 
 El estado dice en qué punto está la factura. **La gestión dice qué se hizo para destrabarla.** Solo se ve en Seguimiento, y solo entran ahí las facturas *Vencidas* y en *Cobro*.
@@ -1190,6 +1194,8 @@ Lo interesante es *cómo* se mantienen: cuando se toca una factura, el servidor 
 **El estado del cliente.** Se corrige en el mismo disparador. Acá sí hay que leer las facturas de ese cliente: el estado no es una suma, es *"la más urgente de todas sus facturas"*, así que si a un cliente vencido le pagan la factura vencida, hay que mirar las otras para saber en qué queda. Son las facturas de un cliente, no las de todos.
 
 **El sello de la lista de clientes.** Un vigilante sobre los clientes anota la fecha del último cambio. No lee nada y escribe dos líneas, pero le permite a la lista saber si su copia sigue sirviendo mirando un solo dato. Vive en el servidor y no en la app justamente para enterarse también de lo que se edita a mano en la consola de Firebase.
+
+**Los números de factura, para el buscador de clientes (2026-10-31).** El buscador de la lista encuentra también por número de factura —*77* trae al cliente de la 0773—, finalizadas incluidas. Los números no salen de leer las facturas: el mismo disparador los anota en el documento del sello, por id de factura, solo cuando una se crea, se borra o le corrigen el número, y el repaso de las 3 a.m. los rehace enteros. Como la lista ya lee ese documento en cada visita, buscar por factura no cuesta ni una lectura más.
 
 **El repaso de las 3 de la mañana.** Cubre lo que ningún disparador puede ver: las facturas que vencen **solas**, por calendario, sin que nadie escriba nada. Rehace los totales desde cero y corrige los estados que cambiaron con el paso del día. Lee todas las facturas a propósito, incluso las cerradas: es el único proceso que garantiza que los números estén bien, y filtrar ahí arriesgaría un total equivocado en silencio.
 

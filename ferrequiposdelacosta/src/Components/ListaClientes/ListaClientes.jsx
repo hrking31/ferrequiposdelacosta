@@ -96,6 +96,9 @@ export default function ListaClientes() {
   // la copia, sin lecturas de más (ver clientesCache). null: el servidor
   // todavía no las contó nunca.
   const [facturasAbiertas, setFacturasAbiertas] = useState(null);
+  // Los números de factura de cada cliente, para el buscador: llegan en la
+  // misma lectura. { clienteId: { facturaId: "0773" } }.
+  const [numerosFactura, setNumerosFactura] = useState({});
   const [loading, setLoading] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [filasQueCaben, setFilasQueCaben] = useState(TAMANO_PAGINA_PC);
@@ -110,7 +113,11 @@ export default function ListaClientes() {
   const fetchClientes = useCallback(async () => {
     try {
       setLoading(true);
-      const { clientes: lista, facturasAbiertas: abiertas } = await obtenerClientes(async () => {
+      const {
+        clientes: lista,
+        facturasAbiertas: abiertas,
+        numerosFactura: numeros,
+      } = await obtenerClientes(async () => {
         const querySnapshot = await getDocs(collection(db, "clientes"));
         return querySnapshot.docs.map((docSnap) => ({
           id: docSnap.id,
@@ -119,6 +126,7 @@ export default function ListaClientes() {
       });
       setClientes(lista);
       setFacturasAbiertas(abiertas);
+      setNumerosFactura(numeros ?? {});
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
       showSnackbar("Error al cargar la lista de clientes", "error");
@@ -146,15 +154,24 @@ export default function ListaClientes() {
 
   const clientesPorTipoYBusqueda = useMemo(() => {
     const busquedaLower = busqueda.toLowerCase();
+    const numeroBuscado = busqueda.trim();
     return clientes.filter((cliente) => {
       const coincideTipo = filtroTipo === "todos" || cliente.tipo === filtroTipo;
       const nombreCompleto = obtenerNombreCompleto(cliente);
+      // También por número de factura, finalizadas incluidas, y por un pedazo
+      // ("77" encuentra la 0773).
+      const coincideFactura =
+        numeroBuscado !== "" &&
+        Object.values(numerosFactura[cliente.id] ?? {}).some((numero) =>
+          String(numero).includes(numeroBuscado),
+        );
       const coincideBusqueda =
         nombreCompleto.toLowerCase().includes(busquedaLower) ||
-        (cliente.telefono || "").toLowerCase().includes(busquedaLower);
+        (cliente.telefono || "").toLowerCase().includes(busquedaLower) ||
+        coincideFactura;
       return coincideTipo && coincideBusqueda;
     });
-  }, [clientes, busqueda, filtroTipo]);
+  }, [clientes, busqueda, filtroTipo, numerosFactura]);
 
   const filtroEstadoActivoLabel =
     filtroEstado === "todos" ? null : FILTROS.find((f) => f.valor === filtroEstado)?.label;
@@ -228,7 +245,7 @@ export default function ListaClientes() {
     <BuscadorFiltro
       value={busqueda}
       onChange={setBusqueda}
-      placeholder="Buscar clientes..."
+      placeholder="Buscar por nombre, teléfono o número de factura..."
     />
   );
 

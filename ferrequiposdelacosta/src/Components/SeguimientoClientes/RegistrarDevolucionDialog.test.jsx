@@ -716,6 +716,9 @@ describe("RegistrarDevolucionDialog — devuelve una parte", () => {
     const { usuario } = abrir();
 
     await devolver(usuario, "3");
+    // Es un paso más, con su número, antes de "Así queda" (pedido del dueño,
+    // 2026-10-31).
+    expect(screen.getByText("¿Se cobra transporte adicional?")).toBeInTheDocument();
     await usuario.click(screen.getByLabelText("Transporte adicional"));
     await usuario.type(screen.getByLabelText("Valor del transporte adicional"), "40000");
     expect(asiQueda()).toContain(`Transporte adicional ${enPantalla(40000)}`);

@@ -19,11 +19,12 @@ const CLIENTES = [
   { id: "c2", tipo: "persona", nombres: "Pedro", apellido: "Gómez", estado: "finalizada" },
 ];
 
-const conCuenta = (facturasAbiertas) =>
+const conCuenta = (facturasAbiertas, numerosFactura = {}) =>
   copia.obtenerClientes.mockResolvedValue({
     clientes: CLIENTES,
     desdeCopia: true,
     facturasAbiertas,
+    numerosFactura,
   });
 
 const facturasDe = async (nombre) => {
@@ -48,6 +49,25 @@ describe("ListaClientes — la columna de facturas", () => {
     renderConProviders(<ListaClientes />);
 
     expect(await facturasDe("Aida Pérez")).toBe("—");
+  });
+});
+
+// El buscador encuentra también por número de factura (pedido del dueño,
+// 2026-10-31), finalizadas incluidas y por un pedazo. Los números llegan con
+// el sello, como la columna.
+describe("ListaClientes — buscar por número de factura", () => {
+  it("encuentra al cliente por un pedazo del número, aunque la factura esté finalizada", async () => {
+    conCuenta({ c1: 0 }, { c1: { f1: "0773" }, c2: { f2: "0512" } });
+    const { usuario } = renderConProviders(<ListaClientes />);
+    await screen.findByText("Aida Pérez");
+
+    await usuario.type(
+      screen.getByPlaceholderText("Buscar por nombre, teléfono o número de factura..."),
+      "77",
+    );
+
+    expect(screen.getByText("Aida Pérez")).toBeInTheDocument();
+    expect(screen.queryByText("Pedro Gómez")).not.toBeInTheDocument();
   });
 });
 

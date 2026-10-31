@@ -759,6 +759,16 @@ async function corregirEstadoCliente(clienteId, hoy) {
   await refCliente.update({estado});
 }
 
+/**
+ * El número de una factura como texto, o vacío si no hay factura o no tiene.
+ * @param {?Object} factura El documento de la factura, o null.
+ * @return {string} El número ("0773") o "".
+ */
+function numeroDeFactura(factura) {
+  if (!factura) return "";
+  return String(datosFactura(factura).numeroFactura ?? "").trim();
+}
+
 // Cada vez que se toca una factura —un abono, un pago, una devolución, una
 // ampliación de plazo, un equipo agregado, una corrección— hay que corregir la
 // pizarra.
@@ -809,6 +819,13 @@ export const ajustarTotalesPanel = onDocumentWritten(
       const abiertas =
         Number(facturaAbierta(despues, hoy)) -
         Number(facturaAbierta(antes, hoy));
+      // Y el número de la factura, para que el buscador de la lista de
+      // clientes encuentre también por número (pedido del dueño, 2026-10-31).
+      // Mismo motivo que la columna: viaja en la lectura que la lista ya hace.
+      // Solo se escribe al crearla, al borrarla o si le corrigen el número.
+      const numeroAntes = numeroDeFactura(antes);
+      const numeroDespues = numeroDeFactura(despues);
+      const cambioNumero = numeroAntes !== numeroDespues;
 
       // Muchos cambios no mueven ninguno de los números (por ejemplo,
       // corregir una dirección). Ahí no se escribe nada.
@@ -817,7 +834,8 @@ export const ajustarTotalesPanel = onDocumentWritten(
         pagos !== 0 ||
         movioPorTipo ||
         movioPorEstado ||
-        abiertas !== 0
+        abiertas !== 0 ||
+        cambioNumero
       ) {
         await refTotales().set(
             {
@@ -845,6 +863,16 @@ export const ajustarTotalesPanel = onDocumentWritten(
               ...(abiertas !== 0 && {
                 facturasAbiertasPorCliente: {
                   [event.params.clienteId]: FieldValue.increment(abiertas),
+                },
+              }),
+              // Por id de factura: así se pone o se quita una sola sin leer
+              // las demás del cliente.
+              ...(cambioNumero && {
+                numerosFacturaPorCliente: {
+                  [event.params.clienteId]: {
+                    [event.params.facturaId]:
+                      numeroDespues || FieldValue.delete(),
+                  },
                 },
               }),
               actualizadoEn: Date.now(),
@@ -1037,10 +1065,21 @@ export const recalcularTotalesPanel = onSchedule(
 
       // Las facturas sin finalizar de cada cliente (ver ajustarTotalesPanel).
       // Un cliente sin ninguna no figura: la lista lo muestra en cero.
+      // Y el número de cada factura, también las finalizadas, para el buscador
+      // de la misma lista.
       const facturasAbiertasPorCliente = {};
+      const numerosFacturaPorCliente = {};
       for (const facturaSnap of snap.docs) {
         const clienteId = facturaSnap.ref.parent.parent?.id;
-        if (!clienteId || !facturaAbierta(facturaSnap.data(), hoy)) continue;
+        if (!clienteId) continue;
+        const numero = numeroDeFactura(facturaSnap.data());
+        if (numero) {
+          numerosFacturaPorCliente[clienteId] = {
+            ...numerosFacturaPorCliente[clienteId],
+            [facturaSnap.id]: numero,
+          };
+        }
+        if (!facturaAbierta(facturaSnap.data(), hoy)) continue;
         facturasAbiertasPorCliente[clienteId] =
           (facturasAbiertasPorCliente[clienteId] ?? 0) + 1;
       }
@@ -1053,6 +1092,7 @@ export const recalcularTotalesPanel = onSchedule(
           {
             ...totales,
             facturasAbiertasPorCliente,
+            numerosFacturaPorCliente,
             actualizadoEn: Date.now(),
             recalculadoEn: Date.now(),
           },
@@ -1063,6 +1103,7 @@ export const recalcularTotalesPanel = onSchedule(
               "equiposPorTipo",
               "pagosPorEstado",
               "facturasAbiertasPorCliente",
+              "numerosFacturaPorCliente",
               "actualizadoEn",
               "recalculadoEn",
             ],

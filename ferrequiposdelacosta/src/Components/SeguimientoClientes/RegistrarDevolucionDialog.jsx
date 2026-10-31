@@ -695,7 +695,8 @@ export default function RegistrarDevolucionDialog({
   const pasoCuando = 2;
   const pasoCobroDelDia = pasoCuando + (muestraCuando ? 1 : 0);
   const pasoEquipos = pasoCobroDelDia + (muestraCobroDelDia ? 1 : 0);
-  const pasoAsiQueda = pasoEquipos + 1;
+  const pasoTransporte = pasoEquipos + 1;
+  const pasoAsiQueda = pasoTransporte + (ofreceTransporteAdicional ? 1 : 0);
 
   // EL NÚMERO DEL PASO VA AFUERA, en el margen izquierdo, y el texto más
   // grande (pedido del dueño, 2026-10-21): se ubica cada paso de un vistazo.
@@ -1593,10 +1594,11 @@ export default function RegistrarDevolucionDialog({
               );
             })}
 
-            {/* El transporte adicional: después de los equipos, porque
-                depende de lo que vuelve y de lo que queda afuera. */}
+            {/* ── 5. ¿Transporte adicional? ── Después de los equipos,
+                porque depende de lo que vuelve y de lo que queda afuera. */}
             {ofreceTransporteAdicional && (
               <Grid item xs={12}>
+                {rotuloPaso(pasoTransporte, "¿Se cobra transporte adicional?", 0)}
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -1610,9 +1612,6 @@ export default function RegistrarDevolucionDialog({
                   }
                   label="Transporte adicional"
                 />
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  Para recoger lo que queda afuera. Se suma al transporte de la factura.
-                </Typography>
                 {transporteAdicional.marcado && (
                   <TextField
                     label="Valor del transporte adicional"
@@ -1632,7 +1631,7 @@ export default function RegistrarDevolucionDialog({
               </Grid>
             )}
 
-            {/* ── 5. Así queda ── Recién con algo escrito arriba: sin una
+            {/* ── 6. Así queda ── Recién con algo escrito arriba: sin una
                 cantidad no hay cuenta que mostrar. */}
             {(filasResumen.length > 0 || resolverDeposito) && (
               <Grid item xs={12}>

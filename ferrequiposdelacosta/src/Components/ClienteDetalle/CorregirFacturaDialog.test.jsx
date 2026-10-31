@@ -1,12 +1,13 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import CorregirFacturaDialog from "./CorregirFacturaDialog";
-import { calcularVencimiento, obtenerFechaHoyBogota } from "./facturaUtils";
+import { calcularVencimiento, formatearFechaLegible, obtenerFechaHoyBogota } from "./facturaUtils";
 import { rearmarEquipo } from "./facturaCuentas";
 import { formatearMoneda } from "../../Utils/formato";
 import {
   unEquipo,
   unEquipoDevuelto,
+  unGrupo,
   unTramoVencido,
   unaFactura,
 } from "../../test/facturas";
@@ -81,7 +82,18 @@ const documento = () =>
     ],
   });
 
-const abrir = (props = {}) =>
+// Los bloques de la pantalla entran cerrados (pedido del dueño, 2026-10-31):
+// para corregir hay que abrirlos, como hace el usuario. Abrir uno puede
+// mostrar otros adentro, así que se repite hasta que no quede ninguno.
+const abrirTodo = () => {
+  for (let vuelta = 0; vuelta < 5; vuelta += 1) {
+    const cerrados = screen.queryAllByRole("button", { name: /^Mostrar / });
+    if (cerrados.length === 0) return;
+    cerrados.forEach((boton) => fireEvent.click(boton));
+  }
+};
+
+const abrirCerrada = (props = {}) =>
   renderConProviders(
     <CorregirFacturaDialog
       open
@@ -91,6 +103,12 @@ const abrir = (props = {}) =>
       {...props}
     />,
   );
+
+const abrir = (props = {}) => {
+  const resultado = abrirCerrada(props);
+  abrirTodo();
+  return resultado;
+};
 
 const botonGuardar = () => screen.getByRole("button", { name: "Guardar cambios" });
 const cuenta = () => within(screen.getByLabelText("Así queda"));
@@ -378,7 +396,7 @@ const abrirCon = (equipo) => {
       equipos: [equipo],
     });
   bd.get.mockResolvedValue({ data: () => documentoCon() });
-  return renderConProviders(
+  const resultado = renderConProviders(
     <CorregirFacturaDialog
       open
       onClose={() => {}}
@@ -386,6 +404,8 @@ const abrirCon = (equipo) => {
       factura={{ id: "f1", ...documentoCon() }}
     />,
   );
+  abrirTodo();
+  return resultado;
 };
 
 const equipoGuardado = async () => {
@@ -552,7 +572,7 @@ const abrirConPlata = ({ abonos = [], entregas = [] } = {}, otras = []) => {
   bd.getDocs.mockImplementation(
     enLaBase({ "clientes/cli1/facturas": [{ id: "f1", ...propia() }, ...otras] }),
   );
-  return renderConProviders(
+  const resultado = renderConProviders(
     <CorregirFacturaDialog
       open
       onClose={() => {}}
@@ -560,6 +580,8 @@ const abrirConPlata = ({ abonos = [], entregas = [] } = {}, otras = []) => {
       factura={{ id: "f1", ...propia() }}
     />,
   );
+  abrirTodo();
+  return resultado;
 };
 
 const escritoEn = (ruta) =>
@@ -694,6 +716,7 @@ describe("CorregirFacturaDialog — los cruces", () => {
     const { usuario } = renderConProviders(
       <CorregirFacturaDialog open onClose={() => {}} cliente={cliente} factura={propia} />,
     );
+    abrirTodo();
 
     expect(
       await screen.findByText(/No se pudieron leer las demás facturas del cliente, así que este cruce no se corrige por ahora\./),
@@ -710,6 +733,7 @@ describe("CorregirFacturaDialog — los cruces", () => {
     renderConProviders(
       <CorregirFacturaDialog open onClose={() => {}} cliente={cliente} factura={recibio} />,
     );
+    abrirTodo();
 
     expect(screen.getByText(/Cruce del .* desde la factura 0412: .* Se corrige desde esa factura\./)).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Abono" })).not.toBeInTheDocument();
@@ -790,10 +814,93 @@ describe("CorregirFacturaDialog — el descuento al cobrar", () => {
   });
 });
 
-// EN EL CELULAR cada sección se pliega como las facturas (pedido del dueño,
-// 2026-10-30): arrancan cerradas y se abren tocando su título.
+// LOS BLOQUES DEL DESPACHO (pedido del dueño, 2026-10-31), con los nombres de
+// la factura: Información de pago, cada equipo y Cargos adicionales. Entran
+// cerrados, con lo de adentro resumido en el título.
+describe("CorregirFacturaDialog — los bloques del despacho", () => {
+  it("arrancan cerrados y se abren y cierran tocando su título", async () => {
+    const { usuario } = abrirCerrada();
+
+    expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Fecha del despacho")).not.toBeInTheDocument();
+    // El título del pago dice cómo se pagó sin abrirlo.
+    expect(screen.getByRole("group", { name: "Información de pago" })).toHaveTextContent(
+      enPantalla(63000),
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Mostrar Equipo 1" }));
+    expect(screen.getByLabelText("Fecha de devolución")).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Ocultar Equipo 1" }));
+    expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
+  });
+
+  it("con un solo despacho, el despacho va abierto y sin flecha", () => {
+    abrirCerrada();
+
+    expect(screen.getByRole("region", { name: "Equipo inicial" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^(Mostrar|Ocultar) Equipo inicial$/ })).not.toBeInTheDocument();
+  });
+
+  it("con agregados, cada despacho lleva flecha y arranca cerrado", async () => {
+    const conAgregados = () =>
+      unaFactura({
+        numeroFactura: "0414",
+        fechaCreacion: DESPACHO,
+        grupos: [
+          unGrupo({ fechaSolicitud: DESPACHO, equipos: [unEquipo({ nombre: "ANDAMIO" })] }),
+          unGrupo({
+            grupo: "grupo-agregados-1",
+            fechaSolicitud: SE_ANOTO,
+            equipos: [unEquipo({ nombre: "CERCHAS" })],
+          }),
+        ],
+      });
+    bd.get.mockResolvedValue({ data: () => conAgregados() });
+    const { usuario } = abrirCerrada({ factura: { id: "f1", ...conAgregados() } });
+
+    expect(screen.getByRole("button", { name: "Mostrar Equipo inicial" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mostrar Equipo 1" })).not.toBeInTheDocument();
+
+    await usuario.click(screen.getByRole("button", { name: "Mostrar Agregados" }));
+    const agregados = within(
+      screen.getByRole("region", { name: `Agregados · ${formatearFechaLegible(SE_ANOTO)}` }),
+    );
+    await usuario.click(agregados.getByRole("button", { name: "Mostrar Equipo 1" }));
+    expect(agregados.getByLabelText("Equipo")).toHaveValue("CERCHAS");
+  });
+
+  it("un transporte adicional se agrega desde los cargos y se guarda", async () => {
+    const { usuario } = abrir();
+    const cargos = within(screen.getByRole("group", { name: "Cargos adicionales" }));
+
+    await usuario.click(cargos.getByRole("button", { name: "Agregar transporte adicional" }));
+    expect(cargos.getByLabelText("Transporte adicional · fecha")).toHaveValue(HOY);
+    await usuario.type(cargos.getByLabelText("Valor"), "40000");
+    await usuario.click(botonGuardar());
+
+    expect(await screen.findByText("Factura corregida.")).toBeInTheDocument();
+    const [, escrito] = bd.update.mock.calls[0];
+    expect(escrito.grupos[0].adicionales.transportesAdicionales).toEqual([
+      { fecha: HOY, valor: 40000 },
+    ]);
+  });
+
+  it("el historial y los abonos también se pliegan", async () => {
+    const { usuario } = abrirCerrada();
+
+    expect(screen.queryByText("Esta factura no tiene correcciones.")).not.toBeInTheDocument();
+    await usuario.click(
+      screen.getByRole("button", { name: "Mostrar Historial de correcciones" }),
+    );
+    expect(await screen.findByText("Esta factura no tiene correcciones.")).toBeInTheDocument();
+  });
+});
+
+// EN EL CELULAR las secciones se pliegan como las facturas (pedido del dueño,
+// 2026-10-30). El despacho, si es el único, va abierto igual que en el
+// computador, y adentro sus bloques cerrados.
 describe("CorregirFacturaDialog — en el celular", () => {
-  it("las secciones arrancan cerradas y se abren tocando su título", async () => {
+  it("la factura arranca cerrada y el único despacho abierto, con sus bloques cerrados", async () => {
     const original = window.matchMedia;
     window.matchMedia = (query) => ({
       matches: query.includes("max-width:915px"),
@@ -806,13 +913,14 @@ describe("CorregirFacturaDialog — en el celular", () => {
       dispatchEvent: () => false,
     });
     try {
-      const { usuario } = abrir();
+      const { usuario } = abrirCerrada();
 
+      expect(screen.queryByLabelText("N° de factura")).not.toBeInTheDocument();
       expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
-      await usuario.click(screen.getByRole("button", { name: "Mostrar Despacho inicial" }));
+      await usuario.click(screen.getByRole("button", { name: "Mostrar Equipo 1" }));
       expect(screen.getByLabelText("Fecha de devolución")).toBeInTheDocument();
-      await usuario.click(screen.getByRole("button", { name: "Ocultar Despacho inicial" }));
-      expect(screen.queryByLabelText("Fecha de devolución")).not.toBeInTheDocument();
+      // Y el botón de agregar, corto.
+      expect(screen.getByRole("button", { name: "Agregar equipo" })).toBeInTheDocument();
     } finally {
       window.matchMedia = original;
     }

@@ -30,7 +30,7 @@ export default function DetalleCatalogo({ equipos }) {
     );
   }
 
-  return <ListaEquipos equipos={equipos} enPanel contadorDebajo />;
+  return <ListaEquipos equipos={equipos} enPanel enVentana contadorDebajo />;
 }
 
 DetalleCatalogo.propTypes = {

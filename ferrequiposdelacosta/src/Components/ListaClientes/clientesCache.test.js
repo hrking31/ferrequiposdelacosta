@@ -163,3 +163,23 @@ describe("clientesCache — las facturas sin finalizar", () => {
     expect(resultado.facturasAbiertas).toBeNull();
   });
 });
+
+// Los números de factura de cada cliente, para el buscador: en la misma
+// lectura del sello, sin ninguna más.
+describe("clientesCache — los números de factura", () => {
+  it("vienen con el sello, y vacíos si el servidor todavía no los anotó", async () => {
+    sello.mockReturnValue({
+      exists: () => true,
+      data: () => ({
+        clientesActualizadoEn: 1000,
+        numerosFacturaPorCliente: { c0: { f1: "0773" } },
+      }),
+    });
+    const resultado = await obtenerClientes(() => Promise.resolve(listaDe("Aida")));
+    expect(resultado.numerosFactura).toEqual({ c0: { f1: "0773" } });
+
+    conSello(1000);
+    const sinNumeros = await obtenerClientes(() => Promise.resolve(listaDe("Aida")));
+    expect(sinNumeros.numerosFactura).toEqual({});
+  });
+});
