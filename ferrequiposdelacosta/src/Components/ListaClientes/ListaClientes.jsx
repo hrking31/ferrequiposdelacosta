@@ -781,10 +781,10 @@ export default function ListaClientes() {
                     <TableCell sx={{ fontWeight: 700 }}>Nombre del Cliente</TableCell>
                     <TableCell sx={{ fontWeight: 700, width: 160 }}>Contacto</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Dirección</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 140 }}>Estado</TableCell>
                     <TableCell sx={{ fontWeight: 700, width: 90 }} align="center">
                       Facturas
                     </TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 140 }}>Estado</TableCell>
                     <TableCell sx={{ fontWeight: 700, width: 160 }} align={ocultarSidebar ? "center" : "left"}>
                       Acciones
                     </TableCell>
@@ -854,6 +854,13 @@ export default function ListaClientes() {
                           </Typography>
                         </TableCell>
 
+                        {/* Solo las que no están finalizadas. */}
+                        <TableCell align="center">
+                          <Typography variant="body2" fontWeight={600}>
+                            {facturasAbiertas ? facturasAbiertas[cliente.id] ?? 0 : "—"}
+                          </Typography>
+                        </TableCell>
+
                         <TableCell>
                           <Chip
                             icon={estadoInfo.Icono ? <estadoInfo.Icono /> : undefined}
@@ -866,13 +873,6 @@ export default function ListaClientes() {
                               "& .MuiChip-icon": { color: "inherit" },
                             }}
                           />
-                        </TableCell>
-
-                        {/* Solo las que no están finalizadas. */}
-                        <TableCell align="center">
-                          <Typography variant="body2" fontWeight={600}>
-                            {facturasAbiertas ? facturasAbiertas[cliente.id] ?? 0 : "—"}
-                          </Typography>
                         </TableCell>
 
                         <TableCell>
