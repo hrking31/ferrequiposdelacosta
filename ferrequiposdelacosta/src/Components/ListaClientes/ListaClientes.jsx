@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
+  Badge,
   Box,
   Button,
   Chip,
@@ -540,19 +541,30 @@ export default function ListaClientes() {
                       >
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Stack direction="row" spacing={1.5} alignItems="center">
-                            <Avatar
-                              sx={{
-                                bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
-                                width: 40,
-                                height: 40,
-                              }}
+                            {/* Las facturas sin finalizar, en el ícono: como
+                                en la ficha del cliente. Sin ninguna, no hay
+                                número. */}
+                            <Badge
+                              badgeContent={facturasAbiertas?.[cliente.id] ?? 0}
+                              color="primary"
+                              overlap="circular"
+                              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                              sx={{ flexShrink: 0 }}
                             >
-                              {cliente.tipo === "empresa" ? (
-                                <BusinessIcon sx={{ fontSize: 20 }} />
-                              ) : (
-                                <PersonIcon sx={{ fontSize: 20 }} />
-                              )}
-                            </Avatar>
+                              <Avatar
+                                sx={{
+                                  bgcolor: avatarBgPorEstado[cliente.estado] || avatarBgPorEstado.inactivo,
+                                  width: 40,
+                                  height: 40,
+                                }}
+                              >
+                                {cliente.tipo === "empresa" ? (
+                                  <BusinessIcon sx={{ fontSize: 20 }} />
+                                ) : (
+                                  <PersonIcon sx={{ fontSize: 20 }} />
+                                )}
+                              </Avatar>
+                            </Badge>
 
                             <Box>
                               <Typography variant="body2" fontWeight="bold">

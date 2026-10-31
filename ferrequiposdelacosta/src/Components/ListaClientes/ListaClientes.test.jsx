@@ -50,3 +50,33 @@ describe("ListaClientes — la columna de facturas", () => {
     expect(await facturasDe("Aida Pérez")).toBe("—");
   });
 });
+
+// En el celular no hay columnas: el número va en el ícono de la tarjeta, como
+// en la ficha del cliente.
+describe("ListaClientes — en el celular", () => {
+  const original = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = (query) => ({
+      matches: query.includes("max-width:915px"),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = original;
+  });
+
+  it("el número va en el ícono, y sin facturas abiertas no hay número", async () => {
+    conCuenta({ c1: 3 });
+    renderConProviders(<ListaClientes />);
+
+    const tarjeta = (nombre) => screen.findByRole("button", { name: `Ver detalles de ${nombre}` });
+    expect(within(await tarjeta("Aida Pérez")).getByText("3")).toBeInTheDocument();
+    expect(within(await tarjeta("Pedro Gómez")).queryByText("0")).not.toBeInTheDocument();
+  });
+});
