@@ -2037,7 +2037,16 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                             key={item.clave}
                             role="group"
                             aria-label={`Equipo ${item.nombre || "nuevo"}`}
-                            sx={{ p: 2, borderRadius: "14px", border: "1px solid", borderColor: "custom.itemBorder" }}
+                            // Como el equipo en la factura (EquipoRow): el
+                            // color de su despacho, y por dentro gris si ya
+                            // volvió.
+                            sx={{
+                              p: 2,
+                              ...theme.recuadro(
+                                colorDelDespacho(grupo),
+                                devolucion ? colores.seccionDevuelto : colorDelDespacho(grupo),
+                              ),
+                            }}
                           >
                             <Grid container spacing={1.5} alignItems="flex-start">
                               <Grid item xs={10} sm={11} md={3.5}>
