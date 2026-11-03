@@ -231,9 +231,7 @@ export default function ListaClientes() {
       sx={{
         flexShrink: 0,
         whiteSpace: "nowrap",
-        bgcolor: acento,
-        color: theme.palette.getContrastText(acento),
-        "&:hover": { bgcolor: acento, opacity: 0.9 },
+        ...theme.botonDeColor(acento),
         borderRadius: (theme) => theme.shape.pill,
       }}
     >
@@ -620,9 +618,7 @@ export default function ListaClientes() {
             // inferior que librar (pedido del dueño, 2026-10-30).
             bottom: 24,
             right: 24,
-            bgcolor: acento,
-            color: theme.palette.getContrastText(acento),
-            "&:hover": { bgcolor: acento, opacity: 0.9 },
+            ...theme.botonDeColor(acento),
           }}
         >
           <PersonAddAlt1Icon />

@@ -2322,10 +2322,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                         onClick={() => agregarEquipo(indiceGrupo)}
                         sx={{
                           height: 48,
-                          borderRadius: "12px",
-                          border: "2px dashed",
-                          borderColor: "divider",
-                          color: acento,
+                          ...theme.botonPunteado(acento, "divider"),
                           fontWeight: 700,
                         }}
                       >
@@ -2441,7 +2438,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                                       aria-label="Quitar este transporte adicional"
                                       color="error"
                                       onClick={() => quitarTransporteAdicional(indiceGrupo, posicion)}
-                                      sx={{ border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper" }}
+                                      sx={theme.botonConMarco}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -2457,10 +2454,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                               fullWidth
                               sx={{
                                 height: 40,
-                                borderRadius: "12px",
-                                border: "2px dashed",
-                                borderColor: alpha(colorCargos, 0.35),
-                                color: colorCargos,
+                                ...theme.botonPunteado(colorCargos),
                                 fontWeight: 700,
                               }}
                             >

@@ -479,15 +479,7 @@ export default function KioskCart() {
                           }
                           disabled={item.days <= 1}
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Remove
@@ -515,15 +507,7 @@ export default function KioskCart() {
                             handleDaysChange(item.lineId, item.days + 1)
                           }
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Add
@@ -571,15 +555,7 @@ export default function KioskCart() {
                           }
                           disabled={item.quantity <= 1}
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Remove
@@ -607,15 +583,7 @@ export default function KioskCart() {
                             handleQtyChange(item.lineId, item.quantity + 1)
                           }
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Add

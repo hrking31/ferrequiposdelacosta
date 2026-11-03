@@ -315,11 +315,7 @@ export default function DetailGallery({ isFullscreen, setIsFullscreen, deLaTiend
               position: "absolute",
               right: theme.spacing(2),
               bottom: theme.spacing(2),
-              backgroundColor: theme.palette.custom.veloFoto,
-              color: theme.palette.common.white,
-              "&:hover": {
-                backgroundColor: theme.palette.custom.veloFotoHover,
-              },
+              ...theme.botonSobreFoto,
             }}
           >
             {isFullscreen ? <FullscreenExit /> : <Fullscreen />}

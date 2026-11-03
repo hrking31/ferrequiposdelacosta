@@ -119,24 +119,12 @@ const AnimatedBox = forwardRef(function AnimatedBox(
                 e.stopPropagation();
                 handleInstall();
               }}
-              sx={{
-                // Invertido: el fondo es el color que va ENCIMA del acento y
-                // la letra es el acento. Así se despega de la caja en los dos
-                // modos sin inventar colores nuevos.
-                bgcolor: "custom.onAccent",
-                color: "custom.accent",
+              sx={(theme) => ({
                 fontWeight: 700,
                 px: 3,
                 py: 1,
-                borderRadius: (theme) => theme.shape.pill,
-                boxShadow: 3,
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  bgcolor: "custom.onAccent",
-                  transform: "translateY(-2px)",
-                  boxShadow: 6,
-                },
-              }}
+                ...theme.botonInvertido,
+              })}
             >
               Instalar app
             </Button>

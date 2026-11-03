@@ -25,23 +25,15 @@ export const WhatsAppButton = () => {
       color="success"
       aria-label="Escribir por WhatsApp"
       onClick={() => abrirWhatsapp(TELEFONO_EMPRESA)}
-      sx={{
+      sx={(theme) => ({
         position: "fixed",
         zIndex: 1300,
         bottom: 75,
         right: 12,
-        background: (theme) =>
-          `linear-gradient(135deg, ${theme.palette.custom.whatsapp.main}, ${theme.palette.custom.whatsapp.dark})`,
-        color: "white",
         width: 60,
         height: 60,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: 6,
-        },
-        boxShadow: 3,
-      }}
+        ...theme.botonWhatsappFlotante,
+      })}
     >
       <WhatsApp fontSize="large" />
     </IconButton>

@@ -822,6 +822,13 @@ export const CustomThemeProvider = ({ children }) => {
 
     const p = base.palette;
 
+    // Un botón relleno, con su fondo al pasar el mouse. Ver `botonRelleno`.
+    const botonRelleno = (fondo, fondoHover, letra) => ({
+      bgcolor: fondo,
+      color: letra,
+      "&:hover": { bgcolor: fondoHover },
+    });
+
     // Paso 2: tipografía y componentes, construidos SOBRE la paleta anterior.
     let newTheme = createTheme(base, {
       // ── LOS CHIPS ────────────────────────────────────────────────────
@@ -928,6 +935,119 @@ export const CustomThemeProvider = ({ children }) => {
           bgcolor: alpha(base.palette.custom.totalText, 0.16),
         },
       },
+
+      // ── LOS BOTONES CON APARIENCIA PROPIA ────────────────────────────
+      //
+      // Los que no salen de una variante de MuiButton porque su color lo elige
+      // la pantalla, o porque son una pieza única. Acá va el aspecto; dónde
+      // van, en su pantalla.
+
+      // Los + y − de los días y las cantidades, en la tienda y el kiosco: solo
+      // el ícono, sin fondo ni sombra, ni siquiera al pasar el mouse.
+      botonDeCantidad: {
+        minWidth: { xs: 28 },
+        height: { xs: 28 },
+        padding: 0,
+        backgroundColor: "transparent",
+        boxShadow: "none",
+        "&:hover": {
+          backgroundColor: "transparent",
+          boxShadow: "none",
+        },
+      },
+
+      botonRelleno,
+
+      // WhatsApp y llamada en la tarjeta de Seguimiento: cuadrados con la
+      // esquina apenas redondeada, igual que los botones de acción de la
+      // factura. `tono`: { main, dark }.
+      botonDeContacto: (tono) => ({
+        ...botonRelleno(tono.main, tono.dark, base.palette.common.white),
+        borderRadius: 1,
+      }),
+
+      // Relleno del color que eligió la pantalla, que se apaga un poco al
+      // pasar el mouse.
+      botonDeColor: (color) => ({
+        bgcolor: color,
+        color: base.palette.getContrastText(color),
+        "&:hover": { bgcolor: color, opacity: 0.9 },
+      }),
+
+      // "Agregar algo": contorno punteado, sin relleno. El borde va apagado
+      // para que mande el color de la letra.
+      botonPunteado: (color, colorBorde = alpha(color, 0.35)) => ({
+        borderRadius: "12px",
+        border: "2px dashed",
+        borderColor: colorBorde,
+        color,
+      }),
+
+      // Un ícono de acción con su marco, al lado de un campo.
+      botonConMarco: {
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: "10px",
+        bgcolor: "background.paper",
+      },
+
+      // Teñido de su color, y lleno al pasar el mouse.
+      botonTenue: (color) => ({
+        color,
+        bgcolor: alpha(color, 0.12),
+        transition: "background-color 0.15s ease, color 0.15s ease",
+        "& svg": { transition: "transform 0.15s ease" },
+        "&:hover": { bgcolor: color, color: "common.white" },
+        "&:hover svg": { transform: "translateX(2px)" },
+      }),
+
+      // Sobre una foto: blanco, con el velo que lo separa de la imagen.
+      botonSobreFoto: {
+        backgroundColor: base.palette.custom.veloFoto,
+        color: base.palette.common.white,
+        "&:hover": {
+          backgroundColor: base.palette.custom.veloFotoHover,
+        },
+      },
+
+      // El de WhatsApp que flota en la tienda.
+      botonWhatsappFlotante: {
+        background: `linear-gradient(135deg, ${base.palette.custom.whatsapp.main}, ${base.palette.custom.whatsapp.dark})`,
+        color: "white",
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: 6,
+        },
+        boxShadow: 3,
+      },
+
+      // "Instalar app". Invertido: el fondo es el color que va ENCIMA del
+      // acento y la letra es el acento. Así se despega de la caja en los dos
+      // modos sin inventar colores nuevos.
+      botonInvertido: {
+        bgcolor: "custom.onAccent",
+        color: "custom.accent",
+        borderRadius: base.shape.pill,
+        boxShadow: 3,
+        transition: "all 0.2s ease-in-out",
+        "&:hover": {
+          bgcolor: "custom.onAccent",
+          transform: "translateY(-2px)",
+          boxShadow: 6,
+        },
+      },
+
+      // El del protector de pantalla del kiosco. No usa theme.shadows: el
+      // kiosco fuerza modo oscuro, y ahí la escala es "none" a propósito. Acá
+      // sí hace falta la sombra porque es una pieza flotante a pantalla
+      // completa, no una superficie.
+      botonDelProtector: {
+        borderRadius: base.shape.pill,
+        backgroundColor: base.palette.custom.accent,
+        boxShadow: `0px 10px 30px ${alpha(base.palette.common.black, 0.5)}`,
+      },
+
 
       typography: {
         fontFamily: '"Open Sans", "Roboto", "Arial", sans-serif',

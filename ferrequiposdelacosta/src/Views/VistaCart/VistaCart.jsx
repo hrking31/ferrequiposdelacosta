@@ -519,15 +519,7 @@ export default function VistaCart() {
                           }
                           disabled={item.days <= 1}
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Remove
@@ -555,15 +547,7 @@ export default function VistaCart() {
                             handleDaysChange(item.lineId, item.days + 1)
                           }
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Add
@@ -611,15 +595,7 @@ export default function VistaCart() {
                           }
                           disabled={item.quantity <= 1}
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Remove
@@ -647,15 +623,7 @@ export default function VistaCart() {
                             handleQtyChange(item.lineId, item.quantity + 1)
                           }
                           sx={{
-                            minWidth: { xs: 28 },
-                            height: { xs: 28 },
-                            padding: 0,
-                            backgroundColor: "transparent",
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "transparent",
-                              boxShadow: "none",
-                            },
+                            ...theme.botonDeCantidad,
                           }}
                         >
                           <Add

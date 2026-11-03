@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Box, Typography, Button } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import PropTypes from "prop-types";
 import { clearCart } from "../../Store/Slices/cartSlice.js";
 import { clearCliente } from "../../Store/Slices/clienteSlice.js";
@@ -181,17 +180,11 @@ export default function KioskScreensaver({ timeout = 60000 }) {
         <Button
           variant="contained"
           size="large"
-          sx={{
+          sx={(theme) => ({
             py: 2,
-            borderRadius: (theme) => theme.shape.pill,
             fontSize: "1.5rem",
             fontWeight: "bold",
-            backgroundColor: (theme) => theme.palette.custom.accent,
-            // No usa theme.shadows: el kiosco fuerza modo oscuro, y ahí la
-            // escala es "none" a propósito. Acá sí hace falta la sombra porque
-            // es una pieza flotante a pantalla completa, no una superficie.
-            boxShadow: (theme) =>
-              `0px 10px 30px ${alpha(theme.palette.common.black, 0.5)}`,
+            ...theme.botonDelProtector,
             // El latido, SOLO con transform. Es la animación más cara que
             // puede tener esta app: corre para siempre y, siendo el protector
             // de pantalla, corre justo cuando nadie usa el kiosco — o sea la
@@ -218,7 +211,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             "@media (prefers-reduced-motion: reduce)": {
               animation: "none",
             },
-          }}
+          })}
         >
           VER CATÁLOGO
         </Button>

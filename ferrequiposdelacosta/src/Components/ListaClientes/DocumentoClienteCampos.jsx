@@ -229,15 +229,13 @@ export default function DocumentoClienteCampos({ fotos, onElegir, onQuitar, desh
                   aria-label={`Quitar el ${lado}`}
                   onClick={() => onQuitar(clave)}
                   disabled={deshabilitado}
-                  sx={{
+                  sx={(theme) => ({
                     position: "absolute",
                     top: 4,
                     right: 4,
                     p: 0.25,
-                    bgcolor: "error.main",
-                    color: "common.white",
-                    "&:hover": { bgcolor: "error.dark" },
-                  }}
+                    ...theme.botonRelleno("error.main", "error.dark", "common.white"),
+                  })}
                 >
                   <CloseIcon sx={{ fontSize: 16 }} />
                 </IconButton>

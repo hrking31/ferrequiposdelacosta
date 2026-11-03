@@ -111,17 +111,9 @@ export default function KioskProductCardDetail({ product }) {
           onClick={handleDecrement(setValue, value)}
           disableRipple
           sx={{
-            minWidth: { xs: 28 },
-            height: { xs: 28 },
+            ...theme.botonDeCantidad,
             borderRadius: "50%",
-            padding: 0,
             minHeight: 0,
-            backgroundColor: "transparent",
-            boxShadow: "none",
-            "&:hover": {
-              backgroundColor: "transparent",
-              boxShadow: "none",
-            },
           }}
         >
           <Remove
@@ -144,15 +136,7 @@ export default function KioskProductCardDetail({ product }) {
           onClick={handleIncrement(setValue, value)}
           disableRipple
           sx={{
-            minWidth: { xs: 28 },
-            height: { xs: 28 },
-            padding: 0,
-            backgroundColor: "transparent",
-            boxShadow: "none",
-            "&:hover": {
-              backgroundColor: "transparent",
-              boxShadow: "none",
-            },
+            ...theme.botonDeCantidad,
           }}
         >
           <Add

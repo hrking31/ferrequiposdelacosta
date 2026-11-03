@@ -157,12 +157,7 @@ export default function FranjaLista({ icono, items, idElegido, onElegir, onAbrir
             width: 40,
             height: 40,
             flexShrink: 0,
-            color: acento,
-            bgcolor: alpha(acento, 0.12),
-            transition: "background-color 0.15s ease, color 0.15s ease",
-            "& svg": { transition: "transform 0.15s ease" },
-            "&:hover": { bgcolor: acento, color: "common.white" },
-            "&:hover svg": { transform: "translateX(2px)" },
+            ...theme.botonTenue(acento),
           }}
         >
           <ChevronRightIcon />

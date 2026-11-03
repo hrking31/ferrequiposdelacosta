@@ -1200,14 +1200,9 @@ export default function ClienteSeguimientoCard({
                     aria-label="Escribir por WhatsApp"
                     onClick={() => abrirWhatsapp(numeroWhatsapp, mensajeWhatsapp)}
                     sx={{
-                      bgcolor: theme.palette.custom.whatsapp.main,
-                      color: theme.palette.common.white,
+                      ...theme.botonDeContacto(theme.palette.custom.whatsapp),
                       width: 30,
                       height: 30,
-                      // Cuadrados con la esquina apenas redondeada, igual que
-                      // los botones de acción de la factura.
-                      borderRadius: 1,
-                      "&:hover": { bgcolor: theme.palette.custom.whatsapp.dark },
                     }}
                   >
                     <WhatsAppIcon sx={{ fontSize: 18 }} />
@@ -1223,12 +1218,9 @@ export default function ClienteSeguimientoCard({
                     size="small"
                     onClick={() => setLlamadaOpen(true)}
                     sx={{
-                      bgcolor: theme.palette.custom.call.main,
-                      color: theme.palette.common.white,
+                      ...theme.botonDeContacto(theme.palette.custom.call),
                       width: 30,
                       height: 30,
-                      borderRadius: 1,
-                      "&:hover": { bgcolor: theme.palette.custom.call.dark },
                     }}
                   >
                     <PhoneIcon sx={{ fontSize: 18 }} />
@@ -1631,11 +1623,11 @@ export default function ClienteSeguimientoCard({
                       sx={{
                         ...iconBtnSx,
                         flexShrink: 0,
-                        bgcolor: "warning.main",
-                        color: theme.palette.getContrastText(
-                          theme.palette.warning.main,
+                        ...theme.botonRelleno(
+                          "warning.main",
+                          "warning.dark",
+                          theme.palette.getContrastText(theme.palette.warning.main),
                         ),
-                        "&:hover": { bgcolor: "warning.dark" },
                       }}
                     >
                       <CurrencyExchangeIcon fontSize="small" />
