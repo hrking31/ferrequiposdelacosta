@@ -36,6 +36,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import EncabezadoLista, { ALTO_ENCABEZADO_LISTA } from "../PanelLista/EncabezadoLista";
 import ChipFiltro from "../Filtros/ChipFiltro";
 import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
@@ -367,6 +368,7 @@ export default function ListaCuentasCobro() {
       sx={{
         width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
+        mt: `${ALTO_ENCABEZADO_LISTA}px`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
@@ -524,7 +526,7 @@ export default function ListaCuentasCobro() {
     conPanel ? (
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
         <Box sx={columnaVertical}>{lista}</Box>
-        <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+        <Box sx={{ width: 420, flexShrink: 0, minHeight: 0, mt: `${ALTO_ENCABEZADO_LISTA}px` }}>
           <PanelDocumentos
             onCerrar={elegida ? () => setElegidaId(null) : undefined}
             titulo={elegida ? "Vista previa" : "Estadísticas"}
@@ -603,31 +605,30 @@ export default function ListaCuentasCobro() {
             {contador}
           </Stack>
         </Stack>
-      ) : columnaFiltros ? (
-        // Los filtros están en la columna de la izquierda: acá quedan el
-        // buscador y el conteo.
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          sx={{ flexShrink: 0, pb: 2 }}
-        >
-          {buscador}
-          {contador}
-        </Stack>
       ) : (
         // Sin lugar para la columna: debajo del buscador, los desplegables del
-        // celular.
-        <Stack spacing={1.5} sx={{ flexShrink: 0, pb: 2 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            {buscador}
-            {contador}
+        // celular. Con la columna, el buscador va encima de las tarjetas (ver
+        // EncabezadoLista).
+        !columnaFiltros && (
+          <Stack spacing={1.5} sx={{ flexShrink: 0, pb: 2 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {buscador}
+              {contador}
+            </Stack>
+            {desplegables}
           </Stack>
-          {desplegables}
-        </Stack>
+        )
       )}
 
       {conLosFiltros(conElMes(
+      <>
+      {columnaFiltros && (
+        <EncabezadoLista
+          titulo="Lista de cuentas"
+          buscador={buscador}
+          contador={contador}
+        />
+      )}
       <Box
         sx={{
           pr: 0.5,
@@ -997,7 +998,8 @@ export default function ListaCuentasCobro() {
             </Button>
           </Box>
         )}
-      </Box>,
+      </Box>
+      </>,
       ))}
 
       <Dialog open={Boolean(aEliminar)} onClose={() => setAEliminar(null)}>

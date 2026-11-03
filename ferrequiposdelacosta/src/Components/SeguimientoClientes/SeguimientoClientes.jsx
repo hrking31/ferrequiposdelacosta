@@ -26,6 +26,7 @@ import {
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
 import ChipFiltro from "../Filtros/ChipFiltro";
+import EncabezadoLista, { ALTO_ENCABEZADO_LISTA } from "../PanelLista/EncabezadoLista";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import {
   obtenerFechaHoyBogota,
@@ -458,9 +459,9 @@ export default function SeguimientoClientes() {
     return <LoadingLogo height="40vh" text="Cargando seguimiento de clientes..." />;
   }
 
-  // El buscador y los filtros van aparte de la lista: en computador ocupan
-  // TODO el ancho, y el panel de la derecha arranca debajo de ellos, a la
-  // altura de la primera tarjeta.
+  // El buscador y los filtros, cuando no hay columna de filtros: arriba de
+  // todo. Con la columna, el buscador va solo encima de las tarjetas (ver
+  // `encabezadoDeLista`).
   const encabezado =
     clientesConSeguimiento.length > 0 &&
         (esCelular ? (
@@ -497,35 +498,29 @@ export default function SeguimientoClientes() {
               {contador}
             </Stack>
           </Stack>
-        ) : columnaFiltros ? (
-          // Los filtros están en la columna de la izquierda: acá quedan el
-          // título, el buscador y el conteo, como en la lista de Clientes y
-          // solo sobre las tarjetas y el panel (pedido del dueño, 2026-10-30).
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ mb: 1.5, flexShrink: 0 }}
-          >
-            <Typography variant="h6" sx={{ flexShrink: 0 }}>
-              Lista de Clientes
-            </Typography>
-            <Box sx={{ flex: 1, minWidth: 150 }}>{buscador}</Box>
-            {contador}
-          </Stack>
         ) : (
           // Sin lugar para la columna: debajo del buscador, los tres
           // desplegables del celular. Antes los botones de la columna se
           // acomodaban como podían en el renglón, y el dueño (2026-10-20)
           // pidió que al achicar la pantalla pasara de una a lo del celular.
-          <Stack spacing={1.5} sx={{ mb: 2, flexShrink: 0 }}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              {buscador}
-              {contador}
+          !columnaFiltros && (
+            <Stack spacing={1.5} sx={{ mb: 2, flexShrink: 0 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                {buscador}
+                {contador}
+              </Stack>
+              {desplegables}
             </Stack>
-            {desplegables}
-          </Stack>
+          )
         ));
+
+  // Con la columna de filtros: el título, el buscador y el conteo solo encima
+  // de las tarjetas, igual que el buzón y las cuentas de cobro (pedido del
+  // dueño, 2026-11-03).
+  const hayEncabezadoDeLista = columnaFiltros && clientesConSeguimiento.length > 0;
+  const encabezadoDeLista = hayEncabezadoDeLista && (
+    <EncabezadoLista titulo="Lista de Clientes" buscador={buscador} contador={contador} />
+  );
 
   const cuerpo = (
       // Acostado el celular el scroll lo manda la caja de afuera, no esta:
@@ -567,8 +562,8 @@ export default function SeguimientoClientes() {
   );
 
   const lista = conPanel ? (
-    // La lista y el panel, lado a lado debajo del buscador. Cada uno se
-    // desplaza por su cuenta: el panel no se va al bajar por la lista.
+    // La lista y el panel, lado a lado. Cada uno se desplaza por su cuenta: el
+    // panel no se va al bajar por la lista.
     <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
       <Box
         sx={{
@@ -579,34 +574,41 @@ export default function SeguimientoClientes() {
           flexDirection: "column",
         }}
       >
+        {encabezadoDeLista}
         {cuerpo}
       </Box>
-      <Box sx={{ width: 420, flexShrink: 0, minHeight: 0 }}>
+      <Box
+        sx={{
+          width: 420,
+          flexShrink: 0,
+          minHeight: 0,
+          ...(hayEncabezadoDeLista && { mt: `${ALTO_ENCABEZADO_LISTA}px` }),
+        }}
+      >
         <PanelSeguimiento elegido={elegido} hoy={hoy} onSoltar={() => setSeleccion(null)} />
       </Box>
     </Box>
   ) : (
-    cuerpo
+    <>
+      {encabezadoDeLista}
+      {cuerpo}
+    </>
   );
 
-  // LA COLUMNA DE FILTROS va debajo del buscador, no al lado: así arranca a la
-  // altura de la primera tarjeta, como la pidió el dueño. Se desplaza por su
-  // cuenta, igual que la lista.
+  // LA COLUMNA DE FILTROS arranca a la altura de la primera tarjeta, como la
+  // pidió el dueño. Se desplaza por su cuenta, igual que la lista.
   const columna = (
     <Box
       sx={{
         width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
+        mt: `${ALTO_ENCABEZADO_LISTA}px`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
         overflowY: "auto",
       }}
     >
-      {/* Lo que mide la fila del buscador (40 + 12 debajo, con los 8 del
-          espacio entre piezas): los filtros arrancan a la altura de la
-          primera tarjeta, como en la lista de Clientes. */}
-      <Box sx={{ height: 44, flexShrink: 0 }} />
       {etiquetaFiltro("Gestión")}
       <Stack spacing={1}>{chipsGestion()}</Stack>
       <Box sx={{ mt: 1.5 }}>{selectorDias({ width: "100%" })}</Box>
@@ -638,7 +640,6 @@ export default function SeguimientoClientes() {
               flexDirection: "column",
             }}
           >
-            {encabezado}
             {lista}
           </Box>
         </Box>
