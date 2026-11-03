@@ -251,9 +251,7 @@ export default function ClienteEncabezado({
             size="small"
             sx={{
               mt: 0.5,
-              bgcolor: estadoColor,
-              color: theme.palette.getContrastText(estadoColor),
-              "& .MuiChip-icon": { color: "inherit" },
+              ...theme.chipDeColor(estadoColor),
             }}
           />
         </Box>

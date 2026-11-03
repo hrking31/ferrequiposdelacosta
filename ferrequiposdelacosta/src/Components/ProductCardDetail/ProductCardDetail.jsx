@@ -204,14 +204,7 @@ export default function ProductCardDetail({ product }) {
                 variant={
                   varianteSeleccionada === variante ? "filled" : "outlined"
                 }
-                sx={{
-                  ...(varianteSeleccionada === variante && {
-                    backgroundColor: theme.palette.custom.accent,
-                    // El chip elegido va relleno con el acento, así que su
-                    // letra usa el token pensado para ir encima.
-                    color: theme.palette.custom.onAccent,
-                  }),
-                }}
+                sx={varianteSeleccionada === variante ? theme.chipVarianteElegida : undefined}
               />
             ))}
           </Stack>

@@ -28,6 +28,17 @@ const getInitialMode = () => {
 const degradadoRecuadro = (color) =>
   `linear-gradient(180deg, ${alpha(color, 0.14)} 0, ${alpha(color, 0)} 64px)`;
 
+// Ver `recuadro` en el tema.
+const recuadro = (color, relleno = color) => ({
+  bgcolor: "background.paper",
+  backgroundImage: degradadoRecuadro(relleno),
+  border: "1px solid",
+  borderColor: alpha(color, 0.5),
+  borderTop: "3px solid",
+  borderTopColor: color,
+  borderRadius: "14px",
+});
+
 export const CustomThemeProvider = ({ children }) => {
   const [mode, setMode] = useState(getInitialMode);
   const location = useLocation();
@@ -154,6 +165,15 @@ export const CustomThemeProvider = ({ children }) => {
     const BORDE_INPUT = "#CBD5E1";
 
     const esClaro = mode === "light";
+
+    // El realce al pasar el mouse por una tarjeta de lista: dos capas muy
+    // difusas que la despegan de la página. Es de las pocas sombras que SÍ se
+    // muestran de noche —el resto de la app las apaga—, y ahí van en negro,
+    // porque una sombra azulada sobre el fondo noche no se percibe.
+    // Se usa en: `tarjetaDeLista`.
+    const sombraTarjetaHover = esClaro
+      ? `0 12px 24px -6px ${alpha(AZUL_ACERO_CLARO, 0.25)}, 0 4px 14px -2px ${alpha(AZUL_ACERO_CLARO, 0.15)}`
+      : `0 12px 20px -5px ${alpha(NEGRO, 0.4)}, 0 4px 12px -2px ${alpha(NEGRO, 0.2)}`;
 
     // la paleta. Es la única fuente de verdad de color.
     const base = createTheme({
@@ -461,16 +481,6 @@ export const CustomThemeProvider = ({ children }) => {
           // Se usa en: ClienteSeguimientoCard.
           sombraPestana: `3px 0 4px -2px ${alpha(NEGRO, 0.35)}`,
 
-          // El realce al pasar el mouse por una tarjeta de solicitud: dos capas
-          // muy difusas que la despegan de la página. Es de las pocas sombras
-          // que SÍ se muestran de noche —el resto de la app las apaga—, y ahí
-          // van en negro, porque una sombra azulada sobre el fondo noche no se
-          // percibe.
-          // Se usa en: AdminCotizaciones.
-          sombraTarjetaHover: esClaro
-            ? `0 12px 24px -6px ${alpha(AZUL_ACERO_CLARO, 0.25)}, 0 4px 14px -2px ${alpha(AZUL_ACERO_CLARO, 0.15)}`
-            : `0 12px 20px -5px ${alpha(NEGRO, 0.4)}, 0 4px 12px -2px ${alpha(NEGRO, 0.2)}`,
-
           // El relleno de las pestañas de factura que NO están abiertas: un
           // gris apagado, para que la abierta —que va con el acento— sea la
           // única que resalta.
@@ -668,15 +678,37 @@ export const CustomThemeProvider = ({ children }) => {
       // el color de su despacho en el borde—.
       //
       // Uso: sx={{ p: 2, ...theme.recuadro(color) }}.
-      recuadro: (color, relleno = color) => ({
-        bgcolor: "background.paper",
-        backgroundImage: degradadoRecuadro(relleno),
-        border: "1px solid",
-        borderColor: alpha(color, 0.5),
-        borderTop: "3px solid",
-        borderTopColor: color,
-        borderRadius: "14px",
-      }),
+      recuadro,
+
+      // ── LAS TARJETAS DE UNA LISTA QUE SE PUEDE ELEGIR ────────────────
+      //
+      // El buzón de cotizaciones y la lista de cuentas de cobro: el recuadro,
+      // más cómo responde al mouse y cómo se marca la que se está mirando en
+      // la vista previa.
+      //
+      // La elegida (pedido del dueño, 2026-10-23): con solo el borde de color
+      // no se distinguía, porque al pasar el mouse cualquier tarjeta lo
+      // muestra. TODO VA POR DENTRO DEL BORDE DE VERDAD, que es redondeado, y
+      // se lo engrosa hacia adentro con una sombra sin difuminar, que sigue
+      // la curva: `outline` y un anillo por fuera no calzaban con la esquina.
+      // SIN RESPLANDOR: se probaron uno por dentro y otro por fuera, y el
+      // dueño quitó los dos.
+      //
+      // Uso: sx={{ ...theme.tarjetaDeLista(color, estaElegida) }}.
+      tarjetaDeLista: (color, elegida = false) => {
+        const marca = `inset 0 0 0 1px ${color}`;
+        return {
+          ...recuadro(color),
+          willChange: "transform, box-shadow",
+          transition:
+            "box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
+          ...(elegida && { borderColor: color, boxShadow: marca }),
+          "&:hover": {
+            borderColor: color,
+            boxShadow: elegida ? `${marca}, ${sombraTarjetaHover}` : sombraTarjetaHover,
+          },
+        };
+      },
 
       // El ícono del título de un recuadro: en un cuadro de esquinas suaves
       // del color de la sección, el mismo en toda la app.
@@ -688,6 +720,31 @@ export const CustomThemeProvider = ({ children }) => {
         placeItems: "center",
         bgcolor: alpha(color, 0.15),
         color,
+        flexShrink: 0,
+      }),
+
+      // ── LAS TARJETAS DE ESTADÍSTICAS ─────────────────────────────────
+      //
+      // El borde y el resplandor de su color van FIJOS, no al pasar el mouse:
+      // estas tarjetas casi nunca se tocan —solo informan— y reaccionar al
+      // mouse las hacía parecer botones.
+      //
+      // Uso: sx={{ ...theme.marcoKpi(color, { resplandor: 10, radio: 2 }) }}.
+      marcoKpi: (color, { resplandor = 16, intensidad = 0.3, radio = 3 } = {}) => ({
+        borderRadius: radio,
+        border: "1px solid",
+        borderColor: color,
+        boxShadow: `0 0 ${resplandor}px ${alpha(color, intensidad)}`,
+      }),
+
+      // El círculo teñido donde va el ícono de una tarjeta de estadísticas.
+      circuloKpi: (color, tamano) => ({
+        width: tamano,
+        height: tamano,
+        borderRadius: "50%",
+        bgcolor: alpha(color, 0.12),
+        display: "grid",
+        placeItems: "center",
         flexShrink: 0,
       }),
 
@@ -767,6 +824,111 @@ export const CustomThemeProvider = ({ children }) => {
 
     // Paso 2: tipografía y componentes, construidos SOBRE la paleta anterior.
     let newTheme = createTheme(base, {
+      // ── LOS CHIPS ────────────────────────────────────────────────────
+      //
+      // Lo que los chips de la app tienen en común y no es una variante del
+      // tema porque depende de un color que elige cada pantalla. Acá va el
+      // aspecto; dónde va cada uno y qué tan ancho es, en su pantalla.
+
+      // Relleno de un color, con la letra y el ícono que se leen encima. Los
+      // que dicen un estado o una gestión.
+      chipDeColor: (color) => ({
+        bgcolor: color,
+        color: base.palette.getContrastText(color),
+        "& .MuiChip-icon": { color: "inherit" },
+      }),
+
+      // El botón de filtro elegido conserva su color: sin esto MUI le
+      // superpone un tinte al pasar el mouse y otro mientras tiene el foco.
+      chipElegido: (color) => ({
+        bgcolor: color,
+        color: base.palette.getContrastText(color),
+        "& .MuiChip-icon": { color: "inherit" },
+        "&:hover": { bgcolor: color },
+        "&.Mui-focusVisible": { bgcolor: color },
+      }),
+
+      // La pastilla con el número, a la derecha de un botón de filtro. `color`
+      // es el del botón: de él sale la letra cuando está elegido.
+      contadorDeChip: (color, elegido) => ({
+        minWidth: 20,
+        height: 20,
+        px: 0.75,
+        borderRadius: base.shape.pill,
+        fontSize: 11,
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: elegido ? "custom.contadorSobreChip" : "action.selected",
+        color: elegido ? base.palette.getContrastText(color) : "text.secondary",
+      }),
+
+      // El punto del color del estado en un botón de filtro sin elegir.
+      puntoDeChip: (color) => ({
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        bgcolor: color,
+        ml: "10px",
+      }),
+
+      // Un valor con el color de su sección, apenas teñido: las variantes de
+      // un equipo, en su ficha y en el formulario.
+      chipTenue: (color) => ({
+        bgcolor: alpha(color, 0.12),
+        color: "text.primary",
+        border: "1px solid",
+        borderColor: alpha(color, 0.5),
+      }),
+
+      // La variante que el cliente eligió en la tienda y en el kiosco. Va
+      // rellena con el acento, así que su letra usa el token pensado para ir
+      // encima.
+      chipVarianteElegida: {
+        backgroundColor: base.palette.custom.accent,
+        color: base.palette.custom.onAccent,
+      },
+
+      // El rol de un usuario en su ficha.
+      chipRol: (color) => ({
+        bgcolor: alpha(color, 0.1),
+        color,
+        "& .MuiChip-icon": { color },
+      }),
+
+      // Si un usuario está conectado, en su ficha.
+      chipConexion: (enLinea) => ({
+        bgcolor: enLinea ? alpha(base.palette.success.main, 0.12) : "action.hover",
+        color: enLinea ? "success.dark" : "text.secondary",
+      }),
+
+      // El rol en el encabezado del celular, sobre la franja de color. El
+      // fondo es blanco en los DOS modos, así que la letra no puede seguir al
+      // modo: con "text.primary" salía blanca sobre blanca de noche. Se saca
+      // del propio blanco.
+      chipRolSobreFranja: {
+        bgcolor: alpha(base.palette.common.white, 0.9),
+        color: base.palette.getContrastText(base.palette.common.white),
+        "& .MuiChip-icon": {
+          fontSize: 14,
+          color: base.palette.getContrastText(base.palette.common.white),
+        },
+      },
+
+      // El estado de la factura en la pizarra de la corrección: cómo estaba y
+      // cómo queda.
+      chipDePizarra: {
+        antes: {
+          color: "inherit",
+          bgcolor: alpha(base.palette.custom.panelText, 0.12),
+        },
+        despues: {
+          color: "custom.totalText",
+          bgcolor: alpha(base.palette.custom.totalText, 0.16),
+        },
+      },
+
       typography: {
         fontFamily: '"Open Sans", "Roboto", "Arial", sans-serif',
 

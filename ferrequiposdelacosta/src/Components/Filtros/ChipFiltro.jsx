@@ -26,34 +26,14 @@ export default function ChipFiltro({ label, conteo, seleccionado, color, punto, 
           sx={{ width: "100%" }}
         >
           <Box component="span">{label}</Box>
-          <Box
-            component="span"
-            sx={{
-              minWidth: 20,
-              height: 20,
-              px: 0.75,
-              borderRadius: (t) => t.shape.pill,
-              fontSize: 11,
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: seleccionado ? "custom.contadorSobreChip" : "action.selected",
-              color: seleccionado ? theme.palette.getContrastText(relleno) : "text.secondary",
-            }}
-          >
+          <Box component="span" sx={theme.contadorDeChip(relleno, seleccionado)}>
             {conteo}
           </Box>
         </Stack>
       }
       icon={
         icono ||
-        (punto && !seleccionado ? (
-          <Box
-            component="span"
-            sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: punto, ml: "10px" }}
-          />
-        ) : undefined)
+        (punto && !seleccionado ? <Box component="span" sx={theme.puntoDeChip(punto)} /> : undefined)
       }
       sx={{
         flexShrink: 0,
@@ -61,15 +41,7 @@ export default function ChipFiltro({ label, conteo, seleccionado, color, punto, 
         width: "100%",
         justifyContent: "flex-start",
         "& .MuiChip-label": { width: "100%" },
-        // El elegido conserva su color: sin esto MUI le superpone un tinte al
-        // pasar el mouse y otro mientras tiene el foco.
-        ...(seleccionado && {
-          bgcolor: relleno,
-          color: theme.palette.getContrastText(relleno),
-          "& .MuiChip-icon": { color: "inherit" },
-          "&:hover": { bgcolor: relleno },
-          "&.Mui-focusVisible": { bgcolor: relleno },
-        }),
+        ...(seleccionado && theme.chipElegido(relleno)),
       }}
     />
   );

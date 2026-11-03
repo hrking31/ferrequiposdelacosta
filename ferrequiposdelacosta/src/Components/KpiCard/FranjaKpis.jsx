@@ -1,7 +1,6 @@
 import { cloneElement } from "react";
 import PropTypes from "prop-types";
 import { Box, ButtonBase, Stack, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 // LOS NÚMEROS EN UNA FRANJA (2026-10-20), para el menú en pantalla angosta,
 // donde las tarjetas grandes no entran. Va donde estaba la barra: abajo en el
@@ -33,7 +32,7 @@ export default function FranjaKpis({ kpis, vertical = false }) {
             key={kpi.etiqueta}
             onClick={kpi.onClick}
             aria-label={kpi.etiqueta}
-            sx={{
+            sx={(theme) => ({
               flex: "1 1 auto",
               minWidth: 0,
               // El ícono arriba y la cifra abajo; de pie, uno al lado del otro.
@@ -44,12 +43,9 @@ export default function FranjaKpis({ kpis, vertical = false }) {
               gap: vertical ? 1 : 0.25,
               px: vertical ? 1.25 : 1,
               py: vertical ? 0.5 : 0.75,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: kpi.color,
-              boxShadow: `0 0 10px ${alpha(kpi.color, 0.3)}`,
+              ...theme.marcoKpi(kpi.color, { resplandor: 10, radio: 2 }),
               bgcolor: "background.paper",
-            }}
+            })}
           >
             {cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 22, flexShrink: 0 } })}
             <Typography

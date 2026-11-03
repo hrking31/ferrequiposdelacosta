@@ -280,7 +280,6 @@ export default function ListaClientes() {
         const conteo = conteosPorEstado[filtro.valor] || 0;
         const colorFiltro = avatarBgPorEstado[filtro.valor];
         const colorSeleccionado = colorFiltro || acento;
-        const contraste = theme.palette.getContrastText(colorSeleccionado);
         return (
           <Chip
             key={filtro.valor}
@@ -292,24 +291,7 @@ export default function ListaClientes() {
               ) : (
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: "100%" }}>
                   <Box component="span">{filtro.label}</Box>
-                  <Box
-                    component="span"
-                    sx={{
-                      minWidth: 20,
-                      height: 20,
-                      px: 0.75,
-                      borderRadius: (theme) => theme.shape.pill,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: seleccionado
-                        ? "custom.contadorSobreChip"
-                        : "action.selected",
-                      color: seleccionado ? contraste : "text.secondary",
-                    }}
-                  >
+                  <Box component="span" sx={theme.contadorDeChip(colorSeleccionado, seleccionado)}>
                     {conteo}
                   </Box>
                 </Stack>
@@ -317,16 +299,7 @@ export default function ListaClientes() {
             }
             icon={
               colorFiltro && !seleccionado ? (
-                <Box
-                  component="span"
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    bgcolor: colorFiltro,
-                    ml: "10px",
-                  }}
-                />
+                <Box component="span" sx={theme.puntoDeChip(colorFiltro)} />
               ) : undefined
             }
             variant={seleccionado ? "filled" : "outlined"}
@@ -336,15 +309,7 @@ export default function ListaClientes() {
               ...(direction === "row"
                 ? {}
                 : { width: "100%", justifyContent: "flex-start", "& .MuiChip-label": { width: "100%" } }),
-              ...(seleccionado && {
-                bgcolor: colorSeleccionado,
-                color: contraste,
-                "& .MuiChip-icon": { ml: "10px" },
-                // Conserva su color: sin esto MUI le superpone un tinte
-                // al pasar el mouse y otro mientras tiene el foco.
-                "&:hover": { bgcolor: colorSeleccionado },
-                "&.Mui-focusVisible": { bgcolor: colorSeleccionado },
-              }),
+              ...(seleccionado && theme.chipElegido(colorSeleccionado)),
             }}
           />
         );
@@ -386,16 +351,7 @@ export default function ListaClientes() {
               flexShrink: 0,
               fontWeight: 600,
               ...(direction === "row" ? {} : { width: "100%", justifyContent: "flex-start" }),
-              ...(seleccionado && {
-                bgcolor: acento,
-                color: theme.palette.getContrastText(acento),
-                "& .MuiChip-icon": { color: "inherit" },
-                // El filtro aplicado conserva su color. Sin esto MUI le
-                // superpone un tinte al pasar el mouse y otro mientras tiene
-                // el foco, que recién se suelta al hacer clic en otro lado.
-                "&:hover": { bgcolor: acento },
-                "&.Mui-focusVisible": { bgcolor: acento },
-              }),
+              ...(seleccionado && theme.chipElegido(acento)),
             }}
           />
         );
@@ -608,11 +564,7 @@ export default function ListaClientes() {
                             label={estadoInfo.label}
                             variant="estado"
                             size="small"
-                            sx={{
-                              bgcolor: estadoColor,
-                              color: theme.palette.getContrastText(estadoColor),
-                              "& .MuiChip-icon": { color: "inherit" },
-                            }}
+                            sx={theme.chipDeColor(estadoColor)}
                           />
                         </Stack>
 
@@ -877,11 +829,7 @@ export default function ListaClientes() {
                             label={estadoInfo.label}
                             variant="estado"
                             size="small"
-                            sx={{
-                              bgcolor: estadoColor,
-                              color: theme.palette.getContrastText(estadoColor),
-                              "& .MuiChip-icon": { color: "inherit" },
-                            }}
+                            sx={theme.chipDeColor(estadoColor)}
                           />
                         </TableCell>
 

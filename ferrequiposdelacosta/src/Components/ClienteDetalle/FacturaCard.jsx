@@ -381,14 +381,10 @@ export default function FacturaCard({
       label={facturaEstadoInfo.label}
       variant="estado"
       size="small"
-      sx={{
-        bgcolor: facturaEstadoColor,
-        color: theme.palette.getContrastText(facturaEstadoColor),
-        "& .MuiChip-icon": { color: "inherit" },
-        // El ancho lo pone la variante, desde el tema (anchoChip.estado):
-        // es el mismo para los cinco estados y para las otras pantallas que
-        // los muestran. Acá estaba escrito a mano y pisaba al de la variante.
-      }}
+      // El ancho lo pone la variante, desde el tema (anchoChip.estado): es el
+      // mismo para los cinco estados y para las otras pantallas que los
+      // muestran. Acá estaba escrito a mano y pisaba al de la variante.
+      sx={theme.chipDeColor(facturaEstadoColor)}
     />
   );
 

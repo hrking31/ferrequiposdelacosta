@@ -250,17 +250,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                   height: 20,
                   fontSize: "0.65rem",
                   flexShrink: 0,
-                  bgcolor: (t) => alpha(t.palette.common.white, 0.9),
-                  // El fondo del chip es blanco en los DOS modos, así que la
-                  // letra no puede seguir al modo: con "text.primary" salía
-                  // blanca sobre blanca de noche. Se saca del propio blanco.
-                  color: (t) => t.palette.getContrastText(t.palette.common.white),
                   fontWeight: 600,
-                  "& .MuiChip-icon": {
-                    fontSize: 14,
-                    color: (t) =>
-                      t.palette.getContrastText(t.palette.common.white),
-                  },
+                  ...theme.chipRolSobreFranja,
                 }}
               />
             </Stack>

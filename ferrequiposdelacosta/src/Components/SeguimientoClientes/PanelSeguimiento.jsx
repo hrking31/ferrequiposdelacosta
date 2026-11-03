@@ -200,8 +200,7 @@ export default function PanelSeguimiento({ elegido, hoy, onSoltar }) {
                 sx={{
                   flexShrink: 0,
                   fontWeight: 600,
-                  bgcolor: colorSituacion,
-                  color: theme.palette.getContrastText(colorSituacion),
+                  ...theme.chipDeColor(colorSituacion),
                 }}
               />
             )}

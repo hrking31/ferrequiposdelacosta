@@ -1413,7 +1413,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         <Typography variant="body2" sx={{ mr: "auto", opacity: 0.75 }}>
           Estado
         </Typography>
-        <Chip size="small" label={estadoAntes} sx={{ fontWeight: 800, color: "inherit", bgcolor: (t) => alpha(t.palette.custom.panelText, 0.12) }} />
+        <Chip size="small" label={estadoAntes} sx={{ fontWeight: 800, ...theme.chipDePizarra.antes }} />
         {estadoDespues !== estadoAntes && (
           <>
             <Typography component="span" variant="body2">
@@ -1422,7 +1422,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
             <Chip
               size="small"
               label={estadoDespues}
-              sx={{ fontWeight: 800, color: "custom.totalText", bgcolor: (t) => alpha(t.palette.custom.totalText, 0.16) }}
+              sx={{ fontWeight: 800, ...theme.chipDePizarra.despues }}
             />
           </>
         )}

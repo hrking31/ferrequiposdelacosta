@@ -1,6 +1,5 @@
 import PropTypes from "prop-types";
 import { Box, Button, Chip, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PersonIcon from "@mui/icons-material/Person";
@@ -84,7 +83,7 @@ export default function FichaUsuario({
         size="small"
         icon={<VerifiedUserIcon />}
         label={rol?.nombre || "Sin rol"}
-        sx={{ fontWeight: 700, bgcolor: alpha(acento, 0.1), color: acento, "& .MuiChip-icon": { color: acento } }}
+        sx={{ fontWeight: 700, ...theme.chipRol(acento) }}
       />
       <Chip
         size="small"
@@ -96,8 +95,7 @@ export default function FichaUsuario({
           minHeight: 24,
           "& .MuiChip-label": { whiteSpace: "normal", textAlign: "center" },
           fontWeight: 700,
-          bgcolor: conexion.enLinea ? alpha(theme.palette.success.main, 0.12) : "action.hover",
-          color: conexion.enLinea ? "success.dark" : "text.secondary",
+          ...theme.chipConexion(conexion.enLinea),
         }}
       />
     </Stack>

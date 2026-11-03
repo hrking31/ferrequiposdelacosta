@@ -1,7 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import TuneIcon from "@mui/icons-material/Tune";
 import Seccion from "./Seccion";
 
@@ -72,13 +71,7 @@ export default function SeccionVariantes({
                 key={`${valor}-${index}`}
                 label={valor}
                 onDelete={() => onCambiarValores(valores.filter((_, i) => i !== index))}
-                sx={{
-                  fontWeight: 600,
-                  bgcolor: alpha(color, 0.12),
-                  color: "text.primary",
-                  border: "1px solid",
-                  borderColor: alpha(color, 0.5),
-                }}
+                sx={(theme) => ({ fontWeight: 600, ...theme.chipTenue(color) })}
               />
             ))}
           </Stack>

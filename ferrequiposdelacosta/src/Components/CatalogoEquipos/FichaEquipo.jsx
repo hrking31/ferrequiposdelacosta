@@ -1,7 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Button, ButtonBase, Chip, IconButton, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -280,9 +279,7 @@ export default function FichaEquipo({
             size={llenarAlto ? "medium" : "small"}
             sx={{
               fontWeight: 600,
-              bgcolor: alpha(colores.variantes, 0.12),
-              border: "1px solid",
-              borderColor: alpha(colores.variantes, 0.5),
+              ...theme.chipTenue(colores.variantes),
             }}
           />
         ))}

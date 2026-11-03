@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Chip,
   IconButton,
   MenuItem,
   Stack,
@@ -26,6 +25,7 @@ import {
 } from "../../Utils/pantalla";
 import LoadingLogo from "../LoadingLogo/LoadingLogo";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
+import ChipFiltro from "../Filtros/ChipFiltro";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import {
   obtenerFechaHoyBogota,
@@ -291,109 +291,34 @@ export default function SeguimientoClientes() {
     </Typography>
   );
 
-  // El aplicado conserva su color: sin esto MUI le superpone un tinte al
-  // pasar el mouse y otro mientras tiene el foco.
-  const chipElegido = (color) => ({
-    bgcolor: color,
-    color: theme.palette.getContrastText(color),
-    "& .MuiChip-icon": { color: "inherit" },
-    "&:hover": { bgcolor: color },
-    "&.Mui-focusVisible": { bgcolor: color },
-  });
-
-  const enColumna = {
-    width: "100%",
-    justifyContent: "flex-start",
-    "& .MuiChip-label": { width: "100%" },
-  };
-
-  // El rótulo de un botón de filtro con su número, que va en su pastilla, a
-  // la derecha, como en la lista de clientes.
-  const rotuloConConteo = (label, conteo, seleccionado, color) => (
-    <Stack
-      direction="row"
-      alignItems="center"
-      justifyContent="space-between"
-      sx={{ width: "100%" }}
-    >
-      <Box component="span">{label}</Box>
-      <Box
-        component="span"
-        sx={{
-          minWidth: 20,
-          height: 20,
-          px: 0.75,
-          borderRadius: (t) => t.shape.pill,
-          fontSize: 11,
-          fontWeight: 700,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: seleccionado ? "custom.contadorSobreChip" : "action.selected",
-          color: seleccionado ? theme.palette.getContrastText(color) : "text.secondary",
-        }}
-      >
-        {conteo}
-      </Box>
-    </Stack>
-  );
-
   // Los botones de la columna. Los de gestión, con el color de cada una y
   // cuántas facturas hay.
   const chipsGestion = () =>
-    FILTROS_GESTION.map((filtro) => {
-      const seleccionado = filtroGestion === filtro.valor;
-      const colorFiltro = colorPorGestion[filtro.valor];
-      const color = colorFiltro || acento;
-      const conteo = conteosPorGestion[filtro.valor] || 0;
-      return (
-        <Chip
-          key={filtro.valor}
-          clickable
-          onClick={() => setFiltroGestion(filtro.valor)}
-          variant={seleccionado ? "filled" : "outlined"}
-          label={rotuloConConteo(filtro.label, conteo, seleccionado, color)}
-          icon={
-            colorFiltro && !seleccionado ? (
-              <Box
-                component="span"
-                sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: colorFiltro, ml: "10px" }}
-              />
-            ) : undefined
-          }
-          sx={{
-            flexShrink: 0,
-            fontWeight: 600,
-            ...enColumna,
-            ...(seleccionado && chipElegido(color)),
-          }}
-        />
-      );
-    });
+    FILTROS_GESTION.map((filtro) => (
+      <ChipFiltro
+        key={filtro.valor}
+        label={filtro.label}
+        conteo={conteosPorGestion[filtro.valor] || 0}
+        seleccionado={filtroGestion === filtro.valor}
+        color={acento}
+        punto={colorPorGestion[filtro.valor]}
+        onClick={() => setFiltroGestion(filtro.valor)}
+      />
+    ));
 
   // Los de tipo, con cuántos CLIENTES hay de cada uno (ver conteosPorTipo).
   const chipsTipo = () =>
     FILTROS_TIPO.map((filtro) => {
-      const seleccionado = filtroTipo === filtro.valor;
       const Icono = filtro.icono;
       return (
-        <Chip
+        <ChipFiltro
           key={filtro.valor}
-          clickable
+          label={filtro.label}
+          conteo={conteosPorTipo[filtro.valor]}
+          seleccionado={filtroTipo === filtro.valor}
+          color={acento}
+          icono={Icono ? <Icono /> : undefined}
           onClick={() => setFiltroTipo(filtro.valor)}
-          label={rotuloConConteo(
-            filtro.label,
-            conteosPorTipo[filtro.valor],
-            seleccionado,
-            acento,
-          )}
-          icon={Icono ? <Icono /> : undefined}
-          variant={seleccionado ? "filled" : "outlined"}
-          sx={{
-            flexShrink: 0,
-            ...enColumna,
-            ...(seleccionado && chipElegido(acento)),
-          }}
         />
       );
     });

@@ -1,31 +1,12 @@
 import { cloneElement } from "react";
 import PropTypes from "prop-types";
 import { Box, Paper, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 // La etiqueta de la tarjeta de la plata: la que va destacada.
 export const ETIQUETA_PAGOS = "PAGOS PENDIENTES";
 
-// Una tarjeta con el borde y el resplandor de su color, fijos, como KpiCard.
-const marco = (color, resplandor) => ({
-  minWidth: 0,
-  borderRadius: 3,
-  border: "1px solid",
-  borderColor: color,
-  boxShadow: `0 0 ${resplandor}px ${alpha(color, 0.3)}`,
-  display: "flex",
-  alignItems: "center",
-});
-
-const circulo = (color, tamano) => ({
-  width: tamano,
-  height: tamano,
-  borderRadius: "50%",
-  bgcolor: alpha(color, 0.12),
-  display: "grid",
-  placeItems: "center",
-  flexShrink: 0,
-});
+// Cómo se acomoda por dentro una tarjeta; su aspecto sale del tema.
+const FILA = { minWidth: 0, display: "flex", alignItems: "center" };
 
 // LOS KPI DEL MENÚ CON LA PLATA DE PROTAGONISTA (idea 2 del lienzo, pedido
 // del dueño, 2026-10-29), para cuando las cinco tarjetas en fila no caben:
@@ -46,8 +27,8 @@ export default function KpisDestacados({ kpis }) {
       }}
     >
       {pagos && (
-        <Paper elevation={0} sx={{ ...marco(pagos.color, 16), gap: 2, px: 2.75, py: 2 }}>
-          <Box sx={circulo(pagos.color, 56)}>{cloneElement(pagos.icono, { sx: { color: pagos.color, fontSize: 28 } })}</Box>
+        <Paper elevation={0} sx={(theme) => ({ ...FILA, ...theme.marcoKpi(pagos.color), gap: 2, px: 2.75, py: 2 })}>
+          <Box sx={(theme) => theme.circuloKpi(pagos.color, 56)}>{cloneElement(pagos.icono, { sx: { color: pagos.color, fontSize: 28 } })}</Box>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" sx={{ color: pagos.color, fontWeight: 700, letterSpacing: 0.5 }}>
               {pagos.etiqueta}
@@ -70,8 +51,12 @@ export default function KpisDestacados({ kpis }) {
           }}
         >
           {resto.map((kpi) => (
-            <Paper key={kpi.etiqueta} elevation={0} sx={{ ...marco(kpi.color, 10), gap: 1.5, px: 1.75, py: 1.25 }}>
-              <Box sx={circulo(kpi.color, 36)}>{cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 19 } })}</Box>
+            <Paper
+              key={kpi.etiqueta}
+              elevation={0}
+              sx={(theme) => ({ ...FILA, ...theme.marcoKpi(kpi.color, { resplandor: 10 }), gap: 1.5, px: 1.75, py: 1.25 })}
+            >
+              <Box sx={(theme) => theme.circuloKpi(kpi.color, 36)}>{cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 19 } })}</Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 {/* Si no cabe, en dos renglones: cortado no se leía. */}
                 <Typography

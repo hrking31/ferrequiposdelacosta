@@ -41,7 +41,6 @@ import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
 import ResumenLista from "../PanelLista/ResumenLista";
 import VistaPreviaDocumento from "../PanelLista/VistaPreviaDocumento";
-import { estiloElegida } from "../PanelLista/estiloElegida";
 import InsightsIcon from "@mui/icons-material/Insights";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoveToInboxIcon from "@mui/icons-material/MoveToInbox";
@@ -874,40 +873,10 @@ export default function KioskAdminCotizaciones() {
               sx={{
                 position: "relative",
                 overflow: "visible",
-                backgroundColor: "background.paper",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: (theme) =>
-                  `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
                 ...(conPanel && { cursor: "pointer" }),
-                willChange: "transform, box-shadow",
-                transition:
-                  "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.4s ease",
-                "&:hover": {
-                  transform: "translateY(0)",
-                  // El borde de verdad, que es redondeado, se tiñe del acento.
-                  borderColor: "custom.accent",
-                  boxShadow: theme.palette.custom.sombraTarjetaHover,
-                },
-
-                "&:not(:hover)": {
-                  transform: "translateY(0)",
-                },
-                // La elegida, teñida del acento por dentro (ver estiloElegida).
-                ...(elegida?.id === quotation.id &&
-                  estiloElegida(theme.palette.custom.accent, theme.palette.custom.sombraTarjetaHover)),
+                ...theme.tarjetaDeLista(theme.palette.custom.accent, elegida?.id === quotation.id),
               }}
             >
-              {/* Barra superior */}
-              <Box
-                sx={{
-                  height: 6,
-                  backgroundColor: "custom.accent",
-                  borderRadius: (theme) =>
-                    `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
-                }}
-              />
-
               <CardContent
                 sx={{
                   p: esCelular ? 2 : 3,

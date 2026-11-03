@@ -1,15 +1,11 @@
 import { cloneElement } from "react";
 import PropTypes from "prop-types";
 import { Box, ButtonBase, Paper, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 // Tarjeta resumen del panel de KPIs: ícono con tinte del color, número
 // grande y subtítulo. Sin botón "Ver detalle" (a pedido, no lo trae).
 //
-// El borde de color y el resplandor van FIJOS, no en el hover: estas tarjetas
-// casi nunca se pulsan —solo informan— y reaccionar al mouse las hacía parecer
-// botones. Se quedan con el aspecto que antes solo se veía al pasar por
-// encima, que además es el que mejor las separa del fondo.
+// El borde de color y el resplandor salen del tema (theme.marcoKpi).
 //
 // La que trae `onClick` sí se toca (2026-10-20: "Equipos activos" abre su
 // detalle por equipo). Se ve igual que las demás; solo cambia el cursor.
@@ -49,18 +45,7 @@ export default function KpiCard({
 
   const contenido = (
     <>
-      <Box
-        sx={{
-          width: tamanoIcono,
-          height: tamanoIcono,
-          borderRadius: "50%",
-          bgcolor: alpha(color, 0.12),
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
+      <Box sx={(theme) => theme.circuloKpi(color, tamanoIcono)}>
         {cloneElement(icono, { sx: { color, fontSize: compacto ? 22 : mediano && !ancha ? 28 : 36 } })}
       </Box>
       <Box sx={{ minWidth: 0 }}>
@@ -118,7 +103,7 @@ export default function KpiCard({
     <Paper
       elevation={0}
       {...(onClick && { component: ButtonBase, onClick })}
-      sx={{
+      sx={(theme) => ({
         textAlign: "left",
         color: "text.primary",
         flex: 1,
@@ -127,10 +112,7 @@ export default function KpiCard({
         maxWidth: mediano ? "none" : 320,
         ...(compacto || mediano ? {} : { aspectRatio: "2" }),
         p: compacto ? 1.5 : mediano ? 1.4 : 2.5,
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: color,
-        boxShadow: `0 0 16px ${alpha(color, 0.35)}`,
+        ...theme.marcoKpi(color, { intensidad: 0.35 }),
         display: "flex",
         // La chica, con su contenido centrado a lo alto: estira con la
         // columna y quedaba arriba con el hueco abajo (pedido del dueño,
@@ -138,7 +120,7 @@ export default function KpiCard({
         ...(mediano
           ? { flexDirection: "column", justifyContent: "center" }
           : { flexDirection: "row", alignItems: "flex-start", gap: compacto ? 1 : 1.5 }),
-      }}
+      })}
     >
       {mediano ? (
         // La chica: el ícono a la altura del nombre, como en la grande, y el
