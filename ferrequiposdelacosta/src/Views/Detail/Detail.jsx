@@ -49,7 +49,6 @@ export default function Detail() {
         pb: isFullScreen ? { xs: 7, sm: 8 } : 0,
         overflow: { xs: "visible", lg: "hidden" },
         boxSizing: "border-box",
-        // border: "2px solid red ",
       }}
     >
       <Box
@@ -59,7 +58,6 @@ export default function Detail() {
           display: "flex",
           flexDirection: { xs: "column", lg: "row" },
           overflow: { xs: "visible", lg: "hidden" },
-          // border: "2px solid red",
         }}
       >
         <Box
@@ -70,7 +68,6 @@ export default function Detail() {
             display: "flex",
             justifyContent: "center",
             overflow: { xs: "visible", lg: "hidden" },
-            // border: "2px solid red",
           }}
         >
           <Box sx={{ width: "100%" }}>
@@ -94,7 +91,6 @@ export default function Detail() {
             flexDirection: "column",
             justifyContent: "flex-start",
             p: 2,
-            // border: "2px solid red",
           }}
         >
           <Typography

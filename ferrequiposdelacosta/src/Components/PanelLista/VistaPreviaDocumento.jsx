@@ -1,6 +1,5 @@
 import PropTypes from "prop-types";
 import { Box, Chip, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import { TituloSeccion } from "./ResumenLista";
@@ -35,10 +34,7 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
         spacing={1}
         sx={{
           p: 1.5,
-          borderRadius: 2,
-          bgcolor: alpha(colorEstado, 0.08),
-          borderLeft: "4px solid",
-          borderLeftColor: colorEstado,
+          ...theme.avisoLateral(colorEstado, true),
         }}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -76,10 +72,7 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
                   sx={{
                     py: 1,
                     px: 1.5,
-                    borderRadius: 1.5,
-                    bgcolor: alpha(colorEquipos, 0.07),
-                    borderLeft: "3px solid",
-                    borderLeftColor: colorEquipos,
+                    ...theme.avisoLateral(colorEquipos),
                   }}
                 >
                   <Box sx={{ minWidth: 0 }}>
@@ -114,10 +107,7 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
                 sx={{
                   py: 1.25,
                   px: 1.5,
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: alpha(colorTotales, 0.35),
-                  bgcolor: alpha(colorTotales, 0.1),
+                  ...theme.cajaTenida(colorTotales, 0.1),
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>

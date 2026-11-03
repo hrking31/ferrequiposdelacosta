@@ -9,7 +9,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import PhonelinkLockOutlinedIcon from "@mui/icons-material/PhonelinkLockOutlined";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "../../Context/useAuth";
@@ -65,15 +64,9 @@ function Tarjeta({ children }) {
       >
         <Box
           sx={{
-            width: 72,
-            height: 72,
+            ...theme.circuloDeIcono(acento, 72),
             mx: "auto",
             mb: 2,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: alpha(acento, 0.12),
           }}
         >
           <PhonelinkLockOutlinedIcon sx={{ fontSize: 38, color: acento }} />
@@ -185,7 +178,7 @@ export default function VistaActivarDosPasos() {
               borderRadius: 2,
               // Siempre sobre blanco: en modo oscuro un código cuadrado claro
               // sobre fondo oscuro muchos celulares no lo leen.
-              bgcolor: "#fff",
+              bgcolor: "common.white",
             }}
           >
             <QRCodeSVG value={activacion.enlace} size={180} />

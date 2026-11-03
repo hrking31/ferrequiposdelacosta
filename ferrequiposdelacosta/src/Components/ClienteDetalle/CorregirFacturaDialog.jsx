@@ -1094,7 +1094,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
   // celular (Abonos y descuentos e Historial, pedido del dueño, 2026-10-31).
   const plegada = (id, siempre = false) => (esCompacta || siempre) && !abiertas[id];
   const alternar = (id) => setAbiertas((previas) => ({ ...previas, [id]: !previas[id] }));
-  const puntoDeCambio = <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: "warning.main" }} />;
+  const puntoDeCambio = <Box sx={{ width: 10, height: 10, borderRadius: theme.shape.pill, bgcolor: "warning.main" }} />;
   const encabezado = ({ Icono, texto, detalle, tono = acento, relleno = false, extra = null, plegable = null }) => {
     const conFlecha = plegable && (esCompacta || plegable.siempre);
     const cerrada = conFlecha && plegada(plegable.id, plegable.siempre);
@@ -1245,7 +1245,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         fontWeight: 700,
         px: 1.5,
         py: 0.5,
-        borderRadius: 999,
+        borderRadius: theme.shape.pill,
         bgcolor: alpha(tono, 0.12),
         color: tono,
         whiteSpace: "nowrap",
@@ -1284,7 +1284,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
           sx={{
             width: 32,
             height: 32,
-            borderRadius: 999,
+            borderRadius: theme.shape.pill,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1456,7 +1456,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
               mt: 0.75,
               px: 1.25,
               py: 0.25,
-              borderRadius: 999,
+              borderRadius: theme.shape.pill,
               fontSize: "0.8rem",
               fontWeight: 800,
               color: diferenciaSaldo < 0 ? "custom.saldadoText" : "custom.saldoText",
@@ -1625,7 +1625,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         >
           <Box
             component="span"
-            sx={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0, bgcolor: seccion.cambiada ? "warning.main" : "divider" }}
+            sx={{ width: 8, height: 8, borderRadius: theme.shape.pill, flexShrink: 0, bgcolor: seccion.cambiada ? "warning.main" : "divider" }}
           />
           {seccion.texto}
         </ButtonBase>
@@ -1634,13 +1634,13 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
       {!enColumnas && (
       <Stack spacing={1} sx={{ mx: 1.5, mt: 2, pt: 2, borderTop: "1px dashed", borderColor: "divider" }}>
         <Stack direction="row" alignItems="center" gap={1}>
-          <Box sx={{ width: 8, height: 8, borderRadius: 999, bgcolor: "warning.main" }} />
+          <Box sx={{ width: 8, height: 8, borderRadius: theme.shape.pill, bgcolor: "warning.main" }} />
           <Typography variant="caption" color="text.secondary">
             Tiene cambios sin guardar
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" gap={1}>
-          <Box sx={{ width: 8, height: 8, borderRadius: 999, bgcolor: "divider" }} />
+          <Box sx={{ width: 8, height: 8, borderRadius: theme.shape.pill, bgcolor: "divider" }} />
           <Typography variant="caption" color="text.secondary">
             Como estaba
           </Typography>
@@ -2550,7 +2550,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
                           sx={{
                             width: 12,
                             height: 12,
-                            borderRadius: 999,
+                            borderRadius: theme.shape.pill,
                             flexShrink: 0,
                             bgcolor: posicion === 0 ? acento : "divider",
                           }}

@@ -357,7 +357,7 @@ export default function VistaUsuarios() {
         >
           {detalle || (
             <Box
-              sx={{
+              sx={(theme) => ({
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
@@ -365,11 +365,8 @@ export default function VistaUsuarios() {
                 justifyContent: "center",
                 gap: 1,
                 textAlign: "center",
-                color: "text.secondary",
-                border: "1px dashed",
-                borderColor: "divider",
-                borderRadius: 2,
-              }}
+                ...theme.cajaVacia,
+              })}
             >
               <TouchAppIcon sx={{ fontSize: 56, opacity: 0.4 }} />
               <Typography variant="h6" sx={{ color: "text.primary" }}>

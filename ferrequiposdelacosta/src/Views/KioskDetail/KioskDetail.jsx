@@ -48,7 +48,6 @@ export default function KioskDetail() {
         overflow: isMobile ? "visible" : "hidden",
         pt: isFullScreen ? { xs: 0, sm: 0 } : 8,
         pb: isFullScreen ? { xs: 6, sm: 7 } : 0,
-        // border: "2px solid red",
       }}
     >
       <Box
@@ -58,7 +57,6 @@ export default function KioskDetail() {
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
           overflow: isMobile ? "visible" : "hidden",
-          // border: "2px solid red",
         }}
       >
         <Box
@@ -69,7 +67,6 @@ export default function KioskDetail() {
             display: "flex",
             justifyContent: "center",
             overflow: isMobile ? "visible" : "hidden",
-            // border: "2px solid red",
           }}
         >
           <Box sx={{ width: "100%" }}>
@@ -90,7 +87,6 @@ export default function KioskDetail() {
             flexDirection: "column",
             justifyContent: "flex-start",
             p: 2,
-            // border: "2px solid red",
           }}
         >
           <Typography

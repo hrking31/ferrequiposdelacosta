@@ -88,20 +88,7 @@ export default function VistaCcWeb() {
   // Las dos tablas de la hoja se pintan como las del PDF: encabezado azul y
   // filas alternadas en gris y blanco. Los colores van fijos, no del tema,
   // porque la hoja es blanca en modo claro y en modo oscuro por igual.
-  const estiloTabla = {
-    "& td, & th": {
-      borderColor: "#E0E0E0",
-      px: 0.75,
-      whiteSpace: "nowrap",
-      color: theme.palette.custom.documentText,
-    },
-    "& thead th": {
-      backgroundColor: "#2980B9",
-      color: "#FFFFFF",
-      fontWeight: "bold",
-    },
-    "& tbody tr:nth-of-type(even)": { backgroundColor: "#F5F5F5" },
-  };
+  const estiloTabla = theme.tablaDeDocumento;
 
   return (
     <Container
@@ -133,7 +120,7 @@ export default function VistaCcWeb() {
           right: { xs: 10, sm: 20 },
           fontSize: { xs: "8px", sm: "10px", md: "12px" },
           fontWeight: 700,
-          "&&": { color: "rgba(0,0,0,0.15)" },
+          ...theme.marcaDeAgua,
           letterSpacing: { xs: 0.5, sm: 1.5 },
           textTransform: "uppercase",
           userSelect: "none",

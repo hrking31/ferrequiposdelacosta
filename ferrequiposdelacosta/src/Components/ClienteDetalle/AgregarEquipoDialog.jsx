@@ -665,9 +665,7 @@ export default function AgregarEquipoDialog({ open, onClose, cliente, factura, f
                       alignItems: "center",
                       justifyContent: "space-between",
                       p: 1,
-                      borderRadius: 1,
-                      border: "1px solid",
-                      borderColor: "custom.itemBorder",
+                      ...theme.cajaDeItem,
                     }}
                   >
                     <Box>

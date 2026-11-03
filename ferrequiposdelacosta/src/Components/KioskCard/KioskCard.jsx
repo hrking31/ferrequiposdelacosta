@@ -23,11 +23,7 @@ export default function KioskCard({ name, url, id }) {
             flexDirection: "column",
             height: "100%",
             borderRadius: 4,
-            border: "1px solid",
-            borderColor: "divider",
-            // El acento ya cambia con el modo, y el kiosco siempre va en
-            // oscuro, así que acá sale amarillo igual que antes.
-            borderTop: (theme) => `4px solid ${theme.palette.custom.accent}`,
+            ...theme.tarjetaDeCatalogo,
             transition: "transform 0.2s",
             "&:active": { transform: "scale(0.95)" },
           }}
@@ -45,7 +41,6 @@ export default function KioskCard({ name, url, id }) {
                 // producto" (ver CardEquipos), no una superficie de la UI.
                 backgroundColor: theme.palette.common.white,
                 justifyContent: "flex-start",
-                // border: "2px solid #000",
               }}
             />
             <Box

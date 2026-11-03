@@ -163,6 +163,11 @@ export const CustomThemeProvider = ({ children }) => {
     // BORDE_INPUT— así que el nombre mentía.
     const CEMENTO = "#E2E8F0";
     const BORDE_INPUT = "#CBD5E1";
+    // La tabla de la cuenta de cobro en pantalla: la misma de su PDF, sobre una
+    // hoja que es blanca en los dos modos.
+    const AZUL_TABLA_DOCUMENTO = "#2980B9";
+    const GRIS_BORDE_DOCUMENTO = "#E0E0E0";
+    const GRIS_FILA_DOCUMENTO = "#F5F5F5";
 
     const esClaro = mode === "light";
 
@@ -737,8 +742,9 @@ export const CustomThemeProvider = ({ children }) => {
         boxShadow: `0 0 ${resplandor}px ${alpha(color, intensidad)}`,
       }),
 
-      // El círculo teñido donde va el ícono de una tarjeta de estadísticas.
-      circuloKpi: (color, tamano) => ({
+      // El círculo teñido donde va un ícono: las tarjetas de estadísticas y las
+      // pantallas de confirmar el correo y activar los dos pasos.
+      circuloDeIcono: (color, tamano) => ({
         width: tamano,
         height: tamano,
         borderRadius: "50%",
@@ -1047,6 +1053,118 @@ export const CustomThemeProvider = ({ children }) => {
         backgroundColor: base.palette.custom.accent,
         boxShadow: `0px 10px 30px ${alpha(base.palette.common.black, 0.5)}`,
       },
+
+      // ── LAS CAJAS QUE SE REPITEN ─────────────────────────────────────
+
+      // "Agregar" al pie de una lista (equipos, usuarios): punteado, apenas
+      // teñido, y se enciende al pasar el mouse.
+      botonAgregarALista: (color) => ({
+        borderRadius: 2,
+        border: `2px dashed ${alpha(color, 0.45)}`,
+        bgcolor: alpha(color, 0.04),
+        color,
+        "&:hover": { bgcolor: alpha(color, 0.08), borderColor: color },
+      }),
+
+      // Un renglón de una lista que se puede elegir (equipos, usuarios). El
+      // elegido lleva la raya a la izquierda y el fondo teñido. `enPanel`: va
+      // dentro de un recuadro, sin fondo propio.
+      filaDeLista: (color, elegido, enPanel) => ({
+        borderRadius: 1.5,
+        borderLeft: "3px solid",
+        borderLeftColor: elegido ? color : "transparent",
+        bgcolor: elegido ? alpha(color, 0.12) : enPanel ? "transparent" : "background.paper",
+      }),
+      filaDeListaHover: (color, elegido) => ({
+        "&:hover": { bgcolor: alpha(color, elegido ? 0.16 : 0.06) },
+      }),
+
+      // Un dato con raya de color a la izquierda y el fondo apenas teñido, en
+      // las columnas de estadísticas y de Seguimiento. `fuerte`: el encabezado
+      // del bloque, con la raya más gruesa.
+      avisoLateral: (color, fuerte = false) => ({
+        borderRadius: fuerte ? 2 : 1.5,
+        bgcolor: alpha(color, fuerte ? 0.08 : 0.07),
+        borderLeft: `${fuerte ? 4 : 3}px solid`,
+        borderLeftColor: color,
+      }),
+
+      // Una cifra destacada: caja teñida de su color, con borde.
+      cajaTenida: (color, relleno = 0.08) => ({
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: alpha(color, 0.35),
+        bgcolor: alpha(color, relleno),
+      }),
+
+      // Un equipo elegido en los diálogos de factura.
+      cajaDeItem: {
+        borderRadius: 1,
+        border: "1px solid",
+        borderColor: "custom.itemBorder",
+      },
+
+      // El carné de una ficha (equipo, usuario): un escalón arriba del fondo.
+      cajaElevada: {
+        borderRadius: 3,
+        bgcolor: "background.elevated",
+        border: "1px solid",
+        borderColor: "divider",
+      },
+
+      // El lugar de la ficha cuando no hay nada elegido.
+      cajaVacia: {
+        color: "text.secondary",
+        border: "1px dashed",
+        borderColor: "divider",
+        borderRadius: 2,
+      },
+
+      // El marco de los + y − de días y cantidades, en la tienda y el kiosco.
+      marcoDeCantidad: {
+        border: "1px solid",
+        borderRadius: 2,
+      },
+
+      // Las tarjetas del catálogo en la tienda y el kiosco. El acento ya cambia
+      // con el modo (azul de día, amarillo de noche), así que la tarjeta no
+      // tiene que preguntar en cuál está.
+      tarjetaDeCatalogo: {
+        border: "1px solid",
+        borderColor: "divider",
+        borderTop: `4px solid ${base.palette.custom.accent}`,
+      },
+
+      // ── LOS DOCUMENTOS EN PANTALLA ───────────────────────────────────
+
+      // La tabla de la cuenta de cobro: la hoja es blanca en los dos modos.
+      tablaDeDocumento: {
+        "& td, & th": {
+          borderColor: GRIS_BORDE_DOCUMENTO,
+          px: 0.75,
+          whiteSpace: "nowrap",
+          color: base.palette.custom.documentText,
+        },
+        "& thead th": {
+          backgroundColor: AZUL_TABLA_DOCUMENTO,
+          color: BLANCO,
+          fontWeight: "bold",
+        },
+        "& tbody tr:nth-of-type(even)": { backgroundColor: GRIS_FILA_DOCUMENTO },
+      },
+
+      // El aviso de copia, apenas visible sobre la hoja.
+      marcaDeAgua: {
+        "&&": { color: alpha(NEGRO, 0.15) },
+      },
+
+      // ── EL PROTECTOR DE PANTALLA DEL KIOSCO ──────────────────────────
+      veloDelProtector: `linear-gradient(to top, ${alpha(NEGRO, 0.9)} 0%, ${alpha(NEGRO, 0.4)} 40%, transparent 100%)`,
+      sombraDelProtector: {
+        titulo: `0px 4px 10px ${alpha(NEGRO, 0.9)}`,
+        subtitulo: `0px 2px 5px ${alpha(NEGRO, 0.8)}`,
+      },
+
 
 
       typography: {

@@ -202,7 +202,6 @@ export default function KioskCart() {
         boxSizing: "border-box",
         width: "100%",
         height: "100%",
-        // border: "2px solid red",
       }}
     >
       <Box
@@ -210,7 +209,6 @@ export default function KioskCart() {
           pt: isFullScreen ? { xs: 1, sm: 1.5 } : 9.5,
           pl: { xs: 1, sm: 1.5 },
           pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
-          // border: "2px solid red",
         }}
       >
         <Box
@@ -218,7 +216,6 @@ export default function KioskCart() {
             display: "flex",
             flexDirection: isFullScreen && "column-reverse",
             justifyContent: "space-between",
-            // border: "2px solid red",
           }}
         >
           <Box
@@ -226,7 +223,6 @@ export default function KioskCart() {
               display: "flex",
               justifyContent: "flex-start",
               gap: 1,
-              // border: "2px solid red",
             }}
           >
             <Camion
@@ -252,7 +248,6 @@ export default function KioskCart() {
               display: "flex",
               justifyContent: "flex-end",
               gap: 1,
-              // border: "2px solid red",
             }}
           >
             <IconButton disableRipple onClick={handleOpenDireccion}>
@@ -306,7 +301,6 @@ export default function KioskCart() {
             display: "flex",
             alignItems: "center",
             pb: 2,
-            // border: "2px solid red",
           }}
         >
           <Checkbox
@@ -339,7 +333,6 @@ export default function KioskCart() {
               display: "flex",
               alignItems: "center",
               p: 2,
-              // border: "2px solid yellow",
             }}
           >
             <Typography variant="body1">
@@ -357,7 +350,6 @@ export default function KioskCart() {
                   height: isSmallScreen ? "100px" : "120px",
                   alignItems: "center",
                   mb: 4,
-                  // border: "2px solid blue",
                 }}
               >
                 <Box
@@ -365,7 +357,6 @@ export default function KioskCart() {
                     display: "flex",
                     alignItems: "center",
                     height: "100%",
-                    // border: "2px solid yellow",
                   }}
                 >
                   {isFullScreen && (
@@ -389,7 +380,6 @@ export default function KioskCart() {
                       width: isSmallScreen ? "100px" : "120px",
                       height: isSmallScreen ? "100px" : "120px",
                       objectFit: "cover",
-                      // border: "2px solid red",
                     }}
                   />
                 </Box>
@@ -402,7 +392,6 @@ export default function KioskCart() {
                     width: "100%",
                     height: "100%",
                     boxSizing: "border-box",
-                    // border: "2px solid blue",
                   }}
                 >
                   <Box
@@ -414,7 +403,6 @@ export default function KioskCart() {
                       width: isFullScreen ? { xs: "100%", sm: "40%" } : "30%",
                       height: "100%",
                       pl: 2,
-                      // border: "2px solid yellow",
                     }}
                   >
                     <Typography
@@ -441,7 +429,6 @@ export default function KioskCart() {
                       gap: isSmallScreen ? 2 : 3,
                       alignItems: "center",
                       p: 2,
-                      // border: "2px solid red",
                     }}
                   >
                     <Box
@@ -451,7 +438,6 @@ export default function KioskCart() {
                         alignItems: "center",
                         mb: 1,
                         width: "100%",
-                        // border: "2px solid yellow",
                       }}
                     >
                       <Typography
@@ -469,8 +455,7 @@ export default function KioskCart() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-evenly",
-                          border: "1px solid",
-                          borderRadius: 2,
+                          ...theme.marcoDeCantidad,
                         }}
                       >
                         <Button
@@ -527,7 +512,6 @@ export default function KioskCart() {
                         alignItems: "center",
                         mb: 1,
                         width: "100%",
-                        // border: "2px solid green",
                       }}
                     >
                       <Typography
@@ -545,8 +529,7 @@ export default function KioskCart() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-evenly",
-                          border: "1px solid",
-                          borderRadius: 2,
+                          ...theme.marcoDeCantidad,
                         }}
                       >
                         <Button
@@ -606,7 +589,6 @@ export default function KioskCart() {
                         alignItems: "center",
                         justifyContent: "center",
                         p: 1,
-                        // border:"2px solid red"
                       }}
                     >
                       <Button
@@ -641,7 +623,6 @@ export default function KioskCart() {
           pl: 2,
           pr: 2,
           bgcolor: theme.palette.background.paper,
-          // border: "2px solid red",
         }}
       >
         <Typography variant="h5">Resumen del Pedido</Typography>
@@ -650,7 +631,6 @@ export default function KioskCart() {
           sx={{
             flex: 1,
             overflowY: "auto",
-            // border: "2px solid red"
           }}
         >
           {Object.entries(gruposPorDias).map(([days, items]) => (
@@ -658,7 +638,6 @@ export default function KioskCart() {
               key={days}
               sx={{
                 p: 1,
-                // border: "1px solid #ccc",
               }}
             >
               <Typography variant="subtitle1">

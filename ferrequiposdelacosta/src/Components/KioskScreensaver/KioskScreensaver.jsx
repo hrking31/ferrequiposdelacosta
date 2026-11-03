@@ -129,8 +129,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
           left: 0,
           width: "100%",
           height: "60%",
-          background:
-            "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%)",
+          background: (theme) => theme.veloDelProtector,
           zIndex: 2,
         }}
       />
@@ -155,7 +154,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
           sx={{
             color: "primary.main",
             fontWeight: 800,
-            textShadow: "0px 4px 10px rgba(0, 0, 0, 0.9)",
+            textShadow: (theme) => theme.sombraDelProtector.titulo,
             mb: 2,
             fontSize: "clamp(2rem, 5vw, 4rem)",
             lineHeight: 1.1,
@@ -170,7 +169,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             color: "custom.accent",
             mb: 4,
             fontWeight: 400,
-            textShadow: "0px 2px 5px rgba(0,0,0,0.8)",
+            textShadow: (theme) => theme.sombraDelProtector.subtitulo,
             fontSize: "clamp(1.2rem, 2.5vw, 2rem)",
           }}
         >

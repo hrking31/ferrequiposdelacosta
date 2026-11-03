@@ -701,9 +701,7 @@ export default function FacturaFormDialog({ open, onClose, cliente, onGuardado }
                       alignItems: "center",
                       justifyContent: "space-between",
                       p: 1,
-                      borderRadius: 1,
-                      border: "1px solid",
-                      borderColor: "custom.itemBorder",
+                      ...theme.cajaDeItem,
                     }}
                   >
                     <Box>

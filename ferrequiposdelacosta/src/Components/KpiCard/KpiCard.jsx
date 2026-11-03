@@ -45,7 +45,7 @@ export default function KpiCard({
 
   const contenido = (
     <>
-      <Box sx={(theme) => theme.circuloKpi(color, tamanoIcono)}>
+      <Box sx={(theme) => theme.circuloDeIcono(color, tamanoIcono)}>
         {cloneElement(icono, { sx: { color, fontSize: compacto ? 22 : mediano && !ancha ? 28 : 36 } })}
       </Box>
       <Box sx={{ minWidth: 0 }}>

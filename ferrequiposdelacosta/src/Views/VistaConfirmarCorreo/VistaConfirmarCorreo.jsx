@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Box, Button, Paper, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
@@ -80,15 +79,9 @@ export default function VistaConfirmarCorreo() {
       >
         <Box
           sx={{
-            width: 72,
-            height: 72,
+            ...theme.circuloDeIcono(acento, 72),
             mx: "auto",
             mb: 2,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: alpha(acento, 0.12),
           }}
         >
           <MarkEmailUnreadOutlinedIcon sx={{ fontSize: 38, color: acento }} />

@@ -346,10 +346,7 @@ export default function FichaEquipo({
               flexDirection: "column",
               boxSizing: "border-box",
               p: 2,
-              borderRadius: 3,
-              bgcolor: "background.elevated",
-              border: "1px solid",
-              borderColor: "divider",
+              ...theme.cajaElevada,
             }
           : { flexShrink: 0 }
       }

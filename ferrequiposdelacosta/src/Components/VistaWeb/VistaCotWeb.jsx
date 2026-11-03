@@ -61,7 +61,7 @@ export default function VistaCotWeb() {
             right: { xs: 10, sm: 20 },
             fontSize: { xs: "8px", sm: "10px", md: "12px" },
             fontWeight: 700,
-            "&&": { color: "rgba(0,0,0,0.15)" },
+            ...theme.marcaDeAgua,
             letterSpacing: { xs: 0.5, sm: 1.5 },
             textTransform: "uppercase",
             userSelect: "none",

@@ -21,11 +21,7 @@ export default function CardEquipos({ name, url, id }) {
             display: "flex",
             flexDirection: "column",
             height: { xs: 235, sm: 330, md: 470 },
-            border: "1px solid",
-            borderColor: "divider",
-            // El acento ya cambia con el modo (azul de día, amarillo de
-            // noche), así que la tarjeta no tiene que preguntar en cuál está.
-            borderTop: (theme) => `4px solid ${theme.palette.custom.accent}`,
+            ...theme.tarjetaDeCatalogo,
           }}
         >
           <CardActionArea sx={{ flexDirection: "column" }}>
@@ -42,7 +38,6 @@ export default function CardEquipos({ name, url, id }) {
                 // es una "superficie de producto", no una superficie de la UI.
                 backgroundColor: theme.palette.common.white,
                 justifyContent: "flex-start",
-                // border: "2px solid #000",
               }}
             />
             <Box

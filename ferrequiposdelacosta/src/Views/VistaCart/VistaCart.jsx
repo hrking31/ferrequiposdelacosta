@@ -242,7 +242,6 @@ export default function VistaCart() {
         boxSizing: "border-box",
         width: "100%",
         height: "100%",
-        // border: "2px solid red",
       }}
     >
       <Box
@@ -250,7 +249,6 @@ export default function VistaCart() {
           pt: isFullScreen ? { sm: 1 } : { md: 8, lg: 9 },
           pl: { xs: 1, sm: 1.5 },
           pr: !isFullScreen ? "260px" : { xs: 1, sm: 1.5 },
-          // border: "2px solid red",
         }}
       >
         <Box
@@ -258,7 +256,6 @@ export default function VistaCart() {
             display: "flex",
             flexDirection: isFullScreen && "column-reverse",
             justifyContent: "space-between",
-            // border: "2px solid red",
           }}
         >
           <Box
@@ -266,7 +263,6 @@ export default function VistaCart() {
               display: "flex",
               justifyContent: "flex-start",
               gap: 1,
-              // border: "2px solid red",
             }}
           >
             <Camion
@@ -292,7 +288,6 @@ export default function VistaCart() {
               display: "flex",
               justifyContent: "flex-end",
               gap: 1,
-              // border: "2px solid red",
             }}
           >
             <IconButton disableRipple onClick={handleOpenDireccion}>
@@ -346,7 +341,6 @@ export default function VistaCart() {
             display: "flex",
             alignItems: "center",
             pb: 2,
-            // border: "2px solid red",
           }}
         >
           <Checkbox
@@ -379,7 +373,6 @@ export default function VistaCart() {
               display: "flex",
               alignItems: "center",
               p: 2,
-              // border: "2px solid yellow",
             }}
           >
             <Typography variant="body1">
@@ -397,7 +390,6 @@ export default function VistaCart() {
                   height: isSmallScreen ? "100px" : "120px",
                   alignItems: "center",
                   mb: 4,
-                  // border: "2px solid blue",
                 }}
               >
                 <Box
@@ -405,7 +397,6 @@ export default function VistaCart() {
                     display: "flex",
                     alignItems: "center",
                     height: "100%",
-                    // border: "2px solid yellow",
                   }}
                 >
                   {isFullScreen && (
@@ -429,7 +420,6 @@ export default function VistaCart() {
                       width: isSmallScreen ? "100px" : "120px",
                       height: isSmallScreen ? "100px" : "120px",
                       objectFit: "cover",
-                      // border: "2px solid red",
                     }}
                   />
                 </Box>
@@ -442,7 +432,6 @@ export default function VistaCart() {
                     width: "100%",
                     height: "100%",
                     boxSizing: "border-box",
-                    // border: "2px solid blue",
                   }}
                 >
                   <Box
@@ -454,7 +443,6 @@ export default function VistaCart() {
                       width: isFullScreen ? { xs: "100%", sm: "40%" } : "30%",
                       height: "100%",
                       pl: 2,
-                      // border: "2px solid yellow",
                     }}
                   >
                     <Typography
@@ -481,7 +469,6 @@ export default function VistaCart() {
                       gap: isSmallScreen ? 2 : 3,
                       alignItems: "center",
                       p: 2,
-                      // border: "2px solid red",
                     }}
                   >
                     <Box
@@ -491,7 +478,6 @@ export default function VistaCart() {
                         alignItems: "center",
                         mb: 1,
                         width: "100%",
-                        // border: "2px solid yellow",
                       }}
                     >
                       <Typography
@@ -509,8 +495,7 @@ export default function VistaCart() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-evenly",
-                          border: "1px solid",
-                          borderRadius: 2,
+                          ...theme.marcoDeCantidad,
                         }}
                       >
                         <Button
@@ -567,7 +552,6 @@ export default function VistaCart() {
                         alignItems: "center",
                         mb: 1,
                         width: "100%",
-                        // border: "2px solid green",
                       }}
                     >
                       <Typography
@@ -585,8 +569,7 @@ export default function VistaCart() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-evenly",
-                          border: "1px solid",
-                          borderRadius: 2,
+                          ...theme.marcoDeCantidad,
                         }}
                       >
                         <Button
@@ -646,7 +629,6 @@ export default function VistaCart() {
                         alignItems: "center",
                         justifyContent: "center",
                         p: 1,
-                        // border:"2px solid red"
                       }}
                     >
                       <Button
@@ -679,7 +661,6 @@ export default function VistaCart() {
           p: 2,
           pb: isFullScreen ? { xs: 9, sm: 10 } : 2,
           bgcolor: theme.palette.background.paper,
-          // border: "2px solid red",
         }}
       >
         <Typography variant="h5">Resumen del Pedido</Typography>
@@ -688,7 +669,6 @@ export default function VistaCart() {
           sx={{
             flex: 1,
             overflowY: "auto",
-            // border: "2px solid red"
           }}
         >
           {Object.entries(gruposPorDias).map(([days, items]) => (
@@ -696,7 +676,6 @@ export default function VistaCart() {
               key={days}
               sx={{
                 p: 1,
-                // border: "1px solid #ccc",
               }}
             >
               <Typography variant="subtitle1">

@@ -28,7 +28,7 @@ export default function KpisDestacados({ kpis }) {
     >
       {pagos && (
         <Paper elevation={0} sx={(theme) => ({ ...FILA, ...theme.marcoKpi(pagos.color), gap: 2, px: 2.75, py: 2 })}>
-          <Box sx={(theme) => theme.circuloKpi(pagos.color, 56)}>{cloneElement(pagos.icono, { sx: { color: pagos.color, fontSize: 28 } })}</Box>
+          <Box sx={(theme) => theme.circuloDeIcono(pagos.color, 56)}>{cloneElement(pagos.icono, { sx: { color: pagos.color, fontSize: 28 } })}</Box>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" sx={{ color: pagos.color, fontWeight: 700, letterSpacing: 0.5 }}>
               {pagos.etiqueta}
@@ -56,7 +56,7 @@ export default function KpisDestacados({ kpis }) {
               elevation={0}
               sx={(theme) => ({ ...FILA, ...theme.marcoKpi(kpi.color, { resplandor: 10 }), gap: 1.5, px: 1.75, py: 1.25 })}
             >
-              <Box sx={(theme) => theme.circuloKpi(kpi.color, 36)}>{cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 19 } })}</Box>
+              <Box sx={(theme) => theme.circuloDeIcono(kpi.color, 36)}>{cloneElement(kpi.icono, { sx: { color: kpi.color, fontSize: 19 } })}</Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 {/* Si no cabe, en dos renglones: cortado no se leía. */}
                 <Typography

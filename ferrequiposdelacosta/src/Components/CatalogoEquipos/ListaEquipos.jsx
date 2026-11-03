@@ -1,7 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, ButtonBase, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -117,14 +116,10 @@ export default function ListaEquipos({
               width: "100%",
               height: 46,
               gap: 1,
-              borderRadius: 2,
-              border: `2px dashed ${alpha(acento, 0.45)}`,
-              bgcolor: alpha(acento, 0.04),
-              color: acento,
+              ...theme.botonAgregarALista(acento),
               fontWeight: 700,
               fontSize: "0.875rem",
               letterSpacing: 0.5,
-              "&:hover": { bgcolor: alpha(acento, 0.08), borderColor: acento },
             }}
           >
             <AddCircleOutlineIcon fontSize="small" />
@@ -152,12 +147,9 @@ export default function ListaEquipos({
                 gap: enPanel ? 1.25 : 1.5,
                 py: 0.75,
                 px: 1,
-                borderRadius: 1.5,
-                borderLeft: "3px solid",
-                borderLeftColor: elegido ? acento : "transparent",
-                bgcolor: elegido ? alpha(acento, 0.12) : enPanel ? "transparent" : "background.paper",
+                ...theme.filaDeLista(acento, elegido, enPanel),
                 textAlign: "left",
-                ...(onElegir && { "&:hover": { bgcolor: alpha(acento, elegido ? 0.16 : 0.06) } }),
+                ...(onElegir && theme.filaDeListaHover(acento, elegido)),
               }}
             >
               <MiniaturaEquipo equipo={equipo} ancho={enPanel ? 40 : 56} />

@@ -22,7 +22,6 @@ export default function KioskEquipos() {
         display: "flex",
         flexDirection: "column",
         pt: 1,
-        // border: "2px solid red",
       }}
     >
       <Box sx={{ p: 2 }}>
@@ -36,7 +35,6 @@ export default function KioskEquipos() {
         sx={{
           width: "100%",
           mt: 2,
-          //  border: "2px solid red"
         }}
       >
         <Footer />

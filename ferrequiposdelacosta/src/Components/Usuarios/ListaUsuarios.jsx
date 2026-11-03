@@ -1,7 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, ButtonBase, Stack, Typography, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -103,14 +102,10 @@ export default function ListaUsuarios({
               width: "100%",
               height: 46,
               gap: 1,
-              borderRadius: 2,
-              border: `2px dashed ${alpha(acento, 0.45)}`,
-              bgcolor: alpha(acento, 0.04),
-              color: acento,
+              ...theme.botonAgregarALista(acento),
               fontWeight: 700,
               fontSize: "0.875rem",
               letterSpacing: 0.5,
-              "&:hover": { bgcolor: alpha(acento, 0.08), borderColor: acento },
             }}
           >
             <PersonAddAlt1Icon fontSize="small" />
@@ -135,12 +130,9 @@ export default function ListaUsuarios({
                 gap: 1.5,
                 py: enPanel ? 0.75 : 1.25,
                 px: enPanel ? 1 : 1.5,
-                borderRadius: 1.5,
-                borderLeft: "3px solid",
-                borderLeftColor: elegido ? acento : "transparent",
-                bgcolor: elegido ? alpha(acento, 0.12) : enPanel ? "transparent" : "background.paper",
+                ...theme.filaDeLista(acento, elegido, enPanel),
                 textAlign: "left",
-                "&:hover": { bgcolor: alpha(acento, elegido ? 0.16 : 0.06) },
+                ...theme.filaDeListaHover(acento, elegido),
               }}
             >
               <AvatarUsuario usuario={usuario} tamano={avatar} enLinea={conexion.enLinea} />

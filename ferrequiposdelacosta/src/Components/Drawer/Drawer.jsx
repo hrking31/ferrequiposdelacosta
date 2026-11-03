@@ -75,7 +75,6 @@ export default function MobileDrawerLayout() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        // border: "2px solid red",
       }}
     >
       <Box
@@ -218,7 +217,6 @@ export default function MobileDrawerLayout() {
         pb: isFullScreen ? { xs: 7, sm: 8 } : 0,
         height: isFullScreen ? "auto" : "100vh",
         overflow: isFullScreen ? "visible" : "hidden",
-        // border: "2px solid red",
       }}
     >
       <CssBaseline />
@@ -273,7 +271,6 @@ export default function MobileDrawerLayout() {
         container
         sx={{
           height: isFullScreen ? "auto" : "100%",
-          //  border: "2px solid red"
         }}
       >
         <Grid
@@ -468,7 +465,6 @@ export default function MobileDrawerLayout() {
         <Box
           // sx={{
           //   flex: 1,
-          //   //  border: "2px solid red"
           // }}
           sx={{
             flex: 1,
@@ -480,7 +476,6 @@ export default function MobileDrawerLayout() {
             <Box
               sx={
                 {
-                  // border: "2px solid red",
                 }
               }
             >

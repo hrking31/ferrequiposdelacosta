@@ -40,17 +40,14 @@ function Cifras({ filas, color }) {
       {filas.map(({ clave, izquierda, derecha }) => (
         <Box
           key={clave}
-          sx={{
+          sx={(theme) => ({
             flex: 1,
             minWidth: 0,
             py: 1.5,
             px: 1,
             textAlign: "center",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: alpha(color, 0.35),
-            bgcolor: alpha(color, 0.08),
-          }}
+            ...theme.cajaTenida(color),
+          })}
         >
           <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.1, color }}>
             {derecha}
@@ -125,14 +122,7 @@ function Lista({ filas, color: colorSeccion }) {
           justifyContent="space-between"
           alignItems="center"
           spacing={2}
-          sx={{
-            py: 1,
-            px: 1.5,
-            borderRadius: 1.5,
-            bgcolor: alpha(color, 0.07),
-            borderLeft: "3px solid",
-            borderLeftColor: color,
-          }}
+          sx={(theme) => ({ py: 1, px: 1.5, ...theme.avisoLateral(color) })}
         >
           <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
             {izquierda}

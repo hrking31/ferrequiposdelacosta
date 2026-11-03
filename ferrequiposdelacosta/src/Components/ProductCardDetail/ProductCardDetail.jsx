@@ -211,8 +211,7 @@ export default function ProductCardDetail({ product }) {
 
           <Box
             sx={{
-              border: "1px solid",
-              borderRadius: 2,
+              ...theme.marcoDeCantidad,
               px: 1.5,
               minHeight: 10,
               display: "flex",
@@ -235,8 +234,7 @@ export default function ProductCardDetail({ product }) {
 
           <Box
             sx={{
-              border: "1px solid",
-              borderRadius: 2,
+              ...theme.marcoDeCantidad,
               px: 1.5,
               minHeight: 10,
               display: "flex",

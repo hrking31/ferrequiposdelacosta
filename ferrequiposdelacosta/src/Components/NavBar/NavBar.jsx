@@ -83,7 +83,6 @@ export default function MenuAppBar() {
           bottom: isSmallScreen ? 0 : "auto",
           boxShadow: theme.shadows[4],
           zIndex: theme.zIndex.drawer + 1,
-          // border: "2px solid red",
         }}
       >
         <Toolbar

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Chip, Stack, useTheme } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useDispatch, useSelector } from "react-redux";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -180,10 +179,7 @@ export default function PanelSeguimiento({ elegido, hoy, onSoltar }) {
             spacing={1}
             sx={{
               p: 1.5,
-              borderRadius: 2,
-              bgcolor: alpha(colorSituacion, 0.08),
-              borderLeft: "4px solid",
-              borderLeftColor: colorSituacion,
+              ...theme.avisoLateral(colorSituacion, true),
             }}
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
