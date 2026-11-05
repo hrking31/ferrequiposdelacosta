@@ -30,7 +30,6 @@ import PercentIcon from "@mui/icons-material/Percent";
 import HandymanIcon from "@mui/icons-material/Handyman";
 import DiscountIcon from "@mui/icons-material/Discount";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import { alpha } from "@mui/material/styles";
 import {
   depositoPendiente,
   calcularTransporteTotal,
@@ -433,34 +432,12 @@ export default function EstadoCuentaFactura({
           que es donde aparecen como "Retenido por daños" y "Aplicado del depósito". */}
       {hayDeposito && (
         <Paper variant="totales" sx={sxPanel}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            flexWrap="wrap"
-            gap={1}
-            sx={{ mb: 1.5 }}
-          >
-            {/* El color va en la caja de afuera: la pizarra obliga a sus
-                textos a heredarlo, y puesto en el texto se perdía. */}
-            <Box
-              sx={{
-                color: "custom.depositoText",
-                display: "flex",
-                alignItems: "center",
-                gap: 0.75,
-              }}
-            >
-              <IconoDeposito fontSize="small" />
-              <Typography
-                variant="subtitle2"
-                fontWeight="bold"
-                sx={{ letterSpacing: "0.08em" }}
-              >
-                DEPÓSITO
-              </Typography>
-            </Box>
-          </Stack>
+          {/* El título de la pizarra, del tema: también lo usa la cuenta de
+              cobro. */}
+          <Box className="titulo deposito">
+            <IconoDeposito fontSize="small" />
+            <Typography variant="subtitle2">DEPÓSITO</Typography>
+          </Box>
 
           <Box className="fila">
             <Typography variant="body2">{conIcono(TollIcon, "Depósito recibido")}</Typography>
@@ -498,26 +475,9 @@ export default function EstadoCuentaFactura({
           ))}
 
           {/* Lo que queda en la mano de la empresa, dicho según el momento.
-              La raya va aparte, encima del fondo resaltado y no adentro. */}
-          <Box
-            sx={{
-              borderTop: "1px dashed",
-              borderColor: (theme) => alpha(theme.palette.custom.panelText, 0.35),
-              mt: 1.5,
-              mb: 1,
-            }}
-          />
-          <Box
-            className="fila"
-            sx={{
-              fontWeight: "bold",
-              bgcolor: (theme) => alpha(theme.palette.custom.panelText, 0.06),
-              borderRadius: 1,
-              px: 0.75,
-              py: 0.5,
-              mx: -0.75,
-            }}
-          >
+              La raya y el renglón resaltado salen del tema. */}
+          <Box className="raya" />
+          <Box className="fila resaltada">
             <Typography variant="body2" fontWeight="bold">
               {conIcono(
                 AccountBalanceWalletIcon,

@@ -1729,6 +1729,41 @@ export const CustomThemeProvider = ({ children }) => {
                 "& .fila.deposito": {
                   color: theme.palette.custom.depositoText,
                 },
+
+                // EL TÍTULO DE UNA PIZARRA, con su ícono: "DEPÓSITO" en la
+                // factura y en la cuenta de cobro. El color va en la caja (acá
+                // adentro los textos lo heredan); el del depósito, con
+                // "titulo deposito".
+                "& .titulo": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: theme.spacing(0.75),
+                  marginBottom: theme.spacing(1.5),
+                },
+                "& .titulo .MuiTypography-root": {
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                },
+                "& .titulo.deposito": {
+                  color: theme.palette.custom.depositoText,
+                },
+
+                // EL CIERRE DE UNA CUENTA QUE NO ES UNA SUMA, como lo que queda
+                // en garantía del depósito: una raya punteada aparte ("raya") y
+                // el renglón con fondo suave ("fila resaltada"). La raya va
+                // aparte para quedar encima del fondo y no adentro.
+                "& .raya": {
+                  borderTop: `1px dashed ${alpha(theme.palette.custom.panelText, 0.35)}`,
+                  marginTop: theme.spacing(1.5),
+                  marginBottom: theme.spacing(1),
+                },
+                "& .fila.resaltada": {
+                  backgroundColor: alpha(theme.palette.custom.panelText, 0.06),
+                  borderRadius: theme.shape.borderRadius,
+                  padding: theme.spacing(0.5, 0.75),
+                  marginLeft: theme.spacing(-0.75),
+                  marginRight: theme.spacing(-0.75),
+                },
               }),
             },
           ],

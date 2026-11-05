@@ -51,27 +51,21 @@ export default function VistaCuentaDeCobro() {
   // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
-  // LA TABLETA (pedido del dueño, 2026-11-05, pensado para el iPad Pro). De
-  // pie, el formulario y debajo la pizarra a la izquierda, los ítems a la
-  // derecha y la hoja debajo de todo, a todo el ancho. Acostada, el formulario
-  // y los ítems a la izquierda y la hoja a la derecha. En las dos la hoja llega
-  // hasta el borde de abajo: así no queda espacio vacío.
-  // Va por el tamaño de la ventana, no por el aparato: el computador con la
-  // ventana de esas medidas se ve igual (2026-11-05).
-  // - De pie, solo si la pantalla es claramente alargada, como el iPad: una
-  //   ventana casi cuadrada aplastaba la hoja de abajo. Es 5/6 y no 4/5 para
-  //   que entre el iPad de 12,9" en Safari, con sus barras (≈1024 × 1256).
-  // - Acostada, desde 1150 de ancho: la hoja queda de unos 500 px, como en el
-  //   iPad de 11"; más angosta, los nombres largos de los equipos se partían
-  //   palabra por palabra.
-  // - Apilada, de 916 a 1149: el formulario y debajo la hoja, los dos a todo
-  //   el ancho y con desplazamiento.
+  // LAS FORMAS DE LA PANTALLA (pedido del dueño, 2026-11-05). Van por el
+  // tamaño de la ventana, igual en el computador y en la tableta:
+  // - Hasta 915, el celular; de 916 a 1199, igual que el celular: el
+  //   formulario y debajo la hoja, con un solo desplazamiento.
+  // - Desde 1200, LADO A LADO: el formulario y la hoja mitad y mitad, cada uno
+  //   con su propio desplazamiento, para ir escribiendo y viendo la hoja. La
+  //   hoja llega hasta el borde de abajo, con el pie al fondo.
+  // - La excepción, el iPad DE PIE: pantalla claramente alargada (5/6 o más;
+  //   no 4/5, para que entre el de 12,9" en Safari con sus barras, ≈1024 ×
+  //   1256). Los datos y los ítems arriba, lado a lado, las dos pizarras debajo
+  //   y la hoja abajo de todo.
   const alargada = useMediaQuery("(max-aspect-ratio: 5/6)");
-  const desde1150 = useMediaQuery("(min-width:1150px)");
-  const hasta1400 = useMediaQuery("(max-width:1400px)");
+  const desde1200 = useMediaQuery("(min-width:1200px)");
   const dePie = alargada && !isFullScreen;
-  const tabletaAcostada = desde1150 && hasta1400 && !dePie && !isFullScreen;
-  const apilada = !desde1150 && !dePie && !isFullScreen;
+  const ladoALado = desde1200 && !dePie && !isFullScreen;
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -348,12 +342,12 @@ export default function VistaCuentaDeCobro() {
             {botonesPie}
           </Stack>
         )}
-      {tabletaAcostada ? (
+      {ladoALado ? (
         <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", gap: 2, mx: 2 }}>
           <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
             <CuentaDeCobro forma="acostada" />
           </Box>
-          <Box sx={{ flex: "0 0 45%", minWidth: 0, minHeight: 0, display: "flex" }}>
+          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
             <VistaCcWeb llenarAlto />
           </Box>
         </Box>
@@ -367,9 +361,10 @@ export default function VistaCuentaDeCobro() {
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
             gridTemplateRows: "auto auto minmax(0, 1fr)",
-            // El recuadro de totales debajo del formulario, solo a la
-            // izquierda; los ítems ocupan todo el alto de la derecha.
-            gridTemplateAreas: '"datos items" "pizarra items" "hoja hoja"',
+            // Las dos pizarras lado a lado, como en la factura (pedido del
+            // dueño, 2026-11-05): la cuenta debajo del formulario y el
+            // depósito debajo de los ítems, que quedan al lado de los datos.
+            gridTemplateAreas: '"datos items" "cuenta deposito" "hoja hoja"',
             columnGap: 3,
             rowGap: 2,
           }}
@@ -380,15 +375,17 @@ export default function VistaCuentaDeCobro() {
           </Box>
         </Box>
       ) : (
+      // El celular y hasta 1199: todo uno debajo del otro, con un solo
+      // desplazamiento.
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto",
         mx: isFullScreen ? 0 : 2
           }}>
         <Box sx={{ mb: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={apilada ? 12 : 6}>
+            <Grid item xs={12}>
               <CuentaDeCobro />
             </Grid>
-            <Grid item xs={12} md={apilada ? 12 : 6}>
+            <Grid item xs={12}>
               <VistaCcWeb />
             </Grid>
           </Grid>

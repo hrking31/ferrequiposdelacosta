@@ -3,7 +3,9 @@ import {
   Box,
   Button,
   ButtonBase,
+  Chip,
   Paper,
+  Stack,
   TextField,
   Typography,
   Grid,
@@ -33,12 +35,54 @@ import resumenCuentaCobro, {
   UNIDADES_DE_TIEMPO,
   valorDeFila,
 } from "./resumenCuentaCobro";
+import { usePantallaCompacta } from "../../Utils/pantalla";
+import IconoDeposito from "../ClienteDetalle/IconoDeposito";
+import DiscountIcon from "@mui/icons-material/Discount";
+import PercentIcon from "@mui/icons-material/Percent";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PaidIcon from "@mui/icons-material/Paid";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import HandymanIcon from "@mui/icons-material/Handyman";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import TollIcon from "@mui/icons-material/Toll";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+
+// Cada renglón de las pizarras con el ícono y el color que lleva en el estado
+// de cuenta de la factura. Las clases ("pagado", "abono", "alerta") son las de
+// la pizarra del tema.
+const RENGLONES = {
+  Subtotal: { Icono: ConstructionIcon },
+  Descuento: { Icono: DiscountIcon, color: "success.light" },
+  "IVA (19%)": { Icono: PercentIcon },
+  Transporte: { Icono: LocalShippingIcon },
+  Total: { Icono: ReceiptLongIcon, clase: "total" },
+  Pagado: { Icono: PaidIcon, clase: "pagado" },
+  Abonos: { Icono: AddCircleIcon, clase: "abono" },
+  "Retenido por daños": { Icono: HandymanIcon, color: "warning.light" },
+  "Devuelto al cliente": { Icono: CurrencyExchangeIcon },
+  "Depósito por cobrar": { Icono: TollIcon, clase: "alerta" },
+  // Los del depósito.
+  Recibido: { Icono: TollIcon },
+  "Por cobrar": { Icono: TollIcon, clase: "alerta" },
+  "Aplicado a la factura": { Icono: ReceiptLongIcon },
+  Devuelto: { Icono: CurrencyExchangeIcon },
+  "En garantía": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
+  "Por devolver": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
+};
+
+// En la pizarra del depósito, lo que sale de él va con su signo, como en la
+// factura.
+const SALEN_DEL_DEPOSITO = ["Retenido por daños", "Aplicado a la factura", "Devuelto"];
+const CIERRES_DEL_DEPOSITO = ["En garantía", "Por devolver"];
 
 // `forma="acostada"`: la tableta acostada (pedido del dueño, 2026-11-05). El
 // formulario ocupa todo el alto de su columna: los datos en renglones de a
-// tres, los ítems con su propio desplazamiento, el botón de agregar estirado
-// hasta los totales —se encoge con cada ítem— y la pizarra fija abajo. Así no
-// queda espacio vacío debajo.
+// tres, los ítems de corrido, el botón de agregar estirado hasta las pizarras
+// —se encoge con cada ítem— y las pizarras abajo. Así no queda espacio vacío
+// debajo. Cuando no cabe, se desplaza la columna entera: un solo
+// desplazamiento, en el computador y en la tableta.
 export default function CuentaCobro({ forma = "normal" }) {
   const theme = useTheme();
   const acostada = forma === "acostada";
@@ -46,11 +90,12 @@ export default function CuentaCobro({ forma = "normal" }) {
   // piezas van sueltas en la grilla de la pantalla: los datos y la pizarra a la
   // izquierda, los ítems a la derecha y la hoja debajo (ver VistaCuentaDeCobro).
   const dePie = forma === "dePie";
-  // En la tableta, de pie o acostada, los ítems se desplazan solos y el botón
-  // de agregar se estira hasta abajo.
+  // En la tableta, de pie o acostada, el botón de agregar se estira hasta
+  // abajo si sobra alto.
   const llenaElAlto = acostada || dePie;
   // El ancho de los campos de a dos, que acostada van de a tres.
   const deATres = acostada ? 4 : 6;
+  const compacta = usePantallaCompacta();
   // En la tableta, Persona, Empresa, IVA y la fecha en un solo renglón (pedido
   // del dueño, 2026-11-05): las casillas más chicas y la fecha toma lo que queda.
   const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
@@ -169,16 +214,46 @@ export default function CuentaCobro({ forma = "normal" }) {
 
   const esEmpresa = formValues.tipo === "empresa";
 
-  // EL RECUADRO DE TOTALES DE PIE EN LA TABLETA (pedido del dueño,
-  // 2026-11-05): desde vacío ya tiene el alto de la suma completa —Subtotal,
-  // Descuento, IVA, Transporte, Total, Pagado y Abonos—. Los renglones que
-  // faltan se guardan como espacio invisible antes del total y se van llenando
-  // sin que el recuadro crezca. Con depósito sí crece: esa sección va aparte.
-  const RENGLONES_DE_LA_SUMA = 7;
-  const renglonesDelDeposito = filasDeposito.length ? filasDeposito.length + 1 : 0;
-  const renglonesReservados = dePie
-    ? Math.max(0, RENGLONES_DE_LA_SUMA - filas.length - renglonesDelDeposito)
-    : 0;
+  // LAS DOS PIZARRAS, como el estado de cuenta de la factura (pedido del dueño,
+  // 2026-11-05): la cuenta y el depósito. Lado a lado; si no caben, la segunda
+  // baja sola. En el celular, una debajo de la otra. De pie cada una va suelta
+  // en la grilla de la pantalla: la cuenta debajo de los datos y el depósito
+  // debajo de los ítems (ver VistaCuentaDeCobro).
+  const sxPizarra = (area) =>
+    dePie
+      ? { gridArea: area, minWidth: 0 }
+      : compacta
+        ? {}
+        : { flex: "1 1 260px", minWidth: 0 };
+
+  // Un renglón de pizarra con su ícono y su color, como en la factura.
+  const renglon = (fila, { signo, variante = "body2", sx } = {}) => {
+    const { Icono, clase = "", color } = RENGLONES[fila.etiqueta] ?? {};
+    const peso = fila.fuerte ? "bold" : undefined;
+    return (
+      <Box
+        key={fila.etiqueta}
+        className={`fila ${clase}`}
+        sx={{ ...(color && { color }), ...sx }}
+      >
+        <Typography variant={variante} fontWeight={peso}>
+          {Icono && (
+            <Icono sx={{ fontSize: "1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
+          )}
+          {fila.etiqueta}
+        </Typography>
+        <Typography variant={variante} fontWeight={peso}>
+          {valorDeFila(signo ? { ...fila, signo } : fila)}
+        </Typography>
+      </Box>
+    );
+  };
+
+  // Lo que queda del depósito cierra su pizarra, resaltado. Sin nada que
+  // guardar ni devolver, dice que no hay nada en garantía.
+  const cierresDelDeposito = filasDeposito.filter(({ etiqueta }) =>
+    CIERRES_DEL_DEPOSITO.includes(etiqueta),
+  );
 
   return (
     // Aire a los costados del formulario y de los recuadros de cada ítem.
@@ -195,7 +270,7 @@ export default function CuentaCobro({ forma = "normal" }) {
         component="form"
         sx={
           acostada
-            ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }
+            ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }
             : dePie
               ? { display: "contents" }
               : undefined
@@ -273,7 +348,7 @@ export default function CuentaCobro({ forma = "normal" }) {
               corte, en el iPad grande acostado la cédula se subía también. */}
           {llenaElAlto && <Box sx={{ flexBasis: "100%", height: 0 }} />}
 
-          <Grid item xs={6} sm={deATres}>
+          <Grid item xs={12} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -463,22 +538,25 @@ export default function CuentaCobro({ forma = "normal" }) {
           </Grid>
         </Grid>
 
-        {/* LOS ÍTEMS Y EL BOTÓN DE AGREGAR, juntos. En la tableta acostada van
-            debajo de los datos y de pie, a su derecha; en las dos se desplazan
-            solos y el botón se estira hasta abajo. De pie no mandan en el alto
-            del renglón: lo pone el formulario de la izquierda. */}
+        {/* LOS ÍTEMS Y EL BOTÓN DE AGREGAR, juntos. Si sobra alto, el botón
+            se estira hasta abajo (pedido del dueño, 2026-11-05):
+            - Acostada, debajo de los datos y sin desplazamiento propio: crecen
+              de corrido y se desplaza la columna entera del formulario.
+            - De pie, a la derecha de los datos y con su propio desplazamiento.
+              No mandan en el alto del renglón: lo pone el formulario de la
+              izquierda. */}
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
             gap: 2,
-            ...(acostada && { flex: 1, minHeight: 0 }),
+            ...(acostada && { flex: "1 0 auto" }),
             ...(dePie && { gridArea: "items", minHeight: 0, contain: "size", overflow: "hidden" }),
           }}
         >
         <Box
           sx={
-            llenaElAlto
+            dePie
               ? { flex: bloqueada ? "1 1 auto" : "0 1 auto", minHeight: 0, overflowY: "auto" }
               : undefined
           }
@@ -631,73 +709,158 @@ export default function CuentaCobro({ forma = "normal" }) {
         ))}
         </Box>
 
-          {/* Punteado, como "Nuevo equipo" (pedido del dueño, 2026-11-05).
-              En la tableta se estira hasta abajo y se encoge con cada ítem; en
-              lo demás tiene su alto fijo. */}
-          {!bloqueada && (
-            <ButtonBase
-              onClick={addNewItem}
-              sx={{
-                width: "100%",
-                ...(llenaElAlto ? { flex: "1 1 64px", minHeight: 64 } : { height: 52 }),
-                gap: 1,
-                ...theme.botonAgregarALista(theme.palette.success.main),
-                fontWeight: 700,
-                fontSize: "0.875rem",
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-              }}
-            >
-              <AddCircleOutlineIcon fontSize="small" />
-              Agregar Ítem
-            </ButtonBase>
-          )}
+          {/* De pie los ítems van en una caja con su propio desplazamiento
+              donde cabe uno solo: el contador dice cuántos hay. Va al lado del
+              botón de agregar, en su misma fila, para no gastar un renglón
+              (pedido del dueño, 2026-11-05). Sin ítems no sale: el botón queda
+              solo. En lo demás la fila no existe y el botón va solo. */}
+          <Box
+            sx={
+              dePie
+                ? {
+                    display: "flex",
+                    alignItems: "stretch",
+                    gap: 2,
+                    ...(bloqueada ? { flexShrink: 0 } : { flex: "1 1 64px", minHeight: 64 }),
+                  }
+                : { display: "contents" }
+            }
+          >
+            {dePie && items.length > 0 && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                gap={1}
+                sx={{ flexShrink: 0, alignSelf: "center" }}
+              >
+                <ConstructionIcon sx={{ fontSize: 18, color: theme.palette.custom.accent }} />
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 700, lineHeight: 1.6, color: theme.palette.custom.accent }}
+                >
+                  Ítems
+                </Typography>
+                <Chip
+                  size="small"
+                  label={items.length}
+                  sx={{
+                    height: 20,
+                    fontWeight: 700,
+                    bgcolor: theme.palette.custom.accent,
+                    color: theme.palette.getContrastText(theme.palette.custom.accent),
+                  }}
+                />
+              </Stack>
+            )}
+
+            {/* Punteado, como "Nuevo equipo" (pedido del dueño, 2026-11-05).
+                En la tableta se estira hasta abajo y se encoge con cada ítem;
+                en lo demás tiene su alto fijo. */}
+            {!bloqueada && (
+              <ButtonBase
+                onClick={addNewItem}
+                sx={{
+                  ...(dePie
+                    ? { flex: 1, minWidth: 0 }
+                    : {
+                        width: "100%",
+                        ...(llenaElAlto ? { flex: "1 1 64px", minHeight: 64 } : { height: 52 }),
+                      }),
+                  gap: 1,
+                  ...theme.botonAgregarALista(theme.palette.success.main),
+                  fontWeight: 700,
+                  fontSize: "0.875rem",
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                }}
+              >
+                <AddCircleOutlineIcon fontSize="small" />
+                Agregar Ítem
+              </ButtonBase>
+            )}
+          </Box>
         </Box>
 
-        <Box sx={{ flexShrink: 0, mt: 2, ...(dePie && { gridArea: "pizarra", mt: 0 }) }}>
-            {/* La pizarra de totales, igual que en Cotización. El aspecto vive
-                en el tema como la variante "totales"; acá solo van las filas.
+        <Box
+          sx={
+            dePie
+              ? { display: "contents" }
+              : {
+                  flexShrink: 0,
+                  mt: 2,
+                  display: "flex",
+                  flexDirection: compacta ? "column" : "row",
+                  flexWrap: "wrap",
+                  // Cada una con el alto de la más alta.
+                  alignItems: "stretch",
+                  gap: 1.5,
+                }
+          }
+        >
+          {/* LA CUENTA. Cada renglón sale solo si tiene valor —una cuenta sin
+              transporte no lleva un "Transporte $ 0"— y el de abajo es lo que
+              de verdad se cobra: el saldo. Crece con sus renglones (pedido del
+              dueño, 2026-11-05: el alto fijo dejaba un hueco antes del saldo). */}
+          <Paper variant="totales" sx={sxPizarra("cuenta")}>
+            {filas.map((fila) =>
+              fila.etiqueta === "Total"
+                ? renglon(fila, { variante: "subtitle1", sx: { mb: 1 } })
+                : renglon(fila),
+            )}
 
-                Cada renglón se muestra solo si tiene valor —una cuenta sin
-                transporte no lleva un "Transporte $ 0"— y el de abajo es lo
-                que de verdad se cobra: el saldo. */}
-            <Paper variant="totales">
-              {/* El depósito, antes de los totales y fuera de la suma, igual
-                  que en el PDF. */}
-              {filasDeposito.length > 0 && (
-                <Box className="fila">
-                  <Typography variant="subtitle1">DEPÓSITO</Typography>
-                </Box>
-              )}
-              {filasDeposito.map((fila) => (
-                <Box className="fila" key={`deposito-${fila.etiqueta}`}>
-                  <Typography variant="subtitle1">{fila.etiqueta}</Typography>
-                  <Typography variant="subtitle1">{valorDeFila(fila)}</Typography>
-                </Box>
-              ))}
+            {/* Sin pagos, el total es lo que se cobra y va en amarillo, como
+                siempre. Con pagos cierra el saldo: en rojo si se debe, en
+                verde si quedó en cero, como el saldo de la factura. */}
+            <Box
+              className={
+                hayMovimientos ? `fila separada ${aCancelar > 0 ? "alerta" : "ok"}` : "fila total"
+              }
+              sx={{ mb: 0 }}
+            >
+              <Typography variant="h6" fontWeight="bold">
+                {hayMovimientos ? (
+                  <ScheduleIcon sx={{ fontSize: "1.1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
+                ) : (
+                  <ReceiptLongIcon sx={{ fontSize: "1.1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
+                )}
+                {hayMovimientos ? "Saldo a cancelar" : "Total"}
+              </Typography>
+              <Typography variant="h6" fontWeight="bold">
+                {formatearMoneda(hayMovimientos ? aCancelar : total)}
+              </Typography>
+            </Box>
+          </Paper>
 
-              {filas.map((fila) => (
-                <Box className="fila" key={fila.etiqueta}>
-                  <Typography variant="subtitle1">{fila.etiqueta}</Typography>
-                  <Typography variant="subtitle1">{valorDeFila(fila)}</Typography>
-                </Box>
-              ))}
+          {/* EL DEPÓSITO, aparte de la suma, como en la factura: cuánto se
+              recibió, qué salió de él y cuánto queda. Va siempre, para que
+              nada salte al escribirlo. */}
+          <Paper variant="totales" sx={sxPizarra("deposito")}>
+            <Box className="titulo deposito">
+              <IconoDeposito fontSize="small" />
+              <Typography variant="subtitle2">DEPÓSITO</Typography>
+            </Box>
 
-              {Array.from({ length: renglonesReservados }, (_, i) => (
-                <Box className="fila" key={`reservado-${i}`} aria-hidden sx={{ visibility: "hidden" }}>
-                  <Typography variant="subtitle1">&nbsp;</Typography>
-                </Box>
-              ))}
-
-              <Box className="fila total">
-                <Typography variant="h5">
-                  {hayMovimientos ? "SALDO" : "TOTAL"}
-                </Typography>
-                <Typography variant="h5">
-                  {formatearMoneda(hayMovimientos ? aCancelar : total)}
-                </Typography>
-              </Box>
-            </Paper>
+            {filasDeposito.length === 0 ? (
+              <Typography variant="body2" sx={{ opacity: 0.6 }}>
+                Sin depósito
+              </Typography>
+            ) : (
+              <>
+                {filasDeposito
+                  .filter(({ etiqueta }) => !CIERRES_DEL_DEPOSITO.includes(etiqueta))
+                  .map((fila) =>
+                    renglon(fila, {
+                      signo: SALEN_DEL_DEPOSITO.includes(fila.etiqueta) ? "-" : undefined,
+                    }),
+                  )}
+                <Box className="raya" />
+                {(cierresDelDeposito.length
+                  ? cierresDelDeposito
+                  : [{ etiqueta: "En garantía", valor: 0 }]
+                ).map((fila) => renglon({ ...fila, fuerte: true }))}
+              </>
+            )}
+          </Paper>
         </Box>
       </Box>
     </Box>
