@@ -59,7 +59,8 @@ export default function CuentaCobro() {
   // resta ANTES del IVA, como en la factura. El depósito va aparte, también como
   // en la factura.
   //
-  // Lo que se cobra no es el total sino el SALDO (ver resumenCuentaCobro).
+  // Lo que se cobra no es el total sino el SALDO, y no se guarda: se calcula al
+  // mostrarlo (ver resumenCuentaCobro).
   const recalcularYGuardar = (value) => {
     const nuevoSubtotal = (value.items || []).reduce(
       (acumulado, item) => acumulado + calcularSubtotal(item),
@@ -70,17 +71,13 @@ export default function CuentaCobro() {
     const nuevoIva = value.iva ? base * 0.19 : 0;
     const transporte = Number(value.valorTransporte) || 0;
     const nuevoTotal = base + nuevoIva + transporte;
-    const actualizada = {
-      ...value,
-      subtotalNumero: nuevoSubtotal,
-      ivaNumero: nuevoIva,
-      total: nuevoTotal,
-    };
 
     dispatch(
       setFormCuentaCobro({
-        ...actualizada,
-        saldo: resumenCuentaCobro(actualizada).aCancelar,
+        ...value,
+        subtotalNumero: nuevoSubtotal,
+        ivaNumero: nuevoIva,
+        total: nuevoTotal,
       }),
     );
   };
@@ -131,8 +128,6 @@ export default function CuentaCobro() {
       day: 1,
       unidad: "dias",
       subtotal: 0,
-      fechaDespacho: "",
-      fechaDevolucion: "",
     };
     recalcularYGuardar({
       ...formValues,

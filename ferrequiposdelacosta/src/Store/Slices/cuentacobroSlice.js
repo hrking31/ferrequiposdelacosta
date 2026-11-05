@@ -77,7 +77,6 @@ const valorInicial = {
   total: 0, // subtotal + IVA + transporte - descuento
   pagado: 0, // lo que el cliente consignó al facturar, con la parte del depósito
   abonos: 0, // lo que fue abonando después
-  saldo: 0, // es el "Total a cancelar" (ver resumenCuentaCobro.js)
   // Verdadero si la cuenta se trajo de las facturas: sus datos quedan
   // bloqueados y solo se escribe el "por concepto de" (ver CuentaDeCobro.jsx).
   desdeFacturas: false,

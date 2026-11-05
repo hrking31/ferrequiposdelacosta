@@ -84,9 +84,8 @@ export default function generarCuentaCobro(values) {
   doc.text(`POR CONCEPTO DE: ${cuenta.concepto}`, centro, y, { align: "center" });
 
   // ===== TABLA DE ITEMS =====
-  // Cantidad, equipo, días y subtotal. Las fechas de despacho y devolución y
-  // el valor por día se siguen guardando en cada ítem, pero no van en este
-  // documento.
+  // Cantidad, equipo, días y subtotal. El valor por día se guarda en cada ítem,
+  // pero no va en este documento.
   //
   // La primera columna es el número de factura, y solo se dibuja si los ítems
   // lo traen (se rotula a las personas, no a las empresas: ver

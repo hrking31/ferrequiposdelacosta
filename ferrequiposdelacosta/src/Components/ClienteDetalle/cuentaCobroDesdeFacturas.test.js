@@ -1,4 +1,5 @@
 import construirCuentaCobroDesdeFacturas from "./cuentaCobroDesdeFacturas";
+import resumenCuentaCobro from "../CuentaDeCobro/resumenCuentaCobro";
 import {
   grupoAgregados,
   unEquipo,
@@ -62,6 +63,9 @@ const facturaBase = facturaCon();
 const construir = (facturas, quien = cliente) =>
   construirCuentaCobroDesdeFacturas({ cliente: quien, facturas, hoyIso: HOY });
 
+// Lo que se cobra no se guarda en la cuenta: se calcula al mostrarla.
+const saldoDe = (cuenta) => resumenCuentaCobro(cuenta).aCancelar;
+
 describe("datos del cliente", () => {
   it("copia nombre, NIT, obra y dirección, y deja el concepto en blanco", () => {
     const cuenta = construir([facturaBase]);
@@ -119,15 +123,21 @@ describe("la columna del número de factura", () => {
 });
 
 describe("los equipos como ítems", () => {
-  it("copia cantidad, días, valor y las dos fechas", () => {
+  it("copia cantidad, días y valor", () => {
     const [item] = construir([facturaBase]).items;
 
     expect(item.quantity).toBe(1);
     expect(item.day).toBe(3);
     expect(item.price).toBe(100000);
     expect(item.subtotal).toBe(300000);
-    expect(item.fechaDespacho).toBe("2026-08-05");
-    expect(item.fechaDevolucion).toBe("2026-08-07");
+  });
+
+  it("no guarda lo que ningún documento muestra: fechas ni saldo", () => {
+    const cuenta = construir([facturaBase]);
+
+    expect(cuenta).not.toHaveProperty("saldo");
+    expect(cuenta.items[0]).not.toHaveProperty("fechaDespacho");
+    expect(cuenta.items[0]).not.toHaveProperty("fechaDevolucion");
   });
 
   it("sin unidad en el equipo va por días, y si la trae, la respeta", () => {
@@ -161,7 +171,6 @@ describe("los equipos como ítems", () => {
     const [item] = construir([conAmpliacion]).items;
     expect(item.day).toBe(5);
     expect(item.subtotal).toBe(500000);
-    expect(item.fechaDevolucion).toBe("2026-08-09");
   });
 
   it("al equipo con devolución indefinida le cobra los días hasta hoy", () => {
@@ -184,7 +193,6 @@ describe("los equipos como ítems", () => {
     const [item] = construir([indefinido]).items;
     // Del 5 al 15 de agosto, contando el día de salida, son 11 días.
     expect(item.day).toBe(11);
-    expect(item.fechaDevolucion).toBe(HOY);
     expect(item.subtotal).toBe(1100000);
   });
 
@@ -321,7 +329,7 @@ describe("lo que se cobra es el saldo", () => {
     expect(cuenta.total).toBe(357000);
     expect(cuenta.pagado).toBe(200000);
     expect(cuenta.abonos).toBe(57000);
-    expect(cuenta.saldo).toBe(100000);
+    expect(saldoDe(cuenta)).toBe(100000);
   });
 
   it("si el cliente pagó de más, el saldo no baja de cero", () => {
@@ -329,14 +337,14 @@ describe("lo que se cobra es el saldo", () => {
       pagos: [{ medio: "Efectivo", monto: 400000 }],
     });
 
-    expect(construir([sobrepagada]).saldo).toBe(0);
+    expect(saldoDe(construir([sobrepagada]))).toBe(0);
   });
 
   it("sin pagos, el saldo es el total", () => {
     const cuenta = construir([facturaBase]);
     expect(cuenta.pagado).toBe(0);
     expect(cuenta.abonos).toBe(0);
-    expect(cuenta.saldo).toBe(cuenta.total);
+    expect(saldoDe(cuenta)).toBe(cuenta.total);
   });
 
   it("el desglose cuadra con el total de las facturas, y el depósito se suma aparte", () => {
@@ -351,7 +359,7 @@ describe("lo que se cobra es el saldo", () => {
       cuenta.subtotalNumero - cuenta.descuento + cuenta.ivaNumero + cuenta.valorTransporte;
 
     expect(desglose).toBeCloseTo(cuenta.total, 2);
-    expect(cuenta.saldo).toBeCloseTo(cuenta.total + 120000, 2);
+    expect(saldoDe(cuenta)).toBeCloseTo(cuenta.total + 120000, 2);
   });
 
   it("el depósito ya pagado no se cobra ni se cuenta como pago de la factura", () => {
@@ -368,7 +376,7 @@ describe("lo que se cobra es el saldo", () => {
     expect(cuenta.desgloseFacturas.pagado).toBe(80000);
     expect(cuenta.desgloseFacturas.deposito.recibido).toBe(120000);
     expect(cuenta.desgloseFacturas.deposito.porCobrar).toBe(0);
-    expect(cuenta.saldo).toBe(cuenta.total - 80000);
+    expect(saldoDe(cuenta)).toBe(cuenta.total - 80000);
   });
 
   it("llena el campo del depósito, esté pagado o no, sin sumarlo al total", () => {
@@ -381,12 +389,12 @@ describe("lo que se cobra es el saldo", () => {
     const cuentaPagada = construir([pagado]);
     expect(cuentaPagada.valorDeposito).toBe(120000);
     expect(cuentaPagada.total).toBe(357000);
-    expect(cuentaPagada.saldo).toBe(cuentaPagada.total - 80000);
+    expect(saldoDe(cuentaPagada)).toBe(cuentaPagada.total - 80000);
 
     const cuentaPendiente = construir([pendiente]);
     expect(cuentaPendiente.valorDeposito).toBe(120000);
     expect(cuentaPendiente.total).toBe(357000);
-    expect(cuentaPendiente.saldo).toBeCloseTo(cuentaPendiente.total + 120000, 2);
+    expect(saldoDe(cuentaPendiente)).toBeCloseTo(cuentaPendiente.total + 120000, 2);
   });
 
   it("el abono que completa el depósito no se muestra como pago de la factura", () => {
@@ -396,11 +404,12 @@ describe("lo que se cobra es el saldo", () => {
       abonos: [{ fecha: "2026-08-10", medio: "Nequi", monto: 50000, tipo: "cliente" }],
     });
 
-    const { desgloseFacturas: desglose, saldo, total } = construir([completada]);
+    const cuenta = construir([completada]);
+    const { desgloseFacturas: desglose, total } = cuenta;
     expect(desglose.pagado).toBe(0);
     expect(desglose.abonos).toBe(10000);
     expect(desglose.deposito.recibido).toBe(100000);
-    expect(saldo).toBe(total - 10000);
+    expect(saldoDe(cuenta)).toBe(total - 10000);
   });
 
   it("lo retenido por daños sale del depósito y sube el total a la vista", () => {
@@ -410,12 +419,13 @@ describe("lo que se cobra es el saldo", () => {
       equipos: [rana({ valorRetenido: 30000 })],
     });
 
-    const { desgloseFacturas: desglose, items, saldo, total } = construir([conDanos]);
+    const cuenta = construir([conDanos]);
+    const { desgloseFacturas: desglose, items, total } = cuenta;
     expect(items.at(-1).description).toBe("DAÑOS (retenido del depósito)");
     expect(desglose.retenido).toBe(30000);
     expect(desglose.deposito.enGarantia).toBe(70000);
     // El cliente no pagó la factura, y el daño ya lo cubre el depósito.
-    expect(saldo).toBe(total - 30000);
+    expect(saldoDe(cuenta)).toBe(total - 30000);
   });
 });
 
@@ -428,7 +438,7 @@ describe("marca de origen", () => {
     const cuenta = construir([]);
     expect(cuenta.items).toEqual([]);
     expect(cuenta.total).toBe(0);
-    expect(cuenta.saldo).toBe(0);
+    expect(saldoDe(cuenta)).toBe(0);
     expect(cuenta.iva).toBe(false);
     expect(cuenta.empresa).toBe("Ana Pérez");
   });
@@ -445,7 +455,7 @@ describe("el descuento al cobrar", () => {
 
     expect(con.descuento).toBe(sin.descuento + 50000);
     expect(con.total).toBe(sin.total - 50000);
-    expect(con.saldo).toBe(sin.saldo - 50000);
+    expect(saldoDe(con)).toBe(saldoDe(sin) - 50000);
     const desglose =
       con.subtotalNumero - con.descuento + con.ivaNumero + con.valorTransporte;
     expect(desglose).toBeCloseTo(con.total, 2);

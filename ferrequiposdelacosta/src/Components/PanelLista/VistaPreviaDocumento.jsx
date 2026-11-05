@@ -15,9 +15,11 @@ import { textoDeTiempo } from "../CuentaDeCobro/resumenCuentaCobro";
 // 2026-10-23). Se suelta con la X de la esquina del recuadro (ver
 // PanelDocumentos) o tocando otra vez la tarjeta.
 //
-// Cada renglón es "equipo — cantidad × días u horas" con su subtotal, que se
-// calcula acá (cantidad × precio × tiempo): en las cotizaciones el subtotal se
-// guarda ya con formato de moneda y no se puede sumar.
+// Cada renglón es "equipo — cantidad × días u horas" con su subtotal. En las
+// cotizaciones se calcula acá (cantidad × precio × tiempo), porque se guarda ya
+// con formato de moneda y no se puede sumar. En las cuentas de cobro se guarda
+// como número y se usa ese: el renglón de los daños no lleva días, y multiplicar
+// por tiempo lo dejaba en $0.
 export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, items, totales }) {
   const theme = useTheme();
   const renglones = (items || []).filter((item) => String(item.description || "").trim());
@@ -60,8 +62,11 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
           <Stack spacing={0.75}>
             {renglones.map((item, indice) => {
               const cantidad = Number(item.quantity) || 0;
-              const dias = Number(item.day) || 0;
-              const subtotal = cantidad * (Number(item.price) || 0) * dias;
+              const subtotal =
+                typeof item.subtotal === "number"
+                  ? item.subtotal
+                  : cantidad * (Number(item.price) || 0) * (Number(item.day) || 0);
+              const tiempo = textoDeTiempo(item);
               return (
                 <Stack
                   // Un mismo equipo puede ir en dos renglones: va con su posición.
@@ -78,9 +83,11 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
                 >
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2">{item.description}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {cantidad} × {textoDeTiempo({ ...item, day: dias })}
-                    </Typography>
+                    {tiempo && (
+                      <Typography variant="caption" color="text.secondary">
+                        {cantidad} × {tiempo}
+                      </Typography>
+                    )}
                   </Box>
                   <Typography variant="body2" sx={{ fontWeight: 700, flexShrink: 0 }}>
                     {formatearMoneda(subtotal)}

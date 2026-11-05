@@ -83,9 +83,7 @@ const ESTADO_INFO = {
   pagada: { label: "Pagada", Icono: PaidIcon, color: "primary" },
 };
 
-// Lo que se cobra en una cuenta guardada. Se recalcula en vez de confiar en el
-// campo `saldo` para que una guardada por una versión anterior —que no lo
-// tenía— no se muestre en cero.
+// Lo que se cobra en una cuenta guardada.
 const saldoDe = (cuenta) => resumenCuentaCobro(cuenta).aCancelar;
 
 // LOS FILTROS (2026-10-22), con el mismo juego que Seguimiento y el buzón de

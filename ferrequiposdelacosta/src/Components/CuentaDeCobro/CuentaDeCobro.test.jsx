@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import CuentaDeCobro from "./CuentaDeCobro";
+import resumenCuentaCobro from "./resumenCuentaCobro";
 
 const cuenta = (extra = {}) => ({
   tipo: "persona",
@@ -20,7 +21,6 @@ const cuenta = (extra = {}) => ({
   abonos: 0,
   subtotalNumero: 400000,
   total: 400000,
-  saldo: 400000,
   desdeFacturas: false,
   desgloseFacturas: null,
   items: [
@@ -69,7 +69,10 @@ describe("los días o las horas de cada ítem", () => {
 
     await usuario.click(screen.getByRole("button", { name: "Agregar Ítem" }));
 
-    expect(store.getState().cuentacobro.value.items[1].unidad).toBe("dias");
+    const nuevo = store.getState().cuentacobro.value.items[1];
+    expect(nuevo.unidad).toBe("dias");
+    expect(nuevo).not.toHaveProperty("fechaDespacho");
+    expect(nuevo).not.toHaveProperty("fechaDevolucion");
   });
 });
 
@@ -100,10 +103,11 @@ describe("la cuenta escrita a mano", () => {
     await usuario.type(screen.getByLabelText("Valor Depósito"), "100000");
     await usuario.type(screen.getByLabelText("Valor Pagado"), "350000");
 
-    const { total, saldo } = store.getState().cuentacobro.value;
-    expect(total).toBe(400000);
+    const value = store.getState().cuentacobro.value;
+    expect(value.total).toBe(400000);
     // $350.000 consignados: $100.000 de depósito y $250.000 de la cuenta.
-    expect(saldo).toBe(150000);
+    expect(resumenCuentaCobro(value).aCancelar).toBe(150000);
+    expect(value).not.toHaveProperty("saldo");
   });
 });
 
@@ -115,7 +119,6 @@ describe("la cuenta traída de las facturas", () => {
       pagado: 350000,
       subtotalNumero: 430000,
       total: 430000,
-      saldo: 180000,
       desgloseFacturas: {
         pagado: 250000,
         abonos: 0,

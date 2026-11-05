@@ -16,10 +16,7 @@ import {
   equiposDe,
   adicionalesDe,
   grupoInicialDe,
-  cubiertoHasta,
-  sinFechaDeEntrega,
 } from "./facturaUtils";
-import resumenCuentaCobro from "../CuentaDeCobro/resumenCuentaCobro";
 
 const numero = (valor) => Number(valor) || 0;
 
@@ -40,8 +37,7 @@ const obtenerNombreCliente = (cliente) => {
 // Los días de las renovaciones se suman a los días del alquiler, así el ítem
 // queda con el total de días cobrados y su subtotal (cantidad x días x valor)
 // da lo mismo que el reporte. Eso vale también para los equipos que quedaron
-// con devolución indefinida: se cobran hasta hoy, y hoy es la fecha de
-// devolución que se muestra.
+// con devolución indefinida: se cobran hasta hoy.
 //
 // El descuento que se haya pactado en una renovación NO se resta acá: sale
 // aparte, como un renglón del resumen, para que la suma de los ítems siga
@@ -68,12 +64,6 @@ const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
     unidad: equipo.unidad === "horas" ? "horas" : "dias",
     price: valor,
     subtotal: cantidad * cuenta.dias * valor,
-    fechaDespacho: equipo.fechaDespacho || datos.fechaCreacion || "",
-    fechaDevolucion: equipo.devolucion?.fechaDevolucion
-      ? equipo.devolucion.fechaDevolucion
-      : sinFechaDeEntrega(equipo)
-        ? hoyIso
-        : cubiertoHasta(equipo) || "",
   };
 };
 
@@ -109,8 +99,6 @@ export default function construirCuentaCobroDesdeFacturas({
           day: "",
           price: cuenta.danos,
           subtotal: cuenta.danos,
-          fechaDespacho: "",
-          fechaDevolucion: "",
         });
       }
 
@@ -195,7 +183,7 @@ export default function construirCuentaCobroDesdeFacturas({
       ? tipoTransporteDe(facturaConTransporte) || "Ida y vuelta"
       : "Sin transporte";
 
-  const cuentaArmada = {
+  return {
     // De qué cliente salió, para poder encontrar después sus cuentas sin
     // buscarlas por nombre. El número del documento y el id en la base los
     // pone la pantalla, no esto.
@@ -223,6 +211,4 @@ export default function construirCuentaCobroDesdeFacturas({
     // error se arregla en la factura y se vuelve a pasar (ver CuentaDeCobro.jsx).
     desdeFacturas: true,
   };
-
-  return { ...cuentaArmada, saldo: resumenCuentaCobro(cuentaArmada).aCancelar };
 }
