@@ -5,6 +5,11 @@ import { Box, Stack, Typography } from "@mui/material";
 // altura de la primera tarjeta: los 40px del buscador y los 16 de aire.
 export const ALTO_ENCABEZADO_LISTA = 56;
 
+// El aire sobre la primera tarjeta, DENTRO de la caja que se desplaza: la tarjeta
+// sube 3px al pasarle el mouse, y sin este aire la caja le cortaba el borde de
+// arriba. Las columnas de los lados bajan lo mismo para seguir a su altura.
+export const AIRE_SOBRE_LISTA = 8;
+
 // EL RENGLÓN DE ARRIBA DE LA LISTA, solo encima de las tarjetas: el título, el
 // buscador y el conteo, como en la lista de clientes (pedido del dueño,
 // 2026-11-03). Lo usan el buzón de cotizaciones y las cuentas de cobro.

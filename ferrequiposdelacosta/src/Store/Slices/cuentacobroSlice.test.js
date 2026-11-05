@@ -1,7 +1,5 @@
 import cuentacobroReducer, {
   setFormCuentaCobro,
-  setItemsCc,
-  setTotalCc,
   limpiarCuentaCobro,
 } from "./cuentacobroSlice";
 
@@ -18,15 +16,6 @@ describe("cuentacobroSlice", () => {
     expect(estado.value.empresa).toBe("Obras SA");
     expect(estado.value.total).toBe(500);
     expect(JSON.parse(localStorage.getItem("sesion_trabajo_cuenta_cobro")).empresa).toBe("Obras SA");
-  });
-
-  it("setItemsCc actualiza solo los ítems", () => {
-    const estado = cuentacobroReducer(base(), setItemsCc([{ x: 1 }, { x: 2 }]));
-    expect(estado.value.items).toHaveLength(2);
-  });
-
-  it("setTotalCc actualiza solo el total", () => {
-    expect(cuentacobroReducer(base(), setTotalCc(999)).value.total).toBe(999);
   });
 
   it("limpiarCuentaCobro deja la cuenta en blanco y borra la sesión", () => {

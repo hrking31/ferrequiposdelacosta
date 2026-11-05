@@ -36,7 +36,10 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
-import EncabezadoLista, { ALTO_ENCABEZADO_LISTA } from "../PanelLista/EncabezadoLista";
+import EncabezadoLista, {
+  AIRE_SOBRE_LISTA,
+  ALTO_ENCABEZADO_LISTA,
+} from "../PanelLista/EncabezadoLista";
 import ChipFiltro from "../Filtros/ChipFiltro";
 import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
@@ -319,7 +322,7 @@ export default function KioskAdminCotizaciones() {
       sx={{
         width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
-        mt: `${ALTO_ENCABEZADO_LISTA}px`,
+        mt: `${ALTO_ENCABEZADO_LISTA + AIRE_SOBRE_LISTA}px`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
@@ -481,7 +484,7 @@ export default function KioskAdminCotizaciones() {
             width: 420,
             flexShrink: 0,
             minHeight: 0,
-            ...(todas.length > 0 && { mt: `${ALTO_ENCABEZADO_LISTA}px` }),
+            ...(todas.length > 0 && { mt: `${ALTO_ENCABEZADO_LISTA + AIRE_SOBRE_LISTA}px` }),
           }}
         >
           <PanelDocumentos
@@ -613,6 +616,7 @@ export default function KioskAdminCotizaciones() {
           display: "flex",
           flexDirection: "column",
           gap: 3,
+          pt: `${AIRE_SOBRE_LISTA}px`,
           ...(altoCorto
             ? undefined
             : { flex: 1, minHeight: 0, overflowY: "auto" }),

@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -51,6 +51,10 @@ export default function VistaCotizacion() {
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
   const [loading, setLoading] = useState(false);
+  // Si ya se está guardando para el PDF. Es una referencia y no un estado porque
+  // un doble clic llega antes de que la pantalla se vuelva a dibujar: sin esto,
+  // cada clic sobre una cotización nueva crea un documento con el mismo número.
+  const descargando = useRef(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -122,7 +126,8 @@ export default function VistaCotizacion() {
 `;
 
   const handleDescargarPdf = async () => {
-    if (sinEquipos) return;
+    if (sinEquipos || descargando.current) return;
+    descargando.current = true;
 
     // WhatsApp primero, dentro del mismo clic: entra a la app instalada —en el
     // celular y también en el computador con WhatsApp Desktop— en vez de abrir
@@ -132,11 +137,15 @@ export default function VistaCotizacion() {
     if (!sinTelefono) abrirWhatsapp(values.telefono, message);
 
     setLoading(true);
-    const cotizacionGuardada = await guardarCotizacion("creada");
-    VistaCotPdf(cotizacionGuardada);
-    dispatch(resetCotizacion());
-    setLoading(false);
-    navigate("/adminforms");
+    try {
+      const cotizacionGuardada = await guardarCotizacion("creada");
+      VistaCotPdf(cotizacionGuardada);
+      dispatch(resetCotizacion());
+      navigate("/adminforms");
+    } finally {
+      descargando.current = false;
+      setLoading(false);
+    }
   };
 
   // Descartar: la cotización vuelve tal como estaba antes de abrirla. Lo único
@@ -207,7 +216,7 @@ export default function VistaCotizacion() {
     <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
       <Tooltip title="Descargar PDF" placement="right">
         <span>
-          <IconButton onClick={handleDescargarPdf} disabled={sinEquipos} color="success" sx={{ p: 1.25 }}>
+          <IconButton onClick={handleDescargarPdf} disabled={sinEquipos || loading} color="success" sx={{ p: 1.25 }}>
             <PictureAsPdfIcon />
           </IconButton>
         </span>
@@ -274,7 +283,7 @@ export default function VistaCotizacion() {
                   <span>
                     <IconButton
                       onClick={handleDescargarPdf}
-                      disabled={sinEquipos}
+                      disabled={sinEquipos || loading}
                       color="success"
                     >
                       <PictureAsPdfIcon />
@@ -316,7 +325,7 @@ export default function VistaCotizacion() {
                   fullWidth
                   sx={{ flex: 1, whiteSpace: "nowrap" }}
                   onClick={handleDescargarPdf}
-                  disabled={sinEquipos}
+                  disabled={sinEquipos || loading}
                 >
                   {loading ? "Cargando..." : "Descargar PDF"}
                 </Button>

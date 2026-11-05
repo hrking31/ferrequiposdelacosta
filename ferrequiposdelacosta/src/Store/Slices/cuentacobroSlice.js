@@ -134,16 +134,6 @@ const cuentacobroSlice = createSlice({
       guardarEn(CLAVE_ORIGINAL, state.original);
     },
 
-    setItemsCc: (state, action) => {
-      state.value.items = action.payload;
-      guardarSesion(state.value);
-    },
-
-    setTotalCc: (state, action) => {
-      state.value.total = action.payload;
-      guardarSesion(state.value);
-    },
-
     // Deja la cuenta en blanco y borra la sesión: es el botón Cancelar.
     limpiarCuentaCobro: (state) => {
       state.value = valorInicial;
@@ -157,8 +147,6 @@ const cuentacobroSlice = createSlice({
 export const {
   setFormCuentaCobro,
   abrirCuentaCobro,
-  setItemsCc,
-  setTotalCc,
   limpiarCuentaCobro,
 } = cuentacobroSlice.actions;
 export default cuentacobroSlice.reducer;

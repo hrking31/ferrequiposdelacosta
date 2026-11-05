@@ -35,11 +35,6 @@ export default function generarCuentaCobro(values) {
     bottom: margenPie,
   };
 
-  // Lo que de verdad se cobra. Cuando la cuenta se armó desde las facturas de
-  // un cliente, el documento no cobra el total: cobra lo que queda debiendo
-  // después de lo ya pagado y de los abonos. Se recalcula acá en vez de usar
-  // el `saldo` guardado para que una cuenta vieja —de antes de que existieran
-  // estos campos— siga saliendo bien.
   const { filas, filasDeposito, aCancelar } = resumenCuentaCobro(cuenta);
 
   // Fecha

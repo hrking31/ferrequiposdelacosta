@@ -36,7 +36,10 @@ import PersonIcon from "@mui/icons-material/Person";
 import BusinessIcon from "@mui/icons-material/Business";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BuscadorFiltro from "../BuscadorFiltro/BuscadorFiltro";
-import EncabezadoLista, { ALTO_ENCABEZADO_LISTA } from "../PanelLista/EncabezadoLista";
+import EncabezadoLista, {
+  AIRE_SOBRE_LISTA,
+  ALTO_ENCABEZADO_LISTA,
+} from "../PanelLista/EncabezadoLista";
 import ChipFiltro from "../Filtros/ChipFiltro";
 import SelectorFiltro from "../Filtros/SelectorFiltro";
 import PanelDocumentos from "../PanelLista/PanelDocumentos";
@@ -362,7 +365,7 @@ export default function ListaCuentasCobro() {
       sx={{
         width: "clamp(160px, 14vw, 220px)",
         flexShrink: 0,
-        mt: `${ALTO_ENCABEZADO_LISTA}px`,
+        mt: `${ALTO_ENCABEZADO_LISTA + AIRE_SOBRE_LISTA}px`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
@@ -520,7 +523,14 @@ export default function ListaCuentasCobro() {
     conPanel ? (
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 3 }}>
         <Box sx={columnaVertical}>{lista}</Box>
-        <Box sx={{ width: 420, flexShrink: 0, minHeight: 0, mt: `${ALTO_ENCABEZADO_LISTA}px` }}>
+        <Box
+          sx={{
+            width: 420,
+            flexShrink: 0,
+            minHeight: 0,
+            mt: `${ALTO_ENCABEZADO_LISTA + AIRE_SOBRE_LISTA}px`,
+          }}
+        >
           <PanelDocumentos
             onCerrar={elegida ? () => setElegidaId(null) : undefined}
             titulo={elegida ? "Vista previa" : "Estadísticas"}
@@ -626,6 +636,7 @@ export default function ListaCuentasCobro() {
       <Box
         sx={{
           pr: 0.5,
+          pt: `${AIRE_SOBRE_LISTA}px`,
           ...(altoCorto
             ? undefined
             : { flex: 1, minHeight: 0, overflowY: "auto" }),

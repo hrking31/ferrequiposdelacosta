@@ -15,9 +15,9 @@ import { textoDeTiempo } from "../CuentaDeCobro/resumenCuentaCobro";
 // 2026-10-23). Se suelta con la X de la esquina del recuadro (ver
 // PanelDocumentos) o tocando otra vez la tarjeta.
 //
-// Cada renglón es "equipo — cantidad × días" con su subtotal, que se calcula
-// acá (cantidad × precio × días): en las cotizaciones el subtotal se guarda ya
-// con formato de moneda y no se puede sumar.
+// Cada renglón es "equipo — cantidad × días u horas" con su subtotal, que se
+// calcula acá (cantidad × precio × tiempo): en las cotizaciones el subtotal se
+// guarda ya con formato de moneda y no se puede sumar.
 export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, items, totales }) {
   const theme = useTheme();
   const renglones = (items || []).filter((item) => String(item.description || "").trim());

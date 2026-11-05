@@ -77,9 +77,6 @@ const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
   };
 };
 
-// Las facturas viejas migradas del Excel guardan los equipos como simples
-// nombres, sin cantidad ni valor. Entran igual, con el renglón en blanco para
-// que se complete a mano.
 export default function construirCuentaCobroDesdeFacturas({
   cliente,
   facturas,
