@@ -209,24 +209,25 @@ export default function VistaCotizacion() {
     ejecutarLogout();
   };
 
-  // En el celular acostado, Descargar PDF y Guardar y salir en una columna a
-  // la izquierda, uno encima del otro y repartidos a lo alto: solo los íconos, los mismos del
-  // encabezado del computador (pedido del dueño, 2026-10-30).
-  const botonesAlLado = (
-    <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
-      <Tooltip title="Descargar PDF" placement="right">
+  // Descargar PDF y Guardar y salir en el celular: solo los íconos, los mismos
+  // del encabezado del computador. De pie van en una fila al pie de la pantalla,
+  // como en Equipos; acostado, en una columna a la izquierda, repartidos a lo
+  // alto (pedido del dueño, 2026-10-30).
+  const botonesPie = (
+    <>
+      <Tooltip title="Descargar PDF" placement={acostado ? "right" : "top"}>
         <span>
           <IconButton onClick={handleDescargarPdf} disabled={sinEquipos || loading} color="success" sx={{ p: 1.25 }}>
             <PictureAsPdfIcon />
           </IconButton>
         </span>
       </Tooltip>
-      <Tooltip title="Guardar y salir" placement="right">
+      <Tooltip title="Guardar y salir" placement={acostado ? "right" : "top"}>
         <IconButton onClick={handleGuardarYSalirClick} color="success" sx={{ p: 1.25 }}>
           <DashboardIcon />
         </IconButton>
       </Tooltip>
-    </Stack>
+    </>
   );
 
   return (
@@ -237,8 +238,9 @@ export default function VistaCotizacion() {
         height: "100dvh",
         width: "100%",
         // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
-        // dejarle hueco. En el celular el aire de abajo lo pone el pie.
-        pb: isFullScreen && !acostado ? 0 : isFullScreen ? 1.5 : 2,
+        // dejarle hueco. En el celular de pie, el pie llega al borde: sus 54px
+        // son los mismos en todas las vistas (pedido del dueño, 2026-11-05).
+        pb: isFullScreen ? (acostado ? 1.5 : 0) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -302,7 +304,11 @@ export default function VistaCotizacion() {
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 0.5 }}>
-        {acostado && botonesAlLado}
+        {acostado && (
+          <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
+            {botonesPie}
+          </Stack>
+        )}
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
         <Box sx={{ mb: 2 }}>
           <Grid container spacing={2}>
@@ -314,46 +320,14 @@ export default function VistaCotizacion() {
             </Grid>
           </Grid>
         </Box>
-
-        {isFullScreen && !acostado && (
-          <Box sx={{ mb: 2 }}>
-            <Grid container spacing={2} justifyContent="center">
-              <Grid item xs={10} sm={6} md={4}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  sx={{ flex: 1, whiteSpace: "nowrap" }}
-                  onClick={handleDescargarPdf}
-                  disabled={sinEquipos || loading}
-                >
-                  {loading ? "Cargando..." : "Descargar PDF"}
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
       </Box>
 
       </Box>
 
       {isFullScreen && !acostado && (
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="stretch"
-          >
-            <Button
-              variant="contained"
-              color="success"
-              fullWidth
-              size="small"
-              onClick={handleGuardarYSalirClick}
-            >
-              Guardar y Salir
-            </Button>
+        <Box sx={{ py: 0.625, flexShrink: 0 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            {botonesPie}
           </Stack>
         </Box>
       )}

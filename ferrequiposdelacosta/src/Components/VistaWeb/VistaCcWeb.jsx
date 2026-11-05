@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import {
@@ -23,7 +24,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-export default function VistaCcWeb() {
+// `llenarAlto`: la tableta acostada (pedido del dueño, 2026-11-05). La hoja
+// llega hasta el borde de abajo, con su propio desplazamiento, y el pie queda al
+// fondo, como en una hoja de verdad: el aire va entre los totales y el pie.
+export default function VistaCcWeb({ llenarAlto = false }) {
   const formValues = useSelector((state) => state.cuentacobro);
   const items = useSelector((state) => state.cuentacobro.value.items);
 
@@ -60,6 +64,14 @@ export default function VistaCcWeb() {
         margin: "0 auto",
         // Para que el número de la cuenta pueda anclarse a la esquina.
         position: "relative",
+        ...(llenarAlto && {
+          width: "100%",
+          height: "100%",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          "& > *": { flexShrink: 0 },
+        }),
         // La hoja es blanca en los dos modos, así que su texto no puede seguir
         // al tema: las variantes de tipografía traen color propio y en modo
         // oscuro dejaban gris claro sobre blanco. Los colores del membrete
@@ -347,6 +359,7 @@ export default function VistaCcWeb() {
       </Box>
 
 
+      {llenarAlto && <Box sx={{ flexGrow: 1 }} />}
       <Box sx={{ mt: "28px", textAlign: "center" }}>
         <Typography
           variant="documentoPie"
@@ -366,3 +379,7 @@ export default function VistaCcWeb() {
     </Container>
   );
 }
+
+VistaCcWeb.propTypes = {
+  llenarAlto: PropTypes.bool,
+};

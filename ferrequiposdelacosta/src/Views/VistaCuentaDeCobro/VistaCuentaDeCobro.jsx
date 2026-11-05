@@ -51,6 +51,14 @@ export default function VistaCuentaDeCobro() {
   // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
+  // LA TABLETA (pedido del dueño, 2026-11-05, pensado para el iPad Pro). De
+  // pie, el formulario y debajo la pizarra a la izquierda, los ítems a la
+  // derecha y la hoja debajo de todo, a todo el ancho. Acostada, el formulario
+  // y los ítems a la izquierda y la hoja a la derecha. En las dos la hoja llega
+  // hasta el borde de abajo: así no queda espacio vacío.
+  const dePie = useMediaQuery("(orientation: portrait)") && !isFullScreen;
+  const tabletaAcostada =
+    useMediaQuery("(orientation: landscape) and (max-width:1400px)") && !isFullScreen;
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -217,26 +225,27 @@ export default function VistaCuentaDeCobro() {
     handleCerrarSesionSinGuardar();
   };
 
-  // En el celular acostado, Descargar PDF y Guardar y salir en una columna a
-  // la izquierda, uno encima del otro y repartidos a lo alto: solo los íconos, los mismos del
-  // encabezado del computador (pedido del dueño, 2026-10-30).
-  const botonesAlLado = (
-    <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
-      <Tooltip title="Descargar PDF" placement="right">
+  // Descargar PDF y Guardar y salir en el celular: solo los íconos, los mismos
+  // del encabezado del computador. De pie van en una fila al pie de la pantalla,
+  // como en Equipos; acostado, en una columna a la izquierda, repartidos a lo
+  // alto (pedido del dueño, 2026-10-30).
+  const botonesPie = (
+    <>
+      <Tooltip title="Descargar PDF" placement={acostado ? "right" : "top"}>
         <span>
           <IconButton onClick={handleDescargarPdf} disabled={loading} color="success" sx={{ p: 1.25 }}>
             <PictureAsPdfIcon />
           </IconButton>
         </span>
       </Tooltip>
-      <Tooltip title="Guardar y salir" placement="right">
+      <Tooltip title="Guardar y salir" placement={acostado ? "right" : "top"}>
         <span>
           <IconButton onClick={handleGuardarYSalirClick} disabled={loading} color="success" sx={{ p: 1.25 }}>
             <DashboardIcon />
           </IconButton>
         </span>
       </Tooltip>
-    </Stack>
+    </>
   );
 
   return (
@@ -247,8 +256,9 @@ export default function VistaCuentaDeCobro() {
         height: "100dvh",
         width: "100%",
         // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
-        // dejarle hueco. En el celular el aire de abajo lo pone el pie.
-        pb: isFullScreen && !acostado ? 0 : isFullScreen ? 1.5 : 2,
+        // dejarle hueco. En el celular de pie, el pie llega al borde: sus 54px
+        // son los mismos en todas las vistas (pedido del dueño, 2026-11-05).
+        pb: isFullScreen ? (acostado ? 1.5 : 0) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
@@ -320,7 +330,43 @@ export default function VistaCuentaDeCobro() {
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 0.5 }}>
-        {acostado && botonesAlLado}
+        {acostado && (
+          <Stack justifyContent="space-evenly" sx={{ flexShrink: 0, ml: ALINEAR_CON_EL_BORDE }}>
+            {botonesPie}
+          </Stack>
+        )}
+      {tabletaAcostada ? (
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", gap: 2, mx: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
+            <CuentaDeCobro forma="acostada" />
+          </Box>
+          <Box sx={{ flex: "0 0 45%", minWidth: 0, minHeight: 0, display: "flex" }}>
+            <VistaCcWeb llenarAlto />
+          </Box>
+        </Box>
+      ) : dePie ? (
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            mx: 2,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gridTemplateRows: "auto auto minmax(0, 1fr)",
+            // El recuadro de totales debajo del formulario, solo a la
+            // izquierda; los ítems ocupan todo el alto de la derecha.
+            gridTemplateAreas: '"datos items" "pizarra items" "hoja hoja"',
+            columnGap: 3,
+            rowGap: 2,
+          }}
+        >
+          <CuentaDeCobro forma="dePie" />
+          <Box sx={{ gridArea: "hoja", minHeight: 0, display: "flex" }}>
+            <VistaCcWeb llenarAlto />
+          </Box>
+        </Box>
+      ) : (
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto",
         mx: isFullScreen ? 0 : 2
           }}>
@@ -334,47 +380,15 @@ export default function VistaCuentaDeCobro() {
             </Grid>
           </Grid>
         </Box>
-
-        {isFullScreen && !acostado && (
-          <Box sx={{ mb: 2 }}>
-            <Grid container spacing={2} justifyContent="center">
-              <Grid item xs={10} sm={6} md={4}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  sx={{ flex: 1 }}
-                  onClick={handleDescargarPdf}
-                  disabled={loading}
-                >
-                  {loading ? "Cargando..." : "Descargar PDF"}
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
       </Box>
+      )}
 
       </Box>
 
       {isFullScreen && !acostado && (
-        <Box sx={{ p: 1.5, flexShrink: 0 }}>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="stretch"
-          >
-            <Button
-              variant="contained"
-              color="success"
-              fullWidth
-              size="small"
-              onClick={handleGuardarYSalirClick}
-              disabled={loading}
-            >
-              Guardar y Salir
-            </Button>
+        <Box sx={{ py: 0.625, flexShrink: 0 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            {botonesPie}
           </Stack>
         </Box>
       )}

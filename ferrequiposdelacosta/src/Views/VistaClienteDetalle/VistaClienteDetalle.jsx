@@ -25,10 +25,10 @@ export default function VistaClienteDetalle() {
         height: "100dvh",
         width: "100%",
         // Sin barra de navegación (ver NavBar): ni arriba ni abajo hay que
-        // dejarle hueco. En el celular el pie de ClienteDetalle ya deja 5px
-        // bajo sus botones: con 7 más suman los 12 que deja el encabezado
-        // arriba. Acostado, 4, que cada franja de aire pesa.
-        pb: altoCorto ? 0.5 : isFullScreen ? "7px" : 2,
+        // dejarle hueco. En el celular el pie de ClienteDetalle llega al borde:
+        // sus 54px son los mismos en todas las vistas (pedido del dueño,
+        // 2026-11-05). Acostado, 4, que cada franja de aire pesa.
+        pb: altoCorto ? 0.5 : isFullScreen ? 0 : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",

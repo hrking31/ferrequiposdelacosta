@@ -407,9 +407,9 @@ const VistaEquipos = ({ editando = false, creando = false }) => {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        // En el celular el pie deja 5px bajo sus botones: con 7 más suman los
-        // 12 del encabezado, como en la ficha del cliente. Sin pie, los 12.
-        pb: isFullScreen ? (conPie && !acostado ? "7px" : 1.5) : 2,
+        // En el celular el pie llega al borde: sus 54px son los mismos en todas
+        // las vistas (pedido del dueño, 2026-11-05). Sin pie, los 12.
+        pb: isFullScreen ? (conPie && !acostado ? 0 : 1.5) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",

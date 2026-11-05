@@ -1,6 +1,8 @@
+import PropTypes from "prop-types";
 import {
   Box,
   Button,
+  ButtonBase,
   Paper,
   TextField,
   Typography,
@@ -16,6 +18,7 @@ import {
   useTheme,
 } from "@mui/material";
 import ConstructionIcon from "@mui/icons-material/Construction";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { TituloSeccion } from "../PanelLista/ResumenLista";
 import { useSelector, useDispatch } from "react-redux";
 import { setFormCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
@@ -31,8 +34,29 @@ import resumenCuentaCobro, {
   valorDeFila,
 } from "./resumenCuentaCobro";
 
-export default function CuentaCobro() {
+// `forma="acostada"`: la tableta acostada (pedido del dueño, 2026-11-05). El
+// formulario ocupa todo el alto de su columna: los datos en renglones de a
+// tres, los ítems con su propio desplazamiento, el botón de agregar estirado
+// hasta los totales —se encoge con cada ítem— y la pizarra fija abajo. Así no
+// queda espacio vacío debajo.
+export default function CuentaCobro({ forma = "normal" }) {
   const theme = useTheme();
+  const acostada = forma === "acostada";
+  // `forma="dePie"`: la tableta de pie (pedido del dueño, 2026-11-05). Las
+  // piezas van sueltas en la grilla de la pantalla: los datos y la pizarra a la
+  // izquierda, los ítems a la derecha y la hoja debajo (ver VistaCuentaDeCobro).
+  const dePie = forma === "dePie";
+  // En la tableta, de pie o acostada, los ítems se desplazan solos y el botón
+  // de agregar se estira hasta abajo.
+  const llenaElAlto = acostada || dePie;
+  // El ancho de los campos de a dos, que acostada van de a tres.
+  const deATres = acostada ? 4 : 6;
+  // En la tableta, Persona, Empresa, IVA y la fecha en un solo renglón (pedido
+  // del dueño, 2026-11-05): las casillas más chicas y la fecha toma lo que queda.
+  const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
+  const opcion = llenaElAlto
+    ? { flex: "none", alignItems: "center", mr: 1.5 }
+    : { flex: 1, alignItems: "center" };
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
   const { items, total } = formValues;
@@ -145,18 +169,50 @@ export default function CuentaCobro() {
 
   const esEmpresa = formValues.tipo === "empresa";
 
+  // EL RECUADRO DE TOTALES DE PIE EN LA TABLETA (pedido del dueño,
+  // 2026-11-05): desde vacío ya tiene el alto de la suma completa —Subtotal,
+  // Descuento, IVA, Transporte, Total, Pagado y Abonos—. Los renglones que
+  // faltan se guardan como espacio invisible antes del total y se van llenando
+  // sin que el recuadro crezca. Con depósito sí crece: esa sección va aparte.
+  const RENGLONES_DE_LA_SUMA = 7;
+  const renglonesDelDeposito = filasDeposito.length ? filasDeposito.length + 1 : 0;
+  const renglonesReservados = dePie
+    ? Math.max(0, RENGLONES_DE_LA_SUMA - filas.length - renglonesDelDeposito)
+    : 0;
+
   return (
     // Aire a los costados del formulario y de los recuadros de cada ítem.
-    <Box mx="auto" display="flex" flexDirection="column" sx={{ px: 2 }}>
-      <Box component="form">
-        <Grid container spacing={2} sx={{ mt: { xs: 0, md: 1 } }}>
+    <Box
+      mx="auto"
+      sx={{
+        display: dePie ? "contents" : "flex",
+        flexDirection: "column",
+        px: 2,
+        ...(acostada && { width: "100%", minHeight: 0 }),
+      }}
+    >
+      <Box
+        component="form"
+        sx={
+          acostada
+            ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }
+            : dePie
+              ? { display: "contents" }
+              : undefined
+        }
+      >
+        <Grid
+          container
+          spacing={2}
+          sx={{ mt: { xs: 0, md: 1 }, flexShrink: 0, ...(dePie && { gridArea: "datos" }) }}
+        >
           {/* Persona / Empresa: cambia los rótulos de NIT/Cédula y
               Empresa/Nombre, igual que en la cotización. El IVA va acá al lado
               porque es la otra decisión de una sola vez del documento: los
               demás campos son importes. */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={llenaElAlto ? "auto" : 6}>
             <Box display="flex" alignItems="center" width="100%">
-              <FormControl sx={{ flex: 1 }} disabled={bloqueada}>
+              <FormControl sx={{ flex: llenaElAlto ? "none" : 1 }} disabled={bloqueada}>
                 <RadioGroup
                   row
                   name="tipo"
@@ -166,15 +222,15 @@ export default function CuentaCobro() {
                 >
                   <FormControlLabel
                     value="persona"
-                    control={<Radio />}
+                    control={<Radio {...casillaChica} />}
                     label="Persona"
-                    sx={{ flex: 1, alignItems: "center" }}
+                    sx={opcion}
                   />
                   <FormControlLabel
                     value="empresa"
-                    control={<Radio />}
+                    control={<Radio {...casillaChica} />}
                     label="Empresa"
-                    sx={{ flex: 1, alignItems: "center" }}
+                    sx={opcion}
                   />
                 </RadioGroup>
               </FormControl>
@@ -184,6 +240,7 @@ export default function CuentaCobro() {
                 sx={{ flexShrink: 0, mr: 0 }}
                 control={
                   <Checkbox
+                    {...casillaChica}
                     name="iva"
                     disabled={bloqueada}
                     checked={formValues.iva}
@@ -198,7 +255,7 @@ export default function CuentaCobro() {
             </Box>
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={llenaElAlto ? true : 6}>
             <TextField
               fullWidth
               type="date"
@@ -212,7 +269,11 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={6} sm={6}>
+          {/* En la tableta ese primer renglón es solo de esos cuatro: sin este
+              corte, en el iPad grande acostado la cédula se subía también. */}
+          {llenaElAlto && <Box sx={{ flexBasis: "100%", height: 0 }} />}
+
+          <Grid item xs={6} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -224,7 +285,7 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -237,7 +298,7 @@ export default function CuentaCobro() {
           </Grid>
 
           {/* Obra: propio de la cuenta de cobro (la cotización no lo tiene). */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -262,7 +323,7 @@ export default function CuentaCobro() {
           </Grid>
 
           {/* Por concepto de: propio de la cuenta de cobro. */}
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={acostada ? 6 : 12}>
             <TextField
               fullWidth
               type="text"
@@ -273,7 +334,7 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={deATres}>
             <FormControl fullWidth disabled={bloqueada}>
               <InputLabel id="cc-transporte-label" htmlFor="cc-transporte-input">
                 Transporte
@@ -294,7 +355,7 @@ export default function CuentaCobro() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -321,7 +382,7 @@ export default function CuentaCobro() {
           {/* Los cuatro importes sueltos del documento. Cada uno sale solo si
               tiene valor. El depósito no suma al total, y lo pagado es todo lo
               consignado: cubre primero el depósito (ver resumenCuentaCobro). */}
-          <Grid item xs={6} sm={6}>
+          <Grid item xs={6} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -341,7 +402,7 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={6} sm={6}>
+          <Grid item xs={6} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -361,7 +422,7 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={6} sm={6}>
+          <Grid item xs={6} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -381,7 +442,7 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          <Grid item xs={6} sm={6}>
+          <Grid item xs={6} sm={deATres}>
             <TextField
               fullWidth
               type="text"
@@ -402,6 +463,26 @@ export default function CuentaCobro() {
           </Grid>
         </Grid>
 
+        {/* LOS ÍTEMS Y EL BOTÓN DE AGREGAR, juntos. En la tableta acostada van
+            debajo de los datos y de pie, a su derecha; en las dos se desplazan
+            solos y el botón se estira hasta abajo. De pie no mandan en el alto
+            del renglón: lo pone el formulario de la izquierda. */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            ...(acostada && { flex: 1, minHeight: 0 }),
+            ...(dePie && { gridArea: "items", minHeight: 0, contain: "size", overflow: "hidden" }),
+          }}
+        >
+        <Box
+          sx={
+            llenaElAlto
+              ? { flex: bloqueada ? "1 1 auto" : "0 1 auto", minHeight: 0, overflowY: "auto" }
+              : undefined
+          }
+        >
         {items.map((item, index) => (
           <Box
             key={index}
@@ -442,8 +523,11 @@ export default function CuentaCobro() {
               {/* El número de factura de la que sale el equipo. Es solo de las
                   personas: a una empresa no se le muestra ni se le puede
                   escribir, y su documento no dibuja esa columna. */}
+              {/* LOS CAMPOS DE UNA PERSONA son cinco y en un renglón quedaban
+                  apretados: tres arriba y dos abajo (pedido del dueño,
+                  2026-11-05). Los de una empresa son cuatro, en un renglón. */}
               {!esEmpresa && (
-                <Grid item xs={6} sm={2}>
+                <Grid item xs={6} sm={4}>
                   <TextField
                     fullWidth
                     type="text"
@@ -456,7 +540,7 @@ export default function CuentaCobro() {
                 </Grid>
               )}
 
-              <Grid item xs={6} sm={esEmpresa ? 3 : 2}>
+              <Grid item xs={6} sm={esEmpresa ? 3 : 4}>
                 <TextField
                   fullWidth
                   type="number"
@@ -470,7 +554,7 @@ export default function CuentaCobro() {
 
               {/* Por días o por horas, ítem por ítem. Un ítem guardado antes de
                   esto no trae unidad: va por días. */}
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={esEmpresa ? 3 : 4}>
                 <FormControl fullWidth disabled={bloqueada}>
                   <InputLabel
                     id={`cc-unidad-${index}-label`}
@@ -495,7 +579,7 @@ export default function CuentaCobro() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={6} sm={esEmpresa ? 3 : 2}>
+              <Grid item xs={6} sm={esEmpresa ? 3 : 6}>
                 <TextField
                   fullWidth
                   type="number"
@@ -507,7 +591,7 @@ export default function CuentaCobro() {
                 />
               </Grid>
 
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={esEmpresa ? 6 : 12} sm={esEmpresa ? 3 : 6}>
                 {/* Va como texto y no como número: un input numérico no acepta
                     los puntos de miles. Se guarda el número pelado. */}
                 <TextField
@@ -545,22 +629,32 @@ export default function CuentaCobro() {
             </Grid>
           </Box>
         ))}
+        </Box>
 
-        <Grid container spacing={2} sx={{ mt: 2 }}>
+          {/* Punteado, como "Nuevo equipo" (pedido del dueño, 2026-11-05).
+              En la tableta se estira hasta abajo y se encoge con cada ítem; en
+              lo demás tiene su alto fijo. */}
           {!bloqueada && (
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={addNewItem}
-                fullWidth
-              >
-                Agregar Ítem
-              </Button>
-            </Grid>
+            <ButtonBase
+              onClick={addNewItem}
+              sx={{
+                width: "100%",
+                ...(llenaElAlto ? { flex: "1 1 64px", minHeight: 64 } : { height: 52 }),
+                gap: 1,
+                ...theme.botonAgregarALista(theme.palette.success.main),
+                fontWeight: 700,
+                fontSize: "0.875rem",
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+              }}
+            >
+              <AddCircleOutlineIcon fontSize="small" />
+              Agregar Ítem
+            </ButtonBase>
           )}
+        </Box>
 
-          <Grid item xs={12}>
+        <Box sx={{ flexShrink: 0, mt: 2, ...(dePie && { gridArea: "pizarra", mt: 0 }) }}>
             {/* La pizarra de totales, igual que en Cotización. El aspecto vive
                 en el tema como la variante "totales"; acá solo van las filas.
 
@@ -589,6 +683,12 @@ export default function CuentaCobro() {
                 </Box>
               ))}
 
+              {Array.from({ length: renglonesReservados }, (_, i) => (
+                <Box className="fila" key={`reservado-${i}`} aria-hidden sx={{ visibility: "hidden" }}>
+                  <Typography variant="subtitle1">&nbsp;</Typography>
+                </Box>
+              ))}
+
               <Box className="fila total">
                 <Typography variant="h5">
                   {hayMovimientos ? "SALDO" : "TOTAL"}
@@ -598,9 +698,12 @@ export default function CuentaCobro() {
                 </Typography>
               </Box>
             </Paper>
-          </Grid>
-        </Grid>
+        </Box>
       </Box>
     </Box>
   );
 }
+
+CuentaCobro.propTypes = {
+  forma: PropTypes.oneOf(["normal", "acostada", "dePie"]),
+};

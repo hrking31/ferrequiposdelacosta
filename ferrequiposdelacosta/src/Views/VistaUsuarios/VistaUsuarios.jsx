@@ -490,9 +490,9 @@ export default function VistaUsuarios() {
         flexDirection: "column",
         height: "100dvh",
         width: "100%",
-        // Los mismos aires de Equipos: con pie, 7px que con los 5 del pie
-        // suman los 12 del encabezado.
-        pb: isFullScreen ? (conPie && !acostado ? "7px" : 1.5) : 2,
+        // Los mismos aires de Equipos: con pie, llega al borde; sus 54px son los
+        // mismos en todas las vistas (pedido del dueño, 2026-11-05).
+        pb: isFullScreen ? (conPie && !acostado ? 0 : 1.5) : 2,
         px: { xs: 2, sm: 3 },
         overflow: "hidden",
         boxSizing: "border-box",
