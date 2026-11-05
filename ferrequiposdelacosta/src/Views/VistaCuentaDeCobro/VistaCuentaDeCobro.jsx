@@ -56,9 +56,22 @@ export default function VistaCuentaDeCobro() {
   // derecha y la hoja debajo de todo, a todo el ancho. Acostada, el formulario
   // y los ítems a la izquierda y la hoja a la derecha. En las dos la hoja llega
   // hasta el borde de abajo: así no queda espacio vacío.
-  const dePie = useMediaQuery("(orientation: portrait)") && !isFullScreen;
-  const tabletaAcostada =
-    useMediaQuery("(orientation: landscape) and (max-width:1400px)") && !isFullScreen;
+  // Va por el tamaño de la ventana, no por el aparato: el computador con la
+  // ventana de esas medidas se ve igual (2026-11-05).
+  // - De pie, solo si la pantalla es claramente alargada, como el iPad: una
+  //   ventana casi cuadrada aplastaba la hoja de abajo. Es 5/6 y no 4/5 para
+  //   que entre el iPad de 12,9" en Safari, con sus barras (≈1024 × 1256).
+  // - Acostada, desde 1150 de ancho: la hoja queda de unos 500 px, como en el
+  //   iPad de 11"; más angosta, los nombres largos de los equipos se partían
+  //   palabra por palabra.
+  // - Apilada, de 916 a 1149: el formulario y debajo la hoja, los dos a todo
+  //   el ancho y con desplazamiento.
+  const alargada = useMediaQuery("(max-aspect-ratio: 5/6)");
+  const desde1150 = useMediaQuery("(min-width:1150px)");
+  const hasta1400 = useMediaQuery("(max-width:1400px)");
+  const dePie = alargada && !isFullScreen;
+  const tabletaAcostada = desde1150 && hasta1400 && !dePie && !isFullScreen;
+  const apilada = !desde1150 && !dePie && !isFullScreen;
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -372,10 +385,10 @@ export default function VistaCuentaDeCobro() {
           }}>
         <Box sx={{ mb: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={apilada ? 12 : 6}>
               <CuentaDeCobro />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={apilada ? 12 : 6}>
               <VistaCcWeb />
             </Grid>
           </Grid>

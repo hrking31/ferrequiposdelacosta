@@ -18,7 +18,9 @@ export default defineConfig({
         // este se guardara en caché, el navegador podría seguir usando una
         // versión vieja aunque se despliegue una nueva, y los avisos dejarían
         // de llegar sin que nada avise.
-        globIgnores: ["**/firebase-messaging-sw.js"],
+        // La carpeta "sin-guardar" (ver chunkFileNames, abajo) tampoco se
+        // guarda en el aparato.
+        globIgnores: ["**/firebase-messaging-sw.js", "**/sin-guardar/**"],
         // Las páginas de Firebase (/__/auth/action, donde se pone la clave
         // nueva o se confirma el correo) NO son de la app. Sin esto, el
         // service worker contestaba esas direcciones con la app y la página
@@ -54,6 +56,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Los tres ayudantes que jsPDF trae para pasar una página web a PDF
+        // (html2canvas, DOMPurify) y para meter dibujos SVG (canvg): unos
+        // 390 KB que la app nunca usa, porque arma sus PDF con texto, tablas e
+        // imágenes. jsPDF solo los pide si se usan esas funciones; van a su
+        // propia carpeta para que el service worker no los guarde en cada
+        // aparato (2026-11-05). Si algún día se usaran, se bajan en el momento.
+        chunkFileNames(chunk) {
+          const origen = chunk.facadeModuleId ?? "";
+          if (/node_modules[\\/](html2canvas|dompurify|canvg)[\\/]/.test(origen)) {
+            return "assets/sin-guardar/[name]-[hash].js";
+          }
+          return "assets/[name]-[hash].js";
+        },
         manualChunks(id) {
           if (id.includes("node_modules") && id.includes("firebase")) {
             return "firebase";
