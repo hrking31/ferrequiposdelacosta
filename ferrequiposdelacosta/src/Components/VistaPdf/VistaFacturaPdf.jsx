@@ -148,6 +148,17 @@ export default function generarFacturaPdf({ factura, cliente }) {
     }
   };
 
+  // Los totales y el depósito se leen enteros: si con su rótulo no entran en lo
+  // que queda de hoja, pasan completos a la siguiente en vez de partirse.
+  const reservarSitio = (cantidadFilas) => {
+    const ALTO_FILA = 8;
+    const ALTO_ROTULO = 3;
+    if (y + ALTO_ROTULO + cantidadFilas * ALTO_FILA > limiteContenido) {
+      doc.addPage();
+      y = inicioPaginaSiguiente;
+    }
+  };
+
   // Tabla estándar: la usan los equipos, los pagos y los cargos.
   const tabla = ({ head, body, startY }) => {
     saltarSiNoCabe();
@@ -169,10 +180,9 @@ export default function generarFacturaPdf({ factura, cliente }) {
     (grupo) => grupo?.grupo !== GRUPO_INICIAL,
   );
 
-  // Cada equipo en su fila: cantidad, nombre (con el descuento como nota si
-  // lo tiene), despacho y devolución en su propia columna, días, valor por
-  // día y subtotal.
-  const filaDeEquipo = (equipo) => {
+  // Cada equipo en su fila: cantidad, nombre, despacho y devolución en su propia
+  // columna, días, valor por día y subtotal.
+  const filasDeEquipo = (equipo) => {
     const cuentaEquipo = calcularEquipo(equipo);
 
     // El documento NO desglosa los días por tramo. La fila ya dice cuántos
@@ -180,11 +190,12 @@ export default function generarFacturaPdf({ factura, cliente }) {
     // nombre en "ampliados", "vencidos" y "vencidos pagados" le contaba al
     // cliente un reparto que es nuestro, no suyo, y el subtotal los incluye
     // a todos igual. El descuento sí queda: no es un tramo de días, es plata
-    // que se le perdonó y tiene que verse.
-    const detalles = [equipo.nombre];
-    if (cuentaEquipo.descuento > 0) {
-      detalles.push(`Descuento: ${moneda(cuentaEquipo.descuento)}`);
-    }
+    // que se le perdonó y tiene que verse. Arriba va el valor completo y, en
+    // su propia fila, el descuento con el valor ya rebajado.
+    const filaDescuento =
+      cuentaEquipo.descuento > 0
+        ? [["", `Descuento: ${moneda(cuentaEquipo.descuento)}`, "", "", "", "", moneda(cuentaEquipo.neto)]]
+        : [];
 
     // La columna de días muestra los que se COBRAN, que para un equipo ya
     // devuelto son los que de verdad estuvo afuera. Así los días por el valor
@@ -197,22 +208,25 @@ export default function generarFacturaPdf({ factura, cliente }) {
     // seguía en la obra, y al cliente le quedaba una resta que no daba los
     // días cobrados (del 10 al 16 son 7, y se le cobraban 13).
     return [
-      equipo.cantidadEquipos ?? "",
-      detalles.join("\n"),
-      formatearFechaLegible(equipo.fechaDespacho) || "—",
-      equipo.devolucion?.fechaDevolucion
-        ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : "",
-      cuentaEquipo.dias ?? "",
-      moneda(equipo.valorDia),
-      moneda(cuentaEquipo.neto),
+      [
+        equipo.cantidadEquipos ?? "",
+        equipo.nombre,
+        formatearFechaLegible(equipo.fechaDespacho) || "—",
+        equipo.devolucion?.fechaDevolucion
+          ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
+          : "",
+        cuentaEquipo.dias ?? "",
+        moneda(equipo.valorDia),
+        moneda(cuentaEquipo.bruto),
+      ],
+      ...filaDescuento,
     ];
   };
 
   const tablaEquipos = (lista) =>
     tabla({
       head: [["Cant.", "Equipo", "Despacho", "Devolución", "Días", "Valor/día", "Subtotal"]],
-      body: lista.map(filaDeEquipo),
+      body: lista.flatMap(filasDeEquipo),
       startY: y,
     });
 
@@ -341,7 +355,7 @@ export default function generarFacturaPdf({ factura, cliente }) {
 
   // ── Depósito ───────────────────────────────────────────────────────────
   //
-  // Aparte de los cargos y de la factura: es plata del cliente que la empresa
+  // Aparte de los cargos y de la suma: es plata del cliente que la empresa
   // guarda mientras tiene los equipos. La misma cuenta que el recuadro de la
   // pantalla (ver calcularDeposito).
   const deposito = cuenta.deposito;
@@ -362,6 +376,8 @@ export default function generarFacturaPdf({ factura, cliente }) {
         moneda(deposito.guardado),
       ]);
     }
+    // Una fila más por el encabezado de la tabla.
+    reservarSitio(filasDeposito.length + 1);
     y = titulo("DEPÓSITO");
     tabla({
       head: [["Concepto", "Valor"]],
@@ -397,9 +413,10 @@ export default function generarFacturaPdf({ factura, cliente }) {
   const subtotal = cuenta.subtotal;
   const iva = cuenta.iva;
   const transporteTotal = calcularTransporteTotal(factura);
-  const pagadoEnFactura = cuenta.pagado;
   const saldoPendiente = cuenta.saldoPendiente;
   const saldoAFavor = cuenta.saldoAFavor;
+  // Un pago de más que ya se le devolvió al cliente: ya no paga la factura.
+  const devueltoDeMas = cuenta.entregas - deposito.devuelto;
 
   const filasTotales = [];
   if (subtotal > 0) filasTotales.push(["Subtotal", moneda(subtotal)]);
@@ -409,22 +426,32 @@ export default function generarFacturaPdf({ factura, cliente }) {
   }
   if (cuenta.danos > 0) filasTotales.push(["Daños", moneda(cuenta.danos)]);
   filasTotales.push(["TOTAL FACTURA", moneda(totalFactura)]);
-  filasTotales.push(["Pagado", moneda(pagadoEnFactura)]);
-  // La parte de lo pagado que quedó de garantía, igual que en la pantalla.
-  const depositoEnCuenta = Math.max(0, deposito.recibido - deposito.retenido);
-  if (depositoEnCuenta > 0) filasTotales.push(["Depósito", moneda(depositoEnCuenta)]);
-  if (totalAbonos > 0) filasTotales.push(["Abonos", moneda(totalAbonos)]);
+  // Lo que le llegó a la FACTURA, sin la parte que quedó de garantía: el
+  // depósito va aparte, en su sección. Cada renglón lleva su signo para seguir
+  // la cuenta hasta el saldo, igual que en la cuenta de cobro.
+  const restar = (valor) => `- ${moneda(valor)}`;
+  const sumar = (valor) => `+ ${moneda(valor)}`;
+  if (cuenta.pagadoFactura > 0) filasTotales.push(["Pagado", restar(cuenta.pagadoFactura)]);
+  if (cuenta.abonosFactura > 0) filasTotales.push(["Abonos", restar(cuenta.abonosFactura)]);
+  if (cuenta.retenidoFactura > 0) {
+    filasTotales.push(["Retenido por daños", restar(cuenta.retenidoFactura)]);
+  }
   // Lo rebajado al cobrar: no es un pago, pero baja el saldo.
   if (cuenta.descuentoAlCobrar > 0) {
-    filasTotales.push(["Descuento", moneda(cuenta.descuentoAlCobrar)]);
+    filasTotales.push(["Descuento", restar(cuenta.descuentoAlCobrar)]);
+  }
+  if (devueltoDeMas > 0) filasTotales.push(["Devuelto al cliente", sumar(devueltoDeMas)]);
+  // Lo que falta dejar de garantía sí se cobra: por eso entra en la suma.
+  if (deposito.porCobrar > 0) {
+    filasTotales.push(["Depósito por cobrar", sumar(deposito.porCobrar)]);
   }
   filasTotales.push([
     saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
     moneda(saldoAFavor > 0 ? saldoAFavor : saldoPendiente),
   ]);
 
+  reservarSitio(filasTotales.length);
   y = titulo("TOTAL FACTURA");
-  saltarSiNoCabe();
   autoTable(doc, {
     startY: y,
     body: filasTotales,

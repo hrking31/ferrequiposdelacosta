@@ -51,6 +51,7 @@ import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import useSnackbar from "../../Hooks/useSnackbar";
 import { abrirCuentaCobro } from "../../Store/Slices/cuentacobroSlice";
 import VistaCcPdf from "../VistaPdf/VistaCcPdf";
+import resumenCuentaCobro from "./resumenCuentaCobro";
 import {
   eliminarCuentaCobro,
   escucharCuentasCobro,
@@ -82,14 +83,7 @@ const ESTADO_INFO = {
 // Lo que se cobra en una cuenta guardada. Se recalcula en vez de confiar en el
 // campo `saldo` para que una guardada por una versión anterior —que no lo
 // tenía— no se muestre en cero.
-// El depósito por cobrar va aparte del total y se suma.
-const saldoDe = (cuenta) =>
-  Math.max(
-    0,
-    (Number(cuenta.total) || 0) -
-      (Number(cuenta.pagado) || 0) -
-      (Number(cuenta.abonos) || 0),
-  ) + (Number(cuenta.depositoPorCobrar) || 0);
+const saldoDe = (cuenta) => resumenCuentaCobro(cuenta).aCancelar;
 
 // LOS FILTROS (2026-10-22), con el mismo juego que Seguimiento y el buzón de
 // cotizaciones: en computador una columna a la izquierda, en celular dos

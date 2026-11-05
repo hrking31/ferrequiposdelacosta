@@ -484,7 +484,7 @@ export default function Cotizacion() {
                 <TextField
                   fullWidth
                   type="text"
-                  label="Precio"
+                  label="Valor día"
                   value={
                     item.price !== 0
                       ? Number(item.price).toLocaleString("es-CO")

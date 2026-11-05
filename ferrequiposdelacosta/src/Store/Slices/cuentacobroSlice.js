@@ -30,7 +30,7 @@ export const CAMPOS_INTERNOS_CC = [
 // El modelo toma de la cotización el tipo (persona/empresa), la dirección, el
 // transporte, el IVA y el depósito, y conserva lo propio de la cuenta de cobro:
 // la obra y el "por concepto de". Los totales se guardan desglosados para que
-// la hoja y el PDF muestren Subtotal / IVA / Depósito / Transporte / Total.
+// la hoja y el PDF muestren Subtotal / IVA / Transporte / Total.
 //
 // Cuando la cuenta se arma desde las facturas de un cliente (ver
 // cuentaCobroDesdeFacturas.js) entran además lo ya cobrado —`pagado` y
@@ -68,23 +68,22 @@ const valorInicial = {
   transporte: "",
   valorTransporte: 0,
   iva: true,
-  // El depósito no tiene casilla que lo habilite: entra en el documento con
-  // solo tener valor, venga de la factura o escrito a mano.
+  // Va aparte del total, venga de la factura o escrito a mano: es una garantía
+  // que se entrega y se devuelve (ver resumenCuentaCobro.js).
   valorDeposito: 0,
-  // El depósito que el cliente todavía no dejó, cuando la cuenta sale de las
-  // facturas: se cobra aparte del total, que ya no lo incluye.
-  depositoPorCobrar: 0,
   descuento: 0,
   subtotalNumero: 0,
   ivaNumero: 0,
-  total: 0, // subtotal + IVA + depósito + transporte - descuento
-  pagado: 0, // lo que el cliente ya entregó al facturar
+  total: 0, // subtotal + IVA + transporte - descuento
+  pagado: 0, // lo que el cliente consignó al facturar, con la parte del depósito
   abonos: 0, // lo que fue abonando después
-  saldo: 0, // total - pagado - abonos: es el "Total a cancelar"
-  // Verdadero mientras la cuenta sea, tal cual, la que se trajo de las
-  // facturas. Se apaga al tocar un ítem o la casilla de IVA (ver
-  // CuentaDeCobro.jsx) y a partir de ahí el IVA se recalcula al 19%.
+  saldo: 0, // es el "Total a cancelar" (ver resumenCuentaCobro.js)
+  // Verdadero si la cuenta se trajo de las facturas: sus datos quedan
+  // bloqueados y solo se escribe el "por concepto de" (ver CuentaDeCobro.jsx).
   desdeFacturas: false,
+  // Cómo se reparte lo consignado, con la cuenta de cada factura. Solo lo llevan
+  // las cuentas traídas de las facturas.
+  desgloseFacturas: null,
 };
 
 const leerSesionGuardada = (clave) => {

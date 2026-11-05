@@ -4,6 +4,7 @@ import ConstructionIcon from "@mui/icons-material/Construction";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import { TituloSeccion } from "./ResumenLista";
 import { formatearMoneda } from "../../Utils/formato";
+import { textoDeTiempo } from "../CuentaDeCobro/resumenCuentaCobro";
 
 // LA VISTA PREVIA DE UNA COTIZACIÓN O DE UNA CUENTA DE COBRO (2026-10-22), en
 // el recuadro de la derecha, al tocar su tarjeta en la lista. Sirve para MIRAR
@@ -78,7 +79,7 @@ export default function VistaPreviaDocumento({ numero, cliente, estado, fecha, i
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2">{item.description}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {cantidad} × {dias} {dias === 1 ? "día" : "días"}
+                      {cantidad} × {textoDeTiempo({ ...item, day: dias })}
                     </Typography>
                   </Box>
                   <Typography variant="body2" sx={{ fontWeight: 700, flexShrink: 0 }}>

@@ -130,6 +130,13 @@ describe("los equipos como ítems", () => {
     expect(item.fechaDevolucion).toBe("2026-08-07");
   });
 
+  it("sin unidad en el equipo va por días, y si la trae, la respeta", () => {
+    expect(construir([facturaBase]).items[0].unidad).toBe("dias");
+
+    const porHoras = facturaCon({ equipos: [rana({ unidad: "horas" })] });
+    expect(construir([porHoras]).items[0].unidad).toBe("horas");
+  });
+
   it("suma los días de las renovaciones a los del alquiler", () => {
     // Se le dieron 2 días más y volvió el 09: estuvo 5 días afuera, y eso es
     // lo que quedó escrito en la línea al cerrarla.
@@ -228,10 +235,9 @@ describe("el resumen", () => {
     // El IVA sale del ALQUILER de cada factura, y de nada más: los $80.000 de
     // flete de la segunda no tributan, ni tributa el depósito.
     expect(cuenta.ivaNumero).toBeCloseTo(300000 * 0.19 + 100000 * 0.19, 2);
-    // El depósito no es parte de las facturas: va aparte, y solo lo que el
-    // cliente todavía no dejó.
-    expect(cuenta.valorDeposito).toBe(0);
-    expect(cuenta.depositoPorCobrar).toBe(120000);
+    // El depósito no es parte de las facturas: llena su campo y va aparte.
+    expect(cuenta.valorDeposito).toBe(120000);
+    expect(cuenta.desgloseFacturas.deposito.porCobrar).toBe(120000);
     expect(cuenta.valorTransporte).toBe(80000);
     expect(cuenta.iva).toBe(true);
     expect(cuenta.transporte).toBe("Ida y vuelta");
@@ -265,7 +271,7 @@ describe("el resumen", () => {
     });
 
     const cuenta = construir([conAgregado]);
-    expect(cuenta.depositoPorCobrar).toBe(70000);
+    expect(cuenta.valorDeposito).toBe(70000);
     expect(cuenta.valorTransporte).toBe(40000);
   });
 
@@ -357,9 +363,59 @@ describe("lo que se cobra es el saldo", () => {
     });
 
     const cuenta = construir([conDeposito]);
-    expect(cuenta.depositoPorCobrar).toBe(0);
-    expect(cuenta.pagado).toBe(80000);
+    // El campo dice lo consignado; el documento, lo que pagó la factura.
+    expect(cuenta.pagado).toBe(200000);
+    expect(cuenta.desgloseFacturas.pagado).toBe(80000);
+    expect(cuenta.desgloseFacturas.deposito.recibido).toBe(120000);
+    expect(cuenta.desgloseFacturas.deposito.porCobrar).toBe(0);
     expect(cuenta.saldo).toBe(cuenta.total - 80000);
+  });
+
+  it("llena el campo del depósito, esté pagado o no, sin sumarlo al total", () => {
+    const pagado = facturaCon({
+      valorDeposito: 120000,
+      pagos: [{ medio: "Efectivo", monto: 200000 }],
+    });
+    const pendiente = facturaCon({ valorDeposito: 120000 });
+
+    const cuentaPagada = construir([pagado]);
+    expect(cuentaPagada.valorDeposito).toBe(120000);
+    expect(cuentaPagada.total).toBe(357000);
+    expect(cuentaPagada.saldo).toBe(cuentaPagada.total - 80000);
+
+    const cuentaPendiente = construir([pendiente]);
+    expect(cuentaPendiente.valorDeposito).toBe(120000);
+    expect(cuentaPendiente.total).toBe(357000);
+    expect(cuentaPendiente.saldo).toBeCloseTo(cuentaPendiente.total + 120000, 2);
+  });
+
+  it("el abono que completa el depósito no se muestra como pago de la factura", () => {
+    const completada = facturaCon({
+      valorDeposito: 100000,
+      pagos: [{ medio: "Efectivo", monto: 60000 }],
+      abonos: [{ fecha: "2026-08-10", medio: "Nequi", monto: 50000, tipo: "cliente" }],
+    });
+
+    const { desgloseFacturas: desglose, saldo, total } = construir([completada]);
+    expect(desglose.pagado).toBe(0);
+    expect(desglose.abonos).toBe(10000);
+    expect(desglose.deposito.recibido).toBe(100000);
+    expect(saldo).toBe(total - 10000);
+  });
+
+  it("lo retenido por daños sale del depósito y sube el total a la vista", () => {
+    const conDanos = facturaCon({
+      valorDeposito: 100000,
+      pagos: [{ medio: "Efectivo", monto: 100000 }],
+      equipos: [rana({ valorRetenido: 30000 })],
+    });
+
+    const { desgloseFacturas: desglose, items, saldo, total } = construir([conDanos]);
+    expect(items.at(-1).description).toBe("DAÑOS (retenido del depósito)");
+    expect(desglose.retenido).toBe(30000);
+    expect(desglose.deposito.enGarantia).toBe(70000);
+    // El cliente no pagó la factura, y el daño ya lo cubre el depósito.
+    expect(saldo).toBe(total - 30000);
   });
 });
 

@@ -6,6 +6,10 @@ import {
   formatearFechaLegible,
   formatearNit,
 } from "../../Utils/formato";
+import resumenCuentaCobro, {
+  columnaDeTiempo,
+  valorDeFila,
+} from "../CuentaDeCobro/resumenCuentaCobro";
 
 // La cuenta de cobro en PDF.
 //
@@ -36,14 +40,7 @@ export default function generarCuentaCobro(values) {
   // después de lo ya pagado y de los abonos. Se recalcula acá en vez de usar
   // el `saldo` guardado para que una cuenta vieja —de antes de que existieran
   // estos campos— siga saliendo bien.
-  const pagado = Number(cuenta.pagado) || 0;
-  const abonos = Number(cuenta.abonos) || 0;
-  const yaCobrado = pagado + abonos;
-  // El depósito que el cliente todavía no dejó se cobra, pero no es parte del
-  // total de las facturas: se suma aparte.
-  const depositoPorCobrar = Number(cuenta.depositoPorCobrar) || 0;
-  const aCancelar =
-    Math.max(0, (Number(cuenta.total) || 0) - yaCobrado) + depositoPorCobrar;
+  const { filas, filasDeposito, aCancelar } = resumenCuentaCobro(cuenta);
 
   // Fecha
   doc.setFontSize(10);
@@ -101,18 +98,20 @@ export default function generarCuentaCobro(values) {
   // cuentaCobroDesdeFacturas.js). Se repite en cada equipo de la misma
   // factura. El Subtotal va con más aire a su izquierda para que no se lea
   // pegado a los días.
-  const conFactura = cuenta.items.some((item) => item.factura);
+  const conFactura =
+    cuenta.tipo !== "empresa" && cuenta.items.some((item) => item.factura);
+  const tiempo = columnaDeTiempo(cuenta.items);
 
   autoTable(doc, {
     startY: y + 12,
     head: [
-      [...(conFactura ? ["Factura"] : []), "Cant.", "Equipo", "Días", "Subtotal"],
+      [...(conFactura ? ["Factura"] : []), "Cant.", "Equipo", tiempo.titulo, "Subtotal"],
     ],
     body: cuenta.items.map((item) => [
       ...(conFactura ? [item.factura || ""] : []),
       item.quantity,
       item.description,
-      item.day,
+      tiempo.valorDe(item),
       formatearMoneda(item.subtotal),
     ]),
     styles: { fontSize: 10, halign: "center" },
@@ -135,6 +134,37 @@ export default function generarCuentaCobro(values) {
     rowPageBreak: "avoid",
   });
 
+  // ===== DEPÓSITO =====
+  // Antes de los totales y fuera de la suma, con el título y los rótulos de la
+  // factura: es una garantía que se entrega y se devuelve. Se lee entero: si con
+  // su título no entra en lo que queda de hoja, pasa completo a la siguiente.
+  if (filasDeposito.length > 0) {
+    const ALTO_FILA = 8;
+    const ALTO_ROTULO = 3;
+    let yDeposito = doc.lastAutoTable.finalY + 14;
+    if (
+      yDeposito + ALTO_ROTULO + filasDeposito.length * ALTO_FILA >
+      altoHoja - margenPie
+    ) {
+      doc.addPage();
+      yDeposito = inicioPaginaSiguiente;
+    }
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text("DEPÓSITO", 20, yDeposito);
+    autoTable(doc, {
+      startY: yDeposito + ALTO_ROTULO,
+      body: filasDeposito.map((fila) => [fila.etiqueta, valorDeFila(fila)]),
+      styles: { fontSize: 10, textColor: [68, 68, 68] },
+      columnStyles: {
+        0: { cellWidth: 125, halign: "left" },
+        1: { cellWidth: 50, halign: "right" },
+      },
+      margin: margenTablas,
+      rowPageBreak: "avoid",
+    });
+  }
+
   // ===== DESGLOSE DE TOTALES =====
   // Va como tabla, rayada en gris y blanco igual que la de los equipos. El
   // Subtotal siempre; el resto de los renglones solo si tienen valor, para no
@@ -143,46 +173,16 @@ export default function generarCuentaCobro(values) {
   // Los tres renglones fuertes —Subtotal, Total y Total a cancelar— llevan su
   // rótulo pegado a la cifra (alineado a la derecha, con aire en medio), más
   // grande y en negrita; los demás lo llevan al principio, a la izquierda.
-  const etiquetaTotal = cuenta.desdeFacturas ? "Total facturas" : "Total";
-  const DESTACADAS = ["Subtotal", etiquetaTotal, "Total a Cancelar"];
-
-  // Lo que resta de la cuenta va con el signo delante, para que se lea de un
-  // vistazo por qué el total a cancelar es menor que el total.
-  const enNegativo = (valor) => `- ${formatearMoneda(valor)}`;
-
-  const filas = [["Subtotal", formatearMoneda(cuenta.subtotalNumero)]];
-  if (Number(cuenta.descuento) > 0) {
-    filas.push(["Descuento", enNegativo(cuenta.descuento)]);
-  }
-  if (cuenta.iva && Number(cuenta.ivaNumero) > 0) {
-    filas.push(["IVA (19%)", formatearMoneda(cuenta.ivaNumero)]);
-  }
-  if (Number(cuenta.valorDeposito) > 0) {
-    filas.push(["Depósito", formatearMoneda(cuenta.valorDeposito)]);
-  }
-  if (Number(cuenta.valorTransporte) > 0) {
-    filas.push(["Transporte", formatearMoneda(cuenta.valorTransporte)]);
-  }
-  // Lo ya cobrado solo aparece cuando existe: sin nada pagado, el total y lo
-  // que se cobra son la misma cifra y estos renglones sobrarían.
-  if (yaCobrado > 0) {
-    filas.push([etiquetaTotal, formatearMoneda(cuenta.total)]);
-    if (pagado > 0) filas.push(["Pagado", enNegativo(pagado)]);
-    if (abonos > 0) filas.push(["Abonos", enNegativo(abonos)]);
-  }
-  if (depositoPorCobrar > 0) {
-    filas.push([
-      "Depósito (se devuelve al entregar los equipos)",
-      formatearMoneda(depositoPorCobrar),
-    ]);
-  }
-  filas.push(["Total a Cancelar", formatearMoneda(aCancelar)]);
+  const DESTACADAS = ["Subtotal", "Total", "Total a Cancelar"];
 
   autoTable(doc, {
     // Bien separada de la tabla de equipos: son dos cosas distintas y pegadas
     // se leían como una sola.
     startY: doc.lastAutoTable.finalY + 22,
-    body: filas,
+    body: [
+      ...filas.map((fila) => [fila.etiqueta, valorDeFila(fila)]),
+      ["Total a Cancelar", formatearMoneda(aCancelar)],
+    ],
     styles: { fontSize: 10, textColor: [68, 68, 68] },
     columnStyles: {
       0: { cellWidth: 125, halign: "left" },

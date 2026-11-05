@@ -285,6 +285,12 @@ Es la fecha del **despacho**, y de nada más. El cliente puede llegar a las 4 de
 
 Usa **exactamente los mismos estados** que la cotización: se abre, se pausa y se emite igual. Se numera sola (`CC-…`) y cobra el **saldo pendiente** de la factura, no el total.
 
+Es la misma información de la factura con otro propósito: cobrar. Por eso **lo que viene de la factura no se modifica en la cuenta**: al pasarla, los campos salen llenos y bloqueados, y solo queda libre el *"Por concepto de"*, que la factura no trae. Si hay un error, se arregla en la factura y se vuelve a pasar. A las personas se les rotula cada equipo con su número de factura; a las empresas no se les muestra ni se les deja escribir.
+
+El depósito funciona igual se escriba a mano o venga de la factura: **no entra en el total**, porque es una garantía que se entrega y se devuelve. Cada pago cubre primero el depósito, así que don Pedro, que debe $376.000 y consignó $350.000 con un depósito de $100.000, ve *Total $376.000 − Pagado $250.000 = Total a Cancelar $126.000*, y aparte, en su propia sección, *Recibido $100.000 · En garantía $100.000*. Lo único del depósito que entra en la suma es lo que **todavía no dejó**: *"Depósito por cobrar + $100.000"*.
+
+Cada renglón de una cuenta hecha a mano se cobra **por días o por horas**, con un desplegable: la cuenta es la misma —cantidad × duración × valor—, y si va por horas el valor es el de cada hora. El documento se llama como su unidad, "Días" u "Horas", y solo cuando se combinan pasa a "Duración", con la unidad en cada renglón (*8 horas*, *3 días*).
+
 Al emitirse queda **sellada**: una marca que dice que ese documento ya salió. Ese sello es lo que hace posible el botón de **pagada** —solo para administradores y solo sobre cuentas ya emitidas, con quien la marcó y cuándo—. Es un interruptor: si se marcó por error, se vuelve atrás.
 
 El menú cuenta las cuentas de cobro **hechas en el mes**, emitidas o no, con una sola consulta por la fecha en que se crearon. Como mira esa fecha y no el estado, cobrar una cuenta **no le mueve el número**: el menú sigue diciendo cuánto se trabajó, y no cuánto falta cobrar.
@@ -1115,7 +1121,7 @@ Cuatro documentos en PDF, todos armados en el navegador —sin servidor de por m
 | **Factura** | El detalle de un alquiler: equipos, días, fechas, pagos y saldo |
 | **Reporte de cliente** | Varias facturas elegidas a mano, en un solo documento. Va en tamaño carta —los otros son A4— porque lleva más columnas |
 
-La cuenta de cobro se puede armar **desde las facturas del cliente**: se eligen con casillas cuáles entran y el documento se llena solo.
+La cuenta de cobro se puede armar **desde las facturas del cliente**: se eligen con casillas cuáles entran y el documento se llena solo, con esos datos bloqueados.
 
 ---
 
@@ -1136,7 +1142,12 @@ Y los rótulos no anuncian cuántos equipos trae el despacho. Ese número contab
 > **El reporte de varias facturas es un resumen (2026-09-23).** Cada factura mostraba sus abonos uno por uno —fecha, medio y valor— y la 8932, con cuatro abonos, ocupaba media hoja más. Ahora el reporte lleva **una sola línea "Abonos"** con el total por factura; el detalle abono por abono queda para el PDF de una sola factura, que es el que se usa para revisar una cuenta al centavo.
 
 > [!NOTE]
-> **El depósito, aparte en los dos documentos (2026-09-23).** Los cargos de cada despacho ya no lo traen. La factura tiene una sección **DEPÓSITO** con su cuenta —recibido, retenido, aplicado, devuelto, por devolver— y, en los totales, un renglón "Depósito" después de "Pagado", igual que en pantalla. En el reporte va en ese mismo lugar, y al final, si queda, "Depósito por devolver". La cuenta de cobro cobra aparte solo el depósito que el cliente **todavía no dejó**: *"Depósito (se devuelve al entregar los equipos)"*.
+> **El depósito, aparte en todos los documentos.** La factura, el reporte y la cuenta de cobro lo llevan en una sección **DEPÓSITO** antes de los totales —recibido, por cobrar, retenido, aplicado, devuelto, en garantía o por devolver—, y fuera de la suma. En los totales, "Pagado" es lo que le llegó a la factura y cada renglón lleva su signo, para poder seguir la cuenta hasta el saldo: con $350.000 consignados y $100.000 de depósito dice *Pagado − $250.000*. Antes decía $350.000 y sumaba otro renglón "Depósito", y al cliente la resta no le daba.
+>
+> **Los bloques no se parten.** Si los totales o el depósito no caben en lo que queda de hoja, pasan completos a la siguiente.
+
+> [!NOTE]
+> **El descuento de los días va junto a su equipo.** La fila muestra el valor completo y, debajo, *"Descuento: $50.000"* con el valor ya rebajado ($400.000 → $350.000), que es el que entra en la suma. El único "Descuento" de los totales es el que se rebaja al cobrar.
 
 ### Un solo botón para los dos PDF
 

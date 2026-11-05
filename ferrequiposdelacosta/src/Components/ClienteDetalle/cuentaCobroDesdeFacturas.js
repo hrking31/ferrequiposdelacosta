@@ -19,6 +19,7 @@ import {
   cubiertoHasta,
   sinFechaDeEntrega,
 } from "./facturaUtils";
+import resumenCuentaCobro from "../CuentaDeCobro/resumenCuentaCobro";
 
 const numero = (valor) => Number(valor) || 0;
 
@@ -62,6 +63,9 @@ const itemDeEquipo = (equipo, factura, { rotularFactura, hoyIso }) => {
     description: equipo.nombre || "",
     quantity: cantidad,
     day: cuenta.dias,
+    // La unidad con la que se cobra el equipo. Todavía todos van por días: el
+    // equipo de la factura traerá `unidad: "horas"` cuando la factura lo permita.
+    unidad: equipo.unidad === "horas" ? "horas" : "dias",
     price: valor,
     subtotal: cantidad * cuenta.dias * valor,
     fechaDespacho: equipo.fechaDespacho || datos.fechaCreacion || "",
@@ -119,29 +123,62 @@ export default function construirCuentaCobroDesdeFacturas({
         // al final: los ítems van a precio de lista. Y lo rebajado al cobrar,
         // en el mismo renglón: para el cliente los dos son "Descuento".
         descuento: acumulado.descuento + cuenta.descuento + cuenta.descuentoAlCobrar,
-        // El depósito NO es parte de la factura: entra solo lo que el
-        // cliente todavía no dejó, y va aparte del total (ver
-        // `depositoPorCobrar` en el documento).
-        depositoPorCobrar: acumulado.depositoPorCobrar + cuenta.deposito.porCobrar,
+        // El depósito NO es parte de la factura: su valor llena el campo y va
+        // aparte del total, igual que en la factura.
+        deposito: acumulado.deposito + cuenta.deposito.pactado,
         transporte: acumulado.transporte + calcularTransporteTotal(factura),
         // Sin lo rebajado al cobrar, que ya restó el renglón del descuento:
         // así Subtotal − Descuento + IVA + Transporte sigue dando el total.
         total: acumulado.total + cuenta.total - cuenta.descuentoAlCobrar,
-        // Lo que de los pagos le llegó a la FACTURA: sin la parte que quedó de
-        // garantía. Con el depósito adentro, "Pagado" restaría plata que no
-        // pagó el alquiler.
-        pagado: acumulado.pagado + cuenta.recibido - cuenta.abonos,
+        // Lo consignado de verdad, con la parte que quedó de garantía: es lo
+        // que llena los campos, igual que en una cuenta escrita a mano.
+        pagado: acumulado.pagado + cuenta.pagado,
         abonos: acumulado.abonos + cuenta.abonos,
+        // Lo que muestra el documento, con la cuenta de cada factura.
+        desglose: {
+          pagado: acumulado.desglose.pagado + cuenta.pagadoFactura,
+          abonos: acumulado.desglose.abonos + cuenta.abonosFactura,
+          retenido: acumulado.desglose.retenido + cuenta.retenidoFactura,
+          // Un pago de más que ya se le devolvió al cliente: esa plata ya no
+          // paga la factura.
+          devueltoDeMas:
+            acumulado.desglose.devueltoDeMas + cuenta.entregas - cuenta.deposito.devuelto,
+          deposito: {
+            recibido: acumulado.desglose.deposito.recibido + cuenta.deposito.recibido,
+            porCobrar: acumulado.desglose.deposito.porCobrar + cuenta.deposito.porCobrar,
+            aplicado: acumulado.desglose.deposito.aplicado + cuenta.deposito.aplicado,
+            devuelto: acumulado.desglose.deposito.devuelto + cuenta.deposito.devuelto,
+            enGarantia:
+              acumulado.desglose.deposito.enGarantia +
+              cuenta.deposito.guardado -
+              cuenta.deposito.porDevolver,
+            porDevolver: acumulado.desglose.deposito.porDevolver + cuenta.deposito.porDevolver,
+          },
+        },
       };
     },
     {
       iva: 0,
       descuento: 0,
-      depositoPorCobrar: 0,
+      deposito: 0,
       transporte: 0,
       total: 0,
       pagado: 0,
       abonos: 0,
+      desglose: {
+        pagado: 0,
+        abonos: 0,
+        retenido: 0,
+        devueltoDeMas: 0,
+        deposito: {
+          recibido: 0,
+          porCobrar: 0,
+          aplicado: 0,
+          devuelto: 0,
+          enGarantia: 0,
+          porDevolver: 0,
+        },
+      },
     },
   );
 
@@ -161,7 +198,7 @@ export default function construirCuentaCobroDesdeFacturas({
       ? tipoTransporteDe(facturaConTransporte) || "Ida y vuelta"
       : "Sin transporte";
 
-  return {
+  const cuentaArmada = {
     // De qué cliente salió, para poder encontrar después sus cuentas sin
     // buscarlas por nombre. El número del documento y el id en la base los
     // pone la pantalla, no esto.
@@ -178,20 +215,17 @@ export default function construirCuentaCobroDesdeFacturas({
     valorTransporte: resumen.transporte,
     iva: resumen.iva > 0,
     ivaNumero: resumen.iva,
-    valorDeposito: 0,
-    depositoPorCobrar: resumen.depositoPorCobrar,
+    valorDeposito: resumen.deposito,
     descuento: resumen.descuento,
     subtotalNumero: subtotal,
     total: resumen.total,
     pagado: resumen.pagado,
     abonos: resumen.abonos,
-    saldo:
-      Math.max(0, resumen.total - resumen.pagado - resumen.abonos) +
-      resumen.depositoPorCobrar,
-    // Mientras esté marcada, el IVA no se recalcula: es el que traen las
-    // facturas, que puede no ser el 19% redondo si algunas se emitieron sin
-    // IVA. Se apaga sola en cuanto se toca un ítem o la casilla de IVA (ver
-    // CuentaDeCobro.jsx).
+    desgloseFacturas: resumen.desglose,
+    // Traída de las facturas: sus datos no se modifican en la cuenta. Si hay un
+    // error se arregla en la factura y se vuelve a pasar (ver CuentaDeCobro.jsx).
     desdeFacturas: true,
   };
+
+  return { ...cuentaArmada, saldo: resumenCuentaCobro(cuentaArmada).aCancelar };
 }

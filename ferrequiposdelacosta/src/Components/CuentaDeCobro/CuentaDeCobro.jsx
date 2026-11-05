@@ -26,18 +26,27 @@ import {
   formatearNit,
   limpiarNit,
 } from "../../Utils/formato";
+import resumenCuentaCobro, {
+  UNIDADES_DE_TIEMPO,
+  valorDeFila,
+} from "./resumenCuentaCobro";
 
 export default function CuentaCobro() {
   const theme = useTheme();
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
-  const { items, subtotalNumero, ivaNumero, total, pagado, abonos, saldo } =
-    formValues;
-  // Lo ya cobrado solo aparece cuando existe: una cuenta hecha a mano no tiene
-  // nada pagado y no hay por qué mostrarle un renglón en cero.
-  const hayCobrado = Number(pagado) > 0 || Number(abonos) > 0;
+  const { items, total } = formValues;
+  // Los mismos renglones del PDF: la pantalla y el documento no pueden decir dos
+  // cifras distintas.
+  const { filas, filasDeposito, aCancelar, hayMovimientos } =
+    resumenCuentaCobro(formValues);
+  // Traída de las facturas: sus datos no se modifican acá. Si hay un error se
+  // arregla en la factura y se vuelve a pasar. Solo queda libre el "por concepto
+  // de", que la factura no trae.
+  const bloqueada = Boolean(formValues.desdeFacturas);
 
-  // El subtotal de un ítem es cantidad x precio x días. Se guarda como NÚMERO;
+  // El subtotal de un ítem es cantidad x precio x tiempo, sea en días o en horas
+  // (el precio es el de esa unidad). Se guarda como NÚMERO;
   // el formato de moneda se pone recién al mostrarlo.
   const calcularSubtotal = (item) =>
     (Number(item.quantity) || 0) *
@@ -45,13 +54,12 @@ export default function CuentaCobro() {
     (Number(item.day) || 0);
 
   // Recalcula el desglose entero a partir de un value ya actualizado y lo
-  // guarda TODO en un solo dispatch. Igual criterio que la cotización:
-  // total = subtotal - descuento + IVA + depósito + transporte. El IVA y el
-  // depósito solo suman si sus casillas están marcadas, y el descuento se
-  // resta ANTES del IVA, como en la factura.
+  // guarda TODO en un solo dispatch: total = subtotal - descuento + IVA +
+  // transporte. El IVA solo suma si su casilla está marcada, y el descuento se
+  // resta ANTES del IVA, como en la factura. El depósito va aparte, también como
+  // en la factura.
   //
-  // Lo que se cobra no es el total sino el SALDO: el total menos lo que el
-  // cliente ya entregó (pagado y abonos).
+  // Lo que se cobra no es el total sino el SALDO (ver resumenCuentaCobro).
   const recalcularYGuardar = (value) => {
     const nuevoSubtotal = (value.items || []).reduce(
       (acumulado, item) => acumulado + calcularSubtotal(item),
@@ -59,35 +67,33 @@ export default function CuentaCobro() {
     );
     const descuento = Number(value.descuento) || 0;
     const base = Math.max(0, nuevoSubtotal - descuento);
-    // Mientras la cuenta venga tal cual de las facturas se respeta SU IVA: si
-    // alguna se emitió sin IVA, el 19% del subtotal no daría lo mismo. En
-    // cuanto se toca un ítem o la casilla, vuelve a calcularse solo.
-    const nuevoIva = !value.iva
-      ? 0
-      : value.desdeFacturas
-        ? Number(value.ivaNumero) || 0
-        : base * 0.19;
+    const nuevoIva = value.iva ? base * 0.19 : 0;
     const transporte = Number(value.valorTransporte) || 0;
-    const deposito = Number(value.valorDeposito) || 0;
-    const nuevoTotal = base + nuevoIva + transporte + deposito;
-    const yaCobrado = (Number(value.pagado) || 0) + (Number(value.abonos) || 0);
+    const nuevoTotal = base + nuevoIva + transporte;
+    const actualizada = {
+      ...value,
+      subtotalNumero: nuevoSubtotal,
+      ivaNumero: nuevoIva,
+      total: nuevoTotal,
+    };
 
     dispatch(
       setFormCuentaCobro({
-        ...value,
-        subtotalNumero: nuevoSubtotal,
-        ivaNumero: nuevoIva,
-        total: nuevoTotal,
-        // El depósito que falta dejar va aparte del total (ver
-        // cuentaCobroDesdeFacturas.js), pero se cobra.
-        saldo:
-          Math.max(0, nuevoTotal - yaCobrado) + (Number(value.depositoPorCobrar) || 0),
+        ...actualizada,
+        saldo: resumenCuentaCobro(actualizada).aCancelar,
       }),
     );
   };
 
   const handlerInputChange = (event) => {
     const { name, value } = event.target;
+    // Los importes de una cuenta traída ya vienen hechos: el "por concepto de"
+    // se guarda sin recalcular nada. Volver a sumar los ítems perdería, por
+    // ejemplo, el renglón de daños, que no tiene días.
+    if (bloqueada) {
+      dispatch(setFormCuentaCobro({ ...formValues, [name]: value }));
+      return;
+    }
     // El NIT se guarda pelado (dígitos y guion); los puntos se ponen al mostrar.
     const valorAGuardar = name === "nit" ? limpiarNit(value) : value;
     const actualizado = { ...formValues, [name]: valorAGuardar };
@@ -97,18 +103,10 @@ export default function CuentaCobro() {
     if (name === "transporte" && value === "Sin transporte") {
       actualizado.valorTransporte = 0;
     }
-    // Tocar la casilla del IVA es decidir a mano cuánto lleva: desde acá el
-    // valor traído de las facturas ya no manda.
-    if (name === "iva") {
-      actualizado.desdeFacturas = false;
-    }
 
     recalcularYGuardar(actualizado);
   };
 
-  // Cualquier cambio en la lista de ítems desengancha la cuenta de las
-  // facturas que la originaron: a partir de ahí los importes salen de lo que
-  // se ve en pantalla.
   const updateItem = (index, field, value) => {
     const updatedItems = items.map((item, i) => {
       if (i !== index) return item;
@@ -119,7 +117,6 @@ export default function CuentaCobro() {
     recalcularYGuardar({
       ...formValues,
       items: updatedItems,
-      desdeFacturas: false,
     });
   };
 
@@ -132,6 +129,7 @@ export default function CuentaCobro() {
       quantity: 0,
       price: 0,
       day: 1,
+      unidad: "dias",
       subtotal: 0,
       fechaDespacho: "",
       fechaDevolucion: "",
@@ -139,7 +137,6 @@ export default function CuentaCobro() {
     recalcularYGuardar({
       ...formValues,
       items: [...items, newItem],
-      desdeFacturas: false,
     });
   };
 
@@ -148,7 +145,6 @@ export default function CuentaCobro() {
     recalcularYGuardar({
       ...formValues,
       items: updatedItems,
-      desdeFacturas: false,
     });
   };
 
@@ -165,7 +161,7 @@ export default function CuentaCobro() {
               demás campos son importes. */}
           <Grid item xs={12} sm={6}>
             <Box display="flex" alignItems="center" width="100%">
-              <FormControl sx={{ flex: 1 }}>
+              <FormControl sx={{ flex: 1 }} disabled={bloqueada}>
                 <RadioGroup
                   row
                   name="tipo"
@@ -194,6 +190,7 @@ export default function CuentaCobro() {
                 control={
                   <Checkbox
                     name="iva"
+                    disabled={bloqueada}
                     checked={formValues.iva}
                     onChange={(e) =>
                       handlerInputChange({
@@ -212,6 +209,7 @@ export default function CuentaCobro() {
               type="date"
               name="fecha"
               label="Fecha"
+              disabled={bloqueada}
               value={formValues.fecha}
               onChange={handlerInputChange}
               InputLabelProps={{ shrink: true }}
@@ -225,6 +223,7 @@ export default function CuentaCobro() {
               type="text"
               name="nit"
               label={esEmpresa ? "NIT" : "Cédula"}
+              disabled={bloqueada}
               value={formatearNit(formValues.nit)}
               onChange={handlerInputChange}
             />
@@ -236,6 +235,7 @@ export default function CuentaCobro() {
               type="text"
               name="empresa"
               label={esEmpresa ? "Empresa" : "Nombre"}
+              disabled={bloqueada}
               value={formValues.empresa}
               onChange={handlerInputChange}
             />
@@ -248,6 +248,7 @@ export default function CuentaCobro() {
               type="text"
               name="obra"
               label="Obra"
+              disabled={bloqueada}
               value={formValues.obra}
               onChange={handlerInputChange}
             />
@@ -259,6 +260,7 @@ export default function CuentaCobro() {
               type="text"
               name="direccion"
               label="Dirección"
+              disabled={bloqueada}
               value={formValues.direccion}
               onChange={handlerInputChange}
             />
@@ -277,7 +279,7 @@ export default function CuentaCobro() {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
+            <FormControl fullWidth disabled={bloqueada}>
               <InputLabel id="cc-transporte-label" htmlFor="cc-transporte-input">
                 Transporte
               </InputLabel>
@@ -305,6 +307,7 @@ export default function CuentaCobro() {
               name="valorTransporte"
               label="Valor Transporte"
               disabled={
+                bloqueada ||
                 !formValues.transporte ||
                 formValues.transporte === "Sin transporte"
               }
@@ -320,11 +323,9 @@ export default function CuentaCobro() {
             />
           </Grid>
 
-          {/* Los cuatro importes sueltos del documento: a la izquierda lo que
-              se le suma o resta a la cuenta, a la derecha lo que el cliente ya
-              entregó. El depósito no tiene casilla que lo habilite —viene de
-              la factura, o se escribe a mano— y cada uno sale en el documento
-              solo si tiene valor. */}
+          {/* Los cuatro importes sueltos del documento. Cada uno sale solo si
+              tiene valor. El depósito no suma al total, y lo pagado es todo lo
+              consignado: cubre primero el depósito (ver resumenCuentaCobro). */}
           <Grid item xs={6} sm={6}>
             <TextField
               fullWidth
@@ -332,6 +333,7 @@ export default function CuentaCobro() {
               inputMode="numeric"
               name="valorDeposito"
               label="Valor Depósito"
+              disabled={bloqueada}
               value={formatearMonedaInput(formValues.valorDeposito)}
               onChange={(e) =>
                 handlerInputChange({
@@ -351,6 +353,7 @@ export default function CuentaCobro() {
               inputMode="numeric"
               name="pagado"
               label="Valor Pagado"
+              disabled={bloqueada}
               value={formatearMonedaInput(formValues.pagado)}
               onChange={(e) =>
                 handlerInputChange({
@@ -370,6 +373,7 @@ export default function CuentaCobro() {
               inputMode="numeric"
               name="descuento"
               label="Valor Descuento"
+              disabled={bloqueada}
               value={formatearMonedaInput(formValues.descuento)}
               onChange={(e) =>
                 handlerInputChange({
@@ -389,6 +393,7 @@ export default function CuentaCobro() {
               inputMode="numeric"
               name="abonos"
               label="Valor Abonos"
+              disabled={bloqueada}
               value={formatearMonedaInput(formValues.abonos)}
               onChange={(e) =>
                 handlerInputChange({
@@ -431,6 +436,7 @@ export default function CuentaCobro() {
                   rows={2}
                   name={`item-${index}-descripcion`}
                   label="Descripción"
+                  disabled={bloqueada}
                   value={item.description || ""}
                   onChange={(e) =>
                     updateItem(index, "description", e.target.value)
@@ -438,37 +444,69 @@ export default function CuentaCobro() {
                 />
               </Grid>
 
-              {/* El número de factura de la que sale el equipo. Solo se llena
-                  al traer las facturas de una persona; si queda vacío en
-                  todos los ítems, el documento no dibuja esa columna. */}
-              <Grid item xs={6} sm={3}>
-                <TextField
-                  fullWidth
-                  type="text"
-                  name={`item-${index}-factura`}
-                  label="Factura"
-                  value={item.factura || ""}
-                  onChange={(e) => updateItem(index, "factura", e.target.value)}
-                />
-              </Grid>
+              {/* El número de factura de la que sale el equipo. Es solo de las
+                  personas: a una empresa no se le muestra ni se le puede
+                  escribir, y su documento no dibuja esa columna. */}
+              {!esEmpresa && (
+                <Grid item xs={6} sm={2}>
+                  <TextField
+                    fullWidth
+                    type="text"
+                    name={`item-${index}-factura`}
+                    label="Factura"
+                    disabled={bloqueada}
+                    value={item.factura || ""}
+                    onChange={(e) => updateItem(index, "factura", e.target.value)}
+                  />
+                </Grid>
+              )}
 
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={esEmpresa ? 3 : 2}>
                 <TextField
                   fullWidth
                   type="number"
                   name={`item-${index}-cantidad`}
                   label="Cantidad"
+                  disabled={bloqueada}
                   value={item.quantity !== 0 ? item.quantity : ""}
                   onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 />
               </Grid>
 
+              {/* Por días o por horas, ítem por ítem. Un ítem guardado antes de
+                  esto no trae unidad: va por días. */}
               <Grid item xs={6} sm={3}>
+                <FormControl fullWidth disabled={bloqueada}>
+                  <InputLabel
+                    id={`cc-unidad-${index}-label`}
+                    htmlFor={`cc-unidad-${index}-input`}
+                  >
+                    Unidad
+                  </InputLabel>
+                  <Select
+                    labelId={`cc-unidad-${index}-label`}
+                    inputProps={{ id: `cc-unidad-${index}-input` }}
+                    name={`item-${index}-unidad`}
+                    label="Unidad"
+                    value={item.unidad || "dias"}
+                    onChange={(e) => updateItem(index, "unidad", e.target.value)}
+                  >
+                    {UNIDADES_DE_TIEMPO.map(({ valor, rotulo }) => (
+                      <MenuItem key={valor} value={valor}>
+                        {rotulo}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={6} sm={esEmpresa ? 3 : 2}>
                 <TextField
                   fullWidth
                   type="number"
                   name={`item-${index}-dias`}
-                  label="Días"
+                  label={item.unidad === "horas" ? "Horas" : "Días"}
+                  disabled={bloqueada}
                   value={item.day !== 0 ? item.day : ""}
                   onChange={(e) => updateItem(index, "day", e.target.value)}
                 />
@@ -482,7 +520,8 @@ export default function CuentaCobro() {
                   type="text"
                   inputMode="numeric"
                   name={`item-${index}-precio`}
-                  label="Precio"
+                  label={item.unidad === "horas" ? "Valor hora" : "Valor día"}
+                  disabled={bloqueada}
                   value={formatearMonedaInput(item.price)}
                   onChange={(e) =>
                     updateItem(index, "price", limpiarMonedaInput(e.target.value))
@@ -496,31 +535,35 @@ export default function CuentaCobro() {
                 </Typography>
               </Grid>
 
-              <Grid item xs={6} md={6}>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => removeItem(index)}
-                  fullWidth
-                >
-                  Eliminar Ítem
-                </Button>
-              </Grid>
+              {!bloqueada && (
+                <Grid item xs={6} md={6}>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => removeItem(index)}
+                    fullWidth
+                  >
+                    Eliminar Ítem
+                  </Button>
+                </Grid>
+              )}
             </Grid>
           </Box>
         ))}
 
         <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12}>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={addNewItem}
-              fullWidth
-            >
-              Agregar Ítem
-            </Button>
-          </Grid>
+          {!bloqueada && (
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={addNewItem}
+                fullWidth
+              >
+                Agregar Ítem
+              </Button>
+            </Grid>
+          )}
 
           <Grid item xs={12}>
             {/* La pizarra de totales, igual que en Cotización. El aspecto vive
@@ -530,86 +573,33 @@ export default function CuentaCobro() {
                 transporte no lleva un "Transporte $ 0"— y el de abajo es lo
                 que de verdad se cobra: el saldo. */}
             <Paper variant="totales">
-              <Box className="fila">
-                <Typography variant="subtitle1">Subtotal</Typography>
-                <Typography variant="subtitle1">
-                  {formatearMoneda(subtotalNumero)}
-                </Typography>
-              </Box>
-
-              {Number(formValues.descuento) > 0 && (
+              {/* El depósito, antes de los totales y fuera de la suma, igual
+                  que en el PDF. */}
+              {filasDeposito.length > 0 && (
                 <Box className="fila">
-                  <Typography variant="subtitle1">Descuento</Typography>
-                  <Typography variant="subtitle1">
-                    - {formatearMoneda(formValues.descuento)}
-                  </Typography>
+                  <Typography variant="subtitle1">DEPÓSITO</Typography>
                 </Box>
               )}
-
-              {formValues.iva && ivaNumero > 0 && (
-                <Box className="fila">
-                  <Typography variant="subtitle1">IVA (19%)</Typography>
-                  <Typography variant="subtitle1">
-                    {formatearMoneda(ivaNumero)}
-                  </Typography>
+              {filasDeposito.map((fila) => (
+                <Box className="fila" key={`deposito-${fila.etiqueta}`}>
+                  <Typography variant="subtitle1">{fila.etiqueta}</Typography>
+                  <Typography variant="subtitle1">{valorDeFila(fila)}</Typography>
                 </Box>
-              )}
+              ))}
 
-              {Number(formValues.valorDeposito) > 0 && (
-                <Box className="fila">
-                  <Typography variant="subtitle1">Depósito</Typography>
-                  <Typography variant="subtitle1">
-                    {formatearMoneda(formValues.valorDeposito)}
-                  </Typography>
+              {filas.map((fila) => (
+                <Box className="fila" key={fila.etiqueta}>
+                  <Typography variant="subtitle1">{fila.etiqueta}</Typography>
+                  <Typography variant="subtitle1">{valorDeFila(fila)}</Typography>
                 </Box>
-              )}
-
-              {Number(formValues.valorTransporte) > 0 && (
-                <Box className="fila">
-                  <Typography variant="subtitle1">Transporte</Typography>
-                  <Typography variant="subtitle1">
-                    {formatearMoneda(formValues.valorTransporte)}
-                  </Typography>
-                </Box>
-              )}
-
-              {hayCobrado && (
-                <>
-                  <Box className="fila">
-                    <Typography variant="subtitle1">
-                      {formValues.desdeFacturas ? "Total facturas" : "Total"}
-                    </Typography>
-                    <Typography variant="subtitle1">
-                      {formatearMoneda(total)}
-                    </Typography>
-                  </Box>
-
-                  {Number(pagado) > 0 && (
-                    <Box className="fila">
-                      <Typography variant="subtitle1">Pagado</Typography>
-                      <Typography variant="subtitle1">
-                        - {formatearMoneda(pagado)}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {Number(abonos) > 0 && (
-                    <Box className="fila">
-                      <Typography variant="subtitle1">Abonos</Typography>
-                      <Typography variant="subtitle1">
-                        - {formatearMoneda(abonos)}
-                      </Typography>
-                    </Box>
-                  )}
-                </>
-              )}
+              ))}
 
               <Box className="fila total">
                 <Typography variant="h5">
-                  {hayCobrado ? "SALDO" : "TOTAL"}
+                  {hayMovimientos ? "SALDO" : "TOTAL"}
                 </Typography>
                 <Typography variant="h5">
-                  {formatearMoneda(hayCobrado ? saldo : total)}
+                  {formatearMoneda(hayMovimientos ? aCancelar : total)}
                 </Typography>
               </Box>
             </Paper>

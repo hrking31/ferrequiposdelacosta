@@ -109,10 +109,80 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     }
   };
 
-  // Cantidad, nombre, despacho y devolución en su propia columna cada uno, y
-  // —si lo tiene— el descuento como nota bajo el nombre. Misma tabla para
-  // el alta y para lo agregado después.
-  const filaDeEquipo = (equipo) => {
+  // Los totales y el depósito se leen enteros: si no entran en lo que queda de
+  // hoja, pasan completos a la siguiente en vez de partirse.
+  const reservarSitio = (cantidadFilas) => {
+    const ALTO_FILA = 8;
+    const ALTO_ROTULO = 3;
+    if (y + ALTO_ROTULO + cantidadFilas * ALTO_FILA > limiteContenido) {
+      doc.addPage();
+      y = inicioPaginaSiguiente;
+    }
+  };
+
+  // La sección DEPÓSITO, con los rótulos del PDF de la factura. Va antes de los
+  // totales y fuera de la suma: es una garantía que se entrega y se devuelve.
+  const seccionDeposito = ({
+    recibido,
+    porCobrar,
+    retenido,
+    aplicado,
+    devuelto,
+    enGarantia,
+    porDevolver,
+  }) => {
+    const opcionales = [
+      ["Por cobrar", porCobrar],
+      ["Retenido por daños", retenido],
+      ["Aplicado a la factura", aplicado],
+      ["Devuelto", devuelto],
+      ["En garantía", enGarantia],
+      ["Por devolver", porDevolver],
+    ].filter(([, valor]) => valor > 0);
+    const body = [["Recibido", recibido], ...opcionales].map(([rotulo, valor]) => [
+      rotulo,
+      formatearMoneda(valor),
+    ]);
+
+    // Una fila más por el encabezado de la tabla.
+    reservarSitio(body.length + 1);
+    y = titulo("DEPÓSITO");
+    autoTable(doc, {
+      startY: y,
+      head: [["Concepto", "Valor"]],
+      body,
+      ...ESTILO_TABLA,
+      styles: { fontSize: 9 },
+      margin: margenTablas,
+    });
+    y = doc.lastAutoTable.finalY + 8;
+  };
+
+  // Lo que mueve la suma entre el total y el saldo, cada renglón con su signo
+  // para poder seguir la cuenta. Lo pagado es lo que le llegó a la FACTURA, sin
+  // la parte que quedó de garantía; lo que falta dejar de garantía sí se cobra.
+  const filasDeMovimientos = ({
+    pagado,
+    abonos,
+    retenido,
+    descuentoAlCobrar,
+    devueltoDeMas,
+    depositoPorCobrar,
+  }) =>
+    [
+      ["Pagado", pagado, "-"],
+      ["Abonos", abonos, "-"],
+      ["Retenido por daños", retenido, "-"],
+      ["Descuento", descuentoAlCobrar, "-"],
+      ["Devuelto al cliente", devueltoDeMas, "+"],
+      ["Depósito por cobrar", depositoPorCobrar, "+"],
+    ]
+      .filter(([, valor]) => valor > 0)
+      .map(([rotulo, valor, signo]) => [rotulo, `${signo} ${formatearMoneda(valor)}`]);
+
+  // Cantidad, nombre, despacho y devolución en su propia columna cada uno. Misma
+  // tabla para el alta y para lo agregado después.
+  const filasDeEquipo = (equipo) => {
     const cuentaEquipo = calcularEquipo(equipo);
 
     // El documento NO desglosa los días por tramo. La fila ya dice cuántos
@@ -120,11 +190,20 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     // nombre en "ampliados", "vencidos" y "vencidos pagados" le contaba al
     // cliente un reparto que es nuestro, no suyo, y el subtotal los incluye
     // a todos igual. El descuento sí queda: no es un tramo de días, es plata
-    // que se le perdonó y tiene que verse.
-    const detalles = [equipo.nombre];
-    if (cuentaEquipo.descuento > 0) {
-      detalles.push(`Descuento: ${formatearMoneda(cuentaEquipo.descuento)}`);
-    }
+    // que se le perdonó y tiene que verse. Arriba va el valor completo y, en
+    // su propia fila, el descuento con el valor ya rebajado.
+    const filaDescuento =
+      cuentaEquipo.descuento > 0
+        ? [[
+            "",
+            `Descuento: ${formatearMoneda(cuentaEquipo.descuento)}`,
+            "",
+            "",
+            "",
+            "",
+            formatearMoneda(cuentaEquipo.neto),
+          ]]
+        : [];
 
     // La columna de días muestra los que se COBRAN. Para un equipo devuelto
     // son los que de verdad estuvo afuera, así que días por valor vuelve a dar
@@ -133,15 +212,18 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     // La de devolución va vacía mientras el equipo no vuelva: una fecha ahí
     // afirma una devolución que no ocurrió (ver VistaFacturaPdf, mismo caso).
     return [
-      equipo.cantidadEquipos ?? "",
-      detalles.join("\n"),
-      formatearFechaLegible(equipo.fechaDespacho) || "—",
-      equipo.devolucion?.fechaDevolucion
-        ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
-        : "",
-      cuentaEquipo.dias ?? "",
-      formatearMoneda(equipo.valorDia),
-      formatearMoneda(cuentaEquipo.neto),
+      [
+        equipo.cantidadEquipos ?? "",
+        equipo.nombre,
+        formatearFechaLegible(equipo.fechaDespacho) || "—",
+        equipo.devolucion?.fechaDevolucion
+          ? formatearFechaLegible(equipo.devolucion.fechaDevolucion)
+          : "",
+        cuentaEquipo.dias ?? "",
+        formatearMoneda(equipo.valorDia),
+        formatearMoneda(cuentaEquipo.bruto),
+      ],
+      ...filaDescuento,
     ];
   };
 
@@ -150,7 +232,7 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     autoTable(doc, {
       startY: y,
       head: [["Cant.", "Equipo", "Despacho", "Devolución", "Días", "Valor/día", "Subtotal"]],
-      body: lista.map(filaDeEquipo),
+      body: lista.flatMap(filasDeEquipo),
       ...ESTILO_TABLA,
       styles: { fontSize: 9 },
       margin: margenTablas,
@@ -164,14 +246,20 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
   let ivaGeneral = 0;
   let transporteGeneral = 0;
   let danosGeneral = 0;
-  let depositoGeneral = 0;
-  let porDevolverGeneral = 0;
+  let devueltoDeMasGeneral = 0;
+  const depositoGeneral = {
+    pactado: 0,
+    recibido: 0,
+    porCobrar: 0,
+    retenido: 0,
+    aplicado: 0,
+    devuelto: 0,
+    enGarantia: 0,
+    porDevolver: 0,
+  };
 
-  // ── El detalle de una factura: equipos, agregados, y un solo total que
-  //    junta cargos (IVA, transporte, daños, descuento) y abonos ──────────
-  //
-  // El depósito no es un cargo: va después de lo pagado, como la parte que
-  // quedó de garantía, igual que en la pantalla.
+  // ── El detalle de una factura: equipos, agregados, su depósito y un solo
+  //    total que junta cargos (IVA, transporte, daños) y abonos ──────────
   const seccionFactura = (factura) => {
     const datos = datosFactura(factura);
     y = titulo(
@@ -191,17 +279,25 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     const cuentaFactura = calcularCuentaFactura(factura);
     const subtotal = cuentaFactura.subtotal;
     const iva = cuentaFactura.iva;
-    const descuentoTotal = cuentaFactura.descuento;
     const transporteTotal = calcularTransporteTotal(factura);
     const { deposito } = cuentaFactura;
-    const depositoEnCuenta = Math.max(0, deposito.recibido - deposito.retenido);
+    // Un pago de más que ya se le devolvió al cliente: ya no paga la factura.
+    const devueltoDeMas = cuentaFactura.entregas - deposito.devuelto;
+    const depositoFactura = {
+      ...deposito,
+      enGarantia: deposito.guardado - deposito.porDevolver,
+    };
 
     subtotalGeneral += subtotal;
     ivaGeneral += iva;
     transporteGeneral += transporteTotal;
     danosGeneral += cuentaFactura.danos;
-    depositoGeneral += depositoEnCuenta;
-    porDevolverGeneral += deposito.porDevolver;
+    devueltoDeMasGeneral += devueltoDeMas;
+    Object.keys(depositoGeneral).forEach((clave) => {
+      depositoGeneral[clave] += depositoFactura[clave];
+    });
+
+    if (deposito.pactado > 0) seccionDeposito(depositoFactura);
 
     // Un solo total por factura: cargos, el total, lo pagado, los abonos en
     // UNA línea y el saldo. El detalle abono por abono queda para el PDF de
@@ -210,17 +306,18 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
     if (iva > 0) filas.push(["IVA (19%)", formatearMoneda(iva)]);
     if (transporteTotal > 0) filas.push(["Transporte", formatearMoneda(transporteTotal)]);
     if (cuentaFactura.danos > 0) filas.push(["Daños", formatearMoneda(cuentaFactura.danos)]);
-    if (descuentoTotal > 0) filas.push(["Descuento", formatearMoneda(descuentoTotal)]);
     filas.push(["TOTAL FACTURA", formatearMoneda(cuentaFactura.total)]);
-    filas.push(["Pagado", formatearMoneda(cuentaFactura.pagado)]);
-    if (depositoEnCuenta > 0) filas.push(["Depósito", formatearMoneda(depositoEnCuenta)]);
-    if (cuentaFactura.abonos > 0) {
-      filas.push(["Abonos", formatearMoneda(cuentaFactura.abonos)]);
-    }
-    // El de arriba es el de los días; este, lo rebajado al cobrar.
-    if (cuentaFactura.descuentoAlCobrar > 0) {
-      filas.push(["Descuento al cobrar", formatearMoneda(cuentaFactura.descuentoAlCobrar)]);
-    }
+    filas.push(
+      ...filasDeMovimientos({
+        pagado: cuentaFactura.pagadoFactura,
+        abonos: cuentaFactura.abonosFactura,
+        retenido: cuentaFactura.retenidoFactura,
+        // El de arriba es el de los días; este, lo rebajado al cobrar.
+        descuentoAlCobrar: cuentaFactura.descuentoAlCobrar,
+        devueltoDeMas,
+        depositoPorCobrar: deposito.porCobrar,
+      }),
+    );
     filas.push([
       cuentaFactura.saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
       formatearMoneda(
@@ -229,11 +326,8 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
           : cuentaFactura.saldoPendiente,
       ),
     ]);
-    if (deposito.porDevolver > 0) {
-      filas.push(["Depósito por devolver", formatearMoneda(deposito.porDevolver)]);
-    }
 
-    saltarSiNoCabe();
+    reservarSitio(filas.length);
     autoTable(doc, {
       startY: y,
       body: filas,
@@ -264,6 +358,7 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
   const cuentaGeneral = calcularCuentaCliente(facturas);
   doc.addPage();
   y = inicioPaginaSiguiente;
+  if (depositoGeneral.pactado > 0) seccionDeposito(depositoGeneral);
   y = titulo("RESUMEN GENERAL");
   autoTable(doc, {
     startY: y,
@@ -275,12 +370,14 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
         : []),
       ...(danosGeneral > 0 ? [["Daños", formatearMoneda(danosGeneral)]] : []),
       ["TOTAL FACTURAS", formatearMoneda(cuentaGeneral.total)],
-      ["Pagado", formatearMoneda(cuentaGeneral.pagado)],
-      ...(depositoGeneral > 0 ? [["Depósito", formatearMoneda(depositoGeneral)]] : []),
-      ["Abonos", formatearMoneda(cuentaGeneral.abonos)],
-      ...(cuentaGeneral.descuentoAlCobrar > 0
-        ? [["Descuento al cobrar", formatearMoneda(cuentaGeneral.descuentoAlCobrar)]]
-        : []),
+      ...filasDeMovimientos({
+        pagado: cuentaGeneral.pagadoFactura,
+        abonos: cuentaGeneral.abonosFactura,
+        retenido: cuentaGeneral.retenidoFactura,
+        descuentoAlCobrar: cuentaGeneral.descuentoAlCobrar,
+        devueltoDeMas: devueltoDeMasGeneral,
+        depositoPorCobrar: cuentaGeneral.depositoPorCobrar,
+      }),
       [
         cuentaGeneral.saldoAFavor > 0 ? "SALDO A FAVOR" : "SALDO PENDIENTE",
         formatearMoneda(
@@ -289,9 +386,6 @@ export default function generarReporteFacturasPdf({ cliente, facturas }) {
             : cuentaGeneral.saldoPendiente,
         ),
       ],
-      ...(porDevolverGeneral > 0
-        ? [["Depósito por devolver", formatearMoneda(porDevolverGeneral)]]
-        : []),
     ],
     ...ESTILO_TABLA,
     styles: { fontSize: 10 },
