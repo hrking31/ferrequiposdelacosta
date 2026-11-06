@@ -73,6 +73,28 @@ describe("las dos pizarras de la cotización, como en la factura", () => {
   });
 });
 
+describe("el IVA en el primer renglón, como en la cuenta de cobro", () => {
+  it("marcarlo suma el 19 % al total; el depósito sigue sin sumar", async () => {
+    const { store, usuario } = abrir(cotizacion({ deposito: true, valorDeposito: 100000 }));
+
+    await usuario.click(screen.getByRole("checkbox", { name: "IVA" }));
+
+    const value = store.getState().cotizacion.value;
+    expect(value.iva).toBe(true);
+    expect(value.totalNumero).toBeCloseTo(476000);
+    expect(within(pizarraDe("Subtotal")).getByText("IVA (19%)")).toBeInTheDocument();
+  });
+
+  it("la casilla de depósito sigue en su lugar y lo apaga", async () => {
+    const { store, usuario } = abrir(cotizacion({ deposito: true, valorDeposito: 100000 }));
+
+    await usuario.click(screen.getByRole("checkbox", { name: "Depósito" }));
+
+    expect(store.getState().cotizacion.value.valorDeposito).toBe(0);
+    expect(within(pizarraDe("DEPÓSITO")).getByText("Sin depósito")).toBeInTheDocument();
+  });
+});
+
 describe("el botón de agregar ítem", () => {
   it("es el punteado y agrega un ítem", async () => {
     const { store, usuario } = abrir(cotizacion());

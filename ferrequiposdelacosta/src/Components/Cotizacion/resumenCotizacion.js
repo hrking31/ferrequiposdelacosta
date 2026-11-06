@@ -12,7 +12,7 @@
 // tomarlo de ahí lo contaría dos veces.
 const numero = (valor) => Number(valor) || 0;
 
-export const TASA_IVA = 0.19;
+const TASA_IVA = 0.19;
 
 export const subtotalDeItems = (items) =>
   (items || []).reduce(

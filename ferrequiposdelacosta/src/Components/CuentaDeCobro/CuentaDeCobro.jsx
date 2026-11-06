@@ -35,7 +35,7 @@ import resumenCuentaCobro, {
   UNIDADES_DE_TIEMPO,
   valorDeFila,
 } from "./resumenCuentaCobro";
-import { ANCHO_FECHA, usePantallaCompacta } from "../../Utils/pantalla";
+import { medidasPrimerRenglon, usePantallaCompacta } from "../../Utils/pantalla";
 import {
   renglonDePizarra,
   renderTituloDeposito,
@@ -65,15 +65,8 @@ export default function CuentaCobro({ forma = "normal" }) {
   // El ancho de los campos de a dos, que lado a lado van de a tres.
   const deATres = ladoALado ? 4 : 6;
   const compacta = usePantallaCompacta();
-  // Lado a lado o de pie, Persona, Empresa, IVA y la fecha en un solo renglón
-  // (pedido del dueño, 2026-11-05): las casillas más chicas y la fecha con el
-  // ancho justo de una fecha, ANCHO_FECHA. Cada opción se corre 6 px y no los
-  // 11 de fábrica: con la columna que se desplaza sola, el círculo de "Persona"
-  // quedaba cortado por el borde izquierdo.
-  const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
-  const opcion = llenaElAlto
-    ? { flex: "none", alignItems: "center", ml: -0.75, mr: 1.5 }
-    : { flex: 1, alignItems: "center" };
+  // Persona, Empresa, IVA y la fecha: ver medidasPrimerRenglon.
+  const renglon1 = medidasPrimerRenglon({ ladoALado, dePie });
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
   const { items, total } = formValues;
@@ -243,9 +236,9 @@ export default function CuentaCobro({ forma = "normal" }) {
               Empresa/Nombre, igual que en la cotización. El IVA va acá al lado
               porque es la otra decisión de una sola vez del documento: los
               demás campos son importes. */}
-          <Grid item xs={12} sm={llenaElAlto ? true : 6}>
+          <Grid item xs={12} sm={renglon1.smOpciones}>
             <Box display="flex" alignItems="center" width="100%">
-              <FormControl sx={{ flex: llenaElAlto ? "none" : 1 }} disabled={bloqueada}>
+              <FormControl sx={renglon1.sxGrupo} disabled={bloqueada}>
                 <RadioGroup
                   row
                   name="tipo"
@@ -255,25 +248,25 @@ export default function CuentaCobro({ forma = "normal" }) {
                 >
                   <FormControlLabel
                     value="persona"
-                    control={<Radio {...casillaChica} />}
+                    control={<Radio {...renglon1.casilla} />}
                     label="Persona"
-                    sx={opcion}
+                    sx={renglon1.sxOpcion}
                   />
                   <FormControlLabel
                     value="empresa"
-                    control={<Radio {...casillaChica} />}
+                    control={<Radio {...renglon1.casilla} />}
                     label="Empresa"
-                    sx={opcion}
+                    sx={renglon1.sxOpcion}
                   />
                 </RadioGroup>
               </FormControl>
 
               <FormControlLabel
                 label="IVA"
-                sx={{ flexShrink: 0, mr: 0 }}
+                sx={renglon1.sxIva}
                 control={
                   <Checkbox
-                    {...casillaChica}
+                    {...renglon1.casilla}
                     name="iva"
                     disabled={bloqueada}
                     checked={formValues.iva}
@@ -288,13 +281,13 @@ export default function CuentaCobro({ forma = "normal" }) {
             </Box>
           </Grid>
 
-          <Grid item xs={12} sm={llenaElAlto ? "auto" : 6}>
+          <Grid item xs={12} sm={renglon1.smFecha}>
             <TextField
               fullWidth
               type="date"
               name="fecha"
               label="Fecha"
-              sx={llenaElAlto ? { width: { sm: ANCHO_FECHA } } : undefined}
+              sx={renglon1.sxFecha}
               disabled={bloqueada}
               value={formValues.fecha}
               onChange={handlerInputChange}

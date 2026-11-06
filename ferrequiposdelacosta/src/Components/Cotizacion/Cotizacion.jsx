@@ -34,7 +34,7 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { departamentosYMunicipios } from "../RolesPermisos/departamentosYMunicipios";
 import { formatearMoneda } from "../../Utils/formato";
-import { ANCHO_FECHA, usePantallaCompacta } from "../../Utils/pantalla";
+import { medidasPrimerRenglon, usePantallaCompacta } from "../../Utils/pantalla";
 import {
   renglonDePizarra,
   renderTituloDeposito,
@@ -64,14 +64,9 @@ export default function Cotizacion({ forma = "normal" }) {
   // El ancho de los campos de a dos, que lado a lado van de a tres.
   const deATres = ladoALado ? 4 : 6;
   const compacta = usePantallaCompacta();
-  // Lado a lado o de pie, Persona, Empresa y la fecha en un solo renglón: las
-  // casillas más chicas y la fecha con el ancho justo de una fecha. Cada opción
-  // se corre 6 px y no los 11 de fábrica: con la columna que se desplaza sola,
-  // el círculo de "Persona" quedaba cortado por el borde izquierdo.
-  const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
-  const opcion = llenaElAlto
-    ? { flex: "none", alignItems: "center", ml: -0.75, mr: 1.5 }
-    : { flex: 1, alignItems: "center" };
+  // Persona, Empresa, IVA y la fecha, igual que en la cuenta de cobro: ver
+  // medidasPrimerRenglon.
+  const renglon1 = medidasPrimerRenglon({ ladoALado, dePie });
 
   // Las cifras de la cotización salen de un solo lugar, el mismo que leen la
   // hoja y el PDF. El depósito va aparte del total.
@@ -192,11 +187,16 @@ export default function Cotizacion({ forma = "normal" }) {
         <Grid
           container
           spacing={2}
-          sx={{ flexShrink: 0, ...(llenaElAlto && { mt: 1 }), ...(dePie && { gridArea: "datos" }) }}
+          // El margen va siempre: sin él la cuadrícula sube 16 px (su margen
+          // negativo de fábrica) y el rótulo de la fecha quedaba tapado.
+          sx={{ flexShrink: 0, mt: llenaElAlto ? 1 : 0, ...(dePie && { gridArea: "datos" }) }}
         >
-          <Grid item xs={12} sm={llenaElAlto ? true : 6}>
-            <FormControl fullWidth>
-              <Box display="flex" width="100%">
+          {/* Persona / Empresa y el IVA al lado, como en la cuenta de cobro:
+              las decisiones de una sola vez del documento (pedido del dueño,
+              2026-11-05). */}
+          <Grid item xs={12} sm={renglon1.smOpciones}>
+            <Box display="flex" alignItems="center" width="100%">
+              <FormControl sx={renglon1.sxGrupo}>
                 <RadioGroup
                   row
                   name="tipo"
@@ -216,29 +216,48 @@ export default function Cotizacion({ forma = "normal" }) {
                 >
                   <FormControlLabel
                     value="persona"
-                    control={<Radio {...casillaChica} />}
+                    control={<Radio {...renglon1.casilla} />}
                     label="Persona"
-                    sx={opcion}
+                    sx={renglon1.sxOpcion}
                   />
 
                   <FormControlLabel
                     value="empresa"
-                    control={<Radio {...casillaChica} />}
+                    control={<Radio {...renglon1.casilla} />}
                     label="Empresa"
-                    sx={opcion}
+                    sx={renglon1.sxOpcion}
                   />
                 </RadioGroup>
-              </Box>
-            </FormControl>
+              </FormControl>
+
+              <FormControlLabel
+                label="IVA"
+                sx={renglon1.sxIva}
+                control={
+                  <Checkbox
+                    {...renglon1.casilla}
+                    checked={formValues.iva}
+                    onChange={(e) => {
+                      handlerInputChange({
+                        target: {
+                          name: "iva",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                  />
+                }
+              />
+            </Box>
           </Grid>
 
-          <Grid item xs={12} sm={llenaElAlto ? "auto" : 6}>
+          <Grid item xs={12} sm={renglon1.smFecha}>
             <TextField
               fullWidth
               type="date"
               name="fecha"
               label="Fecha"
-              sx={llenaElAlto ? { width: { sm: ANCHO_FECHA } } : undefined}
+              sx={renglon1.sxFecha}
               value={formValues.fecha}
               onChange={handlerInputChange}
               InputLabelProps={{
@@ -252,7 +271,7 @@ export default function Cotizacion({ forma = "normal" }) {
             />
           </Grid>
 
-          {/* Lado a lado y de pie, ese primer renglón es solo de esos dos: sin
+          {/* Lado a lado y de pie, ese primer renglón es solo de esos cuatro: sin
               este corte, en una pantalla ancha la cédula se subía también. */}
           {llenaElAlto && <Box sx={{ flexBasis: "100%", height: 0 }} />}
 
@@ -413,45 +432,26 @@ export default function Cotizacion({ forma = "normal" }) {
             />
           </Grid>
 
+          {/* El IVA subió al primer renglón: el depósito queda solo, a la
+              izquierda de su espacio, al lado de su valor. */}
           <Grid item xs={12} sm={deATres}>
-            <Box display="flex" alignItems="center" width="100%">
-              <Box flex={1}>
-                <FormControlLabel
-                  label="IVA"
-                  control={
-                    <Checkbox
-                      checked={formValues.iva}
-                      onChange={(e) => {
-                        handlerInputChange({
-                          target: {
-                            name: "iva",
-                            value: e.target.checked,
-                          },
-                        });
-                      }}
-                    />
-                  }
-                />
-              </Box>
-
-              <Box flex={1}>
-                <FormControlLabel
-                  label="Depósito"
-                  control={
-                    <Checkbox
-                      checked={formValues.deposito}
-                      onChange={(e) => {
-                        handlerInputChange({
-                          target: {
-                            name: "deposito",
-                            value: e.target.checked,
-                          },
-                        });
-                      }}
-                    />
-                  }
-                />
-              </Box>
+            <Box display="flex" alignItems="center" height="100%">
+              <FormControlLabel
+                label="Depósito"
+                control={
+                  <Checkbox
+                    checked={formValues.deposito}
+                    onChange={(e) => {
+                      handlerInputChange({
+                        target: {
+                          name: "deposito",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                  />
+                }
+              />
             </Box>
           </Grid>
 

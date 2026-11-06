@@ -64,6 +64,34 @@ export const SX_COLUMNA_HOJA = {
   display: "flex",
 };
 
-// La fecha de los formularios lado a lado y de pie: lo justo para
-// "dd/mm/aaaa" y el ícono del calendario.
-export const ANCHO_FECHA = 170;
+// La fecha del iPad de pie: lo justo para "dd/mm/aaaa" y el ícono del
+// calendario.
+const ANCHO_FECHA = 170;
+
+// EL PRIMER RENGLÓN de esos formularios: Persona, Empresa, IVA y la fecha
+// (pedido del dueño, 2026-11-05). Las medidas de cada pieza según la forma:
+// - Lado a lado, el formulario va en tres columnas: la fecha ocupa una y
+//   Persona, Empresa e IVA se reparten parejo las otras dos.
+// - De pie, las tres opciones juntas y la fecha con su ancho justo.
+// - En lo demás, mitad y mitad, como siempre.
+// Lado a lado y de pie las casillas van más chicas, y cada opción se corre
+// 6 px y no los 11 de fábrica: con la columna que se desplaza sola, el círculo
+// de "Persona" quedaba cortado por el borde izquierdo.
+export const medidasPrimerRenglon = ({ ladoALado, dePie }) => {
+  const chicas = ladoALado || dePie;
+  return {
+    smOpciones: ladoALado ? 8 : dePie ? true : 6,
+    smFecha: ladoALado ? 4 : dePie ? "auto" : 6,
+    sxFecha: dePie ? { width: { sm: ANCHO_FECHA } } : undefined,
+    casilla: chicas ? { size: "small", sx: { p: 0.75 } } : {},
+    // Persona y Empresa van juntas en su grupo: lado a lado el grupo vale dos
+    // partes y el IVA una, así quedan las tres del mismo ancho.
+    sxGrupo: { flex: ladoALado ? 2 : dePie ? "none" : 1 },
+    sxOpcion: ladoALado
+      ? { flex: 1, alignItems: "center", ml: -0.75, mr: 0 }
+      : dePie
+        ? { flex: "none", alignItems: "center", ml: -0.75, mr: 1.5 }
+        : { flex: 1, alignItems: "center" },
+    sxIva: ladoALado ? { flex: 1, ml: -0.75, mr: 0 } : { flexShrink: 0, mr: 0 },
+  };
+};
