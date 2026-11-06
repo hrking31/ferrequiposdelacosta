@@ -72,7 +72,7 @@ export default function CuentaCobro({ forma = "normal" }) {
   const { items, total } = formValues;
   // Los mismos renglones del PDF: la pantalla y el documento no pueden decir dos
   // cifras distintas.
-  const { filas, filasDeposito, aCancelar, hayMovimientos } =
+  const { filas, filasDeposito, aCancelar, cierre, hayMovimientos } =
     resumenCuentaCobro(formValues);
   // Traída de las facturas: sus datos no se modifican acá. Si hay un error se
   // arregla en la factura y se vuelve a pasar. Solo queda libre el "por concepto
@@ -762,14 +762,19 @@ export default function CuentaCobro({ forma = "normal" }) {
 
             {/* Sin pagos, el total es lo que se cobra y va en amarillo, como
                 siempre. Con pagos cierra el saldo: en rojo si se debe, en
-                verde si quedó en cero, como el saldo de la factura. */}
+                verde si quedó en cero, como el saldo de la factura. Si pagó de
+                más, en su lugar va el saldo a favor, en verde. */}
             {hayMovimientos
-              ? renglonDePizarra("Saldo a cancelar", formatearMoneda(aCancelar), {
-                  fuerte: true,
-                  variante: "h6",
-                  clase: `separada ${aCancelar > 0 ? "alerta" : "ok"}`,
-                  sx: { mb: 0 },
-                })
+              ? renglonDePizarra(
+                  cierre.aFavor ? cierre.etiqueta : "Saldo a cancelar",
+                  formatearMoneda(cierre.valor),
+                  {
+                    fuerte: true,
+                    variante: "h6",
+                    clase: `separada ${aCancelar > 0 ? "alerta" : "ok"}`,
+                    sx: { mb: 0 },
+                  },
+                )
               : renglonDePizarra("Total", formatearMoneda(total), {
                   fuerte: true,
                   variante: "h6",

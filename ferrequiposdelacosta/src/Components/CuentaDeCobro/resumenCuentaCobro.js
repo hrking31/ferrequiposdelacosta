@@ -9,30 +9,41 @@
 // Con la 0783: Total $376.000, consignó $350.000 y el depósito es de $100.000.
 // De lo consignado, $100.000 quedan de garantía y $250.000 pagan la cuenta:
 // Total $376.000 - Pagado $250.000 = Total a Cancelar $126.000.
+//
+// Si el cliente pagó de más, el sobrante sale como "Saldo a favor", con el
+// mismo cierre de la factura (`cerrarCuenta`).
 import { formatearMoneda } from "../../Utils/formato";
+import {
+  cerrarCuenta,
+  depositoRecibido,
+  pagoAlDeposito,
+} from "../ClienteDetalle/facturaCuentas";
 
 const numero = (valor) => Number(valor) || 0;
 
 // Una cuenta escrita a mano solo sabe lo consignado y el valor del depósito. Se
-// aplica la regla de la factura: cada pago cubre primero el depósito, y los
-// abonos completan lo que falte.
+// aplican las reglas de la factura, como si fuera un solo despacho: el pago
+// cubre primero el depósito, y los abonos completan lo que falte.
 const desgloseDigitado = (cuenta) => {
   const pactado = numero(cuenta.valorDeposito);
   const pagos = numero(cuenta.pagado);
   const abonos = numero(cuenta.abonos);
 
-  const conLosPagos = Math.min(pactado, pagos);
-  const conLosAbonos = Math.min(pactado - conLosPagos, abonos);
-  const recibido = conLosPagos + conLosAbonos;
+  const conLosPagos = pagoAlDeposito(pactado, pagos);
+  const { conAbonos, recibido, porCobrar } = depositoRecibido({
+    pactado,
+    conLosPagos,
+    abonos,
+  });
 
   return {
     pagado: pagos - conLosPagos,
-    abonos: abonos - conLosAbonos,
+    abonos: abonos - conAbonos,
     retenido: 0,
     devueltoDeMas: 0,
     deposito: {
       recibido,
-      porCobrar: pactado - recibido,
+      porCobrar,
       aplicado: 0,
       devuelto: 0,
       enGarantia: recibido,
@@ -49,9 +60,11 @@ export default function resumenCuentaCobro(cuenta) {
   const { pagado, abonos, retenido, devueltoDeMas, deposito } =
     cuenta.desgloseFacturas ?? desgloseDigitado(cuenta);
 
-  const aCancelar =
-    Math.max(0, total - pagado - abonos - retenido + devueltoDeMas) +
-    deposito.porCobrar;
+  // Lo mismo que la factura llama `neto`: el total menos lo que le llegó.
+  const { saldoPendiente: aCancelar, saldoAFavor } = cerrarCuenta(
+    total - pagado - abonos - retenido + devueltoDeMas,
+    deposito.porCobrar,
+  );
 
   // Cada renglón sale solo si tiene valor. Los que mueven la suma llevan su
   // signo para que el cliente pueda seguir la cuenta hasta el Total a Cancelar.
@@ -98,7 +111,14 @@ export default function resumenCuentaCobro(cuenta) {
         ].filter(({ valor, siempre }) => siempre || valor > 0)
       : [];
 
-  return { filas, filasDeposito, aCancelar, hayMovimientos };
+  // El renglón que cierra la cuenta, igual que en la factura: el saldo a favor
+  // si el cliente pagó de más, y si no, lo que se cobra. Nunca los dos.
+  const cierre =
+    saldoAFavor > 0
+      ? { etiqueta: "Saldo a favor", valor: saldoAFavor, aFavor: true }
+      : { etiqueta: "Total a Cancelar", valor: aCancelar, aFavor: false };
+
+  return { filas, filasDeposito, aCancelar, saldoAFavor, cierre, hayMovimientos };
 }
 
 // LAS HORAS: un ítem se cobra por días o por horas, y la cuenta es la misma:

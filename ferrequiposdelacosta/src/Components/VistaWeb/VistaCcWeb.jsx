@@ -35,11 +35,10 @@ export default function VistaCcWeb({ llenarAlto = false }) {
 
   // Los mismos renglones del PDF (ver resumenCuentaCobro). `fuerte` marca los
   // tres que van destacados.
-  const { filas, filasDeposito, aCancelar } = resumenCuentaCobro(cuenta);
-  const filasTotales = [
-    ...filas,
-    { etiqueta: "Total a Cancelar", valor: aCancelar, fuerte: true },
-  ];
+  // Cierra con lo que se cobra o, si el cliente pagó de más, con el saldo a
+  // favor. "LA SUMA DE" es siempre lo que se cobra: $0 si pagó de más.
+  const { filas, filasDeposito, aCancelar, cierre } = resumenCuentaCobro(cuenta);
+  const filasTotales = [...filas, { ...cierre, fuerte: true }];
 
   const conFactura =
     cuenta.tipo !== "empresa" && items.some((item) => item.factura);

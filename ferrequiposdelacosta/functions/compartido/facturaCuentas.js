@@ -1278,20 +1278,39 @@ export const sumarDescuentos = (doc) => sumar(descuentosDe(doc), "monto");
 //     factura (ver `danos` en la cuenta) que se paga con la garantía.
 //   - Lo que se le entrega al cliente sale primero de lo que queda del
 //     depósito, y recién después de un saldo a favor.
+//
+// Las dos primeras reglas las usa también la cuenta de cobro escrita a mano
+// (ver resumenCuentaCobro): `pagoAlDeposito` y `depositoRecibido`.
+
+// Lo que de un pago va a la garantía: el pago cubre PRIMERO el depósito.
+export const pagoAlDeposito = (deposito, pagos) => Math.min(numero(deposito), numero(pagos));
+
+// Lo que el cliente ya dejó de garantía: lo que cubrieron los pagos y, si
+// faltó, lo que completaron los abonos. Resuelta la devolución ya no hace
+// falta garantía: los abonos no la completan y no queda nada por cobrar.
+export const depositoRecibido = ({ pactado, conLosPagos, abonos, resuelto = false }) => {
+  const conAbonos = resuelto ? 0 : Math.min(pactado - conLosPagos, abonos);
+  const recibido = conLosPagos + conAbonos;
+  return { conAbonos, recibido, porCobrar: resuelto ? 0 : pactado - recibido };
+};
+
 export const calcularDeposito = (doc) => {
   const pactado = calcularDepositoTotal(doc);
   const resuelto = Boolean(datosFactura(doc).depositoResuelto);
 
   const conLosDespachos = gruposDe(doc).reduce(
     (total, grupo) =>
-      total +
-      Math.min(numero(adicionalesDe(grupo).valorDeposito), sumar(pagosDe(grupo), "monto")),
+      total + pagoAlDeposito(adicionalesDe(grupo).valorDeposito, sumar(pagosDe(grupo), "monto")),
     0,
   );
   const aplicado = sumarAbonosConDeposito(doc);
   const abonosEnPlata = sumarAbonos(doc) - aplicado;
-  const conAbonos = resuelto ? 0 : Math.min(pactado - conLosDespachos, abonosEnPlata);
-  const recibido = conLosDespachos + conAbonos;
+  const { conAbonos, recibido, porCobrar } = depositoRecibido({
+    pactado,
+    conLosPagos: conLosDespachos,
+    abonos: abonosEnPlata,
+    resuelto,
+  });
 
   const retenido = Math.min(calcularRetenido(doc), recibido);
   const disponible = Math.max(0, recibido - retenido - aplicado);
@@ -1307,7 +1326,7 @@ export const calcularDeposito = (doc) => {
     conAbonos,
     recibido,
     // Lo que el cliente todavía tiene que dejar de garantía.
-    porCobrar: resuelto ? 0 : pactado - recibido,
+    porCobrar,
     retenido,
     aplicado,
     devuelto,
@@ -1361,6 +1380,18 @@ export const repartirEntregas = (doc) => {
   return { deposito, deMas };
 };
 
+// EL CIERRE DE UNA CUENTA: lo que queda después de restar al total lo que el
+// cliente entregó (`neto`). Si falta plata, es saldo; si sobra, no baja el
+// saldo —que nunca es negativo— sino que sale aparte como saldo a favor. La
+// garantía que todavía no dejó se cobra con el saldo.
+//
+// Lo usan la factura, la cuenta del cliente y la cuenta de cobro, así las tres
+// cierran igual.
+export const cerrarCuenta = (neto, depositoPorCobrar = 0) => ({
+  saldoPendiente: Math.max(0, neto) + depositoPorCobrar,
+  saldoAFavor: Math.max(0, -neto),
+});
+
 // La cuenta completa, tal como se muestra: el alquiler al día de hoy, los
 // fletes, los daños, y lo que el cliente entregó. Si pagó de más, el sobrante
 // no baja el saldo —que nunca es negativo— sino que sale aparte como saldo a
@@ -1406,7 +1437,7 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
   const descuentoAlCobrar = Math.min(sumarDescuentos(doc), Math.max(0, total - recibido));
 
   const neto = total - recibido - descuentoAlCobrar;
-  const saldoAFavor = Math.max(0, -neto);
+  const { saldoPendiente, saldoAFavor } = cerrarCuenta(neto, deposito.porCobrar);
   // Si la misma factura todavía debe, el depósito libre primero la paga: no
   // se le devuelve plata a quien la debe ahí mismo. La 2455: $500.000 de
   // depósito libre y $214.000 de saldo → se aplican $214.000 y se le
@@ -1441,7 +1472,7 @@ export const calcularCuentaFactura = (doc, hoyIso = obtenerFechaHoyBogota()) => 
     recibido,
     // Lo que el cliente debe: lo de la factura y, con equipos afuera, la
     // garantía que todavía no dejó.
-    saldoPendiente: Math.max(0, neto) + deposito.porCobrar,
+    saldoPendiente,
     saldoAFavor,
     depositoAlSaldo,
     // Todo lo que hay que devolverle: lo que pagó de más y el depósito libre,
@@ -1714,8 +1745,7 @@ export const calcularCuentaCliente = (facturas, hoyIso = obtenerFechaHoyBogota()
   const neto = resumen.total - resumen.recibido - resumen.descuentoAlCobrar;
   return {
     ...resumen,
-    saldoPendiente: Math.max(0, neto) + resumen.depositoPorCobrar,
-    saldoAFavor: Math.max(0, -neto),
+    ...cerrarCuenta(neto, resumen.depositoPorCobrar),
   };
 };
 

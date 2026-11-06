@@ -35,7 +35,9 @@ export default function generarCuentaCobro(values) {
     bottom: margenPie,
   };
 
-  const { filas, filasDeposito, aCancelar } = resumenCuentaCobro(cuenta);
+  // "LA SUMA DE" es siempre lo que se cobra: $0 si el cliente pagó de más. El
+  // sobrante sale al final de los totales, como "Saldo a favor".
+  const { filas, filasDeposito, aCancelar, cierre } = resumenCuentaCobro(cuenta);
 
   // Fecha
   doc.setFontSize(10);
@@ -167,7 +169,7 @@ export default function generarCuentaCobro(values) {
   // Los tres renglones fuertes —Subtotal, Total y Total a cancelar— llevan su
   // rótulo pegado a la cifra (alineado a la derecha, con aire en medio), más
   // grande y en negrita; los demás lo llevan al principio, a la izquierda.
-  const DESTACADAS = ["Subtotal", "Total", "Total a Cancelar"];
+  const DESTACADAS = ["Subtotal", "Total", "Total a Cancelar", "Saldo a favor"];
 
   autoTable(doc, {
     // Bien separada de la tabla de equipos: son dos cosas distintas y pegadas
@@ -175,7 +177,7 @@ export default function generarCuentaCobro(values) {
     startY: doc.lastAutoTable.finalY + 22,
     body: [
       ...filas.map((fila) => [fila.etiqueta, valorDeFila(fila)]),
-      ["Total a Cancelar", formatearMoneda(aCancelar)],
+      [cierre.etiqueta, formatearMoneda(cierre.valor)],
     ],
     styles: { fontSize: 10, textColor: [68, 68, 68] },
     columnStyles: {

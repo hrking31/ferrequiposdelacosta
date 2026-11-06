@@ -119,6 +119,67 @@ describe("los renglones", () => {
   });
 });
 
+describe("el saldo a favor, como en la factura", () => {
+  it("total $500.000 y pagó $550.000: cobra $0 y quedan $50.000 a favor", () => {
+    const { aCancelar, saldoAFavor, cierre } = resumenCuentaCobro(
+      aMano({ subtotalNumero: 500000, valorTransporte: 0, total: 500000, pagado: 550000 }),
+    );
+
+    expect(aCancelar).toBe(0);
+    expect(saldoAFavor).toBe(50000);
+    expect(cierre).toEqual({ etiqueta: "Saldo a favor", valor: 50000, aFavor: true });
+  });
+
+  it("con depósito: $100.000 quedan de garantía y lo demás sobra", () => {
+    // Total $376.000, depósito $100.000, consignó $500.000: $400.000 pagan la
+    // cuenta y quedan $24.000 a favor.
+    const { aCancelar, saldoAFavor, filasDeposito } = resumenCuentaCobro(
+      aMano({ pagado: 500000, valorDeposito: 100000 }),
+    );
+
+    expect(aCancelar).toBe(0);
+    expect(saldoAFavor).toBe(24000);
+    expect(fila(filasDeposito, "En garantía").valor).toBe(100000);
+  });
+
+  it("si debe, cierra con lo que se cobra y no hay saldo a favor", () => {
+    const { saldoAFavor, cierre } = resumenCuentaCobro(aMano({ pagado: 300000 }));
+
+    expect(saldoAFavor).toBe(0);
+    expect(cierre).toEqual({ etiqueta: "Total a Cancelar", valor: 76000, aFavor: false });
+  });
+
+  it("pagado justo: cierra en $0 a cancelar, sin saldo a favor", () => {
+    const { cierre } = resumenCuentaCobro(aMano({ pagado: 376000 }));
+    expect(cierre).toEqual({ etiqueta: "Total a Cancelar", valor: 0, aFavor: false });
+  });
+
+  it("traída de las facturas: un pago de más de una factura queda a favor", () => {
+    const { aCancelar, saldoAFavor } = resumenCuentaCobro(
+      aMano({
+        total: 200000,
+        desgloseFacturas: {
+          pagado: 230000,
+          abonos: 0,
+          retenido: 0,
+          devueltoDeMas: 0,
+          deposito: {
+            recibido: 0,
+            porCobrar: 0,
+            aplicado: 0,
+            devuelto: 0,
+            enGarantia: 0,
+            porDevolver: 0,
+          },
+        },
+      }),
+    );
+
+    expect(aCancelar).toBe(0);
+    expect(saldoAFavor).toBe(30000);
+  });
+});
+
 describe("el tiempo de cada ítem", () => {
   it("dice la unidad, en singular o plural y con coma decimal", () => {
     expect(textoDeTiempo({ day: 8, unidad: "horas" })).toBe("8 horas");
