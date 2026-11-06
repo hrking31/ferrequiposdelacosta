@@ -72,8 +72,8 @@ const RENGLONES_DE_PIZARRA = {
   "Devuelto al cliente": { Icono: CurrencyExchangeIcon },
   "Depósito por cobrar": { Icono: TollIcon, clase: "alerta" },
   "Saldo a cancelar": { Icono: ScheduleIcon },
-  // La cotización: lo que el cliente lleva el día del despacho.
-  "Para despachar": { Icono: PaymentsIcon, clase: "separada" },
+  // La cotización: el depósito va en la suma, con su color.
+  Depósito: { Icono: TollIcon, clase: "deposito" },
   // Los del depósito.
   Recibido: { Icono: TollIcon },
   "Por cobrar": { Icono: TollIcon, clase: "alerta" },
@@ -81,7 +81,6 @@ const RENGLONES_DE_PIZARRA = {
   Devuelto: { Icono: CurrencyExchangeIcon },
   "En garantía": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
   "Por devolver": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
-  "A entregar": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
 };
 
 // Un renglón de pizarra: el rótulo con su ícono a la izquierda y la cifra, ya

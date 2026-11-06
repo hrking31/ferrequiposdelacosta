@@ -37,61 +37,83 @@ const abrir = (value, forma) =>
 // La pizarra (el Paper) que contiene un texto.
 const pizarraDe = (texto) => screen.getByText(texto).closest(".MuiPaper-root");
 
-describe("las dos pizarras de la cotización, como en la factura", () => {
-  it("sin depósito, la cuenta cierra con el Total y el depósito dice que no hay", () => {
-    abrir(cotizacion());
-
-    const cierre = pizarraDe("Subtotal").querySelector(".fila:last-of-type");
-    expect(cierre).toHaveTextContent(/^Total/);
-    expect(cierre).toHaveClass("total");
-    expect(screen.queryByText("Para despachar")).not.toBeInTheDocument();
-    expect(within(pizarraDe("DEPÓSITO")).getByText("Sin depósito")).toBeInTheDocument();
-  });
-
-  it("con depósito, el total no lo suma y cierra lo que se lleva para despachar", () => {
+describe("la pizarra de la cotización, igual que la cuenta del PDF", () => {
+  it("una sola pizarra: sin el recuadro aparte del depósito", () => {
     abrir(cotizacion({ deposito: true, valorDeposito: 100000 }));
 
-    const cuenta = within(pizarraDe("Subtotal"));
-    expect(cuenta.getByText("Total").closest(".fila")).toHaveTextContent("400.000");
-    expect(cuenta.getByText("Para despachar").closest(".fila")).toHaveTextContent("500.000");
-
-    const deposito = within(pizarraDe("DEPÓSITO"));
-    const aEntregar = deposito.getByText("A entregar").closest(".fila");
-    expect(aEntregar).toHaveClass("resaltada");
-    expect(aEntregar).toHaveTextContent("100.000");
-    expect(deposito.queryByText("Sin depósito")).not.toBeInTheDocument();
+    expect(screen.queryByText("DEPÓSITO")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".MuiPaper-root")).toHaveLength(1);
   });
 
-  it("el total guardado (el que muestra la lista) ya no lleva el depósito", async () => {
+  it("los cinco renglones van siempre, aunque estén en cero", () => {
+    abrir(cotizacion());
+
+    const pizarra = pizarraDe("Subtotal");
+    const rotulos = [...pizarra.querySelectorAll(".fila")].map((fila) => fila.firstChild.textContent);
+    expect(rotulos).toEqual(["Subtotal", "IVA (19%)", "Depósito", "Transporte", "Total"]);
+    const cero = /\$\s*0(,00)?$/;
+    expect(within(pizarra).getByText("IVA (19%)").closest(".fila")).toHaveTextContent(cero);
+    expect(within(pizarra).getByText("Depósito").closest(".fila")).toHaveTextContent(cero);
+    expect(within(pizarra).getByText("Transporte").closest(".fila")).toHaveTextContent(cero);
+    const cierre = pizarra.querySelector(".fila:last-of-type");
+    expect(cierre).toHaveTextContent(/^Total/);
+    expect(cierre).toHaveClass("total");
+    expect(cierre).toHaveTextContent("400.000");
+  });
+
+  it("con depósito: va entre el IVA y el transporte, y el total lo suma", () => {
+    abrir(
+      cotizacion({
+        iva: true,
+        deposito: true,
+        valorDeposito: 100000,
+        transporte: "Ida y vuelta",
+        valorTransporte: 40000,
+      }),
+    );
+
+    const pizarra = pizarraDe("Subtotal");
+    const rotulos = [...pizarra.querySelectorAll(".fila")].map((fila) => fila.firstChild.textContent);
+    expect(rotulos).toEqual(["Subtotal", "IVA (19%)", "Depósito", "Transporte", "Total"]);
+    // 400.000 + 76.000 de IVA + 100.000 de depósito + 40.000 de transporte.
+    expect(pizarra.querySelector(".fila:last-of-type")).toHaveTextContent("616.000");
+  });
+
+  it("el total guardado (el que muestra la lista) incluye el depósito", async () => {
     const { store, usuario } = abrir(cotizacion({ deposito: true }));
 
     await usuario.type(screen.getByLabelText("Valor Depósito"), "100000");
 
     const value = store.getState().cotizacion.value;
     expect(value.valorDeposito).toBe("100000");
-    expect(value.totalNumero).toBe(400000);
+    expect(value.totalNumero).toBe(500000);
   });
 });
 
 describe("el IVA en el primer renglón, como en la cuenta de cobro", () => {
-  it("marcarlo suma el 19 % al total; el depósito sigue sin sumar", async () => {
+  it("marcarlo suma el 19 % del subtotal al total", async () => {
     const { store, usuario } = abrir(cotizacion({ deposito: true, valorDeposito: 100000 }));
 
     await usuario.click(screen.getByRole("checkbox", { name: "IVA" }));
 
     const value = store.getState().cotizacion.value;
     expect(value.iva).toBe(true);
-    expect(value.totalNumero).toBeCloseTo(476000);
+    // 400.000 + 76.000 de IVA + 100.000 de depósito.
+    expect(value.totalNumero).toBeCloseTo(576000);
     expect(within(pizarraDe("Subtotal")).getByText("IVA (19%)")).toBeInTheDocument();
   });
 
-  it("la casilla de depósito sigue en su lugar y lo apaga", async () => {
+  it("la casilla de depósito sigue en su lugar y lo saca del total", async () => {
     const { store, usuario } = abrir(cotizacion({ deposito: true, valorDeposito: 100000 }));
 
     await usuario.click(screen.getByRole("checkbox", { name: "Depósito" }));
 
-    expect(store.getState().cotizacion.value.valorDeposito).toBe(0);
-    expect(within(pizarraDe("DEPÓSITO")).getByText("Sin depósito")).toBeInTheDocument();
+    const value = store.getState().cotizacion.value;
+    expect(value.valorDeposito).toBe(0);
+    expect(value.totalNumero).toBe(400000);
+    expect(within(pizarraDe("Subtotal")).getByText("Depósito").closest(".fila")).toHaveTextContent(
+      /\$\s*0(,00)?$/,
+    );
   });
 });
 

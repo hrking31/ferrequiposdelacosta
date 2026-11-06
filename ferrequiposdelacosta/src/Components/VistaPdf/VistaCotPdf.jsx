@@ -5,12 +5,11 @@ import { formatearMoneda } from "../../Utils/formato";
 import resumenCotizacion from "../Cotizacion/resumenCotizacion";
 
 // Los renglones de la cuenta que van destacados, más grandes y en negrita.
-const DESTACADOS = ["Subtotal", "TOTAL", "PARA DESPACHAR"];
+const DESTACADOS = ["Subtotal", "TOTAL"];
 
 export default function generarCotizacion(values) {
   const doc = new jsPDF();
-  // Las mismas cifras del formulario y de la hoja (pedido del dueño,
-  // 2026-11-05): el depósito ya no suma al total, va aparte después de él.
+  // Las mismas cifras del formulario y de la hoja (ver resumenCotizacion).
   const resumen = resumenCotizacion(values);
 
   // === ENCABEZADO ===
@@ -99,17 +98,11 @@ export default function generarCotizacion(values) {
 
       ["", "Subtotal", formatearMoneda(resumen.subtotal)],
       ["IVA", "", formatearMoneda(resumen.iva)],
+      // El depósito, entre el IVA y el transporte, siempre (pedido del dueño,
+      // 2026-11-05): suma al total y se aclara que se devuelve.
+      ["Depósito", "Se devuelve al recibir los equipos", formatearMoneda(resumen.deposito)],
       ["Transporte", `${values.transporte ?? ""}`, formatearMoneda(resumen.transporte)],
       ["", "TOTAL", formatearMoneda(resumen.total)],
-
-      // El depósito, aparte del total: se devuelve al recibir los equipos. Con
-      // él, lo que el cliente lleva el día del despacho.
-      ...(resumen.deposito > 0
-        ? [
-            ["Depósito", "Se devuelve al recibir los equipos", formatearMoneda(resumen.deposito)],
-            ["", "PARA DESPACHAR", formatearMoneda(resumen.paraDespachar)],
-          ]
-        : []),
     ],
 
     styles: {
@@ -139,8 +132,8 @@ export default function generarCotizacion(values) {
       right: 20,
     },
 
-    // Subtotal, Total y Para despachar, destacados. Se reconocen por el rótulo
-    // de su segunda columna y no por su posición: el depósito puede estar o no.
+    // Subtotal y Total, destacados. Se reconocen por el rótulo
+    // de su segunda columna y no por su posición.
     didParseCell: function (data) {
       if (data.section !== "body") return;
       const desdeLosItems = data.row.index >= values.items.length;

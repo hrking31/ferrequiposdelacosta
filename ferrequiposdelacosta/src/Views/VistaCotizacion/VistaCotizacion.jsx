@@ -336,9 +336,10 @@ export default function VistaCotizacion() {
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
             gridTemplateRows: "auto auto minmax(0, 1fr)",
-            // Los datos y los ítems arriba, las dos pizarras lado a lado
-            // debajo y la hoja abajo de todo, como en la cuenta de cobro.
-            gridTemplateAreas: '"datos items" "cuenta deposito" "hoja hoja"',
+            // Los datos y debajo la pizarra a la izquierda; los ítems a la
+            // derecha, hasta abajo (la cotización no lleva el recuadro aparte
+            // del depósito); la hoja abajo de todo.
+            gridTemplateAreas: '"datos items" "pizarra items" "hoja hoja"',
             columnGap: 3,
             rowGap: 2,
           }}

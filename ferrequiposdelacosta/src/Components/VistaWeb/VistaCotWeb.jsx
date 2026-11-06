@@ -12,7 +12,7 @@ import resumenCotizacion from "../Cotizacion/resumenCotizacion";
 export default function VistaCotWeb({ llenarAlto = false }) {
   const formValues = useSelector((state) => state.cotizacion);
   const items = useSelector((state) => state.cotizacion.value.items);
-  // Las mismas cifras del formulario y del PDF; el depósito, aparte del total.
+  // Las mismas cifras del formulario y del PDF (ver resumenCotizacion).
   const resumen = resumenCotizacion(formValues.value);
 
   const theme = useTheme();
@@ -213,6 +213,12 @@ export default function VistaCotWeb({ llenarAlto = false }) {
       </Typography>
 
       {renglon("Iva", formatearMoneda(resumen.iva))}
+      {/* El depósito, entre el IVA y el transporte, siempre (pedido del
+          dueño, 2026-11-05): suma al total y se aclara que se devuelve. */}
+      {renglon(
+        "Depósito (se devuelve al recibir los equipos)",
+        formatearMoneda(resumen.deposito),
+      )}
       {renglon(
         `Transporte: ${formValues.value.transporte ?? ""}`,
         formatearMoneda(resumen.transporte),
@@ -227,28 +233,6 @@ export default function VistaCotWeb({ llenarAlto = false }) {
       >
         Total: {formatearMoneda(resumen.total)}
       </Typography>
-
-      {/* El depósito, aparte del total (pedido del dueño, 2026-11-05): se
-          devuelve al recibir los equipos. Con él, lo que se lleva el día del
-          despacho. */}
-      {resumen.deposito > 0 && (
-        <>
-          {renglon(
-            "Depósito (se devuelve al recibir los equipos)",
-            formatearMoneda(resumen.deposito),
-          )}
-          <Typography
-            variant="subtitle1"
-            sx={{
-              textAlign: "right",
-              mt: "20px",
-              fontWeight: 700,
-            }}
-          >
-            Para despachar: {formatearMoneda(resumen.paraDespachar)}
-          </Typography>
-        </>
-      )}
 
       {llenarAlto && <Box sx={{ flexGrow: 1 }} />}
       <Box sx={{ mt: "40px", textAlign: "center" }}>

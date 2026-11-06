@@ -34,11 +34,8 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { departamentosYMunicipios } from "../RolesPermisos/departamentosYMunicipios";
 import { formatearMoneda } from "../../Utils/formato";
-import { medidasPrimerRenglon, usePantallaCompacta } from "../../Utils/pantalla";
-import {
-  renglonDePizarra,
-  renderTituloDeposito,
-} from "../ClienteDetalle/recuadrosCuenta";
+import { medidasPrimerRenglon } from "../../Utils/pantalla";
+import { renglonDePizarra } from "../ClienteDetalle/recuadrosCuenta";
 import resumenCotizacion from "./resumenCotizacion";
 
 // LAS FORMAS DEL FORMULARIO, las mismas de la cuenta de cobro (pedido del
@@ -63,13 +60,12 @@ export default function Cotizacion({ forma = "normal" }) {
   const llenaElAlto = ladoALado || dePie;
   // El ancho de los campos de a dos, que lado a lado van de a tres.
   const deATres = ladoALado ? 4 : 6;
-  const compacta = usePantallaCompacta();
   // Persona, Empresa, IVA y la fecha, igual que en la cuenta de cobro: ver
   // medidasPrimerRenglon.
   const renglon1 = medidasPrimerRenglon({ ladoALado, dePie });
 
   // Las cifras de la cotización salen de un solo lugar, el mismo que leen la
-  // hoja y el PDF. El depósito va aparte del total.
+  // hoja y el PDF. El total incluye el depósito.
   const resumen = resumenCotizacion(formValues);
 
   const handlerInputChange = (event) => {
@@ -118,7 +114,7 @@ export default function Cotizacion({ forma = "normal" }) {
   };
 
   // Guarda las cifras ya calculadas para la lista de cotizaciones, que muestra
-  // el total sin volver a sumar. El total ya no lleva el depósito.
+  // el total sin volver a sumar. Es el mismo de la pizarra: con el depósito.
   const calculateTotalFrom = (updatedItems, currentFormValues = formValues) => {
     const { subtotal, iva, total } = resumenCotizacion({
       ...currentFormValues,
@@ -151,17 +147,12 @@ export default function Cotizacion({ forma = "normal" }) {
 
   const formatTelefono = (telefono) => telefono.replace(/\D/g, "").substring(0, 15);
 
-  // LAS DOS PIZARRAS, como el estado de cuenta de la factura (pedido del dueño,
-  // 2026-11-05): la cuenta y el depósito. Lado a lado; si no caben, la segunda
-  // baja sola. En el celular, una debajo de la otra. De pie cada una va suelta
-  // en la grilla de la pantalla: la cuenta debajo de los datos y el depósito
-  // debajo de los ítems (ver VistaCotizacion).
-  const sxPizarra = (area) =>
-    dePie
-      ? { gridArea: area, minWidth: 0 }
-      : compacta
-        ? {}
-        : { flex: "1 1 260px", minWidth: 0 };
+  // LA PIZARRA debajo de los ítems, a todo el ancho del formulario. De pie va
+  // suelta en la grilla de la pantalla, debajo de los datos; los ítems siguen
+  // a su derecha hasta abajo (ver VistaCotizacion).
+  const sxPizarra = dePie
+    ? { gridArea: "pizarra", minWidth: 0 }
+    : { flexShrink: 0, mt: 2 };
 
   return (
     // Aire a los costados del formulario y de los recuadros de cada ítem.
@@ -663,72 +654,23 @@ export default function Cotizacion({ forma = "normal" }) {
           </Box>
         </Box>
 
-        <Box
-          sx={
-            dePie
-              ? { display: "contents" }
-              : {
-                  flexShrink: 0,
-                  mt: 2,
-                  display: "flex",
-                  flexDirection: compacta ? "column" : "row",
-                  flexWrap: "wrap",
-                  // Cada una con el alto de la más alta.
-                  alignItems: "stretch",
-                  gap: 1.5,
-                }
-          }
-        >
-          {/* LA CUENTA: el subtotal y lo que se le suma, y el total. Cada
-              renglón sale solo si tiene valor. Con depósito cierra lo que el
-              cliente lleva el día del despacho: el total más el depósito. */}
-          <Paper variant="totales" sx={sxPizarra("cuenta")}>
-            {renglonDePizarra("Subtotal", formatearMoneda(resumen.subtotal), { fuerte: true })}
-            {resumen.iva > 0 && renglonDePizarra("IVA (19%)", formatearMoneda(resumen.iva))}
-            {resumen.transporte > 0 &&
-              renglonDePizarra("Transporte", formatearMoneda(resumen.transporte))}
-            {resumen.deposito > 0 ? (
-              <>
-                {renglonDePizarra("Total", formatearMoneda(resumen.total), {
-                  fuerte: true,
-                  variante: "subtitle1",
-                  sx: { mb: 1 },
-                })}
-                {renglonDePizarra("Para despachar", formatearMoneda(resumen.paraDespachar), {
-                  fuerte: true,
-                  variante: "h6",
-                  sx: { mb: 0 },
-                })}
-              </>
-            ) : (
-              renglonDePizarra("Total", formatearMoneda(resumen.total), {
-                fuerte: true,
-                variante: "h6",
-                sx: { mb: 0 },
-              })
-            )}
-          </Paper>
-
-          {/* EL DEPÓSITO, aparte del total, como en la factura. Va siempre,
-              para que nada salte al escribirlo. */}
-          <Paper variant="totales" sx={sxPizarra("deposito")}>
-            {renderTituloDeposito()}
-            {resumen.deposito > 0 ? (
-              <>
-                {renglonDePizarra("A entregar", formatearMoneda(resumen.deposito), {
-                  fuerte: true,
-                })}
-                <Typography variant="caption" sx={{ opacity: 0.7 }}>
-                  Se devuelve al recibir los equipos.
-                </Typography>
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ opacity: 0.6 }}>
-                Sin depósito
-              </Typography>
-            )}
-          </Paper>
-        </Box>
+        {/* LA PIZARRA, igual que la cuenta del PDF (pedido del dueño,
+            2026-11-05): el subtotal, el IVA, el depósito, el transporte y el
+            total, que lo suma todo. Los cinco van siempre, aunque estén en
+            cero: la pizarra no cambia de forma. La cotización no lleva el
+            recuadro aparte del depósito: en ella el depósito todavía no se
+            mueve, solo se suma. */}
+        <Paper variant="totales" sx={sxPizarra}>
+          {renglonDePizarra("Subtotal", formatearMoneda(resumen.subtotal), { fuerte: true })}
+          {renglonDePizarra("IVA (19%)", formatearMoneda(resumen.iva))}
+          {renglonDePizarra("Depósito", formatearMoneda(resumen.deposito))}
+          {renglonDePizarra("Transporte", formatearMoneda(resumen.transporte))}
+          {renglonDePizarra("Total", formatearMoneda(resumen.total), {
+            fuerte: true,
+            variante: "h6",
+            sx: { mb: 0 },
+          })}
+        </Paper>
       </Box>
     </Box>
   );

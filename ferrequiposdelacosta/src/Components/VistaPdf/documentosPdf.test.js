@@ -303,8 +303,7 @@ describe("el PDF de la cotización", () => {
     iva: false,
     deposito: true,
     valorDeposito: 100000,
-    // El total guardado de una cotización vieja, con el depósito sumado: el
-    // PDF no tiene que creerle.
+    // El total guardado: el PDF lo calcula desde las partes y no lo lee.
     total: "$ 380.000",
     items: [{ description: "ANDAMIO", quantity: 4, day: 3, price: 20000, subtotal: "$ 240.000" }],
     ...extra,
@@ -312,23 +311,24 @@ describe("el PDF de la cotización", () => {
   const renglones = () => papel.tablas[0].body;
   const fila = (rotulo) => renglones().find((r) => r[1] === rotulo || r[0] === rotulo);
 
-  it("el depósito va después del total y no lo suma; cierra lo que se lleva para despachar", () => {
-    generarCotizacion(cotizacionPdf());
+  it("el depósito va entre el IVA y el transporte, y el TOTAL lo suma", () => {
+    generarCotizacion(cotizacionPdf({ total: "$ 1" }));
 
     // El rótulo va en la primera columna o, si está vacía, en la segunda.
     const orden = renglones().map((r) => r[0] || r[1]);
-    expect(orden.indexOf("TOTAL")).toBeLessThan(orden.indexOf("Depósito"));
-    expect(orden.indexOf("Depósito")).toBeLessThan(orden.indexOf("PARA DESPACHAR"));
-    expect(fila("TOTAL")[2]).toContain("280.000");
+    const cuenta = orden.slice(orden.indexOf("Subtotal"));
+    expect(cuenta).toEqual(["Subtotal", "IVA", "Depósito", "Transporte", "TOTAL"]);
+    expect(fila("Depósito")[1]).toBe("Se devuelve al recibir los equipos");
     expect(fila("Depósito")[2]).toContain("100.000");
-    expect(fila("PARA DESPACHAR")[2]).toContain("380.000");
+    // 240.000 de equipos + 100.000 de depósito + 40.000 de transporte; no el
+    // total guardado.
+    expect(fila("TOTAL")[2]).toContain("380.000");
   });
 
-  it("sin depósito no lleva esos renglones", () => {
+  it("sin depósito el renglón va igual, en cero, y el total no lo suma", () => {
     generarCotizacion(cotizacionPdf({ deposito: false }));
 
-    expect(fila("Depósito")).toBeUndefined();
-    expect(fila("PARA DESPACHAR")).toBeUndefined();
+    expect(fila("Depósito")[2]).toMatch(/\$\s*0(,00)?$/);
     expect(fila("TOTAL")[2]).toContain("280.000");
   });
 });

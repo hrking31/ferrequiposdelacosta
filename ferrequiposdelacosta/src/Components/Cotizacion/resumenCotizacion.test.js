@@ -21,39 +21,38 @@ describe("resumenCotizacion", () => {
     expect(subtotalDeItems(undefined)).toBe(0);
   });
 
-  it("el depósito NO suma al total: va aparte y se suma solo para despachar", () => {
+  it("el total suma todo: subtotal, IVA, depósito y transporte", () => {
     const r = resumenCotizacion(cotizacion());
 
-    expect(r.total).toBe(380000);
     expect(r.deposito).toBe(100000);
-    expect(r.paraDespachar).toBe(480000);
+    expect(r.transporte).toBe(40000);
+    expect(r.total).toBe(480000);
   });
 
   it("el IVA es el 19 % del subtotal, sin el transporte ni el depósito", () => {
     const r = resumenCotizacion(cotizacion({ iva: true }));
 
     expect(r.iva).toBeCloseTo(64600);
-    expect(r.total).toBeCloseTo(340000 + 64600 + 40000);
+    expect(r.total).toBeCloseTo(340000 + 64600 + 100000 + 40000);
   });
 
   it("sin la casilla de depósito, no hay depósito aunque quede un valor escrito", () => {
     const r = resumenCotizacion(cotizacion({ deposito: false }));
 
     expect(r.deposito).toBe(0);
-    expect(r.paraDespachar).toBe(r.total);
+    expect(r.total).toBe(380000);
   });
 
   it("sin transporte no se cobra transporte aunque quede un valor escrito", () => {
     const r = resumenCotizacion(cotizacion({ transporte: "Sin transporte" }));
 
     expect(r.transporte).toBe(0);
-    expect(r.total).toBe(340000);
+    expect(r.total).toBe(440000);
   });
 
-  it("no usa el total guardado: el de una cotización vieja traía el depósito sumado", () => {
-    const vieja = cotizacion({ total: "$ 480.000", totalNumero: 480000 });
+  it("calcula desde las partes y no le cree al total guardado", () => {
+    const desfasada = cotizacion({ total: "$ 1", totalNumero: 1 });
 
-    expect(resumenCotizacion(vieja).total).toBe(380000);
-    expect(resumenCotizacion(vieja).paraDespachar).toBe(480000);
+    expect(resumenCotizacion(desfasada).total).toBe(480000);
   });
 });
