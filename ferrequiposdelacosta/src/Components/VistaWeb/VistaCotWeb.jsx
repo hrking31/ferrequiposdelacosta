@@ -35,7 +35,7 @@ export default function VistaCotWeb() {
       <Grid
         container
         spacing={1}
-        direction={isSmallScreen ? "row" : "row"}
+        direction="row"
         alignItems="center"
         justifyContent="center"
         sx={{

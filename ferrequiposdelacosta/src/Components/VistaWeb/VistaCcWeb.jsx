@@ -24,7 +24,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-// `llenarAlto`: la tableta acostada (pedido del dueño, 2026-11-05). La hoja
+// `llenarAlto`: lado a lado y el iPad de pie (pedido del dueño, 2026-11-05). La hoja
 // llega hasta el borde de abajo, con su propio desplazamiento, y el pie queda al
 // fondo, como en una hoja de verdad: el aire va entre los totales y el pie.
 export default function VistaCcWeb({ llenarAlto = false }) {
@@ -104,7 +104,7 @@ export default function VistaCcWeb({ llenarAlto = false }) {
       <Grid
         container
         spacing={1}
-        direction={isSmallScreen ? "row" : "row"}
+        direction="row"
         alignItems="center"
         justifyContent="center"
         sx={{

@@ -77,26 +77,26 @@ const RENGLONES = {
 const SALEN_DEL_DEPOSITO = ["Retenido por daños", "Aplicado a la factura", "Devuelto"];
 const CIERRES_DEL_DEPOSITO = ["En garantía", "Por devolver"];
 
-// `forma="acostada"`: la tableta acostada (pedido del dueño, 2026-11-05). El
-// formulario ocupa todo el alto de su columna: los datos en renglones de a
-// tres, los ítems de corrido, el botón de agregar estirado hasta las pizarras
-// —se encoge con cada ítem— y las pizarras abajo. Así no queda espacio vacío
-// debajo. Cuando no cabe, se desplaza la columna entera: un solo
-// desplazamiento, en el computador y en la tableta.
+// `forma="ladoALado"`: el formulario al lado de la hoja, desde 1462 de ancho
+// (pedido del dueño, 2026-11-05). Ocupa todo el alto de su columna: los datos
+// en renglones de a tres, los ítems de corrido, el botón de agregar estirado
+// hasta las pizarras —se encoge con cada ítem— y las pizarras abajo. Así no
+// queda espacio vacío debajo. Cuando no cabe, se desplaza la columna entera:
+// un solo desplazamiento para el formulario y otro para la hoja.
 export default function CuentaCobro({ forma = "normal" }) {
   const theme = useTheme();
-  const acostada = forma === "acostada";
+  const ladoALado = forma === "ladoALado";
   // `forma="dePie"`: la tableta de pie (pedido del dueño, 2026-11-05). Las
   // piezas van sueltas en la grilla de la pantalla: los datos y la pizarra a la
   // izquierda, los ítems a la derecha y la hoja debajo (ver VistaCuentaDeCobro).
   const dePie = forma === "dePie";
-  // En la tableta, de pie o acostada, el botón de agregar se estira hasta
-  // abajo si sobra alto.
-  const llenaElAlto = acostada || dePie;
-  // El ancho de los campos de a dos, que acostada van de a tres.
-  const deATres = acostada ? 4 : 6;
+  // Lado a lado o de pie, el formulario llena el alto de su espacio y el botón
+  // de agregar se estira hasta abajo si sobra alto.
+  const llenaElAlto = ladoALado || dePie;
+  // El ancho de los campos de a dos, que lado a lado van de a tres.
+  const deATres = ladoALado ? 4 : 6;
   const compacta = usePantallaCompacta();
-  // En la tableta, Persona, Empresa, IVA y la fecha en un solo renglón (pedido
+  // Lado a lado o de pie, Persona, Empresa, IVA y la fecha en un solo renglón (pedido
   // del dueño, 2026-11-05): las casillas más chicas y la fecha toma lo que queda.
   const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
   const opcion = llenaElAlto
@@ -263,13 +263,13 @@ export default function CuentaCobro({ forma = "normal" }) {
         display: dePie ? "contents" : "flex",
         flexDirection: "column",
         px: 2,
-        ...(acostada && { width: "100%", minHeight: 0 }),
+        ...(ladoALado && { width: "100%", minHeight: 0 }),
       }}
     >
       <Box
         component="form"
         sx={
-          acostada
+          ladoALado
             ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }
             : dePie
               ? { display: "contents" }
@@ -344,8 +344,8 @@ export default function CuentaCobro({ forma = "normal" }) {
             />
           </Grid>
 
-          {/* En la tableta ese primer renglón es solo de esos cuatro: sin este
-              corte, en el iPad grande acostado la cédula se subía también. */}
+          {/* Lado a lado y de pie, ese primer renglón es solo de esos cuatro:
+              sin este corte, en una pantalla ancha la cédula se subía también. */}
           {llenaElAlto && <Box sx={{ flexBasis: "100%", height: 0 }} />}
 
           <Grid item xs={12} sm={deATres}>
@@ -398,7 +398,7 @@ export default function CuentaCobro({ forma = "normal" }) {
           </Grid>
 
           {/* Por concepto de: propio de la cuenta de cobro. */}
-          <Grid item xs={12} sm={acostada ? 6 : 12}>
+          <Grid item xs={12} sm={ladoALado ? 6 : 12}>
             <TextField
               fullWidth
               type="text"
@@ -540,8 +540,8 @@ export default function CuentaCobro({ forma = "normal" }) {
 
         {/* LOS ÍTEMS Y EL BOTÓN DE AGREGAR, juntos. Si sobra alto, el botón
             se estira hasta abajo (pedido del dueño, 2026-11-05):
-            - Acostada, debajo de los datos y sin desplazamiento propio: crecen
-              de corrido y se desplaza la columna entera del formulario.
+            - Lado a lado, debajo de los datos y sin desplazamiento propio:
+              crecen de corrido y se desplaza la columna entera del formulario.
             - De pie, a la derecha de los datos y con su propio desplazamiento.
               No mandan en el alto del renglón: lo pone el formulario de la
               izquierda. */}
@@ -550,7 +550,7 @@ export default function CuentaCobro({ forma = "normal" }) {
             display: "flex",
             flexDirection: "column",
             gap: 2,
-            ...(acostada && { flex: "1 0 auto" }),
+            ...(ladoALado && { flex: "1 0 auto" }),
             ...(dePie && { gridArea: "items", minHeight: 0, contain: "size", overflow: "hidden" }),
           }}
         >
@@ -754,8 +754,8 @@ export default function CuentaCobro({ forma = "normal" }) {
             )}
 
             {/* Punteado, como "Nuevo equipo" (pedido del dueño, 2026-11-05).
-                En la tableta se estira hasta abajo y se encoge con cada ítem;
-                en lo demás tiene su alto fijo. */}
+                Lado a lado y de pie se estira hasta abajo y se encoge con cada
+                ítem; en lo demás tiene su alto fijo. */}
             {!bloqueada && (
               <ButtonBase
                 onClick={addNewItem}
@@ -868,5 +868,5 @@ export default function CuentaCobro({ forma = "normal" }) {
 }
 
 CuentaCobro.propTypes = {
-  forma: PropTypes.oneOf(["normal", "acostada", "dePie"]),
+  forma: PropTypes.oneOf(["normal", "ladoALado", "dePie"]),
 };

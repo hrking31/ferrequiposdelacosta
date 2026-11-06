@@ -53,19 +53,22 @@ export default function VistaCuentaDeCobro() {
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
   // LAS FORMAS DE LA PANTALLA (pedido del dueño, 2026-11-05). Van por el
   // tamaño de la ventana, igual en el computador y en la tableta:
-  // - Hasta 915, el celular; de 916 a 1199, igual que el celular: el
+  // - Hasta 915, el celular; de 916 a 1461, igual que el celular: el
   //   formulario y debajo la hoja, con un solo desplazamiento.
-  // - Desde 1200, LADO A LADO: el formulario y la hoja mitad y mitad, cada uno
-  //   con su propio desplazamiento, para ir escribiendo y viendo la hoja. La
-  //   hoja llega hasta el borde de abajo, con el pie al fondo.
+  // - Desde 1462, LADO A LADO, cada uno con su propio desplazamiento, para ir
+  //   escribiendo y viendo la hoja. La hoja nunca baja del ancho de una hoja
+  //   carta (816 px) y el formulario se queda con el resto; 1462 es donde al
+  //   formulario le quedan 550. Cuando la mitad pasa de 816 (desde 1728), van
+  //   mitad y mitad. La hoja llega hasta el borde de abajo, con el pie al
+  //   fondo.
   // - La excepción, el iPad DE PIE: pantalla claramente alargada (5/6 o más;
   //   no 4/5, para que entre el de 12,9" en Safari con sus barras, ≈1024 ×
   //   1256). Los datos y los ítems arriba, lado a lado, las dos pizarras debajo
   //   y la hoja abajo de todo.
   const alargada = useMediaQuery("(max-aspect-ratio: 5/6)");
-  const desde1200 = useMediaQuery("(min-width:1200px)");
+  const caben = useMediaQuery("(min-width:1462px)");
   const dePie = alargada && !isFullScreen;
-  const ladoALado = desde1200 && !dePie && !isFullScreen;
+  const ladoALado = caben && !dePie && !isFullScreen;
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -345,9 +348,17 @@ export default function VistaCuentaDeCobro() {
       {ladoALado ? (
         <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", gap: 2, mx: 2 }}>
           <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
-            <CuentaDeCobro forma="acostada" />
+            <CuentaDeCobro forma="ladoALado" />
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
+          {/* Ancho de hoja carta como mínimo; la mitad cuando es más. */}
+          <Box
+            sx={{
+              flex: "0 0 max(816px, calc((100% - 16px) / 2))",
+              minWidth: 0,
+              minHeight: 0,
+              display: "flex",
+            }}
+          >
             <VistaCcWeb llenarAlto />
           </Box>
         </Box>
@@ -375,7 +386,7 @@ export default function VistaCuentaDeCobro() {
           </Box>
         </Box>
       ) : (
-      // El celular y hasta 1199: todo uno debajo del otro, con un solo
+      // El celular y hasta 1461: todo uno debajo del otro, con un solo
       // desplazamiento.
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto",
         mx: isFullScreen ? 0 : 2
