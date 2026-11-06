@@ -15,6 +15,7 @@ import VistaCotizacionesAdmin from "./VistaCotizacionesAdmin/VistaCotizacionesAd
 import VistaClientes from "./VistaClientes/VistaClientes";
 import VistaClienteDetalle from "./VistaClienteDetalle/VistaClienteDetalle";
 import VistaSeguimientoClientes from "./VistaSeguimientoClientes/VistaSeguimientoClientes";
+import VistaAcceso from "./VistaAcceso/VistaAcceso";
 
 export {
   Home,
@@ -34,4 +35,5 @@ export {
   VistaClientes,
   VistaClienteDetalle,
   VistaSeguimientoClientes,
+  VistaAcceso,
 };

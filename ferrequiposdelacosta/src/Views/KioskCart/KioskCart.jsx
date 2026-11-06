@@ -41,6 +41,7 @@ import { activarAppCheck } from "../../Components/Firebase/Firebase.js";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
+import KioskGracias from "../../Components/KioskGracias/KioskGracias";
 import { miniaturaDe } from "../../Components/CatalogoEquipos/catalogoEquipos";
 
 export default function KioskCart() {
@@ -65,6 +66,9 @@ export default function KioskCart() {
   const [openCliente, setOpenCliente] = useState(false);
   const [openDireccion, setOpenDireccion] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Enviada: la tarjeta de cierre con el teléfono que dejó el cliente, que se
+  // guarda acá porque sus datos se borran al enviar (ver KioskGracias).
+  const [enviada, setEnviada] = useState(null);
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const isSmallScreen = useMediaQuery("(max-width:600px)");
@@ -159,13 +163,14 @@ export default function KioskCart() {
 
       await crearCotizacionFn(quotationData);
 
+      const telefono = cliente.telefono || "";
       dispatch(clearCart());
       dispatch(clearCliente());
       localStorage.removeItem("cart");
       localStorage.removeItem("datosCliente");
-      navigate("/kioskhome");
-
-      showSnackbar("Solicitud enviada correctamente", "success");
+      // La tarjeta de cierre vuelve sola a la tienda (pedido del dueño,
+      // 2026-11-06); antes se volvía de golpe con un aviso abajo.
+      setEnviada({ telefono });
     } catch (error) {
       console.error(error);
 
@@ -190,6 +195,15 @@ export default function KioskCart() {
   };
 
   const transporte = transporteLabel[tipoTransporte || "no"];
+
+  if (enviada) {
+    return (
+      <KioskGracias
+        telefono={enviada.telefono}
+        onTerminar={() => navigate("/kioskhome")}
+      />
+    );
+  }
 
   if (loading) return <LoadingLogo text="Enviando solicitud..." />;
 

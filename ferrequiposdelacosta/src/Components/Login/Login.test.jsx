@@ -16,14 +16,13 @@ const entrar = ({
   recuperarClave = vi.fn(),
   prepararSegundoPaso = vi.fn(() => "RESOLVER"),
   entrarConCodigo = vi.fn(() => Promise.resolve()),
-  onClose,
 } = {}) =>
   renderConProviders(
     <authContext.Provider
       value={{ login, recuperarClave, prepararSegundoPaso, entrarConCodigo }}
     >
       <Routes>
-        <Route path="/" element={<Login onClose={onClose} />} />
+        <Route path="/" element={<Login />} />
         <Route path="/adminforms" element={<p>Panel de administración</p>} />
       </Routes>
     </authContext.Provider>,
@@ -49,15 +48,6 @@ describe("Login — cuando entra bien", () => {
 
     expect(login).toHaveBeenCalledWith("aida@ferrequipos.com", "secreta123");
     expect(await screen.findByText("Panel de administración")).toBeInTheDocument();
-  });
-
-  it("cierra el cartel de login si lo abrieron desde uno", async () => {
-    const alCerrar = vi.fn();
-    const { usuario } = entrar({ login: vi.fn(() => Promise.resolve()), onClose: alCerrar });
-
-    await llenarYEntrar(usuario);
-
-    expect(alCerrar).toHaveBeenCalled();
   });
 });
 

@@ -11,13 +11,14 @@ import {
   useTheme,
 } from "@mui/material";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import PropTypes from "prop-types";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
-export default function Login({ onClose }) {
+// Vive en su propia pantalla, /acceso (ver VistaAcceso). Antes se abría en un
+// diálogo del menú de la tienda y recibía `onClose` para cerrarlo al entrar.
+export default function Login() {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -37,12 +38,7 @@ export default function Login({ onClose }) {
   const handleChange = ({ target: { name, value } }) =>
     setUser((prev) => ({ ...prev, [name]: value }));
 
-  const alEntrar = () => {
-    if (typeof onClose === "function") {
-      onClose();
-    }
-    navigate("/adminforms");
-  };
+  const alEntrar = () => navigate("/adminforms");
 
   const handleCodigo = async (event) => {
     event.preventDefault();
@@ -134,7 +130,8 @@ export default function Login({ onClose }) {
   };
 
   return (
-    // El ancho y el fondo los pone el diálogo que lo abre (ver Drawer). Acá se
+    // El ancho y el fondo los pone quien lo muestra (la tarjeta de
+    // VistaAcceso; antes, un diálogo del menú de la tienda). Acá se
     // limitaba a 400px centrados y se pintaba con el fondo de la PÁGINA, que es
     // un tono distinto al del diálogo: sobraban ~22px a cada lado y se veían
     // como dos franjas de otro color.
@@ -242,7 +239,3 @@ export default function Login({ onClose }) {
     </Box>
   );
 }
-
-Login.propTypes = {
-  onClose: PropTypes.func,
-};

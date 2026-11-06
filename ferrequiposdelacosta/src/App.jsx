@@ -21,6 +21,7 @@ import {
   VistaClientes,
   VistaClienteDetalle,
   VistaSeguimientoClientes,
+  VistaAcceso,
 } from "./Views";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoutes } from "./Components/ProtectedRoutes/ProtectedRoutes";
@@ -233,6 +234,8 @@ function App() {
             </ProtectedRoutes>
           }
         />
+        {/* La puerta del personal (2026-11-06): ver VistaAcceso. */}
+        <Route path="/acceso" element={<VistaAcceso />} />
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
         <Route exact path="/detail/:id" element={<Detail />} />

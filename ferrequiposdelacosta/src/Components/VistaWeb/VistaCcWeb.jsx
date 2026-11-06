@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
-import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.svg";
 import {
   formatearMoneda,
   formatearFechaLegible,

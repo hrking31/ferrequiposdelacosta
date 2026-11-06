@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import ponerMarcaDeAgua from "./marcaDeAgua";
 import {
   formatearMoneda,
   formatearFechaLegible,
@@ -246,6 +247,8 @@ export default function generarCuentaCobro(values) {
       align: "center",
     });
   }
+
+  ponerMarcaDeAgua(doc);
 
   // Descargar PDF. El archivo se llama con el número del documento, igual que
   // la cotización: así el nombre coincide con lo que se ve en la hoja.

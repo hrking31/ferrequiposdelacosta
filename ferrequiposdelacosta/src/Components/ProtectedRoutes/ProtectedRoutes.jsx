@@ -21,8 +21,11 @@ export function ProtectedRoutes({ children, allowedRoles }) {
     return <LoadingLogo />;
   }
 
+  // Sin sesión, a la puerta del personal (2026-11-06): así quien cierra
+  // sesión queda donde se vuelve a entrar, y no en la tienda, que ya no tiene
+  // por dónde iniciar sesión.
   if (!user) {
-    return <Navigate to="/home" />;
+    return <Navigate to="/acceso" />;
   }
 
   // Sin el correo confirmado las reglas no dejan leer nada: en vez de una

@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
-import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.svg";
 import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
 import { formatearMoneda } from "../../Utils/formato";
 import resumenCotizacion from "../Cotizacion/resumenCotizacion";

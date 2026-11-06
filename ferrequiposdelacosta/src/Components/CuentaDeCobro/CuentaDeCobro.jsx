@@ -17,6 +17,7 @@ import {
   RadioGroup,
   Radio,
   FormControlLabel,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import ConstructionIcon from "@mui/icons-material/Construction";
@@ -65,6 +66,12 @@ export default function CuentaCobro({ forma = "normal" }) {
   // El ancho de los campos de a dos, que lado a lado van de a tres.
   const deATres = ladoALado ? 4 : 6;
   const compacta = usePantallaCompacta();
+  // LAS PIZARRAS UNA DEBAJO DE LA OTRA (pedido del dueño, 2026-11-06): lado a
+  // lado con la hoja, antes de 1728 a cada una le tocaban 260 a 320 px y el
+  // "Total a Cancelar" en grande no cabía. Desde 1728, donde el formulario y la
+  // hoja van mitad y mitad, a cada una le quedan unos 386: ahí van lado a lado.
+  const anchaParaDos = useMediaQuery("(min-width:1728px)");
+  const pizarrasApiladas = compacta || (ladoALado && !anchaParaDos);
   // Persona, Empresa, IVA y la fecha: ver medidasPrimerRenglon.
   const renglon1 = medidasPrimerRenglon({ ladoALado, dePie });
   const dispatch = useDispatch();
@@ -181,13 +188,14 @@ export default function CuentaCobro({ forma = "normal" }) {
 
   // LAS DOS PIZARRAS, como el estado de cuenta de la factura (pedido del dueño,
   // 2026-11-05): la cuenta y el depósito. Lado a lado; si no caben, la segunda
-  // baja sola. En el celular, una debajo de la otra. De pie cada una va suelta
+  // baja sola. En el celular y lado a lado con la hoja antes de 1728, una
+  // debajo de la otra (ver pizarrasApiladas). De pie cada una va suelta
   // en la grilla de la pantalla: la cuenta debajo de los datos y el depósito
   // debajo de los ítems (ver VistaCuentaDeCobro).
   const sxPizarra = (area) =>
     dePie
       ? { gridArea: area, minWidth: 0 }
-      : compacta
+      : pizarrasApiladas
         ? {}
         : { flex: "1 1 260px", minWidth: 0 };
 
@@ -741,7 +749,7 @@ export default function CuentaCobro({ forma = "normal" }) {
                   flexShrink: 0,
                   mt: 2,
                   display: "flex",
-                  flexDirection: compacta ? "column" : "row",
+                  flexDirection: pizarrasApiladas ? "column" : "row",
                   flexWrap: "wrap",
                   // Cada una con el alto de la más alta.
                   alignItems: "stretch",

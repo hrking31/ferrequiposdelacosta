@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import ponerMarcaDeAgua from "./marcaDeAgua";
 import { formatearMoneda } from "../../Utils/formato";
 import resumenCotizacion from "../Cotizacion/resumenCotizacion";
 
@@ -160,6 +161,8 @@ export default function generarCotizacion(values) {
     { align: "center" },
   );
   doc.text("BARRANQUILLA - COLOMBIA", 105, 285, { align: "center" });
+
+  ponerMarcaDeAgua(doc);
 
   // Guardar PDF
   doc.save(`${values.cotizacionId}.pdf`);

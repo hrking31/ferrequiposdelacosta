@@ -6,7 +6,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
-import Logos from "../../assets/LogoFerrequipos.png";
+import Logos from "../../assets/LogoFerrequipos.svg";
 
 // EL LOGO QUE LLEVA A LA TIENDA (2026-10-20), para las vistas internas que ya
 // no tienen la barra de arriba. Es el mismo gesto que el logo de la barra —el
@@ -44,14 +44,23 @@ export default function BotonTienda({ alto = 40, onCerrarSesion, quieto = false 
   const sxLogo = {
     flexShrink: 0,
     p: 0.75,
-    borderRadius: (theme) => theme.shape.pill,
+    // Un círculo, no un óvalo (pedido del dueño, 2026-11-06): el logo va en
+    // un cuadrado (ver `logo`).
+    borderRadius: "50%",
     // Blanco siempre, como en la barra: el logo es rojo y azul y sobre
     // otro fondo se pierde.
     bgcolor: "common.white",
     boxShadow: (theme) => theme.shadows[2],
   };
+  // En un cuadrado: el SVG trae margen transparente a los costados (el del
+  // logo de antes) y "cover" se lo recorta sin tocar el dibujo, que queda del
+  // mismo alto.
   const logo = (
-    <img src={Logos} alt="Ferrequipos" style={{ display: "block", height: alto, width: "auto" }} />
+    <img
+      src={Logos}
+      alt="Ferrequipos"
+      style={{ display: "block", height: alto, width: alto, objectFit: "cover" }}
+    />
   );
 
   if (quieto) return <Box sx={sxLogo}>{logo}</Box>;

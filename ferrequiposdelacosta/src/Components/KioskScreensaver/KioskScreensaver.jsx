@@ -5,6 +5,8 @@ import PropTypes from "prop-types";
 import { clearCart } from "../../Store/Slices/cartSlice.js";
 import { clearCliente } from "../../Store/Slices/clienteSlice.js";
 import { applyPendingUpdate } from "../../pwaUpdate.js";
+import LogoVertical from "../../assets/LogoFerrequiposVertical.svg";
+import intercalarMarca from "../../Utils/intercalarMarca.js";
 
 export default function KioskScreensaver({ timeout = 60000 }) {
   const dispatch = useDispatch();
@@ -15,6 +17,9 @@ export default function KioskScreensaver({ timeout = 60000 }) {
   const images = equipos
     .filter((equipo) => equipo.images?.[0]?.url)
     .map((equipo) => equipo.images[0].url);
+  // Cada tres fotos, la pantalla blanca con el logo vertical (ver
+  // intercalarMarca).
+  const diapos = intercalarMarca(images.map((url) => ({ url })));
 
   // Lógica de detección de inactividad
   useEffect(() => {
@@ -53,16 +58,24 @@ export default function KioskScreensaver({ timeout = 60000 }) {
 
   // Lógica del Carrusel automático
   useEffect(() => {
-    if (!isActive || images.length === 0) return;
+    if (!isActive || diapos.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % images.length);
+      setCurrentIndex((prev) => (prev + 1) % diapos.length);
     }, 5000); // Cambia cada 5 segundos
 
     return () => clearInterval(interval);
-  }, [isActive, images.length]);
+  }, [isActive, diapos.length]);
 
-  if (!isActive || images.length === 0) return null;
+  if (!isActive || diapos.length === 0) return null;
+
+  // En la pantalla de marca se apagan el velo oscuro y los textos de las
+  // fotos; el botón "VER CATÁLOGO" sigue abajo en todas.
+  const esMarca = Boolean(diapos[currentIndex]?.marca);
+  const sxSoloConFotos = {
+    opacity: esMarca ? 0 : 1,
+    transition: "opacity 1.5s ease-in-out",
+  };
 
   // Las únicas fotos que hace falta tener cargadas: la que se está viendo, la
   // ANTERIOR —que todavía se está desvaneciendo, si la quitáramos de golpe la
@@ -71,10 +84,11 @@ export default function KioskScreensaver({ timeout = 60000 }) {
   //
   // Es un conjunto y no una lista porque con una o dos fotos los tres índices
   // se repiten, y no hay que dibujar la misma dos veces.
+  // La pantalla de marca cuenta como una diapositiva más.
   const vecinas = new Set([
-    (currentIndex - 1 + images.length) % images.length,
+    (currentIndex - 1 + diapos.length) % diapos.length,
     currentIndex,
-    (currentIndex + 1) % images.length,
+    (currentIndex + 1) % diapos.length,
   ]);
 
   return (
@@ -101,12 +115,46 @@ export default function KioskScreensaver({ timeout = 60000 }) {
           soltar su memoria. Antes estaban todas dibujadas siempre y solo
           cambiaba cuál era visible, que para el navegador es lo mismo que
           tenerlas todas a la vista. */}
-      {images.map((url, i) =>
-        vecinas.has(i) ? (
+      {diapos.map((diapo, i) =>
+        !vecinas.has(i) ? null : diapo.marca ? (
+          // Blanca siempre, aunque el kiosko vaya de noche: el logo es "para
+          // fondo claro". Deja libre el pie, donde sigue el botón.
+          <Box
+            key={i}
+            sx={(theme) => ({
+              position: "absolute",
+              inset: 0,
+              bgcolor: "common.white",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              pb: "20vh",
+              px: 4,
+              textAlign: "center",
+              transition: "opacity 1.5s ease-in-out",
+              opacity: i === currentIndex ? 1 : 0,
+              color: theme.palette.grey[700],
+            })}
+          >
+            <Box
+              component="img"
+              src={LogoVertical}
+              alt="Ferrequipos"
+              sx={{ width: "min(42vw, 52vh)", height: "auto" }}
+            />
+            <Typography
+              sx={{ color: "inherit", fontWeight: 600, fontSize: "clamp(1.2rem, 2.5vw, 2rem)" }}
+            >
+              Alquiler de equipos para la construcción
+            </Typography>
+          </Box>
+        ) : (
           <Box
             key={i}
             component="img"
-            src={url}
+            src={diapo.url}
             // Que la decodificación no bloquee: en la Pi, decodificar una foto
             // grande frena el dibujado de todo lo demás.
             decoding="async"
@@ -119,7 +167,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
               opacity: i === currentIndex ? 1 : 0,
             }}
           />
-        ) : null,
+        ),
       )}
 
       <Box
@@ -131,6 +179,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
           height: "60%",
           background: (theme) => theme.veloDelProtector,
           zIndex: 2,
+          ...sxSoloConFotos,
         }}
       />
 
@@ -156,6 +205,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             fontWeight: 800,
             textShadow: (theme) => theme.sombraDelProtector.titulo,
             mb: 2,
+            ...sxSoloConFotos,
             fontSize: "clamp(2rem, 5vw, 4rem)",
             lineHeight: 1.1,
           }}
@@ -171,6 +221,7 @@ export default function KioskScreensaver({ timeout = 60000 }) {
             fontWeight: 400,
             textShadow: (theme) => theme.sombraDelProtector.subtitulo,
             fontSize: "clamp(1.2rem, 2.5vw, 2rem)",
+            ...sxSoloConFotos,
           }}
         >
           Selecciona tus equipos y solicita tu presupuesto ahora mismo

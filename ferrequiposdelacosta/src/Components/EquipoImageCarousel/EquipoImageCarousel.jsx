@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 import { Link } from "react-router-dom";
+import LogoHorizontal from "../../assets/LogoFerrequiposHorizontal.svg";
+import intercalarMarca from "../../Utils/intercalarMarca.js";
 
 export default function EquipoImageCarousel() {
   const theme = useTheme();
@@ -16,7 +18,10 @@ export default function EquipoImageCarousel() {
       equipoId: equipo.id,
     }));
 
-  const extendedImages = [...images, images[0]];
+  // Cada tres fotos, el logo horizontal "para fondo claro" (pedido del dueño,
+  // 2026-11-06): el carrusel muestra todo sobre blanco. Ver intercalarMarca.
+  const diapos = intercalarMarca(images);
+  const extendedImages = [...diapos, diapos[0]];
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -82,29 +87,52 @@ export default function EquipoImageCarousel() {
           width: "100%",
         }}
       >
-        {extendedImages.map((img, i) => (
-          <Link
-            key={i}
-            to={`/detail/${img.equipoId}`}
-            style={{ flex: "0 0 100%", height: "100%" }}
-          >
+        {extendedImages.map((img, i) =>
+          img.marca ? (
+            // El logo no lleva a ningún lado: no es un equipo.
             <Box
-              component="img"
-              src={img.url}
-              alt={`Equipo ${img.equipoId}`}
+              key={i}
               sx={{
-                width: "100%",
+                flex: "0 0 100%",
                 height: "100%",
-                objectFit: "contain",
-                display: "block",
-                // Blanco fijo en ambos modos, a propósito: "superficie de
-                // producto" (ver CardEquipos), no una superficie de la UI.
+                display: "grid",
+                placeItems: "center",
+                // Blanco fijo, como las fotos.
                 backgroundColor: theme.palette.common.white,
                 p: theme.spacing(1),
               }}
-            />
-          </Link>
-        ))}
+            >
+              <Box
+                component="img"
+                src={LogoHorizontal}
+                alt="Ferrequipos"
+                sx={{ maxWidth: "80%", maxHeight: "70%", width: "auto", height: "auto", display: "block" }}
+              />
+            </Box>
+          ) : (
+            <Link
+              key={i}
+              to={`/detail/${img.equipoId}`}
+              style={{ flex: "0 0 100%", height: "100%" }}
+            >
+              <Box
+                component="img"
+                src={img.url}
+                alt={`Equipo ${img.equipoId}`}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  display: "block",
+                  // Blanco fijo en ambos modos, a propósito: "superficie de
+                  // producto" (ver CardEquipos), no una superficie de la UI.
+                  backgroundColor: theme.palette.common.white,
+                  p: theme.spacing(1),
+                }}
+              />
+            </Link>
+          ),
+        )}
       </Box>
     </Box>
   );

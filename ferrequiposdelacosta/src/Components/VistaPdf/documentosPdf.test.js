@@ -26,6 +26,11 @@ vi.mock("jspdf", () => ({
     setFont() {}
     setPage() {}
     addImage() {}
+    // La marca de agua (ver marcaDeAgua.js).
+    GState = class {};
+    setGState() {}
+    saveGraphicsState() {}
+    restoreGraphicsState() {}
     save() {}
   },
 }));

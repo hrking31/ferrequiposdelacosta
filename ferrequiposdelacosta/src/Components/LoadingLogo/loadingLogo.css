@@ -1,6 +1,6 @@
 /* Este archivo NO define colores propios.
    Todos salen de las variables que publica el theme en MuiCssBaseline
-   (--ff-texto, --ff-texto-suave, --ff-acento, --ff-resplandor, --ff-sombra),
+   (--ff-texto, --ff-texto-suave, --ff-acento, --ff-resplandor),
    que ya cambian solas con el modo claro/oscuro.
    Antes tenía una paleta paralela a mano (#3a5169, #ff6b35, #ffd166...) que no
    existía en la marca y no seguía al theme. */
@@ -15,12 +15,59 @@
   margin-bottom: 28px;
 }
 
-.industrial-logo {
+/* EL LOGO QUE SE ARMA (2026-11-06). Una vuelta dura 4,2 s y se repite:
+   0–38 %  se dibuja el contorno de la "C", con el color de acento;
+   38–52 % la "C" se rellena y el contorno se apaga;
+   45–70 % la "f" cae desde arriba, rebota y encaja; la "C" acusa el golpe;
+   88–100 % el logo entero se desvanece para empezar de nuevo.
+   Solo se anima lo que cabe en 100 px: en la Raspberry del kiosko es barato.
+   overflow visible: la "f" arranca por encima del dibujo. */
+.logo-armandose {
   width: 100px;
   height: 100px;
-  object-fit: contain;
+  overflow: visible;
   z-index: 2;
-  animation: flotarYResplandecer 3.5s ease-in-out infinite;
+  filter: drop-shadow(0px 0px 10px var(--ff-resplandor));
+}
+
+.logo-c {
+  stroke: var(--ff-acento);
+  stroke-width: 2.4;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+  animation:
+    trazarC 4.2s cubic-bezier(0.6, 0.1, 0.3, 1) infinite,
+    golpeC 4.2s ease-out infinite;
+}
+
+.logo-f {
+  animation: caerF 4.2s infinite;
+}
+
+@keyframes trazarC {
+  0% { stroke-dashoffset: 1; stroke-opacity: 1; fill-opacity: 0; opacity: 1; }
+  38% { stroke-dashoffset: 0; stroke-opacity: 1; fill-opacity: 0; }
+  52% { stroke-dashoffset: 0; stroke-opacity: 1; fill-opacity: 1; }
+  60% { stroke-dashoffset: 0; stroke-opacity: 0; fill-opacity: 1; }
+  88% { stroke-dashoffset: 0; stroke-opacity: 0; fill-opacity: 1; opacity: 1; }
+  100% { stroke-dashoffset: 0; stroke-opacity: 0; fill-opacity: 1; opacity: 0; }
+}
+
+@keyframes golpeC {
+  0%, 61% { transform: none; }
+  64% { transform: translateY(4px); }
+  70%, 100% { transform: none; }
+}
+
+@keyframes caerF {
+  0%, 44% { transform: translateY(-190px); opacity: 0; }
+  45% { opacity: 1; }
+  60% { transform: translateY(0); }
+  65% { transform: translateY(-10px); }
+  70% { transform: translateY(0); }
+  88% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
 }
 
 /* El texto con brillo: del color de texto al acento y de vuelta.
@@ -43,32 +90,24 @@
   animation: brilloIndustrial 2.5s linear infinite;
 }
 
-@keyframes flotarYResplandecer {
-  0% {
-    transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px var(--ff-sombra));
-  }
-  50% {
-    transform: translateY(-10px) scale(1.04);
-    filter: drop-shadow(0px 0px 12px var(--ff-resplandor));
-  }
-  100% {
-    transform: translateY(0px) scale(1);
-    filter: drop-shadow(0px 8px 15px var(--ff-sombra));
-  }
-}
-
 @keyframes brilloIndustrial {
   to {
     background-position: 200% center;
   }
 }
 
-/* Respeta a quien pidió menos movimiento en el sistema. */
+/* Respeta a quien pidió menos movimiento en el sistema: el logo armado y
+   quieto. */
 @media (prefers-reduced-motion: reduce) {
-  .industrial-logo,
+  .logo-c,
+  .logo-f,
   .shimmer-text-light,
   .shimmer-text-dark {
     animation: none;
+  }
+  .logo-c {
+    stroke-dashoffset: 0;
+    stroke-opacity: 0;
+    fill-opacity: 1;
   }
 }

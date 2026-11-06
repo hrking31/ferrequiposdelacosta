@@ -91,10 +91,21 @@ describe("KioskCart", () => {
 
     await enviar(usuario);
 
-    expect(await screen.findByText("Solicitud enviada correctamente")).toBeInTheDocument();
+    expect(await screen.findByText("¡Listo! Tu solicitud llegó")).toBeInTheDocument();
     const solicitud = enviarCotizacion.mock.calls[0][0];
     expect(solicitud.empresa).toBe("Aida Pérez");
     expect(solicitud.items[0]).toMatchObject({ quantity: 4, day: 3, price: 20000 });
+  });
+
+  // La tarjeta de cierre (2026-11-06): el teléfono se guarda antes de borrar
+  // los datos del cliente, que se limpian para el siguiente.
+  it("al enviar, la tarjeta de cierre dice a qué número le escriben", async () => {
+    const { usuario, store } = mostrar(conEquipos);
+
+    await enviar(usuario);
+
+    expect(await screen.findByText("Al 3116576633")).toBeInTheDocument();
+    expect(store.getState().cart.items).toHaveLength(0);
   });
 
   it("NO abre WhatsApp: el cliente está en el local", async () => {
@@ -102,7 +113,7 @@ describe("KioskCart", () => {
 
     await enviar(usuario);
 
-    expect(await screen.findByText("Solicitud enviada correctamente")).toBeInTheDocument();
+    expect(await screen.findByText("¡Listo! Tu solicitud llegó")).toBeInTheDocument();
     expect(abrirWhatsapp).not.toHaveBeenCalled();
   });
 
@@ -113,5 +124,6 @@ describe("KioskCart", () => {
     await enviar(usuario);
 
     expect(await screen.findByText("Error enviando solicitud")).toBeInTheDocument();
+    expect(screen.queryByText("¡Listo! Tu solicitud llegó")).not.toBeInTheDocument();
   });
 });

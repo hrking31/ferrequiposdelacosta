@@ -39,7 +39,13 @@ const pasarFoto = () => {
   });
 };
 
-const fotos = () => screen.queryAllByRole("img");
+// Las fotos de los equipos, y todo lo que está dibujado: desde el 2026-11-06
+// cada tres fotos entra una pantalla con el logo, que también es una imagen y
+// también cuenta como una de las tres diapositivas vivas.
+const fotos = () =>
+  screen.queryAllByRole("img").filter((img) => img.getAttribute("src")?.startsWith("https://ejemplo.test/"));
+const vivas = () => screen.queryAllByRole("img");
+const logo = () => screen.queryByRole("img", { name: "Ferrequipos" });
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -53,7 +59,7 @@ describe("KioskScreensaver", () => {
   it("no aparece mientras alguien está usando el kiosco", () => {
     mostrar();
 
-    expect(fotos()).toHaveLength(0);
+    expect(vivas()).toHaveLength(0);
   });
 
   it("tras un rato sin tocar nada, se enciende", () => {
@@ -69,18 +75,37 @@ describe("KioskScreensaver", () => {
 
     // La que se ve, la anterior —que se está desvaneciendo— y la siguiente,
     // que llega cargada a su turno.
-    expect(fotos()).toHaveLength(3);
+    expect(vivas()).toHaveLength(3);
   });
 
   it("al pasar de foto sigue habiendo tres, no se van acumulando", () => {
     mostrar();
     esperarInactividad();
 
-    pasarFoto();
-    expect(fotos()).toHaveLength(3);
+    // Pasa también por la pantalla del logo: tampoco suma de más.
+    for (let paso = 0; paso < 5; paso += 1) {
+      pasarFoto();
+      expect(vivas()).toHaveLength(3);
+    }
+  });
 
+  it("después de la tercera foto entra la pantalla del logo", () => {
+    mostrar();
+    esperarInactividad();
+
+    // En la foto 0 el logo no está ni por llegar.
+    expect(logo()).not.toBeInTheDocument();
+
+    // En la foto 2 el logo es la que sigue: ya está cargado.
     pasarFoto();
-    expect(fotos()).toHaveLength(3);
+    pasarFoto();
+    expect(logo()).toBeInTheDocument();
+
+    // Pasado el logo, sale de la ventana.
+    pasarFoto();
+    pasarFoto();
+    pasarFoto();
+    expect(logo()).not.toBeInTheDocument();
   });
 
   it("la ventana avanza: entra la que sigue y sale la que quedó atrás", () => {
@@ -103,11 +128,12 @@ describe("KioskScreensaver", () => {
 
   // Con pocas fotos los tres índices se pisan entre sí. Sin el conjunto que
   // los deduplica, la misma foto se dibujaría dos y hasta tres veces.
-  it("con una sola foto la dibuja una vez, no tres", () => {
+  it("con una sola foto la dibuja una vez, no tres (más el logo)", () => {
     mostrar([equipos[0]]);
     esperarInactividad();
 
     expect(fotos()).toHaveLength(1);
+    expect(logo()).toBeInTheDocument();
   });
 
   it("con dos fotos dibuja dos", () => {

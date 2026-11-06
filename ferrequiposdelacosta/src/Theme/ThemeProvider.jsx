@@ -1553,8 +1553,6 @@ export const CustomThemeProvider = ({ children }) => {
           styleOverrides: (temaActual) => {
             const scrollbarAcento = temaActual.palette.custom.accent;
 
-            const esModoClaro = temaActual.palette.mode === "light";
-
             return {
               // Variables CSS: el puente para las hojas de estilo planas, que
               // no pueden leer el theme de MUI. Cambiar la paleta acá arriba
@@ -1564,7 +1562,6 @@ export const CustomThemeProvider = ({ children }) => {
                 "--ff-texto-suave": temaActual.palette.text.secondary,
                 "--ff-acento": scrollbarAcento,
                 "--ff-resplandor": alpha(scrollbarAcento, 0.7),
-                "--ff-sombra": alpha(AZUL_NOCHE, esModoClaro ? 0.15 : 0.4),
                 // Con que fondo se tapa un campo autocompletado por el
                 // navegador. Arranca con el de la PAGINA, y cada contenedor
                 // con otro tono la vuelve a declarar (ver MuiDialog). Sale

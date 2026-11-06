@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="ferrequiposdelacosta/src/assets/LogoFerrequipos.png" alt="Ferrequipos de la Costa" width="130">
+<img src="docs/marca/ferrequipos-logo-horizontal-placa.svg" alt="Ferrequipos" width="460">
 
 # Ferrequipos de la Costa
 
@@ -16,7 +16,7 @@ Una sola aplicación web que le muestra el catálogo al cliente, recibe sus soli
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-1102_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-1236_tests-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
 
 </div>
 
@@ -41,7 +41,7 @@ Esta aplicación sostiene ese ciclo completo: **el cliente pide → se cotiza �
 |---|---|---|
 | **Para quién** | Clientes, desde su celular o desde una pantalla en el local | El equipo de Ferrequipos |
 | **Qué hace** | Explorar el catálogo, armar un carrito y enviar la solicitud | Cotizar, facturar, cobrar y seguir la cartera |
-| **Cómo entra** | Sin cuenta, abierto a todos | Con usuario y contraseña, con permisos por rol |
+| **Cómo entra** | Sin cuenta, abierto a todos | Por su propia puerta, `/acceso`, con usuario y contraseña y permisos por rol |
 | **Detalle** | El modo Kiosco fuerza tema oscuro y tiene protector de pantalla por inactividad | Aviso sonoro cuando entra una solicitud nueva, y quién está conectado |
 
 Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del personal**, sin recargar la página, y suena una campana.
@@ -51,6 +51,21 @@ Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del pers
 Explora el catálogo, entra al detalle de un equipo y arma su pedido eligiendo **cuántos** y **por cuántos días**. Los equipos que vienen en distintas presentaciones —medidas, capacidades— tienen **variantes**: se eligen con un toque, y el nombre del grupo lo define quien carga el equipo ("Tamaño", "Capacidad", lo que corresponda).
 
 Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la solicitud entra al buzón del personal.
+
+### La marca nueva y una tienda solo para clientes (2026-11-06)
+
+**El logo pasó a ser vectorial.** El de siempre era una foto chica que se veía borrosa al agrandarla; ahora es un SVG con el mismo dibujo y el mismo margen —así la "f" y la "C" ocupan el mismo lugar que antes y el círculo blanco del encabezado sigue redondo—. Salen de él los íconos de la pestaña, del iPhone y de la app instalada, y el de los PDF. Con el nombre escrito hay dos versiones más, para fondo claro y para fondo oscuro:
+
+| Dónde | Qué se ve |
+|---|---|
+| **Al compartir el enlace** (WhatsApp, Facebook) | Una tarjeta con el logo horizontal sobre blanco, en vez de la vista previa vacía |
+| **La barra del celular** | El logo con el nombre, el de fondo oscuro o el de fondo claro según el modo; en el computador sigue el círculo con el título |
+| **El carrusel de la tienda y el protector del kiosko** | Cada tres fotos de equipos, una pantalla con el logo. La regla vive en un solo lugar y la usan los dos |
+| **"Cargando…"** | El logo se arma solo: la "C" se dibuja con el color de acento y la "f" cae, rebota y encaja. Las dos piezas se leen del mismo SVG, no hay copia de sus trazos |
+| **El kiosko, al enviar** | Una tarjeta "¡Listo! Tu solicitud llegó" con el número al que le escriben, que a los 8 segundos —o con un toque— deja la tableta lista para el siguiente cliente |
+| **La cotización y la cuenta de cobro** | El ícono de marca de agua, al 6 %, centrado a lo alto y a lo ancho de cada hoja |
+
+**El personal entra por su propia puerta.** El menú de la tienda tenía un "Mi cuenta" que abría el inicio de sesión del personal, y al cliente le hacía pensar que alquilar pedía registrarse. Ahora el personal entra siempre por **`/acceso`** —quien ya tiene la sesión abierta pasa directo al menú— y al cerrar sesión vuelve ahí, no a la tienda. En su lugar el menú responde la duda de verdad: **los tres pasos para alquilar** a la vista (elegir, enviar sin cuenta, te escribimos), con la ubicación de la bodega en un mapa y el resto de la información en el mismo orden en el celular y en el computador.
 
 **El buscador encuentra lo que se escribe (2026-10-29).** Filtra **mientras se escribe**, sin botón ni Enter, sobre el catálogo que la app ya bajó al abrirse: buscar no cuesta lecturas. Encuentra lo escrito **en cualquier parte del nombre** y sin importar tildes ni mayúsculas —*convencional* trae los ANDAMIOS CONVENCIONALES, *tablon* el TABLÓN—, deja el orden de la tienda y, si nada coincide, lo dice. Es el mismo comportamiento de los buscadores del panel; la tienda, el panel lateral del celular y el kiosco usan la misma pieza.
 
@@ -86,7 +101,7 @@ Ese segundo caso es más traicionero de lo que parece. En un computador comparti
 > Tres límites que conviene conocer antes de perseguir un fantasma:
 >
 > - En **iPhone** los avisos solo funcionan con la app **instalada en la pantalla de inicio** (iOS 16.4+); abierta en Safari, el navegador no los soporta.
-> - **El sonido y el ícono pequeño los decide el sistema operativo.** No se puede usar la campana propia de la app —esa suena solo con la app abierta— ni pedir que el ícono chico que Android dibuja junto al nombre del sitio vaya a color: lo toma **como silueta** y lo pinta con el color de acento del teléfono. Elegir bien esa imagen sí importa: de los cuatro íconos del proyecto, tres tienen el fondo pintado y su silueta es **un cuadrado**; solo uno tiene el fondo realmente transparente, y es el que deja ver la forma del logo.
+> - **El sonido y el ícono pequeño los decide el sistema operativo.** No se puede usar la campana propia de la app —esa suena solo con la app abierta— ni pedir que el ícono chico que Android dibuja junto al nombre del sitio vaya a color: lo toma **como silueta** y lo pinta con el color de acento del teléfono. Elegir bien esa imagen sí importa: un ícono con el fondo pintado da de silueta **un cuadrado**. Por eso los dos de la app instalada tienen el fondo realmente transparente, y son los que dejan ver la forma del logo.
 > - Los avisos se registran **por dirección**. Activarlos entrando por una y usar la app desde otra no sirve: para el navegador son sitios distintos.
 
 **Ese mismo archivo hace dos trabajos, y ahí se escondía un error viejo.** El ícono transparente es a la vez la silueta del aviso y el que Android usa para **instalar la app** y dibujar su pantalla de arranque. El manifiesto lo declaraba como 512×512 y el archivo medía 319×272 — el logo tal como estaba guardado. Se rehízo sobre un lienzo cuadrado del tamaño correcto **conservando la transparencia**, que era la parte delicada: cambiarlo por la versión opaca que también existía habría arreglado la instalación y devuelto el cuadrado a las notificaciones. Los demás íconos, de paso, quedaron enlazados desde el HTML: estaban en la carpeta pública sin que nada los nombrara, funcionando solo por convención del navegador.

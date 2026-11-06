@@ -337,8 +337,24 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
 - [x] `VistaCart` (5): con el carrito vacío no manda nada; con el pedido armado
       abre WhatsApp **y** manda la solicitud; el mensaje lleva al cliente y lo
       que pidió; si el servidor falla, el WhatsApp ya salió igual
-- [x] `KioskCart` (4): manda la solicitud pero **no** abre WhatsApp — el cliente
-      está en el local
+- [x] `KioskCart` (5): manda la solicitud pero **no** abre WhatsApp — el cliente
+      está en el local; al enviar sale la tarjeta de cierre con el teléfono del
+      cliente (guardado antes de borrar sus datos) y el carrito queda vacío
+
+### ✅ La marca y la puerta del personal (06/11) — 25 pruebas
+- [x] `VistaAcceso` (3): sin sesión muestra el inicio de sesión; con sesión pasa
+      al menú; una pantalla del sistema sin sesión lleva a `/acceso`, **no** a
+      la tienda (que ya no tiene por dónde entrar)
+- [x] `KioskGracias` (6): vuelve a la tienda a los 8 s o con un toque, y **una
+      sola vez** aunque pasen las dos cosas; no inventa un teléfono
+- [x] `intercalarMarca` (6): el logo cada tres fotos, una al final si hay menos
+      de tres, nada sin fotos; la usan el protector y el carrusel
+- [x] `KioskScreensaver` (+1): la pantalla del logo entra después de la tercera
+      foto y sigue habiendo **tres** diapositivas vivas (la Raspberry)
+- [x] `marcaDeAgua` (6): centrada a lo alto y a lo ancho en carta y en A4, al
+      6 %, en todas las hojas y devolviendo la transparencia
+- [x] `LoadingLogo` (3): encuentra la "C" y la "f" en el SVG del logo — si el
+      logo cambia de forma de armarse, esta es la alarma
 
 ### ✅ Las pantallas del panel — 19 pruebas
 - [x] `ListaCuentasCobro` (6): marcar como pagada es solo del administrador y
@@ -362,7 +378,8 @@ fuera, a propósito, lo que solo dibuja. Una prueba de un componente que
 
 - **Los PDF** (`VistaPdf/*`) y sus equivalentes en pantalla (`VistaWeb/*`):
   arman un documento con datos que ya vienen calculados y probados. Probarlos
-  sería fijar el diseño, que cambia seguido, no la corrección.
+  sería fijar el diseño, que cambia seguido, no la corrección. (Sí se prueba
+  la marca de agua, `marcaDeAgua.js`: decide dónde va.)
 - **Las piezas de la ficha del cliente** (`EstadoCuentaFactura`,
   `CargosAdicionales`, `RecuadroPago`, `EquipoRow`, `recuadrosCuenta`,
   `ClienteEncabezado`): reciben la cuenta **ya calculada** —esa es la regla, se

@@ -17,13 +17,12 @@ import {
   ListItemButton,
   ListItemText,
   Divider,
-  Dialog,
+  Button,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import WhatsApp from "@mui/icons-material/WhatsApp";
 import LocalPhone from "@mui/icons-material/LocalPhone";
 import CloseIcon from "@mui/icons-material/Close";
-import AccountCircle from "@mui/icons-material/AccountCircle";
 import CardsEquipos from "../../Components/CardsEquipos/CardsEquipos";
 import Footer from "../../Components/Footer/Footer";
 import Search from "../../Components/Search/Search";
@@ -38,13 +37,17 @@ import Brightness4 from "@mui/icons-material/Brightness4";
 import Brightness7 from "@mui/icons-material/Brightness7";
 import { useColorMode } from "../../Theme/useColorMode";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo.jsx";
-import Login from "../Login/Login";
 import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
+import Place from "@mui/icons-material/Place";
+import PasosAlquiler from "../ComoAlquilar/PasosAlquiler";
+import MapaBodega from "../MapaBodega/MapaBodega";
+import DondeEstamosDialogo from "../MapaBodega/DondeEstamosDialogo";
 
 export default function MobileDrawerLayout() {
   const dispatch = useDispatch();
   const [open, setOpen] = useState(false);
-  const [openAccount, setOpenAccount] = useState(false);
+  // "Dónde estamos" del celular: el mapa en una ventana.
+  const [dondeEstamos, setDondeEstamos] = useState(false);
   const theme = useTheme();
   const isFullScreen = useMediaQuery("(max-width:915px)");
   const loading = useSelector((state) => state.equipos.loading);
@@ -53,6 +56,9 @@ export default function MobileDrawerLayout() {
   const isMediumScreen = useMediaQuery(
     "(min-width:600px) and (max-width:915px)",
   );
+  // El botón del modo dice a qué modo pasa (2026-11-06): antes decía solo
+  // "Claro" u "Oscuro", y en el celular con un espacio de más.
+  const textoModo = theme.palette.mode === "dark" ? "Modo claro" : "Modo oscuro";
 
   // Al salir de la tienda, el buscador vuelve vacío.
   useEffect(() => {
@@ -61,10 +67,24 @@ export default function MobileDrawerLayout() {
     };
   }, [dispatch]);
 
-  const handleOpenAccount = () => setOpenAccount(true);
-  const handleCloseAccount = () => setOpenAccount(false);
-
   const toggleDrawer = () => setOpen((prev) => !prev);
+
+  // Los títulos de la columna izquierda del computador: centrados y con los
+  // renglones parejos, para que al angostar no quede una palabra sola
+  // (2026-11-06).
+  // Entre 916 y 1199 la columna mide de 229 a 300: ahí la letra crece con la
+  // pantalla y llega a 1200 con el tamaño de siempre (el del tema), que
+  // cuenta de ahí en adelante. Con la letra fija, en 916 la frase de las
+  // rejas ocupaba seis renglones y dejaba un "Todo" suelto.
+  const sxTextoColumna = (enGrande) => ({
+    letterSpacing: "0.5px",
+    textAlign: "center",
+    textWrap: "balance",
+    // Solo en pantallas medianas: de 1200 en adelante manda el tema.
+    "@media (min-width:900px) and (max-width:1199.95px)": {
+      fontSize: `clamp(${enGrande * 0.8}px, ${(enGrande / 1200) * 100}vw, ${enGrande}px)`,
+    },
+  });
 
   const drawerWidth = "clamp(240px, 50vw, 60vw)";
 
@@ -107,6 +127,17 @@ export default function MobileDrawerLayout() {
           overflowY: "auto",
         }}
       >
+        {/* Los pasos a la vista, como en la columna del computador (pedido
+            del dueño, 2026-11-06). */}
+        <Box sx={{ px: 2, pt: 1, pb: 2 }}>
+          <PasosAlquiler denso />
+        </Box>
+
+        <Divider sx={{ width: "90%", mx: "auto" }} />
+
+        {/* El mismo orden de la columna del computador (pedido del dueño,
+            2026-11-06): los pasos, cotizar, dónde estamos (el mapa), las
+            rejas y el teléfono. */}
         <List>
           <ListItem disablePadding>
             <ListItemButton
@@ -131,6 +162,38 @@ export default function MobileDrawerLayout() {
 
           <Divider sx={{ width: "90%", mx: "auto" }} />
 
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                setOpen(false);
+                setDondeEstamos(true);
+              }}
+            >
+              <ListItemIcon sx={{ color: "custom.accent" }}>
+                <Place />
+              </ListItemIcon>
+              <ListItemText
+                primary="Dónde estamos"
+                primaryTypographyProps={{ variant: "subtitle1" }}
+              />
+            </ListItemButton>
+          </ListItem>
+        </List>
+
+        <Divider sx={{ width: "90%", mx: "auto" }} />
+
+        {/* El resto de la publicidad de la columna del computador (pedido
+            del dueño, 2026-11-06). */}
+        <Typography
+          variant="h4"
+          component="p"
+          sx={{ ...sxTextoColumna(22.9), fontSize: "1.15rem", px: 2, pt: 2, pb: 1 }}
+        >
+          Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
+        </Typography>
+
+        {/* Llamar, al final, como los teléfonos en el computador. */}
+        <List>
           <ListItem disablePadding>
             <ListItemButton
               component="a"
@@ -170,25 +233,14 @@ export default function MobileDrawerLayout() {
                 {theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
               </ListItemIcon>
               <ListItemText
-                primary={theme.palette.mode === "dark" ? " Claro" : "Oscuro"}
+                primary={textoModo}
                 primaryTypographyProps={{ variant: "subtitle1" }}
               />
             </ListItemButton>
           </ListItem>
-
-          <Divider sx={{ width: "90%", mx: "auto" }} />
-
-          <ListItem disablePadding>
-            <ListItemButton onClick={handleOpenAccount}>
-              <ListItemIcon>
-                <AccountCircle />
-              </ListItemIcon>
-              <ListItemText
-                primary="Mi cuenta"
-                primaryTypographyProps={{ variant: "subtitle1" }}
-              />
-            </ListItemButton>
-          </ListItem>
+          {/* "Mi cuenta" ya no va acá (2026-11-06): el personal entra por
+              /acceso (ver VistaAcceso) y al cliente le hacía creer que
+              alquilar pedía una cuenta. */}
         </List>
 
         <Typography
@@ -313,12 +365,21 @@ export default function MobileDrawerLayout() {
                   display: "flex",
                   justifyContent: "center",
                   p: 2,
-                  pb: 6,
+                  pb: 3,
                 }}
               >
-                <Typography variant="h3" sx={{ letterSpacing: "0.5px" }}>
+                {/* Renglones parejos y centrados (2026-11-06): con la
+                    columna angosta quedaba un "la" solo en su renglón. */}
+                <Typography variant="h3" sx={sxTextoColumna(29.6)}>
                   Alquiler de equipos para la Construcción
                 </Typography>
+              </Box>
+
+              {/* Los pasos a la vista, entre el título y el botón (pedido del
+                  dueño, 2026-11-06): qué hacemos, cómo funciona y el botón
+                  para empezar. En el celular van en "¿Cómo alquilar?". */}
+              <Box sx={{ px: 2, pb: 5 }}>
+                <PasosAlquiler denso />
               </Box>
 
               <Box
@@ -326,35 +387,19 @@ export default function MobileDrawerLayout() {
                   pb: 8,
                 }}
               >
+                {/* En pantallas medianas, el ancho de su texto: con 180 fijos
+                    "Cotiza con nosotros" (203) quedaba pegado al borde
+                    (2026-11-06). */}
                 <ButtonContacto
                   width={{
-                    md: 180,
+                    md: "auto",
                     lg: 250,
                   }}
                 />
               </Box>
 
-              <Box
-                sx={{
-                  width: "100%",
-                  height: 400,
-                  overflow: "hidden",
-                  display: "flex",
-                  justifyContent: "center",
-                  pb: 4,
-                }}
-              >
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.7449071484803!2d-74.83734642630112!3d10.982617155359392!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8ef42ce6e1990133%3A0x279860b2dde76a7b!2sFerrequipos%20de%20la%20Costa!5e0!3m2!1ses-419!2sco!4v1750278112137!5m2!1ses-419!2sco"
-                  style={{
-                    border: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+              <Box sx={{ pb: 4 }}>
+                <MapaBodega alto={400} />
               </Box>
 
               <Box
@@ -365,7 +410,7 @@ export default function MobileDrawerLayout() {
                   pb: 6,
                 }}
               >
-                <Typography variant="h4" sx={{ letterSpacing: "0.5px" }}>
+                <Typography variant="h4" sx={sxTextoColumna(22.9)}>
                   Elaboración De Rejas En Hierro y Aluminio, Todo En Soldadura.
                 </Typography>
               </Box>
@@ -376,7 +421,7 @@ export default function MobileDrawerLayout() {
                   pl: 2,
                 }}
               >
-                <Typography variant="subtitle1 ">
+                <Typography variant="subtitle1" sx={{ textWrap: "balance" }}>
                   Llámanos para más información
                 </Typography>
               </Box>
@@ -384,6 +429,8 @@ export default function MobileDrawerLayout() {
               <Box
                 sx={{
                   display: "flex",
+                  // Centrado: con los números uno debajo del otro, el ícono
+                  // queda a la altura de los dos (pedido del dueño, 2026-11-06).
                   alignItems: "center",
                   gap: 1,
                   p: 2,
@@ -396,9 +443,16 @@ export default function MobileDrawerLayout() {
                       theme.palette.custom.accent,
                   }}
                 />
-                <Typography variant="body1">
-                  605 3356050 - 311 657 6633
-                </Typography>
+                {/* Cada número de una pieza (2026-11-06): con la columna
+                    angosta se partía "605 3356050 - 311 / 657 6633". Si no
+                    caben los dos, el segundo baja entero. */}
+                <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 1.5 }}>
+                  {["605 3356050", "311 657 6633"].map((numero) => (
+                    <Typography key={numero} variant="body1" sx={{ whiteSpace: "nowrap" }}>
+                      {numero}
+                    </Typography>
+                  ))}
+                </Box>
               </Box>
             </Box>
 
@@ -423,26 +477,22 @@ export default function MobileDrawerLayout() {
                 },
               }}
             >
-              <IconButton
+              {/* Un botón de texto con su ícono (2026-11-06): antes era un
+                  botón redondo de ícono con el texto metido adentro. El
+                  ícono cambia con el modo (sol / luna), el color no. */}
+              <Button
                 onClick={toggleColorMode}
-                disableRipple
-                sx={{ "& .MuiSvgIcon-root": { color: "custom.accent", mr: 2 } }}
+                startIcon={theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+                sx={{
+                  px: 1,
+                  color: "text.primary",
+                  textTransform: "none",
+                  typography: "subtitle1",
+                  "& .MuiButton-startIcon": { color: "custom.accent", mr: 1.5 },
+                }}
               >
-                {/* El ÍCONO cambia con el modo (sol / luna), el color no. */}
-                {theme.palette.mode === "dark" ? <Brightness7 /> : <Brightness4 />}
-                <Typography variant="subtitle1">
-                  {theme.palette.mode === "dark" ? "Claro" : "Oscuro"}
-                </Typography>
-              </IconButton>
-
-              <IconButton
-                onClick={handleOpenAccount}
-                disableRipple
-                sx={{ "& .MuiSvgIcon-root": { color: "custom.accent", mr: 2 } }}
-              >
-                <AccountCircle />
-                <Typography variant="subtitle1">Mi cuenta</Typography>
-              </IconButton>
+                {textoModo}
+              </Button>
             </Box>
 
             <Typography
@@ -451,7 +501,10 @@ export default function MobileDrawerLayout() {
                 width: "100%",
                 color:
                   theme.palette.custom.accent,
-                pt: 2,
+                // Sin aire propio arriba (2026-11-06): con él, el botón del
+                // modo quedaba a 16 de la raya y a 32 del ©. Así queda
+                // centrado entre los dos.
+                pt: 0,
                 display: "block",
                 textAlign: "center",
               }}
@@ -501,9 +554,7 @@ export default function MobileDrawerLayout() {
           </Box>
         </Box>
 
-        <Dialog open={openAccount} onClose={handleCloseAccount} maxWidth="xs" fullWidth>
-          <Login onClose={handleCloseAccount} />
-        </Dialog>
+        <DondeEstamosDialogo open={dondeEstamos} onClose={() => setDondeEstamos(false)} />
 
       </Grid>
     </Box>

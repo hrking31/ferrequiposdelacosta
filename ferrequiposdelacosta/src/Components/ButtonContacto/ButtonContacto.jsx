@@ -17,6 +17,14 @@ import { abrirWhatsapp, TELEFONO_EMPRESA } from "../../Utils/whatsapp";
     "&:hover": {
       boxShadow: theme.shadows[4],
     },
+    // En pantallas medianas la columna de la tienda es angosta (916 → unos
+    // 213 px útiles) y "Cotiza con nosotros" pide 203 con el relleno de
+    // siempre: con un poco menos a los lados cabe sin pegarse al borde
+    // (2026-11-06).
+    [theme.breakpoints.only("md")]: {
+      padding: theme.spacing(1.5, 1),
+      margin: theme.spacing(1, 0.5),
+    },
   }));
 
 export const WhatsAppButton = () => {

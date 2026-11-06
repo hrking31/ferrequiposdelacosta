@@ -9,7 +9,9 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { clearSearchEquipo } from "../../Store/Slices/searchSlice";
-import Logos from "../../assets/LogoFerrequipos.png";
+import Logos from "../../assets/LogoFerrequipos.svg";
+import LogoHorizontal from "../../assets/LogoFerrequiposHorizontal.svg";
+import LogoHorizontalOscuro from "../../assets/LogoFerrequiposHorizontalOscuro.svg";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import CamionContador from "../../Components/Camion/Camion.jsx";
@@ -32,6 +34,8 @@ const RUTAS_SIN_BARRA = [
   "/vistausuarios",
   "/vistaclientes",
   "/vistaseguimientoclientes",
+  // La puerta del personal: sin carrito ni título de la tienda.
+  "/acceso",
 ];
 
 const vaSinBarra = (pathname) => {
@@ -50,6 +54,15 @@ export default function MenuAppBar() {
   const isKioskMode = location.pathname.startsWith("/kiosk");
   const isEnHome = ["/", "/home"].includes(location.pathname.toLowerCase());
   const sinBarra = vaSinBarra(location.pathname);
+  // A PRUEBA (pedido del dueño, 2026-11-06, "no estoy muy convencido"): en el
+  // celular, el círculo y la palabra "Ferrequipos" se cambian por el logo
+  // horizontal con el nombre, directo sobre la barra y sin círculo: el de
+  // fondo oscuro en modo oscuro (y el kiosko) y el de fondo claro en modo
+  // claro, donde la barra es casi blanca. En el computador, como estaba.
+  // Para deshacerlo basta con dejar esto en false.
+  const logoConNombre = isSmallScreen;
+  const logoHorizontal =
+    theme.palette.mode === "dark" ? LogoHorizontalOscuro : LogoHorizontal;
 
   const handleLogoClick = () => {
     dispatch(clearSearchEquipo());
@@ -102,39 +115,59 @@ export default function MenuAppBar() {
             onClick={handleLogoClick}
             sx={{
               cursor: "pointer",
-              p: 0.5,
-              borderRadius: (theme) => theme.shape.pill,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              // Un círculo, no un óvalo (2026-11-06): el logo va en un
+              // cuadrado, como en BotonTienda.
               // El círculo del logo NO sigue el acento ni el modo: es el
               // respaldo del logotipo, que es rojo y azul, y necesita blanco
               // siempre. Sobre naranja el rojo se pierde (se probó y se
               // revirtió); sobre amarillo tampoco convence.
-              backgroundColor: theme.palette.common.white,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              // El logo con nombre no lo necesita: trae su versión para cada
+              // fondo (ver logoConNombre).
+              ...(!logoConNombre && {
+                p: 0.5,
+                borderRadius: "50%",
+                backgroundColor: theme.palette.common.white,
+              }),
             }}
           >
-            <img
-              src={Logos}
-              alt="logo"
-              style={{
-                display: "block",
-                height: "clamp(32px, 3vw, 48px)",
-                width: "auto",
-              }}
-            />
+            {logoConNombre ? (
+              <img
+                src={logoHorizontal}
+                alt="logo"
+                style={{ display: "block", height: 42, width: "auto" }}
+              />
+            ) : (
+              <img
+                src={Logos}
+                alt="logo"
+                style={{
+                  display: "block",
+                  height: "clamp(32px, 3vw, 48px)",
+                  width: "clamp(32px, 3vw, 48px)",
+                  objectFit: "cover",
+                }}
+              />
+            )}
           </Box>
 
-          <Typography
-            variant="h1"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              textAlign: "center",
-            }}
-          >
-            {isSmallScreen ? "Ferrequipos" : "Ferrequipos De La Costa"}
-          </Typography>
+          {/* El nombre ya va en el logo: queda solo el espacio. */}
+          {logoConNombre ? (
+            <Box sx={{ flexGrow: 1 }} />
+          ) : (
+            <Typography
+              variant="h1"
+              component="div"
+              sx={{
+                flexGrow: 1,
+                textAlign: "center",
+              }}
+            >
+              Ferrequipos De La Costa
+            </Typography>
+          )}
 
           <IconButton
             onClick={handlecartClick}
