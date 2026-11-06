@@ -1,14 +1,43 @@
+import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
 import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
+import { formatearMoneda } from "../../Utils/formato";
+import resumenCotizacion from "../Cotizacion/resumenCotizacion";
 
-export default function VistaCotWeb() {
+// `llenarAlto`: lado a lado y el iPad de pie (pedido del dueño, 2026-11-05),
+// como la hoja de la cuenta de cobro. La hoja llega hasta el borde de abajo,
+// con su propio desplazamiento, y el pie queda al fondo, como en una hoja de
+// verdad: el aire va entre los totales y el pie.
+export default function VistaCotWeb({ llenarAlto = false }) {
   const formValues = useSelector((state) => state.cotizacion);
   const items = useSelector((state) => state.cotizacion.value.items);
-  const total = useSelector((state) => state.cotizacion.value.total);
+  // Las mismas cifras del formulario y del PDF; el depósito, aparte del total.
+  const resumen = resumenCotizacion(formValues.value);
 
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Un renglón de la cuenta: el rótulo a la izquierda y la cifra a la derecha,
+  // con la raya de abajo.
+  const renglon = (rotulo, valor) => (
+    <Box sx={{ mt: 2 }}>
+      <Grid
+        container
+        sx={{
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <Grid item xs={6}>
+          <Typography variant="subtitle2">{rotulo}</Typography>
+        </Grid>
+
+        <Grid item xs={6} sx={{ textAlign: "right" }}>
+          <Typography variant="subtitle2">{valor}</Typography>
+        </Grid>
+      </Grid>
+    </Box>
+  );
 
   return (
     <Box
@@ -22,6 +51,13 @@ export default function VistaCotWeb() {
         borderRadius: 1.5,
         position: "relative",
         zIndex: 10,
+        ...(llenarAlto && {
+          height: "100%",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          "& > *": { flexShrink: 0 },
+        }),
         // La hoja es blanca en los dos modos, así que su texto no puede seguir
         // al tema: las variantes de tipografía traen color propio y en modo
         // oscuro dejaban gris claro sobre blanco. Los colores del membrete
@@ -173,79 +209,14 @@ export default function VistaCotWeb() {
           mt: "20px",
         }}
       >
-        Subtotal: {formValues.value.subtotal}
+        Subtotal: {formatearMoneda(resumen.subtotal)}
       </Typography>
 
-      <Box sx={{ mt: 2 }}>
-        <Grid
-          container
-          sx={{
-            borderBottom: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">Iva</Typography>
-          </Grid>
-
-          <Grid item xs={6} sx={{ textAlign: "right" }}>
-            <Typography variant="subtitle2">
-              {Number(formValues.value.ivaNumero).toLocaleString("es-CO", {
-                style: "currency",
-                currency: "COP",
-              })}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box sx={{ mt: 2 }}>
-        <Grid
-          container
-          sx={{
-            borderBottom: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">Depósito</Typography>
-          </Grid>
-
-          <Grid item xs={6} sx={{ textAlign: "right" }}>
-            <Typography variant="subtitle2">
-              {Number(formValues.value.valorDeposito).toLocaleString("es-CO", {
-                style: "currency",
-                currency: "COP",
-              })}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box sx={{ mt: 2 }}>
-        <Grid
-          container
-          sx={{
-            borderBottom: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Grid item xs={6}>
-            <Typography variant="subtitle2">
-              Transporte: {formValues.value.transporte}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={6} sx={{ textAlign: "right" }}>
-            <Typography variant="subtitle2">
-              {Number(formValues.value.valorTransporte).toLocaleString(
-                "es-CO",
-                {
-                  style: "currency",
-                  currency: "COP",
-                },
-              )}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
+      {renglon("Iva", formatearMoneda(resumen.iva))}
+      {renglon(
+        `Transporte: ${formValues.value.transporte ?? ""}`,
+        formatearMoneda(resumen.transporte),
+      )}
 
       <Typography
         variant="subtitle1"
@@ -254,9 +225,32 @@ export default function VistaCotWeb() {
           mt: "20px",
         }}
       >
-        Total: {total}
+        Total: {formatearMoneda(resumen.total)}
       </Typography>
 
+      {/* El depósito, aparte del total (pedido del dueño, 2026-11-05): se
+          devuelve al recibir los equipos. Con él, lo que se lleva el día del
+          despacho. */}
+      {resumen.deposito > 0 && (
+        <>
+          {renglon(
+            "Depósito (se devuelve al recibir los equipos)",
+            formatearMoneda(resumen.deposito),
+          )}
+          <Typography
+            variant="subtitle1"
+            sx={{
+              textAlign: "right",
+              mt: "20px",
+              fontWeight: 700,
+            }}
+          >
+            Para despachar: {formatearMoneda(resumen.paraDespachar)}
+          </Typography>
+        </>
+      )}
+
+      {llenarAlto && <Box sx={{ flexGrow: 1 }} />}
       <Box sx={{ mt: "40px", textAlign: "center" }}>
         <Typography
           variant="documentoPie"
@@ -276,3 +270,7 @@ export default function VistaCotWeb() {
     </Box>
   );
 }
+
+VistaCotWeb.propTypes = {
+  llenarAlto: PropTypes.bool,
+};

@@ -35,42 +35,11 @@ import resumenCuentaCobro, {
   UNIDADES_DE_TIEMPO,
   valorDeFila,
 } from "./resumenCuentaCobro";
-import { usePantallaCompacta } from "../../Utils/pantalla";
-import IconoDeposito from "../ClienteDetalle/IconoDeposito";
-import DiscountIcon from "@mui/icons-material/Discount";
-import PercentIcon from "@mui/icons-material/Percent";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import PaidIcon from "@mui/icons-material/Paid";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import HandymanIcon from "@mui/icons-material/Handyman";
-import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
-import TollIcon from "@mui/icons-material/Toll";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-
-// Cada renglón de las pizarras con el ícono y el color que lleva en el estado
-// de cuenta de la factura. Las clases ("pagado", "abono", "alerta") son las de
-// la pizarra del tema.
-const RENGLONES = {
-  Subtotal: { Icono: ConstructionIcon },
-  Descuento: { Icono: DiscountIcon, color: "success.light" },
-  "IVA (19%)": { Icono: PercentIcon },
-  Transporte: { Icono: LocalShippingIcon },
-  Total: { Icono: ReceiptLongIcon, clase: "total" },
-  Pagado: { Icono: PaidIcon, clase: "pagado" },
-  Abonos: { Icono: AddCircleIcon, clase: "abono" },
-  "Retenido por daños": { Icono: HandymanIcon, color: "warning.light" },
-  "Devuelto al cliente": { Icono: CurrencyExchangeIcon },
-  "Depósito por cobrar": { Icono: TollIcon, clase: "alerta" },
-  // Los del depósito.
-  Recibido: { Icono: TollIcon },
-  "Por cobrar": { Icono: TollIcon, clase: "alerta" },
-  "Aplicado a la factura": { Icono: ReceiptLongIcon },
-  Devuelto: { Icono: CurrencyExchangeIcon },
-  "En garantía": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
-  "Por devolver": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
-};
+import { ANCHO_FECHA, usePantallaCompacta } from "../../Utils/pantalla";
+import {
+  renglonDePizarra,
+  renderTituloDeposito,
+} from "../ClienteDetalle/recuadrosCuenta";
 
 // En la pizarra del depósito, lo que sale de él va con su signo, como en la
 // factura.
@@ -96,11 +65,14 @@ export default function CuentaCobro({ forma = "normal" }) {
   // El ancho de los campos de a dos, que lado a lado van de a tres.
   const deATres = ladoALado ? 4 : 6;
   const compacta = usePantallaCompacta();
-  // Lado a lado o de pie, Persona, Empresa, IVA y la fecha en un solo renglón (pedido
-  // del dueño, 2026-11-05): las casillas más chicas y la fecha toma lo que queda.
+  // Lado a lado o de pie, Persona, Empresa, IVA y la fecha en un solo renglón
+  // (pedido del dueño, 2026-11-05): las casillas más chicas y la fecha con el
+  // ancho justo de una fecha, ANCHO_FECHA. Cada opción se corre 6 px y no los
+  // 11 de fábrica: con la columna que se desplaza sola, el círculo de "Persona"
+  // quedaba cortado por el borde izquierdo.
   const casillaChica = llenaElAlto ? { size: "small", sx: { p: 0.75 } } : {};
   const opcion = llenaElAlto
-    ? { flex: "none", alignItems: "center", mr: 1.5 }
+    ? { flex: "none", alignItems: "center", ml: -0.75, mr: 1.5 }
     : { flex: 1, alignItems: "center" };
   const dispatch = useDispatch();
   const formValues = useSelector((state) => state.cuentacobro.value);
@@ -226,28 +198,14 @@ export default function CuentaCobro({ forma = "normal" }) {
         ? {}
         : { flex: "1 1 260px", minWidth: 0 };
 
-  // Un renglón de pizarra con su ícono y su color, como en la factura.
-  const renglon = (fila, { signo, variante = "body2", sx } = {}) => {
-    const { Icono, clase = "", color } = RENGLONES[fila.etiqueta] ?? {};
-    const peso = fila.fuerte ? "bold" : undefined;
-    return (
-      <Box
-        key={fila.etiqueta}
-        className={`fila ${clase}`}
-        sx={{ ...(color && { color }), ...sx }}
-      >
-        <Typography variant={variante} fontWeight={peso}>
-          {Icono && (
-            <Icono sx={{ fontSize: "1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
-          )}
-          {fila.etiqueta}
-        </Typography>
-        <Typography variant={variante} fontWeight={peso}>
-          {valorDeFila(signo ? { ...fila, signo } : fila)}
-        </Typography>
-      </Box>
-    );
-  };
+  // Un renglón de pizarra con su ícono y su color, como en la factura (ver
+  // recuadrosCuenta).
+  const renglon = (fila, { signo, variante, sx } = {}) =>
+    renglonDePizarra(fila.etiqueta, valorDeFila(signo ? { ...fila, signo } : fila), {
+      fuerte: fila.fuerte,
+      variante,
+      sx,
+    });
 
   // Lo que queda del depósito cierra su pizarra, resaltado. Sin nada que
   // guardar ni devolver, dice que no hay nada en garantía.
@@ -285,7 +243,7 @@ export default function CuentaCobro({ forma = "normal" }) {
               Empresa/Nombre, igual que en la cotización. El IVA va acá al lado
               porque es la otra decisión de una sola vez del documento: los
               demás campos son importes. */}
-          <Grid item xs={12} sm={llenaElAlto ? "auto" : 6}>
+          <Grid item xs={12} sm={llenaElAlto ? true : 6}>
             <Box display="flex" alignItems="center" width="100%">
               <FormControl sx={{ flex: llenaElAlto ? "none" : 1 }} disabled={bloqueada}>
                 <RadioGroup
@@ -330,12 +288,13 @@ export default function CuentaCobro({ forma = "normal" }) {
             </Box>
           </Grid>
 
-          <Grid item xs={12} sm={llenaElAlto ? true : 6}>
+          <Grid item xs={12} sm={llenaElAlto ? "auto" : 6}>
             <TextField
               fullWidth
               type="date"
               name="fecha"
               label="Fecha"
+              sx={llenaElAlto ? { width: { sm: ANCHO_FECHA } } : undefined}
               disabled={bloqueada}
               value={formValues.fecha}
               onChange={handlerInputChange}
@@ -811,34 +770,25 @@ export default function CuentaCobro({ forma = "normal" }) {
             {/* Sin pagos, el total es lo que se cobra y va en amarillo, como
                 siempre. Con pagos cierra el saldo: en rojo si se debe, en
                 verde si quedó en cero, como el saldo de la factura. */}
-            <Box
-              className={
-                hayMovimientos ? `fila separada ${aCancelar > 0 ? "alerta" : "ok"}` : "fila total"
-              }
-              sx={{ mb: 0 }}
-            >
-              <Typography variant="h6" fontWeight="bold">
-                {hayMovimientos ? (
-                  <ScheduleIcon sx={{ fontSize: "1.1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
-                ) : (
-                  <ReceiptLongIcon sx={{ fontSize: "1.1rem", verticalAlign: "-0.15em", mr: 0.75 }} />
-                )}
-                {hayMovimientos ? "Saldo a cancelar" : "Total"}
-              </Typography>
-              <Typography variant="h6" fontWeight="bold">
-                {formatearMoneda(hayMovimientos ? aCancelar : total)}
-              </Typography>
-            </Box>
+            {hayMovimientos
+              ? renglonDePizarra("Saldo a cancelar", formatearMoneda(aCancelar), {
+                  fuerte: true,
+                  variante: "h6",
+                  clase: `separada ${aCancelar > 0 ? "alerta" : "ok"}`,
+                  sx: { mb: 0 },
+                })
+              : renglonDePizarra("Total", formatearMoneda(total), {
+                  fuerte: true,
+                  variante: "h6",
+                  sx: { mb: 0 },
+                })}
           </Paper>
 
           {/* EL DEPÓSITO, aparte de la suma, como en la factura: cuánto se
               recibió, qué salió de él y cuánto queda. Va siempre, para que
               nada salte al escribirlo. */}
           <Paper variant="totales" sx={sxPizarra("deposito")}>
-            <Box className="titulo deposito">
-              <IconoDeposito fontSize="small" />
-              <Typography variant="subtitle2">DEPÓSITO</Typography>
-            </Box>
+            {renderTituloDeposito()}
 
             {filasDeposito.length === 0 ? (
               <Typography variant="body2" sx={{ opacity: 0.6 }}>

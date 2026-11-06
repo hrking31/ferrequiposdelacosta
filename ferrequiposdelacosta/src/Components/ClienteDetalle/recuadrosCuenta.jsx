@@ -24,6 +24,15 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SavingsIcon from "@mui/icons-material/Savings";
 import HandymanIcon from "@mui/icons-material/Handyman";
 import DiscountIcon from "@mui/icons-material/Discount";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import PercentIcon from "@mui/icons-material/Percent";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import PaidIcon from "@mui/icons-material/Paid";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import TollIcon from "@mui/icons-material/Toll";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import IconoDeposito from "./IconoDeposito";
 import nequiLogo from "../../assets/mediosPago/nequi.png";
 import bancolombiaLogo from "../../assets/mediosPago/bancolombia.png";
@@ -46,6 +55,65 @@ const LOGOS_PAGO = {
   Bancolombia: bancolombiaLogo,
   Daviplata: daviplataLogo,
 };
+
+// LAS PIZARRAS DE LA CUENTA DE COBRO Y DE LA COTIZACIÓN (pedido del dueño,
+// 2026-11-05): copian el estado de cuenta de la factura, con cada renglón con
+// su ícono y su color. Las clases ("total", "pagado", "abono", "alerta",
+// "resaltada"...) son las de la pizarra del tema (Paper variant "totales").
+const RENGLONES_DE_PIZARRA = {
+  Subtotal: { Icono: ConstructionIcon },
+  Descuento: { Icono: DiscountIcon, color: "success.light" },
+  "IVA (19%)": { Icono: PercentIcon },
+  Transporte: { Icono: LocalShippingIcon },
+  Total: { Icono: ReceiptLongIcon, clase: "total" },
+  Pagado: { Icono: PaidIcon, clase: "pagado" },
+  Abonos: { Icono: AddCircleIcon, clase: "abono" },
+  "Retenido por daños": { Icono: HandymanIcon, color: "warning.light" },
+  "Devuelto al cliente": { Icono: CurrencyExchangeIcon },
+  "Depósito por cobrar": { Icono: TollIcon, clase: "alerta" },
+  "Saldo a cancelar": { Icono: ScheduleIcon },
+  // La cotización: lo que el cliente lleva el día del despacho.
+  "Para despachar": { Icono: PaymentsIcon, clase: "separada" },
+  // Los del depósito.
+  Recibido: { Icono: TollIcon },
+  "Por cobrar": { Icono: TollIcon, clase: "alerta" },
+  "Aplicado a la factura": { Icono: ReceiptLongIcon },
+  Devuelto: { Icono: CurrencyExchangeIcon },
+  "En garantía": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
+  "Por devolver": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
+  "A entregar": { Icono: AccountBalanceWalletIcon, clase: "resaltada" },
+};
+
+// Un renglón de pizarra: el rótulo con su ícono a la izquierda y la cifra, ya
+// escrita, a la derecha. `clase` reemplaza la del rótulo cuando cambia según la
+// cuenta (el saldo, rojo o verde).
+export const renglonDePizarra = (etiqueta, valor, { fuerte, variante = "body2", clase, sx } = {}) => {
+  const { Icono, clase: claseDelRotulo = "", color } = RENGLONES_DE_PIZARRA[etiqueta] ?? {};
+  const peso = fuerte ? "bold" : undefined;
+  return (
+    <Box
+      key={etiqueta}
+      className={`fila ${clase ?? claseDelRotulo}`}
+      sx={{ ...(color && { color }), ...sx }}
+    >
+      <Typography variant={variante} fontWeight={peso}>
+        {Icono && <Icono sx={{ fontSize: "1rem", verticalAlign: "-0.15em", mr: 0.75 }} />}
+        {etiqueta}
+      </Typography>
+      <Typography variant={variante} fontWeight={peso}>
+        {valor}
+      </Typography>
+    </Box>
+  );
+};
+
+// El título de la pizarra del depósito, con su ícono y su color (del tema).
+export const renderTituloDeposito = () => (
+  <Box className="titulo deposito">
+    <IconoDeposito fontSize="small" />
+    <Typography variant="subtitle2">DEPÓSITO</Typography>
+  </Box>
+);
 
 // Los cuatro logos miden lo mismo, así el renglón queda parejo. En celular
 // —hasta 915px, o acostado— van más chicos.

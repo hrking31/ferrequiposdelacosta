@@ -33,7 +33,11 @@ import VistaCotWeb from "../../Components/VistaWeb/VistaCotWeb";
 import VistaCotPdf from "../../Components/VistaPdf/VistaCotPdf";
 import BuildIcon from "@mui/icons-material/Build";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import { ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
+import {
+  ALINEAR_CON_EL_BORDE,
+  SX_COLUMNA_HOJA,
+  useFormaConHoja,
+} from "../../Utils/pantalla";
 
 export default function VistaCotizacion() {
   const dispatch = useDispatch();
@@ -50,6 +54,8 @@ export default function VistaCotizacion() {
   // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
+  // Celular, apilada, lado a lado o el iPad de pie: ver useFormaConHoja.
+  const { dePie, ladoALado } = useFormaConHoja(isFullScreen);
   const [loading, setLoading] = useState(false);
   // Si ya se está guardando para el PDF. Es una referencia y no un estado porque
   // un doble clic llega antes de que la pantalla se vuelva a dibujar: sin esto,
@@ -309,18 +315,55 @@ export default function VistaCotizacion() {
             {botonesPie}
           </Stack>
         )}
-      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
-        <Box sx={{ mb: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Cotizacion />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <VistaCotWeb />
-            </Grid>
-          </Grid>
+      {ladoALado ? (
+        // Lado a lado: el formulario y la hoja, cada uno con su propio
+        // desplazamiento (ver useFormaConHoja).
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", gap: 2, mx: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
+            <Cotizacion forma="ladoALado" />
+          </Box>
+          <Box sx={SX_COLUMNA_HOJA}>
+            <VistaCotWeb llenarAlto />
+          </Box>
         </Box>
-      </Box>
+      ) : dePie ? (
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            mx: 2,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gridTemplateRows: "auto auto minmax(0, 1fr)",
+            // Los datos y los ítems arriba, las dos pizarras lado a lado
+            // debajo y la hoja abajo de todo, como en la cuenta de cobro.
+            gridTemplateAreas: '"datos items" "cuenta deposito" "hoja hoja"',
+            columnGap: 3,
+            rowGap: 2,
+          }}
+        >
+          <Cotizacion forma="dePie" />
+          <Box sx={{ gridArea: "hoja", minHeight: 0, display: "flex" }}>
+            <VistaCotWeb llenarAlto />
+          </Box>
+        </Box>
+      ) : (
+        // El celular y hasta 1461: todo uno debajo del otro, con un solo
+        // desplazamiento.
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: "auto", mx: isFullScreen ? 0 : 2 }}>
+          <Box sx={{ mb: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Cotizacion />
+              </Grid>
+              <Grid item xs={12}>
+                <VistaCotWeb />
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      )}
 
       </Box>
 

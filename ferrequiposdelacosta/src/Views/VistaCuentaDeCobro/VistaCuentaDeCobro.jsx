@@ -36,7 +36,11 @@ import VistaCcWeb from "../../Components/VistaWeb/VistaCcWeb";
 import VistaCcPdf from "../../Components/VistaPdf/VistaCcPdf";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HeaderUsuarioConModal from "../../Components/HeaderUsuario/HeaderUsuario";
-import { ALINEAR_CON_EL_BORDE } from "../../Utils/pantalla";
+import {
+  ALINEAR_CON_EL_BORDE,
+  SX_COLUMNA_HOJA,
+  useFormaConHoja,
+} from "../../Utils/pantalla";
 
 export default function VistaCuentaDeCobro() {
   const dispatch = useDispatch();
@@ -51,24 +55,8 @@ export default function VistaCuentaDeCobro() {
   // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
   const acostado = useMediaQuery("(max-height:500px) and (orientation: landscape)");
   const isFullScreen = useMediaQuery("(max-width:915px)") || acostado;
-  // LAS FORMAS DE LA PANTALLA (pedido del dueño, 2026-11-05). Van por el
-  // tamaño de la ventana, igual en el computador y en la tableta:
-  // - Hasta 915, el celular; de 916 a 1461, igual que el celular: el
-  //   formulario y debajo la hoja, con un solo desplazamiento.
-  // - Desde 1462, LADO A LADO, cada uno con su propio desplazamiento, para ir
-  //   escribiendo y viendo la hoja. La hoja nunca baja del ancho de una hoja
-  //   carta (816 px) y el formulario se queda con el resto; 1462 es donde al
-  //   formulario le quedan 550. Cuando la mitad pasa de 816 (desde 1728), van
-  //   mitad y mitad. La hoja llega hasta el borde de abajo, con el pie al
-  //   fondo.
-  // - La excepción, el iPad DE PIE: pantalla claramente alargada (5/6 o más;
-  //   no 4/5, para que entre el de 12,9" en Safari con sus barras, ≈1024 ×
-  //   1256). Los datos y los ítems arriba, lado a lado, las dos pizarras debajo
-  //   y la hoja abajo de todo.
-  const alargada = useMediaQuery("(max-aspect-ratio: 5/6)");
-  const caben = useMediaQuery("(min-width:1462px)");
-  const dePie = alargada && !isFullScreen;
-  const ladoALado = caben && !dePie && !isFullScreen;
+  // Celular, apilada, lado a lado o el iPad de pie: ver useFormaConHoja.
+  const { dePie, ladoALado } = useFormaConHoja(isFullScreen);
   const [loading, setLoading] = useState(false);
   // null | "salir" | "logout" — qué acción está esperando confirmación
   const [pendingAction, setPendingAction] = useState(null);
@@ -350,15 +338,7 @@ export default function VistaCuentaDeCobro() {
           <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex" }}>
             <CuentaDeCobro forma="ladoALado" />
           </Box>
-          {/* Ancho de hoja carta como mínimo; la mitad cuando es más. */}
-          <Box
-            sx={{
-              flex: "0 0 max(816px, calc((100% - 16px) / 2))",
-              minWidth: 0,
-              minHeight: 0,
-              display: "flex",
-            }}
-          >
+          <Box sx={SX_COLUMNA_HOJA}>
             <VistaCcWeb llenarAlto />
           </Box>
         </Box>

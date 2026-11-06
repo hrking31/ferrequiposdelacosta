@@ -1,6 +1,7 @@
 import generarFacturaPdf from "./VistaFacturaPdf";
 import generarReporteFacturasPdf from "./VistaReporteClientePdf";
 import generarCuentaCobro from "./VistaCcPdf";
+import generarCotizacion from "./VistaCotPdf";
 import { unEquipoDevuelto, unaFactura } from "../../test/facturas";
 
 // LO QUE DICEN LOS TRES PDF DE COBRO (2026-11-04). No se mira cómo se ven, sino
@@ -288,5 +289,46 @@ describe("el PDF de la cuenta de cobro", () => {
     expect(rotulos(totales)).not.toContain("Depósito");
     expect(papel.textos.join(" ")).toContain("LA SUMA DE");
     expect(papel.textos.find((texto) => String(texto).startsWith("LA SUMA DE"))).toContain("150.000");
+  });
+});
+
+describe("el PDF de la cotización", () => {
+  const cotizacionPdf = (extra = {}) => ({
+    cotizacionId: "COT-1",
+    tipo: "persona",
+    empresa: "ANA",
+    fecha: "2026-11-05",
+    transporte: "Ida y vuelta",
+    valorTransporte: 40000,
+    iva: false,
+    deposito: true,
+    valorDeposito: 100000,
+    // El total guardado de una cotización vieja, con el depósito sumado: el
+    // PDF no tiene que creerle.
+    total: "$ 380.000",
+    items: [{ description: "ANDAMIO", quantity: 4, day: 3, price: 20000, subtotal: "$ 240.000" }],
+    ...extra,
+  });
+  const renglones = () => papel.tablas[0].body;
+  const fila = (rotulo) => renglones().find((r) => r[1] === rotulo || r[0] === rotulo);
+
+  it("el depósito va después del total y no lo suma; cierra lo que se lleva para despachar", () => {
+    generarCotizacion(cotizacionPdf());
+
+    // El rótulo va en la primera columna o, si está vacía, en la segunda.
+    const orden = renglones().map((r) => r[0] || r[1]);
+    expect(orden.indexOf("TOTAL")).toBeLessThan(orden.indexOf("Depósito"));
+    expect(orden.indexOf("Depósito")).toBeLessThan(orden.indexOf("PARA DESPACHAR"));
+    expect(fila("TOTAL")[2]).toContain("280.000");
+    expect(fila("Depósito")[2]).toContain("100.000");
+    expect(fila("PARA DESPACHAR")[2]).toContain("380.000");
+  });
+
+  it("sin depósito no lleva esos renglones", () => {
+    generarCotizacion(cotizacionPdf({ deposito: false }));
+
+    expect(fila("Depósito")).toBeUndefined();
+    expect(fila("PARA DESPACHAR")).toBeUndefined();
+    expect(fila("TOTAL")[2]).toContain("280.000");
   });
 });
