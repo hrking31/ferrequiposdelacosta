@@ -45,7 +45,7 @@ export default function VistaSeguimientoClientes() {
         }}
       >
         {/* El logo va dentro del encabezado (conLogo), con ir
-            al menú y cerrar sesión. */}
+            al menú. La sesión se cierra solo desde el menú. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}

@@ -49,8 +49,8 @@ export default function VistaClienteDetalle() {
         }}
       >
         {/* El logo va dentro del encabezado (conLogo), con ir
-            al menú y cerrar sesión; en computador, también los
-            botones de la vista (acciones). */}
+            al menú; en computador, también los botones de la vista
+            (acciones). La sesión se cierra solo desde el menú. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -83,8 +83,8 @@ export default function VistaClienteDetalle() {
       {/* Esta vista no tiene pie propio: en celular ese renglón lo ocupan las
           acciones del cliente, que dibuja ClienteDetalle. El botón de MENU se
           sacó a pedido del dueño —al listado de clientes se vuelve con la
-          carpeta, y de ahí al menú—, y el de cerrar sesión se mudó al bloque
-          del usuario, arriba. */}
+          carpeta, y de ahí al menú—, y cerrar sesión se hace solo desde el
+          menú, tocando el carné. */}
     </Box>
   );
 }

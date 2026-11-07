@@ -9,11 +9,11 @@
 // se calme. La caída también la mueve este archivo, así la cinta siente los
 // mismos tirones. Se diseñó en una maqueta (artifact "Puerta del personal").
 
-export const GANCHO_Y = -700; // altura del gancho: siempre fuera de la pantalla
-export const BOCA = -129; // donde la cinta entra a la pieza negra del mosquetón
+const GANCHO_Y = -700; // altura del gancho: siempre fuera de la pantalla
+const BOCA = -129; // donde la cinta entra a la pieza negra del mosquetón
 export const ANCHO = 22; // medio ancho de la cinta
-export const PASO_MS = 1000 / 60;
-export const PASOS = 420; // cuadros de simulación (7 s)
+const PASO_MS = 1000 / 60;
+const PASOS = 420; // cuadros de simulación (7 s)
 export const FIN = PASOS * PASO_MS;
 const LARGO_SUELTA = 1750; // la punta queda siempre debajo de la pantalla
 const SEP = 10; // distancia entre puntos de la cinta
@@ -56,7 +56,7 @@ export function salidaEn(ms, alto) {
 }
 
 // Curva suave que pasa por todos los puntos (Catmull-Rom → Bézier).
-export function suavizar(p) {
+function suavizar(p) {
   const f = (v) => v.toFixed(1);
   let d = `M${f(p[0][0])} ${f(p[0][1])}`;
   for (let i = 0; i < p.length - 1; i++) {

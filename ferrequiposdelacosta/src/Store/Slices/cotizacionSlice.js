@@ -89,11 +89,6 @@ const cotizacionSlice = createSlice({
       localStorage.setItem(CLAVE, JSON.stringify(state.value));
     },
 
-    setAtendidoPor: (state, action) => {
-      state.value.atendidoPor = action.payload;
-      localStorage.setItem(CLAVE, JSON.stringify(state.value));
-    },
-
     setItems: (state, action) => {
       state.value.items = action.payload;
       localStorage.setItem(CLAVE, JSON.stringify(state.value));
@@ -130,7 +125,6 @@ export const {
   resetCotizacion,
   setCotizacionActual,
   setFormCotizacion,
-  setAtendidoPor,
   setItems,
   setSubtotal,
   setSubtotalNumero,

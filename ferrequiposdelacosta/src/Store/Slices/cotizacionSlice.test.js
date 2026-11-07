@@ -1,7 +1,6 @@
 import cotizacionReducer, {
   setCotizacionActual,
   setFormCotizacion,
-  setAtendidoPor,
   resetCotizacion,
 } from "./cotizacionSlice";
 
@@ -27,11 +26,6 @@ describe("cotizacionSlice", () => {
     const estado = cotizacionReducer(base(), setFormCotizacion({ total: "$100" }));
     expect(estado.value.total).toBe("$100");
     expect(estado.value.items).toEqual([]); // conserva lo anterior
-  });
-
-  it("setAtendidoPor guarda quién atiende", () => {
-    const estado = cotizacionReducer(base(), setAtendidoPor("Yasbleidy"));
-    expect(estado.value.atendidoPor).toBe("Yasbleidy");
   });
 
   it("resetCotizacion limpia la cotización y borra la sesión guardada", () => {
