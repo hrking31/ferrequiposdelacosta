@@ -21,6 +21,8 @@ const APPS = {
   tienda: {
     entrada: "/src/mainTienda.jsx",
     titulo: "Ferrequipos de la Costa",
+    // Los íconos de la tienda viven sueltos en public/, como siempre.
+    iconos: "",
     puerto: 5173,
     manifest: {
       name: "Ferrequipos de la Costa",
@@ -31,6 +33,10 @@ const APPS = {
   personal: {
     entrada: "/src/mainPersonal.jsx",
     titulo: "Ferrequipos Personal",
+    // El carné de empleado (elegido por el cliente, 2026-11-07): rojo de la
+    // marca, la credencial con el logo colgada de su cinta. Inclinado en la app
+    // instalada; derecho en la pestaña, que chiquito se lee mejor.
+    iconos: "/iconos-personal",
     puerto: 5174,
     manifest: {
       name: "Ferrequipos Personal",
@@ -41,7 +47,7 @@ const APPS = {
 };
 
 // index.html es uno solo para las dos: este paso cambia lo que va distinto
-// (el programa que arranca, el título y los bloques marcados con
+// (el programa que arranca, el título, la carpeta de los íconos y los bloques marcados con
 // `<!-- solo:tienda -->` … `<!-- /solo:tienda -->` o lo mismo con "personal").
 // Corre ANTES de que Vite lea el HTML, así el programa elegido se arma como
 // cualquier otro.
@@ -56,7 +62,8 @@ function elegirApp(nombre, app) {
           .replace(new RegExp(`\\s*<!-- solo:${otra} -->[\\s\\S]*?<!-- /solo:${otra} -->`, "g"), "")
           .replace(/\s*<!-- \/?solo:\w+ -->/g, "")
           .replaceAll("__ENTRADA__", app.entrada)
-          .replaceAll("__TITULO__", app.titulo),
+          .replaceAll("__TITULO__", app.titulo)
+          .replaceAll("__ICONOS__", app.iconos),
     },
   };
 }
@@ -102,13 +109,13 @@ export default defineConfig(({ mode }) => {
           theme_color: "#5C6B73",
           icons: [
             {
-              src: "/web-app-manifest-192x192.png",
+              src: `${app.iconos}/web-app-manifest-192x192.png`,
               sizes: "192x192",
               type: "image/png",
               purpose: "any",
             },
             {
-              src: "/web-app-manifest-512x512.png",
+              src: `${app.iconos}/web-app-manifest-512x512.png`,
               sizes: "512x512",
               type: "image/png",
               purpose: "any",
@@ -120,6 +127,11 @@ export default defineConfig(({ mode }) => {
     // Cada una en su puerto para poder tener las dos abiertas a la vez en el
     // PC: son direcciones distintas, igual que en internet.
     server: { port: app.puerto, strictPort: true },
+    // Al abrir `npm run dev`, Vite recorre el programa para preparar las
+    // librerías, y lo hace leyendo index.html tal cual, sin pasar por
+    // elegirApp: encontraba "__ENTRADA__" y no sabía qué era. Se le dice
+    // directo desde dónde empezar.
+    optimizeDeps: { entries: [app.entrada.slice(1)] },
     preview: { port: app.puerto, strictPort: true },
     build: {
       // Una carpeta por app: Firebase publica dist/tienda en www y
