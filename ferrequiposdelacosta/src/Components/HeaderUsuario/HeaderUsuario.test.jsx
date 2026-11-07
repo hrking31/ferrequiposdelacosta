@@ -26,7 +26,7 @@ describe.each([
     await usuario.click(screen.getByRole("button", { name: "Cerrar sesión" }));
 
     expect(salir).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("img", { name: "Ferrequipos" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Ferrequipos Personal" })).toBeInTheDocument();
     expect(screen.queryByText(/tienda/i)).not.toBeInTheDocument();
   });
 
@@ -36,6 +36,6 @@ describe.each([
     );
 
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Ferrequipos" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Ferrequipos Personal" })).toBeInTheDocument();
   });
 });

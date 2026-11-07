@@ -33,7 +33,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import LogoCirculo from "./LogoCirculo";
+import LogoCarne from "./LogoCarne";
 
 export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu, sinCerrarSesion }) {
   const theme = useTheme();
@@ -318,7 +318,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                 </IconButton>
               </Tooltip>
             )}
-            {conLogo && <LogoCirculo alto={32} />}
+            {conLogo && <LogoCarne alto={44} />}
           </Stack>
         </Box>
       ) : (
@@ -538,7 +538,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                     </Tooltip>
                   )}
 
-                  {conLogo && <LogoCirculo alto={36} />}
+                  {conLogo && <LogoCarne alto={48} />}
                 </Stack>
               </>
             )}
@@ -639,7 +639,7 @@ HeaderUsuario.propTypes = {
   // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
   onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
-  // El logo de la marca: en celular al lado del botón de salir, en
+  // El carné, logo de la app del personal (ver LogoCarne): en celular al lado del botón de salir, en
   // computador al extremo derecho, con "Ir al menú" y "Cerrar sesión".
   conLogo: PropTypes.bool,
   // Solo en computador: los botones propios de la vista, junto al logo.

@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import LogoFerrequipos from "../../assets/LogoFerrequipos.png";
+import LogoFerrequipos from "../../assets/LogoFerrequiposPdf.png";
 import ponerMarcaDeAgua from "./marcaDeAgua";
 import {
   formatearMoneda,

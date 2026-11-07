@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import Login from "../../Components/Login/Login";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
-import LogoCirculo from "../../Components/HeaderUsuario/LogoCirculo";
+import LogoCarne from "../../Components/HeaderUsuario/LogoCarne";
 
 // LA PUERTA DEL PERSONAL: la dirección sola de la app del personal
 // (personal.ferrequiposdelacosta.com, desde el 2026-11-07). Antes el inicio
@@ -31,7 +31,7 @@ export default function VistaAcceso() {
     >
       <Paper sx={{ width: "min(420px, 100%)", p: { xs: 2.5, sm: 3.5 } }}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-          <LogoCirculo alto={56} />
+          <LogoCarne alto={96} />
           <Typography
             variant="overline"
             sx={{ color: "custom.accent", fontWeight: 700, letterSpacing: 1.5 }}

@@ -82,7 +82,7 @@ export default function MenuAppBar() {
               alignItems: "center",
               justifyContent: "center",
               // Un círculo, no un óvalo (2026-11-06): el logo va en un
-              // cuadrado, como en LogoCirculo.
+              // cuadrado.
               // El círculo del logo NO sigue el acento ni el modo: es el
               // respaldo del logotipo, que es rojo y azul, y necesita blanco
               // siempre. Sobre naranja el rojo se pierde (se probó y se
