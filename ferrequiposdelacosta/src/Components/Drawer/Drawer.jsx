@@ -238,9 +238,9 @@ export default function MobileDrawerLayout() {
               />
             </ListItemButton>
           </ListItem>
-          {/* "Mi cuenta" ya no va acá (2026-11-06): el personal entra por
-              /acceso (ver VistaAcceso) y al cliente le hacía creer que
-              alquilar pedía una cuenta. */}
+          {/* "Mi cuenta" ya no va acá (2026-11-06): al cliente le hacía
+              creer que alquilar pedía una cuenta. El personal entra por su
+              propia app (ver VistaAcceso). */}
         </List>
 
         <Typography

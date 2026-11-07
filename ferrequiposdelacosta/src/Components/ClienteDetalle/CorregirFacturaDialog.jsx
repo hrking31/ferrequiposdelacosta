@@ -1712,7 +1712,7 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
             role={usuario.role}
             genero={usuario.genero}
             conLogo
-            logoQuieto
+            sinCerrarSesion
             sinIrAlMenu
             compacto={esCompacta}
             vista={`Corregir factura ${datosFactura(factura).numeroFactura ?? ""}`}

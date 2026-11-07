@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "ferrequiposdelacosta-e2457"
+  },
+  "targets": {
+    "ferrequiposdelacosta-e2457": {
+      "hosting": {
+        "tienda": [
+          "ferrequiposdelacosta-e2457"
+        ],
+        "personal": [
+          "ferrequipos-personal"
+        ]
+      }
+    }
   }
 }

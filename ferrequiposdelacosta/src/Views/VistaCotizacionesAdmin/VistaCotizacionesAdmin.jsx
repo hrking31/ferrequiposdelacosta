@@ -44,8 +44,8 @@ export default function VistaCotizacion() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo de la tienda va dentro del encabezado (conLogo), con ir
-            a la tienda, al menú y cerrar sesión. */}
+        {/* El logo va dentro del encabezado (conLogo), con ir
+            al menú y cerrar sesión. */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}

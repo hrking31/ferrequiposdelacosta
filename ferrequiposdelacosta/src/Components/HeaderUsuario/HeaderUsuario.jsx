@@ -33,17 +33,19 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
-import BotonTienda from "../NavBar/BotonTienda";
+import LogoCirculo from "./LogoCirculo";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu, logoQuieto }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu, sinCerrarSesion }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // Cerrar sesión se mudó acá desde el pie de cada vista. La sesión es del
   // usuario, y este es su bloque —su foto, su nombre y su rol—. En el pie
   // quedaba pegado a los botones de trabajo, donde un dedo corrido sacaba de
-  // la app en mitad de una factura. Desde el 2026-10-22 también en computador:
-  // va en la lista del logo, al extremo derecho del encabezado.
+  // la app en mitad de una factura. Desde el 2026-10-22 también en computador,
+  // al extremo derecho del encabezado. Del 2026-10-21 al 2026-11-07 vivió
+  // dentro de una lista que abría el logo, junto a "Ir a la tienda"; con la
+  // tienda en otra app, volvió a ser un botón suelto al lado del logo.
   const { logout } = useAuth();
   const [openModal, setOpenModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -296,30 +298,28 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
               no sirve: medido sobre el amarillo da 2,17 de contraste y sobre
               el azul 2,11, cuando el mínimo para que una figura se despegue
               de su fondo es 3. */}
-          {/* CON `conLogo` (el menú, 2026-10-21) va el logo en vez del
-              botón: al tocarlo ofrece ir a la tienda o cerrar sesión. */}
-          {conLogo ? (
-            <Box sx={{ ml: "auto", flexShrink: 0, zIndex: 1 }}>
-              <BotonTienda alto={32} onCerrarSesion={cerrarSesion} quieto={logoQuieto} />
-            </Box>
-          ) : (
-            <Tooltip title="Cerrar sesión">
-              <IconButton
-                onClick={cerrarSesion}
-                aria-label="Cerrar sesión"
-                sx={{
-                  ml: "auto",
-                  flexShrink: 0,
-                  color: "custom.onAccent",
-                  // Por encima del círculo decorativo del fondo, que si no se
-                  // le monta encima y se come el toque.
-                  zIndex: 1,
-                }}
-              >
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+          {/* Al lado, con `conLogo`, el logo. Los dos van por encima del
+              círculo decorativo del fondo, que si no se les monta encima y
+              se come el toque. */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            sx={{ ml: "auto", flexShrink: 0, zIndex: 1 }}
+          >
+            {!sinCerrarSesion && (
+              <Tooltip title="Cerrar sesión">
+                <IconButton
+                  onClick={cerrarSesion}
+                  aria-label="Cerrar sesión"
+                  sx={{ color: "custom.onAccent" }}
+                >
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+            {conLogo && <LogoCirculo alto={32} />}
+          </Stack>
         </Box>
       ) : (
         /* ── COMPUTADOR: tarjeta clara con una barra de acento al costado ── */
@@ -508,9 +508,9 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             />
 
             {/* LOS BOTONES DE LA VISTA Y EL LOGO (2026-10-22): antes iban
-                sueltos a los lados de la tarjeta. Cerrar sesión quedó en la
-                lista del logo; los demás los pasa cada vista. Van en un solo
-                bloque para que el reparto a lo ancho no los separe. */}
+                sueltos a los lados de la tarjeta. Cerrar sesión va junto al
+                logo; los demás los pasa cada vista. Van en un solo bloque
+                para que el reparto a lo ancho no los separe. */}
             {(acciones || conLogo) && (
               <>
                 <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
@@ -530,7 +530,15 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                     </Tooltip>
                   )}
 
-                  {conLogo && <BotonTienda alto={36} onCerrarSesion={cerrarSesion} quieto={logoQuieto} />}
+                  {conLogo && !sinCerrarSesion && (
+                    <Tooltip title="Cerrar sesión">
+                      <IconButton onClick={cerrarSesion} aria-label="Cerrar sesión" color="error">
+                        <LogoutIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {conLogo && <LogoCirculo alto={36} />}
                 </Stack>
               </>
             )}
@@ -631,14 +639,14 @@ HeaderUsuario.propTypes = {
   // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
   onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
-  // El logo con ir a la tienda y cerrar sesión: en celular en el lugar del
-  // botón de salir, en computador al extremo derecho (con el botón "Ir al
-  // menú" al lado).
+  // El logo de la marca: en celular al lado del botón de salir, en
+  // computador al extremo derecho, con "Ir al menú" y "Cerrar sesión".
   conLogo: PropTypes.bool,
   // Solo en computador: los botones propios de la vista, junto al logo.
   acciones: PropTypes.node,
   // Solo en computador: saca el botón "Ir al menú" de al lado del logo.
   sinIrAlMenu: PropTypes.bool,
-  // El logo sin llevar a ningún lado (ver BotonTienda): corregir una factura.
-  logoQuieto: PropTypes.bool,
+  // Sin el botón de cerrar sesión: corregir una factura, donde salir a mitad
+  // de camino perdería la corrección.
+  sinCerrarSesion: PropTypes.bool,
 };

@@ -35,16 +35,32 @@ Esta aplicación sostiene ese ciclo completo: **el cliente pide → se cotiza �
 
 ---
 
-## Dos aplicaciones en una
+## Dos aplicaciones, un solo código
 
 | | **Tienda y Kiosco** | **Panel interno** |
 |---|---|---|
+| **Dirección** | `www.ferrequiposdelacosta.com` | `personal.ferrequiposdelacosta.com` |
+| **App instalada** | "Ferrequipos" | "Ferrequipos Personal" |
 | **Para quién** | Clientes, desde su celular o desde una pantalla en el local | El equipo de Ferrequipos |
 | **Qué hace** | Explorar el catálogo, armar un carrito y enviar la solicitud | Cotizar, facturar, cobrar y seguir la cartera |
-| **Cómo entra** | Sin cuenta, abierto a todos | Por su propia puerta, `/acceso`, con usuario y contraseña y permisos por rol |
+| **Cómo entra** | Sin cuenta, abierto a todos | La dirección sola es su puerta: usuario, contraseña, dos pasos y permisos por rol |
 | **Detalle** | El modo Kiosco fuerza tema oscuro y tiene protector de pantalla por inactividad | Aviso sonoro cuando entra una solicitud nueva, y quién está conectado |
 
 Cuando un cliente envía su solicitud, esta **aparece sola en el buzón del personal**, sin recargar la página, y suena una campana.
+
+### Separadas desde el 2026-11-07
+
+Hasta ese día eran una sola app que mostraba la tienda o el panel según la página. El panel tenía su puerta en `/acceso`, pero una app instalada desde ahí **igual arrancaba en la tienda**: el teléfono obedece la ficha de la app, que dice dónde arrancar, no la página desde la que se instaló. Con la sesión abierta no se notaba —la tienda mandaba al menú al instante—; al cerrarla, el empleado quedaba en la tienda sin por dónde entrar.
+
+Ahora son **dos apps del mismo código**, cada una en su dirección y en su propio sitio de Firebase:
+
+- **El teléfono las instala como dos apps distintas**, cada una con su nombre, en Android y en iPhone, porque son dos direcciones.
+- **Cada una lleva solo lo suyo.** La tienda no descarga el panel —ni el generador de PDF—: pesa la mitad que antes.
+- **Se publican por separado.** Un cambio en una pantalla del panel no vuelve a publicar la tienda.
+- **No se cruzan.** La tienda no tiene inicio de sesión ni camino al panel, y el panel no tiene botón a la tienda; cerrar sesión volvió a ser un botón suelto junto al logo. Una dirección vieja del panel abierta en la tienda cae en la tienda.
+- **Los datos son los mismos**: lo que el panel cambia en un equipo se ve en la tienda sin publicar nada.
+
+Las pantallas no están copiadas: las dos apps toman las piezas de la misma carpeta. Lo que se parte en dos es solo el arranque —qué pantallas tiene cada una— y un único `index.html` recibe el título y el programa de cada app al armarla.
 
 ### Del lado del cliente
 
@@ -65,7 +81,7 @@ Al enviar el pedido se abre WhatsApp con el mensaje ya escrito, y en paralelo la
 | **El kiosko, al enviar** | Una tarjeta "¡Listo! Tu solicitud llegó" con el número al que le escriben, que a los 8 segundos —o con un toque— deja la tableta lista para el siguiente cliente |
 | **La cotización y la cuenta de cobro** | El ícono de marca de agua, al 6 %, centrado a lo alto y a lo ancho de cada hoja |
 
-**El personal entra por su propia puerta.** El menú de la tienda tenía un "Mi cuenta" que abría el inicio de sesión del personal, y al cliente le hacía pensar que alquilar pedía registrarse. Ahora el personal entra siempre por **`/acceso`** —quien ya tiene la sesión abierta pasa directo al menú— y al cerrar sesión vuelve ahí, no a la tienda. En su lugar el menú responde la duda de verdad: **los tres pasos para alquilar** a la vista (elegir, enviar sin cuenta, te escribimos), con la ubicación de la bodega en un mapa y el resto de la información en el mismo orden en el celular y en el computador.
+**El personal entra por su propia puerta.** El menú de la tienda tenía un "Mi cuenta" que abría el inicio de sesión del personal, y al cliente le hacía pensar que alquilar pedía registrarse. Se quitó, y el personal pasó a entrar por **`/acceso`**; al día siguiente, por su propia app (ver *Separadas desde el 2026-11-07*). En su lugar el menú responde la duda de verdad: **los tres pasos para alquilar** a la vista (elegir, enviar sin cuenta, te escribimos), con la ubicación de la bodega en un mapa y el resto de la información en el mismo orden en el celular y en el computador.
 
 **El buscador encuentra lo que se escribe (2026-10-29).** Filtra **mientras se escribe**, sin botón ni Enter, sobre el catálogo que la app ya bajó al abrirse: buscar no cuesta lecturas. Encuentra lo escrito **en cualquier parte del nombre** y sin importar tildes ni mayúsculas —*convencional* trae los ANDAMIOS CONVENCIONALES, *tablon* el TABLÓN—, deja el orden de la tienda y, si nada coincide, lo dice. Es el mismo comportamiento de los buscadores del panel; la tienda, el panel lateral del celular y el kiosco usan la misma pieza.
 
@@ -1729,7 +1745,8 @@ Un usuario cualquiera solo puede tocar dos campos de su propia ficha: **su foto*
 git clone <este-repositorio>
 cd "FERREQUIPOS DE LA COSTA/ferrequiposdelacosta"
 npm install
-npm run dev
+npm run dev            # la tienda, en localhost:5173
+npm run dev:personal   # el panel, en localhost:5174
 ```
 
 > [!IMPORTANT]
@@ -1742,15 +1759,19 @@ npm run dev
 
 | Comando | Qué hace |
 |---|---|
-| `npm run dev` | Servidor de desarrollo, solo en este computador (`localhost`). Desde el 2026-09-28 ya no se abre a los celulares de la red local |
-| `npm run build` | Compila la versión de producción |
-| `npm run preview` | Sirve la versión ya compilada |
+| `npm run dev` | La tienda en desarrollo, en `localhost:5173`, solo en este computador. Desde el 2026-09-28 ya no se abre a los celulares de la red local |
+| `npm run dev:personal` | El panel en desarrollo, en `localhost:5174`. Se pueden tener las dos abiertas a la vez |
+| `npm run build` | Compila las dos apps: `dist/tienda` y `dist/personal` |
+| `npm run build:tienda` / `npm run build:personal` | Compila solo una |
+| `npm run preview` / `npm run preview:personal` | Sirve la versión ya compilada de cada una |
 | `npm run lint` | Revisa el estilo del código (un aviso ya hace fallar) |
 | `npm test` | Pruebas en modo continuo |
 | `npm run test:run` | Pruebas, una sola pasada |
 | `npm run test:coverage` | Pruebas con informe de cobertura |
-| `firebase deploy` | Despliega la web y las funciones |
-| `firebase deploy --only hosting` | Solo la web |
+| `firebase deploy` | Despliega las dos webs y las funciones |
+| `firebase deploy --only hosting` | Solo las dos webs |
+| `firebase deploy --only hosting:tienda` | Solo la tienda (`www`) |
+| `firebase deploy --only hosting:personal` | Solo el panel (`personal`, sitio `ferrequipos-personal`) |
 | `firebase deploy --only functions` | Solo las funciones |
 
 Dentro de `functions/`: `npm run serve` levanta el emulador y `npm run logs` muestra los registros de producción.

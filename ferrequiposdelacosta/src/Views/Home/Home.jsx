@@ -1,17 +1,13 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchEquiposData } from "../../Store/Slices/equiposSlice";
-import { useAuth } from "../../Context/useAuth";
 import Drawer from "../../Components/Drawer/Drawer.jsx";
-import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
 
+// La tienda. Desde que el personal tiene su propia app (2026-11-07) acá no
+// hay sesión que revisar: antes, con la sesión abierta, esta página mandaba
+// al menú, y para ver la tienda había que pedirla con `?vistahome=si`.
 export default function Home() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const esVistaHome = searchParams.get("vistahome") === "si";
-  const { user, loading } = useAuth();
   const equipos = useSelector((state) => state.equipos.equipos); //solo realiza consulta al cargar la pagina
 
   useEffect(() => {
@@ -19,17 +15,6 @@ export default function Home() {
       dispatch(fetchEquiposData()); // Solo se hace la consulta si `equipos` está vacío
     }
   }, [dispatch, equipos]);
-
-  useEffect(() => {
-    if (!loading && user && !esVistaHome) {
-      navigate("/adminforms", { replace: true });
-    }
-  }, [user, loading, esVistaHome, navigate]);
-
-
-  if (loading) {
-    return <LoadingLogo />;
-  }
 
   return <Drawer />;
 }

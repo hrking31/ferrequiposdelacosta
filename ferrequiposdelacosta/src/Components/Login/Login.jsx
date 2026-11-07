@@ -16,7 +16,7 @@ import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 
-// Vive en su propia pantalla, /acceso (ver VistaAcceso). Antes se abría en un
+// Vive en la puerta de la app del personal (ver VistaAcceso). Antes se abría en un
 // diálogo del menú de la tienda y recibía `onClose` para cerrarlo al entrar.
 export default function Login() {
   const theme = useTheme();

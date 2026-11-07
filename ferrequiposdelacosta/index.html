@@ -14,7 +14,17 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ferrequipos de la Costa</title>
+    <!--
+      UN SOLO HTML PARA LAS DOS APPS (2026-11-07): el titulo y el programa que
+      arranca los pone vite.config.js segun la app que se arme. Lo que va entre
+      "solo:tienda" o "solo:personal" queda solo en esa app.
+    -->
+    <title>__TITULO__</title>
+    <!-- solo:personal -->
+    <!-- La app del personal no tiene nada que mostrar en un buscador. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <!-- /solo:personal -->
+    <!-- solo:tienda -->
     <meta name="description" content="Alquiler de equipos para la construcción en la costa caribe. Mira el catálogo y pide tu cotización." />
     <!--
       LA TARJETA AL COMPARTIR EL ENLACE (pedido del dueño, 2026-11-06): lo que
@@ -35,6 +45,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Logo de Ferrequipos" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- /solo:tienda -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -44,6 +55,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="__ENTRADA__"></script>
   </body>
 </html>

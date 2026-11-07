@@ -262,10 +262,9 @@ export default function AdminForms() {
   // solo con su ícono, en una franja abajo. Desde 916px, las tarjetas (pedido
   // del dueño, 2026-10-29; antes la franja seguía hasta 1024).
   //
-  // EL LOGO DE LA TIENDA va dentro del encabezado (ver `conLogo` en
-  // HeaderUsuario): en el celular en el lugar del botón de salir, y en
-  // computador al extremo derecho desde el 2026-10-22, con los avisos al lado.
-  // Al tocarlo ofrece ir a la tienda o cerrar sesión.
+  // EL LOGO va dentro del encabezado (ver `conLogo` en HeaderUsuario): en el
+  // celular al lado del botón de salir, y en computador al extremo derecho
+  // desde el 2026-10-22, con los avisos y cerrar sesión al lado.
   const franja = <FranjaKpis kpis={kpis} />;
 
   // Los botones salen de la lista compartida (ver botonesMenu): la pantalla de

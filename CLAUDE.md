@@ -15,11 +15,11 @@ The Cloud Functions are a nested npm project at `ferrequiposdelacosta/functions/
 
 Run from `ferrequiposdelacosta/`:
 
-- `npm run dev` — Vite dev server on `localhost` only: since 2026-09-28 it is no longer exposed to the LAN, so phones/tablets can't load the local build. The service worker is enabled in dev via `devOptions`.
-- `npm run build` — production build to `dist/`.
-- `npm run preview` — serve the built `dist/`.
+- `npm run dev` — the **tienda** dev server on `localhost:5173`; `npm run dev:personal` — the **personal** app on `localhost:5174` (both can run at once). `localhost` only: since 2026-09-28 it is no longer exposed to the LAN, so phones/tablets can't load the local build. The service worker is enabled in dev via `devOptions`.
+- `npm run build` — builds both apps to `dist/tienda` and `dist/personal`; `build:tienda` / `build:personal` build one.
+- `npm run preview` / `npm run preview:personal` — serve a built app.
 - `npm run lint` — ESLint over `src` with `--max-warnings 0` (a warning fails the command). There is **no test framework** configured.
-- `firebase deploy` — deploys hosting (`dist/`) + functions. `firebase deploy --only hosting` or `--only functions` to scope. Deploying functions runs `npm run lint` inside `functions/` as a predeploy hook, so a lint error there blocks the deploy.
+- `firebase deploy` — deploys both hosting sites + functions. `--only hosting:tienda` (www, `dist/tienda`), `--only hosting:personal` (site `ferrequipos-personal`, `dist/personal`), `--only hosting` (both) or `--only functions` to scope. Deploying functions runs `npm run lint` inside `functions/` as a predeploy hook, so a lint error there blocks the deploy.
 
 Run from `ferrequiposdelacosta/functions/`:
 
@@ -42,10 +42,21 @@ rental company on the Colombian Caribbean coast. Code identifiers, routes, and U
 React 18 + Vite SPA, MUI (Emotion) for UI, Redux Toolkit for state, React Router v6, installable as a
 PWA (`vite-plugin-pwa`, `registerType: autoUpdate`). Firebase is the entire backend.
 
-### Provider stack (`src/main.jsx`)
+### Two apps from one codebase (since 2026-11-07)
 
-`Provider` (Redux) → `BrowserRouter` → `CustomThemeProvider` → `AuthProvider` → `App`. Anything needing
-auth, theme, or store must sit inside this stack.
+The **tienda** (`www.ferrequiposdelacosta.com`) and the **personal** app (`personal.ferrequiposdelacosta.com`)
+are separate builds of the same `src/`, chosen by Vite mode (`--mode personal`; anything else is the tienda —
+see `APPS` in `vite.config.js`). Each has its own entry (`src/mainTienda.jsx` → `AppTienda.jsx`,
+`src/mainPersonal.jsx` → `AppPersonal.jsx`), its own PWA manifest (installs as a separate app), `dist/` folder and
+Firebase Hosting target. A single `index.html` gets the title/entry per app and keeps blocks marked
+`<!-- solo:tienda -->` / `<!-- solo:personal -->` only in that app. The App files import each view from its own
+file (not a barrel) so the tienda bundle doesn't pull in the staff screens. The two apps never link to each other.
+
+### Provider stack (`src/arrancar.jsx`)
+
+`Provider` (Redux) → `BrowserRouter` → `CustomThemeProvider` → app. The personal app wraps `AppPersonal` in
+`AuthProvider` (`mainPersonal.jsx`); the tienda has no auth at all. Anything needing auth, theme, or store must sit
+inside this stack.
 
 ### Firebase — three data stores used together (`src/Components/Firebase/Firebase.js`)
 
@@ -72,7 +83,7 @@ Role → permission mapping lives in `src/Components/RolesPermisos/RolesPermisos
 `administrador`, `gestorFacturacion`, `gestorEditor`, `gestorIntegral`; permissions like `cotizacion`,
 `cuentaCombro`, `crearEquipos`, `crearUsuarios`, `solicitudesCotizaciones`). In the UI:
 
-- `ProtectedRoutes` wraps routes in `App.jsx` and checks `allowedRoles` against the current user's role's permission list.
+- `ProtectedRoutes` wraps routes in `AppPersonal.jsx` (no session → `/`, the login door) and checks `allowedRoles` against the current user's role's permission list.
 - `AdminForms` conditionally renders each action button by checking `permisos.includes(...)`.
 
 That is UX only. The real enforcement is the security rules (`firestore.rules`, `storage.rules`,
@@ -83,18 +94,16 @@ kept in sync with `RolesPermisos.jsx` by hand; the server gets the map as a gene
 (`functions/compartido/rolesPermisos.js`, via `npm run sincronizar-calculos`).
 (Note: permission spelling is `cuentaCombro` — a typo baked into the data model, kept consistent across code.)
 
-### Two front-ends in one app: Admin vs. Kiosk
+### What each app serves
 
-The same SPA serves the internal admin tool and a public "Kiosk" catalog:
-
-- **Admin flow**: `Home` (`/`) redirects logged-in users to `/adminforms`, the permission-gated hub linking to quote/invoice/equipment/user management views (`Vista*` under `src/Views/`).
-- **Kiosk flow**: routes containing `kiosk` (`/kioskhome`, `/kioskdetail/:id`, `/kioskcart`). `CustomThemeProvider` **force-sets dark mode on any kiosk route** and restores the saved theme when leaving. `KioskHome` mounts a `KioskScreensaver` (idle timeout). `App.jsx` plays `/notification.mp3` when a new cotización arrives — but suppresses it on kiosk/`vistacart` routes.
+- **Personal** (`AppPersonal.jsx`): `/` is `VistaAcceso` (login, or straight to `/adminforms` with a session), the permission-gated hub linking to quote/invoice/equipment/user management views (`Vista*` under `src/Views/`). It plays `/notification.mp3` when a new cotización arrives. Unknown routes go to `/`.
+- **Tienda** (`AppTienda.jsx`): `Home` (`/`), `/detail/:id`, `/vistacart`, and the **Kiosk** routes containing `kiosk` (`/kioskhome`, `/kioskdetail/:id`, `/kioskcart`). `CustomThemeProvider` **force-sets dark mode on any kiosk route** and restores the saved theme when leaving. `KioskHome` mounts a `KioskScreensaver` (idle timeout). Unknown routes go to `/`.
 
 ### Cotización (quote) lifecycle
 
 1. Customer builds a cart (`cartSlice`, persisted to `localStorage` under `cart`) and fills client data (`clienteSlice`, persisted under `datosCliente`).
 2. `VistaCart` / `KioskCart` submit via the callable Cloud Function **`crearCotizacion`**, which pushes a record into RTDB `cotizaciones` with `status: "pendiente"` and a generated `cotizacionId`. `VistaCart` also opens a prefilled WhatsApp deep link.
-3. `App.jsx` subscribes to RTDB `cotizaciones` with `onValue`, keeps `cotizacionSlice.listaCotizaciones` in sync in real time, and rings the notification sound for genuinely new entries (tracked via refs to avoid firing on the initial load).
+3. `AppPersonal.jsx` subscribes to RTDB `cotizaciones` with `onValue`, keeps `cotizacionSlice.listaCotizaciones` in sync in real time, and rings the notification sound for genuinely new entries (tracked via refs to avoid firing on the initial load).
 4. Staff with `solicitudesCotizaciones` handle requests in `VistaCotizacionesAdmin` → `AdminCotizaciones`; the in-progress quote being edited lives in `cotizacionSlice.value` and is persisted to `localStorage` under `sesion_trabajo_cotizacion`.
 
 ### Cloud Functions (`functions/index.js`, callable/`onCall`)
