@@ -57,10 +57,20 @@ Ahora son **dos apps del mismo código**, cada una en su dirección y en su prop
 - **El teléfono las instala como dos apps distintas**, cada una con su nombre, en Android y en iPhone, porque son dos direcciones.
 - **Cada una lleva solo lo suyo.** La tienda no descarga el panel —ni el generador de PDF—: pesa la mitad que antes.
 - **Se publican por separado.** Un cambio en una pantalla del panel no vuelve a publicar la tienda.
-- **No se cruzan.** La tienda no tiene inicio de sesión ni camino al panel, y el panel no tiene botón a la tienda; cerrar sesión volvió a ser un botón suelto junto al logo. Una dirección vieja del panel abierta en la tienda cae en la tienda.
+- **No se cruzan.** La tienda no tiene inicio de sesión ni camino al panel, y el panel no tiene botón a la tienda. Una dirección vieja del panel abierta en la tienda cae en la tienda.
 - **Los datos son los mismos**: lo que el panel cambia en un equipo se ve en la tienda sin publicar nada.
 
 Las pantallas no están copiadas: las dos apps toman las piezas de la misma carpeta. Lo que se parte en dos es solo el arranque —qué pantallas tiene cada una— y un único `index.html` recibe el título y el programa de cada app al armarla.
+
+### La puerta del personal: un carné que cae (2026-11-07)
+
+El inicio de sesión es **el carné de empleado**. Cae colgado de una cinta blanca impresa con el logo y el nombre de la empresa, baja hasta el fondo de la pantalla, la cinta lo devuelve, se mece y queda de pie; al final le pasa un brillo holográfico. El correo y la contraseña van **dentro del carné**, como los renglones impresos de uno de verdad, y debajo del código de barras, en letra chica, "¿Olvidaste tu contraseña?". El código de los dos pasos aparece en el mismo carné.
+
+- **La cinta se mueve con gravedad.** Cuelga de un gancho fuera de la pantalla: de un lado baja el carné, prendido con un mosquetón que entra por la ranura, y del otro cuelga el tramo suelto, que se sacude con la caída y se calma. Va siempre **detrás** del carné, para no tapar nunca el formulario.
+- **El carné es blanco también de noche**, como el ícono de la app: lo que cambia es el fondo.
+- **Con "reducir movimiento"** activado en el teléfono, aparece quieto. Con la sesión ya abierta, se pasa directo al menú.
+
+**Cerrar sesión es devolver el carné.** No hay botón de salir en ninguna pantalla —le quitaba lo lindo al encabezado—: se sale **desde el menú**, tocando el carné de arriba. Pregunta "¿Terminar turno?" y, al confirmar, la cinta se lleva el carné hacia arriba y queda la puerta lista para el siguiente. Cotización y Cuenta de cobro, que tienen trabajo a medio hacer, se dejan como siempre con *Guardar y salir*.
 
 ### Del lado del cliente
 

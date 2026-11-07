@@ -2,40 +2,52 @@ import { screen } from "@testing-library/react";
 import { renderConProviders } from "../../test/utils";
 import HeaderUsuario from "./HeaderUsuario";
 
-// CERRAR SESIÓN, SUELTO (2026-11-07). Del 2026-10-21 al 2026-11-07 vivía en
-// una lista que abría el logo, junto a "Ir a la tienda". Con la tienda en otra
-// app el logo quedó como marca y cerrar sesión volvió a ser un botón, en
-// celular y en computador. Al corregir una factura no aparece: salir a mitad
-// de camino perdería la corrección.
+// TERMINAR TURNO = DEVOLVER EL CARNÉ (2026-11-07). El encabezado ya no lleva
+// botón de cerrar sesión en ninguna pantalla: le quitaba lo lindo. La sesión
+// se cierra solo desde el menú, tocando el carné (`conSalida`): pregunta
+// primero y después la cinta se lleva el carné. En las pruebas no hay dibujo
+// de verdad, así que la salida termina enseguida y cierra la sesión.
 vi.mock("../Firebase/Firebase", () => ({ auth: {}, db: {}, storage: {} }));
 const sesion = vi.hoisted(() => ({ logout: vi.fn() }));
 vi.mock("../../Context/useAuth", () => ({ useAuth: () => sesion }));
 
 const datos = { name: "Ana", role: "administrador", vista: "Menú" };
 
+beforeEach(() => sesion.logout.mockClear());
+
 describe.each([
   ["celular", true],
   ["computador", false],
 ])("HeaderUsuario en %s", (_forma, compacto) => {
-  it("cerrar sesión es un botón suelto y el logo ya no lleva a la tienda", async () => {
-    const salir = vi.fn();
+  it("fuera del menú no hay cómo salir: solo el carné como marca", () => {
+    renderConProviders(<HeaderUsuario {...datos} compacto={compacto} conLogo />);
+
+    expect(screen.getByRole("img", { name: "Ferrequipos Personal" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /cerrar sesión|terminar turno/i })).not.toBeInTheDocument();
+  });
+
+  it("en el menú, el carné pregunta antes y luego cierra la sesión", async () => {
     const { usuario } = renderConProviders(
-      <HeaderUsuario {...datos} compacto={compacto} conLogo onCerrarSesion={salir} />,
+      <HeaderUsuario {...datos} compacto={compacto} conLogo conSalida />,
     );
+
+    await usuario.click(screen.getByRole("button", { name: "Terminar turno" }));
+    expect(screen.getByText("¿Terminar turno?")).toBeInTheDocument();
+    expect(sesion.logout).not.toHaveBeenCalled();
 
     await usuario.click(screen.getByRole("button", { name: "Cerrar sesión" }));
 
-    expect(salir).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("img", { name: "Ferrequipos Personal" })).toBeInTheDocument();
-    expect(screen.queryByText(/tienda/i)).not.toBeInTheDocument();
+    expect(sesion.logout).toHaveBeenCalledTimes(1);
   });
 
-  it("sin cerrar sesión (corregir una factura) queda solo el logo", () => {
-    renderConProviders(
-      <HeaderUsuario {...datos} compacto={compacto} conLogo sinCerrarSesion />,
+  it("«Seguir trabajando» no cierra nada", async () => {
+    const { usuario } = renderConProviders(
+      <HeaderUsuario {...datos} compacto={compacto} conLogo conSalida />,
     );
 
-    expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Ferrequipos Personal" })).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Terminar turno" }));
+    await usuario.click(screen.getByRole("button", { name: "Seguir trabajando" }));
+
+    expect(sesion.logout).not.toHaveBeenCalled();
   });
 });

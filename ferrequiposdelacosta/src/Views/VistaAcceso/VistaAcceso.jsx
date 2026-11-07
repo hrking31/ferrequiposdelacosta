@@ -1,9 +1,8 @@
-import { Box, Paper, Typography } from "@mui/material";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../Context/useAuth";
 import Login from "../../Components/Login/Login";
 import LoadingLogo from "../../Components/LoadingLogo/LoadingLogo";
-import LogoCarne from "../../Components/HeaderUsuario/LogoCarne";
+import PuertaCarne from "../../Components/PuertaCarne/PuertaCarne";
 
 // LA PUERTA DEL PERSONAL: la dirección sola de la app del personal
 // (personal.ferrequiposdelacosta.com, desde el 2026-11-07). Antes el inicio
@@ -11,7 +10,9 @@ import LogoCarne from "../../Components/HeaderUsuario/LogoCarne";
 // hacía pensar que alquilar pedía una cuenta; el 2026-11-06 pasó a /acceso,
 // dentro de la misma app de la tienda, y al día siguiente a su propia app.
 //
-// Con la sesión ya abierta no hay nada que hacer acá: pasa al menú.
+// Es un carné de empleado que cae colgado de su cinta, con el formulario
+// adentro (PuertaCarne + Login). Con la sesión ya abierta no hay nada que
+// hacer acá: pasa al menú, sin animación.
 export default function VistaAcceso() {
   const { user, loading } = useAuth();
 
@@ -19,29 +20,8 @@ export default function VistaAcceso() {
   if (user) return <Navigate to="/adminforms" replace />;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        px: 2,
-        py: 4,
-        bgcolor: "background.default",
-      }}
-    >
-      <Paper sx={{ width: "min(420px, 100%)", p: { xs: 2.5, sm: 3.5 } }}>
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-          <LogoCarne alto={96} />
-          <Typography
-            variant="overline"
-            sx={{ color: "custom.accent", fontWeight: 700, letterSpacing: 1.5 }}
-          >
-            Acceso del personal
-          </Typography>
-        </Box>
-
-        <Login />
-      </Paper>
-    </Box>
+    <PuertaCarne>
+      <Login />
+    </PuertaCarne>
   );
 }

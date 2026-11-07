@@ -28,7 +28,6 @@ import {
   guardarCuentaCobro,
   liberarCuentaCobro,
 } from "../../Components/CuentaDeCobro/cuentasCobroDb";
-import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../../Components/AppSnackbar/AppSnackbar";
 import CuentaDeCobro from "../../Components/CuentaDeCobro/CuentaDeCobro";
@@ -48,7 +47,6 @@ export default function VistaCuentaDeCobro() {
   const values = useSelector((state) => state.cuentacobro);
   const usuario = useSelector((state) => state.user);
   const { name, photoURL, role, genero } = usuario;
-  const { logout } = useAuth();
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar();
   // EL CELULAR ACOSTADO se reconoce por el alto (uno grande pasa de 915px
   // de ancho): va como celular, con los botones en una columna a la
@@ -58,8 +56,8 @@ export default function VistaCuentaDeCobro() {
   // Celular, apilada, lado a lado o el iPad de pie: ver useFormaConHoja.
   const { dePie, ladoALado } = useFormaConHoja(isFullScreen);
   const [loading, setLoading] = useState(false);
-  // null | "salir" | "logout" — qué acción está esperando confirmación
-  const [pendingAction, setPendingAction] = useState(null);
+  // Si está preguntando qué hacer con los cambios antes de salir.
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
 
   const cuenta = values.value;
 
@@ -147,7 +145,7 @@ export default function VistaCuentaDeCobro() {
   };
 
   const liberarYSalir = async () => {
-    setPendingAction(null);
+    setConfirmarSalida(false);
     setLoading(true);
     await liberar();
     setLoading(false);
@@ -177,7 +175,7 @@ export default function VistaCuentaDeCobro() {
   };
 
   const guardarYSalir = async () => {
-    setPendingAction(null);
+    setConfirmarSalida(false);
     setLoading(true);
     const guardada = await guardar("pausada");
     setLoading(false);
@@ -192,35 +190,10 @@ export default function VistaCuentaDeCobro() {
   // la dejó marcada como ocupada.
   const handleGuardarYSalirClick = () => {
     if (cambios) {
-      setPendingAction("salir");
+      setConfirmarSalida(true);
       return;
     }
     liberarYSalir();
-  };
-
-  const handleGuardarYCerrarSesion = async () => {
-    setPendingAction(null);
-    setLoading(true);
-    const guardada = await guardar("pausada");
-    setLoading(false);
-    if (!guardada) return;
-    dispatch(limpiarCuentaCobro());
-    await logout();
-  };
-
-  const handleCerrarSesionSinGuardar = async () => {
-    setPendingAction(null);
-    await liberar();
-    dispatch(limpiarCuentaCobro());
-    await logout();
-  };
-
-  const handleLogoutClick = () => {
-    if (cambios) {
-      setPendingAction("logout");
-      return;
-    }
-    handleCerrarSesionSinGuardar();
   };
 
   // Descargar PDF y Guardar y salir en el celular: solo los íconos, los mismos
@@ -276,9 +249,9 @@ export default function VistaCuentaDeCobro() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo va dentro del encabezado (conLogo), con
-            cerrar sesión —sin "Ir al menú": se sale por
-            "Guardar y salir"—. */}
+        {/* El logo va dentro del encabezado (conLogo), sin "Ir al menú"
+            ni cerrar sesión: se sale por "Guardar y salir", y la sesión se
+            cierra desde el menú (devolviendo el carné, 2026-11-07). */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -292,9 +265,6 @@ export default function VistaCuentaDeCobro() {
             descripcion={"Genera la cuenta de cobro de un servicio"}
             icono={<ReceiptIcon />}
             cotId={cuenta.cuentaCobroId}
-            // Igual que en la cotización: antes de salir pregunta por los
-            // cambios sin guardar y libera la cuenta que tenía tomada.
-            onCerrarSesion={handleLogoutClick}
             // En computador las acciones van en el encabezado, igual que en
             // la cotización; en celular bajan al pie de la pantalla.
             acciones={
@@ -394,7 +364,7 @@ export default function VistaCuentaDeCobro() {
         </Box>
       )}
 
-      <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
+      <Dialog open={confirmarSalida} onClose={() => setConfirmarSalida(false)}>
         <DialogTitle>Tienes cambios sin guardar</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -409,38 +379,16 @@ export default function VistaCuentaDeCobro() {
               reserva para las dos acciones de verdad —descartar y guardar—. */}
           <Button
             variant="outlined"
-            onClick={() => setPendingAction(null)}
+            onClick={() => setConfirmarSalida(false)}
             disabled={loading}
           >
             Cancelar
           </Button>
-          <Button
-            onClick={
-              pendingAction === "logout"
-                ? handleCerrarSesionSinGuardar
-                : descartarYSalir
-            }
-            variant="contained"
-            color="error"
-            disabled={loading}
-          >
-            {pendingAction === "logout"
-              ? "Descartar y cerrar sesión"
-              : "Descartar y salir"}
+          <Button onClick={descartarYSalir} variant="contained" color="error" disabled={loading}>
+            Descartar y salir
           </Button>
-          <Button
-            onClick={
-              pendingAction === "logout"
-                ? handleGuardarYCerrarSesion
-                : guardarYSalir
-            }
-            variant="contained"
-            color="success"
-            disabled={loading}
-          >
-            {pendingAction === "logout"
-              ? "Guardar y cerrar sesión"
-              : "Guardar y salir"}
+          <Button onClick={guardarYSalir} variant="contained" color="success" disabled={loading}>
+            Guardar y salir
           </Button>
         </DialogActions>
       </Dialog>

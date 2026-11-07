@@ -32,7 +32,7 @@ const entrar = ({
 // etiqueta. Por eso se buscan por coincidencia parcial y no exacta.
 const llenarYEntrar = async (usuario) => {
   await usuario.type(
-    screen.getByLabelText(/Dirección de correo electrónico/),
+    screen.getByLabelText(/Correo electrónico/),
     "aida@ferrequipos.com",
   );
   await usuario.type(screen.getByLabelText(/Contraseña/), "secreta123");
@@ -97,7 +97,7 @@ describe("Login — el segundo paso (código del celular)", () => {
 
     await llenarYEntrar(usuario);
 
-    expect(await screen.findByText("Código de su celular")).toBeInTheDocument();
+    expect(await screen.findByText("Código de tu celular")).toBeInTheDocument();
     expect(screen.queryByText("Panel de administración")).not.toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe("Login — el segundo paso (código del celular)", () => {
     await usuario.click(screen.getByRole("button", { name: "ENTRAR" }));
 
     expect(
-      await screen.findByText("Código incorrecto. Escriba el que muestra ahora la aplicación."),
+      await screen.findByText("Código incorrecto. Escribe el que muestra ahora la aplicación."),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Código de 6 números/)).toBeInTheDocument();
   });
@@ -140,17 +140,17 @@ describe("Login — el segundo paso (código del celular)", () => {
     await usuario.click(screen.getByRole("button", { name: "ENTRAR" }));
 
     expect(
-      await screen.findByText("Pasó mucho tiempo. Vuelva a escribir su contraseña."),
+      await screen.findByText("Pasó mucho tiempo. Vuelve a escribir tu contraseña."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ACCESO" })).toBeInTheDocument();
   });
 });
 
-describe("Login — ¿Olvidó su contraseña?", () => {
+describe("Login — ¿Olvidaste tu contraseña?", () => {
   const ENVIADO =
-    "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.";
+    "Si el correo está registrado, te llegará un enlace para poner una contraseña nueva.";
   const olvido = (usuario) =>
-    usuario.click(screen.getByRole("button", { name: "¿Olvidó su contraseña?" }));
+    usuario.click(screen.getByRole("button", { name: "¿Olvidaste tu contraseña?" }));
 
   it("sin correo escrito, pide que lo escriba primero", async () => {
     const recuperarClave = vi.fn();
@@ -159,7 +159,7 @@ describe("Login — ¿Olvidó su contraseña?", () => {
     await olvido(usuario);
 
     expect(
-      await screen.findByText("Escriba su correo arriba y vuelva a tocar «¿Olvidó su contraseña?»"),
+      await screen.findByText("Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?»"),
     ).toBeInTheDocument();
     expect(recuperarClave).not.toHaveBeenCalled();
   });
@@ -169,7 +169,7 @@ describe("Login — ¿Olvidó su contraseña?", () => {
     const { usuario } = entrar({ recuperarClave });
 
     await usuario.type(
-      screen.getByLabelText(/Dirección de correo electrónico/),
+      screen.getByLabelText(/Correo electrónico/),
       "aida@ferrequipos.com",
     );
     await olvido(usuario);
@@ -185,7 +185,7 @@ describe("Login — ¿Olvidó su contraseña?", () => {
     const { usuario } = entrar({ recuperarClave });
 
     await usuario.type(
-      screen.getByLabelText(/Dirección de correo electrónico/),
+      screen.getByLabelText(/Correo electrónico/),
       "nadie@ferrequipos.com",
     );
     await olvido(usuario);
@@ -201,13 +201,10 @@ describe("Login — el ojo de la contraseña", () => {
     const campo = screen.getByLabelText(/Contraseña/);
     expect(campo).toHaveAttribute("type", "password");
 
-    // El ojo es el único botón que no envía el formulario.
-    const ojo = screen.getAllByRole("button").find((boton) => boton.type !== "submit");
-
-    await usuario.click(ojo);
+    await usuario.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
     expect(screen.getByLabelText(/Contraseña/)).toHaveAttribute("type", "text");
 
-    await usuario.click(ojo);
+    await usuario.click(screen.getByRole("button", { name: "Ocultar contraseña" }));
     expect(screen.getByLabelText(/Contraseña/)).toHaveAttribute("type", "password");
   });
 });

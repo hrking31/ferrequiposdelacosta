@@ -1,33 +1,96 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Box,
-  Button,
-  Grid,
-  TextField,
-  Typography,
-  IconButton,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, IconButton, InputBase, Typography } from "@mui/material";
+import PropTypes from "prop-types";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { togglePasswordVisibility } from "../../Store/Slices/passwordSlice";
 import { useAuth } from "../../Context/useAuth";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
+import LogoFerrequipos from "../../assets/LogoFerrequipos.svg";
 
-// Vive en la puerta de la app del personal (ver VistaAcceso). Antes se abría en un
-// diálogo del menú de la tienda y recibía `onClose` para cerrarlo al entrar.
+// Vive DENTRO del carné de la puerta del personal (ver PuertaCarne y
+// VistaAcceso, 2026-11-07): el logo, los datos y el botón, y debajo del
+// código de barras el enlace para recuperar la clave. Antes era un formulario
+// suelto en una tarjeta, y antes todavía un diálogo del menú de la tienda.
+//
+// El carné es blanco también en modo oscuro (es el objeto de la marca), así
+// que adentro los colores son fijos, de día: con los del tema, de noche los
+// botones saldrían amarillos sobre blanco.
+const TINTA = "#0F172A";
+const SUAVE = "#475569";
+const AZUL = "#283890";
+const VERDE = "#16A34A";
+
+// Los campos como los renglones impresos de un carné: el nombre del dato en
+// letra chica y lo escrito encima de una raya punteada, sin cajas.
+function Renglon({ id, etiqueta, adorno, ...props }) {
+  return (
+    <Box sx={{ display: "grid", gap: "1px" }}>
+      <Box
+        component="label"
+        htmlFor={id}
+        sx={{
+          font: '700 9.5px "Montserrat", sans-serif',
+          letterSpacing: ".16em",
+          textTransform: "uppercase",
+          color: SUAVE,
+        }}
+      >
+        {etiqueta}
+      </Box>
+      <InputBase
+        id={id}
+        endAdornment={adorno}
+        {...props}
+        sx={{
+          color: TINTA,
+          borderBottom: "1.5px dashed #B8C0D0",
+          "&.Mui-focused": { borderBottom: `2px solid ${AZUL}` },
+          "& input": {
+            height: 30,
+            p: "2px 0",
+            font: '600 15.5px "Open Sans", sans-serif',
+            color: TINTA,
+          },
+          // El autocompletado del navegador pinta el campo de amarillo o celeste.
+          "& input:-webkit-autofill": {
+            WebkitBoxShadow: "0 0 0 100px #FFFFFF inset",
+            WebkitTextFillColor: TINTA,
+          },
+        }}
+      />
+    </Box>
+  );
+}
+
+Renglon.propTypes = {
+  id: PropTypes.string.isRequired,
+  etiqueta: PropTypes.string.isRequired,
+  adorno: PropTypes.node,
+};
+
+const botonVerde = {
+  height: 46,
+  borderRadius: "8px",
+  bgcolor: VERDE,
+  color: "#FFFFFF",
+  font: '700 15px "Montserrat", sans-serif',
+  letterSpacing: ".06em",
+  boxShadow: "none",
+  "&:hover": { bgcolor: "#15803D", boxShadow: "none" },
+};
+
 export default function Login() {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { login, recuperarClave, prepararSegundoPaso, entrarConCodigo } = useAuth();
   const [user, setUser] = useState({ email: "", password: "" });
   // El segundo paso (2026-10-16): con la contraseña bien, Firebase pide el
   // código de la aplicación del celular. Acá se guarda lo necesario para
-  // pedirlo, mientras tanto se muestra el campo del código en vez del de la
-  // contraseña.
+  // pedirlo, mientras tanto se muestra el campo del código en vez de los de
+  // correo y contraseña, dentro del mismo carné.
   const [segundoPaso, setSegundoPaso] = useState(null);
   const [codigo, setCodigo] = useState("");
   const { snackbar, showSnackbar, closeSnackbar } = useSnackbar("error");
@@ -44,7 +107,7 @@ export default function Login() {
     event.preventDefault();
     closeSnackbar();
     if (!/^\d{6}$/.test(codigo)) {
-      showSnackbar("Escriba los 6 números que muestra la aplicación.");
+      showSnackbar("Escribe los 6 números que muestra la aplicación.");
       return;
     }
     try {
@@ -52,7 +115,7 @@ export default function Login() {
       alEntrar();
     } catch (error) {
       if (error.code === "auth/invalid-verification-code") {
-        showSnackbar("Código incorrecto. Escriba el que muestra ahora la aplicación.");
+        showSnackbar("Código incorrecto. Escribe el que muestra ahora la aplicación.");
       } else if (
         [
           "auth/totp-challenge-timeout",
@@ -63,7 +126,7 @@ export default function Login() {
       ) {
         // El permiso para el segundo paso dura unos minutos.
         setSegundoPaso(null);
-        showSnackbar("Pasó mucho tiempo. Vuelva a escribir su contraseña.");
+        showSnackbar("Pasó mucho tiempo. Vuelve a escribir tu contraseña.");
       } else {
         showSnackbar("Error al iniciar sesión. Inténtalo de nuevo.");
       }
@@ -106,19 +169,19 @@ export default function Login() {
     closeSnackbar();
     const email = user.email.trim();
     if (!email) {
-      showSnackbar("Escriba su correo arriba y vuelva a tocar «¿Olvidó su contraseña?»");
+      showSnackbar("Escribe tu correo arriba y vuelve a tocar «¿Olvidaste tu contraseña?»");
       return;
     }
     try {
       await recuperarClave(email);
       showSnackbar(
-        "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.",
+        "Si el correo está registrado, te llegará un enlace para poner una contraseña nueva.",
         "success",
       );
     } catch (error) {
       if (error.code === "auth/user-not-found") {
         showSnackbar(
-          "Si el correo está registrado, le llegará un enlace para poner una contraseña nueva.",
+          "Si el correo está registrado, te llegará un enlace para poner una contraseña nueva.",
           "success",
         );
       } else if (error.code === "auth/invalid-email") {
@@ -130,112 +193,130 @@ export default function Login() {
   };
 
   return (
-    // El ancho y el fondo los pone quien lo muestra (la tarjeta de
-    // VistaAcceso; antes, un diálogo del menú de la tienda). Acá se
-    // limitaba a 400px centrados y se pintaba con el fondo de la PÁGINA, que es
-    // un tono distinto al del diálogo: sobraban ~22px a cada lado y se veían
-    // como dos franjas de otro color.
-    <Box p={2} display="flex" flexDirection="column" gap={2}>
-      {segundoPaso ? (
-        <form onSubmit={handleCodigo}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h5" sx={{ mt: 2 }}>
-                Código de su celular
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Abra la aplicación de códigos y escriba los 6 números de
-                Ferrequipos de la Costa.
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                name="codigo"
-                label="Código de 6 números"
-                value={codigo}
-                onChange={(e) =>
-                  setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                inputProps={{ inputMode: "numeric", autoComplete: "one-time-code" }}
-                autoFocus
-                fullWidth
-                required
-              />
-            </Grid>
-          </Grid>
+    <>
+      <Box sx={{ p: "14px 26px 12px", display: "grid", gap: "14px" }}>
+        {/* El logo recortado al dibujo: el archivo trae margen alrededor. */}
+        <Box
+          component="svg"
+          viewBox="44 0 218 259"
+          role="img"
+          aria-label="Ferrequipos de la Costa"
+          sx={{ justifySelf: "center", height: 88, width: "auto", display: "block", mt: "4px" }}
+        >
+          <image href={LogoFerrequipos} x="0.4" y="1" width="316.5" height="270" />
+        </Box>
 
-          <Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 3 }}>
-            <Button variant="text" onClick={() => setSegundoPaso(null)}>
-              Volver
-            </Button>
-            <Button type="submit" variant="contained" color="success">
+        <Typography
+          component="h1"
+          sx={{
+            justifySelf: "center",
+            textAlign: "center",
+            font: '700 17px "Montserrat", sans-serif',
+            letterSpacing: ".02em",
+            color: TINTA,
+            mb: "4px",
+          }}
+        >
+          {segundoPaso ? "Código de tu celular" : "Acceso del personal"}
+        </Typography>
+
+        {segundoPaso ? (
+          <Box component="form" onSubmit={handleCodigo} sx={{ display: "grid", gap: "14px" }}>
+            <Typography sx={{ font: '400 13px "Open Sans", sans-serif', color: SUAVE, textAlign: "center", mt: -1 }}>
+              Abre la aplicación de códigos y escribe los 6 números de Ferrequipos de la Costa.
+            </Typography>
+            <Renglon
+              id="codigo"
+              etiqueta="Código de 6 números"
+              name="codigo"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputProps={{ inputMode: "numeric", autoComplete: "one-time-code" }}
+              autoFocus
+              required
+            />
+            <Button type="submit" variant="contained" sx={botonVerde}>
               ENTRAR
             </Button>
+            <Button
+              variant="text"
+              onClick={() => setSegundoPaso(null)}
+              sx={{ justifySelf: "center", color: AZUL, mt: -1 }}
+            >
+              Volver
+            </Button>
           </Box>
-        </form>
-      ) : (
-      <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Typography variant="h5" sx={{ mt: 2 }}>
-              Iniciar sesión en mi cuenta
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
+        ) : (
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: "14px" }}>
+            <Renglon
+              id="correo"
+              etiqueta="Correo electrónico"
               type="email"
               name="email"
               autoComplete="email"
-              label="Dirección de correo electrónico"
               value={user.email}
               onChange={handleChange}
               required
             />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
+            <Renglon
+              id="clave"
+              etiqueta="Contraseña"
               type={passwordType}
               name="password"
               autoComplete="current-password"
-              label="Contraseña"
               value={user.password}
               onChange={handleChange}
               required
-              InputProps={{
-                style: { color: theme.palette.text.primary },
-                endAdornment: (
-                  <IconButton
-                    onClick={() => dispatch(togglePasswordVisibility())}
-                  >
-                    {/* Mismo ojo que en Crear Usuario, mismo color: el acento
-                        del modo. Antes acá resolvía el color a mano con un
-                        condicional de claro/oscuro. */}
-                    {passwordVisible ? (
-                      <FaEyeSlash color={theme.palette.custom.accent} />
-                    ) : (
-                      <FaEye color={theme.palette.custom.accent} />
-                    )}
-                  </IconButton>
-                ),
-              }}
+              adorno={
+                <IconButton
+                  size="small"
+                  aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  onClick={() => dispatch(togglePasswordVisibility())}
+                  sx={{ color: AZUL }}
+                >
+                  {passwordVisible ? <FaEyeSlash /> : <FaEye />}
+                </IconButton>
+              }
             />
-            <Box sx={{ textAlign: "right", mt: 0.5 }}>
-              <Button variant="text" size="small" onClick={handleOlvido}>
-                ¿Olvidó su contraseña?
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
+            <Button type="submit" variant="contained" sx={{ ...botonVerde, mt: "2px" }}>
+              ACCESO
+            </Button>
+          </Box>
+        )}
+      </Box>
 
-        <Box sx={{ textAlign: "center", mt: 3 }}>
-          <Button type="submit" variant="contained" color="success">
-            ACCESO
+      {/* El pie del carné: un código de barras de adorno y, debajo, en letra
+          muy chica, el enlace para recuperar la clave. */}
+      <Box sx={{ display: "grid", justifyItems: "center", gap: "2px", p: "6px 24px 10px" }}>
+        <Box
+          aria-hidden="true"
+          sx={{
+            width: "100%",
+            height: 26,
+            opacity: 0.8,
+            background:
+              "repeating-linear-gradient(90deg, #0F172A 0 2px, transparent 2px 4px, #0F172A 4px 7px, transparent 7px 9px, #0F172A 9px 10px, transparent 10px 14px, #0F172A 14px 17px, transparent 17px 19px)",
+            maskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+          }}
+        />
+        {!segundoPaso && (
+          <Button
+            variant="text"
+            onClick={handleOlvido}
+            sx={{
+              minHeight: 0,
+              p: "2px 4px",
+              color: AZUL,
+              font: '400 10.5px "Open Sans", sans-serif',
+              textTransform: "none",
+            }}
+          >
+            ¿Olvidaste tu contraseña?
           </Button>
-        </Box>
-      </form>
-      )}
+        )}
+      </Box>
 
       <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
-    </Box>
+    </>
   );
 }

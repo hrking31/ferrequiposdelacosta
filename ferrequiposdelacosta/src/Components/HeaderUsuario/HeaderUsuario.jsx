@@ -12,13 +12,13 @@ import {
   Divider,
   IconButton,
   Paper,
+  Portal,
   Stack,
   Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import LogoutIcon from "@mui/icons-material/Logout";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
@@ -34,19 +34,22 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useSnackbar from "../../Hooks/useSnackbar";
 import AppSnackbar from "../AppSnackbar/AppSnackbar";
 import LogoCarne from "./LogoCarne";
+import PuertaCarne from "../PuertaCarne/PuertaCarne";
+import Despedida from "../PuertaCarne/Despedida";
 
-export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, onCerrarSesion, compacto, conLogo, acciones, sinIrAlMenu, sinCerrarSesion }) {
+export default function HeaderUsuario({ name, photoURL, role, genero, vista, cotId, icono, descripcion, compacto, conLogo, acciones, sinIrAlMenu, conSalida }) {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // Cerrar sesión se mudó acá desde el pie de cada vista. La sesión es del
-  // usuario, y este es su bloque —su foto, su nombre y su rol—. En el pie
-  // quedaba pegado a los botones de trabajo, donde un dedo corrido sacaba de
-  // la app en mitad de una factura. Desde el 2026-10-22 también en computador,
-  // al extremo derecho del encabezado. Del 2026-10-21 al 2026-11-07 vivió
-  // dentro de una lista que abría el logo, junto a "Ir a la tienda"; con la
-  // tienda en otra app, volvió a ser un botón suelto al lado del logo.
+  // TERMINAR TURNO = DEVOLVER EL CARNÉ (2026-11-07): la sesión se cierra solo
+  // desde el menú, tocando el carné del encabezado (`conSalida`). Pregunta
+  // primero y después la cinta se lleva el carné hacia arriba, al revés de la
+  // puerta por la que se entró. Antes era un botón de salir en el encabezado
+  // de TODAS las pantallas, y al dueño le quitaba lo lindo. Cotización y
+  // Cuenta de cobro ya no cierran sesión: se sale por "Guardar y salir".
   const { logout } = useAuth();
+  const [preguntaSalir, setPreguntaSalir] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -65,16 +68,40 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
 
   const saludo = genero === "femenino" ? "Bienvenida" : "Bienvenido";
 
-  // Casi siempre salir es cerrar sesión y ya. Pero Cotización y Cuenta de
-  // Cobro tienen trabajo a medio hacer: preguntan si hay cambios sin guardar y
-  // liberan el documento que tenían tomado. Esas pasan su propia salida y el
-  // header la respeta, en vez de desloguear por su cuenta y perderles el
-  // trabajo.
-  const cerrarSesion =
-    onCerrarSesion ||
-    (async () => {
-      await logout();
-    });
+  // El carné del encabezado: en el menú es la salida; en el resto, solo marca.
+  const carne = (alto) =>
+    conSalida ? (
+      <Tooltip title="Terminar turno">
+        <Box
+          component="button"
+          type="button"
+          aria-label="Terminar turno"
+          onClick={() => setPreguntaSalir(true)}
+          sx={{
+            p: 0,
+            border: 0,
+            bgcolor: "transparent",
+            cursor: "pointer",
+            borderRadius: 1,
+            transition: "transform .15s ease",
+            "&:hover": { transform: "translateY(-2px) rotate(-3deg)" },
+            "&:focus-visible": {
+              outline: (t) => `3px solid ${t.palette.custom.accent}`,
+              outlineOffset: 2,
+            },
+          }}
+        >
+          <LogoCarne alto={alto} />
+        </Box>
+      </Tooltip>
+    ) : (
+      <LogoCarne alto={alto} />
+    );
+
+  const terminarTurno = () => {
+    setPreguntaSalir(false);
+    setSaliendo(true);
+  };
 
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => {
@@ -290,36 +317,14 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             )}
           </Box>
 
-          {/* Al extremo, separado de todo por el hueco que deja `ml: auto`.
-              Va con el color que el tema reserva para lo que se escribe SOBRE
-              el acento —el mismo del nombre, acá al lado—: casi negro cuando
-              el fondo es el amarillo de la noche, y blanco cuando es el azul
-              del logo, de día. El rojo de peligro que lleva en computador acá
-              no sirve: medido sobre el amarillo da 2,17 de contraste y sobre
-              el azul 2,11, cuando el mínimo para que una figura se despegue
-              de su fondo es 3. */}
-          {/* Al lado, con `conLogo`, el logo. Los dos van por encima del
-              círculo decorativo del fondo, que si no se les monta encima y
-              se come el toque. */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            sx={{ ml: "auto", flexShrink: 0, zIndex: 1 }}
-          >
-            {!sinCerrarSesion && (
-              <Tooltip title="Cerrar sesión">
-                <IconButton
-                  onClick={cerrarSesion}
-                  aria-label="Cerrar sesión"
-                  sx={{ color: "custom.onAccent" }}
-                >
-                  <LogoutIcon />
-                </IconButton>
-              </Tooltip>
-            )}
-            {conLogo && <LogoCarne alto={44} />}
-          </Stack>
+          {/* Al extremo, con `conLogo`, el carné (en el menú, la salida). Va
+              por encima del círculo decorativo del fondo, que si no se le
+              monta encima y se come el toque. */}
+          {conLogo && (
+            <Box sx={{ ml: "auto", flexShrink: 0, zIndex: 1, display: "flex" }}>
+              {carne(44)}
+            </Box>
+          )}
         </Box>
       ) : (
         /* ── COMPUTADOR: tarjeta clara con una barra de acento al costado ── */
@@ -508,9 +513,8 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
             />
 
             {/* LOS BOTONES DE LA VISTA Y EL LOGO (2026-10-22): antes iban
-                sueltos a los lados de la tarjeta. Cerrar sesión va junto al
-                logo; los demás los pasa cada vista. Van en un solo bloque
-                para que el reparto a lo ancho no los separe. */}
+                sueltos a los lados de la tarjeta. Los pasa cada vista. Van en
+                un solo bloque para que el reparto a lo ancho no los separe. */}
             {(acciones || conLogo) && (
               <>
                 <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
@@ -530,15 +534,7 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
                     </Tooltip>
                   )}
 
-                  {conLogo && !sinCerrarSesion && (
-                    <Tooltip title="Cerrar sesión">
-                      <IconButton onClick={cerrarSesion} aria-label="Cerrar sesión" color="error">
-                        <LogoutIcon />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {conLogo && <LogoCarne alto={48} />}
+                  {conLogo && carne(48)}
                 </Stack>
               </>
             )}
@@ -546,6 +542,37 @@ export default function HeaderUsuario({ name, photoURL, role, genero, vista, cot
 
           <AppSnackbar snackbar={snackbar} onClose={closeSnackbar} />
         </Paper>
+      )}
+
+      {/* TERMINAR TURNO: primero se pregunta, así un toque sin querer no
+          saca a nadie de la app. */}
+      <Dialog open={preguntaSalir} onClose={() => setPreguntaSalir(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>¿Terminar turno?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            ¿Seguro que quieres cerrar sesión?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button variant="outlined" onClick={() => setPreguntaSalir(false)}>
+            Seguir trabajando
+          </Button>
+          <Button variant="contained" color="error" onClick={terminarTurno}>
+            Cerrar sesión
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* La cinta se lleva el carné y, cuando sale de la pantalla, se cierra
+          la sesión: queda la puerta lista para el siguiente. */}
+      {saliendo && (
+        <Portal>
+          <Box sx={{ position: "fixed", inset: 0, zIndex: (t) => t.zIndex.modal + 1 }}>
+            <PuertaCarne modo="salida" alTerminar={logout}>
+              <Despedida nombre={name} />
+            </PuertaCarne>
+          </Box>
+        </Portal>
       )}
 
       {/* ================= MODAL ================= */}
@@ -635,18 +662,14 @@ HeaderUsuario.propTypes = {
   icono: PropTypes.node,
   // Una linea corta que dice para que sirve la pantalla. Solo en computador.
   descripcion: PropTypes.string,
-  // Solo para las vistas que tienen trabajo a medio hacer y necesitan
-  // preguntar antes de salir. Sin esto, el botón cierra sesión y ya.
-  onCerrarSesion: PropTypes.func,
   compacto: PropTypes.bool,
-  // El carné, logo de la app del personal (ver LogoCarne): en celular al lado del botón de salir, en
-  // computador al extremo derecho, con "Ir al menú" y "Cerrar sesión".
+  // El carné, logo de la app del personal (ver LogoCarne): al extremo
+  // derecho, en computador junto a los botones de la vista e "Ir al menú".
   conLogo: PropTypes.bool,
   // Solo en computador: los botones propios de la vista, junto al logo.
   acciones: PropTypes.node,
   // Solo en computador: saca el botón "Ir al menú" de al lado del logo.
   sinIrAlMenu: PropTypes.bool,
-  // Sin el botón de cerrar sesión: corregir una factura, donde salir a mitad
-  // de camino perdería la corrección.
-  sinCerrarSesion: PropTypes.bool,
+  // Solo en el menú: el carné es la salida ("Terminar turno").
+  conSalida: PropTypes.bool,
 };

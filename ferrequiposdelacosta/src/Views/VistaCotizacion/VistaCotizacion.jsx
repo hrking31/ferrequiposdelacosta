@@ -21,7 +21,6 @@ import {
   guardarCotizacion as guardarCotizacionEnBase,
   liberarCotizacion,
 } from "../../Components/AdminCotizaciones/cotizacionesDb";
-import { useAuth } from "../../Context/useAuth";
 import {
   resetCotizacion,
   setFormCotizacion,
@@ -48,7 +47,6 @@ export default function VistaCotizacion() {
   const { name, photoURL, role, genero } = useSelector(
     (state) => state.user,
   );
-  const { logout } = useAuth();
   // EL CELULAR ACOSTADO se reconoce por el alto (uno grande pasa de 915px
   // de ancho): va como celular, con los botones en una columna a la
   // izquierda en vez del pie (pedido del dueño, 2026-10-30), como el menú.
@@ -61,8 +59,8 @@ export default function VistaCotizacion() {
   // un doble clic llega antes de que la pantalla se vuelva a dibujar: sin esto,
   // cada clic sobre una cotización nueva crea un documento con el mismo número.
   const descargando = useRef(false);
-  // null | "salir" | "logout" — qué acción está esperando confirmación
-  const [pendingAction, setPendingAction] = useState(null);
+  // Si está preguntando qué hacer con los cambios antes de salir.
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
 
   useEffect(() => {
     if (!values.id && !values.cotizacionId) {
@@ -158,7 +156,7 @@ export default function VistaCotizacion() {
   // que se escribe es el estado —los datos de esta sesión no se guardan— y si
   // es nueva no se escribe nada, porque no existe en la base.
   const salirSinGuardar = async () => {
-    setPendingAction(null);
+    setConfirmarSalida(false);
     setLoading(true);
     await actualizarSoloEstado(statusPrevio);
     dispatch(resetCotizacion());
@@ -167,7 +165,7 @@ export default function VistaCotizacion() {
   };
 
   const guardarYSalir = async () => {
-    setPendingAction(null);
+    setConfirmarSalida(false);
     setLoading(true);
     await guardarCotizacion("pausada");
     dispatch(resetCotizacion());
@@ -179,40 +177,10 @@ export default function VistaCotizacion() {
   // que la pregunta no aportaría. Sale y la deja como estaba.
   const handleGuardarYSalirClick = () => {
     if (cambios) {
-      setPendingAction("salir");
+      setConfirmarSalida(true);
       return;
     }
     salirSinGuardar();
-  };
-
-  const ejecutarLogout = async () => {
-    setLoading(true);
-    await actualizarSoloEstado(statusPrevio);
-    dispatch(resetCotizacion());
-    await logout();
-    setLoading(false);
-  };
-
-  const handleLogoutClick = () => {
-    if (cambios) {
-      setPendingAction("logout");
-      return;
-    }
-    ejecutarLogout();
-  };
-
-  const handleGuardarYCerrarSesion = async () => {
-    setPendingAction(null);
-    setLoading(true);
-    await guardarCotizacion("pausada");
-    dispatch(resetCotizacion());
-    await logout();
-    setLoading(false);
-  };
-
-  const handleCerrarSesionSinGuardar = () => {
-    setPendingAction(null);
-    ejecutarLogout();
   };
 
   // Descargar PDF y Guardar y salir en el celular: solo los íconos, los mismos
@@ -266,9 +234,9 @@ export default function VistaCotizacion() {
           "@media (min-width:916px)": { px: 2 },
         }}
       >
-        {/* El logo va dentro del encabezado (conLogo), con
-            cerrar sesión —sin "Ir al menú": se sale por
-            "Guardar y salir"—. */}
+        {/* El logo va dentro del encabezado (conLogo), sin "Ir al menú"
+            ni cerrar sesión: se sale por "Guardar y salir", y la sesión se
+            cierra desde el menú (devolviendo el carné, 2026-11-07). */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <HeaderUsuarioConModal
             name={name}
@@ -282,9 +250,6 @@ export default function VistaCotizacion() {
             descripcion={"Arma la cotización y envíala al cliente"}
             icono={<BuildIcon />}
             cotId={values.cotizacionId}
-            // Salir de acá no es solo cerrar sesión: si hay cambios sin
-            // guardar, primero pregunta qué hacer con la cotización.
-            onCerrarSesion={handleLogoutClick}
             acciones={
               <>
                 <Tooltip title="Descargar PDF">
@@ -376,7 +341,7 @@ export default function VistaCotizacion() {
         </Box>
       )}
 
-      <Dialog open={Boolean(pendingAction)} onClose={() => setPendingAction(null)}>
+      <Dialog open={confirmarSalida} onClose={() => setConfirmarSalida(false)}>
         <DialogTitle>Tienes cambios sin guardar</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -386,7 +351,7 @@ export default function VistaCotizacion() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
           <Button
-            onClick={() => setPendingAction(null)}
+            onClick={() => setConfirmarSalida(false)}
             disabled={loading}
             // Sin variant sale como texto plano, sin borde ni fondo.
             // "outlined" es la accion neutra del tema (ver MuiButton).
@@ -394,33 +359,11 @@ export default function VistaCotizacion() {
           >
             Cancelar
           </Button>
-          <Button
-            onClick={
-              pendingAction === "logout"
-                ? handleCerrarSesionSinGuardar
-                : salirSinGuardar
-            }
-            variant="contained"
-            color="error"
-            disabled={loading}
-          >
-            {pendingAction === "logout"
-              ? "Cerrar sesión sin guardar"
-              : "Salir sin guardar"}
+          <Button onClick={salirSinGuardar} variant="contained" color="error" disabled={loading}>
+            Salir sin guardar
           </Button>
-          <Button
-            onClick={
-              pendingAction === "logout"
-                ? handleGuardarYCerrarSesion
-                : guardarYSalir
-            }
-            variant="contained"
-            color="success"
-            disabled={loading}
-          >
-            {pendingAction === "logout"
-              ? "Guardar y cerrar sesión"
-              : "Guardar y salir"}
+          <Button onClick={guardarYSalir} variant="contained" color="success" disabled={loading}>
+            Guardar y salir
           </Button>
         </DialogActions>
       </Dialog>

@@ -45,7 +45,7 @@ describe("La puerta del personal", () => {
     abrir(sesion(), "/");
 
     expect(screen.getByText("Acceso del personal")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Dirección de correo electrónico/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Correo electrónico/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ACCESO" })).toBeInTheDocument();
   });
 

@@ -262,9 +262,9 @@ export default function AdminForms() {
   // solo con su ícono, en una franja abajo. Desde 916px, las tarjetas (pedido
   // del dueño, 2026-10-29; antes la franja seguía hasta 1024).
   //
-  // EL LOGO va dentro del encabezado (ver `conLogo` en HeaderUsuario): en el
-  // celular al lado del botón de salir, y en computador al extremo derecho
-  // desde el 2026-10-22, con los avisos y cerrar sesión al lado.
+  // EL LOGO va dentro del encabezado (ver `conLogo` en HeaderUsuario), al
+  // extremo derecho. En el menú es además la salida (`conSalida`): tocar el
+  // carné pregunta "¿Terminar turno?" y la cinta se lo lleva (2026-11-07).
   const franja = <FranjaKpis kpis={kpis} />;
 
   // Los botones salen de la lista compartida (ver botonesMenu): la pantalla de
@@ -431,8 +431,10 @@ export default function AdminForms() {
             vista={"Gestión de Operaciones"}
             descripcion={"Elige con qué quieres trabajar"}
             conLogo
-            // Ya se está en el menú: la lista del logo no ofrece ir a él.
+            // Ya se está en el menú: no hace falta el botón para ir a él.
             sinIrAlMenu
+            // Solo acá el carné es la salida: "Terminar turno".
+            conSalida
             // También con el celular acostado, aunque pase de 915px.
             compacto={isFullScreen}
             acciones={<BotonAvisos />}

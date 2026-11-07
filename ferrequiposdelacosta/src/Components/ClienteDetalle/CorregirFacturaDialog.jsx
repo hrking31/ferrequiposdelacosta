@@ -1693,8 +1693,8 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
         PaperProps={{ sx: { bgcolor: "background.default", backgroundImage: "none" } }}
       >
         {/* ── EL ENCABEZADO DE LA APP, como en todas las vistas (pedido del
-            dueño, 2026-10-30). Sin ir al menú y con el logo quieto: salir a
-            mitad de una corrección perdería lo que se lleva. Guardar y cerrar
+            dueño, 2026-10-30). Sin ir al menú (la sesión se cierra solo desde
+            el menú): salir a mitad de una corrección perdería lo que se lleva. Guardar y cerrar
             van como sus botones; en el celular el encabezado no los muestra:
             van abajo o, acostado, a la izquierda. */}
         <Box
@@ -1712,7 +1712,6 @@ export default function CorregirFacturaDialog({ open, onClose, cliente, factura,
             role={usuario.role}
             genero={usuario.genero}
             conLogo
-            sinCerrarSesion
             sinIrAlMenu
             compacto={esCompacta}
             vista={`Corregir factura ${datosFactura(factura).numeroFactura ?? ""}`}
